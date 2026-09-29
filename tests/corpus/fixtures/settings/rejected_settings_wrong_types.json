@@ -1,0 +1,5 @@
+{
+  "version": "not_an_int",
+  "themePreset": 12345,
+  "defaultVolume": "maximum_loudness"
+}

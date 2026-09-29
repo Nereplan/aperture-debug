@@ -1,0 +1,565 @@
+{
+  "$schema": "./suites.schema.json",
+  "version": 1,
+  "description": "Authoritative inventory of durable Aperture test suites and verification gates",
+  "validTiers": [
+    "pr",
+    "package",
+    "fuzz",
+    "manual"
+  ],
+  "validCategories": [
+    "unit",
+    "integration",
+    "persistence",
+    "ipc",
+    "loader",
+    "diagnostics",
+    "updater",
+    "package",
+    "fuzz",
+    "hardening",
+    "static_analysis",
+    "benchmark",
+    "visual",
+    "corpus",
+    "stress"
+  ],
+  "suites": [
+    {
+      "id": "github_update",
+      "name": "GitHub Release Update Workflow",
+      "category": "package",
+      "tier": "pr",
+      "platform": "windows-x64",
+      "script": "tests/package/test_github_update.ps1",
+      "command": "powershell",
+      "arguments": [],
+      "prerequisites": [],
+      "artifactPolicy": "isolated_temp",
+      "timeoutSeconds": 60,
+      "description": "Exercises the real GitHub update entry point with fixture HTTP responses: full ZIP deployment, digest rejection, retained session, and up-to-date no-op."
+    },
+    {
+      "id": "update_retention",
+      "name": "Release Update and Data Retention",
+      "category": "package",
+      "tier": "pr",
+      "platform": "windows-x64",
+      "script": "tests/package/test_update_retention.ps1",
+      "command": "powershell",
+      "arguments": [],
+      "prerequisites": [],
+      "artifactPolicy": "isolated_temp",
+      "timeoutSeconds": 60,
+      "description": "Exercises the production installer, profile snapshots and retention, real locked-file rollback, package tampering and protected paths."
+    },
+    {
+      "id": "workspace_cleanup",
+      "name": "Workspace Cleanup Behavior",
+      "category": "package",
+      "tier": "pr",
+      "platform": "windows-x64",
+      "script": "tests/package/test_workspace_cleanup.ps1",
+      "command": "powershell",
+      "arguments": [],
+      "prerequisites": [],
+      "artifactPolicy": "isolated_temp",
+      "timeoutSeconds": 60,
+      "description": "Executes cleanup against an isolated workspace fixture and verifies dry-run behavior, exact artifact removal, unchanged profiles/backups/source/reports and repeatability."
+    },
+    {
+      "id": "workflow_mutations",
+      "name": "Workflow Mutation Verification",
+      "category": "integration",
+      "tier": "manual",
+      "platform": "windows-x64",
+      "script": "tests/workflows/verify_mutations.ps1",
+      "command": "powershell",
+      "arguments": [],
+      "prerequisites": [
+        "msvc_x64"
+      ],
+      "artifactPolicy": "isolated_temp",
+      "timeoutSeconds": 300,
+      "description": "Builds isolated source copies with reversed duration ordering and lost saved resume positions. Requires the corresponding behavioral assertion to fail; compilation errors and unrelated failures do not count."
+    },
+    {
+      "id": "workflows",
+      "name": "Seeded Library and Portable Profile Workflows",
+      "category": "integration",
+      "tier": "pr",
+      "platform": "windows-x64",
+      "script": "tests/workflows/run_tests.ps1",
+      "command": "powershell",
+      "arguments": [],
+      "prerequisites": [
+        "msvc_x64"
+      ],
+      "artifactPolicy": "isolated_temp",
+      "timeoutSeconds": 240,
+      "description": "Seeded Unicode libraries, independent ordering oracle, cache edits, real WAV imports, duplicate imports, actual save/load, resume positions, playlist deletion, preferences, bookmarks and portable relocation. Fixed regression seeds plus a logged random seed; replay with -Seed."
+    },
+    {
+      "id": "app_workflows",
+      "name": "Real App Playback and Restart Workflows",
+      "category": "integration",
+      "tier": "manual",
+      "platform": "windows-x64",
+      "script": "tests/workflows/run_tests.ps1",
+      "command": "powershell",
+      "arguments": [
+        "-AppOnly"
+      ],
+      "prerequisites": [
+        "msvc_x64",
+        "built_binary",
+        "interactive_desktop"
+      ],
+      "artifactPolicy": "isolated_temp",
+      "timeoutSeconds": 180,
+      "description": "Runs an isolated real executable with generated PCM media through public IPC: decode, pause stability, advancing playback clock, seek accuracy, queue next/previous, stop, three restart cycles, on-disk resume verification and command latency. Refuses to touch an existing app session."
+    },
+    {
+      "id": "unit",
+      "name": "Unit Tests",
+      "category": "unit",
+      "tier": "pr",
+      "platform": "windows-x64",
+      "script": "tests/unit/run_tests.ps1",
+      "command": "powershell",
+      "arguments": [],
+      "prerequisites": [
+        "msvc_x64"
+      ],
+      "artifactPolicy": "isolated_temp",
+      "timeoutSeconds": 300,
+      "description": "Comprehensive unit test suite for media library, subtitles, audio, video adjustments, playback session, accessibility, and UI components."
+    },
+    {
+      "id": "corpus",
+      "name": "Parser & Media Corpus Tests",
+      "category": "corpus",
+      "tier": "pr",
+      "platform": "windows-x64",
+      "script": "tests/corpus/run_tests.ps1",
+      "command": "powershell",
+      "arguments": [],
+      "prerequisites": [
+        "msvc_x64"
+      ],
+      "artifactPolicy": "isolated_temp",
+      "timeoutSeconds": 180,
+      "description": "Deterministic manifest-driven corpus test suite exercising observable accept/reject behavior, malformed/truncated boundaries, Unicode, and extension disagreement for JSON, playlists, subtitles, URLs, command-line/IPC, settings, and media containers."
+    },
+    {
+      "id": "integration",
+      "name": "Rendering Integration Tests",
+      "category": "integration",
+      "tier": "manual",
+      "platform": "windows-x64",
+      "script": "tests/integration/run_tests.ps1",
+      "command": "powershell",
+      "arguments": [],
+      "prerequisites": [
+        "msvc_x64"
+      ],
+      "artifactPolicy": "isolated_temp",
+      "timeoutSeconds": 120,
+      "description": "Direct2D DC render target and DirectWrite color font text layout rendering integration tests."
+    },
+    {
+      "id": "ui_smoke",
+      "name": "Real UI Crash Smoke Test",
+      "category": "integration",
+      "tier": "manual",
+      "platform": "windows-x64",
+      "script": "tests/ui_smoke/run_tests.ps1",
+      "command": "powershell",
+      "arguments": [],
+      "prerequisites": [
+        "built_binary",
+        "interactive_desktop",
+        "test_media_file"
+      ],
+      "artifactPolicy": "isolated_temp",
+      "timeoutSeconds": 180,
+      "description": "End-to-end native-window smoke test that opens the supplied video through Aperture's real launch path, opens and dismisses the native file picker, exercises hover, scrolling, Settings, right-click, and library removal, and records process liveness plus matching WER crash evidence after each action."
+    },
+    {
+      "id": "persistence",
+      "name": "Persistence Tests",
+      "category": "persistence",
+      "tier": "pr",
+      "platform": "windows-x64",
+      "script": "tests/persistence/run_tests.ps1",
+      "command": "powershell",
+      "arguments": [],
+      "prerequisites": [
+        "msvc_x64"
+      ],
+      "artifactPolicy": "isolated_temp",
+      "timeoutSeconds": 180,
+      "description": "Persistence, JSON serialization limits, schema migration, cache budget, rotating backups, and portable path relocation tests."
+    },
+    {
+      "id": "ipc",
+      "name": "IPC Tests",
+      "category": "ipc",
+      "tier": "pr",
+      "platform": "windows-x64",
+      "script": "tests/ipc/run_tests.ps1",
+      "command": "powershell",
+      "arguments": [],
+      "prerequisites": [
+        "msvc_x64"
+      ],
+      "artifactPolicy": "isolated_temp",
+      "timeoutSeconds": 120,
+      "description": "Single-instance named pipe IPC envelope serialization, framing, and command dispatch tests."
+    },
+    {
+      "id": "loader",
+      "name": "DLL Loader Tests",
+      "category": "loader",
+      "tier": "pr",
+      "platform": "windows-x64",
+      "script": "tests/loader/run_tests.ps1",
+      "command": "powershell",
+      "arguments": [],
+      "prerequisites": [
+        "msvc_x64"
+      ],
+      "artifactPolicy": "isolated_temp",
+      "timeoutSeconds": 120,
+      "description": "Dynamic DLL loading isolation and runtime dependency resolution tests for libmpv."
+    },
+    {
+      "id": "diagnostics",
+      "name": "Diagnostics Tests",
+      "category": "diagnostics",
+      "tier": "pr",
+      "platform": "windows-x64",
+      "script": "tests/diagnostics/run_tests.ps1",
+      "command": "powershell",
+      "arguments": [],
+      "prerequisites": [
+        "msvc_x64"
+      ],
+      "artifactPolicy": "isolated_temp",
+      "timeoutSeconds": 180,
+      "description": "Root-local logging, diagnostic bundle generation, non-destructive live hang dump capture, and unhandled exception crash dump verification."
+    },
+    {
+      "id": "updater",
+      "name": "Self-Updater Deterministic Tests",
+      "category": "updater",
+      "tier": "pr",
+      "platform": "windows-x64",
+      "script": "tests/updater/run_tests.ps1",
+      "command": "powershell",
+      "arguments": [],
+      "prerequisites": [
+        "msvc_x64"
+      ],
+      "artifactPolicy": "isolated_temp",
+      "timeoutSeconds": 180,
+      "description": "Deterministic self-updater verification: canonical manifest validation, ECDSA P-256 detached signatures, SHA-256 hashes, Authenticode thumbprint pinning, PE x64 architecture, bounds, atomic swap and rollback, same-user helper verification, and temp cleanup."
+    },
+    {
+      "id": "channel_policy",
+      "name": "Release Channel Policy & Schema Validation",
+      "category": "package",
+      "tier": "pr",
+      "platform": "windows-x64",
+      "script": "scripts/validate_channel_policy.ps1",
+      "command": "powershell",
+      "arguments": [
+        "-Validate"
+      ],
+      "prerequisites": [],
+      "artifactPolicy": "no_artifacts",
+      "timeoutSeconds": 30,
+      "description": "Validation of authoritative release channel policy (channels.json), schema integrity, prerelease rules, and promotion constraints."
+    },
+    {
+      "id": "dependencies",
+      "name": "Dependency Inventory & Integrity Check",
+      "category": "package",
+      "tier": "pr",
+      "platform": "windows-x64",
+      "script": "scripts/check_dependencies.ps1",
+      "command": "powershell",
+      "arguments": [
+        "-Validate"
+      ],
+      "prerequisites": [],
+      "artifactPolicy": "no_artifacts",
+      "timeoutSeconds": 60,
+      "description": "Validation of authoritative dependency inventory, toolchain versions, and SHA-256 hashes for all vendored runtime, header, and font artifacts."
+    },
+    {
+      "id": "runtime_layout",
+      "name": "Runtime-Only Release Layout Tests",
+      "category": "package",
+      "tier": "pr",
+      "platform": "windows-x64",
+      "script": "tests/package/test_runtime_layout.ps1",
+      "command": "powershell",
+      "arguments": [],
+      "prerequisites": [],
+      "artifactPolicy": "isolated_temp",
+      "timeoutSeconds": 30,
+      "description": "Verifies that published runtime folders accept only Aperture.exe, libmpv, required private fonts, and locale catalogs, while rejecting manifests, symbols, writable state, missing assets, and modified dependencies."
+    },
+    {
+      "id": "threat_boundaries",
+      "name": "Threat Boundary & Security Invariant Validation",
+      "category": "hardening",
+      "tier": "pr",
+      "platform": "windows-x64",
+      "script": "scripts/validate_threat_boundaries.py",
+      "command": "python",
+      "arguments": [],
+      "prerequisites": [
+        "python3"
+      ],
+      "artifactPolicy": "no_artifacts",
+      "timeoutSeconds": 30,
+      "description": "Validation of authoritative threat boundary reference, machine-readable manifest, C++ symbol references, test coverage mappings, and portable storage invariants."
+    },
+    {
+      "id": "package_pe_dependencies",
+      "name": "PE Dependencies & Static Runtime Tests",
+      "category": "package",
+      "tier": "package",
+      "platform": "windows-x64",
+      "script": "tests/package/test_pe_dependencies.py",
+      "command": "python",
+      "arguments": [],
+      "prerequisites": [
+        "python3"
+      ],
+      "artifactPolicy": "no_artifacts",
+      "timeoutSeconds": 60,
+      "description": "Pure-Python PE parser validation, strict x64 machine architecture enforcement, and static C/C++ runtime linkage check."
+    },
+    {
+      "id": "package_verification",
+      "name": "Package Distribution Verification",
+      "category": "package",
+      "tier": "package",
+      "platform": "windows-x64",
+      "script": "scripts/verify_package.ps1",
+      "command": "powershell",
+      "arguments": [],
+      "prerequisites": [
+        "python3",
+        "built_release_package"
+      ],
+      "artifactPolicy": "isolated_temp",
+      "timeoutSeconds": 300,
+      "description": "Package integrity verification, SHA-256 validation, PE import evidence, isolated temporary staging startup, and exact-PID lifecycle verification."
+    },
+    {
+      "id": "package_signing",
+      "name": "Authenticode Signing & Verification Tests",
+      "category": "package",
+      "tier": "package",
+      "platform": "windows-x64",
+      "script": "tests/package/test_package_signing.py",
+      "command": "python",
+      "arguments": [],
+      "prerequisites": [
+        "python3"
+      ],
+      "artifactPolicy": "isolated_temp",
+      "timeoutSeconds": 180,
+      "description": "Authenticode code-signing, signtool discovery, certificate validation, EKU/expiry verification, SHA-256 digest/timestamp enforcement, dry-run mode, and unsigned package reporting tests."
+    },
+    {
+      "id": "package_symbol_archive",
+      "name": "Release Symbol Archive & PE/PDB Metadata Tests",
+      "category": "package",
+      "tier": "package",
+      "platform": "windows-x64",
+      "script": "tests/package/test_symbol_archive.py",
+      "command": "python",
+      "arguments": [],
+      "prerequisites": [
+        "python3"
+      ],
+      "artifactPolicy": "isolated_temp",
+      "timeoutSeconds": 180,
+      "description": "Deterministic symbol archive creation, verification, PE CodeView RSDS extraction, PDB MSF 7.0 stream inspection, content-address naming enforcement, and tamper detection."
+    },
+    {
+      "id": "fuzz_subtitle",
+      "name": "Subtitle Parser Fuzz Harness",
+      "category": "fuzz",
+      "tier": "fuzz",
+      "platform": "windows-x64",
+      "script": "tests/fuzz/run_subtitle_fuzz.ps1",
+      "command": "powershell",
+      "arguments": [],
+      "prerequisites": [
+        "msvc_x64"
+      ],
+      "artifactPolicy": "isolated_temp",
+      "timeoutSeconds": 300,
+      "description": "Subtitle parser fuzzing with random and mutated subtitle inputs."
+    },
+    {
+      "id": "fuzz_json",
+      "name": "JSON Mutation Fuzz Harness",
+      "category": "fuzz",
+      "tier": "fuzz",
+      "platform": "windows-x64",
+      "script": "tests/fuzz/run_json_fuzz.ps1",
+      "command": "powershell",
+      "arguments": [],
+      "prerequisites": [
+        "msvc_x64"
+      ],
+      "artifactPolicy": "isolated_temp",
+      "timeoutSeconds": 300,
+      "description": "JsonValue parser and serializer mutation fuzz harness."
+    },
+    {
+      "id": "fuzz_profile",
+      "name": "Profile Deterministic Fuzz Harness",
+      "category": "fuzz",
+      "tier": "fuzz",
+      "platform": "windows-x64",
+      "script": "tests/fuzz/run_profile_fuzz.ps1",
+      "command": "powershell",
+      "arguments": [],
+      "prerequisites": [
+        "msvc_x64"
+      ],
+      "artifactPolicy": "isolated_temp",
+      "timeoutSeconds": 300,
+      "description": "Deterministic fuzz testing of user settings and media profile mutations."
+    },
+    {
+      "id": "app_verifier",
+      "name": "Application Verifier Hardening Gate",
+      "category": "hardening",
+      "tier": "manual",
+      "platform": "windows-x64",
+      "script": "scripts/run_app_verifier.ps1",
+      "command": "powershell",
+      "arguments": [],
+      "prerequisites": [
+        "appverif_exe",
+        "built_binary"
+      ],
+      "artifactPolicy": "ephemeral_settings",
+      "timeoutSeconds": 300,
+      "description": "Runtime heap, handle, lock, and memory verification using Microsoft Application Verifier."
+    },
+    {
+      "id": "reproducibility_gate",
+      "name": "Deterministic Release Build Reproducibility Gate",
+      "category": "package",
+      "tier": "manual",
+      "platform": "windows-x64",
+      "script": "scripts/verify_reproducibility.ps1",
+      "command": "powershell",
+      "arguments": [],
+      "prerequisites": [
+        "msvc_x64",
+        "cmake",
+        "python3"
+      ],
+      "artifactPolicy": "isolated_temp",
+      "timeoutSeconds": 600,
+      "description": "Two clean isolated Release builds from identical sources/toolchain produce equivalent normalized binaries with structural PE verification, compiler/SDK metadata reporting, and guaranteed temporary cleanup."
+    },
+    {
+      "id": "static_analysis",
+      "name": "MSVC C++17 Native Static Code Analysis Gate",
+      "category": "static_analysis",
+      "tier": "pr",
+      "platform": "windows-x64",
+      "script": "scripts/run_static_analysis.ps1",
+      "command": "powershell",
+      "arguments": [],
+      "prerequisites": [
+        "msvc_x64",
+        "cmake"
+      ],
+      "artifactPolicy": "isolated_temp",
+      "timeoutSeconds": 300,
+      "description": "Deterministic MSVC C++17 native static code analysis (/analyze) using authoritative CMake source/build configuration with external temporary directory isolation and guaranteed artifact cleanup."
+    },
+    {
+      "id": "benchmark",
+      "name": "Startup & Resource Benchmark Gate",
+      "category": "benchmark",
+      "tier": "manual",
+      "platform": "windows-x64",
+      "script": "tests/benchmark/run_tests.ps1",
+      "command": "powershell",
+      "arguments": [],
+      "prerequisites": [
+        "msvc_x64",
+        "cmake",
+        "python3"
+      ],
+      "artifactPolicy": "isolated_temp",
+      "timeoutSeconds": 300,
+      "description": "Deterministic startup latency and memory resource benchmark gate with explicit regression budgets, isolated temporary staging, and guaranteed cleanup."
+    },
+    {
+      "id": "visual",
+      "name": "Visual Regression Gate",
+      "category": "visual",
+      "tier": "manual",
+      "platform": "windows-x64",
+      "script": "tests/visual/run_tests.ps1",
+      "command": "powershell",
+      "arguments": [],
+      "prerequisites": [
+        "msvc_x64",
+        "cmake",
+        "python3"
+      ],
+      "artifactPolicy": "isolated_temp",
+      "timeoutSeconds": 300,
+      "description": "Deterministic real-window visual regression capture and pixel comparison on Windows with fixed scenes, explicit tolerances, external diagnostics, and guaranteed temporary cleanup."
+    },
+    {
+      "id": "stress",
+      "name": "Async Shutdown Stress Suite",
+      "category": "stress",
+      "tier": "pr",
+      "platform": "windows-x64",
+      "script": "tests/stress/run_tests.ps1",
+      "command": "powershell",
+      "arguments": [],
+      "prerequisites": [
+        "msvc_x64"
+      ],
+      "artifactPolicy": "isolated_temp",
+      "timeoutSeconds": 180,
+      "description": "Deterministic async shutdown stress harness exercising concurrent media/folder work, player event callbacks, HTTP updater/subtitle bounded fakes, diagnostics watchdog, and UI callback dispatch under seeded schedules with lifetime/leak invariant verification."
+    },
+    {
+      "id": "thumbnail_cache",
+      "name": "Thumbnail Cache Workflows",
+      "category": "persistence",
+      "tier": "pr",
+      "platform": "windows-x64",
+      "script": "tests/thumbnails/run_tests.ps1",
+      "command": "powershell",
+      "arguments": [],
+      "prerequisites": [
+        "msvc_x64"
+      ],
+      "artifactPolicy": "isolated_temp",
+      "timeoutSeconds": 120,
+      "description": "Production image codec, legacy background migration, corruption recovery, protected library cache, active budgets, concurrent writers, and large-cache accounting."
+    }
+  ]
+}

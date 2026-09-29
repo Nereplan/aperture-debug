@@ -1,0 +1,254 @@
+#pragma once
+
+#include "../support/TestFramework.h"
+#include "../../src/MediaLibrary.h"
+#include "../../src/Json.h"
+#include <string>
+#include <vector>
+
+namespace Aperture::Test {
+
+TEST_CASE(SmartPlaylists, RuleMatchingByTitleAndPath) {
+    MediaItem item;
+    item.id = "item_1";
+    item.title = L"Avengers Endgame 2019";
+    item.filePath = L"C:\\Media\\Movies\\Avengers.mkv";
+
+    SmartPlaylistRule titleRule;
+    titleRule.field = SmartRuleField::Title;
+    titleRule.op = SmartRuleOperator::Contains;
+    titleRule.value = "endgame";
+    TEST_ASSERT(titleRule.Matches(item));
+
+    titleRule.value = "batman";
+    TEST_ASSERT(!titleRule.Matches(item));
+
+    SmartPlaylistRule pathRule;
+    pathRule.field = SmartRuleField::Path;
+    pathRule.op = SmartRuleOperator::EndsWith;
+    pathRule.value = ".mkv";
+    TEST_ASSERT(pathRule.Matches(item));
+
+    pathRule.value = ".mp4";
+    TEST_ASSERT(!pathRule.Matches(item));
+}
+
+TEST_CASE(SmartPlaylists, RuleMatchingByStatusDurationAndProgress) {
+    MediaItem item;
+    item.id = "item_2";
+    item.title = L"Tutorial Episode 1";
+    item.filePath = L"C:\\Media\\Tutorial.mp4";
+    item.status = "in_progress";
+    item.durationSec = 1800.0; // 30 mins
+    item.lastPosSec = 900.0;   // 50%
+
+    SmartPlaylistRule statusRule;
+    statusRule.field = SmartRuleField::Status;
+    statusRule.op = SmartRuleOperator::Equals;
+    statusRule.value = "in_progress";
+    TEST_ASSERT(statusRule.Matches(item));
+
+    statusRule.value = "done";
+    TEST_ASSERT(!statusRule.Matches(item));
+
+    SmartPlaylistRule durRule;
+    durRule.field = SmartRuleField::Duration;
+    durRule.op = SmartRuleOperator::GreaterThan;
+    durRule.value = "20m"; // 1200s
+    TEST_ASSERT(durRule.Matches(item));
+
+    durRule.value = "40m"; // 2400s
+    TEST_ASSERT(!durRule.Matches(item));
+
+    SmartPlaylistRule progRule;
+    progRule.field = SmartRuleField::Progress;
+    progRule.op = SmartRuleOperator::GreaterThanOrEqual;
+    progRule.value = "0.5";
+    TEST_ASSERT(progRule.Matches(item));
+}
+
+TEST_CASE(SmartPlaylists, CriteriaMatchAllAndMatchAny) {
+    MediaItem item1;
+    item1.title = L"Action Movie";
+    item1.status = "new";
+    item1.durationSec = 6000.0;
+
+    SmartPlaylistCriteria critAll;
+    critAll.matchMode = SmartMatchMode::MatchAll;
+    critAll.rules.push_back({ SmartRuleField::Title, SmartRuleOperator::Contains, "Action" });
+    critAll.rules.push_back({ SmartRuleField::Status, SmartRuleOperator::Equals, "new" });
+    TEST_ASSERT(critAll.Matches(item1));
+
+    critAll.rules.push_back({ SmartRuleField::Status, SmartRuleOperator::Equals, "done" });
+    TEST_ASSERT(!critAll.Matches(item1));
+
+    SmartPlaylistCriteria critAny;
+    critAny.matchMode = SmartMatchMode::MatchAny;
+    critAny.rules = critAll.rules;
+    TEST_ASSERT(critAny.Matches(item1));
+}
+
+TEST_CASE(SmartPlaylists, DeterministicEvaluationAndProjection) {
+    MediaLibrary lib;
+    
+    MediaItem a;
+    a.id = "a";
+    a.title = L"Beta Video";
+    a.filePath = L"C:\\Media\\beta.mp4";
+    a.status = "new";
+    a.durationSec = 500.0;
+    lib.mediaItems.push_back(a);
+
+    MediaItem b;
+    b.id = "b";
+    b.title = L"Alpha Video";
+    b.filePath = L"C:\\Media\\alpha.mp4";
+    b.status = "new";
+    b.durationSec = 1000.0;
+    lib.mediaItems.push_back(b);
+
+    MediaItem c;
+    c.id = "c";
+    c.title = L"Gamma Video";
+    c.filePath = L"C:\\Media\\gamma.mp4";
+    c.status = "done";
+    c.durationSec = 200.0;
+    lib.mediaItems.push_back(c);
+
+    SmartPlaylistCriteria crit;
+    crit.rules.push_back({ SmartRuleField::Status, SmartRuleOperator::Equals, "new" });
+    crit.sortField = 0; // Title
+    crit.sortDirection = 0; // Ascending
+
+    std::vector<std::wstring> result = lib.EvaluateSmartPlaylist(crit);
+    TEST_ASSERT_EQ(result.size(), 2);
+    TEST_ASSERT_EQ(result[0], L"C:\\Media\\alpha.mp4");
+    TEST_ASSERT_EQ(result[1], L"C:\\Media\\beta.mp4");
+}
+
+TEST_CASE(SmartPlaylists, SmartPlaylistLifecycleAndImmutability) {
+    MediaLibrary lib;
+    
+    SmartPlaylistCriteria crit;
+    crit.rules.push_back({ SmartRuleField::Title, SmartRuleOperator::Contains, "Test" });
+
+    Playlist* smartPl = lib.CreateSmartPlaylist("My Smart Playlist", crit);
+    TEST_ASSERT(smartPl != nullptr);
+    TEST_ASSERT(smartPl->IsSmart());
+    TEST_ASSERT_EQ(smartPl->type, PlaylistType::Smart);
+    std::string plId = smartPl->id;
+
+    // Direct item mutation should be rejected on smart playlists
+    TEST_ASSERT(!lib.AddToPlaylist(plId, L"C:\\Media\\manual.mp4"));
+    TEST_ASSERT(!lib.RemoveFromPlaylist(plId, 0));
+
+    // Update criteria
+    crit.rules.push_back({ SmartRuleField::Status, SmartRuleOperator::Equals, "new" });
+    TEST_ASSERT(lib.UpdateSmartPlaylist(plId, "Renamed Smart Playlist", crit));
+    
+    Playlist* updated = lib.FindPlaylist(plId);
+    TEST_ASSERT(updated != nullptr);
+    TEST_ASSERT_EQ(updated->name, "Renamed Smart Playlist");
+    TEST_ASSERT_EQ(updated->smartCriteria.rules.size(), 2);
+
+    // Delete
+    TEST_ASSERT(lib.DeletePlaylist(plId));
+    TEST_ASSERT(lib.FindPlaylist(plId) == nullptr);
+}
+
+TEST_CASE(SmartPlaylists, SerializationAndUnknownFieldsPreservation) {
+    Playlist pl;
+    pl.id = "pl_smart_test";
+    pl.name = "Smart Unwatched";
+    pl.type = PlaylistType::Smart;
+    pl.smartCriteria.rules.push_back({ SmartRuleField::Status, SmartRuleOperator::Equals, "new" });
+    pl.smartCriteria.sortField = 1; // DateAdded
+    pl.smartCriteria.sortDirection = 1; // Descending
+    pl.extraFields = JsonValue::Object();
+    pl.extraFields["customAnnotation"] = "User note";
+
+    JsonValue serialized = pl.extraFields;
+    serialized["id"] = pl.id;
+    serialized["name"] = pl.name;
+    serialized["createdTimestamp"] = pl.createdTimestamp;
+    serialized["type"] = pl.IsSmart() ? "smart" : "manual";
+    serialized["isSmart"] = pl.IsSmart();
+    serialized["smartCriteria"] = pl.smartCriteria.ToJson();
+
+    std::string jsonStr = serialized.stringify(false);
+
+    JsonValue parsed;
+    TEST_ASSERT(JsonValue::parse(jsonStr, parsed));
+    TEST_ASSERT_EQ(parsed.get("id").as_string(), "pl_smart_test");
+    TEST_ASSERT_EQ(parsed.get("type").as_string(), "smart");
+    TEST_ASSERT_EQ(parsed.get("isSmart").as_bool(), true);
+    TEST_ASSERT_EQ(parsed.get("customAnnotation").as_string(), "User note");
+
+    SmartPlaylistCriteria loadedCrit = SmartPlaylistCriteria::FromJson(parsed.get("smartCriteria"));
+    TEST_ASSERT_EQ(loadedCrit.rules.size(), 1);
+    TEST_ASSERT_EQ(loadedCrit.rules[0].value, "new");
+    TEST_ASSERT_EQ(loadedCrit.sortField, 1);
+    TEST_ASSERT_EQ(loadedCrit.sortDirection, 1);
+}
+
+TEST_CASE(SmartPlaylists, ProgressRefreshesPathsAndStatsWithoutStatusChange) {
+    MediaLibrary library;
+    MediaItem item;
+    item.id = "progress-item";
+    item.filePath = L"C:\\Media\\progress.mkv";
+    item.title = L"Progress";
+    item.durationSec = 100;
+    item.lastPosSec = 10;
+    item.status = "in_progress";
+    library.mediaItems.push_back(item);
+    Playlist playlist;
+    playlist.id = "progress-playlist";
+    playlist.type = PlaylistType::Smart;
+    SmartPlaylistRule rule;
+    rule.field = SmartRuleField::Progress;
+    rule.op = SmartRuleOperator::GreaterThanOrEqual;
+    rule.value = "0.5";
+    playlist.smartCriteria.rules.push_back(rule);
+    library.playlists.push_back(playlist);
+    const auto& stored = library.playlists.front();
+    TEST_ASSERT(library.GetPlaylistPathsRef(stored).empty());
+    TEST_ASSERT_EQ(library.GetPlaylistStats(stored.id).totalCount, 0);
+    library.UpdateProgress(item.filePath, 60, 100);
+    TEST_ASSERT_EQ(library.GetPlaylistPathsRef(stored).size(), size_t(1));
+    TEST_ASSERT_EQ(library.GetPlaylistPaths(stored).size(), size_t(1));
+    TEST_ASSERT_EQ(library.GetPlaylistStats(stored.id).totalCount, 1);
+    library.UpdateProgress(item.filePath, 20, 100);
+    TEST_ASSERT(library.GetPlaylistPathsRef(stored).empty());
+    TEST_ASSERT_EQ(library.GetPlaylistStats(stored.id).totalCount, 0);
+}
+
+TEST_CASE(SmartPlaylists, LimitedEvaluationMatchesUnlimitedPrefix) {
+    MediaLibrary library;
+    for (int i = 199; i >= 0; --i) {
+        MediaItem item;
+        item.id = std::to_string(i / 2);
+        item.filePath = L"C:\\Media\\Video" + std::to_wstring(i / 2) + L".mkv";
+        item.title = L"Video " + std::to_wstring(i % 9);
+        item.addedTimestamp = i / 4;
+        item.lastWatchedTimestamp = i / 6;
+        item.durationSec = 100 + i / 8;
+        item.lastPosSec = i / 10;
+        library.mediaItems.push_back(std::move(item));
+    }
+    for (int field = 0; field <= 5; ++field) {
+        for (int direction = 0; direction <= 1; ++direction) {
+            SmartPlaylistCriteria criteria;
+            criteria.sortField = field;
+            criteria.sortDirection = direction;
+            const auto full = library.EvaluateSmartPlaylist(criteria);
+            for (size_t limit : {size_t(1), size_t(2), size_t(50), size_t(199), size_t(200), size_t(201)}) {
+                criteria.limit = limit;
+                const auto paths = library.EvaluateSmartPlaylist(criteria);
+                TEST_ASSERT_EQ(paths.size(), (std::min)(limit, full.size()));
+                for (size_t i = 0; i < paths.size(); ++i) TEST_ASSERT_EQ(paths[i], full[i]);
+            }
+        }
+    }
+}
+
+} // namespace Aperture::Test

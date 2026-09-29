@@ -1,0 +1,28 @@
+[
+  {
+    "id": "rel_1",
+    "filePath": ".\\media\\animation\\short.mp4",
+    "title": "short",
+    "durationSec": 180.0,
+    "lastPosSec": 90.0,
+    "status": "in_progress",
+    "fileSizeBytes": 12000000,
+    "lastWatchedTimestamp": 1788004000,
+    "addedTimestamp": 1788003000,
+    "videoWidth": 1920,
+    "videoHeight": 1080
+  },
+  {
+    "id": "rel_2",
+    "filePath": ".\\data\\samples\\test_clip.mkv",
+    "title": "test_clip",
+    "durationSec": 60.0,
+    "lastPosSec": 0.0,
+    "status": "new",
+    "fileSizeBytes": 5000000,
+    "lastWatchedTimestamp": 0,
+    "addedTimestamp": 1788003500,
+    "videoWidth": 1280,
+    "videoHeight": 720
+  }
+]

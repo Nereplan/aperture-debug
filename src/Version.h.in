@@ -1,0 +1,153 @@
+#pragma once
+
+// ===========================================================================
+// Aperture Version & Product Metadata
+// Generated from authoritative version.json - DO NOT EDIT MANUALLY
+// ===========================================================================
+
+#define APERTURE_VERSION_MAJOR @APERTURE_VERSION_MAJOR@
+#define APERTURE_VERSION_MINOR @APERTURE_VERSION_MINOR@
+#define APERTURE_VERSION_PATCH @APERTURE_VERSION_PATCH@
+#define APERTURE_VERSION_BUILD @APERTURE_VERSION_BUILD@
+
+#define APERTURE_VERSION_CSV @APERTURE_VERSION_MAJOR@,@APERTURE_VERSION_MINOR@,@APERTURE_VERSION_PATCH@,@APERTURE_VERSION_BUILD@
+#define APERTURE_VERSION_STRING "@APERTURE_VERSION_STRING@"
+#define APERTURE_VERSION_WIDE L"@APERTURE_VERSION_STRING@"
+
+#define APERTURE_DISPLAY_VERSION "@APERTURE_DISPLAY_VERSION@"
+#define APERTURE_DISPLAY_VERSION_WIDE L"@APERTURE_DISPLAY_VERSION@"
+
+#define APERTURE_COMPANY_NAME "@APERTURE_COMPANY_NAME@"
+#define APERTURE_COMPANY_NAME_WIDE L"@APERTURE_COMPANY_NAME@"
+
+#define APERTURE_FILE_DESCRIPTION "@APERTURE_FILE_DESCRIPTION@"
+#define APERTURE_FILE_DESCRIPTION_WIDE L"@APERTURE_FILE_DESCRIPTION@"
+
+#define APERTURE_FILE_VERSION "@APERTURE_FILE_VERSION@"
+#define APERTURE_FILE_VERSION_WIDE L"@APERTURE_FILE_VERSION@"
+
+#define APERTURE_INTERNAL_NAME "@APERTURE_INTERNAL_NAME@"
+#define APERTURE_INTERNAL_NAME_WIDE L"@APERTURE_INTERNAL_NAME@"
+
+#define APERTURE_LEGAL_COPYRIGHT "@APERTURE_LEGAL_COPYRIGHT@"
+#define APERTURE_LEGAL_COPYRIGHT_WIDE L"@APERTURE_LEGAL_COPYRIGHT@"
+
+#define APERTURE_ORIGINAL_FILENAME "@APERTURE_ORIGINAL_FILENAME@"
+#define APERTURE_ORIGINAL_FILENAME_WIDE L"@APERTURE_ORIGINAL_FILENAME@"
+
+#define APERTURE_PRODUCT_NAME "@APERTURE_PRODUCT_NAME@"
+#define APERTURE_PRODUCT_NAME_WIDE L"@APERTURE_PRODUCT_NAME@"
+
+#define APERTURE_PRODUCT_VERSION "@APERTURE_PRODUCT_VERSION@"
+#define APERTURE_PRODUCT_VERSION_WIDE L"@APERTURE_PRODUCT_VERSION@"
+
+#define APERTURE_COMMENTS "@APERTURE_COMMENTS@"
+#define APERTURE_COMMENTS_WIDE L"@APERTURE_COMMENTS@"
+
+#define APERTURE_LANG_ID @APERTURE_LANG_ID_INT@
+#define APERTURE_CODEPAGE_ID @APERTURE_CODEPAGE_ID_INT@
+#define APERTURE_TRANSLATION_STRING "@APERTURE_TRANSLATION_STRING@"
+
+
+#define APERTURE_BUILD_COMMIT "@APERTURE_BUILD_COMMIT@"
+#define APERTURE_BUILD_COMMIT_WIDE L"@APERTURE_BUILD_COMMIT@"
+#define APERTURE_BUILD_REPOSITORY "@APERTURE_BUILD_REPOSITORY@"
+#define APERTURE_BUILD_REPOSITORY_WIDE L"@APERTURE_BUILD_REPOSITORY@"
+#define APERTURE_BUILD_CHANNEL "@APERTURE_BUILD_CHANNEL@"
+#define APERTURE_BUILD_CHANNEL_WIDE L"@APERTURE_BUILD_CHANNEL@"
+#define APERTURE_TARGET_ARCH "@APERTURE_TARGET_ARCH@"
+#define APERTURE_TARGET_ARCH_WIDE L"@APERTURE_TARGET_ARCH@"
+#define APERTURE_COMPILER_NAME "@APERTURE_COMPILER_NAME@"
+#define APERTURE_COMPILER_NAME_WIDE L"@APERTURE_COMPILER_NAME@"
+#define APERTURE_COMPILER_VERSION "@APERTURE_COMPILER_VERSION@"
+#define APERTURE_COMPILER_VERSION_WIDE L"@APERTURE_COMPILER_VERSION@"
+#define APERTURE_WINDOWS_SDK_VERSION "@APERTURE_WINDOWS_SDK_VERSION@"
+#define APERTURE_WINDOWS_SDK_VERSION_WIDE L"@APERTURE_WINDOWS_SDK_VERSION@"
+
+#define APERTURE_LIBMPV_VERSION "@APERTURE_LIBMPV_VERSION@"
+#define APERTURE_LIBMPV_CLIENT_API "@APERTURE_LIBMPV_CLIENT_API@"
+#define APERTURE_LIBMPV_ABI "@APERTURE_LIBMPV_ABI@"
+#define APERTURE_LIBMPV_SHA256 "@APERTURE_LIBMPV_SHA256@"
+#define APERTURE_LIBMPV_LICENSE "@APERTURE_LIBMPV_LICENSE@"
+
+#define APERTURE_FONT_INTER_VERSION "@APERTURE_FONT_INTER_VERSION@"
+#define APERTURE_FONT_INTER_SHA256 "@APERTURE_FONT_INTER_SHA256@"
+#define APERTURE_FONT_SPACE_GROTESK_VERSION "@APERTURE_FONT_SPACE_GROTESK_VERSION@"
+#define APERTURE_FONT_SPACE_GROTESK_SHA256 "@APERTURE_FONT_SPACE_GROTESK_SHA256@"
+#define APERTURE_FONT_JETBRAINS_MONO_VERSION "@APERTURE_FONT_JETBRAINS_MONO_VERSION@"
+#define APERTURE_FONT_JETBRAINS_MONO_SHA256 "@APERTURE_FONT_JETBRAINS_MONO_SHA256@"
+#ifdef __cplusplus
+#include <string_view>
+#include <cstdint>
+
+namespace Aperture::Version {
+    inline constexpr uint32_t Major = APERTURE_VERSION_MAJOR;
+    inline constexpr uint32_t Minor = APERTURE_VERSION_MINOR;
+    inline constexpr uint32_t Patch = APERTURE_VERSION_PATCH;
+    inline constexpr uint32_t Build = APERTURE_VERSION_BUILD;
+
+    inline constexpr std::string_view String = APERTURE_VERSION_STRING;
+    inline constexpr std::wstring_view WideString = APERTURE_VERSION_WIDE;
+
+    inline constexpr std::string_view DisplayVersion = APERTURE_DISPLAY_VERSION;
+    inline constexpr std::wstring_view DisplayVersionWide = APERTURE_DISPLAY_VERSION_WIDE;
+
+    inline constexpr std::string_view CompanyName = APERTURE_COMPANY_NAME;
+    inline constexpr std::wstring_view CompanyNameWide = APERTURE_COMPANY_NAME_WIDE;
+
+    inline constexpr std::string_view FileDescription = APERTURE_FILE_DESCRIPTION;
+    inline constexpr std::wstring_view FileDescriptionWide = APERTURE_FILE_DESCRIPTION_WIDE;
+
+    inline constexpr std::string_view FileVersion = APERTURE_FILE_VERSION;
+    inline constexpr std::wstring_view FileVersionWide = APERTURE_FILE_VERSION_WIDE;
+
+    inline constexpr std::string_view InternalName = APERTURE_INTERNAL_NAME;
+    inline constexpr std::wstring_view InternalNameWide = APERTURE_INTERNAL_NAME_WIDE;
+
+    inline constexpr std::string_view LegalCopyright = APERTURE_LEGAL_COPYRIGHT;
+    inline constexpr std::wstring_view LegalCopyrightWide = APERTURE_LEGAL_COPYRIGHT_WIDE;
+
+    inline constexpr std::string_view OriginalFilename = APERTURE_ORIGINAL_FILENAME;
+    inline constexpr std::wstring_view OriginalFilenameWide = APERTURE_ORIGINAL_FILENAME_WIDE;
+
+    inline constexpr std::string_view ProductName = APERTURE_PRODUCT_NAME;
+    inline constexpr std::wstring_view ProductNameWide = APERTURE_PRODUCT_NAME_WIDE;
+
+    inline constexpr std::string_view ProductVersion = APERTURE_PRODUCT_VERSION;
+    inline constexpr std::wstring_view ProductVersionWide = APERTURE_PRODUCT_VERSION_WIDE;
+
+    inline constexpr std::string_view Comments = APERTURE_COMMENTS;
+    inline constexpr std::wstring_view CommentsWide = APERTURE_COMMENTS_WIDE;
+
+    inline constexpr uint16_t LanguageId = APERTURE_LANG_ID;
+    inline constexpr uint16_t CodePageId = APERTURE_CODEPAGE_ID;
+
+    inline constexpr std::string_view BuildCommit = APERTURE_BUILD_COMMIT;
+    inline constexpr std::wstring_view BuildCommitWide = APERTURE_BUILD_COMMIT_WIDE;
+    inline constexpr std::string_view BuildRepository = APERTURE_BUILD_REPOSITORY;
+    inline constexpr std::wstring_view BuildRepositoryWide = APERTURE_BUILD_REPOSITORY_WIDE;
+    inline constexpr std::string_view BuildChannel = APERTURE_BUILD_CHANNEL;
+    inline constexpr std::wstring_view BuildChannelWide = APERTURE_BUILD_CHANNEL_WIDE;
+    inline constexpr std::string_view TargetArch = APERTURE_TARGET_ARCH;
+    inline constexpr std::wstring_view TargetArchWide = APERTURE_TARGET_ARCH_WIDE;
+    inline constexpr std::string_view CompilerName = APERTURE_COMPILER_NAME;
+    inline constexpr std::wstring_view CompilerNameWide = APERTURE_COMPILER_NAME_WIDE;
+    inline constexpr std::string_view CompilerVersion = APERTURE_COMPILER_VERSION;
+    inline constexpr std::wstring_view CompilerVersionWide = APERTURE_COMPILER_VERSION_WIDE;
+    inline constexpr std::string_view WindowsSdkVersion = APERTURE_WINDOWS_SDK_VERSION;
+    inline constexpr std::wstring_view WindowsSdkVersionWide = APERTURE_WINDOWS_SDK_VERSION_WIDE;
+
+    inline constexpr std::string_view LibmpvVersion = APERTURE_LIBMPV_VERSION;
+    inline constexpr std::string_view LibmpvClientApi = APERTURE_LIBMPV_CLIENT_API;
+    inline constexpr std::string_view LibmpvAbi = APERTURE_LIBMPV_ABI;
+    inline constexpr std::string_view LibmpvSha256 = APERTURE_LIBMPV_SHA256;
+    inline constexpr std::string_view LibmpvLicense = APERTURE_LIBMPV_LICENSE;
+
+    inline constexpr std::string_view FontInterVersion = APERTURE_FONT_INTER_VERSION;
+    inline constexpr std::string_view FontInterSha256 = APERTURE_FONT_INTER_SHA256;
+    inline constexpr std::string_view FontSpaceGroteskVersion = APERTURE_FONT_SPACE_GROTESK_VERSION;
+    inline constexpr std::string_view FontSpaceGroteskSha256 = APERTURE_FONT_SPACE_GROTESK_SHA256;
+    inline constexpr std::string_view FontJetbrainsMonoVersion = APERTURE_FONT_JETBRAINS_MONO_VERSION;
+    inline constexpr std::string_view FontJetbrainsMonoSha256 = APERTURE_FONT_JETBRAINS_MONO_SHA256;
+} // namespace Aperture::Version
+#endif

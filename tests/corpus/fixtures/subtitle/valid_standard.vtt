@@ -1,0 +1,14 @@
+WEBVTT
+
+NOTE Author comments that should be skipped
+
+STYLE
+::cue { color: yellow; }
+
+cue-01
+00:01.000 --> 00:04.500 position:10% align:start
+Welcome to <b>Aperture</b> WebVTT!
+
+cue-02
+01:02:03.456 --> 01:02:07.890
+Second cue with &lt;escaped&gt; &quot;text&quot;

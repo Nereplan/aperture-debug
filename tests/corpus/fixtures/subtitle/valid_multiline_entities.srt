@@ -1,0 +1,4 @@
+1
+00:00:01,000 --> 00:00:04,000
+Quote: &quot;Aperture&quot; &amp; Apostrophe: &#39;test&#39; &apos;val&apos;
+Line 2 with &lt;bracketed&gt; &amp; &nbsp; entities

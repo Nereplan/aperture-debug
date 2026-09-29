@@ -1,0 +1,6 @@
+{
+  "themePreset": "oled",
+  "accentColor": "#5ce1b6",
+  "unclosedString": "this string is never closed...
+  "items": [ 1, 2, 3
+}

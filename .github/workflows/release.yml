@@ -1,0 +1,49 @@
+name: Release
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: aperture-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: windows-2022
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Validate release version
+        shell: pwsh
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          $version = Get-Content version.json -Raw | ConvertFrom-Json
+          $numeric = "$($version.major).$($version.minor).$($version.patch).$($version.build)"
+          if ($version.versionString -ne $numeric -or $version.fileVersion -ne $numeric -or $version.productVersion -ne $numeric -or $version.channel -ne 'stable') {
+            throw 'Use a consistent four-part stable version in version.json.'
+          }
+          $tag = "v$numeric"
+          if ($env:EVENT_NAME -eq 'push' -and $env:REF_NAME -ne $tag) { throw 'Tag does not match version.json.' }
+          "RELEASE_TAG=$tag" >> $env:GITHUB_ENV
+          "RELEASE_VERSION=$numeric" >> $env:GITHUB_ENV
+      - name: Build, test, and package
+        shell: pwsh
+        run: ./build_and_release.ps1 -FailFast
+      - name: Publish complete release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $asset = "dist/Aperture-$env:RELEASE_VERSION-windows-x64.zip"
+          gh release create $env:RELEASE_TAG $asset --repo $env:GITHUB_REPOSITORY --target $env:GITHUB_SHA --title "Aperture $env:RELEASE_VERSION" --generate-notes --draft
+          if ($LASTEXITCODE -ne 0) { throw 'Could not create release. Existing tags/releases are never overwritten.' }
+          gh release edit $env:RELEASE_TAG --repo $env:GITHUB_REPOSITORY --draft=false --latest
+          if ($LASTEXITCODE -ne 0) { throw 'Publishing failed; the release remains a draft.' }

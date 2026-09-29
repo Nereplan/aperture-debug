@@ -1,0 +1,40 @@
+#include "resource.h"
+#include "Version.h"
+#include <windows.h>
+
+IDI_APP_ICON ICON "@APERTURE_APP_ICON_PATH@"
+IDR_APP_MANIFEST RT_MANIFEST "@APERTURE_APP_MANIFEST_PATH@"
+
+VS_VERSION_INFO VERSIONINFO
+FILEVERSION     @APERTURE_VERSION_CSV@
+PRODUCTVERSION  @APERTURE_VERSION_CSV@
+FILEFLAGSMASK   0x3fL
+#ifdef _DEBUG
+FILEFLAGS       VS_FF_DEBUG
+#else
+FILEFLAGS       0x0L
+#endif
+FILEOS          VOS_NT_WINDOWS32
+FILETYPE        VFT_APP
+FILESUBTYPE     VFT2_UNKNOWN
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "@APERTURE_TRANSLATION_STRING@"
+        BEGIN
+            VALUE "CompanyName",      "@APERTURE_COMPANY_NAME@"
+            VALUE "FileDescription",  "@APERTURE_FILE_DESCRIPTION@"
+            VALUE "FileVersion",      "@APERTURE_FILE_VERSION@"
+            VALUE "InternalName",     "@APERTURE_INTERNAL_NAME@"
+            VALUE "LegalCopyright",   "@APERTURE_LEGAL_COPYRIGHT@"
+            VALUE "OriginalFilename", "@APERTURE_ORIGINAL_FILENAME@"
+            VALUE "ProductName",      "@APERTURE_PRODUCT_NAME@"
+            VALUE "ProductVersion",   "@APERTURE_PRODUCT_VERSION@"
+            VALUE "Comments",         "@APERTURE_COMMENTS@"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", @APERTURE_LANG_ID_INT@, @APERTURE_CODEPAGE_ID_INT@
+    END
+END

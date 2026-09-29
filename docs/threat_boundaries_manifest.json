@@ -1,0 +1,480 @@
+{
+  "$schema": "./threat_boundaries_manifest.schema.json",
+  "version": 1,
+  "description": "Authoritative machine-readable manifest of Aperture security and threat boundaries, entry points, mitigations, validation bounds, and test coverage",
+  "containmentPolicy": {
+    "mode": "portable_only",
+    "durableStateRoot": "data/",
+    "disposableCacheRoot": "cache/",
+    "diagnosticsRoot": "diagnostics/",
+    "prohibitedExternalLocations": [
+      "%APPDATA%",
+      "%LOCALAPPDATA%",
+      "%USERPROFILE%",
+      "Windows Registry (Application State)"
+    ]
+  },
+  "boundaries": [
+    {
+      "id": "updater_and_package_trust",
+      "name": "Updater, Cryptographic Verification, and Release Packaging Trust",
+      "category": "updater_and_packaging",
+      "trustLevel": "Untrusted remote network payload; pinned cryptographic trust",
+      "privilegeContext": "Standard user session; isolated child helper '--update-helper' strictly parent-PID verified",
+      "durableWriteDestination": "data/updater.json (state only; suppressed in private mode); atomic swap into root",
+      "failureErrorCode": "Aperture::UpdaterStatusCode",
+      "authoritativeSymbols": [
+        "Aperture::CheckForUpdates",
+        "Aperture::DownloadAndStageUpdate",
+        "Aperture::ValidateReleaseManifest",
+        "Aperture::LaunchHelperAndExit",
+        "Aperture::RunHelperMode",
+        "Aperture::VerifyEcdsaP256Signature",
+        "Aperture::VerifyAuthenticodeAndPin",
+        "Aperture::VerifyPeArchitectureX64",
+        "Aperture::ChannelPolicy::IsChannelAccepted",
+        "Aperture::ChannelPolicy::IsValidPrereleaseForChannel"
+      ],
+      "sourceFiles": [
+        "src/Updater.h",
+        "src/Updater.cpp",
+        "src/ChannelPolicy.h",
+        "src/ChannelPolicy.cpp",
+        "scripts/sign_artifacts.ps1",
+        "scripts/verify_package.ps1"
+      ],
+      "testFiles": [
+        "tests/updater/TestManifestValidation.h",
+        "tests/updater/TestCryptoSignature.h",
+        "tests/updater/TestAuthenticodePe.h",
+        "tests/updater/TestSwapRollback.h",
+        "tests/updater/TestHelperValidation.h",
+        "tests/updater/TestNetworkBounds.h",
+        "tests/updater/TestPrivateModeIsolation.h",
+        "tests/updater/TestChannelPolicy.h",
+        "tests/updater/TestTempCleanup.h",
+        "tests/package/test_package_signing.py"
+      ],
+      "validationRules": {
+        "maxManifestSizeBytes": 131072,
+        "maxPackageSizeBytes": 157286400,
+        "connectTimeoutMs": 5000,
+        "downloadTimeoutMs": 60000,
+        "maxRedirects": 3,
+        "signatureAlgorithm": "ECDSA_P256_SHA256",
+        "peMachineType": "IMAGE_FILE_MACHINE_AMD64 (0x8664)"
+      },
+      "residualRiskSummary": "Compromise of offline code-signing / manifest private keys or user-explicit execution in unpinned test mode."
+    },
+    {
+      "id": "same_user_ipc_and_automation",
+      "name": "Same-User Single-Instance IPC & Playback Automation",
+      "category": "ipc_and_automation",
+      "trustLevel": "Same-user desktop process; untrusted input across user session",
+      "privilegeContext": "Standard user desktop session; token SID and session ID match required",
+      "durableWriteDestination": "None (in-memory state update only; session save on normal exit)",
+      "failureErrorCode": "Aperture::Ipc::ValidationResult",
+      "authoritativeSymbols": [
+        "Aperture::Ipc::DeserializeEnvelope",
+        "Aperture::Ipc::DeserializeAutomationEnvelope",
+        "Aperture::Ipc::SerializeEnvelope",
+        "Aperture::Ipc::SerializeAutomationResponse",
+        "Aperture::Ipc::ParseCommandLine",
+        "Aperture::Ipc::IsSameUserAndSession",
+        "Aperture::Ipc::ComputeChecksum",
+        "Aperture::Ipc::ReplayFilter::ValidateAndRecord",
+        "Aperture::App::ExecuteCommandLineOptions",
+        "Aperture::App::ExecuteAutomationCommand"
+      ],
+      "sourceFiles": [
+        "src/IpcProtocol.h",
+        "src/main.cpp",
+        "src/App.h",
+        "src/App.cpp"
+      ],
+      "testFiles": [
+        "tests/ipc/TestIpcEnvelope.h"
+      ],
+      "validationRules": {
+        "IPC_MAGIC_V2": 1095783510,
+        "MAX_IPC_PAYLOAD_SIZE": 2097152,
+        "MAX_IPC_FILE_COUNT": 1024,
+        "MAX_IPC_PATH_CHARS": 32768,
+        "kMaxFutureClockSkewMs": 60000,
+        "kMaxAgeMs": 300000
+      },
+      "residualRiskSummary": "Malicious code executing under the identical user account and session token could send valid automation commands."
+    },
+    {
+      "id": "dll_loading_and_runtime_isolation",
+      "name": "Dynamic Library Loading & Process Search Path Hardening",
+      "category": "dll_and_runtime_isolation",
+      "trustLevel": "Local filesystem binaries; untrusted CWD / search path",
+      "privilegeContext": "Standard user process",
+      "durableWriteDestination": "None (read-only binary resolution)",
+      "failureErrorCode": "Aperture::MpvInitResult",
+      "authoritativeSymbols": [
+        "Aperture::DllLoader::HardenProcessDllSearch",
+        "Aperture::DllLoader::LoadPackageLocalDll",
+        "Aperture::DllLoader::ResolvePackageDllPath",
+        "Aperture::DllLoader::IsAbsolutePath",
+        "Aperture::MpvPlayer::Initialize"
+      ],
+      "sourceFiles": [
+        "src/DllLoader.h",
+        "src/MpvPlayer.h",
+        "src/MpvPlayer.cpp",
+        "src/main.cpp"
+      ],
+      "testFiles": [
+        "tests/loader/TestDllLoader.h",
+        "tests/loader/run_tests.ps1",
+        "tests/package/test_pe_dependencies.py"
+      ],
+      "validationRules": {
+        "dllSearchFlags": "LOAD_LIBRARY_SEARCH_APPLICATION_DIR | LOAD_LIBRARY_SEARCH_SYSTEM32 | LOAD_LIBRARY_SEARCH_USER_DIRS",
+        "cwdDllSearchRemoval": "SetDllDirectoryW(L\"\")",
+        "rootAnchoring": "Strictly resolved against GetExeDir()"
+      },
+      "residualRiskSummary": "Attacker with write permissions to the application directory could plant modified root-local DLLs."
+    },
+    {
+      "id": "external_tool_execution",
+      "name": "External Tool Discovery & Subprocess Boundary",
+      "category": "external_tools",
+      "trustLevel": "External binaries on filesystem or system PATH",
+      "privilegeContext": "Standard user process; child process inherits standard user token",
+      "durableWriteDestination": "None",
+      "failureErrorCode": "Aperture::ExternalToolDiscoveryResult::error",
+      "authoritativeSymbols": [
+        "Aperture::ExternalTools::DiscoverYtDlp",
+        "Aperture::MpvPlayer::IsCustomMpvOptionSafe"
+      ],
+      "sourceFiles": [
+        "src/ExternalTools.h",
+        "src/ExternalTools.cpp",
+        "src/MpvPlayer.h",
+        "src/MpvPlayer.cpp"
+      ],
+      "testFiles": [
+        "tests/unit/TestNetworkStream.h"
+      ],
+      "validationRules": {
+        "defaultExternalPathDiscovery": "false (disabled by default; explicit user opt-in only)",
+        "rootLocalSearchPriority": "Prefers <rootDir>\\tools\\yt-dlp.exe then <rootDir>\\yt-dlp.exe",
+        "searchPathBufferLimit": 32768
+      },
+      "residualRiskSummary": "Malicious binary named yt-dlp.exe placed on PATH if user explicitly triggers external discovery action."
+    },
+    {
+      "id": "network_streams_and_urls",
+      "name": "Network Stream Validation & URL Parsing Boundary",
+      "category": "network_streams",
+      "trustLevel": "Untrusted remote network URLs / streams",
+      "privilegeContext": "Standard user process",
+      "durableWriteDestination": "data/recent_streams.json (state only; suppressed in private mode)",
+      "failureErrorCode": "Aperture::NetworkStreamValidationError",
+      "authoritativeSymbols": [
+        "Aperture::NetworkStreamValidator::ValidateAndParse",
+        "Aperture::NetworkStreamValidator::ExtractAndValidateFromDataObject",
+        "Aperture::NetworkStreamUrl::GetDisplayUrl"
+      ],
+      "sourceFiles": [
+        "src/NetworkStream.h",
+        "src/NetworkStream.cpp",
+        "src/HttpTransport.h",
+        "src/HttpTransport.cpp"
+      ],
+      "testFiles": [
+        "tests/unit/TestNetworkStream.h",
+        "tests/corpus/validate_corpus.py"
+      ],
+      "validationRules": {
+        "maxUrlLength": 2048,
+        "allowedSchemes": "http, https, rtsp, rtmp",
+        "allowEmbeddedCredentials": "false (rejected by default)",
+        "credentialRedaction": "Sensitive user/password masked in UI and logs"
+      },
+      "residualRiskSummary": "Exploitation of underlying libmpv / FFmpeg network demuxers by a hostile remote media streaming server."
+    },
+    {
+      "id": "online_subtitles_service",
+      "name": "Online Subtitle Search & Download Boundary",
+      "category": "online_services",
+      "trustLevel": "Untrusted third-party HTTP/HTTPS endpoints and subtitle file payloads",
+      "privilegeContext": "Standard user process",
+      "durableWriteDestination": "cache/subtitles/ (disposable cache; segregated from durable data/)",
+      "failureErrorCode": "Aperture::OnlineSubtitleStatus",
+      "authoritativeSymbols": [
+        "Aperture::OnlineSubtitleService::Search",
+        "Aperture::OnlineSubtitleService::DownloadAndLoad",
+        "Aperture::OnlineSubtitleService::DeriveSearchQuery",
+        "Aperture::OnlineSubtitleService::BuildSearchUrl",
+        "Aperture::OnlineSubtitleService::ParseSearchResultsJson"
+      ],
+      "sourceFiles": [
+        "src/OnlineSubtitles.h",
+        "src/OnlineSubtitles.cpp",
+        "src/HttpTransport.h",
+        "src/HttpTransport.cpp"
+      ],
+      "testFiles": [
+        "tests/unit/TestOnlineSubtitles.h"
+      ],
+      "validationRules": {
+        "httpsEnforced": "true (HTTPS required for all subtitle endpoint requests)",
+        "maxQueryLength": 128,
+        "maxSearchResults": 50,
+        "maxSubtitleFileBytes": 4194304,
+        "connectTimeoutMs": 10000,
+        "readTimeoutMs": 15000,
+        "maxRedirects": 3
+      },
+      "residualRiskSummary": "Third-party subtitle provider serving malformed subtitle text designed to trigger parser bugs."
+    },
+    {
+      "id": "media_containers_and_playlist_parsing",
+      "name": "Media Container, Playlist, and Subtitle File Parsing",
+      "category": "media_and_parsers",
+      "trustLevel": "Untrusted user-supplied local or network media, playlist, and subtitle files",
+      "privilegeContext": "Standard user process; worker threads with cooperative cancellation",
+      "durableWriteDestination": "data/library.json, data/playlists.json (metadata only; never modifies source media or writes sidecars)",
+      "failureErrorCode": "Aperture::PlaylistIoErrorCode",
+      "authoritativeSymbols": [
+        "Aperture::PlaylistIO::ParseContent",
+        "Aperture::PlaylistIO::ParseM3UContent",
+        "Aperture::PlaylistIO::ParsePLSContent",
+        "Aperture::PlaylistIO::ImportPlaylistFile",
+        "Aperture::PlaylistIO::ExportPlaylistFile",
+        "Aperture::SubtitleEngine::LoadSubtitleFile",
+        "Aperture::SubtitleDiscovery::ValidateSubtitleContent",
+        "Aperture::MediaLibrary::ImportPaths"
+      ],
+      "sourceFiles": [
+        "src/PlaylistIO.h",
+        "src/PlaylistIO.cpp",
+        "src/Subtitles.h",
+        "src/Subtitles.cpp",
+        "src/SubtitleDiscovery.h",
+        "src/SubtitleDiscovery.cpp",
+        "src/MediaLibrary.h",
+        "src/MediaLibrary.cpp"
+      ],
+      "testFiles": [
+        "tests/corpus/validate_corpus.py",
+        "tests/unit/TestSubtitlesDual.h",
+        "tests/unit/TestSubtitleDiscovery.h",
+        "tests/fuzz/run_subtitle_fuzz.ps1"
+      ],
+      "validationRules": {
+        "maxPlaylistSizeBytes": 10485760,
+        "maxPlaylistLines": 100000,
+        "maxPlaylistItems": 10000,
+        "maxPlaylistLineLength": 32768,
+        "maxSubtitleInputBytes": 33554432,
+        "maxSubtitleCueCount": 250000,
+        "maxCueTextBytes": 131072,
+        "maxFormattingNestingDepth": 32,
+        "maxFormattingWorkUnits": 65536
+      },
+      "residualRiskSummary": "Zero-day vulnerability in media container demuxers or subtitle rendering engines when opening specially crafted media files."
+    },
+    {
+      "id": "portable_storage_and_root_containment",
+      "name": "Portable Storage Containment & Durable JSON Persistence",
+      "category": "persistence_and_storage",
+      "trustLevel": "Executable-root-local filesystem (Portable-only containment)",
+      "privilegeContext": "Standard user filesystem permissions within application root",
+      "durableWriteDestination": "data/ (executable-root-local only; zero %APPDATA%, %LOCALAPPDATA%, %USERPROFILE%, or Registry state writes)",
+      "failureErrorCode": "Aperture::StorageErrorCode",
+      "authoritativeSymbols": [
+        "Aperture::AtomicWriteTextFile",
+        "Aperture::CreateRotatingBackup",
+        "Aperture::RestoreFromNewestValidBackup",
+        "Aperture::GetExeDir",
+        "Aperture::ResolveAppPath",
+        "Aperture::Settings::Save",
+        "Aperture::Settings::Load",
+        "Aperture::Settings::MigrateSchema",
+        "Aperture::MediaLibrary::Save",
+        "Aperture::MediaLibrary::Load",
+        "Aperture::MediaLibrary::MigrateLibrarySchema"
+      ],
+      "sourceFiles": [
+        "src/Common.h",
+        "src/Settings.h",
+        "src/Settings.cpp",
+        "src/MediaLibrary.h",
+        "src/MediaLibrary.cpp",
+        "src/Json.h",
+        "src/Json.cpp"
+      ],
+      "testFiles": [
+        "tests/persistence/TestSchemaMigration.h",
+        "tests/persistence/TestUnwritableRoot.h",
+        "tests/persistence/TestRotatingBackups.h",
+        "tests/persistence/TestPartialRecovery.h",
+        "tests/persistence/TestUnknownFields.h",
+        "tests/persistence/TestRelativePaths.h",
+        "tests/persistence/TestPortableRoot.h",
+        "tests/persistence/TestCacheIsolation.h"
+      ],
+      "validationRules": {
+        "atomicWriteStrategy": "Two-phase commit via unique temporary sibling file, FlushFileBuffers, and MOVEFILE_WRITE_THROUGH rename",
+        "backupRetention": "3 rotating backups (.bak.1..3) in data/backups/",
+        "maxJsonDepth": 64,
+        "maxJsonStringLength": 16777216,
+        "unwritableRootPolicy": "Fails with StorageErrorCode::DirectoryNotWritable; never falls back to external paths",
+        "privateModePolicy": "Suppresses durable disk mutation for history, session, updater, and recent streams"
+      },
+      "residualRiskSummary": "Direct disk corruption or unauthorized external process modification of JSON files in application data directory."
+    },
+    {
+      "id": "diagnostics_and_process_dumps",
+      "name": "Diagnostics, Local Logging, and Crash/Hang Dumps",
+      "category": "diagnostics_and_telemetry",
+      "trustLevel": "Process memory and exception filter state",
+      "privilegeContext": "Standard user process",
+      "durableWriteDestination": "Strictly diagnostics/ under application root",
+      "failureErrorCode": "Aperture::AppError",
+      "authoritativeSymbols": [
+        "Aperture::Diagnostics::Initialize",
+        "Aperture::Diagnostics::Shutdown",
+        "Aperture::Diagnostics::Log",
+        "Aperture::Diagnostics::CreateHangDump",
+        "Aperture::Diagnostics::CreateBundle",
+        "Aperture::Diagnostics::RecordHeartbeat"
+      ],
+      "sourceFiles": [
+        "src/Diagnostics.h",
+        "src/Diagnostics.cpp",
+        "src/Error.h"
+      ],
+      "testFiles": [
+        "tests/diagnostics/diagnostics_test.cpp",
+        "tests/diagnostics/run_tests.ps1"
+      ],
+      "validationRules": {
+        "maxLogBytes": 1048576,
+        "retainedLogs": 3,
+        "heartbeatPollMs": 5000,
+        "hangThresholdMs": 30000,
+        "dumpType": "MiniDumpWithThreadInfo (minimal memory capture)",
+        "telemetryTransmission": "None (zero remote telemetry; all logs and dumps remain strictly local)"
+      },
+      "residualRiskSummary": "Process crash dumps may contain sensitive in-memory strings or paths present in process RAM at time of failure."
+    },
+    {
+      "id": "shell_registration_and_system_metadata",
+      "name": "Windows Shell Verb Registration & Taskbar Integration",
+      "category": "shell_and_os_integration",
+      "trustLevel": "Windows Shell interface (explicitly not used in strict portable mode)",
+      "privilegeContext": "Standard user process (no registry writes)",
+      "durableWriteDestination": "None (strict portable containment: shell registration and JumpList entry points are disabled no-ops; zero writes outside the application root)",
+      "failureErrorCode": "bool (registration always reports disabled; removal always reports clean)",
+      "authoritativeSymbols": [
+        "Aperture::App::RegisterFileAssociations",
+        "Aperture::App::UnregisterFileAssociations",
+        "Aperture::JumpListController::Update",
+        "Aperture::JumpListController::Clear",
+        "Aperture::JumpListController::ProjectRecentLocalMedia",
+        "Aperture::TaskbarController::Update",
+        "Aperture::TaskbarController::Initialize"
+      ],
+      "sourceFiles": [
+        "src/App.h",
+        "src/App.cpp",
+        "src/JumpList.h",
+        "src/JumpList.cpp",
+        "src/TaskbarController.h",
+        "src/TaskbarController.cpp"
+      ],
+      "testFiles": [
+        "tests/unit/TestTaskbarController.h"
+      ],
+      "validationRules": {
+        "registryScope": "Disabled: no writes to HKEY_CURRENT_USER or any other hive (strict portable containment)",
+        "commandLineEncapsulation": "Not applicable: no shell verbs registered",
+        "jumpListLimit": 0,
+        "applicationStateStorage": "Prohibited from Windows Registry and %APPDATA% (all state stays under the application root)"
+      },
+      "residualRiskSummary": "None from shell writes (disabled). Media is opened in-app via picker, drag/drop, or CLI."
+    },
+    {
+      "id": "localization_and_mpv_configuration",
+      "name": "Localization Catalogs & Custom mpv Configuration Filtering",
+      "category": "configuration_and_localization",
+      "trustLevel": "Local user-provided or package-supplied configuration and translation files",
+      "privilegeContext": "Standard user process",
+      "durableWriteDestination": "data/mpv.conf (if user edited); locales/*.json read-only",
+      "failureErrorCode": "Aperture::CustomMpvParseResult::errors",
+      "authoritativeSymbols": [
+        "Aperture::Localization::Initialize",
+        "Aperture::Localization::SetLocale",
+        "Aperture::Localization::DiscoverLocales",
+        "Aperture::Localization::IsValidLocaleTag",
+        "Aperture::Localization::BidiIsolateLtr",
+        "Aperture::Localization::BidiIsolateRtl",
+        "Aperture::MpvPlayer::IsCustomMpvOptionSafe",
+        "Aperture::MpvPlayer::ParseCustomMpvConfig",
+        "Aperture::MpvPlayer::ApplyCustomMpvOptions"
+      ],
+      "sourceFiles": [
+        "src/Localization.h",
+        "src/Localization.cpp",
+        "src/MpvPlayer.h",
+        "src/MpvPlayer.cpp",
+        "src/Settings.h"
+      ],
+      "testFiles": [
+        "tests/unit/TestLocalization.h",
+        "tests/unit/TestRtlComplexScripts.h",
+        "tests/unit/TestCustomMpvConfig.h"
+      ],
+      "validationRules": {
+        "maxLocaleTagLength": 32,
+        "localePathTraversalCheck": "Strictly rejects '..', '/', '\\', ':', '?', '*'",
+        "maxMpvConfigFileBytes": 65536,
+        "maxMpvConfigLineLength": 1024,
+        "maxMpvOptionsCount": 128,
+        "mpvSecurityBlacklist": "Blocks scripts, Lua/JS, IPC servers, config includes, file dumps, network/TLS overrides, and window/DLL hijacking"
+      },
+      "residualRiskSummary": "Complex custom mpv rendering options leading to high GPU/CPU utilization or unexpected visual presentation."
+    },
+    {
+      "id": "ui_drag_drop_and_clipboard",
+      "name": "UI Drag & Drop and Clipboard Input Boundary",
+      "category": "ui_and_desktop_inputs",
+      "trustLevel": "Untrusted desktop window manager and clipboard data transfers",
+      "privilegeContext": "Standard user desktop UI interaction",
+      "durableWriteDestination": "None directly (in-memory parsing and dispatch to playback/queue)",
+      "failureErrorCode": "HRESULT / Aperture::NetworkStreamValidationError",
+      "authoritativeSymbols": [
+        "Aperture::ApertureDropTarget::DragEnter",
+        "Aperture::ApertureDropTarget::Drop",
+        "Aperture::App::OnOleDrop",
+        "Aperture::App::HandleDroppedFiles",
+        "Aperture::App::MakeClipboardCallbacks",
+        "Aperture::TextInputModel::InsertText",
+        "Aperture::TextInputModel::HandleCtrlShortcut"
+      ],
+      "sourceFiles": [
+        "src/App.h",
+        "src/App.cpp",
+        "src/TextInputModel.h",
+        "src/TextInputModel.cpp",
+        "src/NetworkStream.h"
+      ],
+      "testFiles": [
+        "tests/unit/TestNetworkStream.h"
+      ],
+      "validationRules": {
+        "supportedOleFormats": "CF_HDROP, CF_UNICODETEXT, text/uri-list, text/plain",
+        "pathLengthLimit": 32768,
+        "utf16SurrogatePairSafety": "Enforced via SafeWideBoundary and WideToText16",
+        "droppedUrlSanitization": "Extracted via NetworkStreamValidator with strict scheme and character checks"
+      },
+      "residualRiskSummary": "User inadvertently dropping untrusted media or URLs into the player window triggering media demuxing."
+    }
+  ]
+}

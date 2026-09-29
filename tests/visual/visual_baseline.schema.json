@@ -1,0 +1,176 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ApertureVisualRegressionBaseline",
+  "description": "Schema for authoritative Aperture visual regression baselines, scene configurations, and pixel comparison thresholds",
+  "type": "object",
+  "required": [
+    "version",
+    "description",
+    "platform",
+    "configuration",
+    "environment",
+    "tolerances",
+    "scenes"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1
+    },
+    "platform": {
+      "type": "string",
+      "enum": ["windows-x64"]
+    },
+    "configuration": {
+      "type": "string",
+      "enum": ["Release", "Debug", "Sanitize"]
+    },
+    "environment": {
+      "type": "object",
+      "required": [
+        "dpi",
+        "dpiScale",
+        "theme",
+        "fontFamily",
+        "reduceMotion",
+        "windowWidth",
+        "windowHeight"
+      ],
+      "properties": {
+        "dpi": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "dpiScale": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "theme": {
+          "type": "string",
+          "minLength": 1
+        },
+        "fontFamily": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reduceMotion": {
+          "type": "boolean"
+        },
+        "windowWidth": {
+          "type": "integer",
+          "minimum": 640
+        },
+        "windowHeight": {
+          "type": "integer",
+          "minimum": 420
+        }
+      },
+      "additionalProperties": false
+    },
+    "tolerances": {
+      "type": "object",
+      "required": [
+        "defaultMaxMismatchedPixelPercent",
+        "defaultPerPixelColorDeltaThreshold",
+        "defaultMaxPeakColorDelta"
+      ],
+      "properties": {
+        "defaultMaxMismatchedPixelPercent": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "defaultPerPixelColorDeltaThreshold": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "defaultMaxPeakColorDelta": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        }
+      },
+      "additionalProperties": false
+    },
+    "scenes": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "tab",
+          "description",
+          "baselineFile",
+          "sha256",
+          "width",
+          "height",
+          "maxMismatchedPixelPercent",
+          "perPixelColorDeltaThreshold",
+          "maxPeakColorDelta"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-zA-Z0-9_-]+$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "tab": {
+            "type": "string",
+            "enum": ["media", "playlists", "history", "settings"]
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1
+          },
+          "baselineFile": {
+            "type": "string",
+            "minLength": 1
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{64}$"
+          },
+          "width": {
+            "type": "integer",
+            "minimum": 640
+          },
+          "height": {
+            "type": "integer",
+            "minimum": 420
+          },
+          "maxMismatchedPixelPercent": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "perPixelColorDeltaThreshold": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 255
+          },
+          "maxPeakColorDelta": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 255
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

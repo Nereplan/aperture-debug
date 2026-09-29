@@ -1,0 +1,41 @@
+{
+  "$schema": "./benchmark_baseline.schema.json",
+  "version": 1,
+  "description": "Authoritative benchmark budgets and regression thresholds for Aperture startup and resource utilization",
+  "platform": "windows-x64",
+  "configuration": "Release",
+  "sampling": {
+    "warmupIterations": 1,
+    "measuredIterations": 5,
+    "timeoutSecondsPerSample": 30
+  },
+  "budgets": {
+    "startupMaxMs": 1500.0,
+    "startupTargetMs": 600.0,
+    "windowShownMaxMs": 1000.0,
+    "windowShownTargetMs": 300.0,
+    "workingSetMaxBytes": 157286400,
+    "workingSetTargetBytes": 94371840,
+    "peakWorkingSetMaxBytes": 167772160,
+    "peakWorkingSetTargetBytes": 104857600,
+    "privateBytesMaxBytes": 188743680,
+    "privateBytesTargetBytes": 125829120,
+    "peakPrivateBytesMaxBytes": 199229440,
+    "peakPrivateBytesTargetBytes": 136314880,
+    "gdiObjectsMax": 100,
+    "userObjectsMax": 100,
+    "maxProcesses": 1
+  },
+  "baseline": {
+    "measuredAt": "2026-08-31T00:00:00Z",
+    "startupMedianMs": 320.0,
+    "windowShownMedianMs": 45.0,
+    "workingSetMedianBytes": 80320000,
+    "peakWorkingSetMedianBytes": 84100000,
+    "privateBytesMedianBytes": 106600000,
+    "peakPrivateBytesMedianBytes": 109800000,
+    "gdiObjects": 38,
+    "userObjects": 32,
+    "processCount": 1
+  }
+}

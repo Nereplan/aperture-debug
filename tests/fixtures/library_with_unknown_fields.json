@@ -1,0 +1,39 @@
+[
+  {
+    "id": "med_101",
+    "filePath": ".\\media\\sample1.mp4",
+    "title": "Sample Video 1",
+    "durationSec": 120.5,
+    "lastPosSec": 45.0,
+    "status": "in_progress",
+    "fileSizeBytes": 1048576,
+    "lastWatchedTimestamp": 1788001000,
+    "addedTimestamp": 1788000000,
+    "videoWidth": 1920,
+    "videoHeight": 1080,
+    "customMediaRating": 5,
+    "genres": ["Action", "Sci-Fi"],
+    "audioTracks": [
+      { "id": 1, "language": "eng", "channels": 6 }
+    ],
+    "vendorExtra": {
+      "checksum": "abc12345def",
+      "flagged": false
+    }
+  },
+  {
+    "id": "med_102",
+    "filePath": ".\\media\\sample2.mkv",
+    "title": "Sample Video 2",
+    "durationSec": 3600.0,
+    "lastPosSec": 0.0,
+    "status": "new",
+    "fileSizeBytes": 209715200,
+    "lastWatchedTimestamp": 0,
+    "addedTimestamp": 1788000500,
+    "videoWidth": 3840,
+    "videoHeight": 2160,
+    "userNotes": "Must watch in HDR",
+    "isFavorite": true
+  }
+]

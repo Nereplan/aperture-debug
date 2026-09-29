@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "themePreset": "dark",
+  "defaultVolume": 70,
+  "futureNeuralUpscaling": {
+    "mode": "ultra",
+    "quality": 95
+  },
+  "experimentalHdrToneMapping": true
+}

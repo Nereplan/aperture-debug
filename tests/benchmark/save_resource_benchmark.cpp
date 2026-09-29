@@ -1,0 +1,133 @@
+// Isolated save / C++ heap-allocation probe with real temporary profile writes
+// and backups. No media or GPU resources; this does not measure process RSS.
+#include <cstddef>
+#include <cstdlib>
+#include <new>
+#include <cstdio>
+#include "LibraryQuery.h"
+#include "GlobalSearch.h"
+#include <stdexcept>
+
+namespace {
+struct AllocationStats { size_t calls = 0, bytes = 0, live = 0, peak = 0; } stats;
+bool measuring = false;
+struct alignas(std::max_align_t) AllocationHeader { size_t bytes; bool tracked; };
+}
+
+void* operator new(size_t size) {
+    if (size > SIZE_MAX - sizeof(AllocationHeader)) throw std::bad_alloc();
+    auto* header = static_cast<AllocationHeader*>(std::malloc(sizeof(AllocationHeader) + size));
+    if (!header) throw std::bad_alloc();
+    header->bytes = size;
+    header->tracked = measuring;
+    if (measuring) {
+        ++stats.calls;
+        stats.bytes += size;
+        stats.live += size;
+        stats.peak = (std::max)(stats.peak, stats.live);
+    }
+    return header + 1;
+}
+void operator delete(void* ptr) noexcept {
+    if (!ptr) return;
+    auto* header = static_cast<AllocationHeader*>(ptr) - 1;
+    if (header->tracked) stats.live -= header->bytes;
+    std::free(header);
+}
+void* operator new[](size_t size) { return ::operator new(size); }
+void operator delete[](void* ptr) noexcept { ::operator delete(ptr); }
+void operator delete(void* ptr, size_t) noexcept { ::operator delete(ptr); }
+void operator delete[](void* ptr, size_t) noexcept { ::operator delete(ptr); }
+
+static void Check(bool condition) {
+    if (!condition) throw std::runtime_error("Save benchmark verification failed");
+}
+
+int main() {
+    using namespace Aperture;
+    // The runner places this executable in a unique temporary directory.
+    // Every save, backup and reload stays beside it; no user profile is read.
+    DWORD_PTR processMask = 0, systemMask = 0;
+    if (GetProcessAffinityMask(GetCurrentProcess(), &processMask, &systemMask))
+        SetProcessAffinityMask(GetCurrentProcess(), processMask & (~processMask + 1));
+    std::puts("items,mode,sample,ms,allocations,allocated_bytes,peak_live_cpp_bytes,json_bytes,content_hash");
+    for (int count : {500, 25000}) for (int mode : {0, 1, 2}) {
+        for (int sample = 0; sample < 8; ++sample) {
+            Check(stats.live == 0);
+            stats = {};
+            MediaLibrary library;
+            library.mediaItems.reserve(count);
+            for (int i = 0; i < count; ++i) {
+                MediaItem item;
+                item.id = std::to_string(i);
+                item.filePath = L"C:\\Benchmark\\Series\\Episode " + std::to_wstring(i) + L".mkv";
+                item.title = L"日本語 Café \"Episode\"\n" + std::to_wstring(i);
+                item.durationSec = 1200.125;
+                item.lastPosSec = i % 100;
+                item.fileSizeBytes = 123456789;
+                item.fileIndex = 18446744073709550000ull + i % 100;
+                if (i % 10 == 0) {
+                    item.extraFields["plugin"]["escaped"] = "tab\tline\ncontrol\x01";
+                    item.preferences.emplace();
+                    item.preferences->playbackSpeed = 1.25;
+                    item.preferences->extraFields["future"] = true;
+                    item.overrides.emplace();
+                    item.overrides->title = L"Override 日本語";
+                }
+                library.mediaItems.push_back(std::move(item));
+            }
+            for (int i = 0; i < count / 50; ++i) {
+                Playlist list;
+                list.id = std::to_string(i);
+                list.name = "Playlist " + list.id;
+                for (int j = 0; j < 50; ++j) list.itemPaths.push_back(library.mediaItems[i * 50 + j].filePath);
+                library.playlists.push_back(std::move(list));
+            }
+            for (int i = 0; i < 100; ++i) {
+                HistoryRecord record;
+                record.filePath = library.mediaItems[i].filePath;
+                record.title = library.mediaItems[i].title;
+                record.lastPosSec = i;
+                record.durationSec = 1200.125;
+                record.watchedTimestamp = 1000 + i;
+                library.history.push_back(std::move(record));
+            }
+            library.watchedFolders.push_back(L"C:\\Benchmark\\Series");
+            // 0 first save; 1 unchanged save; 2 a periodic progress save.
+            if (mode != 0) Check(library.Save().is_ok());
+            if (mode == 2) library.mediaItems.front().lastPosSec = 42.125;
+            stats = {};
+            measuring = sample > 0;
+            const auto start = std::chrono::steady_clock::now();
+            const auto saved = library.Save();
+            const auto end = std::chrono::steady_clock::now();
+            measuring = false;
+            Check(saved.is_ok());
+            Check(saved.librarySaved == (mode != 1));
+            Check(saved.playlistsSaved == (mode == 0));
+            Check(saved.historySaved == (mode == 0));
+            const auto measured = stats;
+            uint64_t hash = 14695981039346656037ull;
+            size_t bytes = 0;
+            for (const wchar_t* name : {L"library", L"playlists", L"history", L"watched_folders"}) {
+                std::string json;
+                Check(ReadTextFile(GetDataDir() + L"\\" + name + L".json", json).is_ok());
+                JsonValue parsed;
+                Check(JsonValue::parse(json, parsed));
+                Check(parsed.stringify(false) == json);
+                bytes += json.size();
+                for (unsigned char c : json) { hash ^= c; hash *= 1099511628211ull; }
+            }
+            MediaLibrary reloaded;
+            Check(reloaded.Load().is_ok());
+            Check(reloaded.mediaItems.size() == size_t(count));
+            Check(reloaded.mediaItems.front().lastPosSec == library.mediaItems.front().lastPosSec);
+            Check(reloaded.mediaItems.front().extraFields.get("plugin").get("escaped").as_string() == "tab\tline\ncontrol\x01");
+            if (sample > 0) std::printf("%d,%d,%d,%.3f,%zu,%zu,%zu,%zu,%llu\n", count, mode, sample,
+                std::chrono::duration<double, std::milli>(end - start).count(), measured.calls,
+                measured.bytes, measured.peak, bytes, hash);
+        }
+    }
+}
+
+

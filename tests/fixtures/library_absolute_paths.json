@@ -1,0 +1,41 @@
+[
+  {
+    "id": "abs_1",
+    "filePath": "D:\\ExternalDrive\\Movies\\SciFi\\Dune.mkv",
+    "title": "Dune",
+    "durationSec": 9300.0,
+    "lastPosSec": 1200.0,
+    "status": "in_progress",
+    "fileSizeBytes": 15000000000,
+    "lastWatchedTimestamp": 1788002000,
+    "addedTimestamp": 1788001000,
+    "videoWidth": 3840,
+    "videoHeight": 2160
+  },
+  {
+    "id": "abs_2",
+    "filePath": "E:\\Backups\\Music\\Concert.mp4",
+    "title": "Concert",
+    "durationSec": 5400.0,
+    "lastPosSec": 5400.0,
+    "status": "done",
+    "fileSizeBytes": 4500000000,
+    "lastWatchedTimestamp": 1788003000,
+    "addedTimestamp": 1788001500,
+    "videoWidth": 1920,
+    "videoHeight": 1080
+  },
+  {
+    "id": "abs_3",
+    "filePath": "C:\\Users\\User\\Videos\\Personal\\vacation.mp4",
+    "title": "vacation",
+    "durationSec": 300.0,
+    "lastPosSec": 0.0,
+    "status": "new",
+    "fileSizeBytes": 50000000,
+    "lastWatchedTimestamp": 0,
+    "addedTimestamp": 1788002500,
+    "videoWidth": 1920,
+    "videoHeight": 1080
+  }
+]

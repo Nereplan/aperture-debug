@@ -1,0 +1,70 @@
+{
+  "$schema": "./channels.schema.json",
+  "schemaVersion": 1,
+  "defaultChannel": "stable",
+  "channels": [
+    {
+      "id": "stable",
+      "displayName": "Stable",
+      "description": "Official stable releases tested for general daily use.",
+      "stabilityRank": 0,
+      "acceptedChannels": [
+        "stable"
+      ],
+      "prerelease": {
+        "allowed": false,
+        "prefix": "",
+        "pattern": "^$",
+        "requireNumericSequence": false
+      },
+      "retentionDays": 180,
+      "maxExpiryDays": 90,
+      "updateCadenceDays": 30,
+      "allowDowngrade": false,
+      "requiresPinnedTrust": true
+    },
+    {
+      "id": "beta",
+      "displayName": "Beta",
+      "description": "Preview releases for testing upcoming features before stable rollout.",
+      "stabilityRank": 1,
+      "acceptedChannels": [
+        "beta",
+        "stable"
+      ],
+      "prerelease": {
+        "allowed": true,
+        "prefix": "beta",
+        "pattern": "^beta(\\.[0-9]+)?$",
+        "requireNumericSequence": true
+      },
+      "retentionDays": 60,
+      "maxExpiryDays": 30,
+      "updateCadenceDays": 14,
+      "allowDowngrade": false,
+      "requiresPinnedTrust": true
+    },
+    {
+      "id": "nightly",
+      "displayName": "Nightly",
+      "description": "Bleeding-edge automated daily builds containing latest development changes.",
+      "stabilityRank": 2,
+      "acceptedChannels": [
+        "nightly",
+        "beta",
+        "stable"
+      ],
+      "prerelease": {
+        "allowed": true,
+        "prefix": "nightly",
+        "pattern": "^nightly(\\.[0-9]{8}(\\.[0-9]+)?)?$",
+        "requireNumericSequence": true
+      },
+      "retentionDays": 14,
+      "maxExpiryDays": 14,
+      "updateCadenceDays": 1,
+      "allowDowngrade": false,
+      "requiresPinnedTrust": true
+    }
+  ]
+}

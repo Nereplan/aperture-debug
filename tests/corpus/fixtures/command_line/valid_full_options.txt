@@ -1,0 +1,1 @@
+Aperture.exe --start=01:23:45.500 --volume=75 --fullscreen --paused --loop --subtitle="C:\media\subs.srt" --enqueue "C:\media\video1.mp4" "C:\media\video2.mkv"

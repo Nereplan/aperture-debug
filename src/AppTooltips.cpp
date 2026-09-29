@@ -1,0 +1,317 @@
+#include "App.h"
+#include "AppInternals.h"
+#include "AppLayout.h"
+#include "CollectionAlgorithms.h"
+#include "IpcProtocol.h"
+#include "LibraryQuery.h"
+#include "MediaFoundation.h"
+#include "OnlineSubtitles.h"
+#include "Reorder.h"
+#include "Updater.h"
+#include "Version.h"
+#include "BuildInfo.h"
+#include "ChannelPolicy.h"
+#include "Localization.h"
+#include "SettingsLayout.h"
+#include "Presentation.h"
+#include "WindowGeometry.h"
+#include <commdlg.h>
+#include <shellapi.h>
+#include <shlwapi.h>
+#include <shlobj.h>
+#include <imm.h>
+#include <numeric>
+
+namespace Aperture {
+
+
+void App::RefreshHubTooltips(bool force) {
+    if (!hWnd) return;
+    if (!hubTooltips.IsCreated() && !EnsureHubTooltips()) return;
+    if (playbackSession.IsOpen()) { if (hubTooltips.IsActive()) hubTooltips.SetActive(false); hubTooltips.HideForKeyboard(); return; }
+    RECT client{};
+    if (!GetClientRect(hWnd, &client)) return;
+    const float dp = std::max(0.5f, renderer.GetDpiScale());
+    const float winW = static_cast<float>(std::max<LONG>(1, client.right - client.left));
+    const float winH = static_cast<float>(std::max<LONG>(1, client.bottom - client.top));
+    unsigned long long signature = 0x6a09e667f3bcc909ull;
+    MixTooltipSignature(signature, static_cast<unsigned long long>(std::lround(winW)));
+    MixTooltipSignature(signature, static_cast<unsigned long long>(std::lround(winH)));
+    MixTooltipSignature(signature, static_cast<unsigned long long>(std::lround(dp * 1000.0f)));
+    MixTooltipSignature(signature, static_cast<unsigned long long>(currentTab));
+    MixTooltipSignature(signature, static_cast<unsigned long long>(activeFocusPane));
+    MixTooltipSignature(signature, static_cast<unsigned long long>(topNavFocusedIndex + 2));
+    MixTooltipSignature(signature, static_cast<unsigned long long>(activeModal));
+    MixTooltipSignature(signature, isContextMenuOpen ? 1ull : 0ull);
+    MixTooltipSignature(signature, library.GetVersion());
+    MixTooltipSignature(signature, static_cast<unsigned long long>(std::lround(mediaScrollY)));
+    MixTooltipSignature(signature, static_cast<unsigned long long>(std::lround(historyScrollY)));
+    // Mix the raw binding fields: formatting a wstring per binding per frame
+    // allocated ~2n strings on every render just to keep the signature equal.
+    for (const auto& pair : settings.shortcuts) {
+        MixTooltipSignature(signature, Fnv1a64(pair.first.data(), pair.first.size()));
+        const ShortcutBinding& b = pair.second;
+        MixTooltipSignature(signature,
+            static_cast<unsigned long long>(b.vkCode) | (static_cast<unsigned long long>(b.ctrl) << 32) |
+            (static_cast<unsigned long long>(b.alt) << 40) | (static_cast<unsigned long long>(b.shift) << 48));
+    }
+    const bool visible = activeModal == ModalType::None && !isContextMenuOpen;
+    if (!force && signature == hubTooltipSignature) {
+        if (hubTooltips.IsActive() != visible) hubTooltips.SetActive(visible);
+        if (!visible) hubTooltips.HideForKeyboard();
+        return;
+    }
+    hubTooltipSignature = signature;
+    hubTooltips.SetActive(visible);
+    if (!visible) { hubTooltips.HideForKeyboard(); return; }
+    std::unordered_set<TooltipManager::ToolId> activeIds;
+    const float pad = 18.0f * dp, padY = 14.0f * dp, tabH = 32.0f * dp, iconSize = 14.0f * dp;
+    const float gap = 7.0f * dp, pillPad = 14.0f * dp, tabGap = 8.0f * dp, actionGap = 10.0f * dp;
+    const auto add = [&](TooltipManager::ToolId id, const std::wstring& text, const RECT& rect) {
+        activeIds.insert(id);
+        hubTooltips.AddOrUpdate(id, text, rect);
+    };
+    const std::wstring tabNames[] = { L"Media", L"Playlists", L"History" };
+    float cursorX = pad;
+    for (int i = 0; i < 3; ++i) {
+        const float width = iconSize + gap + renderer.MeasureString(tabNames[i], FontType::Medium).width + pillPad * 2.0f;
+        add(1001 + static_cast<TooltipManager::ToolId>(i), tabNames[i],
+            TooltipClientRect(cursorX, padY + 4.0f * dp, cursorX + width, padY + 4.0f * dp + tabH));
+        cursorX += width + tabGap;
+    }
+    bool isRtl = Localization::Instance().IsRtl();
+    const float openW = renderer.MeasureString(Loc::Tr("nav.open_file"), FontType::Medium).width + 32.0f * dp;
+    const float settingsW = iconSize + gap + renderer.MeasureString(Loc::Tr("nav.settings"), FontType::Medium).width + pillPad * 2.0f;
+    const float openX = isRtl ? pad : (winW - pad - openW);
+    const float settingsX = isRtl ? (openX + openW + actionGap) : (openX - actionGap - settingsW);
+    add(1004, Loc::Tr("nav.settings"), TooltipClientRect(settingsX, padY + 4.0f * dp, settingsX + settingsW, padY + 4.0f * dp + tabH));
+    add(1005, TooltipActionLabel(settings, Loc::Tr("nav.open_file"), "openFile"),
+        TooltipClientRect(openX, padY + 4.0f * dp, openX + openW, padY + 4.0f * dp + tabH));
+    const D2D1_RECT_F view = D2D1::RectF(pad, 84.0f * dp, winW - pad, winH - padY);
+    if (currentTab == TabView::Media) {
+        const auto toolbar = ComputeMediaToolbarGeometry(D2D1::RectF(view.left, view.top, view.right, view.top + 32.0f * dp), dp);
+        add(1048, L"Filter media by title, filename, or series (Ctrl+F)", TooltipClientRect(toolbar.search.left, toolbar.search.top, toolbar.search.right, toolbar.search.bottom));
+        add(1049, L"Sort: " + GetLibrarySortLabel(), TooltipClientRect(toolbar.sort.left, toolbar.sort.top, toolbar.sort.right, toolbar.sort.bottom));
+        EnsureMediaLayoutCache();
+        const auto& visibleIndices = GetVisibleMediaIndices();
+        const float listTop = view.top + 44.0f * dp;
+        const auto range = GetVisibleMediaRowRange(mediaScrollY / dp, RectHeight(view) / dp, visibleIndices.size(), 1);
+        for (size_t visiblePos = range.first; visiblePos < range.second; ++visiblePos) {
+            if (visiblePos >= visibleIndices.size()) continue;
+            const size_t libraryIndex = visibleIndices[visiblePos];
+            if (libraryIndex >= library.mediaItems.size()) continue;
+            const MediaItem& item = library.mediaItems[libraryIndex];
+            const std::wstring title = item.GetDisplayTitle();
+            const float y = listTop + GetMediaRowTopDIP(visiblePos) * dp - mediaScrollY;
+            const float height = GetMediaRowHeightDIP(visiblePos) * dp;
+            const D2D1_RECT_F row = D2D1::RectF(view.left + dp, y, view.right - 2.0f * dp, y + height);
+            const float titleWidth = std::max(80.0f * dp, RectWidth(row) - 250.0f * dp);
+            if (renderer.MeasureString(title, FontType::Title).width > titleWidth) {
+                add(20000 + static_cast<TooltipManager::ToolId>(visiblePos), title,
+                    TooltipClientRect(row.left, row.top, row.right, row.bottom));
+            }
+        }
+    } else if (currentTab == TabView::History) {
+        const HistoryTimelineProjection& projection = GetHistoryProjection();
+        float y = view.top + 87.0f * dp - historyScrollY;
+        for (size_t groupIndex = 0; groupIndex < projection.groups.size(); ++groupIndex) {
+            if (groupIndex > 0) y += 16.0f * dp;
+            y += 40.0f * dp;
+            const auto& group = projection.groups[groupIndex];
+            for (size_t i = group.startIndex; i < group.startIndex + group.count; ++i) {
+                if (i >= projection.itemIndices.size()) break;
+                const size_t historyIndex = projection.itemIndices[i];
+                if (historyIndex >= library.history.size()) continue;
+                const HistoryRecord& record = library.history[historyIndex];
+                const std::wstring title = record.title.empty() ? GetFileNameFromPath(record.filePath) : record.title;
+                const D2D1_RECT_F row = D2D1::RectF(view.left + 12.0f * dp, y, view.right - 24.0f * dp, y + 76.0f * dp);
+                const float titleWidth = std::max(80.0f * dp, RectWidth(row) - 150.0f * dp);
+                if (row.bottom >= view.top && row.top <= view.bottom &&
+                    renderer.MeasureString(title, FontType::Medium).width > titleWidth) {
+                    add(30000 + static_cast<TooltipManager::ToolId>(historyIndex), title,
+                        TooltipClientRect(row.left, row.top, row.right, row.bottom));
+                }
+                y += 84.0f * dp;
+            }
+        }
+    }
+    if (currentTab == TabView::Playlists) {
+        const float railW = std::min(260.0f * dp, std::max(120.0f * dp, RectWidth(view) * 0.42f));
+        const D2D1_RECT_F detail = D2D1::RectF(view.left + railW + 16.0f * dp, view.top, view.right, view.bottom);
+        add(1101, L"New Playlist", TooltipClientRect(view.left + railW - 40.0f * dp, view.top + 7.0f * dp, view.left + railW - 10.0f * dp, view.top + 42.0f * dp));
+        Playlist* playlist = library.FindPlaylist(activePlaylistId);
+        if (playlist && !playlist->itemPaths.empty()) {
+            const float toolbarY = detail.top + 14.0f * dp + 50.0f * dp + 16.0f * dp + 112.0f * dp + 16.0f * dp;
+            add(1102, L"Play All", TooltipClientRect(detail.left + 16.0f * dp, detail.top + 116.0f * dp, detail.left + 116.0f * dp, detail.top + 152.0f * dp));
+            add(1103, L"Resume Playlist", TooltipClientRect(detail.left + 124.0f * dp, detail.top + 116.0f * dp, detail.left + 244.0f * dp, detail.top + 152.0f * dp));
+            add(1104, L"Filter Episodes", TooltipClientRect(detail.left, toolbarY, detail.left + 230.0f * dp, toolbarY + 32.0f * dp));
+            add(1105, playlistGridView ? L"Switch to List View" : L"Switch to Grid View",
+                TooltipClientRect(std::max(detail.left, detail.right - 90.0f * dp), toolbarY, detail.right - 26.0f * dp, toolbarY + 32.0f * dp));
+        } else if (playlist && !playlist->IsSmart()) {
+            const float paneRight = std::max(detail.left + 120.0f * dp, detail.right - 26.0f * dp);
+            const float dropTop = detail.top + 14.0f * dp + 50.0f * dp + 16.0f * dp;
+            const float centerX = (detail.left + paneRight) * 0.5f;
+            const float addFilesW = 118.0f * dp, addFilesH = 34.0f * dp;
+            add(1106, L"Add files to this playlist", TooltipClientRect( centerX - addFilesW * 0.5f, dropTop + 168.0f * dp,
+                centerX + addFilesW * 0.5f, dropTop + 168.0f * dp + addFilesH));
+        }
+    } else if (currentTab == TabView::History) {
+        D2D1_SIZE_F clearSize = renderer.MeasureString(L"Clear History", FontType::Medium);
+        float clearW = clearSize.width + 24.0f * dp, clearH = 32.0f * dp;
+        float clearTop = view.top + (46.0f * dp - clearH) * 0.5f;
+        add(1201, L"Clear Watch History", TooltipClientRect(view.right - clearW - 6.0f * dp, clearTop,
+            view.right - 6.0f * dp, clearTop + clearH));
+    }
+    for (TooltipManager::ToolId id : hubTooltips.GetToolIds()) { if (activeIds.find(id) == activeIds.end()) hubTooltips.Remove(id); }
+}
+
+
+void App::RefreshPlayerTooltips(bool force) {
+    if (!playbackSession.IsOpen()) {
+        if (playerTooltips.IsCreated()) {
+            if (playerTooltips.IsActive()) playerTooltips.SetActive(false);
+            playerTooltips.HideForKeyboard();
+        }
+        playerTooltipSignature = 0;
+        return;
+    }
+    if (!playerTooltips.IsCreated() && !EnsurePlayerTooltips()) return;
+    RECT client{};
+    if (!GetClientRect(hWnd, &client)) return;
+    const float dp = std::max(0.5f, overlayRenderer.GetDpiScale());
+    const float winW = static_cast<float>(std::max<LONG>(1, client.right - client.left));
+    const float winH = static_cast<float>(std::max<LONG>(1, client.bottom - client.top));
+    const bool controlsVisible = controlsOpacity > 0.02f && !isSettingsFlyoutOpen && !isContextMenuOpen;
+    unsigned long long signature = 0xbb67ae8584caa73bull;
+    MixTooltipSignature(signature, static_cast<unsigned long long>(std::lround(winW)));
+    MixTooltipSignature(signature, static_cast<unsigned long long>(std::lround(winH)));
+    MixTooltipSignature(signature, static_cast<unsigned long long>(std::lround(dp * 1000.0f)));
+    MixTooltipSignature(signature, playbackSession.IsPiP() ? 1ull : 0ull);
+    MixTooltipSignature(signature, controlsVisible ? 1ull : 0ull);
+    MixTooltipSignature(signature, player.IsPlaying() ? 1ull : 0ull);
+    MixTooltipSignature(signature, player.IsMuted() ? 1ull : 0ull);
+    MixTooltipSignature(signature, playbackSession.IsFullscreen() ? 1ull : 0ull);
+    MixTooltipSignature(signature, playbackSession.IsPiPPinned() ? 1ull : 0ull);
+    MixTooltipSignature(signature, playbackSession.IsQueuePlayback() ? 1ull : 0ull);
+    MixTooltipSignature(signature, playbackSession.GetQueueSize());
+    MixTooltipSignature(signature, playbackSession.GetQueueIndex());
+    for (const auto& pair : settings.shortcuts) {
+        const ShortcutBinding& b = pair.second;
+        MixTooltipSignature(signature,
+            static_cast<unsigned long long>(b.vkCode) | (static_cast<unsigned long long>(b.ctrl) << 32) |
+            (static_cast<unsigned long long>(b.alt) << 40) | (static_cast<unsigned long long>(b.shift) << 48));
+    }
+    if (!force && signature == playerTooltipSignature) {
+        if (playerTooltips.IsActive() != controlsVisible) playerTooltips.SetActive(controlsVisible);
+        if (!controlsVisible) playerTooltips.HideForKeyboard();
+        return;
+    }
+    playerTooltipSignature = signature;
+    playerTooltips.SetActive(controlsVisible);
+    if (!controlsVisible) { playerTooltips.HideForKeyboard(); return; }
+    std::unordered_set<TooltipManager::ToolId> activeIds;
+    const auto add = [&](TooltipManager::ToolId id, const std::wstring& text, const RECT& rect) {
+        activeIds.insert(id);
+        playerTooltips.AddOrUpdate(id, text, rect);
+    };
+    const float topBarH = 64.0f * dp, bottomBarH = 76.0f * dp, padX = Presentation::PlayerPadding * dp, btn = 36.0f * dp;
+    const float controlsY = winH - bottomBarH + Presentation::PlayerControlsY * dp;
+    if (playbackSession.IsPiP()) {
+        const auto pip = Presentation::PiP(winW, winH, dp);
+        const auto tooltipRect = [&](const D2D1_RECT_F& rect) { return TooltipClientRect(rect.left, rect.top, rect.right, rect.bottom); };
+        add(2011, TooltipActionLabel(settings, L"Close Player", "closePlayer"), tooltipRect(pip.close));
+        add(2012, L"Restore Player", tooltipRect(pip.restore));
+        add(2013, TooltipActionLabel(settings, player.IsPlaying() ? L"Pause" : L"Play", "togglePlay"), tooltipRect(pip.playPause));
+        add(2014, TooltipActionLabel(settings, L"Previous in queue", "playPrevious"), tooltipRect(pip.previous));
+        add(2015, TooltipActionLabel(settings, L"Next in queue", "playNext"), tooltipRect(pip.next));
+        add(2016, L"Audio", tooltipRect(pip.audio));
+        add(2017, playbackSession.IsPiPPinned() ? L"Unpin from top" : L"Pin on top", tooltipRect(pip.pin));
+        for (TooltipManager::ToolId id : playerTooltips.GetToolIds()) {
+            if (activeIds.find(id) == activeIds.end()) playerTooltips.Remove(id);
+        }
+        return;
+    }
+    const bool queuePlayback = playbackSession.IsQueuePlayback();
+    const auto layout = Presentation::Player(winW, winH, dp, queuePlayback);
+    const auto addRect = [&](TooltipManager::ToolId id, const std::wstring& text, const D2D1_RECT_F& rect) {
+        add(id, text, TooltipClientRect(rect.left, rect.top, rect.right, rect.bottom));
+    };
+    addRect(2001, TooltipActionLabel(settings, Loc::Tr("ux.back_library"), "closePlayer"), layout.back);
+    if (queuePlayback) { addRect(2009, TooltipActionLabel(settings, L"Previous in queue", "playPrevious"), layout.prev); }
+    addRect(2002, TooltipActionLabel(settings, player.IsPlaying() ? L"Pause" : L"Play", "togglePlay"), layout.play);
+    addRect(2003, TooltipActionLabel(settings, Presentation::NextLabel(playbackSession.IsQueuePlayback(), playbackSession.GetQueueIndex(), playbackSession.GetQueueSize()), "playNext"), layout.next);
+    addRect(2004, TooltipActionLabel(settings, player.IsMuted() ? L"Unmute" : L"Mute", "toggleMute"), layout.mute);
+    addRect(2008, TooltipActionLabel(settings, playbackSession.IsFullscreen() ? L"Exit Fullscreen" : L"Fullscreen", "toggleFullscreen"), layout.fullscreen);
+    if (layout.showPip) addRect(2007, TooltipActionLabel(settings, L"Picture-in-Picture", "togglePiP"), layout.pip);
+    addRect(2006, TooltipActionLabel(settings, L"Settings", "openSettings"), layout.settings);
+    if (layout.showSubtitles) addRect(2005, TooltipActionLabel(settings, L"Subtitles / CC", "cycleSubtitles"), layout.subtitles);
+    for (TooltipManager::ToolId id : playerTooltips.GetToolIds()) { if (activeIds.find(id) == activeIds.end()) playerTooltips.Remove(id); }
+}
+
+
+void App::HideTooltipKeyboardFocus() { hubTooltips.HideForKeyboard(); playerTooltips.HideForKeyboard(); }
+
+
+void App::ShowHubTooltipForKeyboardFocus() {
+    if (playbackSession.IsOpen() || activeFocusPane != FocusPane::TopNavBar || activeModal != ModalType::None || isContextMenuOpen) {
+        hubTooltips.HideForKeyboard();
+        return;
+    }
+    RefreshHubTooltips();
+    const int index = std::clamp(topNavFocusedIndex, 0, 4);
+    hubTooltips.ShowForKeyboard(1001 + static_cast<TooltipManager::ToolId>(index));
+}
+
+
+void App::QueueAccessibilityAction(LONG actionId) {
+    if (!hWnd || shutdownComplete || actionId <= 0) return;
+    PostMessageW(hWnd, kAccessibilityActionMessage, static_cast<WPARAM>(actionId), 0);
+}
+
+
+void App::InvokeAccessibilityAction(LONG actionId) {
+    const auto it = accessibilityActions.find(actionId);
+    if (it == accessibilityActions.end() || !it->second) return;
+    const std::function<void()> action = it->second;
+    action();
+    accessibilityDirty = true;
+    InvalidateRect(hWnd, NULL, FALSE);
+    if (playbackSession.IsOpen()) Render();
+}
+
+
+void App::AnnounceStatus(const std::wstring& text, bool force) {
+    if (text.empty() || shutdownComplete) return;
+    if (mainThreadId != 0 && GetCurrentThreadId() != mainThreadId) {
+        {
+            std::lock_guard<std::mutex> lock(pendingAnnouncementMutex);
+            if (pendingAnnouncements.size() < 32) { pendingAnnouncements.push_back(text); }
+        }
+        if (hWnd) { PostMessageW(hWnd, kAccessibilityAnnouncementMessage, 0, 0); }
+        return;
+    }
+    std::wstring cleanText = text.substr(0, 512);
+    while (!cleanText.empty() && iswspace(cleanText.front())) cleanText.erase(cleanText.begin());
+    while (!cleanText.empty() && iswspace(cleanText.back())) cleanText.pop_back();
+    if (cleanText.empty()) return;
+    const bool isVolumeOrSeek = (cleanText.find(L'%') != std::wstring::npos) || (cleanText.find(L"Seek") == 0) ||
+                                (cleanText.find(L"Volume") == 0) || (cleanText.find(L"Unmuted") == 0) || (cleanText == L"Muted");
+    const ULONGLONG now = GetTickCount64();
+    if (!force && cleanText == lastAnnouncedText && (now - lastAnnouncementTimeMs < 1000)) { return; }
+    if (isVolumeOrSeek && !force && (now - lastVolumeOrSeekAnnounceMs < 150)) { pendingCoalescedAnnouncement = cleanText; return; }
+    if (isVolumeOrSeek) { lastVolumeOrSeekAnnounceMs = now; }
+    lastAnnouncedText = cleanText;
+    lastAnnouncementTimeMs = now;
+    currentLiveAnnouncement = cleanText;
+    pendingCoalescedAnnouncement.clear();
+    accessibilityTree.AnnounceLiveRegion(kStatusLiveRegionId, cleanText);
+}
+
+
+void App::ProcessPendingAnnouncements() {
+    std::vector<std::wstring> queued;
+    { std::lock_guard<std::mutex> lock(pendingAnnouncementMutex); queued.swap(pendingAnnouncements); }
+    for (const auto& msg : queued) { AnnounceStatus(msg); }
+}
+
+} // namespace Aperture

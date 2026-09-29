@@ -1,0 +1,223 @@
+{
+  "$schema": "./dependencies.schema.json",
+  "version": 1,
+  "description": "Authoritative inventory of Aperture build, runtime, test, and package dependencies",
+  "toolchain": [
+    {
+      "id": "msvc",
+      "name": "Microsoft Visual C++ (MSVC)",
+      "category": "required",
+      "minimumVersion": "19.30",
+      "standard": "C++17",
+      "architecture": "x64",
+      "license": "Proprietary (Microsoft Visual Studio EULA)",
+      "source": "Microsoft Visual Studio 2022",
+      "description": "C++17 compiler (v143 toolset) for building native x64 binaries."
+    },
+    {
+      "id": "windows_sdk",
+      "name": "Windows 10/11 SDK",
+      "category": "required",
+      "minimumVersion": "10.0.19041.0",
+      "architecture": "x64",
+      "license": "Proprietary (Microsoft Windows SDK EULA)",
+      "source": "Microsoft Windows SDK",
+      "description": "Win32, Direct2D 1.1, Direct3D 11, DirectWrite, and MediaFoundation SDK headers and import libraries."
+    },
+    {
+      "id": "cmake",
+      "name": "CMake",
+      "category": "required",
+      "minimumVersion": "3.20.0",
+      "license": "BSD-3-Clause",
+      "source": "https://cmake.org",
+      "description": "Meta-build system for configuring and generating build files."
+    },
+    {
+      "id": "ninja",
+      "name": "Ninja Build System",
+      "category": "optional",
+      "minimumVersion": "1.10.0",
+      "license": "Apache-2.0",
+      "source": "https://ninja-build.org",
+      "description": "Optional fast generator for CMake build configurations."
+    },
+    {
+      "id": "python",
+      "name": "Python",
+      "category": "ci_and_tests",
+      "minimumVersion": "3.8.0",
+      "license": "PSF-2.0",
+      "source": "https://python.org",
+      "description": "Python runtime for PE header inspection, architecture validation, and package test suites."
+    },
+    {
+      "id": "powershell",
+      "name": "PowerShell",
+      "category": "required",
+      "minimumVersion": "5.1",
+      "license": "MIT / Windows Component",
+      "source": "https://github.com/PowerShell/PowerShell",
+      "description": "Task and test runner orchestration shell."
+    },
+    {
+      "id": "app_verifier",
+      "name": "Microsoft Application Verifier",
+      "category": "optional",
+      "executable": "appverif.exe",
+      "license": "Proprietary (Microsoft SDK)",
+      "source": "Microsoft Windows SDK",
+      "description": "Optional runtime memory, handle, lock, and leak verification tool."
+    },
+    {
+      "id": "signtool",
+      "name": "Microsoft SignTool",
+      "category": "optional",
+      "executable": "signtool.exe",
+      "license": "Proprietary (Microsoft Windows SDK EULA)",
+      "source": "Microsoft Windows SDK",
+      "description": "Authenticode code-signing and signature verification tool for portable release packages."
+    },
+    {
+      "id": "yt_dlp",
+      "name": "yt-dlp",
+      "category": "user_discovered",
+      "executable": "yt-dlp.exe",
+      "discoveryPolicy": "explicit_opt_in",
+      "license": "Unlicense",
+      "source": "https://github.com/yt-dlp/yt-dlp",
+      "description": "External stream and metadata extractor discovered only via explicit user opt-in (root tools or PATH)."
+    }
+  ],
+  "vendoredFiles": [
+    {
+      "id": "libmpv",
+      "name": "libmpv Shared Library",
+      "path": "libmpv-2.dll",
+      "category": "required",
+      "version": "v0.41.0-930-g49418246f",
+      "abiVersion": "2.0.0.0",
+      "clientApiVersion": "2.5",
+      "architecture": "x64",
+      "size": 39929344,
+      "sha256": "a418e45906d1d3c635a32eb127276934d735d0cb1ce80e3faf5d2b92be69c358",
+      "license": "GPL-2.0-or-later / LGPL-2.1-or-later",
+      "source": "https://github.com/mpv-player/mpv",
+      "description": "Core media playback engine DLL."
+    },
+    {
+      "id": "mpv_client_h",
+      "name": "libmpv Client Header",
+      "path": "include/mpv/client.h",
+      "category": "required",
+      "version": "2.5",
+      "size": 86136,
+      "sha256": "1acf99ee77c8c2a6f1d1993bd81bbc8a91d27fb5924e80171670e6139a4bd353",
+      "license": "ISC / LGPL-2.1-or-later",
+      "source": "https://github.com/mpv-player/mpv/blob/master/include/mpv/client.h",
+      "description": "C API client declarations for libmpv."
+    },
+    {
+      "id": "mpv_render_h",
+      "name": "libmpv Render Header",
+      "path": "include/mpv/render.h",
+      "category": "required",
+      "version": "2.5",
+      "size": 34271,
+      "sha256": "192691941602052f00df0587f126246c48785a1cf21de68d22a92ea1908d1c55",
+      "license": "ISC / LGPL-2.1-or-later",
+      "source": "https://github.com/mpv-player/mpv/blob/master/include/mpv/render.h",
+      "description": "Render API declarations for libmpv."
+    },
+    {
+      "id": "mpv_render_gl_h",
+      "name": "libmpv Render GL Header",
+      "path": "include/mpv/render_gl.h",
+      "category": "required",
+      "version": "2.5",
+      "size": 7328,
+      "sha256": "48662c0ed9872a14dd9e1684105c97f69f94a0414709c254c5d372adc41d2e69",
+      "license": "ISC / LGPL-2.1-or-later",
+      "source": "https://github.com/mpv-player/mpv/blob/master/include/mpv/render_gl.h",
+      "description": "OpenGL render backend declarations for libmpv."
+    },
+    {
+      "id": "mpv_stream_cb_h",
+      "name": "libmpv Stream Callback Header",
+      "path": "include/mpv/stream_cb.h",
+      "category": "required",
+      "version": "2.5",
+      "size": 9589,
+      "sha256": "188e58b6d14383e15a5dffdc4ecebbdfbf2e412b9c099ff21b571f747a8ce32d",
+      "license": "ISC / LGPL-2.1-or-later",
+      "source": "https://github.com/mpv-player/mpv/blob/master/include/mpv/stream_cb.h",
+      "description": "Custom stream callback declarations for libmpv."
+    },
+    {
+      "id": "font_inter",
+      "name": "Inter Variable Font",
+      "path": "fonts/Inter.ttf",
+      "category": "required",
+      "version": "4.0",
+      "size": 876576,
+      "sha256": "29160a80ff49ddcab2c97711247e08b1fab27a484a329ce8b813d820dc559031",
+      "license": "OFL-1.1",
+      "source": "https://github.com/rsms/inter",
+      "description": "Bundled variable font for primary UI typography."
+    },
+    {
+      "id": "font_space_grotesk",
+      "name": "Space Grotesk Variable Font",
+      "path": "fonts/SpaceGrotesk.ttf",
+      "category": "required",
+      "version": "2.0",
+      "size": 136676,
+      "sha256": "acad6de1fc93436f5c0f1f4137751ef04f1aea3063e7036535970ffcfbd79f72",
+      "license": "OFL-1.1",
+      "source": "https://github.com/floriankarsten/space-grotesk",
+      "description": "Bundled variable font for display typography."
+    },
+    {
+      "id": "font_jetbrains_mono",
+      "name": "JetBrains Mono Variable Font",
+      "path": "fonts/JetBrainsMono.ttf",
+      "category": "required",
+      "version": "2.304",
+      "size": 187208,
+      "sha256": "48715a42ec242c21e9f02692891e147d022299a52e48d5e413e1a942193ffeda",
+      "license": "OFL-1.1",
+      "source": "https://github.com/JetBrains/JetBrainsMono",
+      "description": "Bundled monospace font for logs, timecodes, and diagnostics."
+    }
+  ],
+  "runtimePackageDependencies": [],
+  "ciActions": [
+    {
+      "id": "actions_checkout",
+      "name": "actions/checkout",
+      "category": "ci_only",
+      "version": "v4",
+      "license": "MIT",
+      "source": "https://github.com/actions/checkout",
+      "description": "GitHub Actions checkout workflow step."
+    },
+    {
+      "id": "actions_setup_python",
+      "name": "actions/setup-python",
+      "category": "ci_only",
+      "version": "v5",
+      "license": "MIT",
+      "source": "https://github.com/actions/setup-python",
+      "description": "GitHub Actions Python setup step."
+    },
+    {
+      "id": "actions_upload_artifact",
+      "name": "actions/upload-artifact",
+      "category": "ci_only",
+      "version": "v4",
+      "license": "MIT",
+      "source": "https://github.com/actions/upload-artifact",
+      "description": "GitHub Actions artifact upload step."
+    }
+  ]
+}

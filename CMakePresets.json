@@ -1,0 +1,141 @@
+{
+  "version": 3,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 20,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "windows-base",
+      "hidden": true,
+      "generator": "Visual Studio 17 2022",
+      "architecture": "x64",
+      "binaryDir": "$env{TEMP}/Aperture_cmake_presets/${sourceDirName}/${presetName}",
+      "installDir": "$env{TEMP}/Aperture_cmake_installs/${sourceDirName}/${presetName}"
+    },
+    {
+      "name": "release",
+      "displayName": "Release",
+      "description": "Hardened optimized Release configuration (static runtime, LTCG, CFG, CET, Spectre, /Brepro determinism)",
+      "inherits": "windows-base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "name": "debug",
+      "displayName": "Debug",
+      "description": "Debug configuration with symbols and runtime checks",
+      "inherits": "windows-base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "sanitize",
+      "displayName": "AddressSanitizer",
+      "description": "AddressSanitizer configuration",
+      "inherits": "windows-base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Sanitize"
+      }
+    },
+    {
+      "name": "ninja-release",
+      "displayName": "Ninja Release",
+      "description": "Release configuration with Ninja generator",
+      "generator": "Ninja",
+      "binaryDir": "$env{TEMP}/Aperture_cmake_presets/${sourceDirName}/${presetName}",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "name": "ninja-debug",
+      "displayName": "Ninja Debug",
+      "description": "Debug configuration with Ninja generator",
+      "generator": "Ninja",
+      "binaryDir": "$env{TEMP}/Aperture_cmake_presets/${sourceDirName}/${presetName}",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "ninja-sanitize",
+      "displayName": "Ninja AddressSanitizer",
+      "description": "Sanitize configuration with Ninja generator",
+      "generator": "Ninja",
+      "binaryDir": "$env{TEMP}/Aperture_cmake_presets/${sourceDirName}/${presetName}",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Sanitize"
+      }
+    },
+    {
+      "name": "analyze",
+      "displayName": "Static Analysis",
+      "description": "Static code analysis configuration (/analyze)",
+      "inherits": "windows-base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "APERTURE_ENABLE_STATIC_ANALYSIS": "ON"
+      }
+    },
+    {
+      "name": "ninja-analyze",
+      "displayName": "Ninja Static Analysis",
+      "description": "Static code analysis configuration with Ninja generator (/analyze)",
+      "generator": "Ninja",
+      "binaryDir": "$env{TEMP}/Aperture_cmake_presets/${sourceDirName}/${presetName}",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "APERTURE_ENABLE_STATIC_ANALYSIS": "ON"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "release",
+      "displayName": "Release Build",
+      "configurePreset": "release",
+      "configuration": "Release"
+    },
+    {
+      "name": "debug",
+      "displayName": "Debug Build",
+      "configurePreset": "debug",
+      "configuration": "Debug"
+    },
+    {
+      "name": "sanitize",
+      "displayName": "AddressSanitizer Build",
+      "configurePreset": "sanitize",
+      "configuration": "Sanitize"
+    },
+    {
+      "name": "ninja-release",
+      "displayName": "Ninja Release Build",
+      "configurePreset": "ninja-release"
+    },
+    {
+      "name": "ninja-debug",
+      "displayName": "Ninja Debug Build",
+      "configurePreset": "ninja-debug"
+    },
+    {
+      "name": "ninja-sanitize",
+      "displayName": "Ninja AddressSanitizer Build",
+      "configurePreset": "ninja-sanitize"
+    },
+    {
+      "name": "analyze",
+      "displayName": "Static Analysis Build",
+      "configurePreset": "analyze"
+    },
+    {
+      "name": "ninja-analyze",
+      "displayName": "Ninja Static Analysis Build",
+      "configurePreset": "ninja-analyze"
+    }
+  ]
+}

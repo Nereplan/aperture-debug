@@ -1,0 +1,897 @@
+{
+  "$schema": "./manifest.schema.json",
+  "version": 1,
+  "description": "Authoritative manifest for Aperture native parser and media container corpus tests",
+  "categories": [
+    "json",
+    "playlist",
+    "subtitle",
+    "url",
+    "command_line",
+    "settings",
+    "media"
+  ],
+  "fixtureCount": 61,
+  "fixtures": [
+    {
+      "id": "json_valid_kitchen_sink",
+      "category": "json",
+      "path": "fixtures/json/valid_kitchen_sink.json",
+      "sha256": "415f8089d5c767cbfcddf80e513ad9f33991da024f6566d01aabb4a44fa79d22",
+      "sizeBytes": 247,
+      "expectedOutcome": "accept",
+      "expectedReason": "valid_json_structure",
+      "format": "json",
+      "expectedFields": {
+        "type": "object",
+        "hasKeys": [
+          "name",
+          "version",
+          "enabled",
+          "features",
+          "metadata"
+        ],
+        "featureCount": 3,
+        "releaseYear": 2026
+      }
+    },
+    {
+      "id": "json_valid_unicode_escapes",
+      "category": "json",
+      "path": "fixtures/json/valid_unicode_escapes.json",
+      "sha256": "f36009c2730d667ef4daa2582669e3f61aea1311244716aaf0251393139c3acd",
+      "sizeBytes": 157,
+      "expectedOutcome": "accept",
+      "expectedReason": "valid_unicode",
+      "format": "json",
+      "expectedFields": {
+        "type": "object",
+        "appName": "Aperture",
+        "hasDirectUtf8": true
+      }
+    },
+    {
+      "id": "json_valid_nested_boundary",
+      "category": "json",
+      "path": "fixtures/json/valid_nested_boundary.json",
+      "sha256": "514be4fcfbe4fb4a8e2a513892baf7160290b9853ac0781fa017b6a08250f563",
+      "sizeBytes": 130,
+      "expectedOutcome": "accept",
+      "expectedReason": "valid_nested_boundary",
+      "format": "json",
+      "expectedFields": {
+        "type": "array",
+        "depth": 64,
+        "leafValue": 42
+      }
+    },
+    {
+      "id": "json_malformed_unclosed_string",
+      "category": "json",
+      "path": "fixtures/json/malformed_unclosed_string.json",
+      "sha256": "28209d8d7ed6ea729dee1dbb047f61cf789bb1c3c8d69f084552dc066ea6b21e",
+      "sizeBytes": 55,
+      "expectedOutcome": "reject",
+      "expectedReason": "unclosed_string",
+      "format": "json",
+      "expectedFields": {
+        "errorDomain": "json_syntax"
+      }
+    },
+    {
+      "id": "json_malformed_trailing_tokens",
+      "category": "json",
+      "path": "fixtures/json/malformed_trailing_tokens.json",
+      "sha256": "ae472df08a9e0226909eba46c1d0a7646a9c833f6eefd149b53fc23411724fdb",
+      "sizeBytes": 48,
+      "expectedOutcome": "reject",
+      "expectedReason": "trailing_tokens",
+      "format": "json",
+      "expectedFields": {
+        "errorDomain": "json_syntax"
+      }
+    },
+    {
+      "id": "json_malformed_invalid_number",
+      "category": "json",
+      "path": "fixtures/json/malformed_invalid_number.json",
+      "sha256": "ec0e201e8bed20ca08086e9f01db5fead2265c07129f2816b8c19160dd23a4d4",
+      "sizeBytes": 27,
+      "expectedOutcome": "reject",
+      "expectedReason": "invalid_number",
+      "format": "json",
+      "expectedFields": {
+        "errorDomain": "json_syntax"
+      }
+    },
+    {
+      "id": "json_malformed_bad_escape",
+      "category": "json",
+      "path": "fixtures/json/malformed_bad_escape.json",
+      "sha256": "75e8dedf8f305923177738017bdf2abfd98db85e91063557ad949c17761a6f6a",
+      "sizeBytes": 57,
+      "expectedOutcome": "reject",
+      "expectedReason": "bad_escape",
+      "format": "json",
+      "expectedFields": {
+        "errorDomain": "json_syntax"
+      }
+    },
+    {
+      "id": "json_truncated_mid_object",
+      "category": "json",
+      "path": "fixtures/json/truncated_mid_object.json",
+      "sha256": "105650f021de293d7f5c6ffd3b3934ef5966d6c87da482424ed2148b54fda509",
+      "sizeBytes": 24,
+      "expectedOutcome": "reject",
+      "expectedReason": "truncated_json",
+      "format": "json",
+      "expectedFields": {
+        "errorDomain": "json_syntax"
+      }
+    },
+    {
+      "id": "json_boundary_exceeds_depth",
+      "category": "json",
+      "path": "fixtures/json/boundary_exceeds_depth.json",
+      "sha256": "cd55063c90c5e1f63a1cbe4ff05653b6cc85101197cf5e1bd1026d4a96b23833",
+      "sizeBytes": 261,
+      "expectedOutcome": "reject",
+      "expectedReason": "depth_limit_exceeded",
+      "format": "json",
+      "expectedFields": {
+        "errorDomain": "json_limits"
+      }
+    },
+    {
+      "id": "playlist_valid_standard_m3u",
+      "category": "playlist",
+      "path": "fixtures/playlist/valid_standard.m3u",
+      "sha256": "2e0aa4db769d70670aa07478ee835d8a44f6a778066ff62386949f5e26d2d85a",
+      "sizeBytes": 86,
+      "expectedOutcome": "accept",
+      "expectedReason": "valid_m3u",
+      "format": "m3u",
+      "expectedFields": {
+        "detectedFormat": "M3U",
+        "entryCount": 3
+      }
+    },
+    {
+      "id": "playlist_valid_extended_m3u8_bom",
+      "category": "playlist",
+      "path": "fixtures/playlist/valid_extended_utf8_bom.m3u8",
+      "sha256": "5cd7f5f59ac0ff3f406e0b0e9b9e4402c612be854215d50a18e4b66a64881d1b",
+      "sizeBytes": 184,
+      "expectedOutcome": "accept",
+      "expectedReason": "valid_extended_m3u8",
+      "format": "m3u8",
+      "expectedFields": {
+        "detectedFormat": "M3U8",
+        "entryCount": 3,
+        "hasBom": true,
+        "firstTitle": "Artist One - Track Title One",
+        "firstDuration": 180.0,
+        "secondIsUrl": true
+      }
+    },
+    {
+      "id": "playlist_valid_standard_pls",
+      "category": "playlist",
+      "path": "fixtures/playlist/valid_standard.pls",
+      "sha256": "bf2b1b709b8d2e3fda4fd189398be66907b3274153b3c00b94d590466bf2e310",
+      "sizeBytes": 102,
+      "expectedOutcome": "accept",
+      "expectedReason": "valid_pls",
+      "format": "pls",
+      "expectedFields": {
+        "detectedFormat": "PLS",
+        "entryCount": 1,
+        "firstTitle": "First Track Title",
+        "firstDuration": 215.0
+      }
+    },
+    {
+      "id": "playlist_valid_multitrack_pls",
+      "category": "playlist",
+      "path": "fixtures/playlist/valid_multitrack.pls",
+      "sha256": "de1230efb7cbe5499ec606c9a0ae46068d85cccca95cc5a72695dc62f409d224",
+      "sizeBytes": 230,
+      "expectedOutcome": "accept",
+      "expectedReason": "valid_multitrack_pls",
+      "format": "pls",
+      "expectedFields": {
+        "detectedFormat": "PLS",
+        "entryCount": 3,
+        "secondDuration": 300.0,
+        "thirdIsUrl": true
+      }
+    },
+    {
+      "id": "playlist_malformed_no_header_pls",
+      "category": "playlist",
+      "path": "fixtures/playlist/malformed_no_header.pls",
+      "sha256": "c38cbc2df16a617730a80919d1b6f77444e95f227702765e47d773df68cd94d2",
+      "sizeBytes": 40,
+      "expectedOutcome": "reject",
+      "expectedReason": "invalid_pls_header",
+      "format": "pls",
+      "expectedFields": {
+        "errorCode": "InvalidHeader"
+      }
+    },
+    {
+      "id": "playlist_malformed_invalid_duration_m3u",
+      "category": "playlist",
+      "path": "fixtures/playlist/malformed_invalid_duration.m3u",
+      "sha256": "c8b4d2206cc36e29f11ca8832a28ce9f754faea93612e126ae1b21b465919363",
+      "sizeBytes": 70,
+      "expectedOutcome": "accept",
+      "expectedReason": "malformed_directive_fallback",
+      "format": "m3u",
+      "expectedFields": {
+        "detectedFormat": "M3U",
+        "entryCount": 1,
+        "firstDuration": -1.0
+      }
+    },
+    {
+      "id": "playlist_truncated_m3u8",
+      "category": "playlist",
+      "path": "fixtures/playlist/truncated_m3u8.m3u8",
+      "sha256": "c86273be38ae738122c94150d3d0868afe2ce80b87480863bed6b0c1ff52b561",
+      "sizeBytes": 55,
+      "expectedOutcome": "reject",
+      "expectedReason": "truncated_playlist",
+      "format": "m3u8",
+      "expectedFields": {
+        "entryCount": 0
+      }
+    },
+    {
+      "id": "playlist_content_disagreement_pls_in_m3u",
+      "category": "playlist",
+      "path": "fixtures/playlist/content_disagreement_pls_in_m3u.m3u",
+      "sha256": "0ba60488fc4911ef1ecfaed8eaba69949bb77d8f0a46fc17970aeab0e7fa8f71",
+      "sizeBytes": 105,
+      "expectedOutcome": "accept",
+      "expectedReason": "content_autodetect_override",
+      "format": "m3u",
+      "expectedFields": {
+        "detectedFormat": "PLS",
+        "entryCount": 1,
+        "firstTitle": "Autodetected PLS"
+      }
+    },
+    {
+      "id": "playlist_content_disagreement_m3u_in_pls",
+      "category": "playlist",
+      "path": "fixtures/playlist/content_disagreement_m3u_in_pls.pls",
+      "sha256": "4f3c0036fe8e9eb75cb1442330d53c4ab1ddc6dda6b5695cb81e59c0e13695d2",
+      "sizeBytes": 52,
+      "expectedOutcome": "accept",
+      "expectedReason": "content_autodetect_override",
+      "format": "pls",
+      "expectedFields": {
+        "detectedFormat": "M3U",
+        "entryCount": 1,
+        "firstTitle": "Autodetected M3U Track"
+      }
+    },
+    {
+      "id": "playlist_unicode_paths",
+      "category": "playlist",
+      "path": "fixtures/playlist/unicode_paths.m3u8",
+      "sha256": "8c2f2746a976ae367d9d4274e52ff6e302c13f0653dcb848d48d8765d28c35f4",
+      "sizeBytes": 179,
+      "expectedOutcome": "accept",
+      "expectedReason": "unicode_playlist",
+      "format": "m3u8",
+      "expectedFields": {
+        "detectedFormat": "M3U8",
+        "entryCount": 2,
+        "hasUnicodeTitles": true
+      }
+    },
+    {
+      "id": "playlist_empty_rejected",
+      "category": "playlist",
+      "path": "fixtures/playlist/empty.m3u",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sizeBytes": 0,
+      "expectedOutcome": "reject",
+      "expectedReason": "empty_playlist",
+      "format": "m3u",
+      "expectedFields": {
+        "errorCode": "EmptyPlaylist"
+      }
+    },
+    {
+      "id": "sub_valid_standard_srt",
+      "category": "subtitle",
+      "path": "fixtures/subtitle/valid_standard.srt",
+      "sha256": "95c2f6be561e81926848a76a10038ab482128b80ac96a075a0c920ce91b976f6",
+      "sizeBytes": 170,
+      "expectedOutcome": "accept",
+      "expectedReason": "valid_srt",
+      "format": "srt",
+      "expectedFields": {
+        "cueCount": 2,
+        "firstStartSec": 1.5,
+        "firstEndSec": 4.2,
+        "firstCleanText": "Hello World & welcome!"
+      }
+    },
+    {
+      "id": "sub_valid_standard_vtt",
+      "category": "subtitle",
+      "path": "fixtures/subtitle/valid_standard.vtt",
+      "sha256": "33d12f296e7958ea450de6268a0bb80768e9a4ab5ec03b31439f973b50e43cb3",
+      "sizeBytes": 277,
+      "expectedOutcome": "accept",
+      "expectedReason": "valid_vtt",
+      "format": "vtt",
+      "expectedFields": {
+        "cueCount": 2,
+        "firstStartSec": 1.0,
+        "firstEndSec": 4.5,
+        "secondStartSec": 3723.456
+      }
+    },
+    {
+      "id": "sub_valid_standard_ass",
+      "category": "subtitle",
+      "path": "fixtures/subtitle/valid_standard.ass",
+      "sha256": "5f345e033107cba999e6f22aac10e247fbf9290c7a40e379f796fffa2ab7a02b",
+      "sizeBytes": 693,
+      "expectedOutcome": "accept",
+      "expectedReason": "valid_ass",
+      "format": "ass",
+      "expectedFields": {
+        "cueCount": 2,
+        "firstStartSec": 1.2,
+        "firstEndSec": 3.5
+      }
+    },
+    {
+      "id": "sub_valid_utf8_bom_srt",
+      "category": "subtitle",
+      "path": "fixtures/subtitle/valid_utf8_bom.srt",
+      "sha256": "f27238698b0dd8566cb179329ce5c4e970e36e22f76c0bd3f5200d65d6f0b340",
+      "sizeBytes": 64,
+      "expectedOutcome": "accept",
+      "expectedReason": "valid_utf8_bom_srt",
+      "format": "srt",
+      "expectedFields": {
+        "cueCount": 1,
+        "firstStartSec": 2.0
+      }
+    },
+    {
+      "id": "sub_valid_multiline_entities",
+      "category": "subtitle",
+      "path": "fixtures/subtitle/valid_multiline_entities.srt",
+      "sha256": "602ae26c446e837f304af786ad0fe9e997c48d560ffd5f01dde8269a5ef98a5b",
+      "sizeBytes": 165,
+      "expectedOutcome": "accept",
+      "expectedReason": "valid_entities",
+      "format": "srt",
+      "expectedFields": {
+        "cueCount": 1,
+        "cleanEntities": true
+      }
+    },
+    {
+      "id": "sub_malformed_missing_vtt_header",
+      "category": "subtitle",
+      "path": "fixtures/subtitle/malformed_missing_vtt_header.vtt",
+      "sha256": "d396a158c85c6a94f7b9471714b877b88657a36703d62f9eb79760e254e78f17",
+      "sizeBytes": 84,
+      "expectedOutcome": "reject",
+      "expectedReason": "missing_webvtt_header",
+      "format": "vtt",
+      "expectedFields": {
+        "cueCount": 0
+      }
+    },
+    {
+      "id": "sub_malformed_bad_timestamp",
+      "category": "subtitle",
+      "path": "fixtures/subtitle/malformed_bad_timestamp.srt",
+      "sha256": "b178e6824f2b49beeb732ec5c8b2fa5bb10015a3e531714d06d3445b194b1abe",
+      "sizeBytes": 61,
+      "expectedOutcome": "reject",
+      "expectedReason": "invalid_srt_timestamp",
+      "format": "srt",
+      "expectedFields": {
+        "cueCount": 0
+      }
+    },
+    {
+      "id": "sub_malformed_invalid_ass_events",
+      "category": "subtitle",
+      "path": "fixtures/subtitle/malformed_invalid_ass_events.ass",
+      "sha256": "3157c318a5e76da60d79871c0b08cf330b3d71a0db30701e7ac7a38f740e9015",
+      "sizeBytes": 141,
+      "expectedOutcome": "reject",
+      "expectedReason": "missing_ass_format",
+      "format": "ass",
+      "expectedFields": {
+        "cueCount": 0
+      }
+    },
+    {
+      "id": "sub_truncated_cue",
+      "category": "subtitle",
+      "path": "fixtures/subtitle/truncated_cue.srt",
+      "sha256": "e6344a9cab6db8f7363a3818ea9f0389f7156f3280bc45da1e072a52f24176bb",
+      "sizeBytes": 34,
+      "expectedOutcome": "reject",
+      "expectedReason": "truncated_subtitle",
+      "format": "srt",
+      "expectedFields": {
+        "cueCount": 0
+      }
+    },
+    {
+      "id": "sub_unicode_cjk_cyrillic",
+      "category": "subtitle",
+      "path": "fixtures/subtitle/unicode_cjk_cyrillic.vtt",
+      "sha256": "b2a62ede1c10d5d85b84a582ed8629ffc9fe047f4a8af5f21075969b337350c6",
+      "sizeBytes": 215,
+      "expectedOutcome": "accept",
+      "expectedReason": "unicode_subtitles",
+      "format": "vtt",
+      "expectedFields": {
+        "cueCount": 3,
+        "hasMultilingualCues": true
+      }
+    },
+    {
+      "id": "url_valid_https_stream",
+      "category": "url",
+      "path": "fixtures/url/valid_https_stream.txt",
+      "sha256": "129e73313d86f0d5825b35202cf8cebc69d97b01820b9487cadc842f1870deff",
+      "sizeBytes": 60,
+      "expectedOutcome": "accept",
+      "expectedReason": "valid_https_url",
+      "format": "url",
+      "expectedFields": {
+        "scheme": "Https",
+        "host": "live.example.com",
+        "port": 8443,
+        "path": "/hls/stream.m3u8",
+        "isValid": true
+      }
+    },
+    {
+      "id": "url_valid_rtsp_ipv4",
+      "category": "url",
+      "path": "fixtures/url/valid_rtsp_ipv4.txt",
+      "sha256": "173109cb3367a236390aa49f0a9a3ee7e1d04f24a0c1bf009bf989940ef5a80d",
+      "sizeBytes": 34,
+      "expectedOutcome": "accept",
+      "expectedReason": "valid_rtsp_url",
+      "format": "url",
+      "expectedFields": {
+        "scheme": "Rtsp",
+        "host": "192.168.1.100",
+        "port": 554,
+        "isValid": true
+      }
+    },
+    {
+      "id": "url_valid_ipv6_bracket",
+      "category": "url",
+      "path": "fixtures/url/valid_ipv6_bracket.txt",
+      "sha256": "8b9893f8d47f73360fae5f41d323ddc6ac11de5ea0e17d543e4fd016b9a00648",
+      "sizeBytes": 39,
+      "expectedOutcome": "accept",
+      "expectedReason": "valid_ipv6_url",
+      "format": "url",
+      "expectedFields": {
+        "scheme": "Http",
+        "host": "[2001:db8::1]",
+        "port": 8080,
+        "isValid": true
+      }
+    },
+    {
+      "id": "url_valid_rtmp",
+      "category": "url",
+      "path": "fixtures/url/valid_rtmp.txt",
+      "sha256": "8c2c58c9438cfd909affab77417c226965c1a47ecabe259008b3aae15446c741",
+      "sizeBytes": 35,
+      "expectedOutcome": "accept",
+      "expectedReason": "valid_rtmp_url",
+      "format": "url",
+      "expectedFields": {
+        "scheme": "Rtmp",
+        "host": "live.twitch.tv",
+        "port": 0,
+        "isValid": true
+      }
+    },
+    {
+      "id": "url_rejected_scheme_file",
+      "category": "url",
+      "path": "fixtures/url/rejected_disallowed_scheme_file.txt",
+      "sha256": "3daadcb1e025cb1bf5fe9691b42235dbf9b68675b0eaa0145c366914a675a9aa",
+      "sizeBytes": 32,
+      "expectedOutcome": "reject",
+      "expectedReason": "disallowed_scheme",
+      "format": "url",
+      "expectedFields": {
+        "isValid": false,
+        "error": "UnsupportedScheme"
+      }
+    },
+    {
+      "id": "url_rejected_scheme_javascript",
+      "category": "url",
+      "path": "fixtures/url/rejected_disallowed_scheme_javascript.txt",
+      "sha256": "d0ee0421cce9521da249939cc55632a0cee6ec36d5f5a1940e0c47800007a0ea",
+      "sizeBytes": 19,
+      "expectedOutcome": "reject",
+      "expectedReason": "disallowed_scheme",
+      "format": "url",
+      "expectedFields": {
+        "isValid": false,
+        "error": "MissingSchemeDelimiter"
+      }
+    },
+    {
+      "id": "url_rejected_embedded_credentials",
+      "category": "url",
+      "path": "fixtures/url/rejected_embedded_credentials.txt",
+      "sha256": "1e453b7737762dd265cc3c35c2d85b55e696d0e6ab2d328385c3c884510b9c4a",
+      "sizeBytes": 46,
+      "expectedOutcome": "reject",
+      "expectedReason": "embedded_credentials_rejected",
+      "format": "url",
+      "expectedFields": {
+        "isValid": false,
+        "error": "EmbeddedCredentialsNotAllowed"
+      }
+    },
+    {
+      "id": "url_rejected_malformed_port",
+      "category": "url",
+      "path": "fixtures/url/rejected_malformed_port.txt",
+      "sha256": "39977357dcc7f3015af016c7816bb4d3a41ffb9060e23afac4715b46f5111d71",
+      "sizeBytes": 30,
+      "expectedOutcome": "reject",
+      "expectedReason": "invalid_port",
+      "format": "url",
+      "expectedFields": {
+        "isValid": false,
+        "error": "InvalidPort"
+      }
+    },
+    {
+      "id": "url_rejected_control_characters",
+      "category": "url",
+      "path": "fixtures/url/rejected_control_characters.txt",
+      "sha256": "a0e57207812ee0db53debb737d1a0de60dc1f15095a617c48185408ee07b2530",
+      "sizeBytes": 36,
+      "expectedOutcome": "reject",
+      "expectedReason": "control_characters",
+      "format": "url",
+      "expectedFields": {
+        "isValid": false,
+        "error": "ContainsControlCharacters"
+      }
+    },
+    {
+      "id": "url_rejected_invalid_ipv6",
+      "category": "url",
+      "path": "fixtures/url/rejected_invalid_ipv6.txt",
+      "sha256": "08a92a4df6d6ead0f54a7e26979e194bf2de6c317b6da483d4a2316c3b4afc8c",
+      "sizeBytes": 25,
+      "expectedOutcome": "reject",
+      "expectedReason": "invalid_ipv6",
+      "format": "url",
+      "expectedFields": {
+        "isValid": false,
+        "error": "InvalidHost"
+      }
+    },
+    {
+      "id": "url_valid_dropped_candidate_text",
+      "category": "url",
+      "path": "fixtures/url/valid_dropped_candidate_text.txt",
+      "sha256": "9e965422aaa0be7393876c42d30f7d89feb575bffeb09f15bbf451d30e6101a4",
+      "sizeBytes": 75,
+      "expectedOutcome": "accept",
+      "expectedReason": "extracted_candidate_url",
+      "format": "url",
+      "expectedFields": {
+        "hasUrl": true,
+        "extractedUrl": "https://streams.example.org:8000/live.m3u8"
+      }
+    },
+    {
+      "id": "cli_valid_full_options",
+      "category": "command_line",
+      "path": "fixtures/command_line/valid_full_options.txt",
+      "sha256": "38085880a9a7578803d4ea38f6c139adf17ddf540f56187bbfc188db1164f680",
+      "sizeBytes": 159,
+      "expectedOutcome": "accept",
+      "expectedReason": "valid_cli_flags",
+      "format": "cli",
+      "expectedFields": {
+        "isSuccess": true,
+        "startPositionSec": 5025.5,
+        "volume": 75.0,
+        "fullscreen": true,
+        "paused": true,
+        "loop": true,
+        "enqueue": true,
+        "targetCount": 2
+      }
+    },
+    {
+      "id": "cli_valid_minimal_target",
+      "category": "command_line",
+      "path": "fixtures/command_line/valid_minimal_target.txt",
+      "sha256": "7e6a3b59b9eb36846c9fa70cccc3484d06f36094d830b8eca144900db4d287ae",
+      "sizeBytes": 48,
+      "expectedOutcome": "accept",
+      "expectedReason": "valid_cli_target",
+      "format": "cli",
+      "expectedFields": {
+        "isSuccess": true,
+        "targetCount": 1
+      }
+    },
+    {
+      "id": "cli_valid_seconds_start",
+      "category": "command_line",
+      "path": "fixtures/command_line/valid_seconds_start.txt",
+      "sha256": "178ca42ca8441f21fe02e789f8ee1c61d3af65bd3e24ca89a6f3baf42d7e90f5",
+      "sizeBytes": 50,
+      "expectedOutcome": "accept",
+      "expectedReason": "valid_seconds_start",
+      "format": "cli",
+      "expectedFields": {
+        "isSuccess": true,
+        "startPositionSec": 90.5,
+        "volume": 0.0,
+        "targetCount": 1
+      }
+    },
+    {
+      "id": "cli_rejected_unknown_flag",
+      "category": "command_line",
+      "path": "fixtures/command_line/rejected_unknown_flag.txt",
+      "sha256": "e4dbda82ffd31ffafd4a8320afb2cdd7182bb2c01f26eb00b84431443559c659",
+      "sizeBytes": 54,
+      "expectedOutcome": "reject",
+      "expectedReason": "unknown_flag",
+      "format": "cli",
+      "expectedFields": {
+        "isSuccess": false,
+        "resultCode": "UnknownFlag"
+      }
+    },
+    {
+      "id": "cli_rejected_volume_out_of_range",
+      "category": "command_line",
+      "path": "fixtures/command_line/rejected_volume_out_of_range.txt",
+      "sha256": "974bd8e5bd2339444d7633a83b1ca93d12558bdd10eafa7af934813a1c5b790f",
+      "sizeBytes": 40,
+      "expectedOutcome": "reject",
+      "expectedReason": "value_out_of_range",
+      "format": "cli",
+      "expectedFields": {
+        "isSuccess": false,
+        "resultCode": "MalformedFlag"
+      }
+    },
+    {
+      "id": "cli_rejected_malformed_time",
+      "category": "command_line",
+      "path": "fixtures/command_line/rejected_malformed_time.txt",
+      "sha256": "41e5eee7fdd1cf03b4abd0c3c52ca128c85512c87ce5e6f1536c56038435d010",
+      "sizeBytes": 44,
+      "expectedOutcome": "reject",
+      "expectedReason": "malformed_time",
+      "format": "cli",
+      "expectedFields": {
+        "isSuccess": false,
+        "resultCode": "MalformedFlag"
+      }
+    },
+    {
+      "id": "ipc_valid_envelope_bin",
+      "category": "command_line",
+      "path": "fixtures/command_line/valid_ipc_envelope.bin",
+      "sha256": "f845e9b95fcf56e08a915405e5bdea3e6c9bf1f43dbcf2f36c2d48046bad9e75",
+      "sizeBytes": 142,
+      "expectedOutcome": "accept",
+      "expectedReason": "valid_ipc_envelope",
+      "format": "ipc",
+      "expectedFields": {
+        "validationResult": "Success",
+        "startPositionSec": 85.0,
+        "volume": 65.0,
+        "targetCount": 2
+      }
+    },
+    {
+      "id": "ipc_rejected_corrupt_magic",
+      "category": "command_line",
+      "path": "fixtures/command_line/rejected_ipc_corrupt_magic.bin",
+      "sha256": "bdd22eb7e2444c6cccba4c96de1995a1abdae7021abab2ea7557a995479bf7d1",
+      "sizeBytes": 142,
+      "expectedOutcome": "reject",
+      "expectedReason": "invalid_ipc_magic",
+      "format": "ipc",
+      "expectedFields": {
+        "validationResult": "InvalidMagic"
+      }
+    },
+    {
+      "id": "ipc_rejected_truncated_header",
+      "category": "command_line",
+      "path": "fixtures/command_line/rejected_ipc_truncated_header.bin",
+      "sha256": "c5288671f2261fd079a33691f62d2d66c0e462a89c6e808cf06290d28c32bef9",
+      "sizeBytes": 16,
+      "expectedOutcome": "reject",
+      "expectedReason": "ipc_payload_too_small",
+      "format": "ipc",
+      "expectedFields": {
+        "validationResult": "PayloadTooSmall"
+      }
+    },
+    {
+      "id": "settings_valid_v1",
+      "category": "settings",
+      "path": "fixtures/settings/valid_settings_v1.json",
+      "sha256": "7bc200b9a495f65d38d070341b422df1f4554126d364c197e819a4b9f801cd06",
+      "sizeBytes": 181,
+      "expectedOutcome": "accept",
+      "expectedReason": "valid_settings",
+      "format": "settings",
+      "expectedFields": {
+        "themePreset": "oled",
+        "defaultVolume": 85,
+        "hardwareDecoding": true
+      }
+    },
+    {
+      "id": "settings_valid_unknown_fields",
+      "category": "settings",
+      "path": "fixtures/settings/valid_settings_unknown_fields.json",
+      "sha256": "479fb08060e5edd2f506dd322d7f5231f67a795e566c27a8a36a272e8fddd6b1",
+      "sizeBytes": 177,
+      "expectedOutcome": "accept",
+      "expectedReason": "unknown_fields_preserved",
+      "format": "settings",
+      "expectedFields": {
+        "themePreset": "dark",
+        "defaultVolume": 70,
+        "hasUnknownFields": true
+      }
+    },
+    {
+      "id": "settings_valid_channel_policy",
+      "category": "settings",
+      "path": "fixtures/settings/valid_channel_policy.json",
+      "sha256": "f15800e275a56333aa77ea82d2a97483a8a18eb2924e84e3d01fa0f9329d39dd",
+      "sizeBytes": 331,
+      "expectedOutcome": "accept",
+      "expectedReason": "valid_channel_policy",
+      "format": "settings",
+      "expectedFields": {
+        "channelCount": 3
+      }
+    },
+    {
+      "id": "settings_malformed_syntax",
+      "category": "settings",
+      "path": "fixtures/settings/malformed_settings_syntax.json",
+      "sha256": "81bd8ac8223587bc6f5153414a1574c1ff12606fb0ed5682debb94597beae1b4",
+      "sizeBytes": 61,
+      "expectedOutcome": "reject",
+      "expectedReason": "malformed_settings_json",
+      "format": "settings",
+      "expectedFields": {
+        "error": "SerializationFailed"
+      }
+    },
+    {
+      "id": "settings_rejected_wrong_types",
+      "category": "settings",
+      "path": "fixtures/settings/rejected_settings_wrong_types.json",
+      "sha256": "73945daac1e6a95c23fe385900548729f900cab64ec29a9873df660477141a34",
+      "sizeBytes": 92,
+      "expectedOutcome": "reject",
+      "expectedReason": "schema_type_mismatch",
+      "format": "settings",
+      "expectedFields": {
+        "error": "TypeMismatch"
+      }
+    },
+    {
+      "id": "media_valid_minimal_wav",
+      "category": "media",
+      "path": "fixtures/media/valid_minimal.wav",
+      "sha256": "5e2f474bd0972464277020e3acfefb7e9fe4474e22fa4f051e9882b608e91d50",
+      "sizeBytes": 844,
+      "expectedOutcome": "accept",
+      "expectedReason": "valid_wav_media",
+      "format": "wav",
+      "expectedFields": {
+        "probeSuccess": true,
+        "hasAudio": true
+      }
+    },
+    {
+      "id": "media_valid_minimal_aac",
+      "category": "media",
+      "path": "fixtures/media/valid_minimal.aac",
+      "sha256": "e0c8a187ce838ded92205466f580451d4396493c8aa996a0910888b61cf300ba",
+      "sizeBytes": 300,
+      "expectedOutcome": "accept",
+      "expectedReason": "valid_aac_media",
+      "format": "aac",
+      "expectedFields": {
+        "probeSuccess": true,
+        "hasAudio": true
+      }
+    },
+    {
+      "id": "media_malformed_corrupt_wav",
+      "category": "media",
+      "path": "fixtures/media/malformed_corrupt_header.wav",
+      "sha256": "81577438ccf181901ac1195dc8501c336503d61e2579d4754bdd4a86e326ffd1",
+      "sizeBytes": 123,
+      "expectedOutcome": "reject",
+      "expectedReason": "corrupt_wav_header",
+      "format": "wav",
+      "expectedFields": {
+        "probeSuccess": false
+      }
+    },
+    {
+      "id": "media_malformed_truncated_aac",
+      "category": "media",
+      "path": "fixtures/media/malformed_truncated.aac",
+      "sha256": "f912090b4a60662d59cf404648e45e1a599caab64d791b9b6335f5046300930d",
+      "sizeBytes": 10,
+      "expectedOutcome": "reject",
+      "expectedReason": "truncated_aac",
+      "format": "aac",
+      "expectedFields": {
+        "probeSuccess": false
+      }
+    },
+    {
+      "id": "media_extension_disagreement_text_aac",
+      "category": "media",
+      "path": "fixtures/media/extension_disagreement_text_as_aac.aac",
+      "sha256": "a043d08548c2b97c528913a6a6314ee337f9bdac1fb18829dedad465cb16010d",
+      "sizeBytes": 55,
+      "expectedOutcome": "reject",
+      "expectedReason": "extension_content_disagreement",
+      "format": "aac",
+      "expectedFields": {
+        "probeSuccess": false
+      }
+    },
+    {
+      "id": "media_extension_disagreement_text_wav",
+      "category": "media",
+      "path": "fixtures/media/extension_disagreement_text_as_wav.wav",
+      "sha256": "c96056b183d2a1348cfdf71af9f32dcaa6e3d7327f486029ac5845242176a0e0",
+      "sizeBytes": 54,
+      "expectedOutcome": "reject",
+      "expectedReason": "extension_content_disagreement",
+      "format": "wav",
+      "expectedFields": {
+        "probeSuccess": false
+      }
+    }
+  ]
+}

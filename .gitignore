@@ -1,0 +1,46 @@
+# Generated application outputs
+/debug/
+/release/
+/release.new-*/
+/scratch/
+/cache/
+/diagnostics/
+/data/
+/dist/
+
+# Legacy root build outputs
+/Aperture.exe
+/Aperture.pdb
+/Aperture.verify.exe
+/build_log.txt
+/*.obj
+
+# Python/test caches
+__pycache__/
+*.pyc
+
+# Local editor / OS noise
+.vs/
+.vscode/
+Thumbs.db
+Desktop.ini
+
+# Private configuration and signing material
+/mpv.conf
+*.pfx
+*.p12
+*.key
+*.pem
+.env
+.env.*
+CMakeUserPresets.json
+
+# Build and runtime state
+/build/
+/out/
+*.ilk
+*.res
+*.dmp
+*.log
+.update.lock
+/update-backups/

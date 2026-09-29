@@ -1,0 +1,200 @@
+{
+  "$schema": "./static_analysis_baseline.schema.json",
+  "version": 1,
+  "description": "Authoritative MSVC C++17 native static analysis (/analyze) warning baseline for Aperture",
+  "maxTotalWarnings": 76,
+  "allowedFingerprints": [
+    {
+      "file": "src/Accessibility.cpp",
+      "code": "C6031",
+      "message": "Return value ignored: 'SafeArrayPutElement'.",
+      "maxOccurrences": 2
+    },
+    {
+      "file": "src/App.cpp",
+      "code": "C6031",
+      "message": "Return value ignored: 'CoInitializeEx'.",
+      "maxOccurrences": 2
+    },
+    {
+      "file": "src/App.cpp",
+      "code": "C6246",
+      "message": "Local declaration of 'btnSize' hides declaration of the same name in outer scope. For additional information, see previous declaration at line '<line>' of '<file>'.",
+      "maxOccurrences": 2
+    },
+    {
+      "file": "src/App.cpp",
+      "code": "C6246",
+      "message": "Local declaration of 'dp' hides declaration of the same name in outer scope. For additional information, see previous declaration at line '<line>' of '<file>'.",
+      "maxOccurrences": 1
+    },
+    {
+      "file": "src/App.cpp",
+      "code": "C6246",
+      "message": "Local declaration of 'rc' hides declaration of the same name in outer scope. For additional information, see previous declaration at line '<line>' of '<file>'.",
+      "maxOccurrences": 1
+    },
+    {
+      "file": "src/App.cpp",
+      "code": "C6246",
+      "message": "Local declaration of 'winH' hides declaration of the same name in outer scope. For additional information, see previous declaration at line '<line>' of '<file>'.",
+      "maxOccurrences": 1
+    },
+    {
+      "file": "src/App.cpp",
+      "code": "C6246",
+      "message": "Local declaration of 'winW' hides declaration of the same name in outer scope. For additional information, see previous declaration at line '<line>' of '<file>'.",
+      "maxOccurrences": 1
+    },
+    {
+      "file": "src/CommandDispatcher.cpp",
+      "code": "C6287",
+      "message": "Redundant code.",
+      "maxOccurrences": 4
+    },
+    {
+      "file": "src/Common.h",
+      "code": "C6262",
+      "message": "Function uses '196736' bytes of stack. Consider moving some data to heap.",
+      "maxOccurrences": 30
+    },
+    {
+      "file": "src/Diagnostics.cpp",
+      "code": "C28159",
+      "message": "Consider using 'IsWindows*' instead of 'GetVersionExW'. Reason: Deprecated. Use VerifyVersionInfo* or IsWindows* macros from VersionHelpers.",
+      "maxOccurrences": 1
+    },
+    {
+      "file": "src/MpvPlayer.cpp",
+      "code": "C6011",
+      "message": "Dereferencing NULL pointer 'fn_mpv_get_property'.",
+      "maxOccurrences": 1
+    },
+    {
+      "file": "src/MpvPlayer.cpp",
+      "code": "C6262",
+      "message": "Function uses '65972' bytes of stack. Consider moving some data to heap.",
+      "maxOccurrences": 1
+    },
+    {
+      "file": "src/OverlayRenderer.cpp",
+      "code": "C6246",
+      "message": "Local declaration of 'it' hides declaration of the same name in outer scope. For additional information, see previous declaration at line '<line>' of '<file>'.",
+      "maxOccurrences": 1
+    },
+    {
+      "file": "src/OverlayRenderer.cpp",
+      "code": "C6387",
+      "message": "'family' could be '0': this does not adhere to the specification for the function 'IDWriteFactory::CreateTextFormat'.",
+      "maxOccurrences": 1
+    },
+    {
+      "file": "src/Renderer.cpp",
+      "code": "C6031",
+      "message": "Return value ignored: 'CoCreateInstance'.",
+      "maxOccurrences": 2
+    },
+    {
+      "file": "src/Renderer.cpp",
+      "code": "C6031",
+      "message": "Return value ignored: 'CoInitialize'.",
+      "maxOccurrences": 1
+    },
+    {
+      "file": "src/Renderer.cpp",
+      "code": "C6246",
+      "message": "Local declaration of 'it' hides declaration of the same name in outer scope. For additional information, see previous declaration at line '<line>' of '<file>'.",
+      "maxOccurrences": 1
+    },
+    {
+      "file": "src/Renderer.cpp",
+      "code": "C6387",
+      "message": "'family' could be '0': this does not adhere to the specification for the function 'IDWriteFactory::CreateTextFormat'.",
+      "maxOccurrences": 1
+    },
+    {
+      "file": "src/Settings.cpp",
+      "code": "C6262",
+      "message": "Function uses '65756' bytes of stack. Consider moving some data to heap.",
+      "maxOccurrences": 1
+    },
+    {
+      "file": "src/Settings.cpp",
+      "code": "C6262",
+      "message": "Function uses '65836' bytes of stack. Consider moving some data to heap.",
+      "maxOccurrences": 1
+    },
+    {
+      "file": "src/Settings.cpp",
+      "code": "C6262",
+      "message": "Function uses '65840' bytes of stack. Consider moving some data to heap.",
+      "maxOccurrences": 2
+    },
+    {
+      "file": "src/UIComponents.cpp",
+      "code": "C6246",
+      "message": "Local declaration of 'durStr' hides declaration of the same name in outer scope. For additional information, see previous declaration at line '<line>' of '<file>'.",
+      "maxOccurrences": 1
+    },
+    {
+      "file": "src/UIComponents.cpp",
+      "code": "C6246",
+      "message": "Local declaration of 'titleRect' hides declaration of the same name in outer scope. For additional information, see previous declaration at line '<line>' of '<file>'.",
+      "maxOccurrences": 2
+    },
+    {
+      "file": "src/Updater.cpp",
+      "code": "C6031",
+      "message": "Return value ignored: 'BCryptExportKey'.",
+      "maxOccurrences": 4
+    },
+    {
+      "file": "src/Updater.cpp",
+      "code": "C6031",
+      "message": "Return value ignored: 'BCryptFinishHash'.",
+      "maxOccurrences": 2
+    },
+    {
+      "file": "src/Updater.cpp",
+      "code": "C6031",
+      "message": "Return value ignored: 'BCryptGetProperty'.",
+      "maxOccurrences": 2
+    },
+    {
+      "file": "src/Updater.cpp",
+      "code": "C6031",
+      "message": "Return value ignored: 'BCryptHashData'.",
+      "maxOccurrences": 2
+    },
+    {
+      "file": "src/Updater.cpp",
+      "code": "C6031",
+      "message": "Return value ignored: 'BCryptSignHash'.",
+      "maxOccurrences": 1
+    },
+    {
+      "file": "src/Updater.cpp",
+      "code": "C6387",
+      "message": "'urlComp.lpszHostName' could be '0': this does not adhere to the specification for the function 'std::basic_string<wchar_t,std::char_traits<wchar_t>,std::allocator<wchar_t> >::{ctor}'.",
+      "maxOccurrences": 1
+    },
+    {
+      "file": "src/main.cpp",
+      "code": "C28251",
+      "message": "Inconsistent annotation for 'wWinMain': this instance has no annotations. See c:\\program files (x86)\\windows kits\\10\\include\\10.0.26100.0\\um\\winbase.h(1075).",
+      "maxOccurrences": 1
+    },
+    {
+      "file": "src/main.cpp",
+      "code": "C6031",
+      "message": "Return value ignored: 'CoInitializeEx'.",
+      "maxOccurrences": 1
+    },
+    {
+      "file": "src/main.cpp",
+      "code": "C6262",
+      "message": "Function uses '19900' bytes of stack. Consider moving some data to heap.",
+      "maxOccurrences": 1
+    }
+  ]
+}

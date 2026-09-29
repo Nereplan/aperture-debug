@@ -1,0 +1,205 @@
+{
+  "$schema": "./portable_data_manifest.schema.json",
+  "version": 1,
+  "description": "Authoritative machine-readable manifest of Aperture portable data stores, schema versions, and migration invariants",
+  "stores": [
+    {
+      "id": "settings",
+      "rootRelativePath": "data/settings.json",
+      "isVersioned": true,
+      "schemaVersion": 15,
+      "cppModelSymbol": "Settings::kCurrentSettingsSchemaVersion",
+      "migrationFunction": "Settings::MigrateSchema",
+      "atomicWrite": true,
+      "rotatingBackups": 3,
+      "backupDir": "data/backups",
+      "privateModeSuppression": false,
+      "forwardVersionPolicy": "Preserve unknown fields in persistedFields; re-serialize with current schema version on save",
+      "failureErrorCode": "StorageErrorCode::SerializationFailed"
+    },
+    {
+      "id": "library",
+      "rootRelativePath": "data/library.json",
+      "isVersioned": true,
+      "schemaVersion": 2,
+      "cppModelSymbol": "MediaLibrary::kCurrentLibrarySchemaVersion",
+      "migrationFunction": "MediaLibrary::MigrateLibrarySchema",
+      "atomicWrite": true,
+      "rotatingBackups": 3,
+      "backupDir": "data/backups",
+      "privateModeSuppression": false,
+      "forwardVersionPolicy": "Tolerate unknown item properties; no-op if loaded version >= target",
+      "failureErrorCode": "StorageErrorCode::SerializationFailed"
+    },
+    {
+      "id": "playlists",
+      "rootRelativePath": "data/playlists.json",
+      "isVersioned": true,
+      "schemaVersion": 2,
+      "cppModelSymbol": "MediaLibrary::kCurrentPlaylistsSchemaVersion",
+      "migrationFunction": "MediaLibrary::MigratePlaylistsSchema",
+      "atomicWrite": true,
+      "rotatingBackups": 3,
+      "backupDir": "data/backups",
+      "privateModeSuppression": false,
+      "forwardVersionPolicy": "Tolerate unknown playlist properties; no-op if loaded version >= target",
+      "failureErrorCode": "StorageErrorCode::SerializationFailed"
+    },
+    {
+      "id": "history",
+      "rootRelativePath": "data/history.json",
+      "isVersioned": true,
+      "schemaVersion": 2,
+      "cppModelSymbol": "MediaLibrary::kCurrentHistorySchemaVersion",
+      "migrationFunction": "MediaLibrary::MigrateHistorySchema",
+      "atomicWrite": true,
+      "rotatingBackups": 3,
+      "backupDir": "data/backups",
+      "privateModeSuppression": true,
+      "forwardVersionPolicy": "Tolerate unknown history properties; capped to 100 items",
+      "failureErrorCode": "StorageErrorCode::SerializationFailed"
+    },
+    {
+      "id": "watched_folders",
+      "rootRelativePath": "data/watched_folders.json",
+      "isVersioned": true,
+      "schemaVersion": 1,
+      "cppModelSymbol": "MediaLibrary::kCurrentWatchedFoldersSchemaVersion",
+      "migrationFunction": "MediaLibrary::MigrateWatchedFoldersSchema",
+      "atomicWrite": true,
+      "rotatingBackups": 3,
+      "backupDir": "data/backups",
+      "privateModeSuppression": false,
+      "forwardVersionPolicy": "Tolerate unknown folder properties; root-relative path resolution",
+      "failureErrorCode": "StorageErrorCode::SerializationFailed"
+    },
+    {
+      "id": "session",
+      "rootRelativePath": "data/session.json",
+      "isVersioned": true,
+      "schemaVersion": 1,
+      "cppModelSymbol": "PlaybackSession::kCurrentSessionSchemaVersion",
+      "migrationFunction": "PlaybackSession::MigrateSchema",
+      "atomicWrite": true,
+      "rotatingBackups": 3,
+      "backupDir": "data/backups",
+      "privateModeSuppression": true,
+      "forwardVersionPolicy": "Preserve unknown fields in persistedFields; no-op if loaded version >= target",
+      "failureErrorCode": "StorageErrorCode::SerializationFailed"
+    },
+    {
+      "id": "recent_streams",
+      "rootRelativePath": "recent_streams.json",
+      "isVersioned": true,
+      "schemaVersion": 1,
+      "cppModelSymbol": "NetworkStreamModel::kCurrentStreamSchemaVersion",
+      "migrationFunction": null,
+      "atomicWrite": true,
+      "rotatingBackups": 0,
+      "backupDir": null,
+      "privateModeSuppression": true,
+      "forwardVersionPolicy": "Parse streams array; skip malformed entries",
+      "failureErrorCode": "StorageErrorCode::SerializationFailed"
+    },
+    {
+      "id": "updater",
+      "rootRelativePath": "data/updater.json",
+      "isVersioned": true,
+      "schemaVersion": 1,
+      "cppModelSymbol": "1",
+      "migrationFunction": null,
+      "atomicWrite": true,
+      "rotatingBackups": 0,
+      "backupDir": null,
+      "privateModeSuppression": true,
+      "forwardVersionPolicy": "Read recognized status fields; defaults on missing",
+      "failureErrorCode": "StorageErrorCode::SerializationFailed"
+    },
+    {
+      "id": "channels",
+      "rootRelativePath": "channels.json",
+      "isVersioned": true,
+      "schemaVersion": 1,
+      "cppModelSymbol": "1",
+      "migrationFunction": null,
+      "atomicWrite": false,
+      "rotatingBackups": 0,
+      "backupDir": null,
+      "privateModeSuppression": false,
+      "forwardVersionPolicy": "Read-only distribution asset and runtime policy override",
+      "failureErrorCode": "StorageErrorCode::SerializationFailed"
+    }
+  ],
+  "nonVersionedStores": [
+    {
+      "id": "mpv_conf",
+      "rootRelativePath": "data/mpv.conf",
+      "rationale": "Plain-text libmpv directive key-value syntax (e.g. deband=yes), managed by libmpv parser rather than application JSON schema. Backed up via rotating backups and last-known-good copy.",
+      "atomicWrite": true,
+      "backupMechanism": "CreateRotatingBackup(3) and explicit last-known-good snapshot at data/mpv.conf.lkg"
+    },
+    {
+      "id": "mpv_conf_lkg",
+      "rootRelativePath": "data/mpv.conf.lkg",
+      "rationale": "Direct snapshot copy of last successfully applied mpv.conf configuration.",
+      "atomicWrite": true,
+      "backupMechanism": "AtomicWriteTextFile"
+    },
+    {
+      "id": "diagnostics_log",
+      "rootRelativePath": "data/diagnostics/aperture.log",
+      "rationale": "Rolling execution log telemetry stream. Bounded to 1 MiB and rotated across 5 index files (aperture.log.1..5).",
+      "atomicWrite": false,
+      "backupMechanism": "Log rotation on size limit"
+    },
+    {
+      "id": "crash_dumps",
+      "rootRelativePath": "data/diagnostics/*.dmp",
+      "rationale": "Binary Win32 MiniDump crash and hang dumps generated by unhandled exception filter and watchdog thread. Consumed by standard debuggers.",
+      "atomicWrite": false,
+      "backupMechanism": "Unique timestamped filenames"
+    },
+    {
+      "id": "diagnostics_exports",
+      "rootRelativePath": "data/diagnostics/diagnostics-*.json",
+      "rationale": "Immutable point-in-time exported diagnostic snapshots of hardware, runtime, display, and memory state.",
+      "atomicWrite": true,
+      "backupMechanism": "Unique timestamped filenames"
+    },
+    {
+      "id": "cache_thumbnails",
+      "rootRelativePath": "cache/thumbnails/*",
+      "rationale": "Disposable generated video thumbnail images. Automatically evicted under LRU CacheBudgetConfig (64 MB default, 160 MB total).",
+      "atomicWrite": true,
+      "backupMechanism": "Disposable / auto-eviction"
+    },
+    {
+      "id": "cache_shaders",
+      "rootRelativePath": "cache/shaders/*",
+      "rationale": "Disposable compiled D3D11 and libmpv shader caches. Automatically evicted under LRU CacheBudgetConfig (64 MB default, 160 MB total).",
+      "atomicWrite": true,
+      "backupMechanism": "Disposable / auto-eviction"
+    },
+    {
+      "id": "cache_subtitles",
+      "rootRelativePath": "cache/subtitles/*",
+      "rationale": "Disposable online downloaded subtitle assets. Automatically evicted under LRU CacheBudgetConfig (16 MB default, 160 MB total).",
+      "atomicWrite": true,
+      "backupMechanism": "Disposable / auto-eviction"
+    },
+    {
+      "id": "cache_generic",
+      "rootRelativePath": "cache/generic/*",
+      "rationale": "Disposable general cache payloads. Automatically evicted under LRU CacheBudgetConfig (16 MB default, 160 MB total).",
+      "atomicWrite": true,
+      "backupMechanism": "Disposable / auto-eviction"
+    },
+    {
+      "id": "screenshots",
+      "rootRelativePath": "screenshots/*.png",
+      "rationale": "User-generated frame capture image files. Root-contained and sanitized.",
+      "atomicWrite": false,
+      "backupMechanism": "Timestamped collision-free naming"
+    }
+  ]
+}

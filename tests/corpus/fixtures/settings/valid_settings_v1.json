@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "themePreset": "oled",
+  "defaultVolume": 85,
+  "hardwareDecoding": true,
+  "osdDurationMs": 2500,
+  "rememberPlaybackPosition": true,
+  "recentFilesLimit": 50
+}

@@ -1,0 +1,200 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ApertureBenchmarkBaseline",
+  "description": "Schema for authoritative Aperture startup and resource benchmark baseline budgets and regression thresholds",
+  "type": "object",
+  "required": [
+    "version",
+    "description",
+    "platform",
+    "configuration",
+    "sampling",
+    "budgets",
+    "baseline"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1
+    },
+    "platform": {
+      "type": "string",
+      "enum": ["windows-x64"]
+    },
+    "configuration": {
+      "type": "string",
+      "enum": ["Release", "Debug", "Sanitize"]
+    },
+    "sampling": {
+      "type": "object",
+      "required": [
+        "warmupIterations",
+        "measuredIterations",
+        "timeoutSecondsPerSample"
+      ],
+      "properties": {
+        "warmupIterations": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "measuredIterations": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "timeoutSecondsPerSample": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "budgets": {
+      "type": "object",
+      "required": [
+        "startupMaxMs",
+        "startupTargetMs",
+        "windowShownMaxMs",
+        "windowShownTargetMs",
+        "workingSetMaxBytes",
+        "workingSetTargetBytes",
+        "peakWorkingSetMaxBytes",
+        "peakWorkingSetTargetBytes",
+        "privateBytesMaxBytes",
+        "privateBytesTargetBytes",
+        "peakPrivateBytesMaxBytes",
+        "peakPrivateBytesTargetBytes",
+        "gdiObjectsMax",
+        "userObjectsMax",
+        "maxProcesses"
+      ],
+      "properties": {
+        "startupMaxMs": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "startupTargetMs": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "windowShownMaxMs": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "windowShownTargetMs": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "workingSetMaxBytes": {
+          "type": "integer",
+          "exclusiveMinimum": 0
+        },
+        "workingSetTargetBytes": {
+          "type": "integer",
+          "exclusiveMinimum": 0
+        },
+        "peakWorkingSetMaxBytes": {
+          "type": "integer",
+          "exclusiveMinimum": 0
+        },
+        "peakWorkingSetTargetBytes": {
+          "type": "integer",
+          "exclusiveMinimum": 0
+        },
+        "privateBytesMaxBytes": {
+          "type": "integer",
+          "exclusiveMinimum": 0
+        },
+        "privateBytesTargetBytes": {
+          "type": "integer",
+          "exclusiveMinimum": 0
+        },
+        "peakPrivateBytesMaxBytes": {
+          "type": "integer",
+          "exclusiveMinimum": 0
+        },
+        "peakPrivateBytesTargetBytes": {
+          "type": "integer",
+          "exclusiveMinimum": 0
+        },
+        "gdiObjectsMax": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "userObjectsMax": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "maxProcesses": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "baseline": {
+      "type": "object",
+      "required": [
+        "measuredAt",
+        "startupMedianMs",
+        "windowShownMedianMs",
+        "workingSetMedianBytes",
+        "peakWorkingSetMedianBytes",
+        "privateBytesMedianBytes",
+        "peakPrivateBytesMedianBytes",
+        "gdiObjects",
+        "userObjects",
+        "processCount"
+      ],
+      "properties": {
+        "measuredAt": {
+          "type": "string"
+        },
+        "startupMedianMs": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "windowShownMedianMs": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "workingSetMedianBytes": {
+          "type": "integer",
+          "exclusiveMinimum": 0
+        },
+        "peakWorkingSetMedianBytes": {
+          "type": "integer",
+          "exclusiveMinimum": 0
+        },
+        "privateBytesMedianBytes": {
+          "type": "integer",
+          "exclusiveMinimum": 0
+        },
+        "peakPrivateBytesMedianBytes": {
+          "type": "integer",
+          "exclusiveMinimum": 0
+        },
+        "gdiObjects": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "userObjects": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "processCount": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

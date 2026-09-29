@@ -1,0 +1,18 @@
+[
+  {
+    "id": "pl_favorites",
+    "name": "Favorites",
+    "createdTimestamp": 1788000000,
+    "itemPaths": [
+      ".\\media\\sample1.mp4",
+      ".\\media\\sample2.mkv"
+    ],
+    "curator": "Aperture Tester",
+    "displayOrder": [1, 2],
+    "customPlaylistColor": "#ff5500",
+    "settingsOverrides": {
+      "shuffle": false,
+      "repeatMode": "all"
+    }
+  }
+]

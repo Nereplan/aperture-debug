@@ -1,0 +1,75 @@
+{
+    "$schema":  "./visual_baseline.schema.json",
+    "version":  1,
+    "description":  "Authoritative visual regression baselines, scene configurations, and comparison tolerances for Aperture native UI",
+    "platform":  "windows-x64",
+    "configuration":  "Release",
+    "environment":  {
+                        "dpi":  96.0,
+                        "dpiScale":  1.0,
+                        "theme":  "default",
+                        "fontFamily":  "Inter",
+                        "reduceMotion":  true,
+                        "windowWidth":  1024,
+                        "windowHeight":  640
+                    },
+    "tolerances":  {
+                       "defaultMaxMismatchedPixelPercent":  0.05,
+                       "defaultPerPixelColorDeltaThreshold":  2,
+                       "defaultMaxPeakColorDelta":  16
+                   },
+    "scenes":  [
+                   {
+                       "id":  "hub_media",
+                       "name":  "Media Library Hub",
+                       "tab":  "media",
+                       "description":  "Media library hub with seeded media cards in default dark theme",
+                       "baselineFile":  "baselines/hub_media.png",
+                       "sha256":  "d8b4088cd38107aadfe58225f4cae290be91328071e385a25b70e183782a76eb",
+                       "width":  1024,
+                       "height":  640,
+                       "maxMismatchedPixelPercent":  0.05,
+                       "perPixelColorDeltaThreshold":  2,
+                       "maxPeakColorDelta":  16
+                   },
+                   {
+                       "id":  "hub_playlists",
+                       "name":  "Playlists Hub",
+                       "tab":  "playlists",
+                       "description":  "Playlists hub with left navigation rail and seeded playlist content",
+                       "baselineFile":  "baselines/hub_playlists.png",
+                       "sha256":  "6d1031f66e309847de4c2472ea0878718018a770fa16c4e545367ebb479a3ab0",
+                       "width":  1024,
+                       "height":  640,
+                       "maxMismatchedPixelPercent":  0.05,
+                       "perPixelColorDeltaThreshold":  2,
+                       "maxPeakColorDelta":  16
+                   },
+                   {
+                       "id":  "hub_history",
+                       "name":  "History Hub",
+                       "tab":  "history",
+                       "description":  "Playback history timeline with seeded history items and timestamps",
+                       "baselineFile":  "baselines/hub_history.png",
+                       "sha256":  "dd8299054adbe5e9ef93c679ae56206496b904a6cd43589f4f8bfe631ec44c25",
+                       "width":  1024,
+                       "height":  640,
+                       "maxMismatchedPixelPercent":  0.05,
+                       "perPixelColorDeltaThreshold":  2,
+                       "maxPeakColorDelta":  16
+                   },
+                   {
+                       "id":  "hub_settings",
+                       "name":  "Settings Appearance Hub",
+                       "tab":  "settings",
+                       "description":  "Settings hub displaying Appearance category with theme presets",
+                       "baselineFile":  "baselines/hub_settings.png",
+                       "sha256":  "7b984128d8ada62928dc793c1b71f0e675943ddbef0913aae7f867bf0eb1f3db",
+                       "width":  1024,
+                       "height":  640,
+                       "maxMismatchedPixelPercent":  0.05,
+                       "perPixelColorDeltaThreshold":  2,
+                       "maxPeakColorDelta":  16
+                   }
+               ]
+}

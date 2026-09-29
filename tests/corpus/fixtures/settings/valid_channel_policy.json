@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "channels": [
+    {
+      "id": "stable",
+      "name": "Stable Channel",
+      "isPrerelease": false
+    },
+    {
+      "id": "beta",
+      "name": "Beta Channel",
+      "isPrerelease": true
+    },
+    {
+      "id": "nightly",
+      "name": "Nightly Build Channel",
+      "isPrerelease": true
+    }
+  ]
+}

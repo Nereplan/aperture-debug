@@ -1,0 +1,7 @@
+﻿#EXTM3U
+#EXTINF:180,Artist One - Track Title One
+C:\Music\track1.flac
+#EXTINF:-1,Live Radio Stream
+https://stream.example.org/radio.aac
+#EXTINF:240,Local Movie
+..\Movies\sample.mkv

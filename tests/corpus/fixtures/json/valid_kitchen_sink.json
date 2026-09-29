@@ -1,0 +1,16 @@
+{
+  "name": "Aperture Player",
+  "version": 1.5,
+  "enabled": true,
+  "features": [
+    "mpv",
+    "direct2d",
+    "subtitles"
+  ],
+  "metadata": {
+    "author": "Aperture Team",
+    "releaseYear": 2026,
+    "rating": 9.8
+  },
+  "nullable": null
+}
