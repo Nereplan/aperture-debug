@@ -12,3 +12,14 @@
 *.ttf binary
 *.ico binary
 *.png binary
+
+# Deterministic test fixtures with SHA-256 / byte-size assertions
+tests/corpus/fixtures/** text eol=lf
+tests/corpus/fixtures/subtitle/* text eol=crlf
+tests/corpus/fixtures/url/rejected_control_characters.txt text eol=crlf
+tests/corpus/fixtures/command_line/*.bin binary
+tests/corpus/fixtures/media/*.wav binary
+tests/corpus/fixtures/media/*.aac binary
+tests/corpus/fixtures/media/extension_disagreement_text_as_aac.aac text eol=lf
+tests/corpus/fixtures/media/extension_disagreement_text_as_wav.wav text eol=lf
+tests/fixtures/** text eol=lf
