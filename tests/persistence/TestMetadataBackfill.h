@@ -9,6 +9,33 @@
 
 namespace Aperture::Test {
 
+TEST_CASE(MetadataBackfill, NewPlaybackRecordCanDeferProbeWithoutLosingUserState) {
+    ScopedTempDir tempDir(L"Aperture_Deferred_Metadata_");
+    tempDir.WriteFile(L"new.mp4", "metadata supplied by worker");
+    const auto path = tempDir.SubPath(L"new.mp4");
+    MediaLibrary library;
+    auto* item = library.AddOrUpdateMedia(path, false);
+    TEST_ASSERT(item != nullptr);
+    TEST_ASSERT_EQ(item->durationSec, 0.0);
+    TEST_ASSERT(!item->metadataProbeFailed);
+    TEST_ASSERT_EQ(item->probeAttemptCount, 0);
+    item->lastPosSec = 12.5;
+    item->preferences.emplace();
+    item->preferences->playbackSpeed = 1.25;
+    MetadataBackfillOptions options;
+    options.probeFunction = [](const auto&, double& duration, uint32_t& width, uint32_t& height) {
+        duration = 90; width = 1920; height = 1080; return true;
+    };
+    const auto result = library.BackfillMissingMetadata(options, {}, false);
+    TEST_ASSERT_EQ(result.completedCount, 1);
+    item = library.FindByPath(path);
+    TEST_ASSERT_EQ(item->durationSec, 90.0);
+    TEST_ASSERT_EQ(item->videoWidth, 1920);
+    TEST_ASSERT_EQ(item->videoHeight, 1080);
+    TEST_ASSERT_EQ(item->lastPosSec, 12.5);
+    TEST_ASSERT_EQ(*item->preferences->playbackSpeed, 1.25);
+}
+
 TEST_CASE(MetadataBackfill, SuccessfulRetryAndAtomicUpdate) {
     ScopedTempDir tempDir(L"Aperture_Backfill_Success_");
     const std::wstring videoPath = tempDir.SubPath(L"sample_video.mp4");

@@ -1125,12 +1125,6 @@ bool App::Initialize(HWND hwnd, HWND hVideoChild, HINSTANCE hinst, const Playbac
     return true;
 }
 
-bool App::Initialize(HWND hwnd, HWND hVideoChild, HINSTANCE hinst, const std::vector<std::wstring>& initialFiles, const Settings* startupSettings) {
-    PlaybackCommandLineOptions options;
-    options.mediaTargets = initialFiles;
-    return Initialize(hwnd, hVideoChild, hinst, options, startupSettings);
-}
-
 void App::ExecuteCommandLineOptions(const PlaybackCommandLineOptions& options) {
     if (!libraryReady) {
         // Includes startup options and second-instance WM_COPYDATA commands. They are replayed in arrival order immediately after
@@ -1171,7 +1165,7 @@ void App::ExecuteCommandLineOptions(const PlaybackCommandLineOptions& options) {
     if (options.paused) { player.Pause(); playbackSession.SetPlayState(false); }
     if (options.fullscreen && !playbackSession.IsFullscreen()) { ToggleFullscreen(); }
     if (!options.subtitlePath.empty()) { player.LoadExternalSubtitle(options.subtitlePath); }
-    // OpenAndPlayMedia already synchronously adds the single CLI target and probes its metadata. Starting a second import for that same
+    // OpenAndPlayMedia already adds the single CLI target and arranges its metadata probe. Starting a second import for that same
     // file here created a duplicate Media Foundation source reader while playback was warming up (and needlessly doubled the media-open
     // memory spike). A multi-file CLI launch still imports the remaining queue entries.
     if (options.mediaTargets.size() > 1) { StartImportJob(options.mediaTargets, "", false); }
@@ -1251,22 +1245,12 @@ bool App::Update(float dt) {
             if (isCursorHidden) { isCursorHidden = false; SetCursor(LoadCursor(NULL, IDC_ARROW)); }
         }
         if (player.IsPlaying()) {
-            needsRedraw = true;
-            // Push library progress only on meaningful deltas (file change,
-            // ~0.25 s of playback, seek jump, duration discovery). A paused or
-            // steady player no longer performs per-frame path normalization,
-            // history scans, and projection invalidation.
-            const std::wstring progressPath = player.GetCurrentFilePath();
-            const double progressPos = player.GetCurrentTime();
-            const double progressDur = player.GetDuration();
-            if (!progressPath.empty() && (progressPath != lastProgressPath ||
-                 std::abs(progressPos - lastProgressPosSec) >= 0.25 ||
-                 std::abs(progressDur - lastProgressDurationSec) > 0.01)) {
-                library.UpdateProgress(progressPath, progressPos, progressDur);
-                lastProgressPath = progressPath;
-                lastProgressPosSec = progressPos;
-                lastProgressDurationSec = progressDur;
-            }
+            // mpv presents video independently. Once the controls disappear,
+            // an empty layered overlay needs no per-frame clear or upload.
+            // Subtitle timing, diagnostics and visible controls stay live;
+            // transient animations request their own redraws below.
+            if (controlsOpacity > 0.0f || subtitles.GetActiveTrack() || showPlaybackDiagnostics ||
+                isSettingsFlyoutOpen || isContextMenuOpen) needsRedraw = true;
             progressSaveTimerSec += dt;
             if (progressSaveTimerSec >= 5.0f) { progressSaveTimerSec = 0.0f; SaveLibrary(); SaveSession(); }
         }
@@ -1375,8 +1359,9 @@ bool App::Update(float dt) {
             if (previewPlayer.UpdateFrame(renderer.GetD2DContext())) { needsRedraw = true; }
         } else if (previewInitialized && !previewPlayer.IsActive() && !previewPlayer.IsSeekbarActive() &&
                    NowSeconds() - previewLastActivity > 12.0) {
-            // Hover previews finished 12s ago: release the preview mpv handle.
-            previewPlayer.ReleaseResources();
+            // No preview has been needed for 12s. Drop its independent DLL
+            // reference and frame cache as well as the decoder resources.
+            previewPlayer.Shutdown();
             previewInitialized = false;
             previewInitAttempted = false;
         }

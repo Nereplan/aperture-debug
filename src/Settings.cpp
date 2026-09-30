@@ -20,10 +20,10 @@ bool IsHexColor(const std::string& s) {
 }
 
 double Number(const JsonValue& v, double d) {
-    if (v.is_number() && std::isfinite(v.numberVal)) return v.numberVal;
+    if (v.is_number() && std::isfinite(v.as_number())) return v.as_number();
     if (v.is_string()) {
         char* e = nullptr;
-        double n = std::strtod(v.stringVal.c_str(), &e);
+        double n = std::strtod(v.as_string_ref().c_str(), &e);
         if (e && *e == '\0' && std::isfinite(n)) return n;
     }
     return d;

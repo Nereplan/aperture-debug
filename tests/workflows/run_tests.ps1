@@ -4,6 +4,7 @@ param(
     [switch]$AppOnly,
     [string]$Executable = '',
     [string]$SourceDirectory = '',
+    [string]$BenchmarkMediaPath = '',
     [switch]$KeepArtifacts
 )
 $ErrorActionPreference = 'Stop'
@@ -49,6 +50,7 @@ try {
         Copy-Item -LiteralPath (Join-Path $root 'libmpv-2.dll') -Destination $appDirectory
         foreach ($asset in @('fonts','locales')) { Copy-Item -LiteralPath (Join-Path $root $asset) -Destination $appDirectory -Recurse }
         $runArgs = @((Join-Path $appDirectory 'Aperture.exe'))
+        if ($BenchmarkMediaPath) { $runArgs += (Resolve-Path -LiteralPath $BenchmarkMediaPath).Path }
     } else { $runArgs = @($seedValues | ForEach-Object { [string]$_ }) }
     & $exe @runArgs 2>&1 | Tee-Object -FilePath $log -Append | Write-Host
     if ($LASTEXITCODE -ne 0) { throw "Workflow assertions failed; see $log" }

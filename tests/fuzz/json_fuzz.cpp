@@ -77,38 +77,38 @@ private:
 
 // Deep equality verification between two JsonValue trees
 bool JsonValuesEqual(const JsonValue& a, const JsonValue& b) {
-    if (a.type != b.type) return false;
-    switch (a.type) {
+    if (a.GetType() != b.GetType()) return false;
+    switch (a.GetType()) {
         case JsonType::Null:
             return true;
         case JsonType::Boolean:
-            return a.boolVal == b.boolVal;
+            return a.as_bool() == b.as_bool();
         case JsonType::Number: {
-            if (std::isnan(a.numberVal) || std::isnan(b.numberVal)) {
-                return std::isnan(a.numberVal) && std::isnan(b.numberVal);
+            if (std::isnan(a.as_number()) || std::isnan(b.as_number())) {
+                return std::isnan(a.as_number()) && std::isnan(b.as_number());
             }
-            if (std::isinf(a.numberVal) || std::isinf(b.numberVal)) {
-                return a.numberVal == b.numberVal;
+            if (std::isinf(a.as_number()) || std::isinf(b.as_number())) {
+                return a.as_number() == b.as_number();
             }
-            if (a.numberVal == b.numberVal) return true;
-            double diff = std::abs(a.numberVal - b.numberVal);
-            double maxVal = std::max(1.0, std::max(std::abs(a.numberVal), std::abs(b.numberVal)));
+            if (a.as_number() == b.as_number()) return true;
+            double diff = std::abs(a.as_number() - b.as_number());
+            double maxVal = std::max(1.0, std::max(std::abs(a.as_number()), std::abs(b.as_number())));
             return (diff / maxVal) < 1e-12;
         }
         case JsonType::String:
-            return a.stringVal == b.stringVal;
+            return a.as_string_ref() == b.as_string_ref();
         case JsonType::Array: {
-            if (a.arrayVal.size() != b.arrayVal.size()) return false;
-            for (size_t i = 0; i < a.arrayVal.size(); ++i) {
-                if (!JsonValuesEqual(a.arrayVal[i], b.arrayVal[i])) return false;
+            if (a.as_array().size() != b.as_array().size()) return false;
+            for (size_t i = 0; i < a.as_array().size(); ++i) {
+                if (!JsonValuesEqual(a.as_array()[i], b.as_array()[i])) return false;
             }
             return true;
         }
         case JsonType::Object: {
-            if (a.objectVal.size() != b.objectVal.size()) return false;
-            auto itA = a.objectVal.begin();
-            auto itB = b.objectVal.begin();
-            for (; itA != a.objectVal.end(); ++itA, ++itB) {
+            if (a.as_object().size() != b.as_object().size()) return false;
+            auto itA = a.as_object().begin();
+            auto itB = b.as_object().begin();
+            for (; itA != a.as_object().end(); ++itA, ++itB) {
                 if (itA->first != itB->first) return false;
                 if (!JsonValuesEqual(itA->second, itB->second)) return false;
             }
@@ -649,7 +649,7 @@ bool TestJsonInvariants(const std::string& input, std::string& failureMsg) {
 
     // Invariant 5: Legacy parse must produce identical type for accepted input.
     JsonValue legacy = JsonValue::parse(input);
-    if (legacy.type != v1.type) {
+    if (legacy.GetType() != v1.GetType()) {
         failureMsg = "Legacy parse() type mismatch for accepted input";
         return false;
     }
@@ -675,7 +675,7 @@ bool TestJsonInvariants(const std::string& input, std::string& failureMsg) {
     }
 
     // Type preservation between original and canonical re-parsed value
-    if (v1.type != v_canonical.type) {
+    if (v1.GetType() != v_canonical.GetType()) {
         failureMsg = "Type mismatch between original parsed value and canonical re-parsed representation";
         return false;
     }

@@ -132,24 +132,23 @@ The system defines twelve distinct security boundaries spanning external data, i
 
 ---
 
-### TB-04: External Tool Discovery & Subprocess Boundary
+### TB-04: External Tool Execution Disabled
 
 - **Boundary ID**: `external_tool_execution`
 - **Category**: `external_tools`
-- **Assets & Actors**: External utility binaries (`yt-dlp.exe`, `ffmpeg.exe`), stream extraction handlers.
+- **Assets & Actors**: External utility binaries and script handlers.
 - **Trust Level**: External executables located on local disk or system PATH.
-- **Entry Points**: `Aperture::ExternalTools::DiscoverYtDlp`, UI settings trigger (`settings.system.discover_ytdlp`).
+- **Entry Points**: `Aperture::MpvPlayer::IsCustomMpvOptionSafe`.
 - **Security Validations & Bounds**:
-  - Root-local search priority: strictly inspects `<rootDir>\tools\yt-dlp.exe` and `<rootDir>\yt-dlp.exe` first.
-  - System PATH discovery is disabled by default (`allowExternalPath = false`) and requires explicit user opt-in.
-  - `SearchPathW` buffer bounded to `32768` characters; candidates verified as regular files (`FILE_ATTRIBUTE_DIRECTORY` rejected).
-  - In `MpvPlayer.cpp`, unsafe mpv options (`ytdl`, `ytdl-raw-options`, `script`, `lua`) are blocked by `IsCustomMpvOptionSafe`.
-- **Privilege & Context**: Standard user process; child process runs under current user token with standard redirected stdio.
+  - Direct validated URLs are handled in process. mpv's `ytdl` hook is disabled.
+  - Custom options that enable scripts, Lua, or external tools are rejected.
+  - There is no external-tool discovery action or subprocess execution path.
+- **Privilege & Context**: Standard user process; no external child process.
 - **Durable-Write Destination**: None.
-- **Failure Behavior**: Returns typed `ExternalToolDiscoveryResult` with safe error string; UI informs user without crashing.
-- **Residual Risk**: A malicious binary named `yt-dlp.exe` on system PATH if the user explicitly enables external PATH discovery.
-- **Authoritative Code References**: `src/ExternalTools.h`, `src/ExternalTools.cpp`, `src/MpvPlayer.h`, `src/MpvPlayer.cpp`.
-- **Authoritative Test References**: `tests/unit/TestNetworkStream.h`.
+- **Failure Behavior**: Unsafe custom mpv options are rejected by the existing configuration validation.
+- **Residual Risk**: Media is decoded in process under the playback engine's existing bounds.
+- **Authoritative Code References**: `src/MpvPlayer.h`, `src/MpvPlayer.cpp`.
+- **Authoritative Test References**: `tests/unit/TestCustomMpvConfig.h`.
 
 ---
 
@@ -281,10 +280,10 @@ The system defines twelve distinct security boundaries spanning external data, i
 - **Category**: `shell_and_os_integration`
 - **Assets & Actors**: Windows Shell file associations, Taskbar JumpList (`ICustomDestinationList`), Taskbar thumbnail toolbar buttons. Strict portable mode uses none of them.
 - **Trust Level**: Windows Shell interface (explicitly not used in strict portable mode).
-- **Entry Points**: `App::RegisterFileAssociations`, `App::UnregisterFileAssociations`, `JumpListController::Update`, `JumpListController::Clear`, `JumpListController::ProjectRecentLocalMedia`, `TaskbarController::UpdatePlaybackState`.
+- **Entry Points**: `App::RegisterFileAssociations`, `JumpListController::Update`, `JumpListController::Clear`, `JumpListController::ProjectRecentLocalMedia`, `TaskbarController::UpdatePlaybackState`.
 - **Security Validations & Bounds**:
   - Strict portable containment: shell registration and JumpList entry points are disabled no-ops; the app performs zero durable writes outside the application root (no `HKCU`, no `%APPDATA%`).
-  - `RegisterFileAssociations` always reports disabled; `UnregisterFileAssociations` always reports clean; `JumpListController::Update`/`Clear` return without touching the shell.
+  - `RegisterFileAssociations` always reports disabled; `JumpListController::Update`/`Clear` return without touching the shell.
   - JumpList projection (`ProjectRecentLocalMedia`) remains as a pure in-memory helper only; nothing is committed to the OS.
   - Media is opened in-app via file picker, drag/drop, or CLI.
 - **Privilege & Context**: Standard user process (no registry writes).
@@ -354,7 +353,7 @@ The system defines twelve distinct security boundaries spanning external data, i
 | `updater_and_package_trust` | Self-Updater & Packaging | Untrusted Network / Pinned Crypto | Manifest <=128 KiB, Pkg <=150 MiB, NIST P-256 ECDSA, Authenticode, PE x64 | `data/updater.json`, root swap | `UpdaterStatusCode` | `tests/updater/run_tests.ps1`, `tests/package/test_package_signing.py` |
 | `same_user_ipc_and_automation` | Same-User IPC & Automation | Same-User Process | `IPC_MAGIC_V2`, Payload <=2 MiB, Token SID & Session Match, Fletcher-32, Replay Filter | None (in-memory) | `Ipc::ValidationResult` | `tests/ipc/TestIpcEnvelope.h` |
 | `dll_loading_and_runtime_isolation` | DLL Loader Hardening | Local Filesystem / Untrusted CWD | `SetDllDirectoryW(L"")`, `LOAD_LIBRARY_SEARCH_APPLICATION_DIR`, Root Resolution | None (read-only) | `MpvInitResult` | `tests/loader/TestDllLoader.h`, `tests/package/test_pe_dependencies.py` |
-| `external_tool_execution` | External Tools (`yt-dlp`) | External PATH Binaries | Root-local priority, PATH search disabled by default (opt-in), option blacklist | None | `ExternalToolDiscoveryResult::error` | `tests/unit/TestNetworkStream.h` |
+| `external_tool_execution` | External Tools Disabled | External Binaries | ytdl disabled, scripts and tool options blocked | None | Unsafe option rejected | `tests/unit/TestCustomMpvConfig.h` |
 | `network_streams_and_urls` | Network Stream URLs | Untrusted Remote URLs | Length <=2048, Scheme Whitelist (`http/https/rtsp/rtmp`), Credential Redaction | `data/recent_streams.json` | `NetworkStreamValidationError` | `tests/unit/TestNetworkStream.h`, `tests/corpus/validate_corpus.py` |
 | `online_subtitles_service` | Online Subtitle Service | Untrusted Third-Party APIs | HTTPS enforced, Query <=128, File <=4 MiB, Content Validation | `cache/subtitles/` | `OnlineSubtitleStatus` | `tests/unit/TestOnlineSubtitles.h` |
 | `media_containers_and_playlist_parsing` | Media & Playlist Parsers | Untrusted User Media | Playlist <=10 MiB, Subtitle <=32 MiB, Cue <=128 KiB, Tag Nesting <=32 | `data/library.json`, `data/playlists.json` | `PlaylistIoErrorCode` | `tests/corpus/validate_corpus.py`, `tests/unit/TestSubtitlesDual.h` |

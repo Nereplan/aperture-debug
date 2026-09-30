@@ -13,9 +13,9 @@ function Median($values) {
     if ($sorted.Count % 2) { return $sorted[[int][Math]::Floor($sorted.Count / 2)] }
     return ($sorted[$sorted.Count / 2 - 1] + $sorted[$sorted.Count / 2]) / 2
 }
-if ($before.Count -ne 42 -or $after.Count -ne 42) { throw 'Expected seven samples for each of six workloads' }
+if ($before.Count -ne 56 -or $after.Count -ne 56) { throw 'Expected seven samples for each of eight workloads' }
 $summary = foreach ($count in @(500,25000)) {
-    foreach ($mode in @(0,1,2)) {
+    foreach ($mode in @(0,1,2,3)) {
         $b = @($before | Where-Object { [int]$_.items -eq $count -and [int]$_.mode -eq $mode })
         $a = @($after | Where-Object { [int]$_.items -eq $count -and [int]$_.mode -eq $mode })
         if ($b.Count -ne 7 -or $a.Count -ne 7) { throw "Missing samples for $count/$mode" }
@@ -27,7 +27,7 @@ $summary = foreach ($count in @(500,25000)) {
         $afterPeak = Median $a.peak_live_cpp_bytes
         [pscustomobject][ordered]@{
             items = $count
-            mode = @('first','unchanged','progress')[$mode]
+            mode = @('first','unchanged','progress','load')[$mode]
             samplesPerVersion = 7
             beforeMedianMs = $beforeMs
             afterMedianMs = $afterMs

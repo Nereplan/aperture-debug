@@ -51,7 +51,7 @@ int main() {
     if (GetProcessAffinityMask(GetCurrentProcess(), &processMask, &systemMask))
         SetProcessAffinityMask(GetCurrentProcess(), processMask & (~processMask + 1));
     std::puts("items,mode,sample,ms,allocations,allocated_bytes,peak_live_cpp_bytes,json_bytes,content_hash");
-    for (int count : {500, 25000}) for (int mode : {0, 1, 2}) {
+    for (int count : {500, 25000}) for (int mode : {0, 1, 2, 3}) {
         for (int sample = 0; sample < 8; ++sample) {
             Check(stats.live == 0);
             stats = {};
@@ -93,20 +93,33 @@ int main() {
                 library.history.push_back(std::move(record));
             }
             library.watchedFolders.push_back(L"C:\\Benchmark\\Series");
-            // 0 first save; 1 unchanged save; 2 a periodic progress save.
+            // 0 first save; 1 unchanged save; 2 periodic progress; 3 load.
             if (mode != 0) Check(library.Save().is_ok());
             if (mode == 2) library.mediaItems.front().lastPosSec = 42.125;
             stats = {};
-            measuring = sample > 0;
+            measuring = sample > 0 && mode != 3;
             const auto start = std::chrono::steady_clock::now();
             const auto saved = library.Save();
             const auto end = std::chrono::steady_clock::now();
             measuring = false;
             Check(saved.is_ok());
-            Check(saved.librarySaved == (mode != 1));
+            Check(saved.librarySaved == (mode == 0 || mode == 2));
             Check(saved.playlistsSaved == (mode == 0));
             Check(saved.historySaved == (mode == 0));
             const auto measured = stats;
+            MediaLibrary loadedProbe;
+            AllocationStats loadStats;
+            double loadMs = 0;
+            if (mode == 3) {
+                stats = {};
+                measuring = sample > 0;
+                const auto loadStart = std::chrono::steady_clock::now();
+                Check(loadedProbe.Load().is_ok());
+                loadMs = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - loadStart).count();
+                measuring = false;
+                loadStats = stats;
+                Check(loadedProbe.mediaItems.size() == size_t(count));
+            }
             uint64_t hash = 14695981039346656037ull;
             size_t bytes = 0;
             for (const wchar_t* name : {L"library", L"playlists", L"history", L"watched_folders"}) {
@@ -123,9 +136,10 @@ int main() {
             Check(reloaded.mediaItems.size() == size_t(count));
             Check(reloaded.mediaItems.front().lastPosSec == library.mediaItems.front().lastPosSec);
             Check(reloaded.mediaItems.front().extraFields.get("plugin").get("escaped").as_string() == "tab\tline\ncontrol\x01");
+            const auto& reported = mode == 3 ? loadStats : measured;
             if (sample > 0) std::printf("%d,%d,%d,%.3f,%zu,%zu,%zu,%zu,%llu\n", count, mode, sample,
-                std::chrono::duration<double, std::milli>(end - start).count(), measured.calls,
-                measured.bytes, measured.peak, bytes, hash);
+                mode == 3 ? loadMs : std::chrono::duration<double, std::milli>(end - start).count(), reported.calls,
+                reported.bytes, reported.peak, bytes, hash);
         }
     }
 }

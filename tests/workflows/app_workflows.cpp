@@ -29,6 +29,7 @@ static LRESULT CALLBACK ReplyProc(HWND window, UINT message, WPARAM w, LPARAM l)
 struct AppProcess {
     PROCESS_INFORMATION process{};
     HWND window = nullptr;
+    ULONGLONG launchStart = 0, windowMs = 0;
     ~AppProcess() {
         if (process.hProcess) {
             if (WaitForSingleObject(process.hProcess, 0) == WAIT_TIMEOUT) {
@@ -41,14 +42,16 @@ struct AppProcess {
             CloseHandle(process.hProcess); CloseHandle(process.hThread);
         }
     }
-    void Launch(const fs::path& exe, const fs::path& media) {
+    void Launch(const fs::path& exe, const fs::path& media, bool visible = false) {
         Require(!FindWindowW(L"Aperture_Native_Direct2D_Class", nullptr), "An Aperture instance is already open; refusing to touch its session");
         HANDLE existing = OpenMutexW(SYNCHRONIZE, FALSE, L"Local\\Aperture_SingleInstance_Mutex_V1");
         const DWORD mutexError = GetLastError();
         if (existing) CloseHandle(existing);
         Require(!existing && mutexError == ERROR_FILE_NOT_FOUND, "An Aperture instance is starting or cannot be isolated safely");
         std::wstring command = L"\"" + exe.wstring() + L"\" --paused --volume=0 \"" + media.wstring() + L"\"";
-        STARTUPINFOW startup{}; startup.cb = sizeof(startup); startup.dwFlags = STARTF_USESHOWWINDOW; startup.wShowWindow = SW_HIDE;
+        STARTUPINFOW startup{}; startup.cb = sizeof(startup); startup.dwFlags = STARTF_USESHOWWINDOW;
+        startup.wShowWindow = visible ? SW_SHOWNOACTIVATE : SW_HIDE;
+        launchStart = GetTickCount64();
         Require(CreateProcessW(exe.c_str(), command.data(), nullptr, nullptr, FALSE, 0, nullptr,
                                exe.parent_path().c_str(), &startup, &process) != FALSE, "App launch failed");
         const auto deadline = GetTickCount64() + 15000;
@@ -63,9 +66,11 @@ struct AppProcess {
                 }
                 return TRUE;
             }, reinterpret_cast<LPARAM>(this));
+            if (window && visible && !IsWindowVisible(window)) window = nullptr;
             if (!window) Sleep(25);
         }
         Require(window != nullptr, "Owned app window did not appear");
+        windowMs = GetTickCount64() - launchStart;
     }
     void Send(Ipc::AutomationCommand command) {
         DWORD pid = 0; GetWindowThreadProcessId(window, &pid);
@@ -88,6 +93,20 @@ struct AppProcess {
     }
     void Command(Ipc::AutomationOp op) { Ipc::AutomationCommand command; command.op = op; Send(command); }
     Ipc::AutomationStatus Status() { Command(Ipc::AutomationOp::QueryStatus); return reply; }
+    void ClickBackChevron() {
+        HWND overlay = nullptr;
+        for (HWND candidate = GetTopWindow(nullptr); candidate; candidate = GetWindow(candidate, GW_HWNDNEXT)) {
+            DWORD pid = 0; GetWindowThreadProcessId(candidate, &pid);
+            wchar_t name[128]{}; GetClassNameW(candidate, name, 128);
+            if (pid == process.dwProcessId && wcscmp(name, L"ApertureOverlay") == 0) { overlay = candidate; break; }
+        }
+        Require(overlay != nullptr, "Playback overlay not found");
+        const UINT dpi = GetDpiForWindow(window);
+        const LPARAM point = MAKELPARAM(MulDiv(42, dpi, 96), MulDiv(34, dpi, 96));
+        PostMessageW(overlay, WM_MOUSEMOVE, 0, point);
+        PostMessageW(overlay, WM_LBUTTONDOWN, MK_LBUTTON, point);
+        PostMessageW(overlay, WM_LBUTTONUP, 0, point);
+    }
     Ipc::AutomationStatus Until(const char* description, const std::function<bool(const Ipc::AutomationStatus&)>& predicate) {
         const auto start = GetTickCount64();
         do {
@@ -113,17 +132,42 @@ struct AppProcess {
 
 int wmain(int argc, wchar_t** argv) {
     try {
-        Require(argc == 2, "Expected isolated app executable path");
+        Require(argc == 2 || argc == 3, "Expected isolated app executable path and optional benchmark media");
         const fs::path exe = fs::absolute(argv[1]);
         const auto first = exe.parent_path() / L"media" / L"Café first.wav";
         const auto second = exe.parent_path() / L"media" / L"日本語 second.wav";
-        WriteWorkflowWave(first, 45); WriteWorkflowWave(second, 60);
+        if (argc == 2) { WriteWorkflowWave(first, 45); WriteWorkflowWave(second, 60); }
         WNDCLASSW windowClass{};
         windowClass.lpfnWndProc = ReplyProc; windowClass.hInstance = GetModuleHandleW(nullptr);
         windowClass.lpszClassName = L"Aperture_Workflow_Reply";
         Require(RegisterClassW(&windowClass) != 0, "Reply class registration failed");
         replyWindow = CreateWindowExW(0, windowClass.lpszClassName, L"", 0, 0, 0, 0, 0, HWND_MESSAGE, nullptr, windowClass.hInstance, nullptr);
         Require(replyWindow != nullptr, "Reply window creation failed");
+        if (argc == 3) {
+            const fs::path media = fs::absolute(argv[2]);
+            AppProcess app;
+            app.Launch(exe, media, true);
+            app.Until("benchmark CLI playable", [](const auto& state) {
+                return state.state == Ipc::AutomationPlaybackState::Paused && state.durationSec > 0;
+            });
+            const auto cliLoadedMs = GetTickCount64() - app.launchStart;
+            app.Command(Ipc::AutomationOp::Play);
+            app.Until("benchmark clock advances", [](const auto& state) { return state.positionSec > 0.1; });
+            app.Command(Ipc::AutomationOp::Stop);
+            app.Until("benchmark returns to hub", [](const auto& state) { return state.state == Ipc::AutomationPlaybackState::Closed; });
+            Ipc::AutomationCommand open;
+            open.op = Ipc::AutomationOp::Open; open.mediaTargets = {media.wstring()}; open.paused = true;
+            const auto hubStart = GetTickCount64();
+            app.Send(open);
+            app.Until("benchmark hub playable", [](const auto& state) {
+                return state.state == Ipc::AutomationPlaybackState::Paused && state.durationSec > 0;
+            });
+            std::cout << "BENCH window_ms=" << app.windowMs << " cli_loaded_ms=" << cliLoadedMs
+                << " hub_loaded_ms=" << GetTickCount64() - hubStart << std::endl;
+            app.Close();
+            DestroyWindow(replyWindow);
+            return 0;
+        }
         double persistedResume = -1;
         for (int cycle = 0; cycle < 3; ++cycle) {
             AppProcess app;
@@ -132,6 +176,29 @@ int wmain(int argc, wchar_t** argv) {
                 return state.state == Ipc::AutomationPlaybackState::Paused && state.currentFilePath == first.wstring() && std::abs(state.durationSec - 45) < 0.2;
             });
             if (persistedResume >= 0) Require(std::abs(initial.positionSec - persistedResume) < 1.0, "Restart did not restore the saved resume position");
+            if (cycle == 0) {
+                for (bool maximized : {false, true}) {
+                    ShowWindow(app.window, maximized ? SW_MAXIMIZE : SW_RESTORE);
+                    RECT expected{}; Require(GetWindowRect(app.window, &expected), "Cannot read windowed bounds");
+                    for (bool useChevron : {false, true}) {
+                        Ipc::AutomationCommand fullscreen;
+                        fullscreen.op = Ipc::AutomationOp::Open; fullscreen.mediaTargets = {first.wstring()};
+                        fullscreen.paused = true; fullscreen.fullscreen = true;
+                        app.Send(fullscreen);
+                        app.Until("playback enters fullscreen", [](const auto& state) {
+                            return state.isFullscreen && state.state == Ipc::AutomationPlaybackState::Paused;
+                        });
+                        if (useChevron) app.ClickBackChevron();
+                        else PostMessageW(app.window, WM_KEYDOWN, VK_ESCAPE, 1);
+                        app.Until(useChevron ? "chevron exits fullscreen" : "Escape exits fullscreen", [](const auto& state) {
+                            return !state.isFullscreen && state.state == Ipc::AutomationPlaybackState::Paused;
+                        });
+                        RECT actual{}; Require(GetWindowRect(app.window, &actual), "Cannot read restored bounds");
+                        Require(EqualRect(&expected, &actual), "Fullscreen exit changed the saved window bounds");
+                        Require((IsZoomed(app.window) != FALSE) == maximized, "Fullscreen exit changed the saved maximize state");
+                    }
+                }
+            }
             Ipc::AutomationCommand seek; seek.op = Ipc::AutomationOp::Seek; seek.seekPositionSec = 4 + cycle;
             app.Send(seek);
             app.Until("seek reaches requested position", [&](const auto& state) { return std::abs(state.positionSec - seek.seekPositionSec) < 0.2; });
@@ -150,6 +217,16 @@ int wmain(int argc, wchar_t** argv) {
             app.Until("position restored before close", [&](const auto& state) { return std::abs(state.positionSec - seek.seekPositionSec) < 0.3; });
             app.Command(Ipc::AutomationOp::Stop);
             app.Until("stop returns to library", [](const auto& state) { return state.state == Ipc::AutomationPlaybackState::Closed; });
+            Ipc::AutomationCommand reopen; reopen.op = Ipc::AutomationOp::Open; reopen.mediaTargets = {first.wstring()}; reopen.paused = true;
+            const auto hubOpenStart = GetTickCount64();
+            app.Send(reopen);
+            app.Until("hub reopens media", [&](const auto& state) {
+                return state.state == Ipc::AutomationPlaybackState::Paused && state.currentFilePath == first.wstring() &&
+                    std::abs(state.durationSec - 45) < 0.2;
+            });
+            std::cout << "PASS hub_to_video_ms=" << GetTickCount64() - hubOpenStart << std::endl;
+            app.Command(Ipc::AutomationOp::Stop);
+            app.Until("reopen returns to library", [](const auto& state) { return state.state == Ipc::AutomationPlaybackState::Closed; });
             app.Close();
             std::ifstream input(exe.parent_path() / L"data" / L"library.json", std::ios::binary);
             const std::string text((std::istreambuf_iterator<char>(input)), std::istreambuf_iterator<char>());

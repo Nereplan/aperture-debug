@@ -585,7 +585,7 @@ bool App::DriveHubExtraction() {
     // 10s releases its mpv handle (tens of MiB); Begin() rebuilds on demand.
     for (int i = 0; i < 2; ++i) {
         if (!hubExtractors[i].IsActive() && hubExtractors[i].IsInitialized() && nowS - hubExtractorLastBusy[i] > 10.0)
-            hubExtractors[i].ReleaseResources();
+            hubExtractors[i].Shutdown();
     }
     return drew;
 }

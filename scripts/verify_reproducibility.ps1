@@ -85,7 +85,7 @@ $toolchainInfo = [ordered]@{
     ninjaPath       = "Not Found"
     pythonVersion   = "Unknown"
     pythonPath      = "Unknown"
-    compilerFlags   = @("/EHsc", "/GS", "/sdl", "/O2", "/GL", "/Gy", "/Zi", "/guard:cf", "/Brepro", "SHELL:/Qspectre")
+    compilerFlags   = @("/EHsc", "/GS", "/sdl", "/O1", "/GL", "/Gy", "/Zi", "/guard:cf", "/Brepro", "SHELL:/Qspectre")
     linkerFlags     = @("/SUBSYSTEM:WINDOWS", "/DYNAMICBASE", "/HIGHENTROPYVA", "/NXCOMPAT", "/DEPENDENTLOADFLAG:0x800", "/MANIFEST:NO", "/DEBUG", "/LTCG", "/OPT:REF", "/OPT:ICF", "/guard:cf", "/CETCOMPAT", "/Brepro", "/PDBALTPATH:%_PDB%")
 }
 
@@ -175,7 +175,7 @@ try {
         # First build pass (Build A)
         Write-Log "`n[1/2] Executing Clean Release Build A into: $buildDirA" "Yellow"
         $swA = [System.Diagnostics.Stopwatch]::StartNew()
-        & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $buildScript -BuildOutputPath $binPathA -SkipDependencyCheck
+        & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $buildScript -BuildOutputPath $binPathA -SkipDependencyCheck -Clean
         $swA.Stop()
         if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $binPathA)) {
             throw "Build A failed with exit code $LASTEXITCODE or binary not found."
@@ -187,7 +187,7 @@ try {
         # Second build pass (Build B)
         Write-Log "`n[2/2] Executing Clean Release Build B into: $buildDirB" "Yellow"
         $swB = [System.Diagnostics.Stopwatch]::StartNew()
-        & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $buildScript -BuildOutputPath $binPathB -SkipDependencyCheck
+        & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $buildScript -BuildOutputPath $binPathB -SkipDependencyCheck -Clean
         $swB.Stop()
         if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $binPathB)) {
             throw "Build B failed with exit code $LASTEXITCODE or binary not found."

@@ -588,36 +588,6 @@ void App::TriggerUpdateDownloadAndApply(const ReleaseManifest& manifest) {
 }
 
 
-void App::CycleUpdateChannel() {
-    const auto& channels = ChannelPolicy::Instance().GetChannels();
-    if (channels.empty()) return;
-    std::string current = settings.updateChannel;
-    size_t curIdx = 0;
-    for (size_t i = 0; i < channels.size(); ++i) {
-        if (channels[i].id == current) { curIdx = i; break; }
-    }
-    size_t nextIdx = (curIdx + 1) % channels.size();
-    std::string nextChanId = channels[nextIdx].id;
-    if (ChannelPolicy::Instance().IsStabilityDowngrade(current, nextChanId)) {
-        std::wstring targetName = ChannelPolicy::Instance().GetChannelDisplayName(nextChanId);
-        std::string targetDesc = ChannelPolicy::Instance().GetChannelDescription(nextChanId);
-        std::wstring modalMsg = L"Are you sure you want to switch to the " + targetName + L" channel?\n\n" + Utf8ToUtf16(targetDesc) +
-                                L"\n\nNote: Switching channels will not downgrade your installed version.";
-        ShowConfirmationModal( L"Switch Release Channel", modalMsg, L"Switch to " + targetName, [this, nextChanId, targetName]() {
-                settings.updateChannel = nextChanId;
-                SaveSettings();
-                ShowOSD(IconType::SettingsGear, L"Update channel set to " + targetName);
-                InvalidateRect(hWnd, NULL, FALSE);
-            }, nullptr, false );
-    } else {
-        settings.updateChannel = nextChanId;
-        SaveSettings();
-        ShowOSD(IconType::SettingsGear, L"Update channel set to " + ChannelPolicy::Instance().GetChannelDisplayName(nextChanId));
-        InvalidateRect(hWnd, NULL, FALSE);
-    }
-}
-
-
 void App::StartShortcutCapture(const std::string& actionId, const std::string& actionName, int originRow, int originSubIndex) {
     PushFocusSnapshot(TransientSurfaceType::ShortcutCapture);
     rebindingActionId = actionId;

@@ -434,23 +434,34 @@ try {
         restoreSession = $false
         diagnosticsLogging = $false
     }
-    $seededSettings | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $dataDir "settings.json") -Encoding UTF8
+    # Windows PowerShell's UTF8 Set-Content adds a BOM, which is not part of
+    # the application's JSON format. Seed the same bytes the app writes.
+    $fixtureUtf8 = [System.Text.UTF8Encoding]::new($false)
+    [System.IO.File]::WriteAllText((Join-Path $dataDir "settings.json"), ($seededSettings | ConvertTo-Json -Depth 5), $fixtureUtf8)
 
     $seededLibrary = @{
-        schemaVersion = 10
-        media = @(
-            @{ id = "m1"; path = "C:\Media\Cosmos_4K.mkv"; title = "Cosmos 4K"; duration = 3600.0; size = 4294967296; lastWatched = 1700000000 },
-            @{ id = "m2"; path = "C:\Media\Nature_Doc.mp4"; title = "Nature Documentary"; duration = 1800.0; size = 2147483648; lastWatched = 1699900000 }
-        )
-        playlists = @(
-            @{ id = "p1"; name = "Favorites"; items = @("C:\Media\Cosmos_4K.mkv"); createdAt = 1700000000 },
-            @{ id = "p2"; name = "Watch Later"; items = @("C:\Media\Nature_Doc.mp4"); createdAt = 1699900000 }
-        )
-        history = @(
-            @{ mediaId = "m1"; path = "C:\Media\Cosmos_4K.mkv"; title = "Cosmos 4K"; timestamp = 1700000000; positionSec = 120.0; durationSec = 3600.0 }
+        schemaVersion = 2
+        items = @(
+            @{ id = "m1"; filePath = "C:\Media\Cosmos_4K.mkv"; title = "Cosmos 4K"; durationSec = 3600.0; fileSizeBytes = 4294967296; lastWatchedTimestamp = 1700000000 },
+            @{ id = "m2"; filePath = "C:\Media\Nature_Doc.mp4"; title = "Nature Documentary"; durationSec = 1800.0; fileSizeBytes = 2147483648; lastWatchedTimestamp = 1699900000 }
         )
     }
-    $seededLibrary | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath (Join-Path $dataDir "library.json") -Encoding UTF8
+    $seededPlaylists = @{
+        schemaVersion = 2
+        items = @(
+            @{ id = "p1"; name = "Favorites"; itemPaths = @("C:\Media\Cosmos_4K.mkv"); createdTimestamp = 1700000000 },
+            @{ id = "p2"; name = "Watch Later"; itemPaths = @("C:\Media\Nature_Doc.mp4"); createdTimestamp = 1699900000 }
+        )
+    }
+    $seededHistory = @{
+        schemaVersion = 2
+        items = @(
+            @{ filePath = "C:\Media\Cosmos_4K.mkv"; title = "Cosmos 4K"; watchedTimestamp = 1700000000; lastPosSec = 120.0; durationSec = 3600.0 }
+        )
+    }
+    [System.IO.File]::WriteAllText((Join-Path $dataDir "library.json"), ($seededLibrary | ConvertTo-Json -Depth 6), $fixtureUtf8)
+    [System.IO.File]::WriteAllText((Join-Path $dataDir "playlists.json"), ($seededPlaylists | ConvertTo-Json -Depth 6), $fixtureUtf8)
+    [System.IO.File]::WriteAllText((Join-Path $dataDir "history.json"), ($seededHistory | ConvertTo-Json -Depth 6), $fixtureUtf8)
 
     # Filter scenes if requested
     $scenesToTest = $declaredScenes

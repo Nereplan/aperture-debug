@@ -338,27 +338,41 @@ bool PlaybackSession::EnterFullscreen(HWND hWnd) {
     return false;
 }
 
-bool PlaybackSession::ExitFullscreen(HWND hWnd) {
-    if (!hWnd || presentation != PresentationMode::Fullscreen) return false;
+void PlaybackSession::RestoreWindowedPlacement(HWND hWnd) {
+    // Restore the saved target directly. Normal-first followed by maximize
+    // exposes a smaller window and plays a second composition transition.
+    BOOL transitionsDisabled = TRUE;
+    DwmSetWindowAttribute(hWnd, DWMWA_TRANSITIONS_FORCEDISABLED,
+        &transitionsDisabled, sizeof(transitionsDisabled));
     DWORD restStyle = (savedStyle ? (savedStyle | WS_OVERLAPPEDWINDOW) : (WS_OVERLAPPEDWINDOW | WS_VISIBLE | WS_CLIPCHILDREN | WS_CLIPSIBLINGS)) & ~(WS_MAXIMIZE | WS_MINIMIZE);
+    // SetWindowPlacement restores the normal bounds before maximizing unless
+    // the window already carries the maximized state. Preserve that target
+    // state through the style swap so even WM_SIZE sees only the final bounds.
+    if (savedPlacement.length == sizeof(WINDOWPLACEMENT) &&
+        savedPlacement.rcNormalPosition.right > savedPlacement.rcNormalPosition.left &&
+        savedPlacement.showCmd == SW_SHOWMAXIMIZED) restStyle |= WS_MAXIMIZE;
     DWORD restExStyle = (savedExStyle ? savedExStyle : WS_EX_APPWINDOW) & ~WS_EX_TOPMOST;
     SetWindowLong(hWnd, GWL_STYLE, restStyle);
     SetWindowLong(hWnd, GWL_EXSTYLE, restExStyle);
-    SetWindowPos(hWnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_FRAMECHANGED);
     if (savedPlacement.length == sizeof(WINDOWPLACEMENT) && savedPlacement.rcNormalPosition.right > savedPlacement.rcNormalPosition.left) {
         WINDOWPLACEMENT restorePlacement = savedPlacement;
-        restorePlacement.showCmd = SW_SHOWNORMAL;
+        restorePlacement.showCmd = savedPlacement.showCmd == SW_SHOWMAXIMIZED ? SW_SHOWMAXIMIZED : SW_SHOWNORMAL;
         SetWindowPlacement(hWnd, &restorePlacement);
-        if (savedPlacement.showCmd == SW_SHOWMAXIMIZED) {
-            ShowWindow(hWnd, SW_MAXIMIZE);
-        } else {
-            ShowWindow(hWnd, SW_SHOWNORMAL);
-        }
-    } else if (savedWindowRect.right > savedWindowRect.left) {
+    } else if (savedWindowRect.right > savedWindowRect.left && savedWindowRect.bottom > savedWindowRect.top) {
         SetWindowPos(hWnd, HWND_NOTOPMOST, savedWindowRect.left, savedWindowRect.top, savedWindowRect.right - savedWindowRect.left,
             savedWindowRect.bottom - savedWindowRect.top, SWP_SHOWWINDOW | SWP_FRAMECHANGED);
     }
-    SetWindowPos(hWnd, NULL, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
+    // Refresh the frame only after the target bounds are in place.
+    SetWindowPos(hWnd, HWND_NOTOPMOST, 0, 0, 0, 0,
+        SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
+    transitionsDisabled = FALSE;
+    DwmSetWindowAttribute(hWnd, DWMWA_TRANSITIONS_FORCEDISABLED,
+        &transitionsDisabled, sizeof(transitionsDisabled));
+}
+
+bool PlaybackSession::ExitFullscreen(HWND hWnd) {
+    if (!hWnd || presentation != PresentationMode::Fullscreen) return false;
+    RestoreWindowedPlacement(hWnd);
     presentation = PresentationMode::Windowed;
     pipPriorPresentation = PresentationMode::Windowed;
     return true;
@@ -645,28 +659,7 @@ void PlaybackSession::ResetPresentation(HWND hWnd) {
         presentation = PresentationMode::Windowed;
         pipPinned = false;
         pipPriorPresentation = PresentationMode::Windowed;
-        if (hWnd) {
-            DWORD restStyle = ((savedStyle ? savedStyle : WS_OVERLAPPEDWINDOW) | WS_VISIBLE | WS_CLIPCHILDREN | WS_CLIPSIBLINGS) & ~(WS_MAXIMIZE | WS_MINIMIZE);
-            DWORD restExStyle = (savedExStyle ? savedExStyle : WS_EX_APPWINDOW) & ~WS_EX_TOPMOST;
-            SetWindowLong(hWnd, GWL_STYLE, restStyle);
-            SetWindowLong(hWnd, GWL_EXSTYLE, restExStyle);
-            SetWindowPos(hWnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_FRAMECHANGED);
-            if (savedPlacement.length == sizeof(WINDOWPLACEMENT) && savedPlacement.rcNormalPosition.right > savedPlacement.rcNormalPosition.left) {
-                WINDOWPLACEMENT restorePlacement = savedPlacement;
-                restorePlacement.showCmd = SW_SHOWNORMAL;
-                SetWindowPlacement(hWnd, &restorePlacement);
-                if (savedPlacement.showCmd == SW_SHOWMAXIMIZED) {
-                    ShowWindow(hWnd, SW_MAXIMIZE);
-                } else {
-                    ShowWindow(hWnd, SW_SHOWNORMAL);
-                }
-            } else if (savedWindowRect.right > savedWindowRect.left && savedWindowRect.bottom > savedWindowRect.top) {
-                int width = savedWindowRect.right - savedWindowRect.left;
-                int height = savedWindowRect.bottom - savedWindowRect.top;
-                SetWindowPos(hWnd, HWND_NOTOPMOST, savedWindowRect.left, savedWindowRect.top, width, height, SWP_SHOWWINDOW | SWP_FRAMECHANGED);
-            }
-            SetWindowPos(hWnd, NULL, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
-        }
+        if (hWnd) RestoreWindowedPlacement(hWnd);
     }
     pipPinned = false;
     pipPriorPresentation = PresentationMode::Windowed;

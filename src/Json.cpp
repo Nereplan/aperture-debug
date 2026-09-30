@@ -11,28 +11,53 @@ namespace Aperture {
 
 static const JsonValue s_nullValue;
 
-JsonValue::JsonValue(const std::wstring& ws) : type(JsonType::String), stringVal(Utf16ToUtf8(ws)) {}
+JsonValue::JsonValue(const std::wstring& ws) : value(Utf16ToUtf8(ws)) {}
 
-std::wstring JsonValue::as_wstring(const std::wstring& def) const { return is_string() ? Utf8ToUtf16(stringVal) : def; }
+std::wstring JsonValue::as_wstring(const std::wstring& def) const { return is_string() ? Utf8ToUtf16(as_string_ref()) : def; }
 
-const JsonValue& JsonValue::get(const std::string& key) const {
+const std::string& JsonValue::as_string_ref() const {
+    static const std::string empty;
+    return is_string() ? std::get<std::string>(value) : empty;
+}
+
+const JsonValue::ArrayType& JsonValue::as_array() const {
+    static const ArrayType empty;
+    return is_array() ? std::get<ArrayType>(value) : empty;
+}
+
+JsonValue::ArrayType& JsonValue::as_array() {
+    if (!is_array()) value.emplace<ArrayType>();
+    return std::get<ArrayType>(value);
+}
+
+const JsonValue::ObjectType& JsonValue::as_object() const {
+    static const ObjectType empty;
+    return is_object() ? std::get<ObjectType>(value) : empty;
+}
+
+JsonValue::ObjectType& JsonValue::as_object() {
+    if (!is_object()) value.emplace<ObjectType>();
+    return std::get<ObjectType>(value);
+}
+
+const JsonValue& JsonValue::get(std::string_view key) const {
     if (!is_object()) return s_nullValue;
+    const auto& objectVal = as_object();
     auto i = objectVal.find(key);
     return i == objectVal.end() ? s_nullValue : i->second;
 }
 
 JsonValue& JsonValue::operator[](const std::string& key) {
-    if (type != JsonType::Object) { type = JsonType::Object; objectVal.clear(); arrayVal.clear(); }
-    return objectVal[key];
+    return as_object()[key];
 }
 
 JsonValue& JsonValue::operator[](size_t i) {
-    if (type != JsonType::Array) { type = JsonType::Array; arrayVal.clear(); objectVal.clear(); }
+    auto& arrayVal = as_array();
     if (i >= arrayVal.size()) arrayVal.resize(i + 1);
     return arrayVal[i];
 }
 
-const JsonValue& JsonValue::operator[](size_t i) const { return is_array() && i < arrayVal.size() ? arrayVal[i] : s_nullValue; }
+const JsonValue& JsonValue::operator[](size_t i) const { return is_array() && i < as_array().size() ? as_array()[i] : s_nullValue; }
 
 static void EscapeJsonString(const std::string& in, std::ostringstream& o) {
     o << '"';
@@ -62,10 +87,11 @@ std::string JsonValue::stringify(bool pretty, int indent) const { std::ostringst
 void JsonValue::WriteJson(std::ostringstream& o, bool pretty, int indent) const {
     std::string pad = pretty ? std::string(indent * 2, ' ') : std::string();
     std::string child = pretty ? std::string((indent + 1) * 2, ' ') : std::string();
-    switch (type) {
+    switch (GetType()) {
         case JsonType::Null: o << "null"; break;
-        case JsonType::Boolean: o << (boolVal ? "true" : "false"); break;
-        case JsonType::Number:
+        case JsonType::Boolean: o << (as_bool() ? "true" : "false"); break;
+        case JsonType::Number: {
+            const double numberVal = as_number();
             if (!std::isfinite(numberVal)) {
                 o << "null";
             } else if (std::floor(numberVal) == numberVal && numberVal >= (double)std::numeric_limits<int64_t>::min() &&
@@ -73,10 +99,12 @@ void JsonValue::WriteJson(std::ostringstream& o, bool pretty, int indent) const 
                 o << (int64_t)numberVal;
             } else { o << numberVal; }
             break;
+        }
         case JsonType::String:
-            EscapeJsonString(stringVal, o);
+            EscapeJsonString(as_string_ref(), o);
             break;
         case JsonType::Array: {
+            const auto& arrayVal = as_array();
             if (arrayVal.empty()) { o << "[]"; break; }
             o << (pretty ? "[\n" : "[");
             for (size_t i = 0; i < arrayVal.size(); ++i) {
@@ -90,6 +118,7 @@ void JsonValue::WriteJson(std::ostringstream& o, bool pretty, int indent) const 
             break;
         }
         case JsonType::Object: {
+            const auto& objectVal = as_object();
             if (objectVal.empty()) {
                 o << "{}";
                 break;
@@ -237,8 +266,8 @@ class JsonParser {
                 if (bad || !take(':')) break;
                 JsonValue v = val();
                 if (bad) break;
-                if (o.objectVal.size() >= JsonValue::kMaxJsonContainerElements) { bad = true; break; }
-                o.objectVal[std::move(k)] = std::move(v);
+                if (o.as_object().size() >= JsonValue::kMaxJsonContainerElements) { bad = true; break; }
+                o.as_object()[std::move(k)] = std::move(v);
                 ws();
                 if (p < s.size() && s[p] == '}') { ++p; --depth; return o; }
                 if (!take(',')) break;
@@ -257,8 +286,8 @@ class JsonParser {
             ws();
             if (p < s.size() && s[p] == ']') { ++p; --depth; return a; }
             while (!bad) {
-                if (a.arrayVal.size() >= JsonValue::kMaxJsonContainerElements) { bad = true; break; }
-                a.arrayVal.push_back(val());
+                if (a.as_array().size() >= JsonValue::kMaxJsonContainerElements) { bad = true; break; }
+                a.push_back(val());
                 if (bad) break;
                 ws();
                 if (p < s.size() && s[p] == ']') { ++p; --depth; return a; }

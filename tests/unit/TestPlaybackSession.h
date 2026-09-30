@@ -6,6 +6,7 @@
 #include "../../src/PlaybackSession.h"
 #include "../../src/Settings.h"
 #include "../../src/WindowGeometry.h"
+#include <commctrl.h>
 
 namespace Aperture::Test {
 
@@ -903,6 +904,58 @@ TEST_CASE(PlaybackSession, FullscreenPiPRoundTrip) {
     TEST_ASSERT(std::abs(finalH - 550) <= 20);
 
     DestroyWindow(testWnd);
+}
+
+TEST_CASE(PlaybackSession, FullscreenExitRestoresPlacementWithoutIntermediateSize) {
+    struct WindowProbe {
+        HWND window = CreateWindowExW(0, L"STATIC", L"Fullscreen restore test",
+            WS_OVERLAPPEDWINDOW | WS_VISIBLE, 140, 120, 800, 600,
+            nullptr, nullptr, GetModuleHandleW(nullptr), nullptr);
+        std::vector<RECT> sizes;
+        static LRESULT CALLBACK Observe(HWND hwnd, UINT message, WPARAM wParam,
+            LPARAM lParam, UINT_PTR, DWORD_PTR context) {
+            auto& probe = *reinterpret_cast<WindowProbe*>(context);
+            if (message == WM_SIZE) {
+                RECT bounds{};
+                if (GetWindowRect(hwnd, &bounds)) probe.sizes.push_back(bounds);
+            }
+            return DefSubclassProc(hwnd, message, wParam, lParam);
+        }
+        ~WindowProbe() { if (window) DestroyWindow(window); }
+    } probe;
+    TEST_ASSERT(probe.window != nullptr);
+    if (!probe.window) return;
+    TEST_ASSERT(SetWindowSubclass(probe.window, WindowProbe::Observe, 1,
+        reinterpret_cast<DWORD_PTR>(&probe)));
+
+    for (bool maximized : {false, true}) {
+        for (bool returnToLibrary : {false, true}) {
+            PlaybackSession session;
+            ShowWindow(probe.window, maximized ? SW_MAXIMIZE : SW_RESTORE);
+            session.SetReduceMotion(returnToLibrary);
+            RECT expected{};
+            TEST_ASSERT(GetWindowRect(probe.window, &expected));
+            WINDOWPLACEMENT before{sizeof(WINDOWPLACEMENT)};
+            TEST_ASSERT(GetWindowPlacement(probe.window, &before));
+            TEST_ASSERT(session.EnterFullscreen(probe.window));
+            probe.sizes.clear();
+            if (returnToLibrary) session.ResetPresentation(probe.window);
+            else TEST_ASSERT(session.ExitFullscreen(probe.window));
+            TEST_ASSERT(session.IsWindowed());
+            TEST_ASSERT_EQ(IsZoomed(probe.window) != FALSE, maximized);
+            RECT actual{};
+            TEST_ASSERT(GetWindowRect(probe.window, &actual));
+            TEST_ASSERT(EqualRect(&actual, &expected));
+            TEST_ASSERT(!probe.sizes.empty());
+            for (const RECT& size : probe.sizes) {
+                TEST_ASSERT_MSG(EqualRect(&size, &expected),
+                    "Fullscreen exit exposed an intermediate window size");
+            }
+            WINDOWPLACEMENT after{sizeof(WINDOWPLACEMENT)};
+            TEST_ASSERT(GetWindowPlacement(probe.window, &after));
+            TEST_ASSERT(EqualRect(&before.rcNormalPosition, &after.rcNormalPosition));
+        }
+    }
 }
 
 TEST_CASE(PlaybackSession, PiPFullscreenGeometryPreservation) {

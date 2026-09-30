@@ -24,7 +24,7 @@ Double-click **Build Release.cmd** to build, run the regression checks, create a
 ./build_and_release.ps1 -IncludeDebug
 ```
 
-To compile only, use `./build.ps1` or `./build.ps1 -Debug`. To run regression tests, use `./tests/run_tests.ps1 -Tier pr`.
+To compile only, use `./build.ps1` or `./build.ps1 -Debug`. Local builds reuse a configuration-specific cache in `scratch/build/`; `./build.ps1 -Clean` performs an isolated full rebuild. Analysis and sanitizer builds remain isolated. To run regression tests, use `./tests/run_tests.ps1 -Tier pr`.
 
 ## GitHub workflow
 

@@ -16,7 +16,6 @@
 #include "CommandDispatcher.h"
 #include "MediaTransport.h"
 #include "JumpList.h"
-#include "ExternalTools.h"
 #include "Error.h"
 #include "Diagnostics.h"
 #include "GlobalSearch.h"
@@ -43,7 +42,6 @@ public:
     ~App();
     // startupSettings (already loaded in wWinMain) can be adopted to avoid a second settings.json read/parse during Initialize.
     bool Initialize(HWND hWnd, HWND hVideoWnd, HINSTANCE hInstance, const PlaybackCommandLineOptions& startupOptions, const Settings* startupSettings = nullptr);
-    bool Initialize(HWND hWnd, HWND hVideoWnd, HINSTANCE hInstance, const std::vector<std::wstring>& initialFiles, const Settings* startupSettings = nullptr);
     void Shutdown();
     bool IsLibraryReady() const { return libraryReady; }
     bool IsLibraryLoadComplete() const { return libraryReady || libraryLoadFailed; }
@@ -107,8 +105,6 @@ public:
     // File Operations
     void HandleDroppedFiles(HDROP hDrop);
     bool RegisterFileAssociations();
-    bool UnregisterFileAssociations();
-    void ClearVideoThumbnailCache();
     // Visual Capture & Automation
     bool CaptureClientContent(const std::wstring& outputPath);
     void PrepareVisualCaptureScene(const std::wstring& scene);
@@ -208,7 +204,6 @@ private:
         PlayerEventError = 1u << 3, PlayerEventPlayState = 1u << 4, PlayerEventTracks = 1u << 5, PlayerEventChapters = 1u << 6, };
     std::atomic<uint32_t> pendingPlayerEvents{ PlayerEventNone };
     std::atomic<double> pendingPlayerTime{ 0.0 };
-    std::atomic<double> pendingPlayerDuration{ 0.0 };
     // time-pos fires up to frame rate; the timeline reads GetCurrentTime()
     // per frame directly, so queued event work (progress push, chapter
     // announce, SMTC refresh) is pulsed at ~4 Hz instead.
@@ -304,8 +299,6 @@ private:
     // Progress-push throttle: library progress is only updated when the
     // player's position, duration, or file actually changed meaningfully.
     float progressSaveTimerSec = 0.0f;
-    std::wstring lastProgressPath;
-    double lastProgressPosSec = -1.0, lastProgressDurationSec = -1.0;
     bool isCursorHidden = false, isScrubbing = false;
     double scrubTargetTime = -1.0, lastMpvSeekTime = -1.0;
     std::chrono::steady_clock::time_point lastMpvSeekTimestamp{};
@@ -786,7 +779,6 @@ private:
     void ResetCustomMpvConfigToDefault();
     void RevertCustomMpvConfigToLastKnownGood();
     void CheckForUpdates(bool isManual = true);
-    void CycleUpdateChannel();
     void TriggerUpdateDownloadAndApply(const ReleaseManifest& manifest);
     TextInputModel* ActiveTextInputModel();
     void OpenGlobalSearch();

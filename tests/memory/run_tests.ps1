@@ -22,6 +22,7 @@ param(
     [int]$PlaybackSamples = 3,
     [int]$SampleIntervalSeconds = 2,
     [int]$PreviewWarmupSeconds = 4,
+    [int]$IdleAfterPreviewSeconds = 15,
     [double]$MediaWorkingSetBudgetMiB = 350,
     [double]$IdleWorkingSetBudgetMiB = 15,
     [double]$PreviewWorkingSetBudgetMiB = 350,
@@ -92,6 +93,9 @@ public static class ApertureMemoryProbeNative
         public int Bottom;
     }
 
+    [StructLayout(LayoutKind.Sequential)]
+    public struct POINT { public int X; public int Y; }
+
     [DllImport("user32.dll")]
     public static extern bool SetForegroundWindow(IntPtr hWnd);
 
@@ -133,6 +137,17 @@ public static class ApertureMemoryProbeNative
 
     [DllImport("user32.dll")]
     public static extern bool SetCursorPos(int x, int y);
+
+    [DllImport("user32.dll")]
+    public static extern bool ScreenToClient(IntPtr hWnd, ref POINT point);
+
+    public static void MovePointerToClient(IntPtr hWnd, int x, int y)
+    {
+        SetCursorPos(x, y);
+        POINT point = new POINT { X = x, Y = y };
+        if (ScreenToClient(hWnd, ref point))
+            PostMessage(hWnd, 0x0200, IntPtr.Zero, new IntPtr((point.Y << 16) | (point.X & 0xffff)));
+    }
 
     [DllImport("user32.dll")]
     public static extern void keybd_event(byte virtualKey, byte scanCode, uint flags, UIntPtr extraInfo);
@@ -198,9 +213,14 @@ function Copy-StagedRuntime {
         throw "libmpv-2.dll was not found beside the executable or in the repository root."
     }
     Copy-Item -LiteralPath $dllSource -Destination (Join-Path $runDir "libmpv-2.dll") -Force
-    $fontSource = Join-Path ([IO.Path]::GetDirectoryName($executablePath)) "fonts"
-    if (Test-Path -LiteralPath $fontSource -PathType Container) {
-        Copy-Item -LiteralPath $fontSource -Destination $runDir -Recurse -Force
+    foreach ($asset in @('fonts','locales')) {
+        $assetSource = Join-Path ([IO.Path]::GetDirectoryName($executablePath)) $asset
+        if (-not (Test-Path -LiteralPath $assetSource -PathType Container)) {
+            $assetSource = Join-Path $repoRoot $asset
+        }
+        if (Test-Path -LiteralPath $assetSource -PathType Container) {
+            Copy-Item -LiteralPath $assetSource -Destination $runDir -Recurse -Force
+        }
     }
 }
 
@@ -243,6 +263,7 @@ function Get-MemorySample([string]$Phase) {
         pid = $script:appProcess.Id
         workingSetBytes = [int64]$script:appProcess.WorkingSet64
         privateBytes = [int64]$script:appProcess.PrivateMemorySize64
+        totalCpuSeconds = $script:appProcess.TotalProcessorTime.TotalSeconds
         peakWorkingSetBytes = [int64]$script:appProcess.PeakWorkingSet64
         peakPagedBytes = [int64]$script:appProcess.PeakPagedMemorySize64
         dedicatedGpuBytes = $gpu.dedicatedGpuBytes
@@ -308,9 +329,10 @@ function Move-ToCard {
     if (-not [ApertureMemoryProbeNative]::GetWindowRect($script:appProcess.MainWindowHandle, [ref]$rect)) {
         throw "Could not read the Aperture window bounds."
     }
-    [void][ApertureMemoryProbeNative]::SetForegroundWindow($script:appProcess.MainWindowHandle)
+    [void][ApertureMemoryProbeNative]::Activate($script:appProcess.MainWindowHandle)
     # The real card surface begins below the hub header in the maximized probe.
-    [void][ApertureMemoryProbeNative]::SetCursorPos([int](($rect.Left + $rect.Right) / 2), $rect.Top + 220)
+    [ApertureMemoryProbeNative]::MovePointerToClient($script:appProcess.MainWindowHandle,
+        [int](($rect.Left + $rect.Right) / 2), $rect.Top + 180)
 }
 
 $script:appProcess = $null
@@ -350,6 +372,10 @@ try {
     [void][ApertureMemoryProbeNative]::SetCursorPos(0, 0)
     Start-Sleep -Seconds 2
     $samples.Add((Get-MemorySample "hub-after-preview-stop"))
+    Start-Sleep -Seconds ([Math]::Max(0, $IdleAfterPreviewSeconds))
+    $samples.Add((Get-MemorySample "hub-settled"))
+    Start-Sleep -Seconds 5
+    $samples.Add((Get-MemorySample "hub-settled-2"))
 
     $testResult = "PASS"
 } catch {
@@ -376,6 +402,7 @@ try {
     $hub = @($samples | Where-Object { $_.phase -eq "hub-after-escape" -and $_.running }) | Select-Object -First 1
     $preview = @($samples | Where-Object { $_.phase -eq "hub-hover-preview" -and $_.running }) | Select-Object -First 1
     $afterPreview = @($samples | Where-Object { $_.phase -eq "hub-after-preview-stop" -and $_.running }) | Select-Object -First 1
+    $settled = @($samples | Where-Object { $_.phase -eq "hub-settled" -and $_.running }) | Select-Object -First 1
 
     $maxMediaWs = if ($playing.Count) { ($playing | Measure-Object -Property workingSetBytes -Maximum).Maximum } else { 0 }
     $maxPreviewWs = if ($preview) { [int64]$preview.workingSetBytes } else { 0 }
@@ -404,6 +431,7 @@ try {
             hubAfterEscapeWorkingSetMiB = [math]::Round($idleWs / 1MB, 2)
             hoverPreviewWorkingSetMiB = [math]::Round($maxPreviewWs / 1MB, 2)
             hubAfterPreviewStopWorkingSetMiB = if ($afterPreview) { [math]::Round([int64]$afterPreview.workingSetBytes / 1MB, 2) } else { $null }
+            hubSettledWorkingSetMiB = if ($settled) { [math]::Round([int64]$settled.workingSetBytes / 1MB, 2) } else { $null }
             maxPlayingPrivateMiB = if ($playing.Count) { [math]::Round((($playing | Measure-Object -Property privateBytes -Maximum).Maximum) / 1MB, 2) } else { $null }
             maxPlayingDedicatedGpuMiB = if ($playing.Count) { [math]::Round((($playing | Measure-Object -Property dedicatedGpuBytes -Maximum).Maximum) / 1MB, 2) } else { $null }
         }

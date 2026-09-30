@@ -209,24 +209,6 @@ bool App::RegisterFileAssociations() {
 }
 
 
-bool App::UnregisterFileAssociations() {
-    // Portable containment: nothing is ever written outside the root, so there is nothing to remove. Report success without touching HKCU.
-    return true;
-}
-
-
-void App::ClearVideoThumbnailCache() {
-    // Snapshot source stats before the clear resets them: disk = our own persistent tier, shell = Windows Explorer cache hits, extracted =
-    // mpv fallback frames. Proves which tiers are actually serving.
-    const Renderer::ThumbnailStats stats = renderer.GetThumbnailStats();
-    const size_t cleared = renderer.ClearThumbnailCache();
-    wchar_t buf[256];
-    swprintf_s(buf, L"Cleared %zu thumbnails (disk %llu · shell %llu · extracted %llu · %zu missing)",
-               cleared, stats.diskDecodes, stats.shellDecodes, stats.injected, stats.stillMissing);
-    ShowOSD(IconType::Trash, buf);
-}
-
-
 // Thumbnail cache keys are one-way hashes, so removing a media item must
 // regenerate its candidate keys and drop each cached file. The hub entry is
 // size-independent (one per file); seekbar entries are per-second buckets.

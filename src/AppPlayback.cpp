@@ -78,8 +78,7 @@ bool App::EnsurePlayerInitialized() {
         pendingPlayerTime.store(curTime, std::memory_order_release);
         QueuePlayerEvent(PlayerEventTime);
     });
-    player.SetOnDurationChanged([this](double dur) {
-        pendingPlayerDuration.store(dur, std::memory_order_release);
+    player.SetOnDurationChanged([this](double) {
         QueuePlayerEvent(PlayerEventDuration);
     });
     player.SetOnTracksChanged([this]() { QueuePlayerEvent(PlayerEventTracks); });
@@ -164,7 +163,6 @@ void App::QueuePlayerEvent(uint32_t flags) {
 void App::ClearPendingPlayerEvents() {
     pendingPlayerEvents.store(PlayerEventNone, std::memory_order_release);
     pendingPlayerTime.store(0.0, std::memory_order_release);
-    pendingPlayerDuration.store(0.0, std::memory_order_release);
     playerEventPosted.store(false, std::memory_order_release);
     std::lock_guard<std::mutex> lock(pendingPlayerErrorMutex);
     pendingPlayerErrors.clear();
@@ -174,10 +172,15 @@ void App::ClearPendingPlayerEvents() {
 void App::HandlePlayerEvents() {
     if (playerCallbacksDisabled.load(std::memory_order_acquire) || shutdownComplete) { ClearPendingPlayerEvents(); return; }
     const uint32_t events = pendingPlayerEvents.exchange(PlayerEventNone, std::memory_order_acq_rel);
+    // The observed time/duration channels already cover playback, pause and
+    // seeks. Update durable progress once per coalesced event, rather than
+    // also polling and copying the path on every UI frame.
+    if ((events & (PlayerEventTime | PlayerEventDuration)) && !playbackSession.IsPrivateMode()) {
+        const auto path = player.GetCurrentFilePath();
+        if (!path.empty()) library.UpdateProgress(path, player.GetCurrentTime(), player.GetDuration());
+    }
     if (events & PlayerEventTime) {
         const double currentTime = pendingPlayerTime.load(std::memory_order_acquire);
-        const std::wstring path = player.GetCurrentFilePath();
-        if (!playbackSession.IsPrivateMode() && !path.empty()) { library.UpdateProgress(path, currentTime, player.GetDuration()); }
         if (player.IsLoaded()) {
             int curChap = player.GetCurrentChapter();
             const std::vector<MpvChapterInfo>& chapters = GetCachedChapters();
@@ -198,9 +201,6 @@ void App::HandlePlayerEvents() {
         UpdateMediaTransport(false);
     }
     if (events & PlayerEventDuration) {
-        const double duration = pendingPlayerDuration.load(std::memory_order_acquire);
-        const std::wstring path = player.GetCurrentFilePath();
-        if (!playbackSession.IsPrivateMode() && !path.empty()) { library.UpdateProgress(path, player.GetCurrentTime(), duration); }
         UpdateMediaTransport(true);
     }
     if (events & PlayerEventEnded) {
@@ -635,8 +635,8 @@ void App::OpenAndPlayMedia(const std::wstring& filePath, double startPosSec, boo
     }
     // Hub pumping stops during playback, so its idle timeout cannot release
     // these decoders then. Drop them before allocating the main decoder.
-    hubExtractors[0].ReleaseResources();
-    hubExtractors[1].ReleaseResources();
+    hubExtractors[0].Shutdown();
+    hubExtractors[1].Shutdown();
     if (!EnsurePlayerInitialized()) {
         const auto retryQueue = playbackSession.GetQueue();
         const auto retryIndex = playbackSession.GetQueueIndex();
@@ -654,8 +654,17 @@ void App::OpenAndPlayMedia(const std::wstring& filePath, double startPosSec, boo
         playbackSession.OpenPreserveQueue(resolvedPath, startPosSec);
     } else { playbackSession.OpenDirect(resolvedPath, startPosSec); }
     // Private playback reads existing preferences but creates no durable media record and does not update last-watched metadata.
-    MediaItem* item = isNetworkStream ? nullptr :
-        (playbackSession.IsPrivateMode() ? library.FindByPath(resolvedPath) : library.AddOrUpdateMedia(resolvedPath));
+    MediaItem* item = isNetworkStream ? nullptr : library.FindByPath(resolvedPath);
+    if (!isNetworkStream && !playbackSession.IsPrivateMode()) {
+        // A new CLI/drop target was synchronously opened by MF before mpv
+        // could start decoding it. Its preferences are empty, so build the
+        // record now and let the existing worker fill metadata in parallel.
+        // If a backfill is already active, retain the normal probe path so a
+        // new record cannot miss the worker's already captured batch.
+        const bool deferProbe = !item && !backfillJobActive;
+        item = library.AddOrUpdateMedia(resolvedPath, !deferProbe);
+        if (deferProbe && item) ScheduleMetadataBackfill();
+    }
     if (!isNetworkStream && !playbackSession.IsPrivateMode()) PromoteLastWatchedMedia();
     // Cache active preferences in playback session
     playbackSession.SetActivePreferences(item ? item->preferences : std::nullopt);

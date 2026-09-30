@@ -4,6 +4,7 @@ param(
     [switch]$Debug,
     [switch]$Sanitize,
     [switch]$Analyze,
+    [switch]$Clean,
     [switch]$SkipDependencyCheck
 )
 
@@ -101,10 +102,31 @@ $analysisSuffix = if ($Analyze) { ", Static Analysis" } else { "" }
 Write-Host "  Building Aperture Native ($config$analysisSuffix)" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
 
-$tempDir = Join-Path ([System.IO.Path]::GetTempPath()) ("Aperture_cmake_" + [System.Guid]::NewGuid().ToString("N"))
-New-Item -ItemType Directory -Path $tempDir -Force | Out-Null
+$isolatedBuild = $Clean -or $Analyze -or $Sanitize
+$generatorName = if ($ninjaExe) { 'ninja' } else { 'vs2022' }
+$tempDir = if ($isolatedBuild) {
+    Join-Path ([IO.Path]::GetTempPath()) ("Aperture_cmake_" + [Guid]::NewGuid().ToString('N'))
+} else {
+    Join-Path $PSScriptRoot "scratch\build\$generatorName-$config"
+}
+$buildLock = $null
 
 try {
+    New-Item -ItemType Directory -Path $tempDir -Force | Out-Null
+    if (-not $isolatedBuild) {
+        # Serialize users of this cache; independent clean/analysis builds
+        # retain their isolated temporary directories.
+        $lockPath = Join-Path $tempDir '.build.lock'
+        $lockTimer = [Diagnostics.Stopwatch]::StartNew()
+        while (-not $buildLock) {
+            try { $buildLock = [IO.File]::Open($lockPath, [IO.FileMode]::OpenOrCreate, [IO.FileAccess]::ReadWrite, [IO.FileShare]::None) }
+            catch [IO.IOException] {
+                if ($lockTimer.Elapsed.TotalSeconds -ge 300) { throw 'Another build is using this configuration cache.' }
+                Start-Sleep -Milliseconds 250
+            }
+        }
+        Write-Host "Incremental build cache: $tempDir (use -Clean for an isolated rebuild)"
+    }
     if ($ninjaExe) {
         $analysisFlag = if ($Analyze) { "-DAPERTURE_ENABLE_STATIC_ANALYSIS=ON" } else { "" }
         Write-Host "Configuring CMake (Ninja toolchain, $config)..." -ForegroundColor Yellow
@@ -203,7 +225,11 @@ try {
     }
 }
 finally {
-    if ($tempDir -and (Test-Path -LiteralPath $tempDir)) {
-        Remove-Item -LiteralPath $tempDir -Recurse -Force -ErrorAction SilentlyContinue
+    if ($buildLock) { $buildLock.Dispose() }
+    if ($isolatedBuild -and $tempDir -and (Test-Path -LiteralPath $tempDir)) {
+        $resolved = [IO.Path]::GetFullPath($tempDir)
+        $tempPrefix = [IO.Path]::GetFullPath([IO.Path]::GetTempPath()).TrimEnd('\','/') + '\Aperture_cmake_'
+        if (-not $resolved.StartsWith($tempPrefix, [StringComparison]::OrdinalIgnoreCase)) { throw "Unsafe build cleanup: $resolved" }
+        Remove-Item -LiteralPath $resolved -Recurse -Force -ErrorAction SilentlyContinue
     }
 }

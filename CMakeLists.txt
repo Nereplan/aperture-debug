@@ -194,7 +194,6 @@ set(APERTURE_SOURCES
     src/ChannelPolicy.cpp
     src/CommandDispatcher.cpp
     src/Diagnostics.cpp
-    src/ExternalTools.cpp
     src/FolderWatcher.cpp
     src/GlobalSearch.cpp
     src/HttpTransport.cpp
@@ -239,7 +238,6 @@ set(APERTURE_HEADERS
     src/Diagnostics.h
     src/DllLoader.h
     src/Error.h
-    src/ExternalTools.h
     src/FolderWatcher.h
     src/GlobalSearch.h
     src/HttpTransport.h
@@ -324,6 +322,9 @@ set_property(TARGET Aperture PROPERTY
 # Note: "SHELL:/Qspectre" passes /Qspectre compiler codegen directly without triggering
 # MSBuild MSB8040 optional Spectre-mitigated CRT library validation.
 if(MSVC)
+    # CMake's Release default includes /O2. Select the size profile there so
+    # MSVC does not compile every translation unit with conflicting switches.
+    string(REPLACE "/O2" "/O1" CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}")
     target_compile_options(Aperture PRIVATE
         /utf-8
         /EHsc
@@ -332,7 +333,6 @@ if(MSVC)
         # Native UI lambdas can exceed the COFF section limit in Debug/ASan builds.
         /bigobj
         $<$<CONFIG:Release>:
-            /O2
             /GL
             /Gy
             /Zi

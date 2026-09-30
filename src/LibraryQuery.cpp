@@ -158,15 +158,6 @@ bool LibraryQueryEngine::AreSameDirectory(const std::wstring& path1, const std::
     return CompareStringOrdinal(dir1.c_str(), -1, dir2.c_str(), -1, TRUE) == CSTR_EQUAL;
 }
 
-std::wstring LibraryQueryEngine::ExtractFolderName(const std::wstring& filePath, std::wstring* outKey) {
-    std::wstring dir = ExtractDirectory(filePath);
-    if (outKey) { *outKey = NormalizeDirectoryPath(dir); }
-    if (dir.empty()) { return L"Root"; }
-    std::wstring folderName = GetFileNameFromPath(dir);
-    if (folderName.empty()) { return dir; }
-    return folderName;
-}
-
 namespace {
 std::wstring CapitalizeWords(const std::wstring& text) {
     std::wstring result = text;
@@ -179,19 +170,6 @@ std::wstring CapitalizeWords(const std::wstring& text) {
     return result;
 }
 } // anonymous namespace
-
-std::wstring LibraryQueryEngine::ExtractSeriesGroupName( const std::wstring& filePath, const EpisodeInfo& info, std::wstring* outKey,
-    bool* outIsSpecial) {
-    (void)filePath;
-    if (info.isValid && !info.seriesStem.empty()) {
-        if (outKey) *outKey = info.seriesStem;
-        if (outIsSpecial) *outIsSpecial = false;
-        return CapitalizeWords(info.seriesStem);
-    }
-    if (outKey) *outKey = L"__standalone__";
-    if (outIsSpecial) *outIsSpecial = true;
-    return L"Standalone Videos";
-}
 
 EpisodeInfo LibraryQueryEngine::ParseEpisodeInfo(const std::wstring& filePath) {
     EpisodeInfo info;

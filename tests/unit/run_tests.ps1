@@ -73,7 +73,7 @@ $srcFiles = @(
 )
 $sourcesJoined = $srcFiles -join " "
 
-$clCmd = "`"$vcvars`" && cl.exe /nologo /utf-8 /bigobj /O2 /EHsc /std:c++17 /DUNICODE /D_UNICODE /I `"$rootDir\src`" /I `"$rootDir`" /I `"$rootDir\tests\support`" /Fo`"$tempDir\\`" $sourcesJoined $libs /Fe:`"$exeOutput`" /link /SUBSYSTEM:CONSOLE"
+$clCmd = "`"$vcvars`" && cl.exe /nologo /utf-8 /bigobj /O2 /EHsc /std:c++17 /DUNICODE /D_UNICODE /I `"$rootDir\src`" /I `"$rootDir`" /I `"$rootDir\tests\support`" /Fo`"$tempDir\\`" $sourcesJoined $libs /Fe:`"$exeOutput`" /link /SUBSYSTEM:CONSOLE /MANIFEST:EMBED /MANIFESTINPUT:`"$rootDir\tests\support\native_tests.manifest`""
 
 try {
     cmd.exe /c $clCmd

@@ -113,6 +113,7 @@ public:
     static bool SameFilePath(const std::wstring& a, const std::wstring& b);
 
 private:
+    void RestoreWindowedPlacement(HWND hWnd);
     PlaybackState state = PlaybackState::Closed;
     PresentationMode presentation = PresentationMode::Windowed;
     QueueMode queueMode = QueueMode::DirectOpen;

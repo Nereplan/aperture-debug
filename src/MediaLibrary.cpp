@@ -99,7 +99,7 @@ int64_t SafeTime(const JsonValue& v) { double n = SafeNumber(v, 0); return n > 0
 
 uint64_t ExactUint64(const JsonValue& value) {
     if (value.is_string()) {
-        const std::string& text = value.stringVal;
+        const std::string& text = value.as_string_ref();
         if (text.empty()) return 0;
         uint64_t parsed = 0;
         const char* begin = text.data();
@@ -144,12 +144,15 @@ private:
 
 // Resource optimization: retain only unknown JSON fields in extraFields.
 // Typed members already hold every known field; keeping the full DOM per
-// item duplicates strings/vectors/maps (JsonValue always carries all three) and costs tens of MiB at 25k items. Save() overlays typed
+// item duplicates typed state and costs tens of MiB at 25k items. Save() overlays typed
 // fields onto the sparse object, so round-trips preserve unknown keys byte-semantically.
 inline void StripKnownKeys(JsonValue& obj, const char* const* keys, size_t count) {
     if (!obj.is_object()) return;
     auto& map = obj.as_object();
-    for (size_t i = 0; i < count; ++i) { map.erase(keys[i]); }
+    for (size_t i = 0; i < count; ++i) {
+        const auto found = map.find(keys[i]);
+        if (found != map.end()) map.erase(found);
+    }
 }
 
 struct DiscoveredFile { std::wstring path; std::wstring normalizedKey; };
@@ -773,7 +776,7 @@ bool MediaLibrary::IsSupportedMediaExtension(const std::wstring& path) {
     return IsSupportedExtensionValue(PathExtension(path));
 }
 
-MediaItem* MediaLibrary::AddOrUpdateMediaCore(const std::wstring& path, bool& changed, bool& metadataProbeFailed) {
+MediaItem* MediaLibrary::AddOrUpdateMediaCore(const std::wstring& path, bool& changed, bool& metadataProbeFailed, bool probeMetadata) {
     changed = false;
     metadataProbeFailed = false;
     if (path.empty()) return nullptr;
@@ -837,7 +840,7 @@ MediaItem* MediaLibrary::AddOrUpdateMediaCore(const std::wstring& path, bool& ch
     x.title = GetFileNameFromPath(resolvedPath);
     x.fileSizeBytes = size;
     x.addedTimestamp = GetCurrentTimestampSec();
-    if (exists) {
+    if (exists && probeMetadata) {
         double d;
         uint32_t w, h;
         if (probe(d, w, h)) {
@@ -870,9 +873,9 @@ MediaItem* MediaLibrary::AddOrUpdateMediaCore(const std::wstring& path, bool& ch
     return &mediaItems.front();
 }
 
-MediaItem* MediaLibrary::AddOrUpdateMedia(const std::wstring& path) {
+MediaItem* MediaLibrary::AddOrUpdateMedia(const std::wstring& path, bool probeMetadata) {
     bool changed = false, probeFailed = false;
-    MediaItem* m = AddOrUpdateMediaCore(path, changed, probeFailed);
+    MediaItem* m = AddOrUpdateMediaCore(path, changed, probeFailed, probeMetadata);
     if (changed) Save();
     return m;
 }

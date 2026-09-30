@@ -477,9 +477,6 @@ public:
     ThumbnailMemoryCache& GetMemoryCache() { return memoryCache; }
     bool IsPrivateMode() const { return isPrivateMode.load(); }
     void SetPrivateMode(bool enabled) { isPrivateMode.store(enabled); }
-    // Idle teardown for the hover preview: drops the mpv handle, render target, and bitmaps but keeps the bounded memory cache warm and the
-    // DLL mapped; Initialize() rebuilds on the next hover.
-    void ReleaseResources();
     bool UpdateFrame(ID2D1DeviceContext* pD2DContext);
 
 private:
@@ -581,15 +578,12 @@ public:
     void Shutdown();
     // True while the lazy mpv handle exists (idle-teardown decision input).
     bool IsInitialized() const;
-    // Idle teardown: releases the mpv handle and render target but keeps the
-    // package-local DLL mapped so the next Begin() does not pay a remap.
-    void ReleaseResources();
     static constexpr int kExtractWidth = 320, kExtractHeight = 180;
 
 private:
     static void OnRenderUpdate(void* ctx);
     bool EnsureInitialized();
-    void TeardownLocked(bool keepDllMapped = false); // caller holds mutex (Begin/Shutdown paths)
+    void TeardownLocked(); // caller holds mutex (Begin/Shutdown paths)
     void StopMpvLocked();
     void StartSaveWorker();
     void StopSaveWorker();

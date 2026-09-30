@@ -306,7 +306,8 @@ public:
     StorageStatus LoadFromRoot(const std::wstring& rootDir, const LibraryLoadMilestoneCallback& milestone = {});
     MediaLibrarySaveResult Save();
     MediaLibraryLoadResult GetLastLoadResult() const { return lastLoadResult; }
-    MediaItem* AddOrUpdateMedia(const std::wstring& path);
+    // Playback can defer probing a new record to the existing metadata worker.
+    MediaItem* AddOrUpdateMedia(const std::wstring& path, bool probeMetadata = true);
     // Returns the WebView/mpv-compatible extension set (case-insensitive).
     static const std::set<std::wstring>& GetSupportedExtensions();
     static bool IsSupportedMediaExtension(const std::wstring& path);
@@ -380,7 +381,7 @@ public:
                                                    const MetadataBackfillProgressCallback& progress = {}, bool saveChanges = true);
 private:
     std::string GenerateId(const std::wstring& path);
-    MediaItem* AddOrUpdateMediaCore(const std::wstring& path, bool& changed, bool& metadataProbeFailed);
+    MediaItem* AddOrUpdateMediaCore(const std::wstring& path, bool& changed, bool& metadataProbeFailed, bool probeMetadata = true);
     bool SetWatchedCore(const std::wstring& path, bool watched);
     std::string lastLibraryJson, lastPlaylistsJson, lastHistoryJson, lastWatchedFoldersJson;
     mutable std::unordered_map<std::wstring, size_t> pathToIndex;

@@ -130,12 +130,15 @@ TEST_CASE(DeferredServices, TooltipNeverCreatedShutdownSafe) {
 }
 
 TEST_CASE(DeferredServices, TooltipCreateIdempotentSingleWindow) {
-    HWND owner = GetConsoleWindow();
-    if (!owner || !IsWindow(owner)) {
-        // Headless session: nothing to prove; pass vacuously.
-        TEST_ASSERT(true);
-        return;
-    }
+    // A console-host window belongs to another process and may be a pseudoconsole
+    // placeholder. Test with a real window owned by this thread, as the app does.
+    struct Window {
+        HWND handle = CreateWindowExW(0, L"STATIC", L"Tooltip test", WS_POPUP,
+            0, 0, 320, 240, nullptr, nullptr, GetModuleHandleW(nullptr), nullptr);
+        ~Window() { if (handle) DestroyWindow(handle); }
+    } window;
+    HWND owner = window.handle;
+    TEST_ASSERT(owner != nullptr);
     TooltipManager manager;
     TEST_ASSERT(manager.Create(owner, 500, 360));
     TEST_ASSERT(manager.IsCreated());

@@ -2200,41 +2200,11 @@ void MpvPreviewPlayer::Shutdown() {
     if (mpv && fn_mpv_terminate_destroy) { fn_mpv_terminate_destroy(mpv); mpv = nullptr; }
     previewBitmap.Reset();
     seekbarBitmap.Reset();
-    pixelBuffer.clear();
+    std::vector<uint8_t>().swap(pixelBuffer);
     memoryCache.Clear();
     if (ownsMpvDll && hMpvDll) FreeLibrary(hMpvDll);
     hMpvDll = NULL;
     ownsMpvDll = false;
-}
-
-// Idle teardown for the hover preview. Mirrors Shutdown() but keeps the bounded memory cache (it is small and makes the next hover instant)
-// and keeps the package-local DLL mapped so the remap cost is not repaid.
-void MpvPreviewPlayer::ReleaseResources() {
-    std::lock_guard<std::mutex> lifecycleLock(lifecycleMutex);
-    isActive = false;
-    isSeekbarActive = false;
-    currentPreviewPath.clear();
-    frameReady = false;
-    hasSeekbarThumbnail = false;
-    isSeekbarLoading = false;
-    hasPendingSeek = false;
-    activeSeekbarTime = -1.0;
-    if (mpv) {
-        if (fn_mpv_command_string) { fn_mpv_command_string(mpv, "stop"); } else if (fn_mpv_command) {
-            const char* cmd[] = { "stop", nullptr };
-            fn_mpv_command(mpv, cmd);
-        }
-    }
-    if (renderCtx) {
-        if (fn_mpv_render_context_set_update_callback) { fn_mpv_render_context_set_update_callback(renderCtx, nullptr, nullptr); }
-        if (fn_mpv_render_context_free) { fn_mpv_render_context_free(renderCtx); }
-        renderCtx = nullptr;
-    }
-    if (mpv && fn_mpv_terminate_destroy) { fn_mpv_terminate_destroy(mpv); mpv = nullptr; }
-    previewBitmap.Reset();
-    seekbarBitmap.Reset();
-    pixelBuffer.clear();
-    // hMpvDll stays mapped; the next Initialize() reuses it.
 }
 
 void MpvPreviewPlayer::SetPreviewOutputSize(int width, int height) {
@@ -2525,7 +2495,7 @@ std::wstring MpvPreviewPlayer::GetCurrentPreviewPath() const {
 // MpvHubExtractor Implementation
 // =========================================================================
 
-MpvHubExtractor::MpvHubExtractor() { pixelBuffer.resize((size_t)kExtractWidth * kExtractHeight * 4u, 0); }
+MpvHubExtractor::MpvHubExtractor() = default;
 
 MpvHubExtractor::~MpvHubExtractor() { Shutdown(); }
 
@@ -2594,6 +2564,7 @@ bool MpvHubExtractor::EnsureInitialized() {
     };
     if (fn_mpv_render_context_create(&renderCtx, mpv, params) < 0) { TeardownLocked(); return false; }
     if (fn_mpv_render_context_set_update_callback) { fn_mpv_render_context_set_update_callback(renderCtx, OnRenderUpdate, this); }
+    pixelBuffer.resize((size_t)kExtractWidth * kExtractHeight * 4u);
     StartSaveWorker();
     return true;
 }
@@ -2602,14 +2573,7 @@ void MpvHubExtractor::Shutdown() { std::lock_guard<std::mutex> lock(mutex); Stop
 
 bool MpvHubExtractor::IsInitialized() const { std::lock_guard<std::mutex> lock(mutex); return mpv != nullptr; }
 
-void MpvHubExtractor::ReleaseResources() {
-    std::lock_guard<std::mutex> lock(mutex);
-    if (!mpv) return;
-    StopSaveWorker();
-    TeardownLocked(true);
-}
-
-void MpvHubExtractor::TeardownLocked(bool keepDllMapped) {
+void MpvHubExtractor::TeardownLocked() {
     active = false;
     resultReady = false;
     extractPath.clear();
@@ -2621,7 +2585,10 @@ void MpvHubExtractor::TeardownLocked(bool keepDllMapped) {
         renderCtx = nullptr;
     }
     if (mpv && fn_mpv_terminate_destroy) { fn_mpv_terminate_destroy(mpv); mpv = nullptr; }
-    if (!keepDllMapped) { if (ownsMpvDll && hMpvDll) FreeLibrary(hMpvDll); hMpvDll = NULL; ownsMpvDll = false; }
+    if (ownsMpvDll && hMpvDll) FreeLibrary(hMpvDll);
+    hMpvDll = NULL;
+    ownsMpvDll = false;
+    std::vector<uint8_t>().swap(pixelBuffer);
     fn_mpv_create = nullptr;
     fn_mpv_initialize = nullptr;
     fn_mpv_terminate_destroy = nullptr;

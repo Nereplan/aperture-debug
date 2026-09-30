@@ -560,6 +560,24 @@
       "artifactPolicy": "isolated_temp",
       "timeoutSeconds": 120,
       "description": "Production image codec, legacy background migration, corruption recovery, protected library cache, active budgets, concurrent writers, and large-cache accounting."
+    },
+    {
+      "id": "libmpv_playback",
+      "name": "libmpv Playback Compatibility",
+      "category": "integration",
+      "tier": "manual",
+      "platform": "windows-x64",
+      "script": "tests/libmpv/run_tests.ps1",
+      "command": "powershell",
+      "arguments": [],
+      "prerequisites": [
+        "msvc_x64",
+        "python3",
+        "ffmpeg"
+      ],
+      "artifactPolicy": "root_local_scratch: scratch/libmpv-tests; retain logs until inspection, then remove generated artifacts",
+      "timeoutSeconds": 600,
+      "description": "Absolute-path/hash-checked x64 engine playback: codec/container matrix, D3D11 hardware and software decoding, HDR10, ASS/SRT/mov_text, controls, audio filters, PNG screenshots, SW render preview and loopback HTTP."
     }
   ]
 }

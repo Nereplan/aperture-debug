@@ -42,8 +42,17 @@ TEST_CASE(UnwritableRoot, AtomicWriteToInvalidPath) {
     TEST_ASSERT(!status.is_ok());
     TEST_ASSERT_EQ(status.code, StorageErrorCode::InvalidPath);
 
-    // Path on non-existent drive
-    std::wstring nonExistentDrive = L"Q:\\NonExistentDriveDirectory12345\\file.txt";
+    // Choose an absent drive instead of assuming Q: is absent. Build aliases
+    // and user mappings can legitimately occupy any particular drive letter.
+    std::wstring nonExistentDrive;
+    const DWORD drives = GetLogicalDrives();
+    for (wchar_t letter = L'Z'; letter >= L'A'; --letter) {
+        if ((drives & (1u << (letter - L'A'))) == 0) {
+            nonExistentDrive = std::wstring(1, letter) + L":\\NonExistentDriveDirectory12345\\file.txt";
+            break;
+        }
+    }
+    TEST_ASSERT(!nonExistentDrive.empty());
     StorageStatus status2 = AtomicWriteTextFile(nonExistentDrive, "test");
     TEST_ASSERT(!status2.is_ok());
     TEST_ASSERT(status2.code == StorageErrorCode::DirectoryCreationFailed || status2.code == StorageErrorCode::FileOpenFailed);

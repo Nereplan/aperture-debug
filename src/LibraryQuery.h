@@ -162,8 +162,6 @@ public:
     static std::wstring ExtractSeriesStem(const std::wstring& filename);
     static EpisodeInfo ParseEpisodeInfo(const std::wstring& filePath);
     static bool AreSameDirectory(const std::wstring& path1, const std::wstring& path2);
-    static std::wstring ExtractFolderName(const std::wstring& filePath, std::wstring* outKey = nullptr);
-    static std::wstring ExtractSeriesGroupName(const std::wstring& filePath, const EpisodeInfo& info, std::wstring* outKey = nullptr, bool* outIsSpecial = nullptr);
     static bool MatchesStatusFilter(const MediaItem& item, LibraryStatusFilter filter, bool existsOnDisk);
     static bool MatchesSearchQuery(const MediaItem& item, const std::wstring& normalizedQuery);
     static int CompareItems(const MediaItem& a, const MediaItem& b, LibrarySortField sortField, SortDirection direction);

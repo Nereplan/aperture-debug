@@ -5,7 +5,7 @@
 - `Build Release.cmd`: build Release, run the PR regression gate, package a clean ZIP, then update `release/` and `debug/` without replacing their profiles.
 - `Update Source.cmd`: require a clean Git checkout, run `git pull --ff-only`, then perform the same build and deployment.
 - `build_and_release.ps1 -IncludeDebug`: additionally compile Debug with symbols for `debug/`.
-- `build.ps1`: compile only. The default output is `debug/Aperture.Release.exe`; `-Debug` produces `debug/Aperture.exe`. It does not deploy runtime dependencies.
+- `build.ps1`: compile only. The default output is `debug/Aperture.Release.exe`; `-Debug` produces `debug/Aperture.exe`. It does not deploy runtime dependencies. Normal builds reuse a configuration-specific cache in `scratch/build/`; `-Clean`, static analysis and sanitizer builds use isolated temporary directories.
 
 Required tools: Windows x64, Visual Studio 2022 C++ tools and Windows SDK, CMake, and Python 3. Dependencies are checked against `scripts/dependencies.json` before building.
 

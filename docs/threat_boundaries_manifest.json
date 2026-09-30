@@ -140,31 +140,26 @@
     },
     {
       "id": "external_tool_execution",
-      "name": "External Tool Discovery & Subprocess Boundary",
+      "name": "External Tool Execution Disabled",
       "category": "external_tools",
       "trustLevel": "External binaries on filesystem or system PATH",
-      "privilegeContext": "Standard user process; child process inherits standard user token",
+      "privilegeContext": "Standard user process; external subprocesses are disabled",
       "durableWriteDestination": "None",
-      "failureErrorCode": "Aperture::ExternalToolDiscoveryResult::error",
+      "failureErrorCode": "Unsafe custom mpv option rejected",
       "authoritativeSymbols": [
-        "Aperture::ExternalTools::DiscoverYtDlp",
         "Aperture::MpvPlayer::IsCustomMpvOptionSafe"
       ],
       "sourceFiles": [
-        "src/ExternalTools.h",
-        "src/ExternalTools.cpp",
         "src/MpvPlayer.h",
         "src/MpvPlayer.cpp"
       ],
       "testFiles": [
-        "tests/unit/TestNetworkStream.h"
+        "tests/unit/TestCustomMpvConfig.h"
       ],
       "validationRules": {
-        "defaultExternalPathDiscovery": "false (disabled by default; explicit user opt-in only)",
-        "rootLocalSearchPriority": "Prefers <rootDir>\\tools\\yt-dlp.exe then <rootDir>\\yt-dlp.exe",
-        "searchPathBufferLimit": 32768
+        "subprocessExecution": "mpv ytdl disabled; scripts and external tool options rejected"
       },
-      "residualRiskSummary": "Malicious binary named yt-dlp.exe placed on PATH if user explicitly triggers external discovery action."
+      "residualRiskSummary": "Media is handled in process; no external tool discovery or execution path exists."
     },
     {
       "id": "network_streams_and_urls",
@@ -374,7 +369,6 @@
       "failureErrorCode": "bool (registration always reports disabled; removal always reports clean)",
       "authoritativeSymbols": [
         "Aperture::App::RegisterFileAssociations",
-        "Aperture::App::UnregisterFileAssociations",
         "Aperture::JumpListController::Update",
         "Aperture::JumpListController::Clear",
         "Aperture::JumpListController::ProjectRecentLocalMedia",
