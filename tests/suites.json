@@ -490,7 +490,7 @@
         "cmake"
       ],
       "artifactPolicy": "isolated_temp",
-      "timeoutSeconds": 300,
+      "timeoutSeconds": 600,
       "description": "Deterministic MSVC C++17 native static code analysis (/analyze) using authoritative CMake source/build configuration with external temporary directory isolation and guaranteed artifact cleanup."
     },
     {

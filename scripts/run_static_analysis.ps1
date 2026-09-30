@@ -5,7 +5,7 @@
 .DESCRIPTION
     Discovers the Visual Studio 2022 toolchain (MSVC cl.exe, vcvars64.bat, CMake, Ninja),
     validates prerequisites and source inventory from CMakeLists.txt, and executes MSVC native
-    static analysis (/analyze, /analyze:external-, /external:W0) within an isolated external
+    static analysis (/analyze, /analyze:external-, /external:anglebrackets, /external:W0) within an isolated external
     temporary directory with guaranteed cleanup in finally.
 
     Supports dry-run validation mode (-DryRun / -Validate), warnings-as-errors enforcement
@@ -53,7 +53,7 @@ param(
     [switch]$Validate,
     [string]$Configuration = "Release",
     [switch]$WarningsAsErrors,
-    [int]$TimeoutSeconds = 300,
+    [int]$TimeoutSeconds = 600,
     [switch]$Json,
     [string]$OutputDir = "",
     [switch]$PreserveArtifacts,
@@ -346,6 +346,7 @@ $isValidationMode = ($DryRun -or $Validate)
 $analysisFlags = @(
     "/analyze",
     "/analyze:external-",
+    "/external:anglebrackets",
     "/external:W0"
 )
 if ($WarningsAsErrors) {

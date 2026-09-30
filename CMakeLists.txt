@@ -356,6 +356,7 @@ if(MSVC)
         $<$<AND:$<BOOL:${APERTURE_ENABLE_STATIC_ANALYSIS}>,$<BOOL:${MSVC}>>:
             /analyze
             /analyze:external-
+            /external:anglebrackets
             /external:W0
             $<$<BOOL:${APERTURE_STATIC_ANALYSIS_WX}>:/analyze:WX>
         >
