@@ -27,6 +27,20 @@
   ],
   "suites": [
     {
+      "id": "local_release",
+      "name": "Local Release Publishing",
+      "category": "package",
+      "tier": "pr",
+      "platform": "windows-x64",
+      "script": "tests/package/test_local_release.ps1",
+      "command": "powershell",
+      "arguments": [],
+      "prerequisites": [],
+      "artifactPolicy": "isolated_temp",
+      "timeoutSeconds": 60,
+      "description": "Exercises the local publisher with isolated Git history and mocked build/GitHub boundaries: offline preparation, release provenance, notes, checksum, publication order and failure guards."
+    },
+    {
       "id": "github_update",
       "name": "GitHub Release Update Workflow",
       "category": "package",

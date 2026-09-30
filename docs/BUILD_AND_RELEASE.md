@@ -11,14 +11,19 @@ Required tools: Windows x64, Visual Studio 2022 C++ tools and Windows SDK, CMake
 
 The release ZIP contains runtime assets, the updater, repository/version configuration, and a SHA-256 file manifest. It never takes files from an existing application's data directory. Distribute the ZIP in `dist/`, not your working `release/` folder, which may contain personal data and backups after you use it.
 
-## First GitHub release
+## Publish from your local machine
 
-1. Create a public GitHub repository and push this folder to `main`. No account name is hardcoded. GitHub sets the repository in packaged releases automatically.
+All compilation, testing, and packaging happen locally. There are no GitHub Actions workflows, including for pushes, pull requests, tags, or releases. GitHub is used for source history and release hosting.
+
+1. Install GitHub CLI and run `gh auth login`. Create a public GitHub repository and configure `origin`. The publisher derives the packaged repository address from this remote.
 2. Run `./scripts/set_version.ps1 -Version 2.0.1.0` (using your next version) to keep every field in `version.json` consistent. The display version omits a zero build number.
-3. Commit and push, then run **Actions > Release > Run workflow**, or push a matching version tag (`v2.0.0.0` for the initial version).
-4. Download the published ZIP for the first installation. Future releases must increase the numeric version.
+3. Make descriptive commits and push them to `origin`. Keep the checkout clean. If previous release tags are missing locally, run `git fetch origin --tags` so the publisher can generate the full change history.
+4. Run `./scripts/publish_release.ps1` locally. It verifies the source commit exists on GitHub, builds, runs the regression gate, packages, and uploads a draft containing the ZIP, SHA-256 checksum, and commit history. It publishes only after the upload succeeds, creating a matching version tag at the exact source commit.
+5. Download the published ZIP for the first installation. Future releases must increase the numeric version.
 
-The Release workflow builds and tests before creating a draft with its ZIP attached. It publishes only after the upload succeeds. Existing releases are not overwritten. An interrupted publication can leave a draft for review in GitHub. Enable GitHub immutable releases in repository settings if desired.
+Existing tags and releases (including drafts) are never overwritten. An interrupted publication can leave a draft for review in GitHub; review that draft before retrying. Each release records the exact commit, all commit subjects and hashes since the previous published stable release, and a comparison link. Keep individual commits descriptive for a clear history.
+
+`./scripts/publish_release.ps1 -PrepareOnly` builds, tests, packages, and writes notes and a checksum to `dist/` without contacting GitHub. Offline preparation uses the most recent reachable local version tag as its history baseline. Publication rebuilds and uses the previous published stable release as its baseline. Ordinary `Build Release.cmd` builds remain local and do not publish. No release is needed for the commit introducing this workflow.
 
 The portable updater supports public repositories. It does not store GitHub access tokens or signing secrets. HTTPS and [GitHub's SHA-256 asset digest](https://docs.github.com/en/rest/releases/releases) establish package integrity; the manifest then validates every extracted runtime file. This does not provide Authenticode signing. The optional signing utilities remain available for a separately provisioned signing certificate.
 

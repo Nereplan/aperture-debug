@@ -15,4 +15,4 @@ $config.displayVersion = if ($parsed.Revision -eq 0) { "$($parsed.Major).$($pars
 $config.preRelease = ''
 $config.channel = 'stable'
 [IO.File]::WriteAllText([IO.Path]::GetFullPath($path), ($config | ConvertTo-Json -Depth 5) + [Environment]::NewLine, [Text.UTF8Encoding]::new($false))
-Write-Host "Version set to $Version. Commit and push, then run the Release workflow."
+Write-Host "Version set to $Version. Commit and push, then run ./scripts/publish_release.ps1 locally."
