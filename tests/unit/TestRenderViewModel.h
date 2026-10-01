@@ -88,7 +88,8 @@ TEST_CASE(RenderViewModel, HubSnapshotDefaultsAndTabInvariants) {
     TEST_ASSERT(!vm.settingsTab.isSidebarFocused);
     TEST_ASSERT(!vm.settingsTab.isContentFocused);
     for (int i = 0; i < SettingsLayout::kSystemRowCount; ++i) {
-        TEST_ASSERT_EQ(vm.settingsTab.systemRowHitProg[i], 0.0f);
+        TEST_ASSERT_EQ(vm.settingsTab.systemRowHoverProg[i], 0.0f);
+        TEST_ASSERT_EQ(vm.settingsTab.systemRowPressProg[i], 0.0f);
     }
 
     // Overlays & Modals
@@ -496,20 +497,21 @@ TEST_CASE(RenderViewModel, FlyoutBorrowsLargeQueueForTheFrame) {
 TEST_CASE(RenderViewModel, SettingsTabSystemRowDynamics) {
     SettingsTabViewModel vm;
     for (int i = 0; i < SettingsLayout::kSystemRowCount; ++i) {
-        TEST_ASSERT_EQ(vm.systemRowHitProg[i], 0.0f);
         TEST_ASSERT_EQ(vm.systemRowHoverProg[i], 0.0f);
         TEST_ASSERT_EQ(vm.systemRowPressProg[i], 0.0f);
     }
 
-    vm.systemRowHitProg[2] = 0.75f;
     vm.systemRowHoverProg[2] = 1.0f;
     vm.systemRowPressProg[2] = 0.5f;
 
     SettingsTabViewModel copy = vm;
-    TEST_ASSERT_EQ(copy.systemRowHitProg[2], 0.75f);
     TEST_ASSERT_EQ(copy.systemRowHoverProg[2], 1.0f);
     TEST_ASSERT_EQ(copy.systemRowPressProg[2], 0.5f);
-    TEST_ASSERT_EQ(copy.systemRowHitProg[0], 0.0f);
+    TEST_ASSERT_EQ(copy.systemRowHoverProg[0], 0.0f);
+    TEST_ASSERT(!copy.pressState.IsSystemActionPressed(2));
+    copy.pressState = { SettingsPressState::Target::SystemAction, 2, -1 };
+    TEST_ASSERT(copy.pressState.IsSystemActionPressed(2));
+    TEST_ASSERT(!copy.pressState.IsSystemActionPressed(0));
 }
 
 } // namespace Aperture::Test

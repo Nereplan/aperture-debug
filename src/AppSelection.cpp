@@ -394,8 +394,9 @@ void App::AutoScrollToFocusedItem() {
     float dp = renderer.GetDpiScale();
     RECT rc;
     GetClientRect(hWnd, &rc);
-    float winH = (float)(rc.bottom - rc.top);
-    float viewH = winH - 84.0f * dp - 14.0f * dp;
+    const float rcW = (float)(rc.right - rc.left);
+    const float winH = (float)(rc.bottom - rc.top);
+    float viewH = RectHeight(Presentation::HubView(rcW, winH, dp));
     if (currentTab == TabView::Media) {
         const auto& visibleIndices = GetVisibleMediaIndices();
         if (keyboardFocusedIndex < 0 || keyboardFocusedIndex >= (int)visibleIndices.size()) return;

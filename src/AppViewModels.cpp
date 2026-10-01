@@ -364,7 +364,7 @@ HubRenderViewModel App::BuildHubRenderViewModel() {
     vm.navBar.openHoverMix = navOpenFileLift.current;
     vm.navBar.pressedNavIndex = pressedNavIndex;
     // 2. Main Content View Area
-    vm.viewBounds = D2D1::RectF(padX, 84.0f * dp, vm.winBounds.right - padX, vm.winBounds.bottom - padY);
+    vm.viewBounds = Presentation::HubView(winW, winH, dp);
     switch (currentTab) {
         case TabView::Media: {
             float tbH = 32.0f * dp, listTop = vm.viewBounds.top + tbH + 12.0f * dp;
@@ -1010,7 +1010,6 @@ HubRenderViewModel App::BuildHubRenderViewModel() {
             for (int i = 0; i < SettingsLayout::kSystemRowCount; ++i) {
                 vm.settingsTab.systemRowHoverProg[i] = systemRowHoverAnim[i].current;
                 vm.settingsTab.systemRowPressProg[i] = systemRowPressAnim[i].current;
-                vm.settingsTab.systemRowHitProg[i] = systemRowHitAnim[i].current;
             }
             break;
         }

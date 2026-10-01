@@ -9,6 +9,15 @@ inline constexpr float ConfirmationHeight = 224.0f;
 inline constexpr float PlayerPadding = 20.0f;
 inline constexpr float PlayerControlsY = 30.0f;
 
+// Canonical hub content view rect, inset below the nav bar chrome. Rendering
+// (AppViewModels) and every pointer path (move, down, up, wheel) derive from
+// this one definition so hit registration cannot drift from what is drawn.
+inline D2D1_RECT_F HubView(float width, float height, float dp) {
+    const float pad = 18.0f * dp, padY = 14.0f * dp, viewTop = 84.0f * dp;
+    return D2D1::RectF(pad, viewTop, std::max(pad + 1.0f * dp, width - pad),
+                       std::max(viewTop + 1.0f * dp, height - padY));
+}
+
 inline D2D1_COLOR_F ForegroundOn(D2D1_COLOR_F background) {
     const auto linear = [](float v) { return v <= 0.04045f ? v / 12.92f : std::pow((v + 0.055f) / 1.055f, 2.4f); };
     const float luminance = 0.2126f * linear(background.r) + 0.7152f * linear(background.g) + 0.0722f * linear(background.b);

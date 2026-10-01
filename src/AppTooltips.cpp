@@ -87,7 +87,7 @@ void App::RefreshHubTooltips(bool force) {
     add(1004, Loc::Tr("nav.settings"), TooltipClientRect(settingsX, padY + 4.0f * dp, settingsX + settingsW, padY + 4.0f * dp + tabH));
     add(1005, TooltipActionLabel(settings, Loc::Tr("nav.open_file"), "openFile"),
         TooltipClientRect(openX, padY + 4.0f * dp, openX + openW, padY + 4.0f * dp + tabH));
-    const D2D1_RECT_F view = D2D1::RectF(pad, 84.0f * dp, winW - pad, winH - padY);
+    const D2D1_RECT_F view = Presentation::HubView(winW, winH, dp);
     if (currentTab == TabView::Media) {
         const auto toolbar = ComputeMediaToolbarGeometry(D2D1::RectF(view.left, view.top, view.right, view.top + 32.0f * dp), dp);
         add(1048, L"Filter media by title, filename, or series (Ctrl+F)", TooltipClientRect(toolbar.search.left, toolbar.search.top, toolbar.search.right, toolbar.search.bottom));

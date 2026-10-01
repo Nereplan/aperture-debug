@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Presentation.h"
+
 namespace Aperture::SettingsLayout {
 
 // Shared DIP geometry for the native settings view. Keeping the visual, pointer, accessibility, and keyboard-scroll origins together
@@ -44,4 +46,15 @@ inline constexpr float kPlaybackMpvActionGap = 8.0f;
 inline constexpr float kPlaybackMpvActionTop = kPlaybackCardTitleHeight + kPlaybackMpvSwitchHeight + 10.0f;
 inline constexpr float kPlaybackMpvCardHeight = kPlaybackMpvActionTop + 3.0f * kPlaybackMpvActionHeight +
     2.0f * kPlaybackMpvActionGap + 8.0f;
+
+// Content pane inside the hub view and the scrolling origin of its rows.
+// Rendering, pointer hit-testing, and wheel hover re-resolution all share
+// these so a drawn hover can never drift from its hit target.
+inline D2D1_RECT_F ContentBounds(const D2D1_RECT_F& viewBounds, float dp) {
+    return D2D1::RectF(viewBounds.left + kSidebarWidth * dp + 16.0f * dp, viewBounds.top,
+                       viewBounds.right, viewBounds.bottom);
+}
+inline float ContentTop(const D2D1_RECT_F& contentBounds, float dp, float scrollY, float headerReserve = kPageHeaderReserve) {
+    return contentBounds.top + (kContentStartOffset + headerReserve) * dp - scrollY;
+}
 }

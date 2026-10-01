@@ -549,7 +549,6 @@ void App::SnapVisualAnimations() {
     customMpvConfigToggleAnim.SnapTo(customMpvConfigToggleAnim.to);
     for (auto& anim : systemRowHoverAnim) anim.SnapTo(anim.to);
     for (auto& anim : systemRowPressAnim) anim.SnapTo(anim.to);
-    for (auto& anim : systemRowHitAnim) anim.SnapTo(0.0f);
     jumpAheadAnim.SnapTo(jumpAheadAnim.to);
     for (auto& pair : playlistCardExpands) {
         pair.second.SnapTo(pair.second.to);
@@ -563,17 +562,6 @@ void App::SnapVisualAnimations() {
         const bool controlsForcedVisible = isScrubbing || isVolumeScrubbing || isSettingsFlyoutOpen || isContextMenuOpen;
         controlsOpacity = controlsForcedVisible ? 1.0f : (controlsIdleTimer >= (player.IsPlaying() ? 1.2f : 2.0f) ? 0.0f : 1.0f);
     }
-}
-
-void App::TriggerSystemRowHit(int row) {
-    if (row < 0 || row >= SettingsLayout::kSystemRowCount) return;
-    if (IsReducedMotionEnabled()) {
-        systemRowHitAnim[row].SnapTo(0.0f);
-    } else {
-        systemRowHitAnim[row].SnapTo(1.0f);
-        AnimateVisual(systemRowHitAnim[row], 0.0f, MotionTokens::kSettle, MotionTokens::Spring());
-    }
-    if (hWnd) InvalidateRect(hWnd, NULL, FALSE);
 }
 
 float App::GetSettingsContentHeight(float dp) const {
@@ -610,8 +598,9 @@ float App::GetMaxScrollForPane(AutoscrollPane pane) {
 // Viewport-parameterized variant so ClampScrollOffsets can resolve one client
 // rect per frame instead of one GetClientRect syscall per pane.
 float App::GetMaxScrollForPaneInViewport(AutoscrollPane pane, float winW, float winH, float dp) {
-    float pad = 18.0f * dp, padY = 14.0f * dp, viewTop = 84.0f * dp;
-    float viewBottom = std::max(viewTop + 1.0f * dp, winH - padY);
+    float pad = 18.0f * dp;
+    const D2D1_RECT_F viewBounds = Presentation::HubView(winW, winH, dp);
+    const float viewTop = viewBounds.top, viewBottom = viewBounds.bottom;
     float viewH = std::max(1.0f * dp, viewBottom - viewTop);
     switch (pane) {
     case AutoscrollPane::Media: {
@@ -725,9 +714,8 @@ App::AutoscrollPane App::HitTestAutoscrollPane(float mouseX, float mouseY, float
     float dp = std::max(0.5f, renderer.GetDpiScale());
     float winW = (float)std::max<LONG>(1, rc.right - rc.left);
     float winH = (float)std::max<LONG>(1, rc.bottom - rc.top);
-    float pad = 18.0f * dp, padY = 14.0f * dp, viewTop = 84.0f * dp;
-    float viewBottom = std::max(viewTop + 1.0f * dp, winH - padY);
-    D2D1_RECT_F viewBounds = D2D1::RectF(pad, viewTop, std::max(pad + 1.0f * dp, winW - pad), viewBottom);
+    float pad = 18.0f * dp;
+    D2D1_RECT_F viewBounds = Presentation::HubView(winW, winH, dp);
     if (currentTab == TabView::Media) {
         if (!PtInRectF(viewBounds, mouseX, mouseY)) return AutoscrollPane::None;
         outMaxScroll = GetMaxScrollForPane(AutoscrollPane::Media);
@@ -829,8 +817,9 @@ void App::UpdateAutoscroll(float dt) {
     }
     RECT rc{};
     GetClientRect(hWnd, &rc);
+    float winW = (float)std::max<LONG>(1, rc.right - rc.left);
     float winH = (float)std::max<LONG>(1, rc.bottom - rc.top);
-    float viewHDIP = std::max(1.0f, (winH - 84.0f * dp - 14.0f * dp) / dp);
+    float viewHDIP = std::max(1.0f, RectHeight(Presentation::HubView(winW, winH, dp)) / dp);
     float maxSpeedDIPPerSec = std::clamp(3.5f * viewHDIP, 1200.0f, 4500.0f);
     targetVelocity = std::clamp(targetVelocity, -maxSpeedDIPPerSec, maxSpeedDIPPerSec);
     float safeDt = std::clamp(dt, 0.0f, 0.05f);
@@ -1447,8 +1436,9 @@ bool App::Update(float dt) {
         if (hwAccelToggleAnim.Tick()) needsRedraw = true;
         if (loopToggleAnim.Tick()) needsRedraw = true;
         if (customMpvConfigToggleAnim.Tick()) needsRedraw = true;
-        // System & Storage rows ease toward their hover/press/hit targets here; the
-        // pressed flag itself flips inside the mouse handlers.
+        // System & Storage rows ease toward their hover/press targets here; the
+        // pressed flag itself flips inside the mouse handlers and renders
+        // instantly so press feedback is immediate, like the nav bar.
         for (int i = 0; i < SettingsLayout::kSystemRowCount; ++i) {
             const float hoverTarget = (currentTab == TabView::Settings &&
                                        currentSettingsCat == SettingsCategory::System &&
@@ -1457,16 +1447,11 @@ bool App::Update(float dt) {
                 AnimateVisual(systemRowHoverAnim[i], hoverTarget, MotionTokens::kFast, MotionTokens::Standard());
             }
             if (systemRowHoverAnim[i].Tick()) needsRedraw = true;
-            const bool isRowPressed = (currentTab == TabView::Settings &&
-                                       currentSettingsCat == SettingsCategory::System &&
-                                       settingsPressState.IsSystemActionPressed(i) &&
-                                       hoveredSettingsRow == i);
-            const float pressTarget = isRowPressed ? 1.0f : 0.0f;
+            const float pressTarget = settingsPressState.IsSystemActionPressed(i) ? 1.0f : 0.0f;
             if (std::abs(systemRowPressAnim[i].to - pressTarget) > 0.001f) {
-                AnimateVisual(systemRowPressAnim[i], pressTarget, MotionTokens::kFast, MotionTokens::Spring());
+                AnimateVisual(systemRowPressAnim[i], pressTarget, MotionTokens::kFast, MotionTokens::Standard());
             }
             if (systemRowPressAnim[i].Tick()) needsRedraw = true;
-            if (systemRowHitAnim[i].Tick()) needsRedraw = true;
         }
     }
     // Non-blocking notification timer. Notifications from the same channel
@@ -2118,12 +2103,9 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                         GetClientRect(hWnd, &wheelRc);
                         const float wx = (float)wheelPt.x, wy = (float)wheelPt.y;
                         const float winWw = (float)(wheelRc.right - wheelRc.left), winHw = (float)(wheelRc.bottom - wheelRc.top);
-                        const float wheelPad = 18.0f * dp, wheelPadY = 14.0f * dp;
-                        D2D1_RECT_F viewBoundsW = D2D1::RectF(wheelPad, 84.0f * dp, std::max(wheelPad + 1.0f * dp, winWw - wheelPad), std::max(85.0f * dp, winHw - wheelPadY));
-                        D2D1_RECT_F contentBoundsW = D2D1::RectF(viewBoundsW.left + SettingsLayout::kSidebarWidth * dp + 16.0f * dp,
-                            viewBoundsW.top, viewBoundsW.right, viewBoundsW.bottom);
-                        const float contentYW = contentBoundsW.top +
-                            (SettingsLayout::kContentStartOffset + SettingsLayout::kPageHeaderReserve) * dp - settingsScrollY;
+                        const D2D1_RECT_F viewBoundsW = Presentation::HubView(winWw, winHw, dp);
+                        const D2D1_RECT_F contentBoundsW = SettingsLayout::ContentBounds(viewBoundsW, dp);
+                        const float contentYW = SettingsLayout::ContentTop(contentBoundsW, dp, settingsScrollY);
                         hoveredSettingsRow = HitTestSystemSettingsRow(contentBoundsW, contentYW, wx, wy);
                     }
                 }
@@ -2295,12 +2277,9 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                 }
                 if (subtitleSizeDragging && GetCapture() == hWnd && currentTab == TabView::Settings &&
                     currentSettingsCat == SettingsCategory::Subtitles) {
-                    const float pad = 18.0f * dp, padY = 14.0f * dp;
-                    const D2D1_RECT_F viewBounds = D2D1::RectF(pad, 84.0f * dp,
-                        std::max(pad + 1.0f * dp, winW - pad), std::max(85.0f * dp, winH - padY));
+                    const D2D1_RECT_F viewBounds = Presentation::HubView(winW, winH, dp);
                     const float sideW = SettingsLayout::kSidebarWidth * dp;
-                    const D2D1_RECT_F contentBounds = D2D1::RectF(viewBounds.left + sideW + 16.0f * dp,
-                        viewBounds.top, viewBounds.right, viewBounds.bottom);
+                    const D2D1_RECT_F contentBounds = SettingsLayout::ContentBounds(viewBounds, dp);
                     const float padX = SettingsLayout::kContentPadX * dp;
                     const float contentW = RectWidth(contentBounds) - padX * 2.0f;
                     const float subLeft = contentBounds.left + padX, cardRight = subLeft + contentW + 10.0f * dp;
@@ -2341,7 +2320,7 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                     const float dragCenterX = (dragSourceRect.left + dragSourceRect.right) * 0.5f + (dragCurrentX - dragStartX);
                     const float dragCenterY = (dragSourceRect.top + dragSourceRect.bottom) * 0.5f + (dragCurrentY - dragStartY);
                     float pad = 18.0f * dp, padY = 14.0f * dp, navH = 48.0f * dp;
-                    D2D1_RECT_F viewBounds = D2D1::RectF(pad, 84.0f * dp, std::max(pad + 1.0f * dp, winW - pad), std::max(85.0f * dp, winH - padY));
+                    D2D1_RECT_F viewBounds = Presentation::HubView(winW, winH, dp);
                     if (activeDragType == DragType::MediaList) {
                         D2D1_RECT_F navBounds = D2D1::RectF(pad, padY, winW - pad, padY + navH);
                         float tabH = 32.0f * dp, tabY = navBounds.top + 4.0f * dp;
@@ -2418,8 +2397,7 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                     isMouseTracking = true;
                 }
                 hoverChanged = hoverChanged || UpdateHoverStates(x, y);
-                float pad = 18.0f * dp, padY = 14.0f * dp, navH = 48.0f * dp;
-                D2D1_RECT_F viewBounds = D2D1::RectF(pad, 84.0f * dp, std::max(pad + 1.0f * dp, winW - pad), std::max(85.0f * dp, winH - padY));
+                D2D1_RECT_F viewBounds = Presentation::HubView(winW, winH, dp);
                 if (currentTab == TabView::Playlists) {
                     float railW = std::min(260.0f * dp, std::max(120.0f * dp, RectWidth(viewBounds) * 0.42f));
                     D2D1_RECT_F railBounds = D2D1::RectF(viewBounds.left, viewBounds.top, viewBounds.left + railW, viewBounds.bottom);
@@ -2567,11 +2545,11 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                             break;
                         }
                     }
-                    D2D1_RECT_F contentBounds = D2D1::RectF(viewBounds.left + sideW + 16.0f * dp, viewBounds.top, viewBounds.right, viewBounds.bottom);
+                    D2D1_RECT_F contentBounds = SettingsLayout::ContentBounds(viewBounds, dp);
                     float padX = SettingsLayout::kContentPadX * dp;
                     const float headerReserve = currentSettingsCat == SettingsCategory::Subtitles
                         ? SettingsLayout::kSubtitlePageHeaderReserve : SettingsLayout::kPageHeaderReserve;
-                    float contentY = contentBounds.top + (SettingsLayout::kContentStartOffset + headerReserve) * dp - settingsScrollY;
+                    float contentY = SettingsLayout::ContentTop(contentBounds, dp, settingsScrollY, headerReserve);
                     float contentW = RectWidth(contentBounds) - padX * 2.0f;
                     if (currentSettingsCat == SettingsCategory::System) {
                         // The System rows resolve hover from tracked state (not at draw time),
@@ -2953,8 +2931,7 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                 };
                 int navIdx = navIndexForHover();
                 if (navIdx >= 0) { pressedNavIndex = navIdx; SetCapture(hWnd); InvalidateRect(hWnd, NULL, FALSE); return 0; }
-                float pad = 18.0f * dp, padY = 14.0f * dp, navH = 48.0f * dp;
-                D2D1_RECT_F viewBounds = D2D1::RectF(pad, 84.0f * dp, std::max(pad + 1.0f * dp, winW - pad), std::max(85.0f * dp, winH - padY));
+                D2D1_RECT_F viewBounds = Presentation::HubView(winW, winH, dp);
                 if (currentTab == TabView::Media) {
                     if (!mediaSearchInput.GetText().empty() && PtInRectF(mediaSearchClearBtnBounds, x, y)) { ClearMediaSearch(); return 0; }
                     if (PtInRectF(mediaSearchBtnBounds, x, y)) {
@@ -3285,11 +3262,11 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                         }
                     }
                     // Content Pane Hits
-                    D2D1_RECT_F contentBounds = D2D1::RectF(viewBounds.left + sideW + 16.0f * dp, viewBounds.top, viewBounds.right, viewBounds.bottom);
+                    D2D1_RECT_F contentBounds = SettingsLayout::ContentBounds(viewBounds, dp);
                     float padX = SettingsLayout::kContentPadX * dp;
                     const float headerReserve = currentSettingsCat == SettingsCategory::Subtitles
                         ? SettingsLayout::kSubtitlePageHeaderReserve : SettingsLayout::kPageHeaderReserve;
-                    float contentY = contentBounds.top + (SettingsLayout::kContentStartOffset + headerReserve) * dp - settingsScrollY;
+                    float contentY = SettingsLayout::ContentTop(contentBounds, dp, settingsScrollY, headerReserve);
                     float contentW = RectWidth(contentBounds) - padX * 2.0f;
                     if (currentSettingsCat == SettingsCategory::Appearance) {
                         // Section 1: Themes (Row 0)
@@ -3713,18 +3690,19 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                         SaveSettings();
                     });
                 } else if (pressed.target == SettingsPressState::Target::SystemAction) {
+                    // Re-derive the row under the release coordinates from the same
+                    // geometry the renderer uses; a press that slides off the row
+                    // (or into the divider gap) before release cancels, matching the
+                    // nav-bar press model.
                     RECT clientRc{};
                     GetClientRect(hWnd, &clientRc);
                     const float winW = (float)(clientRc.right - clientRc.left);
                     const float winH = (float)(clientRc.bottom - clientRc.top);
-                    const float pad = 18.0f * dp, padY = 14.0f * dp;
-                    const D2D1_RECT_F viewBounds = D2D1::RectF(pad, 84.0f * dp, std::max(pad + 1.0f * dp, winW - pad), std::max(85.0f * dp, winH - padY));
-                    const float sideW = SettingsLayout::kSidebarWidth * dp;
-                    const D2D1_RECT_F contentBounds = D2D1::RectF(viewBounds.left + sideW + 16.0f * dp, viewBounds.top, viewBounds.right, viewBounds.bottom);
-                    const float contentY = contentBounds.top + (SettingsLayout::kContentStartOffset + SettingsLayout::kPageHeaderReserve) * dp - settingsScrollY;
+                    const D2D1_RECT_F viewBounds = Presentation::HubView(winW, winH, dp);
+                    const D2D1_RECT_F contentBounds = SettingsLayout::ContentBounds(viewBounds, dp);
+                    const float contentY = SettingsLayout::ContentTop(contentBounds, dp, settingsScrollY);
                     const int releaseRow = HitTestSystemSettingsRow(contentBounds, contentY, x, y);
-                    if (releaseRow == pressed.index || hoveredSettingsRow == pressed.index) {
-                        TriggerSystemRowHit(pressed.index);
+                    if (releaseRow == pressed.index) {
                         activeFocusPane = FocusPane::SettingsContent;
                         keyboardFocusedIndex = pressed.index;
                         keyboardFocusedSubIndex = 0;

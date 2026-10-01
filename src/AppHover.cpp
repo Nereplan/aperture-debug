@@ -116,7 +116,7 @@ bool App::UpdateHoverStates(float mouseX, float mouseY) {
     if (isNavSettingsHovered) {
         AnimateVisual(navSettingsRotation, 45.0f, MotionTokens::kSettle, MotionTokens::Spring());
     } else { AnimateVisual(navSettingsRotation, 0.0f, MotionTokens::kSettle, MotionTokens::Spring()); }
-    D2D1_RECT_F viewBounds = D2D1::RectF(pad, 84.0f * dp, std::max(pad + 1.0f * dp, winW - pad), std::max(85.0f * dp, winH - padY));
+    D2D1_RECT_F viewBounds = Presentation::HubView(winW, winH, dp);
     if (currentTab == TabView::Media) {
         if (IsAutoscrolling()) {
             setIfChanged(hoveredMediaIndex, -1);

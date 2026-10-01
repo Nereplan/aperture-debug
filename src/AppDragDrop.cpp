@@ -78,8 +78,7 @@ void App::OnOleDragOver(POINTL pt) {
     GetClientRect(hWnd, &rc);
     float winW = (float)(rc.right - rc.left);
     float winH = (float)(rc.bottom - rc.top);
-    float pad = 18.0f * dp, padY = 14.0f * dp;
-    D2D1_RECT_F viewBounds = D2D1::RectF(pad, 84.0f * dp, std::max(pad + 1.0f * dp, winW - pad), std::max(85.0f * dp, winH - padY));
+    D2D1_RECT_F viewBounds = Presentation::HubView(winW, winH, dp);
     if (currentTab == TabView::Playlists && !playbackSession.IsOpen()) {
         float railW = std::min(260.0f * dp, std::max(120.0f * dp, RectWidth(viewBounds) * 0.42f));
         D2D1_RECT_F railBounds = D2D1::RectF(viewBounds.left, viewBounds.top, viewBounds.left + railW, viewBounds.bottom);
@@ -212,8 +211,7 @@ void App::ProcessDroppedFiles(const std::vector<std::wstring>& droppedList, POIN
         GetClientRect(hWnd, &rc);
         float winW = (float)(rc.right - rc.left);
         float winH = (float)(rc.bottom - rc.top);
-        float pad = 18.0f * dp, padY = 14.0f * dp;
-        D2D1_RECT_F viewBounds = D2D1::RectF(pad, 84.0f * dp, std::max(pad + 1.0f * dp, winW - pad), std::max(85.0f * dp, winH - padY));
+        D2D1_RECT_F viewBounds = Presentation::HubView(winW, winH, dp);
         float railW = std::min(260.0f * dp, std::max(120.0f * dp, RectWidth(viewBounds) * 0.42f));
         D2D1_RECT_F railBounds = D2D1::RectF(viewBounds.left, viewBounds.top, viewBounds.left + railW, viewBounds.bottom);
         // Folder onto the rail: create one playlist per folder, named after the

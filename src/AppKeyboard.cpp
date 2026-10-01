@@ -335,8 +335,7 @@ void App::UpdateImeCandidateWindow() {
         bottom = mediaSearchBtnBounds.bottom;
         font = FontType::Small;
     } else {
-        const float pad = 18.0f * dp;
-        const D2D1_RECT_F view = D2D1::RectF(pad, 84.0f * dp, winW - pad, winH - 14.0f * dp);
+        const D2D1_RECT_F view = Presentation::HubView(winW, winH, dp);
         const float railW = std::min(260.0f * dp, std::max(120.0f * dp, RectWidth(view) * 0.42f));
         const D2D1_RECT_F detail = D2D1::RectF(view.left + railW + 16.0f * dp, view.top, view.right, view.bottom);
         const float toolbarY = detail.top + 14.0f * dp + 50.0f * dp + 16.0f * dp + 112.0f * dp + 16.0f * dp;
@@ -390,8 +389,7 @@ bool App::HitTestTextInput(float x, float y, std::size_t& outIndex) {
         font = FontType::Medium;
     } else if (activeTextInputField == TextInputField::InlineRename) {
         if (currentTab != TabView::Playlists) return false;
-        const float pad = 18.0f * dp;
-        const D2D1_RECT_F view = D2D1::RectF(pad, 84.0f * dp, winW - pad, winH - 14.0f * dp);
+        const D2D1_RECT_F view = Presentation::HubView(winW, winH, dp);
         const float railW = std::min(260.0f * dp, std::max(120.0f * dp, RectWidth(view) * 0.42f));
         const D2D1_RECT_F railBounds = D2D1::RectF(view.left, view.top, view.left + railW, view.bottom);
         float itemH = 52.0f * dp, gap = 6.0f * dp, curY = railBounds.top + 48.0f * dp - 2.0f * dp - playlistRailScrollY;
@@ -428,8 +426,7 @@ bool App::HitTestTextInput(float x, float y, std::size_t& outIndex) {
         font = FontType::Small;
     } else {
         if (currentTab != TabView::Playlists) return false;
-        const float pad = 18.0f * dp;
-        const D2D1_RECT_F view = D2D1::RectF(pad, 84.0f * dp, winW - pad, winH - 14.0f * dp);
+        const D2D1_RECT_F view = Presentation::HubView(winW, winH, dp);
         const float railW = std::min(260.0f * dp, std::max(120.0f * dp, RectWidth(view) * 0.42f));
         const D2D1_RECT_F detail = D2D1::RectF(view.left + railW + 16.0f * dp, view.top, view.right, view.bottom);
         const float toolbarY = detail.top + 14.0f * dp + 50.0f * dp + 16.0f * dp + 112.0f * dp + 16.0f * dp;
@@ -1314,7 +1311,6 @@ bool App::HandleGlobalKeyDown(WPARAM wParam, LPARAM lParam) {
                         }
                     } else if (currentSettingsCat == SettingsCategory::System) {
                         const int clampedRow = std::clamp(row, 0, SettingsLayout::kSystemRowCount - 1);
-                        TriggerSystemRowHit(clampedRow);
                         const int action = SettingsLayout::kSystemActions[clampedRow];
                         if (action == 0) {
                             std::wstring dir = GetDataDir();

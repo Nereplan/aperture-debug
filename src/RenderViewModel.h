@@ -561,10 +561,11 @@ struct SettingsTabViewModel {
     SettingsCategory activeCat = SettingsCategory::Appearance;
     SettingsCategory hoveredCat = (SettingsCategory)-1;
     int hoveredRowIndex = -1;
-    // System & Storage rows: eased 0..1 hover/press/hit progress per row (settled values are 0/1/0).
+    // System & Storage rows: eased 0..1 hover/press progress per row. Press
+    // itself is instant via pressState; the eased press progress softens the
+    // release only.
     float systemRowHoverProg[SettingsLayout::kSystemRowCount] = {};
     float systemRowPressProg[SettingsLayout::kSystemRowCount] = {};
-    float systemRowHitProg[SettingsLayout::kSystemRowCount] = {};
     float scrollY = 0.0f;
     std::string rebindingActionId;
     int hoveredShortcutIndex = -1;
