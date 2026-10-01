@@ -1443,15 +1443,23 @@ bool App::Update(float dt) {
             const float hoverTarget = (currentTab == TabView::Settings &&
                                        currentSettingsCat == SettingsCategory::System &&
                                        hoveredSettingsRow == i) ? 1.0f : 0.0f;
+            const float prevHover = systemRowHoverAnim[i].current;
             if (std::abs(systemRowHoverAnim[i].to - hoverTarget) > 0.001f) {
                 AnimateVisual(systemRowHoverAnim[i], hoverTarget, MotionTokens::kFast, MotionTokens::Standard());
             }
             if (systemRowHoverAnim[i].Tick()) needsRedraw = true;
+            // Reduce Motion snaps the target without an animating frame. The
+            // WM_PAINT dispatched alongside the pointer message has already
+            // presented the previous state, so a snapped current still owes
+            // the screen a repaint or the last hover tint freezes in place.
+            if (systemRowHoverAnim[i].current != prevHover) needsRedraw = true;
+            const float prevPress = systemRowPressAnim[i].current;
             const float pressTarget = settingsPressState.IsSystemActionPressed(i) ? 1.0f : 0.0f;
             if (std::abs(systemRowPressAnim[i].to - pressTarget) > 0.001f) {
                 AnimateVisual(systemRowPressAnim[i], pressTarget, MotionTokens::kFast, MotionTokens::Standard());
             }
             if (systemRowPressAnim[i].Tick()) needsRedraw = true;
+            if (systemRowPressAnim[i].current != prevPress) needsRedraw = true;
         }
     }
     // Non-blocking notification timer. Notifications from the same channel
