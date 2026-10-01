@@ -526,10 +526,12 @@ private:
     AnimatedFloat hwAccelToggleAnim;
     AnimatedFloat loopToggleAnim;
     AnimatedFloat customMpvConfigToggleAnim;
-    // System & Storage rows: per-row hover/press progress so feedback eases
-    // in and out instead of snapping between two flat states.
+    // System & Storage rows: per-row hover/press/hit progress so feedback eases
+    // in and out instead of snapping between flat states.
     AnimatedFloat systemRowHoverAnim[SettingsLayout::kSystemRowCount];
     AnimatedFloat systemRowPressAnim[SettingsLayout::kSystemRowCount];
+    AnimatedFloat systemRowHitAnim[SettingsLayout::kSystemRowCount];
+    void TriggerSystemRowHit(int row);
     void HandleItemSelection(FocusPane pane, size_t index, bool isShift, bool isCtrl, size_t totalCount);
     void SelectAllInCurrentPane();
     void ClearSelectionInCurrentPane();

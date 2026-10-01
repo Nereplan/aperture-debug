@@ -1010,6 +1010,7 @@ HubRenderViewModel App::BuildHubRenderViewModel() {
             for (int i = 0; i < SettingsLayout::kSystemRowCount; ++i) {
                 vm.settingsTab.systemRowHoverProg[i] = systemRowHoverAnim[i].current;
                 vm.settingsTab.systemRowPressProg[i] = systemRowPressAnim[i].current;
+                vm.settingsTab.systemRowHitProg[i] = systemRowHitAnim[i].current;
             }
             break;
         }

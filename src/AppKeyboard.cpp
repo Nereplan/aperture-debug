@@ -1313,7 +1313,9 @@ bool App::HandleGlobalKeyDown(WPARAM wParam, LPARAM lParam) {
                             if (idx < scList.size()) { StartShortcutCapture(scList[idx].first, scList[idx].second, row, sub); }
                         }
                     } else if (currentSettingsCat == SettingsCategory::System) {
-                        const int action = SettingsLayout::kSystemActions[std::clamp(row, 0, SettingsLayout::kSystemRowCount - 1)];
+                        const int clampedRow = std::clamp(row, 0, SettingsLayout::kSystemRowCount - 1);
+                        TriggerSystemRowHit(clampedRow);
+                        const int action = SettingsLayout::kSystemActions[clampedRow];
                         if (action == 0) {
                             std::wstring dir = GetDataDir();
                             ShellExecuteW(NULL, L"open", dir.c_str(), NULL, NULL, SW_SHOWNORMAL);

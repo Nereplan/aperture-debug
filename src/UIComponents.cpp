@@ -1381,24 +1381,40 @@ void UIComponents::DrawSettingsView(Renderer& r, const Settings& s, const Settin
         aStyle.border = surfaceBorder;
         aStyle.borderWidth = 1.0f;
         r.DrawSurface(aboutRect, aStyle);
+
+        // Polished Aperture app emblem in the About banner
+        const float logoSz = 40.0f * dp;
+        const float logoLeft = isRtl ? (aboutRect.right - 14.0f * dp - logoSz) : (aboutRect.left + 14.0f * dp);
+        const float logoTop = aboutRect.top + (aboutCardH - logoSz) * 0.5f;
+        const D2D1_RECT_F logoBox = D2D1::RectF(logoLeft, logoTop, logoLeft + logoSz, logoTop + logoSz);
+        r.FillRoundedRect(logoBox, 9.0f * dp, ColorWithAlpha(accentCol, 0.12f));
+        r.DrawRoundedRect(logoBox, 9.0f * dp, ColorWithAlpha(accentCol, 0.35f), 1.0f);
+        const float iconSz = 20.0f * dp;
+        const D2D1_RECT_F logoIconRect = D2D1::RectF(logoBox.left + (logoSz - iconSz) * 0.5f, logoBox.top + (logoSz - iconSz) * 0.5f,
+                                                     logoBox.left + (logoSz + iconSz) * 0.5f, logoBox.top + (logoSz + iconSz) * 0.5f);
+        r.DrawIcon(IconType::ApertureLogo, logoIconRect, accentCol, 1.6f * dp);
+
+        const float infoLeft = isRtl ? (aboutRect.left + 16.0f * dp) : (logoBox.right + 12.0f * dp);
+        const float infoRight = isRtl ? (logoBox.left - 12.0f * dp) : (aboutRect.right - 16.0f * dp);
         r.DrawString(L"Aperture " + Utf8ToUtf16(info.version.displayVersion),
-            D2D1::RectF(aboutRect.left + 16 * dp, aboutRect.top + 12 * dp, aboutRect.right - 16 * dp, aboutRect.top + 34 * dp),
+            D2D1::RectF(infoLeft, aboutRect.top + 12 * dp, infoRight, aboutRect.top + 34 * dp),
             textPri, FontType::Bold, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
         r.DrawString(Loc::Tr("settings.system.portable_desc"),
-            D2D1::RectF(aboutRect.left + 16 * dp, aboutRect.top + 38 * dp, aboutRect.right - 16 * dp, aboutRect.bottom - 10 * dp),
+            D2D1::RectF(infoLeft, aboutRect.top + 38 * dp, infoRight, aboutRect.bottom - 10 * dp),
             textMute, FontType::Small, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+
         contentY += aboutCardH + 18.0f * dp;
         drawHeader(Loc::Tr("settings.system.actions_header").c_str());
-        struct SysBtn { std::wstring label; std::wstring desc; bool isDanger; };
+        struct SysBtn { std::wstring label; std::wstring desc; bool isDanger; IconType icon; };
         SysBtn btns[] = {
-            { Loc::Tr("settings.system.check_updates"), Loc::Tr("settings.system.check_updates_desc"), false },
-            { Loc::Tr("settings.system.hover_previews"), s.hoverPreviewEnabled ? Loc::Tr("settings.system.hover_previews_on") : Loc::Tr("settings.system.hover_previews_off"), false },
-            { Loc::Tr("settings.system.reduce_motion"), s.reduceMotionEnabled ? Loc::Tr("settings.system.reduce_motion_on") : Loc::Tr("settings.system.reduce_motion_off"), false },
-            { Loc::Tr("settings.system.smart_series"), s.smartSeriesDetection ? Loc::Tr("settings.system.smart_series_on") : Loc::Tr("settings.system.smart_series_off"), false },
-            { Loc::Tr("settings.system.open_data"), Loc::Tr("settings.system.open_data_desc"), false },
-            { Loc::Tr("settings.system.clear_disk_cache"), Loc::Tr("settings.system.clear_disk_cache_desc"), false },
-            { Loc::Tr("settings.system.clear_history"), Loc::Tr("settings.system.clear_history_desc"), true },
-            { Loc::Tr("settings.system.reset_defaults"), Loc::Tr("settings.system.reset_defaults_desc"), true }};
+            { Loc::Tr("settings.system.check_updates"), Loc::Tr("settings.system.check_updates_desc"), false, IconType::Refresh },
+            { Loc::Tr("settings.system.hover_previews"), s.hoverPreviewEnabled ? Loc::Tr("settings.system.hover_previews_on") : Loc::Tr("settings.system.hover_previews_off"), false, IconType::MediaFilm },
+            { Loc::Tr("settings.system.reduce_motion"), s.reduceMotionEnabled ? Loc::Tr("settings.system.reduce_motion_on") : Loc::Tr("settings.system.reduce_motion_off"), false, IconType::SpeedGauge },
+            { Loc::Tr("settings.system.smart_series"), s.smartSeriesDetection ? Loc::Tr("settings.system.smart_series_on") : Loc::Tr("settings.system.smart_series_off"), false, IconType::FolderPlaylist },
+            { Loc::Tr("settings.system.open_data"), Loc::Tr("settings.system.open_data_desc"), false, IconType::AspectFrame },
+            { Loc::Tr("settings.system.clear_disk_cache"), Loc::Tr("settings.system.clear_disk_cache_desc"), false, IconType::Trash },
+            { Loc::Tr("settings.system.clear_history"), Loc::Tr("settings.system.clear_history_desc"), true, IconType::HistoryClock },
+            { Loc::Tr("settings.system.reset_defaults"), Loc::Tr("settings.system.reset_defaults_desc"), true, IconType::Refresh }};
         float bCardH = 58.0f * dp;
         const float systemListH = SettingsLayout::kSystemRowCount * bCardH + (SettingsLayout::kSystemRowCount - 1) * 10.0f * dp;
         drawFlatPanel(D2D1::RectF(contentBounds.left + padX - 10.0f * dp, contentY - 8.0f * dp,
@@ -1408,19 +1424,23 @@ void UIComponents::DrawSettingsView(Renderer& r, const Settings& s, const Settin
             D2D1_RECT_F bRect = D2D1::RectF(contentBounds.left + padX, contentY + i * (bCardH + 10.0f * dp), contentBounds.right - padX, contentY + i * (bCardH + 10.0f * dp) + bCardH);
             bool isKbFocused = showContentKbFocus && (vm.keyboardFocusedRow == i);
             bool isPressed = vm.pressState.IsSystemActionPressed(i);
-            // Hover comes from the tracked pointer row (same hit map as mouse-down), while the
-            // eased per-row progress supplies the transition so feedback never snaps.
             const float hoverProg = std::clamp(vm.systemRowHoverProg[i], 0.0f, 1.0f);
             const float pressProg = std::clamp(vm.systemRowPressProg[i], 0.0f, 1.0f);
+            const float hitProg = std::clamp(vm.systemRowHitProg[i], 0.0f, 1.0f);
             const bool danger = btns[i].isDanger;
-            // Danger rows warm toward red on hover; regular rows use the shared hover wash.
-            const D2D1_COLOR_F hoverTint = danger ? ColorWithAlpha(dangerCol, 0.10f) : surfaceHover;
+
+            // Tactile hit reaction pop wave: snappy punch in followed by elastic recoil settling back to 1.0.
+            const float hitWave = std::sin(hitProg * 3.14159265f);
+            const float actScale = (1.0f + 0.035f * hoverProg) * (1.0f - 0.08f * pressProg) * (1.0f - 0.09f * hitWave);
+            const float pressDy = (1.2f * dp) * (pressProg + 0.5f * hitWave);
+
+            const D2D1_COLOR_F hoverTint = danger ? ColorWithAlpha(dangerCol, 0.12f) : ColorWithAlpha(accentCol, 0.08f);
             SurfaceStyle bStyle = makeFlatSurface();
             bStyle.fill = LerpColor(clearColor, hoverTint, hoverProg);
-            bStyle.border = clearColor;
-            bStyle.borderWidth = 0.0f;
+            bStyle.border = LerpColor(clearColor, danger ? ColorWithAlpha(dangerCol, 0.35f) : ColorWithAlpha(accentCol, 0.30f), hoverProg);
+            bStyle.borderWidth = (hoverProg > 0.001f) ? 1.0f : 0.0f;
             if (isKbFocused) {
-                bStyle.fill = danger ? ColorWithAlpha(dangerCol, 0.16f) : surfaceSelected;
+                bStyle.fill = danger ? ColorWithAlpha(dangerCol, 0.18f) : surfaceSelected;
                 bStyle.border = danger ? dangerCol : accentCol;
                 bStyle.borderWidth = 2.0f;
             } else if (isPressed || pressProg > 0.001f) {
@@ -1429,50 +1449,119 @@ void UIComponents::DrawSettingsView(Renderer& r, const Settings& s, const Settin
                 bStyle.border = LerpColor(bStyle.border, danger ? dangerCol : accentCol, pressProg);
                 bStyle.borderWidth = 1.5f * pressProg;
             }
+            if (hitProg > 0.001f) {
+                const D2D1_COLOR_F hitFlash = danger ? ColorWithAlpha(dangerCol, 0.38f) : ColorWithAlpha(accentCol, 0.28f);
+                bStyle.fill = LerpColor(bStyle.fill, hitFlash, hitWave * 0.7f);
+            }
             r.DrawSurface(bRect, bStyle);
+
+            // Leading accent indicator bar on hover, press, or keyboard focus
+            const float pillFactor = std::max(hoverProg, std::max(pressProg, isKbFocused ? 1.0f : hitWave));
+            if (pillFactor > 0.001f) {
+                const float pillW = 3.0f * dp;
+                const float pillH = 26.0f * dp * pillFactor;
+                const float pillX = isRtl ? (bRect.right - pillW - 2.0f * dp) : (bRect.left + 2.0f * dp);
+                const float pillY = bRect.top + (bCardH - pillH) * 0.5f;
+                r.FillRoundedRect(D2D1::RectF(pillX, pillY, pillX + pillW, pillY + pillH), pillW * 0.5f,
+                                  danger ? dangerCol : accentCol);
+            }
+
             if (i < SettingsLayout::kSystemRowCount - 1) {
                 r.DrawLine(bRect.left + 8.0f * dp, bRect.bottom + 5.0f * dp, bRect.right - 8.0f * dp, bRect.bottom + 5.0f * dp,
                            panelBorder, 1.0f * dp);
             }
-            D2D1_RECT_F titleRect = D2D1::RectF(bRect.left + 16.0f * dp, bRect.top + 10.0f * dp, bRect.right - 130.0f * dp, bRect.top + 30.0f * dp);
-            D2D1_RECT_F descRect = D2D1::RectF(bRect.left + 16.0f * dp, bRect.top + 31.0f * dp, bRect.right - 130.0f * dp, bRect.bottom - 8.0f * dp);
+
+            // Left icon container with responsive hover glow & press deflection
+            const float iconBoxSz = 34.0f * dp;
+            const float iconBoxX = isRtl ? (bRect.right - 14.0f * dp - iconBoxSz) : (bRect.left + 14.0f * dp);
+            const float iconBoxY = bRect.top + (bCardH - iconBoxSz) * 0.5f + pressDy * 0.4f;
+            D2D1_RECT_F iconBox = D2D1::RectF(iconBoxX, iconBoxY, iconBoxX + iconBoxSz, iconBoxY + iconBoxSz);
+            D2D1_COLOR_F iconBoxFill = LerpColor(ColorWithAlpha(surfaceCard, 0.6f), danger ? ColorWithAlpha(dangerCol, 0.16f) : ColorWithAlpha(accentCol, 0.15f), hoverProg);
+            D2D1_COLOR_F iconBoxBorder = LerpColor(surfaceBorder, danger ? ColorWithAlpha(dangerCol, 0.45f) : ColorWithAlpha(accentCol, 0.45f), hoverProg);
+            if (pressProg > 0.001f || hitWave > 0.001f) {
+                iconBoxFill = LerpColor(iconBoxFill, danger ? ColorWithAlpha(dangerCol, 0.32f) : ColorWithAlpha(accentCol, 0.28f), std::max(pressProg, hitWave));
+                iconBoxBorder = danger ? dangerCol : accentCol;
+            }
+            r.FillRoundedRect(iconBox, 7.0f * dp, iconBoxFill);
+            r.DrawRoundedRect(iconBox, 7.0f * dp, iconBoxBorder, 1.0f);
+            const float rowIconSz = 16.0f * dp;
+            D2D1_RECT_F iconRect = D2D1::RectF(iconBox.left + (iconBoxSz - rowIconSz) * 0.5f, iconBox.top + (iconBoxSz - rowIconSz) * 0.5f,
+                                               iconBox.left + (iconBoxSz + rowIconSz) * 0.5f, iconBox.top + (iconBoxSz + rowIconSz) * 0.5f);
+            D2D1_COLOR_F iconCol;
+            if (danger) {
+                iconCol = LerpColor(dangerCol, D2D1::ColorF(1.0f, 1.0f, 1.0f), std::max(pressProg, hitWave * 0.5f));
+            } else {
+                iconCol = LerpColor(textMute, accentCol, hoverProg);
+                if (pressProg > 0.001f || hitWave > 0.001f) iconCol = LerpColor(iconCol, textPri, std::max(pressProg, hitWave));
+            }
+            r.DrawIcon(btns[i].icon, iconRect, iconCol, 1.4f * dp);
+
+            // Title & description with physical hover slide
+            const float textSlide = (2.5f * dp) * hoverProg;
+            const float textLeft = isRtl ? (bRect.left + 130.0f * dp) : (iconBox.right + 12.0f * dp + textSlide);
+            const float textRight = isRtl ? (iconBox.left - 12.0f * dp - textSlide) : (bRect.right - 130.0f * dp);
+            D2D1_RECT_F titleRect = D2D1::RectF(textLeft, bRect.top + 10.0f * dp, textRight, bRect.top + 30.0f * dp);
+            D2D1_RECT_F descRect = D2D1::RectF(textLeft, bRect.top + 31.0f * dp, textRight, bRect.bottom - 8.0f * dp);
             D2D1_COLOR_F titleCol;
             if (danger) titleCol = dangerCol;
             else if (isKbFocused) titleCol = textPri;
             else titleCol = LerpColor(textNorm, textPri, hoverProg);
             r.DrawString(btns[i].label, titleRect, titleCol, FontType::Medium, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-            r.DrawString(btns[i].desc, descRect, textMute, FontType::Small, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-            // Right-aligned action badge. It carries the hit reaction: brightens with the
-            // row hover and springs down ~5% while the row is pressed.
+            r.DrawString(btns[i].desc, descRect, LerpColor(textMute, textNorm, hoverProg * 0.35f), FontType::Small, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+
+            // Right-aligned action badge with tactile pop and hit feedback
             float actW = 110.0f * dp, actH = 28.0f * dp;
-            const float actScale = 1.0f - 0.05f * pressProg;
-            const float actCX = bRect.right - actW * 0.5f - 14.0f * dp, actCY = bRect.top + bCardH * 0.5f;
+            const float actCX = isRtl ? (bRect.left + actW * 0.5f + 14.0f * dp) : (bRect.right - actW * 0.5f - 14.0f * dp);
+            const float actCY = bRect.top + bCardH * 0.5f + pressDy;
             D2D1_RECT_F actRect = D2D1::RectF(actCX - actW * 0.5f * actScale, actCY - actH * 0.5f * actScale,
                                               actCX + actW * 0.5f * actScale, actCY + actH * 0.5f * actScale);
             D2D1_COLOR_F actBg;
             D2D1_COLOR_F actBorder;
             D2D1_COLOR_F actText;
             if (danger) {
-                actBg = LerpColor(ColorWithAlpha(dangerCol, 0.15f), ColorWithAlpha(dangerCol, 0.24f), hoverProg);
+                actBg = LerpColor(ColorWithAlpha(dangerCol, 0.14f), ColorWithAlpha(dangerCol, 0.25f), hoverProg);
                 actBorder = LerpColor(dangerBorder, dangerCol, hoverProg);
                 actText = dangerCol;
-                if (pressProg > 0.001f) {
-                    actBg = LerpColor(actBg, ColorWithAlpha(dangerCol, 0.45f), pressProg);
-                    actText = LerpColor(actText, D2D1::ColorF(1.0f, 1.0f, 1.0f), pressProg);
+                if (pressProg > 0.001f || hitWave > 0.001f) {
+                    const float p = std::max(pressProg, hitWave);
+                    actBg = LerpColor(actBg, ColorWithAlpha(dangerCol, 0.55f), p);
+                    actBorder = dangerCol;
+                    actText = LerpColor(actText, D2D1::ColorF(1.0f, 1.0f, 1.0f), p);
+                }
+            } else if (i == 1 || i == 2 || i == 3) {
+                const bool isEnabled = (i == 1 && s.hoverPreviewEnabled) ||
+                                       (i == 2 && s.reduceMotionEnabled) ||
+                                       (i == 3 && s.smartSeriesDetection);
+                if (isEnabled) {
+                    actBg = LerpColor(ColorWithAlpha(accentCol, 0.20f), ColorWithAlpha(accentCol, 0.32f), hoverProg);
+                    actBorder = LerpColor(ColorWithAlpha(accentCol, 0.60f), accentCol, hoverProg);
+                    actText = accentCol;
+                } else {
+                    actBg = LerpColor(surfaceBg, ColorWithAlpha(accentCol, 0.12f), hoverProg);
+                    actBorder = LerpColor(surfaceBorder, ColorWithAlpha(accentCol, 0.50f), hoverProg);
+                    actText = LerpColor(textMute, textNorm, hoverProg);
+                }
+                if (pressProg > 0.001f || hitWave > 0.001f) {
+                    const float p = std::max(pressProg, hitWave);
+                    actBg = LerpColor(actBg, accentCol, p);
+                    actBorder = accentCol;
+                    actText = LerpColor(actText, surfaceBg, p);
                 }
             } else {
-                actBg = LerpColor(surfaceBg, ColorWithAlpha(accentCol, 0.16f), hoverProg);
-                actBorder = LerpColor(surfaceBorder, ColorWithAlpha(accentCol, 0.55f), hoverProg);
+                actBg = LerpColor(surfaceBg, ColorWithAlpha(accentCol, 0.18f), hoverProg);
+                actBorder = LerpColor(surfaceBorder, ColorWithAlpha(accentCol, 0.60f), hoverProg);
                 actText = LerpColor(textNorm, textPri, hoverProg);
-                if (pressProg > 0.001f) {
-                    actBg = LerpColor(actBg, accentCol, pressProg);
-                    actText = LerpColor(actText, surfaceBg, pressProg);
+                if (pressProg > 0.001f || hitWave > 0.001f) {
+                    const float p = std::max(pressProg, hitWave);
+                    actBg = LerpColor(actBg, accentCol, p);
+                    actBorder = accentCol;
+                    actText = LerpColor(actText, surfaceBg, p);
                 }
             }
             if (isKbFocused) { actBg = accentCol; actBorder = accentCol; actText = surfaceBg; }
             else if (isPressed) { actBorder = danger ? dangerCol : accentCol; }
             r.FillRoundedRect(actRect, 6.0f * dp * actScale, actBg);
-            r.DrawRoundedRect(actRect, 6.0f * dp * actScale, actBorder, 1.0f);
+            r.DrawRoundedRect(actRect, 6.0f * dp * actScale, actBorder, 1.2f);
             std::wstring btnTags[] = {
                 Loc::Tr("settings.system.btn.check_now"),
                 s.hoverPreviewEnabled ? Loc::Tr("settings.system.btn.enabled") : Loc::Tr("settings.system.btn.disabled"),

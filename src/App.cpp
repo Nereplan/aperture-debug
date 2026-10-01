@@ -549,6 +549,7 @@ void App::SnapVisualAnimations() {
     customMpvConfigToggleAnim.SnapTo(customMpvConfigToggleAnim.to);
     for (auto& anim : systemRowHoverAnim) anim.SnapTo(anim.to);
     for (auto& anim : systemRowPressAnim) anim.SnapTo(anim.to);
+    for (auto& anim : systemRowHitAnim) anim.SnapTo(0.0f);
     jumpAheadAnim.SnapTo(jumpAheadAnim.to);
     for (auto& pair : playlistCardExpands) {
         pair.second.SnapTo(pair.second.to);
@@ -562,6 +563,17 @@ void App::SnapVisualAnimations() {
         const bool controlsForcedVisible = isScrubbing || isVolumeScrubbing || isSettingsFlyoutOpen || isContextMenuOpen;
         controlsOpacity = controlsForcedVisible ? 1.0f : (controlsIdleTimer >= (player.IsPlaying() ? 1.2f : 2.0f) ? 0.0f : 1.0f);
     }
+}
+
+void App::TriggerSystemRowHit(int row) {
+    if (row < 0 || row >= SettingsLayout::kSystemRowCount) return;
+    if (IsReducedMotionEnabled()) {
+        systemRowHitAnim[row].SnapTo(0.0f);
+    } else {
+        systemRowHitAnim[row].SnapTo(1.0f);
+        AnimateVisual(systemRowHitAnim[row], 0.0f, MotionTokens::kSettle, MotionTokens::Spring());
+    }
+    if (hWnd) InvalidateRect(hWnd, NULL, FALSE);
 }
 
 float App::GetSettingsContentHeight(float dp) const {
@@ -1435,7 +1447,7 @@ bool App::Update(float dt) {
         if (hwAccelToggleAnim.Tick()) needsRedraw = true;
         if (loopToggleAnim.Tick()) needsRedraw = true;
         if (customMpvConfigToggleAnim.Tick()) needsRedraw = true;
-        // System & Storage rows ease toward their hover/press targets here; the
+        // System & Storage rows ease toward their hover/press/hit targets here; the
         // pressed flag itself flips inside the mouse handlers.
         for (int i = 0; i < SettingsLayout::kSystemRowCount; ++i) {
             const float hoverTarget = (currentTab == TabView::Settings &&
@@ -1445,11 +1457,16 @@ bool App::Update(float dt) {
                 AnimateVisual(systemRowHoverAnim[i], hoverTarget, MotionTokens::kFast, MotionTokens::Standard());
             }
             if (systemRowHoverAnim[i].Tick()) needsRedraw = true;
-            const float pressTarget = settingsPressState.IsSystemActionPressed(i) ? 1.0f : 0.0f;
+            const bool isRowPressed = (currentTab == TabView::Settings &&
+                                       currentSettingsCat == SettingsCategory::System &&
+                                       settingsPressState.IsSystemActionPressed(i) &&
+                                       hoveredSettingsRow == i);
+            const float pressTarget = isRowPressed ? 1.0f : 0.0f;
             if (std::abs(systemRowPressAnim[i].to - pressTarget) > 0.001f) {
                 AnimateVisual(systemRowPressAnim[i], pressTarget, MotionTokens::kFast, MotionTokens::Spring());
             }
             if (systemRowPressAnim[i].Tick()) needsRedraw = true;
+            if (systemRowHitAnim[i].Tick()) needsRedraw = true;
         }
     }
     // Non-blocking notification timer. Notifications from the same channel
@@ -2100,7 +2117,6 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                         RECT wheelRc;
                         GetClientRect(hWnd, &wheelRc);
                         const float wx = (float)wheelPt.x, wy = (float)wheelPt.y;
-                        const float dp = renderer.GetDpiScale();
                         const float winWw = (float)(wheelRc.right - wheelRc.left), winHw = (float)(wheelRc.bottom - wheelRc.top);
                         const float wheelPad = 18.0f * dp, wheelPadY = 14.0f * dp;
                         D2D1_RECT_F viewBoundsW = D2D1::RectF(wheelPad, 84.0f * dp, std::max(wheelPad + 1.0f * dp, winWw - wheelPad), std::max(85.0f * dp, winHw - wheelPadY));
@@ -2121,9 +2137,21 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                 SetCursor(NULL);
                 return TRUE;
             }
-            if (!playbackSession.IsOpen() && currentTab == TabView::Media && hoveredMediaGroupHeader >= 0) {
-                SetCursor(LoadCursor(NULL, IDC_HAND));
-                return TRUE;
+            if (!playbackSession.IsOpen()) {
+                if (currentTab == TabView::Media && hoveredMediaGroupHeader >= 0) {
+                    SetCursor(LoadCursor(NULL, IDC_HAND));
+                    return TRUE;
+                }
+                if (currentTab == TabView::Settings) {
+                    if (currentSettingsCat == SettingsCategory::System && hoveredSettingsRow >= 0) {
+                        SetCursor(LoadCursor(NULL, IDC_HAND));
+                        return TRUE;
+                    }
+                    if (hoveredSettingsCat != (SettingsCategory)-1) {
+                        SetCursor(LoadCursor(NULL, IDC_HAND));
+                        return TRUE;
+                    }
+                }
             }
             break;
         }
@@ -3560,6 +3588,7 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
             const int mediaEmptyBtnWasPressed = pressedMediaEmptyBtn, historyEmptyBtnWasPressed = pressedHistoryEmptyBtn;
             const int navWasPressed = pressedNavIndex;
             const SettingsPressState pressed = settingsPressState;
+            settingsPressState = {};
             if (GetCapture() == hWnd && !textInputDragging && !isScrubbing && !isPiPVolumeDragging && activeDragType == DragType::None && !IsAutoscrolling())
                 ReleaseCapture();
             if (navWasPressed >= 0) {
@@ -3684,10 +3713,13 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                         SaveSettings();
                     });
                 } else if (pressed.target == SettingsPressState::Target::SystemAction) {
-                    activeFocusPane = FocusPane::SettingsContent;
-                    keyboardFocusedIndex = pressed.index;
-                    keyboardFocusedSubIndex = 0;
-                    HandleGlobalKeyDown(VK_RETURN, 0);
+                    if (hoveredSettingsRow == pressed.index) {
+                        TriggerSystemRowHit(pressed.index);
+                        activeFocusPane = FocusPane::SettingsContent;
+                        keyboardFocusedIndex = pressed.index;
+                        keyboardFocusedSubIndex = 0;
+                        HandleGlobalKeyDown(VK_RETURN, 0);
+                    }
                 } else if (pressed.target == SettingsPressState::Target::OptionRow) {
                     if (currentSettingsCat == SettingsCategory::Appearance) {
                         if (pressed.index == 0) {
