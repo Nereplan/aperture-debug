@@ -225,20 +225,10 @@ int App::HitTestSystemSettingsRow(const D2D1_RECT_F& contentBounds, float conten
     const float relY = y - (contentY + SettingsLayout::kSystemActionsTop * dp);
     if (relY < 0.0f) return -1;
     const float pitch = rowH + rowGap;
-    const float totalListH = (SettingsLayout::kSystemRowCount - 1) * pitch + rowH;
-    if (relY > totalListH) return -1;
-    int idx = static_cast<int>(relY / pitch);
-    if (idx < 0) return -1;
-    if (idx >= SettingsLayout::kSystemRowCount - 1) {
-        return (relY <= totalListH) ? (SettingsLayout::kSystemRowCount - 1) : -1;
-    }
-    // Continuous hit testing between contiguous rows in the grouped list panel:
-    // the boundary splits at the row divider (midpoint of rowGap) so cursor and hover
-    // transitions remain completely smooth without dead gaps.
-    if ((relY - idx * pitch) > (rowH + rowGap * 0.5f)) {
-        idx++;
-    }
-    return (idx < SettingsLayout::kSystemRowCount) ? idx : -1;
+    const int idx = static_cast<int>(relY / pitch);
+    if (idx < 0 || idx >= SettingsLayout::kSystemRowCount) return -1;
+    if ((relY - idx * pitch) > rowH) return -1;
+    return idx;
 }
 
 

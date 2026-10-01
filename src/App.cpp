@@ -3713,7 +3713,17 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                         SaveSettings();
                     });
                 } else if (pressed.target == SettingsPressState::Target::SystemAction) {
-                    if (hoveredSettingsRow == pressed.index) {
+                    RECT clientRc{};
+                    GetClientRect(hWnd, &clientRc);
+                    const float winW = (float)(clientRc.right - clientRc.left);
+                    const float winH = (float)(clientRc.bottom - clientRc.top);
+                    const float pad = 18.0f * dp, padY = 14.0f * dp;
+                    const D2D1_RECT_F viewBounds = D2D1::RectF(pad, 84.0f * dp, std::max(pad + 1.0f * dp, winW - pad), std::max(85.0f * dp, winH - padY));
+                    const float sideW = SettingsLayout::kSidebarWidth * dp;
+                    const D2D1_RECT_F contentBounds = D2D1::RectF(viewBounds.left + sideW + 16.0f * dp, viewBounds.top, viewBounds.right, viewBounds.bottom);
+                    const float contentY = contentBounds.top + (SettingsLayout::kContentStartOffset + SettingsLayout::kPageHeaderReserve) * dp - settingsScrollY;
+                    const int releaseRow = HitTestSystemSettingsRow(contentBounds, contentY, x, y);
+                    if (releaseRow == pressed.index || hoveredSettingsRow == pressed.index) {
                         TriggerSystemRowHit(pressed.index);
                         activeFocusPane = FocusPane::SettingsContent;
                         keyboardFocusedIndex = pressed.index;
