@@ -31,6 +31,37 @@ TEST_CASE(JsonLimits, SerializationFormattingAndMoveInsertion) {
     TEST_ASSERT_EQ(JsonValue(std::numeric_limits<double>::infinity()).stringify(), std::string("null"));
 }
 
+TEST_CASE(JsonLimits, AppendSerializationCompatibility) {
+    const std::string utf8 = "café/雪";
+    std::string escaped;
+    escaped.push_back('\0');
+    escaped.push_back('\x01');
+    escaped.push_back('\x1f');
+    escaped += "\b\f\n\r\t\\\"";
+    escaped += utf8;
+
+    JsonValue value = JsonValue::Object();
+    value["z"] = JsonValue(1.23456789);
+    value["i"] = JsonValue(-42);
+    value["s"] = JsonValue(escaped);
+    value["exp"] = JsonValue(1.0e20);
+    const std::string expected =
+        "{\"exp\":1e+20,\"i\":-42,\"s\":\"\\u0000\\u0001\\u001f\\b\\f\\n\\r\\t\\\\\\\"café/雪\",\"z\":1.23457}";
+
+    TEST_ASSERT_EQ(value.stringify(), expected);
+    std::string appended = "prefix:";
+    value.append_to(appended);
+    TEST_ASSERT_EQ(appended, "prefix:" + expected);
+
+    const std::string pretty = value.stringify(true, 1);
+    std::string prettyAppended = "prefix:";
+    value.append_to(prettyAppended, true, 1);
+    TEST_ASSERT_EQ(prettyAppended, "prefix:" + pretty);
+    JsonValue parsed;
+    TEST_ASSERT(JsonValue::parse(expected, parsed));
+    TEST_ASSERT_EQ(parsed.get("s").as_string(), escaped);
+}
+
 TEST_CASE(JsonLimits, MaxInputBytesRejection) {
     // Empty input
     JsonValue out1;

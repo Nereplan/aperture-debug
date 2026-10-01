@@ -321,9 +321,16 @@ inline StorageStatus AtomicWriteCacheFile( CacheClass cacheClass, const std::wst
     std::lock_guard<std::recursive_mutex> ioLock(Detail::CacheIOMutex());
     if (relativePath.empty())
         return StorageStatus::Error(StorageErrorCode::InvalidPath, ERROR_INVALID_PARAMETER, L"", "Cache relative path is empty");
-    StorageStatus writability = CheckCacheDirectoryWritability(root, cacheClass);
-    if (!writability.is_ok()) { return writability; }
-    std::wstring targetPath = GetFullPathDynamic(GetCacheDir(cacheClass, root) + L"\\" + NormalizePathSeparators(relativePath));
+    if (root.empty())
+        return StorageStatus::Error(StorageErrorCode::InvalidPath, ERROR_INVALID_PARAMETER, L"", "Root path is empty");
+    // The atomic write below already creates a unique file in the destination
+    // directory and reports open/write errors. Avoid an extra create/close/delete
+    // writability probe for every cache entry (thumbnail imports can write many).
+    const std::wstring classDir = GetCacheDir(cacheClass, root);
+    const DWORD classDirAttributes = GetFileAttributesW(classDir.c_str());
+    if (classDirAttributes != INVALID_FILE_ATTRIBUTES && (classDirAttributes & FILE_ATTRIBUTE_READONLY))
+        return StorageStatus::Error(StorageErrorCode::DirectoryNotWritable, ERROR_ACCESS_DENIED, classDir, "Cache directory has read-only attribute");
+    std::wstring targetPath = GetFullPathDynamic(classDir + L"\\" + NormalizePathSeparators(relativePath));
     if (!IsCachePathSafe(targetPath, root))
         return StorageStatus::Error(StorageErrorCode::InvalidPath, ERROR_INVALID_PARAMETER, targetPath, "Target cache path is unsafe or outside cache root");
     if (ClassifyCachePath(targetPath, root) != cacheClass)
@@ -382,7 +389,7 @@ inline StorageStatus AtomicWriteCacheFile( CacheClass cacheClass, const std::wst
         if (!fits()) return StorageStatus::Error(StorageErrorCode::CacheBudgetExceeded, ERROR_DISK_FULL, targetPath, "Insufficient cache budget after eviction");
     }
     size_t lastSlash = targetPath.find_last_of(L"\\/");
-    std::wstring dir = (lastSlash != std::wstring::npos) ? targetPath.substr(0, lastSlash) : GetCacheDir(cacheClass, root);
+    std::wstring dir = (lastSlash != std::wstring::npos) ? targetPath.substr(0, lastSlash) : classDir;
     DWORD dirAttr = GetFileAttributesW(dir.c_str());
     if (dirAttr == INVALID_FILE_ATTRIBUTES || !(dirAttr & FILE_ATTRIBUTE_DIRECTORY)) {
         int res = SHCreateDirectoryExW(NULL, dir.c_str(), NULL);
@@ -397,6 +404,8 @@ inline StorageStatus AtomicWriteCacheFile( CacheClass cacheClass, const std::wst
     HANDLE hFile = CreateFileW(tmp.c_str(), GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
     if (hFile == INVALID_HANDLE_VALUE) {
         DWORD err = GetLastError();
+        if (err == ERROR_ACCESS_DENIED)
+            return StorageStatus::Error(StorageErrorCode::DirectoryNotWritable, err, dir, "Cache directory is read-only or not writable");
         return StorageStatus::Error(StorageErrorCode::FileOpenFailed, err, tmp, "Failed to create temporary cache file for atomic write");
     }
     DWORD written = 0;

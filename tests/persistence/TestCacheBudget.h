@@ -350,6 +350,18 @@ TEST_CASE(CacheBudget, MissingAndReadOnlyCacheRootHandling) {
 
     // Restore attributes for clean teardown
     SetFileAttributesW(cacheDir.c_str(), FILE_ATTRIBUTE_NORMAL);
+
+    // The production write now uses its atomic temp file as the probe. It
+    // must still reject the directory's explicit read-only attribute.
+    const std::wstring thumbnailDir = GetCacheDir(CacheClass::Thumbnails, root);
+    SetFileAttributesW(thumbnailDir.c_str(), FILE_ATTRIBUTE_READONLY);
+    const auto blockedWrite = AtomicWriteCacheFile(CacheClass::Thumbnails, L"blocked.bin", "payload", CacheBudgetConfig{}, root);
+    TEST_ASSERT(!blockedWrite.is_ok());
+    TEST_ASSERT_EQ(blockedWrite.code, StorageErrorCode::DirectoryNotWritable);
+    TEST_ASSERT_EQ(blockedWrite.win32Error, (DWORD)ERROR_ACCESS_DENIED);
+    TEST_ASSERT(!FileExists(thumbnailDir + L"\\blocked.bin"));
+    SetFileAttributesW(thumbnailDir.c_str(), FILE_ATTRIBUTE_NORMAL);
+    TEST_ASSERT(AtomicWriteCacheFile(CacheClass::Thumbnails, L"allowed.bin", "payload", CacheBudgetConfig{}, root).is_ok());
 }
 
 TEST_CASE(CacheBudget, SettingsCacheBudgetsIntegration) {

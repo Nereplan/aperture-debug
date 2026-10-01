@@ -110,18 +110,23 @@ TEST_CASE(DllLoader, MpvPlayerLifecycleWithHardenedLoading) {
     TEST_ASSERT(hParent != NULL);
 
     MpvPlayer player;
-    bool initOk = player.Initialize(hParent, hChild);
-    TEST_ASSERT(initOk);
-    TEST_ASSERT(player.GetMpvDll() != NULL);
+    // Repeated idle teardown exercises the event wait's shutdown wakeup and
+    // confirms that reinitialization keeps the dynamically loaded API usable.
+    for (int cycle = 0; cycle < 3; ++cycle) {
+        bool initOk = player.Initialize(hParent, hChild);
+        TEST_ASSERT(initOk);
+        TEST_ASSERT(player.GetMpvDll() != NULL);
 
-    // Verify player functions
-    player.SetVolume(0.8);
-    TEST_ASSERT_EQ(player.GetVolume(), 0.8);
+        // Verify player functions
+        player.SetVolume(0.8);
+        TEST_ASSERT_EQ(player.GetVolume(), 0.8);
 
-    player.SetLoop(true);
-    TEST_ASSERT(player.GetLoop());
+        player.SetLoop(true);
+        TEST_ASSERT(player.GetLoop());
 
-    player.Shutdown();
+        player.Shutdown();
+        TEST_ASSERT(player.GetMpvDll() == NULL);
+    }
 
     if (hParent) DestroyWindow(hParent);
     UnregisterClass(wc.lpszClassName, wc.hInstance);

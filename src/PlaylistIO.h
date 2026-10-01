@@ -126,6 +126,10 @@ public:
     static std::wstring ResolveEntryLocation( const std::wstring& entryPath, const std::wstring& playlistDir, bool resolveRelative = true);
     static std::wstring MakeRelativePathWhereSafe( const std::wstring& fullPath, const std::wstring& baseDir);
     static std::wstring GenerateCollisionSafePath(const std::wstring& targetPath);
+    // Append paths that are not already present, using the same ordinal
+    // case-insensitive equality used by Windows path lookups.
+    static size_t AppendUniquePathsOrdinalIgnoreCase(std::vector<std::wstring>& existing,
+        const std::vector<std::wstring>& candidates);
     // Text & Encoding helpers
     static std::string DecodeToUtf8( const char* data, size_t size, bool& outHasBom, std::string& outEncodingName);
     // Core parsers from in-memory string

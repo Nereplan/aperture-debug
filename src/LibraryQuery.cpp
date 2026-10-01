@@ -637,7 +637,8 @@ const LibraryQueryProjection& LibraryQueryEngine::Query( const MediaLibrary& lib
                 folderOrder.emplace(NormalizeDirectoryPath(options.customFolderOrder[i]), i);
             }
             for (auto& bucket : buckets) {
-                auto order = folderOrder.find(NormalizeDirectoryPath(bucket.key));
+                // Folder keys are normalized when the buckets are built.
+                auto order = folderOrder.find(bucket.key);
                 if (order != folderOrder.end()) bucket.customOrder = order->second;
             }
         }

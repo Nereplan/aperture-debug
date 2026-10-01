@@ -105,6 +105,9 @@ void MpvPlayer::LoadMpvFunctions(HMODULE hMod) {
     fn_mpv_free = (pfn_mpv_free)GetProcAddress(hMod, "mpv_free");
     fn_mpv_observe_property = (pfn_mpv_observe_property)GetProcAddress(hMod, "mpv_observe_property");
     fn_mpv_wait_event = (pfn_mpv_wait_event)GetProcAddress(hMod, "mpv_wait_event");
+    // Optional for compatibility with older package-local libmpv builds. When
+    // present, it lets the event thread sleep until an event or shutdown.
+    fn_mpv_wakeup = (pfn_mpv_wakeup)GetProcAddress(hMod, "mpv_wakeup");
     fn_mpv_error_string = (pfn_mpv_error_string)GetProcAddress(hMod, "mpv_error_string");
 }
 
@@ -306,6 +309,9 @@ void MpvPlayer::Shutdown() {
             // A stop command can fail while a file is already idle. It should not prevent the event thread from being joined and the handle
             // from being destroyed.
             (void)ret;
+            // mpv_wait_event() runs without mpvMutex. Wake it before joining;
+            // the handle and DLL remain alive until the event thread exits.
+            if (fn_mpv_wakeup) fn_mpv_wakeup(mpv);
         }
     }
     if (eventThread.joinable()) { eventThread.join(); }
@@ -358,7 +364,9 @@ void MpvPlayer::HandleEofTransition() {
 
 void MpvPlayer::EventLoop() {
     while (isRunning && mpv && fn_mpv_wait_event) {
-        mpv_event* event = fn_mpv_wait_event(mpv, 0.05);
+        // Use libmpv's wakeup mechanism when available so idle playback does
+        // not poll 20 times per second. Keep a bounded wait for older DLLs.
+        mpv_event* event = fn_mpv_wait_event(mpv, fn_mpv_wakeup ? -1.0 : 0.05);
         if (!event || event->event_id == MPV_EVENT_NONE) continue;
         if (event->event_id == MPV_EVENT_SHUTDOWN) { isRunning = false; break; }
         if (event->event_id == MPV_EVENT_PROPERTY_CHANGE) {

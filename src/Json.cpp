@@ -1,6 +1,7 @@
 #include "Json.h"
 #include "Common.h"
 #include <cctype>
+#include <charconv>
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
@@ -59,45 +60,76 @@ JsonValue& JsonValue::operator[](size_t i) {
 
 const JsonValue& JsonValue::operator[](size_t i) const { return is_array() && i < as_array().size() ? as_array()[i] : s_nullValue; }
 
-static void EscapeJsonString(const std::string& in, std::ostringstream& o) {
-    o << '"';
-    for (unsigned char c : in) {
-        switch (c) {
-            case '"': o << "\\\""; break;
-            case '\\': o << "\\\\"; break;
-            case '\b': o << "\\b"; break;
-            case '\f': o << "\\f"; break;
-            case '\n': o << "\\n"; break;
-            case '\r': o << "\\r"; break;
-            case '\t': o << "\\t"; break;
-            default:
-                if (c < 0x20) {
-                    char b[7];
-                    sprintf_s(b, "\\u%04x", (unsigned)c);
-                    o << b;
-                } else { o << (char)c; }
-                break;
-        }
-    }
-    o << '"';
+static void AppendSpaces(std::string& out, size_t count) {
+    out.append(count, ' ');
 }
 
-std::string JsonValue::stringify(bool pretty, int indent) const { std::ostringstream o; WriteJson(o, pretty, indent); return o.str(); }
+static void EscapeJsonString(const std::string& in, std::string& out) {
+    static constexpr char hex[] = "0123456789abcdef";
+    out.push_back('"');
+    size_t runStart = 0;
+    for (size_t i = 0; i < in.size(); ++i) {
+        const unsigned char c = static_cast<unsigned char>(in[i]);
+        const char* escape = nullptr;
+        switch (c) {
+            case '"': escape = "\\\""; break;
+            case '\\': escape = "\\\\"; break;
+            case '\b': escape = "\\b"; break;
+            case '\f': escape = "\\f"; break;
+            case '\n': escape = "\\n"; break;
+            case '\r': escape = "\\r"; break;
+            case '\t': escape = "\\t"; break;
+            default:
+                if (c < 0x20) {
+                    if (i > runStart) out.append(in, runStart, i - runStart);
+                    out.append("\\u00");
+                    out.push_back(hex[c >> 4]);
+                    out.push_back(hex[c & 0x0f]);
+                    runStart = i + 1;
+                }
+                break;
+        }
+        if (escape) {
+            if (i > runStart) out.append(in, runStart, i - runStart);
+            out.append(escape);
+            runStart = i + 1;
+        }
+    }
+    if (runStart < in.size()) out.append(in, runStart, in.size() - runStart);
+    out.push_back('"');
+}
 
-void JsonValue::WriteJson(std::ostringstream& o, bool pretty, int indent) const {
-    std::string pad = pretty ? std::string(indent * 2, ' ') : std::string();
-    std::string child = pretty ? std::string((indent + 1) * 2, ' ') : std::string();
+std::string JsonValue::stringify(bool pretty, int indent) const {
+    std::string out;
+    append_to(out, pretty, indent);
+    return out;
+}
+
+void JsonValue::append_to(std::string& out, bool pretty, int indent) const {
+    WriteJson(out, pretty, indent);
+}
+
+void JsonValue::WriteJson(std::string& o, bool pretty, int indent) const {
+    const size_t pad = pretty ? static_cast<size_t>(indent * 2) : 0;
+    const size_t child = pretty ? static_cast<size_t>((indent + 1) * 2) : 0;
     switch (GetType()) {
-        case JsonType::Null: o << "null"; break;
-        case JsonType::Boolean: o << (as_bool() ? "true" : "false"); break;
+        case JsonType::Null: o.append("null"); break;
+        case JsonType::Boolean: o.append(as_bool() ? "true" : "false"); break;
         case JsonType::Number: {
             const double numberVal = as_number();
             if (!std::isfinite(numberVal)) {
-                o << "null";
+                o.append("null");
             } else if (std::floor(numberVal) == numberVal && numberVal >= (double)std::numeric_limits<int64_t>::min() &&
                        numberVal <= (double)std::numeric_limits<int64_t>::max()) {
-                o << (int64_t)numberVal;
-            } else { o << numberVal; }
+                char buffer[32];
+                const auto result = std::to_chars(buffer, buffer + sizeof(buffer), (int64_t)numberVal);
+                o.append(buffer, result.ptr);
+            } else {
+                // Keep the legacy ostream default precision and formatting for fractional values.
+                std::ostringstream number;
+                number << numberVal;
+                o.append(number.str());
+            }
             break;
         }
         case JsonType::String:
@@ -105,36 +137,36 @@ void JsonValue::WriteJson(std::ostringstream& o, bool pretty, int indent) const 
             break;
         case JsonType::Array: {
             const auto& arrayVal = as_array();
-            if (arrayVal.empty()) { o << "[]"; break; }
-            o << (pretty ? "[\n" : "[");
+            if (arrayVal.empty()) { o.append("[]"); break; }
+            o.append(pretty ? "[\n" : "[");
             for (size_t i = 0; i < arrayVal.size(); ++i) {
-                if (pretty) o << child;
+                if (pretty) AppendSpaces(o, child);
                 arrayVal[i].WriteJson(o, pretty, indent + 1);
-                if (i + 1 < arrayVal.size()) o << ',';
-                if (pretty) o << '\n';
+                if (i + 1 < arrayVal.size()) o.push_back(',');
+                if (pretty) o.push_back('\n');
             }
-            if (pretty) o << pad;
-            o << ']';
+            if (pretty) AppendSpaces(o, pad);
+            o.push_back(']');
             break;
         }
         case JsonType::Object: {
             const auto& objectVal = as_object();
             if (objectVal.empty()) {
-                o << "{}";
+                o.append("{}");
                 break;
             }
-            o << (pretty ? "{\n" : "{");
+            o.append(pretty ? "{\n" : "{");
             size_t count = 0;
             for (auto it = objectVal.begin(); it != objectVal.end(); ++it, ++count) {
-                if (pretty) o << child;
+                if (pretty) AppendSpaces(o, child);
                 EscapeJsonString(it->first, o);
-                o << (pretty ? ": " : ":");
+                o.append(pretty ? ": " : ":");
                 it->second.WriteJson(o, pretty, indent + 1);
-                if (count + 1 < objectVal.size()) o << ',';
-                if (pretty) o << '\n';
+                if (count + 1 < objectVal.size()) o.push_back(',');
+                if (pretty) o.push_back('\n');
             }
-            if (pretty) o << pad;
-            o << '}';
+            if (pretty) AppendSpaces(o, pad);
+            o.push_back('}');
             break;
         }
     }

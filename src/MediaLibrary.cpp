@@ -131,8 +131,11 @@ public:
         text.push_back('[');
     }
     void Append(const JsonValue& record) {
+        record.append_to(BeginRecord());
+    }
+    std::string& BeginRecord() {
         if (text.size() > 1) text.push_back(',');
-        text += record.stringify(false);
+        return text;
     }
     std::string Finish() {
         text.push_back(']');
@@ -141,6 +144,53 @@ public:
 private:
     std::string text;
 };
+
+// Most library records have only the standard scalar fields. Serializing those
+// directly avoids constructing and balancing a tree map for every record on
+// each progress save. Keep the object keys in the same sorted order used by
+// JsonValue's std::map serializer, and delegate scalar formatting/escaping to
+// JsonValue so the emitted JSON retains the existing representation.
+template <typename T>
+void AppendJsonScalar(std::string& output, T&& value) {
+    JsonValue(std::forward<T>(value)).append_to(output);
+}
+
+bool AppendSimpleMediaRecord(CompactJsonArray& output, const MediaItem& item) {
+    if ((item.extraFields.is_object() && !item.extraFields.as_object().empty()) ||
+        (item.preferences.has_value() && item.preferences->HasAnyPreference()) ||
+        !item.bookmarks.empty() || (item.overrides.has_value() && item.overrides->HasAnyOverride())) {
+        return false;
+    }
+
+    // Append into the store buffer so each record needs no intermediate string.
+    std::string& record = output.BeginRecord();
+    record.push_back('{');
+    bool first = true;
+    auto field = [&](const char* prefix, auto&& value) {
+        if (!first) record.push_back(',');
+        first = false;
+        record += prefix;
+        AppendJsonScalar(record, std::forward<decltype(value)>(value));
+    };
+    field("\"addedTimestamp\":", item.addedTimestamp);
+    field("\"durationSec\":", item.durationSec);
+    if (item.fileIndex != 0) field("\"fileIndex\":", ExactUint64String(item.fileIndex));
+    field("\"filePath\":", Utf16ToUtf8(ToRelocatablePath(item.filePath)));
+    field("\"fileSizeBytes\":", item.fileSizeBytes);
+    field("\"id\":", item.id);
+    field("\"lastPosSec\":", item.lastPosSec);
+    if (item.lastProbeAttemptTimestamp > 0) field("\"lastProbeAttemptTimestamp\":", item.lastProbeAttemptTimestamp);
+    field("\"lastWatchedTimestamp\":", item.lastWatchedTimestamp);
+    if (item.metadataProbeFailed) field("\"metadataProbeFailed\":", true);
+    if (item.probeAttemptCount > 0) field("\"probeAttemptCount\":", static_cast<int>(item.probeAttemptCount));
+    field("\"status\":", item.status);
+    field("\"title\":", Utf16ToUtf8(item.title));
+    field("\"videoHeight\":", static_cast<int>(item.videoHeight));
+    field("\"videoWidth\":", static_cast<int>(item.videoWidth));
+    if (item.volumeSerialNumber != 0) field("\"volumeSerialNumber\":", static_cast<uint64_t>(item.volumeSerialNumber));
+    record.push_back('}');
+    return true;
+}
 
 // Resource optimization: retain only unknown JSON fields in extraFields.
 // Typed members already hold every known field; keeping the full DOM per
@@ -2076,6 +2126,7 @@ MediaLibrarySaveResult MediaLibrary::Save() {
     }
     CompactJsonArray l(lastLibraryJson.size());
     for (const auto& m : mediaItems) {
+        if (AppendSimpleMediaRecord(l, m)) continue;
         JsonValue j = m.extraFields.is_object() ? m.extraFields : JsonValue::Object();
         j["id"] = m.id;
         j["filePath"] = Utf16ToUtf8(ToRelocatablePath(m.filePath));

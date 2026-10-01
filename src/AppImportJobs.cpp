@@ -14,6 +14,7 @@
 #include "Localization.h"
 #include "SettingsLayout.h"
 #include "Presentation.h"
+#include "PlaylistIO.h"
 #include "WindowGeometry.h"
 #include <commdlg.h>
 #include <shellapi.h>
@@ -91,12 +92,12 @@ void App::FinishImportJob() {
         return;
     }
     if (importWorker.joinable()) importWorker.join();
-    const auto acceptedPaths = importResult.acceptedPaths;
-    const auto acceptedItems = stagedImportItems;
+    const auto& acceptedPaths = importResult.acceptedPaths;
+    auto acceptedItems = std::move(stagedImportItems);
     std::vector<MediaItem> newItems;
     newItems.reserve(acceptedItems.size());
     bool anyChanged = false;
-    for (const auto& item : acceptedItems) {
+    for (auto& item : acceptedItems) {
         MediaItem* existing = library.FindByPath(item.filePath);
         if (existing) {
             // Keep live progress/status and user metadata; refresh filesystem
@@ -109,7 +110,7 @@ void App::FinishImportJob() {
                 existing->videoHeight = item.videoHeight;
                 anyChanged = true;
             }
-        } else { newItems.push_back(item); }
+        } else { newItems.push_back(std::move(item)); }
     }
     if (!newItems.empty()) {
         library.mediaItems.insert(library.mediaItems.begin(), std::make_move_iterator(newItems.begin()),
@@ -119,18 +120,9 @@ void App::FinishImportJob() {
     library.RebuildPathIndex();
     library.InvalidatePlaylistStatsCache();
     if (anyChanged) { library.NotifyPlaylistChanged(); }
-    auto samePath = [](const std::wstring& a, const std::wstring& b) {
-        return CompareStringOrdinal(a.c_str(), -1, b.c_str(), -1, TRUE) == CSTR_EQUAL;
-    };
     if (!importTargetPlaylistId.empty() && !acceptedPaths.empty()) {
         if (Playlist* playlist = library.FindPlaylist(importTargetPlaylistId)) {
-            for (const auto& path : acceptedPaths) {
-                bool duplicate = false;
-                for (const auto& existing : playlist->itemPaths) {
-                    if (samePath(existing, path)) { duplicate = true; break; }
-                }
-                if (!duplicate) playlist->itemPaths.push_back(path);
-            }
+            PlaylistIO::AppendUniquePathsOrdinalIgnoreCase(playlist->itemPaths, acceptedPaths);
             library.NotifyPlaylistChanged();
         }
     }

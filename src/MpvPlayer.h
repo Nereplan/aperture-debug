@@ -307,6 +307,7 @@ private:
     typedef void (*pfn_mpv_free)(void*);
     typedef int (*pfn_mpv_observe_property)(mpv_handle*, uint64_t, const char*, mpv_format);
     typedef mpv_event* (*pfn_mpv_wait_event)(mpv_handle*, double);
+    typedef void (*pfn_mpv_wakeup)(mpv_handle*);
     typedef const char* (*pfn_mpv_error_string)(int);
     pfn_mpv_create fn_mpv_create = nullptr;
     pfn_mpv_initialize fn_mpv_initialize = nullptr;
@@ -323,6 +324,7 @@ private:
     pfn_mpv_free fn_mpv_free = nullptr;
     pfn_mpv_observe_property fn_mpv_observe_property = nullptr;
     pfn_mpv_wait_event fn_mpv_wait_event = nullptr;
+    pfn_mpv_wakeup fn_mpv_wakeup = nullptr;
     pfn_mpv_error_string fn_mpv_error_string = nullptr;
 };
 

@@ -63,6 +63,7 @@ public:
     const JsonValue& operator[](size_t index) const;
     void push_back(const JsonValue& item) { as_array().push_back(item); }
     void push_back(JsonValue&& item) { as_array().push_back(std::move(item)); }
+    void append_to(std::string& out, bool pretty = false, int indent = 0) const;
     std::string stringify(bool pretty = false, int indent = 0) const;
     static JsonValue parse(const std::string& jsonText);
     // Strict variant: returns false for malformed/truncated JSON. The legacy
@@ -73,7 +74,7 @@ private:
     // Only the active payload exists. Scalars no longer construct empty maps
     // and vectors; copies/moves retain ordinary owning value semantics.
     std::variant<std::monostate, bool, double, std::string, ArrayType, ObjectType> value;
-    void WriteJson(std::ostringstream& out, bool pretty, int indent) const;
+    void WriteJson(std::string& out, bool pretty, int indent) const;
 };
 
 } // namespace Aperture

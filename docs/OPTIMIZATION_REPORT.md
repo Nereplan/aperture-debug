@@ -95,6 +95,8 @@ The repository's checked-in visual goldens already fail against the original bin
 
 ## 9. Remaining high-impact opportunities
 
+The later [backend optimization report](BACKEND_OPTIMIZATION_REPORT.md) records the 1 October follow-up, including faster full-library saves, batch playlist membership, cache writes and event-driven player waits.
+
 - Avoid full-library serialization during periodic progress saves. At 25,000 entries it still costs about 453 ms. A safe design must account for public record mutation, preserve unknown fields/atomic recovery, and drain any asynchronous writer on shutdown.
 - The follow-up libmpv rebuild is now integrated; see [LIBMPV_INTEGRATION_REPORT.md](LIBMPV_INTEGRATION_REPORT.md) for its separate measurements and playback validation. The earlier results above describe the application-only optimization stage.
 - Add actual decoder/present timestamps and GPU frame tracing to measure video-first-frame latency and pacing across H.264/HEVC/AV1, 4K, subtitles and hardware/software decoding. Present quality should drive further pipeline changes.

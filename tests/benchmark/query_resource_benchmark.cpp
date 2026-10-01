@@ -40,6 +40,9 @@ void operator delete[](void* ptr, size_t) noexcept { ::operator delete(ptr); }
 
 int main() {
     using namespace Aperture;
+    DWORD_PTR processMask = 0, systemMask = 0;
+    if (GetProcessAffinityMask(GetCurrentProcess(), &processMask, &systemMask))
+        SetProcessAffinityMask(GetCurrentProcess(), processMask & (~processMask + 1));
     MediaLibrary library;
     library.mediaItems.reserve(25000);
     for (int i = 0; i < 25000; ++i) {
@@ -144,5 +147,50 @@ int main() {
         if (sample > 0) std::printf("8,%d,%.3f,%zu,%zu,%zu,%zu,0,%llu\n", sample,
             std::chrono::duration<double, std::milli>(end - start).count(),
             stats.calls, stats.bytes, stats.peak, supported, hash);
+    }
+    // Mode 9 includes cold index construction, independently of warm ranking.
+    for (int sample = 0; sample < 8; ++sample) {
+        GlobalSearchIndex coldIndex;
+        if (stats.live != 0) return 2;
+        stats = {};
+        measuring = sample > 0;
+        const auto start = std::chrono::steady_clock::now();
+        coldIndex.RebuildIndex(library);
+        const auto end = std::chrono::steady_clock::now();
+        measuring = false;
+        const auto measured = stats;
+        GlobalSearchQueryOptions options;
+        options.maxResults = 50;
+        options.checkFileExists = false;
+        size_t total = 0;
+        const auto results = coldIndex.Query(library, L"series", options, total);
+        uint64_t hash = 14695981039346656037ull;
+        for (const auto& item : results) for (wchar_t c : item.filePath) { hash ^= c; hash *= 1099511628211ull; }
+        if (sample > 0) std::printf("9,%d,%.3f,%zu,%zu,%zu,%zu,%zu,%llu\n", sample,
+            std::chrono::duration<double, std::milli>(end - start).count(),
+            measured.calls, measured.bytes, measured.peak, results.size(), total, hash);
+    }
+    // Multi-token and rejected searches cover the per-candidate scoring paths.
+    int workload = 10;
+    for (const wchar_t* query : {L"series benchmark", L"series s01e1", L"absent query"}) {
+        for (int sample = 0; sample < 8; ++sample) {
+            GlobalSearchQueryOptions options;
+            options.maxResults = 50;
+            options.checkFileExists = false;
+            if (stats.live != 0) return 2;
+            stats = {};
+            measuring = sample > 0;
+            size_t total = 0;
+            const auto start = std::chrono::steady_clock::now();
+            const auto results = index.Query(library, query, options, total);
+            const auto end = std::chrono::steady_clock::now();
+            measuring = false;
+            uint64_t hash = 14695981039346656037ull;
+            for (const auto& item : results) for (wchar_t c : item.filePath) { hash ^= c; hash *= 1099511628211ull; }
+            if (sample > 0) std::printf("%d,%d,%.3f,%zu,%zu,%zu,%zu,%zu,%llu\n", workload, sample,
+                std::chrono::duration<double, std::milli>(end - start).count(),
+                stats.calls, stats.bytes, stats.peak, results.size(), total, hash);
+        }
+        ++workload;
     }
 }

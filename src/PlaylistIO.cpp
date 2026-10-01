@@ -172,6 +172,77 @@ std::wstring PlaylistIO::ResolveEntryLocation(const std::wstring &entryPath, con
     return norm;
 }
 
+size_t PlaylistIO::AppendUniquePathsOrdinalIgnoreCase(std::vector<std::wstring>& existing,
+    const std::vector<std::wstring>& candidates) {
+    if (candidates.empty()) return 0;
+
+    // Small drops need only a few linear passes; sorting a large existing
+    // playlist would cost more than those passes.
+    if (candidates.size() <= 8) {
+        size_t added = 0;
+        for (const auto& path : candidates) {
+            const bool duplicate = std::any_of(existing.begin(), existing.end(), [&](const auto& item) {
+                return CompareStringOrdinal(item.c_str(), -1, path.c_str(), -1, TRUE) == CSTR_EQUAL;
+            });
+            if (!duplicate) { existing.push_back(path); ++added; }
+        }
+        return added;
+    }
+
+    // Sort index arrays instead of copying path strings. This changes the
+    // membership work from one full scan per imported path to two sorts and
+    // a merge while preserving CompareStringOrdinal's path equality semantics.
+    std::vector<size_t> existingOrder(existing.size());
+    for (size_t i = 0; i < existingOrder.size(); ++i) existingOrder[i] = i;
+    std::vector<size_t> candidateOrder(candidates.size());
+    for (size_t i = 0; i < candidateOrder.size(); ++i) candidateOrder[i] = i;
+
+    auto compare = [](const std::wstring& a, const std::wstring& b) {
+        return CompareStringOrdinal(a.c_str(), -1, b.c_str(), -1, TRUE);
+    };
+    std::sort(existingOrder.begin(), existingOrder.end(), [&](size_t a, size_t b) {
+        return compare(existing[a], existing[b]) == CSTR_LESS_THAN;
+    });
+    std::sort(candidateOrder.begin(), candidateOrder.end(), [&](size_t a, size_t b) {
+        return compare(candidates[a], candidates[b]) == CSTR_LESS_THAN;
+    });
+
+    auto skipEqualGroup = [&](const std::vector<size_t>& order, size_t at, const auto& paths) {
+        size_t next = at + 1;
+        while (next < order.size() && compare(paths[order[at]], paths[order[next]]) == CSTR_EQUAL) ++next;
+        return next;
+    };
+
+    std::vector<size_t> additions;
+    additions.reserve(candidates.size());
+    size_t existingAt = 0;
+    size_t candidateAt = 0;
+    while (candidateAt < candidateOrder.size()) {
+        const size_t candidateGroupEnd = skipEqualGroup(candidateOrder, candidateAt, candidates);
+        // Advance existing groups within this candidate iteration so a large
+        // candidate duplicate group is classified only once.
+        while (existingAt < existingOrder.size() &&
+               compare(existing[existingOrder[existingAt]], candidates[candidateOrder[candidateAt]]) == CSTR_LESS_THAN) {
+            existingAt = skipEqualGroup(existingOrder, existingAt, existing);
+        }
+        if (existingAt == existingOrder.size() ||
+            compare(existing[existingOrder[existingAt]], candidates[candidateOrder[candidateAt]]) == CSTR_GREATER_THAN) {
+            size_t first = candidateOrder[candidateAt];
+            for (size_t i = candidateAt + 1; i < candidateGroupEnd; ++i) first = std::min(first, candidateOrder[i]);
+            additions.push_back(first);
+        } else {
+            existingAt = skipEqualGroup(existingOrder, existingAt, existing);
+        }
+        candidateAt = candidateGroupEnd;
+    }
+
+    // Keep first-seen import order for newly appended paths.
+    std::sort(additions.begin(), additions.end());
+    existing.reserve(existing.size() + additions.size());
+    for (size_t index : additions) existing.push_back(candidates[index]);
+    return additions.size();
+}
+
 std::wstring PlaylistIO::MakeRelativePathWhereSafe(const std::wstring &fullPath, const std::wstring &baseDir) {
     if (fullPath.empty()) return L"";
     if (IsUrl(fullPath)) return fullPath;

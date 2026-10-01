@@ -34,6 +34,7 @@
 #include "TestRtlComplexScripts.h"
 #include "TestDeferredServices.h"
 #include "TestLibrarySnapshot.h"
+#include "TestPlaylistIO.h"
 #include "TestFolderOperations.h"
 #include <windows.h>
 #include <iostream>

@@ -177,6 +177,32 @@ static void SaveArrayWorkflow() {
     const auto unchanged = library.Save();
     Check(unchanged.is_ok() && !unchanged.librarySaved && !unchanged.playlistsSaved && !unchanged.historySaved,
           "Unchanged arrays must not be rewritten");
+    // Compare the scalar fast path with the general unknown-field overlay
+    // path. Optional probe/identity fields, Unicode and escaping must agree.
+    library.mediaItems.resize(1);
+    auto& scalar = library.mediaItems.front();
+    scalar.fileIndex = UINT64_C(0xfedcba9876543210);
+    scalar.volumeSerialNumber = UINT32_MAX;
+    scalar.fileSizeBytes = UINT64_C(9007199254740992);
+    scalar.addedTimestamp = 123;
+    scalar.durationSec = 1.23456789;
+    scalar.lastPosSec = -0.0;
+    scalar.lastProbeAttemptTimestamp = 456;
+    scalar.lastWatchedTimestamp = 789;
+    scalar.metadataProbeFailed = true;
+    scalar.probeAttemptCount = 3;
+    scalar.videoHeight = 1080;
+    scalar.videoWidth = 1920;
+    scalar.status = "quote\"\tcontrol\x01";
+    Check(library.Save().is_ok(), "Scalar record save failed");
+    const auto scalarBytes = readStore(L"library");
+    scalar.extraFields["futureMarker"] = true;
+    Check(library.Save().is_ok(), "Overlay record save failed");
+    JsonValue overlay;
+    Check(JsonValue::parse(readStore(L"library"), overlay), "Overlay record JSON invalid");
+    Check(overlay[0].get("futureMarker").as_bool(), "Unknown field lost");
+    overlay[0].as_object().erase("futureMarker");
+    Check(overlay.stringify() == scalarBytes, "Scalar and overlay paths changed wire format");
     library.mediaItems.clear();
     Check(library.Save().is_ok() && readStore(L"library") == "[]", "Cleared array retained old records");
 }
