@@ -1408,22 +1408,26 @@ void UIComponents::DrawSettingsView(Renderer& r, const Settings& s, const Settin
             D2D1_RECT_F bRect = D2D1::RectF(contentBounds.left + padX, contentY + i * (bCardH + 10.0f * dp), contentBounds.right - padX, contentY + i * (bCardH + 10.0f * dp) + bCardH);
             bool isKbFocused = showContentKbFocus && (vm.keyboardFocusedRow == i);
             bool isPressed = vm.pressState.IsSystemActionPressed(i);
-            bool isHover = !isPressed && !isKbFocused && pointerIn(bRect);
+            // Hover comes from the tracked pointer row (same hit map as mouse-down), while the
+            // eased per-row progress supplies the transition so feedback never snaps.
+            const float hoverProg = std::clamp(vm.systemRowHoverProg[i], 0.0f, 1.0f);
+            const float pressProg = std::clamp(vm.systemRowPressProg[i], 0.0f, 1.0f);
+            const bool danger = btns[i].isDanger;
+            // Danger rows warm toward red on hover; regular rows use the shared hover wash.
+            const D2D1_COLOR_F hoverTint = danger ? ColorWithAlpha(dangerCol, 0.10f) : surfaceHover;
             SurfaceStyle bStyle = makeFlatSurface();
-            if (isPressed) {
-                if (btns[i].isDanger) {
-                    bStyle.fill = ColorWithAlpha(dangerCol, 0.28f);
-                    bStyle.border = dangerCol;
-                    bStyle.borderWidth = 1.5f;
-                } else { bStyle.fill = ColorWithAlpha(accentCol, 0.22f); bStyle.border = accentCol; bStyle.borderWidth = 1.5f; }
-            } else if (btns[i].isDanger) {
-                bStyle.fill = isKbFocused ? ColorWithAlpha(dangerCol, 0.16f) : (isHover ? surfaceHover : clearColor);
-                bStyle.border = isKbFocused ? dangerCol : clearColor;
-                bStyle.borderWidth = isKbFocused ? 2.0f : 0.0f;
-            } else {
-                bStyle.fill = isKbFocused ? surfaceSelected : (isHover ? surfaceHover : clearColor);
-                bStyle.border = isKbFocused ? accentCol : clearColor;
-                bStyle.borderWidth = isKbFocused ? 2.0f : 0.0f;
+            bStyle.fill = LerpColor(clearColor, hoverTint, hoverProg);
+            bStyle.border = clearColor;
+            bStyle.borderWidth = 0.0f;
+            if (isKbFocused) {
+                bStyle.fill = danger ? ColorWithAlpha(dangerCol, 0.16f) : surfaceSelected;
+                bStyle.border = danger ? dangerCol : accentCol;
+                bStyle.borderWidth = 2.0f;
+            } else if (isPressed || pressProg > 0.001f) {
+                const D2D1_COLOR_F pressFill = danger ? ColorWithAlpha(dangerCol, 0.28f) : ColorWithAlpha(accentCol, 0.22f);
+                bStyle.fill = LerpColor(bStyle.fill, pressFill, pressProg);
+                bStyle.border = LerpColor(bStyle.border, danger ? dangerCol : accentCol, pressProg);
+                bStyle.borderWidth = 1.5f * pressProg;
             }
             r.DrawSurface(bRect, bStyle);
             if (i < SettingsLayout::kSystemRowCount - 1) {
@@ -1432,28 +1436,43 @@ void UIComponents::DrawSettingsView(Renderer& r, const Settings& s, const Settin
             }
             D2D1_RECT_F titleRect = D2D1::RectF(bRect.left + 16.0f * dp, bRect.top + 10.0f * dp, bRect.right - 130.0f * dp, bRect.top + 30.0f * dp);
             D2D1_RECT_F descRect = D2D1::RectF(bRect.left + 16.0f * dp, bRect.top + 31.0f * dp, bRect.right - 130.0f * dp, bRect.bottom - 8.0f * dp);
-            D2D1_COLOR_F titleCol = btns[i].isDanger ? dangerCol : (isKbFocused ? textPri : textNorm);
+            D2D1_COLOR_F titleCol;
+            if (danger) titleCol = dangerCol;
+            else if (isKbFocused) titleCol = textPri;
+            else titleCol = LerpColor(textNorm, textPri, hoverProg);
             r.DrawString(btns[i].label, titleRect, titleCol, FontType::Medium, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
             r.DrawString(btns[i].desc, descRect, textMute, FontType::Small, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-            // Right-aligned action badge
+            // Right-aligned action badge. It carries the hit reaction: brightens with the
+            // row hover and springs down ~5% while the row is pressed.
             float actW = 110.0f * dp, actH = 28.0f * dp;
-            D2D1_RECT_F actRect = D2D1::RectF(bRect.right - actW - 14.0f * dp, bRect.top + (bCardH - actH) * 0.5f, bRect.right - 14.0f * dp, bRect.top + (bCardH + actH) * 0.5f);
+            const float actScale = 1.0f - 0.05f * pressProg;
+            const float actCX = bRect.right - actW * 0.5f - 14.0f * dp, actCY = bRect.top + bCardH * 0.5f;
+            D2D1_RECT_F actRect = D2D1::RectF(actCX - actW * 0.5f * actScale, actCY - actH * 0.5f * actScale,
+                                              actCX + actW * 0.5f * actScale, actCY + actH * 0.5f * actScale);
             D2D1_COLOR_F actBg;
             D2D1_COLOR_F actBorder;
             D2D1_COLOR_F actText;
-            if (isPressed) {
-                if (btns[i].isDanger) {
-                    actBg = ColorWithAlpha(dangerCol, 0.45f);
-                    actBorder = dangerCol;
-                    actText = D2D1::ColorF(1.0f, 1.0f, 1.0f);
-                } else { actBg = accentCol; actBorder = accentCol; actText = surfaceBg; }
-            } else if (btns[i].isDanger) { actBg = ColorWithAlpha(dangerCol, 0.15f); actBorder = dangerBorder; actText = dangerCol; } else {
-                actBg = isKbFocused ? accentCol : surfaceBg;
-                actBorder = isKbFocused ? accentCol : surfaceBorder;
-                actText = isKbFocused ? surfaceBg : textNorm;
+            if (danger) {
+                actBg = LerpColor(ColorWithAlpha(dangerCol, 0.15f), ColorWithAlpha(dangerCol, 0.24f), hoverProg);
+                actBorder = LerpColor(dangerBorder, dangerCol, hoverProg);
+                actText = dangerCol;
+                if (pressProg > 0.001f) {
+                    actBg = LerpColor(actBg, ColorWithAlpha(dangerCol, 0.45f), pressProg);
+                    actText = LerpColor(actText, D2D1::ColorF(1.0f, 1.0f, 1.0f), pressProg);
+                }
+            } else {
+                actBg = LerpColor(surfaceBg, ColorWithAlpha(accentCol, 0.16f), hoverProg);
+                actBorder = LerpColor(surfaceBorder, ColorWithAlpha(accentCol, 0.55f), hoverProg);
+                actText = LerpColor(textNorm, textPri, hoverProg);
+                if (pressProg > 0.001f) {
+                    actBg = LerpColor(actBg, accentCol, pressProg);
+                    actText = LerpColor(actText, surfaceBg, pressProg);
+                }
             }
-            r.FillRoundedRect(actRect, 6.0f * dp, actBg);
-            r.DrawRoundedRect(actRect, 6.0f * dp, actBorder, 1.0f);
+            if (isKbFocused) { actBg = accentCol; actBorder = accentCol; actText = surfaceBg; }
+            else if (isPressed) { actBorder = danger ? dangerCol : accentCol; }
+            r.FillRoundedRect(actRect, 6.0f * dp * actScale, actBg);
+            r.DrawRoundedRect(actRect, 6.0f * dp * actScale, actBorder, 1.0f);
             std::wstring btnTags[] = {
                 Loc::Tr("settings.system.btn.check_now"),
                 s.hoverPreviewEnabled ? Loc::Tr("settings.system.btn.enabled") : Loc::Tr("settings.system.btn.disabled"),

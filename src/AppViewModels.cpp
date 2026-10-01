@@ -1007,6 +1007,10 @@ HubRenderViewModel App::BuildHubRenderViewModel() {
             vm.settingsTab.pressState = settingsPressState;
             vm.settingsTab.mouseX = hubMouseX;
             vm.settingsTab.mouseY = hubMouseY;
+            for (int i = 0; i < SettingsLayout::kSystemRowCount; ++i) {
+                vm.settingsTab.systemRowHoverProg[i] = systemRowHoverAnim[i].current;
+                vm.settingsTab.systemRowPressProg[i] = systemRowPressAnim[i].current;
+            }
             break;
         }
     }

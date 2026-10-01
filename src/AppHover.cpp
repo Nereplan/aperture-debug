@@ -214,6 +214,23 @@ bool App::UpdateHoverStates(float mouseX, float mouseY) {
 }
 
 
+int App::HitTestSystemSettingsRow(const D2D1_RECT_F& contentBounds, float contentY, float x, float y) {
+    // Mirrors the System page renderer: action rows start kSystemActionsTop below the
+    // page-header origin and repeat at 58 + 10 DIP. Pointer, mouse-down, and wheel
+    // scrolling all share this so the drawn hover can never drift from the hit target.
+    const float dp = renderer.GetDpiScale();
+    const float padX = SettingsLayout::kContentPadX * dp;
+    if (x < contentBounds.left + padX || x > contentBounds.right - padX) return -1;
+    const float rowH = 58.0f * dp, rowGap = 10.0f * dp;
+    const float relY = y - (contentY + SettingsLayout::kSystemActionsTop * dp);
+    if (relY < 0.0f) return -1;
+    const float pitch = rowH + rowGap;
+    const int idx = static_cast<int>(relY / pitch);
+    if (idx >= SettingsLayout::kSystemRowCount || relY - idx * pitch > rowH) return -1;
+    return idx;
+}
+
+
 void App::RefreshHubHitTargets(float mouseX, float mouseY) {
     if (!hWnd || playbackSession.IsOpen()) return;
     // WM_MOUSEMOVE owns the complete hub hit map (nav, cards, rails, settings, menus). Re-run it synchronously for the input event itself

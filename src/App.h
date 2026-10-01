@@ -27,6 +27,7 @@
 #include "IpcProtocol.h"
 #include "Updater.h"
 #include "TouchInput.h"
+#include "SettingsLayout.h"
 #include <memory>
 #include <atomic>
 #include <deque>
@@ -525,6 +526,10 @@ private:
     AnimatedFloat hwAccelToggleAnim;
     AnimatedFloat loopToggleAnim;
     AnimatedFloat customMpvConfigToggleAnim;
+    // System & Storage rows: per-row hover/press progress so feedback eases
+    // in and out instead of snapping between two flat states.
+    AnimatedFloat systemRowHoverAnim[SettingsLayout::kSystemRowCount];
+    AnimatedFloat systemRowPressAnim[SettingsLayout::kSystemRowCount];
     void HandleItemSelection(FocusPane pane, size_t index, bool isShift, bool isCtrl, size_t totalCount);
     void SelectAllInCurrentPane();
     void ClearSelectionInCurrentPane();
@@ -817,6 +822,7 @@ private:
     void InvalidateMediaLayoutCache(size_t fromIndex = 0);
     std::pair<size_t, size_t> GetVisibleMediaRowRange(float scrollYDIP, float viewportHDIP, size_t totalCount, int overscan = 2);
     int HitTestMediaRow(float yDIP, size_t totalCount);
+    int HitTestSystemSettingsRow(const D2D1_RECT_F& contentBounds, float contentY, float x, float y);
     int HitTestMediaGroupHeader(float yDIP, size_t groupCount);
     float GetMediaRowTopDIP(size_t index);
     float GetMediaRowHeightDIP(size_t index);

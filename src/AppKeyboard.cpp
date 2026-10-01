@@ -1116,7 +1116,7 @@ bool App::HandleGlobalKeyDown(WPARAM wParam, LPARAM lParam) {
                     if (curCatIdx <= 0) {
                         activeFocusPane = FocusPane::TopNavBar;
                         topNavFocusedIndex = 3;
-                    } else { currentSettingsCat = cats[curCatIdx - 1]; keyboardFocusedIndex = curCatIdx - 1; settingsScrollY = 0.0f; }
+                    } else { currentSettingsCat = cats[curCatIdx - 1]; keyboardFocusedIndex = curCatIdx - 1; settingsScrollY = 0.0f; hoveredSettingsRow = -1; }
                     InvalidateRect(hWnd, NULL, FALSE);
                     return true;
                 }
@@ -1125,7 +1125,7 @@ bool App::HandleGlobalKeyDown(WPARAM wParam, LPARAM lParam) {
                         activeFocusPane = FocusPane::SettingsContent;
                         keyboardFocusedIndex = 0;
                         keyboardFocusedSubIndex = 0;
-                    } else { currentSettingsCat = cats[curCatIdx + 1]; keyboardFocusedIndex = curCatIdx + 1; settingsScrollY = 0.0f; }
+                    } else { currentSettingsCat = cats[curCatIdx + 1]; keyboardFocusedIndex = curCatIdx + 1; settingsScrollY = 0.0f; hoveredSettingsRow = -1; }
                     InvalidateRect(hWnd, NULL, FALSE);
                     return true;
                 }

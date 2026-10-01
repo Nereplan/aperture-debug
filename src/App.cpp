@@ -420,6 +420,7 @@ void App::RestoreLogicalFocus(const FocusSnapshot& snapshot) {
         case FocusPane::SettingsCategoryList: {
             keyboardFocusedIndex = std::clamp(snapshot.keyboardIndex, 0, 7);
             currentSettingsCat = static_cast<SettingsCategory>(keyboardFocusedIndex);
+            hoveredSettingsRow = -1;
             targetAccessibilityId = 500 + keyboardFocusedIndex;
             break;
         }
@@ -546,6 +547,8 @@ void App::SnapVisualAnimations() {
     hwAccelToggleAnim.SnapTo(hwAccelToggleAnim.to);
     loopToggleAnim.SnapTo(loopToggleAnim.to);
     customMpvConfigToggleAnim.SnapTo(customMpvConfigToggleAnim.to);
+    for (auto& anim : systemRowHoverAnim) anim.SnapTo(anim.to);
+    for (auto& anim : systemRowPressAnim) anim.SnapTo(anim.to);
     jumpAheadAnim.SnapTo(jumpAheadAnim.to);
     for (auto& pair : playlistCardExpands) {
         pair.second.SnapTo(pair.second.to);
@@ -1432,6 +1435,22 @@ bool App::Update(float dt) {
         if (hwAccelToggleAnim.Tick()) needsRedraw = true;
         if (loopToggleAnim.Tick()) needsRedraw = true;
         if (customMpvConfigToggleAnim.Tick()) needsRedraw = true;
+        // System & Storage rows ease toward their hover/press targets here; the
+        // pressed flag itself flips inside the mouse handlers.
+        for (int i = 0; i < SettingsLayout::kSystemRowCount; ++i) {
+            const float hoverTarget = (currentTab == TabView::Settings &&
+                                       currentSettingsCat == SettingsCategory::System &&
+                                       hoveredSettingsRow == i) ? 1.0f : 0.0f;
+            if (std::abs(systemRowHoverAnim[i].to - hoverTarget) > 0.001f) {
+                AnimateVisual(systemRowHoverAnim[i], hoverTarget, MotionTokens::kFast, MotionTokens::Standard());
+            }
+            if (systemRowHoverAnim[i].Tick()) needsRedraw = true;
+            const float pressTarget = settingsPressState.IsSystemActionPressed(i) ? 1.0f : 0.0f;
+            if (std::abs(systemRowPressAnim[i].to - pressTarget) > 0.001f) {
+                AnimateVisual(systemRowPressAnim[i], pressTarget, MotionTokens::kFast, MotionTokens::Spring());
+            }
+            if (systemRowPressAnim[i].Tick()) needsRedraw = true;
+        }
     }
     // Non-blocking notification timer. Notifications from the same channel
     // coalesce in ShowOSD; distinct notifications are presented in order.
@@ -2071,7 +2090,27 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                 }
                 else if (currentTab == TabView::History) {
                     historyScrollY = std::max(0.0f, historyScrollY - scrollDelta);
-                } else if (currentTab == TabView::Settings) { settingsScrollY = std::max(0.0f, settingsScrollY - scrollDelta); }
+                } else if (currentTab == TabView::Settings) {
+                    settingsScrollY = std::max(0.0f, settingsScrollY - scrollDelta);
+                    if (currentSettingsCat == SettingsCategory::System) {
+                        // Rows move under a stationary cursor while scrolling; re-resolve the
+                        // hovered row here so the highlight never trails the list.
+                        POINT wheelPt{ GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
+                        ScreenToClient(hWnd, &wheelPt);
+                        RECT wheelRc;
+                        GetClientRect(hWnd, &wheelRc);
+                        const float wx = (float)wheelPt.x, wy = (float)wheelPt.y;
+                        const float dp = renderer.GetDpiScale();
+                        const float winWw = (float)(wheelRc.right - wheelRc.left), winHw = (float)(wheelRc.bottom - wheelRc.top);
+                        const float wheelPad = 18.0f * dp, wheelPadY = 14.0f * dp;
+                        D2D1_RECT_F viewBoundsW = D2D1::RectF(wheelPad, 84.0f * dp, std::max(wheelPad + 1.0f * dp, winWw - wheelPad), std::max(85.0f * dp, winHw - wheelPadY));
+                        D2D1_RECT_F contentBoundsW = D2D1::RectF(viewBoundsW.left + SettingsLayout::kSidebarWidth * dp + 16.0f * dp,
+                            viewBoundsW.top, viewBoundsW.right, viewBoundsW.bottom);
+                        const float contentYW = contentBoundsW.top +
+                            (SettingsLayout::kContentStartOffset + SettingsLayout::kPageHeaderReserve) * dp - settingsScrollY;
+                        hoveredSettingsRow = HitTestSystemSettingsRow(contentBoundsW, contentYW, wx, wy);
+                    }
+                }
                 ClampScrollOffsets();
                 InvalidateRect(hWnd, NULL, FALSE);
             }
@@ -2118,6 +2157,7 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
             const int oldHoveredHistoryIndex = hoveredHistoryIndex, oldHoveredHistoryDeleteIndex = hoveredHistoryDeleteIndex;
             const int oldHoveredHistoryEmptyBtn = hoveredHistoryEmptyBtn;
             const SettingsCategory oldHoveredSettingsCat = hoveredSettingsCat;
+            const int oldHoveredSettingsRow = hoveredSettingsRow;
             const int oldHoveredShortcutIndex = hoveredShortcutIndex;
             const bool oldResetShortcutsHovered = isResetShortcutsHovered;
             const int oldHoveredContextMenuItem = hoveredContextMenuItem;
@@ -2487,6 +2527,7 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                     float sideW = SettingsLayout::kSidebarWidth * dp, catH = SettingsLayout::kSidebarItemHeight * dp;
                     float curCatY = viewBounds.top + SettingsLayout::kSidebarTopInset * dp;
                     hoveredSettingsCat = (SettingsCategory)-1;
+                    hoveredSettingsRow = -1;
                     hoveredShortcutIndex = -1;
                     isResetShortcutsHovered = false;
                     SettingsCategory settingsHoverCats[] = {SettingsCategory::Appearance, SettingsCategory::Playback,
@@ -2504,7 +2545,11 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                         ? SettingsLayout::kSubtitlePageHeaderReserve : SettingsLayout::kPageHeaderReserve;
                     float contentY = contentBounds.top + (SettingsLayout::kContentStartOffset + headerReserve) * dp - settingsScrollY;
                     float contentW = RectWidth(contentBounds) - padX * 2.0f;
-                    if (currentSettingsCat == SettingsCategory::Shortcuts) {
+                    if (currentSettingsCat == SettingsCategory::System) {
+                        // The System rows resolve hover from tracked state (not at draw time),
+                        // so crossing between rows here must mark hover as changed and repaint.
+                        hoveredSettingsRow = HitTestSystemSettingsRow(contentBounds, contentY, x, y);
+                    } else if (currentSettingsCat == SettingsCategory::Shortcuts) {
                         float resetW = 150.0f * dp, resetH = 26.0f * dp;
                         const float pageHeaderTop = contentY - SettingsLayout::kPageHeaderReserve * dp;
                         D2D1_RECT_F resetRect = D2D1::RectF(contentBounds.right - padX - resetW, pageHeaderTop - 2.0f * dp, contentBounds.right - padX, pageHeaderTop - 2.0f * dp + resetH);
@@ -2564,6 +2609,7 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                 oldPlaylistResumeHovered != isPlaylistResumeHovered || oldClearHistoryHovered != isClearHistoryHovered ||
                 oldHoveredHistoryIndex != hoveredHistoryIndex || oldHoveredHistoryDeleteIndex != hoveredHistoryDeleteIndex ||
                 oldHoveredHistoryEmptyBtn != hoveredHistoryEmptyBtn || oldHoveredSettingsCat != hoveredSettingsCat ||
+                oldHoveredSettingsRow != hoveredSettingsRow ||
                 oldHoveredShortcutIndex != hoveredShortcutIndex || oldResetShortcutsHovered != isResetShortcutsHovered ||
                 oldHoveredContextMenuItem != hoveredContextMenuItem;
             if (hoverChanged) InvalidateRect(hWnd, NULL, FALSE);
@@ -3458,17 +3504,12 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                             }
                         }
                     } else if (currentSettingsCat == SettingsCategory::System) {
-                        float aboutCardH = SettingsLayout::kSystemAboutHeight * dp;
-                        contentY += 28.0f * dp + aboutCardH + 18.0f * dp + 28.0f * dp;
-                        float bCardH = 58.0f * dp;
-                        for (int i = 0; i < SettingsLayout::kSystemRowCount; ++i) {
-                            D2D1_RECT_F bRect = D2D1::RectF(contentBounds.left + padX, contentY + i * (bCardH + 10.0f * dp), contentBounds.right - padX, contentY + i * (bCardH + 10.0f * dp) + bCardH);
-                            if (PtInRectF(bRect, x, y)) {
-                                settingsPressState = { SettingsPressState::Target::SystemAction, i, -1 };
-                                SetCapture(hWnd);
-                                InvalidateRect(hWnd, NULL, FALSE);
-                                return 0;
-                            }
+                        const int pressedRow = HitTestSystemSettingsRow(contentBounds, contentY, x, y);
+                        if (pressedRow >= 0) {
+                            settingsPressState = { SettingsPressState::Target::SystemAction, pressedRow, -1 };
+                            SetCapture(hWnd);
+                            InvalidateRect(hWnd, NULL, FALSE);
+                            return 0;
                         }
                     }
                 }
@@ -3633,6 +3674,7 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                     if (pressed.index >= 0 && pressed.index < 5) {
                         currentSettingsCat = cats[pressed.index];
                         settingsScrollY = 0.0f;
+                        hoveredSettingsRow = -1;
                         activeFocusPane = FocusPane::SettingsCategoryList;
                         keyboardFocusedIndex = pressed.index;
                     }
@@ -4692,6 +4734,7 @@ void App::SetSettingsCategory(SettingsCategory cat) {
     currentSettingsCat = cat;
     currentTab = TabView::Settings;
     settingsScrollY = 0.0f;
+    hoveredSettingsRow = -1;
     if (hWnd) InvalidateRect(hWnd, NULL, FALSE);
 }
 
