@@ -3,6 +3,7 @@
 #include "Common.h"
 #include "Settings.h"
 #include "Renderer.h"
+#include "OverlayFramePacer.h"
 #include <string>
 #include <memory>
 #include <map>
@@ -23,8 +24,27 @@ public:
     void CreateFonts(const std::wstring& customFamily = L"");
     void UpdateFontFamily(const std::string& familyName);
     void SetTextScale(float scale);
+    // All playback renders, including input-driven renders, coalesce at the
+    // current monitor rate. The timer wakes the UI loop for a pending frame.
+    bool BeginFrame(HWND hOverlayWnd);
+    void RequestRedraw() { framePacer.Request(); }
+    bool HasPendingFrame() const { return framePacer.HasPendingFrame(); }
+    bool IsFrameDue() const;
+    DWORD GetFrameWaitMs() const;
+    HANDLE GetFrameLatencyWaitableObject() const { return frameTimer; }
+    bool ShouldRefreshPlayback(bool continuousVisual, std::wstring_view subtitleText) {
+        return framePacer.PlaybackContentChanged(continuousVisual, subtitleText);
+    }
+    struct FrameStatistics {
+        uint64_t framesDrawn = 0, framesPresented = 0, presentationFailures = 0;
+        double drawMilliseconds = 0.0, presentMilliseconds = 0.0;
+        double refreshRate = 60.0;
+        double displayRefreshRate = 60.0;
+        uint64_t surfaceBytes = 0;
+    };
+    FrameStatistics GetFrameStatistics() const;
     void BeginDraw();
-    void EndDrawAndPresent(HWND hOverlayWnd, int screenX, int screenY);
+    bool EndDrawAndPresent(HWND hOverlayWnd, int screenX, int screenY);
     float GetDpiScale() const { return dpiScale; }
     // Direct2D Drawing Primitives
     void Clear(const D2D1_COLOR_F& color = D2D1::ColorF(0, 0, 0, 0));
@@ -67,6 +87,14 @@ private:
     HBITMAP hOldBitmap = NULL;
     void* pBitmapBits = nullptr;
     HWND overlayWindow = NULL;
+    HANDLE frameTimer = NULL;
+    OverlayFramePacer framePacer;
+    HMONITOR cadenceMonitor = NULL;
+    double nextCadenceCheckSeconds = 0.0;
+    double drawStartSeconds = 0.0;
+    FrameStatistics frameStatistics;
+    void RefreshCadence(HWND hOverlayWnd, double now);
+    void ArmFrameTimer(double now);
     ComPtr<ID2D1Factory1> d2dFactory;
     ComPtr<IDWriteRenderingParams3> textRenderingParams;
     ComPtr<ID2D1DCRenderTarget> dcRenderTarget;

@@ -1,0 +1,52 @@
+{
+  "legacy_controls": {
+    "wall_ms": 2021.886,
+    "cpu_ms": 921.875,
+    "frames": 65.0,
+    "frames_per_second": 32.137,
+    "draw_ms": 928.02,
+    "present_ms": 295.405,
+    "presentationFailures": 0,
+    "drawAndPresentMilliseconds": 1223.8429999999998
+  },
+  "paced_controls": {
+    "wall_ms": 2011.318,
+    "cpu_ms": 1296.875,
+    "frames": 112.0,
+    "frames_per_second": 55.685,
+    "draw_ms": 1528.43,
+    "present_ms": 449.166,
+    "presentationFailures": 0,
+    "drawAndPresentMilliseconds": 1985.5810000000001
+  },
+  "legacy_subtitle": {
+    "wall_ms": 2022.16,
+    "cpu_ms": 906.25,
+    "frames": 65.0,
+    "frames_per_second": 32.144,
+    "draw_ms": 912.611,
+    "present_ms": 276.853,
+    "presentationFailures": 0,
+    "drawAndPresentMilliseconds": 1189.464
+  },
+  "content_subtitle": {
+    "wall_ms": 2020.439,
+    "cpu_ms": 15.625,
+    "frames": 0.0,
+    "frames_per_second": 0.0,
+    "draw_ms": 0.0,
+    "present_ms": 0.0,
+    "presentationFailures": 0,
+    "drawAndPresentMilliseconds": 0.0
+  },
+  "hidden_controls": {
+    "wall_ms": 2013.983,
+    "cpu_ms": 0.0,
+    "frames": 0.0,
+    "frames_per_second": 0.0,
+    "draw_ms": 0.0,
+    "present_ms": 0.0,
+    "presentationFailures": 0,
+    "drawAndPresentMilliseconds": 0.0
+  }
+}

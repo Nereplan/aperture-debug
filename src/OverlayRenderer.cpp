@@ -15,6 +15,13 @@ inline D2D1_RECT_F SnapRect(const D2D1_RECT_F& rect) {
 }
 
 inline uint32_t QuantizeColor(float value) { return (uint32_t)std::lround(std::clamp(value, 0.0f, 1.0f) * 65535.0f); }
+
+double FrameClockSeconds() {
+    static const double frequency = [] { LARGE_INTEGER value{}; QueryPerformanceFrequency(&value); return static_cast<double>(value.QuadPart); }();
+    LARGE_INTEGER now{};
+    QueryPerformanceCounter(&now);
+    return static_cast<double>(now.QuadPart) / frequency;
+}
 }
 
 OverlayRenderer::OverlayRenderer() {}
@@ -23,6 +30,11 @@ OverlayRenderer::~OverlayRenderer() { Shutdown(); }
 
 void OverlayRenderer::Shutdown() {
     drawActive = false;
+    if (frameTimer) { CancelWaitableTimer(frameTimer); CloseHandle(frameTimer); frameTimer = NULL; }
+    framePacer.Reset();
+    cadenceMonitor = NULL;
+    nextCadenceCheckSeconds = 0.0;
+    frameStatistics = {};
     if (dcRenderTarget) { dcRenderTarget.Reset(); }
     if (hdcMem) { if (hOldBitmap) SelectObject(hdcMem, hOldBitmap); DeleteDC(hdcMem); hdcMem = NULL; }
     if (hBitmap) { DeleteObject(hBitmap); hBitmap = NULL; }
@@ -51,13 +63,71 @@ bool OverlayRenderer::Initialize(ID2D1Factory1* pFactory, IDWriteFactory* pDWrit
     if (!RecreateRenderTarget()) return false;
     CreateTextRenderingParams();
     CreateFonts();
+    // High-resolution timers avoid changing the process/global timer period.
+    // Older Windows versions retain a normal waitable-timer fallback.
+    frameTimer = CreateWaitableTimerExW(nullptr, nullptr, CREATE_WAITABLE_TIMER_HIGH_RESOLUTION, TIMER_MODIFY_STATE | SYNCHRONIZE);
+    if (!frameTimer) frameTimer = CreateWaitableTimerExW(nullptr, nullptr, 0, TIMER_MODIFY_STATE | SYNCHRONIZE);
     // Allocate the backing DIB for the size already recorded by Resize() calls that arrived before this lazy initialization.
     if (width > 0 && height > 0) { RecreateDIB(); }
     return true;
 }
 
+void OverlayRenderer::RefreshCadence(HWND hOverlayWnd, double now) {
+    HMONITOR monitor = MonitorFromWindow(hOverlayWnd, MONITOR_DEFAULTTONEAREST);
+    if (monitor == cadenceMonitor && now < nextCadenceCheckSeconds) return;
+    cadenceMonitor = monitor;
+    nextCadenceCheckSeconds = now + 1.0;
+    double refreshRate = 60.0;
+    MONITORINFOEXW info{};
+    info.cbSize = sizeof(info);
+    DEVMODEW mode{};
+    mode.dmSize = sizeof(mode);
+    if (monitor && GetMonitorInfoW(monitor, &info) && EnumDisplaySettingsW(info.szDevice, ENUM_CURRENT_SETTINGS, &mode)) {
+        if (mode.dmDisplayFrequency >= 20 && mode.dmDisplayFrequency <= 360) refreshRate = mode.dmDisplayFrequency;
+    }
+    frameStatistics.displayRefreshRate = refreshRate;
+    // Video retains mpv's independent presentation rate. Overlay controls and
+    // animations need at most 60 updates/sec even on a high-refresh monitor.
+    framePacer.SetRefreshRate(std::min(60.0, refreshRate));
+}
+
+void OverlayRenderer::ArmFrameTimer(double now) {
+    if (!frameTimer) return;
+    LARGE_INTEGER due{};
+    due.QuadPart = -std::max<LONGLONG>(1, static_cast<LONGLONG>(std::ceil(framePacer.SecondsUntilDeadline(now) * 10000000.0)));
+    if (!SetWaitableTimer(frameTimer, &due, 0, nullptr, nullptr, FALSE)) {
+        CloseHandle(frameTimer);
+        frameTimer = NULL; // The message-loop timeout remains a usable fallback.
+    }
+}
+
+bool OverlayRenderer::BeginFrame(HWND hOverlayWnd) {
+    const double now = FrameClockSeconds();
+    RefreshCadence(hOverlayWnd, now);
+    framePacer.Request();
+    if (!framePacer.IsDue(now)) { ArmFrameTimer(now); return false; }
+    framePacer.FrameStarted(now);
+    ArmFrameTimer(now);
+    return true;
+}
+
+bool OverlayRenderer::IsFrameDue() const { return framePacer.IsDue(FrameClockSeconds()); }
+
+DWORD OverlayRenderer::GetFrameWaitMs() const {
+    if (!framePacer.HasPendingFrame()) return 64;
+    return static_cast<DWORD>(std::clamp(std::ceil(framePacer.SecondsUntilDeadline(FrameClockSeconds()) * 1000.0), 1.0, 50.0));
+}
+
+OverlayRenderer::FrameStatistics OverlayRenderer::GetFrameStatistics() const {
+    auto result = frameStatistics;
+    result.refreshRate = framePacer.GetRefreshRate();
+    result.surfaceBytes = static_cast<uint64_t>(width) * height * 4;
+    return result;
+}
+
 void OverlayRenderer::CreateFonts(const std::wstring& customFamily) {
     if (!dwriteFactory) return;
+    framePacer.Request();
     selectedFontFamily = customFamily.empty() ? L"Inter" : customFamily;
     LoadCustomFontCollection();
     layoutCache.clear();
@@ -188,6 +258,7 @@ void OverlayRenderer::Resize(UINT w, UINT h) {
     if (w == width && h == height && hdcMem && hBitmap) return;
     width = w;
     height = h;
+    framePacer.Request();
     // Before the overlay is first initialized (lazy, at first playback) only
     // remember the requested size; the DIB is allocated by the init path.
     if (!d2dFactory) return;
@@ -222,6 +293,7 @@ void OverlayRenderer::BeginDraw() {
         if (width > 0 && height > 0 && d2dFactory) { RecreateDIB(); }
     }
     if (!hdcMem || !hBitmap || width == 0 || height == 0) return;
+    drawStartSeconds = FrameClockSeconds();
     RECT rc = { 0, 0, (LONG)width, (LONG)height };
     if (FAILED(dcRenderTarget->BindDC(hdcMem, &rc))) return;
     dcRenderTarget->BeginDraw();
@@ -232,25 +304,32 @@ void OverlayRenderer::BeginDraw() {
     dcRenderTarget->Clear(D2D1::ColorF(0, 0, 0, 0));
 }
 
-void OverlayRenderer::EndDrawAndPresent(HWND hOverlayWnd, int screenX, int screenY) {
-    if (!drawActive || !dcRenderTarget || !hdcMem || !hBitmap) return;
+bool OverlayRenderer::EndDrawAndPresent(HWND hOverlayWnd, int screenX, int screenY) {
+    if (!drawActive || !dcRenderTarget || !hdcMem || !hBitmap) { framePacer.Request(); return false; }
     overlayWindow = hOverlayWnd;
     HRESULT drawHr = dcRenderTarget->EndDraw();
     drawActive = false;
-    if (drawHr == D2DERR_RECREATE_TARGET) { RecreateRenderTarget(); return; }
+    ++frameStatistics.framesDrawn;
+    frameStatistics.drawMilliseconds += (FrameClockSeconds() - drawStartSeconds) * 1000.0;
+    if (drawHr == D2DERR_RECREATE_TARGET) { RecreateRenderTarget(); framePacer.Request(); return false; }
     if (FAILED(drawHr)) {
         // A DC render target has no DXGI swap chain, but driver resets can still invalidate it. Releasing/recreating the target also drops
         // all device-dependent brushes and gradient stops without touching the device-independent DirectWrite layouts.
         if (drawHr == D2DERR_RECREATE_TARGET || drawHr == D2DERR_OUTSTANDING_BITMAP_REFERENCES) { RecreateRenderTarget(); }
-        return;
+        framePacer.Request();
+        return false;
     }
-    HDC hdcScreen = GetDC(NULL);
     POINT ptDst = { screenX, screenY };
     SIZE sizeDst = { (LONG)width, (LONG)height };
     POINT ptSrc = { 0, 0 };
     BLENDFUNCTION blend = { AC_SRC_OVER, 0, 255, AC_SRC_ALPHA };
-    UpdateLayeredWindow( hOverlayWnd, hdcScreen, &ptDst, &sizeDst, hdcMem, &ptSrc, 0, &blend, ULW_ALPHA );
-    ReleaseDC(NULL, hdcScreen);
+    const double presentStart = FrameClockSeconds();
+    // A null destination DC uses the default palette, sufficient for the
+    // 32-bit BGRA DIB, and avoids a GetDC/ReleaseDC pair on every update.
+    const bool presented = UpdateLayeredWindow(hOverlayWnd, nullptr, &ptDst, &sizeDst, hdcMem, &ptSrc, 0, &blend, ULW_ALPHA) != FALSE;
+    frameStatistics.presentMilliseconds += (FrameClockSeconds() - presentStart) * 1000.0;
+    if (presented) ++frameStatistics.framesPresented;
+    else { ++frameStatistics.presentationFailures; framePacer.Request(); }
     // The overlay is a sibling layered window and does not receive the main window's WM_DPICHANGED path. Pick up monitor transitions here
     // so the next frame rebuilds fonts and target state at the correct scale.
     typedef UINT(WINAPI* GetDpiForWindowProc)(HWND);
@@ -262,6 +341,7 @@ void OverlayRenderer::EndDrawAndPresent(HWND hOverlayWnd, int screenX, int scree
         float nextScale = (float)getDpi(overlayWindow) / 96.0f;
         if (std::abs(nextScale - dpiScale) > 0.001f) SetDpi(nextScale);
     }
+    return presented;
 }
 
 void OverlayRenderer::Clear(const D2D1_COLOR_F& color) { if (dcRenderTarget) dcRenderTarget->Clear(color); }
