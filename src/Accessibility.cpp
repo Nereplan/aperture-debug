@@ -1033,10 +1033,10 @@ AccessibilityChildProvider::AccessibilityChildProvider(LONG childId, Accessibili
 
 AccessibilityChildProvider::~AccessibilityChildProvider() = default;
 
-void AccessibilityChildProvider::DetachTree() { std::lock_guard<std::mutex> lock(detachMutex_); tree_ = nullptr; }
+void AccessibilityChildProvider::DetachTree() { std::lock_guard<std::recursive_mutex> lock(detachMutex_); tree_ = nullptr; }
 
 bool AccessibilityChildProvider::GetNode(AccessibilityNode& outNode) const {
-    std::lock_guard<std::mutex> lock(detachMutex_);
+    std::lock_guard<std::recursive_mutex> lock(detachMutex_);
     if (!tree_) return false;
     return tree_->GetNodeCopy(childId_, outNode);
 }
@@ -1147,7 +1147,7 @@ HRESULT STDMETHODCALLTYPE AccessibilityChildProvider::GetPatternProvider(PATTERN
 
 SAFEARRAY* AccessibilityChildProvider::CreateProviderArrayForIds(const std::vector<LONG>& ids) const {
     if (ids.empty()) return nullptr;
-    std::lock_guard<std::mutex> lock(detachMutex_);
+    std::lock_guard<std::recursive_mutex> lock(detachMutex_);
     if (!tree_) return nullptr;
     std::lock_guard<std::mutex> treeLock(tree_->mutex_);
     std::vector<IRawElementProviderSimple*> providers;
@@ -1287,7 +1287,7 @@ HRESULT STDMETHODCALLTYPE AccessibilityChildProvider::GetPropertyValue(PROPERTYI
     // --- Semantic Relationships & Grouping Properties ---
     case UIA_LabeledByPropertyId: {
         if (node.labeledById > 0) {
-            std::lock_guard<std::mutex> lock(detachMutex_);
+            std::lock_guard<std::recursive_mutex> lock(detachMutex_);
             if (tree_) {
                 std::lock_guard<std::mutex> treeLock(tree_->mutex_);
                 const auto it = std::find_if(tree_->nodes_.begin(), tree_->nodes_.end(),
@@ -1333,7 +1333,7 @@ HRESULT STDMETHODCALLTYPE AccessibilityChildProvider::get_HostRawElementProvider
 HRESULT STDMETHODCALLTYPE AccessibilityChildProvider::Navigate(NavigateDirection direction, IRawElementProviderFragment** pRetVal) {
     if (!pRetVal) return E_POINTER;
     *pRetVal = nullptr;
-    std::lock_guard<std::mutex> lock(detachMutex_);
+    std::lock_guard<std::recursive_mutex> lock(detachMutex_);
     if (!tree_) return UIA_E_ELEMENTNOTAVAILABLE;
     std::lock_guard<std::mutex> treeLock(tree_->mutex_);
     const auto& nodes = tree_->nodes_;
@@ -1388,7 +1388,7 @@ HRESULT STDMETHODCALLTYPE AccessibilityChildProvider::GetEmbeddedFragmentRoots(S
 }
 
 HRESULT STDMETHODCALLTYPE AccessibilityChildProvider::SetFocus() {
-    std::lock_guard<std::mutex> lock(detachMutex_);
+    std::lock_guard<std::recursive_mutex> lock(detachMutex_);
     if (!tree_) return UIA_E_ELEMENTNOTAVAILABLE;
     if (tree_->SetFocusedNode(childId_)) {
         HWND hwnd = tree_->GetWindow();
@@ -1400,7 +1400,7 @@ HRESULT STDMETHODCALLTYPE AccessibilityChildProvider::SetFocus() {
 
 HRESULT STDMETHODCALLTYPE AccessibilityChildProvider::get_FragmentRoot(IRawElementProviderFragmentRoot** pRetVal) {
     if (!pRetVal) return E_POINTER;
-    std::lock_guard<std::mutex> lock(detachMutex_);
+    std::lock_guard<std::recursive_mutex> lock(detachMutex_);
     if (!tree_) return UIA_E_ELEMENTNOTAVAILABLE;
     *pRetVal = static_cast<IRawElementProviderFragmentRoot*>(tree_);
     tree_->AddRef();
@@ -1420,7 +1420,7 @@ HRESULT STDMETHODCALLTYPE AccessibilityChildProvider::Invoke() {
     if (node.onInvoke) { node.onInvoke(childId_); } else if (node.onDefaultAction) {
         node.onDefaultAction(childId_);
     } else { return S_FALSE; }
-    std::lock_guard<std::mutex> lock(detachMutex_);
+    std::lock_guard<std::recursive_mutex> lock(detachMutex_);
     if (tree_) { tree_->RaiseUiaEvent(childId_, UIA_Invoke_InvokedEventId); }
     return S_OK;
 }
@@ -1437,7 +1437,7 @@ HRESULT STDMETHODCALLTYPE AccessibilityChildProvider::Toggle() {
     if (node.onToggle) { node.onToggle(childId_, newState); } else if (node.onDefaultAction) { node.onDefaultAction(childId_); }
     // Update node state in tree
     {
-        std::lock_guard<std::mutex> lock(detachMutex_);
+        std::lock_guard<std::recursive_mutex> lock(detachMutex_);
         if (tree_) {
             std::lock_guard<std::mutex> treeLock(tree_->mutex_);
             for (auto& n : tree_->nodes_) {
@@ -1450,7 +1450,7 @@ HRESULT STDMETHODCALLTYPE AccessibilityChildProvider::Toggle() {
             }
         }
     }
-    std::lock_guard<std::mutex> lock(detachMutex_);
+    std::lock_guard<std::recursive_mutex> lock(detachMutex_);
     if (tree_) {
         tree_->NotifySimple(EVENT_OBJECT_STATECHANGE, childId_);
         RaiseValueChange(*tree_, childId_, UIA_ToggleToggleStatePropertyId, oldState, newState);
@@ -1490,7 +1490,7 @@ HRESULT STDMETHODCALLTYPE AccessibilityChildProvider::SetValue(LPCWSTR val) {
     std::wstring newValue = val;
     if (node.onSetValue) { node.onSetValue(childId_, newValue); }
     {
-        std::lock_guard<std::mutex> lock(detachMutex_);
+        std::lock_guard<std::recursive_mutex> lock(detachMutex_);
         if (tree_) {
             std::lock_guard<std::mutex> treeLock(tree_->mutex_);
             for (auto& n : tree_->nodes_) {
@@ -1498,7 +1498,7 @@ HRESULT STDMETHODCALLTYPE AccessibilityChildProvider::SetValue(LPCWSTR val) {
             }
         }
     }
-    std::lock_guard<std::mutex> lock(detachMutex_);
+    std::lock_guard<std::recursive_mutex> lock(detachMutex_);
     if (tree_) {
         tree_->NotifySimple(EVENT_OBJECT_VALUECHANGE, childId_);
         RaiseValueChange(*tree_, childId_, UIA_ValueValuePropertyId, oldValue, newValue);
@@ -1525,7 +1525,7 @@ HRESULT STDMETHODCALLTYPE AccessibilityChildProvider::SetValue(double val) {
     double oldVal = node.rangeValue;
     if (node.onSetRangeValue) { node.onSetRangeValue(childId_, clamped); }
     {
-        std::lock_guard<std::mutex> lock(detachMutex_);
+        std::lock_guard<std::recursive_mutex> lock(detachMutex_);
         if (tree_) {
             std::lock_guard<std::mutex> treeLock(tree_->mutex_);
             for (auto& n : tree_->nodes_) {
@@ -1533,7 +1533,7 @@ HRESULT STDMETHODCALLTYPE AccessibilityChildProvider::SetValue(double val) {
             }
         }
     }
-    std::lock_guard<std::mutex> lock(detachMutex_);
+    std::lock_guard<std::recursive_mutex> lock(detachMutex_);
     if (tree_) {
         tree_->NotifySimple(EVENT_OBJECT_VALUECHANGE, childId_);
         RaiseValueChange(*tree_, childId_, UIA_RangeValueValuePropertyId, oldVal, clamped);
@@ -1570,7 +1570,7 @@ HRESULT STDMETHODCALLTYPE AccessibilityChildProvider::GetSelection(SAFEARRAY** p
     if (!node.IsSelectionSupported()) return UIA_E_NOTSUPPORTED;
     std::vector<LONG> selectedIds;
     if (node.onGetSelection) { selectedIds = node.onGetSelection(childId_); } else {
-        std::lock_guard<std::mutex> lock(detachMutex_);
+        std::lock_guard<std::recursive_mutex> lock(detachMutex_);
         if (tree_) {
             std::lock_guard<std::mutex> treeLock(tree_->mutex_);
             for (const AccessibilityNode& n : tree_->nodes_) {
@@ -1580,7 +1580,7 @@ HRESULT STDMETHODCALLTYPE AccessibilityChildProvider::GetSelection(SAFEARRAY** p
     }
     std::vector<IRawElementProviderSimple*> providers;
     if (!selectedIds.empty()) {
-        std::lock_guard<std::mutex> lock(detachMutex_);
+        std::lock_guard<std::recursive_mutex> lock(detachMutex_);
         if (tree_) {
             std::lock_guard<std::mutex> treeLock(tree_->mutex_);
             providers.reserve(selectedIds.size());
@@ -1615,7 +1615,7 @@ HRESULT STDMETHODCALLTYPE AccessibilityChildProvider::Select() {
     if (!GetNode(node)) return UIA_E_ELEMENTNOTAVAILABLE;
     if (!node.IsSelectionItemSupported()) return UIA_E_NOTSUPPORTED;
     if (node.onSelect) { node.onSelect(childId_); } else if (node.onDefaultAction) { node.onDefaultAction(childId_); }
-    std::lock_guard<std::mutex> lock(detachMutex_);
+    std::lock_guard<std::recursive_mutex> lock(detachMutex_);
     if (tree_) {
         LONG containerId = node.selectionContainerId;
         std::vector<LONG> deselected;
@@ -1647,7 +1647,7 @@ HRESULT STDMETHODCALLTYPE AccessibilityChildProvider::AddToSelection() {
     if (node.onAddToSelection) { node.onAddToSelection(childId_); } else if (node.onSelect) {
         node.onSelect(childId_);
     } else if (node.onDefaultAction) { node.onDefaultAction(childId_); }
-    std::lock_guard<std::mutex> lock(detachMutex_);
+    std::lock_guard<std::recursive_mutex> lock(detachMutex_);
     if (tree_) {
         tree_->SetSelectedNode(childId_, true);
         tree_->RaiseUiaEvent(childId_, UIA_SelectionItem_ElementAddedToSelectionEventId);
@@ -1661,7 +1661,7 @@ HRESULT STDMETHODCALLTYPE AccessibilityChildProvider::RemoveFromSelection() {
     if (!GetNode(node)) return UIA_E_ELEMENTNOTAVAILABLE;
     if (!node.IsSelectionItemSupported()) return UIA_E_NOTSUPPORTED;
     if (node.onRemoveFromSelection) { node.onRemoveFromSelection(childId_); }
-    std::lock_guard<std::mutex> lock(detachMutex_);
+    std::lock_guard<std::recursive_mutex> lock(detachMutex_);
     if (tree_) {
         tree_->SetSelectedNode(childId_, false);
         tree_->RaiseUiaEvent(childId_, UIA_SelectionItem_ElementRemovedFromSelectionEventId);
@@ -1679,7 +1679,7 @@ HRESULT STDMETHODCALLTYPE AccessibilityChildProvider::get_SelectionContainer(IRa
     *pRetVal = nullptr;
     AccessibilityNode node;
     if (!GetNode(node)) return UIA_E_ELEMENTNOTAVAILABLE;
-    std::lock_guard<std::mutex> lock(detachMutex_);
+    std::lock_guard<std::recursive_mutex> lock(detachMutex_);
     if (!tree_) return UIA_E_ELEMENTNOTAVAILABLE;
     if (node.selectionContainerId > 0) {
         std::lock_guard<std::mutex> treeLock(tree_->mutex_);

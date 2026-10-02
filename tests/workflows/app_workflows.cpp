@@ -129,14 +129,22 @@ static std::wstring UiaValue(IUIAutomationValuePattern* value) {
     SysFreeString(text);
     return result;
 }
+static HRESULT SetUiaValue(IUIAutomationValuePattern* value, const std::wstring& text) {
+    struct BstrScope {
+        BSTR text;
+        ~BstrScope() { SysFreeString(text); }
+    } allocated{SysAllocStringLen(text.data(), static_cast<UINT>(text.size()))};
+    Require(allocated.text != nullptr, "UIA Value text allocation failed");
+    return value->SetValue(allocated.text);
+}
 static void CheckHubUiaPatterns(HWND window, DWORD pid) {
     auto search = UiaFind(window, pid, L"MediaToolbar_SearchInput");
     auto value = UiaPattern<IUIAutomationValuePattern>(search.Get(), UIA_ValuePatternId);
     BOOL readOnly = TRUE;
     Require(SUCCEEDED(value->get_CurrentIsReadOnly(&readOnly)) && !readOnly, "Media search Value pattern was read-only");
     const auto originalQuery = UiaValue(value.Get());
-    Require(SUCCEEDED(value->SetValue(L"first")) && UiaValue(value.Get()) == L"first", "UIA Value did not set/read the media search");
-    Require(SUCCEEDED(value->SetValue(originalQuery.c_str())) && UiaValue(value.Get()) == originalQuery, "UIA Value did not restore the media search");
+    Require(SUCCEEDED(SetUiaValue(value.Get(), L"first")) && UiaValue(value.Get()) == L"first", "UIA Value did not set/read the media search");
+    Require(SUCCEEDED(SetUiaValue(value.Get(), originalQuery)) && UiaValue(value.Get()) == originalQuery, "UIA Value did not restore the media search");
 
     auto mediaTab = UiaFind(window, pid, L"NavTab_0");
     auto selection = UiaPattern<IUIAutomationSelectionPattern>(mediaTab.Get(), UIA_SelectionPatternId);
@@ -150,7 +158,9 @@ static void CheckHubUiaPatterns(HWND window, DWORD pid) {
     // Selection container. Switch to Settings and restore the active media tab.
     auto settingsTab = UiaFind(window, pid, L"NavTab_3");
     auto settingsSelect = UiaPattern<IUIAutomationSelectionItemPattern>(settingsTab.Get(), UIA_SelectionItemPatternId);
-    Require(SUCCEEDED(settingsSelect->Select()), "UIA SelectionItem could not open Settings");
+    const HRESULT settingsResult = settingsSelect->Select();
+    if (FAILED(settingsResult)) std::cerr << "Settings SelectionItem HRESULT=0x" << std::hex << static_cast<unsigned long>(settingsResult) << std::dec << std::endl;
+    Require(SUCCEEDED(settingsResult), "UIA SelectionItem could not open Settings");
     const wchar_t* categories[] = { L"SettingsCategory_Appearance", L"SettingsCategory_Playback", L"SettingsCategory_Audio & Subtitles",
         L"SettingsCategory_Shortcuts", L"SettingsCategory_System" };
     std::wstring originalCategory;

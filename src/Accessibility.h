@@ -296,7 +296,9 @@ private:
     }
     SAFEARRAY* CreateProviderArrayForIds(const std::vector<LONG>& ids) const;
     LONG childId_ = 0;
-    mutable std::mutex detachMutex_;
+    // UIA event publication can synchronously request this provider again.
+    // Keep detachment excluded while allowing same-thread property reentry.
+    mutable std::recursive_mutex detachMutex_;
     AccessibilityTree* tree_ = nullptr;
     std::atomic<ULONG> refCount_{1};
 };

@@ -196,10 +196,12 @@ struct MediaProbeIsolation::Impl {
         shared->sequence = 0; shared->completedSequence = 0;
         SIZE_T attributeBytes = 0;
         InitializeProcThreadAttributeList(nullptr, 1, 0, &attributeBytes);
+        if (!attributeBytes) { Stop(); return false; }
         std::vector<uint8_t> attributeStorage(attributeBytes);
         STARTUPINFOEXW startup{};
         startup.StartupInfo.cb = sizeof(startup);
         startup.lpAttributeList = reinterpret_cast<LPPROC_THREAD_ATTRIBUTE_LIST>(attributeStorage.data());
+        if (!startup.lpAttributeList) { Stop(); return false; }
         if (!InitializeProcThreadAttributeList(startup.lpAttributeList, 1, 0, &attributeBytes)) { Stop(); return false; }
         const HANDLE inherited[] = { mapping.get(), requestEvent.get(), responseEvent.get() };
         const bool attributesOk = UpdateProcThreadAttribute(startup.lpAttributeList, 0, PROC_THREAD_ATTRIBUTE_HANDLE_LIST,
@@ -332,8 +334,9 @@ int RunMediaProbeHelper(int argc, wchar_t** argv) {
                     if (!mf) mf = std::make_unique<MediaFoundation::ScopedAcquire>();
                     if (mf->held()) success = ReadMetadata(*shared);
                 } else if (operation == Operation::Thumbnail && SUCCEEDED(coHr)) {
-                    if (!wic) CoCreateInstance(CLSID_WICImagingFactory, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&wic));
-                    success = ReadThumbnail(*shared, wic.Get());
+                    const HRESULT wicResult = wic ? S_OK : CoCreateInstance(CLSID_WICImagingFactory, nullptr,
+                        CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&wic));
+                    if (SUCCEEDED(wicResult)) success = ReadThumbnail(*shared, wic.Get());
 #ifdef APERTURE_TEST_PROBE_ISOLATION
                 } else if (operation == Operation::BlockForTesting) {
                     InterlockedExchange(reinterpret_cast<volatile LONG*>(&shared->reserved), 1);
