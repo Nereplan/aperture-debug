@@ -1,0 +1,43 @@
+<<< [PASS] local_release (4.3s)
+Installed Aperture 2.0.1.0. Saved data retained. Backup: C:\Users\Alperen\AppData\Local\Temp\Aperture-github-test-4f89d64f6c8d4ed1b2d98dbb51b0ddbe\installed\update-backups\20261002-120512-6283147-53eedf7ae72343edb5bc352108095cd0
+<<< [PASS] github_update (3.3s)
+Installed Aperture 2.0.1.0. Saved data retained. Backup: C:\Users\Alperen\AppData\Local\Temp\Aperture-update-test-c9b3c9be64d3491d9170d6894627cbdb\installed\update-backups\20261002-120514-0838212-4f4d9a9e510348cb8ea414814fd9a671
+Installed Aperture 2.0.1.0. Saved data retained. Backup: C:\Users\Alperen\AppData\Local\Temp\Aperture-update-test-c9b3c9be64d3491d9170d6894627cbdb\installed\update-backups\20261002-120514-3002228-203548a5ee65400886da043f15b89e79
+Installed Aperture 2.0.1.0. Saved data retained. Backup: C:\Users\Alperen\AppData\Local\Temp\Aperture-update-test-c9b3c9be64d3491d9170d6894627cbdb\installed\update-backups\20261002-120514-4854483-912f7d6d1ce54e5c8f197e50b683fbf4
+Installed Aperture 2.0.1.0. Saved data retained. Backup: C:\Users\Alperen\AppData\Local\Temp\Aperture-update-test-c9b3c9be64d3491d9170d6894627cbdb\installed\update-backups\20261002-120514-6285895-ac03b6acd2cb43c291750caa5b9ea1ce
+<<< [PASS] update_retention (1.68s)
+<<< [PASS] workspace_cleanup (1.76s)
+PASS seed=20260918 checks=380244 elapsed_ms=4019.6
+PASS seed=731 checks=760466 elapsed_ms=4094.29
+PASS seed=42 checks=1140686 elapsed_ms=3988.57
+PASS seed=1303820817 checks=1520908 elapsed_ms=4021.73
+<<< [PASS] workflows (53.07s)
+  ALL 393 TESTS PASSED in 4548.87 ms
+<<< [PASS] unit (107.46s)
+<<< [PASS] corpus (52.1s)
+ALL TESTS PASSED: 106 passed (Total time: 864.8 ms)
+<<< [PASS] persistence (42.64s)
+ALL TESTS PASSED: 34 passed (Total time: 13.8 ms)
+<<< [PASS] ipc (4.34s)
+ALL TESTS PASSED: 5 passed (Total time: 835.9 ms)
+<<< [PASS] loader (26.68s)
+<<< [PASS] diagnostics (29.29s)
+<<< [PASS] updater (17.98s)
+<<< [PASS] channel_policy (0.5s)
+<<< [PASS] dependencies (1.13s)
+<<< [PASS] runtime_layout (1.05s)
+<<< [PASS] threat_boundaries (0.48s)
+Sources Analyzed:  51
+Total Warnings:    28 (Baseline: 76)
+New Warnings:      0
+Count Regressions: 0
+Result:            PASS
+<<< [PASS] static_analysis (85.72s)
+<<< [PASS] stress (102.8s)
+<<< [PASS] media_probe_isolation (13.21s)
+PASS thumbnail codec, migration, budgets, concurrent writers, corruption and containment: 8359 assertions
+<<< [PASS] thumbnail_cache (28.9s)
+Total Suites: 20 | Passed: 20 | Failed: 0 (Timeouts: 0) | Total Time: 578.45s
+Installed Aperture 2.0.0.0. Saved data retained. Backup: C:\Users\Alperen\Desktop\Antigravity\Aperture Final\release\update-backups\20261002-121447-1530090-54163f15e9c7402d9e7fa5b64bb335cc
+Installed Aperture 2.0.0.0. Saved data retained. Backup: C:\Users\Alperen\Desktop\Antigravity\Aperture Final\debug\update-backups\20261002-121447-5891671-0f023c7510334759a08953dc7bbea6b6
+Ready: C:\Users\Alperen\Desktop\Antigravity\Aperture Final\dist\Aperture-2.0.0.0-windows-x64.zip

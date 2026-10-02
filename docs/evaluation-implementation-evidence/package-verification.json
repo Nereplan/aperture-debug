@@ -1,0 +1,16 @@
+{
+  "status": "PASS",
+  "version": "2.0.0.0",
+  "binaryBytes": 3108352,
+  "zipBytes": 12892741,
+  "binarySha256": "7771f6aaafa6db20a626feb7dfb4563cb52d53a8fd9102cfbfac10dd91d05a4b",
+  "manifestMatches": true,
+  "releaseDebugMatch": true,
+  "nativeTestBinaryMatches": true,
+  "isolatedStartupPid": 75212,
+  "exactPidShutdown": true,
+  "originalEmptyProfileUnchanged": true,
+  "signature": "Unsigned (standard reproducible package)",
+  "uploaded": false,
+  "emptyDataDirectoryRecreatedAfterZipExtraction": true
+}
