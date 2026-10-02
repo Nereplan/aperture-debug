@@ -37,6 +37,7 @@
 #include "TestPlaylistIO.h"
 #include "TestFolderOperations.h"
 #include "TestEvaluationFixes.h"
+#include "TestHttpTransportFixes.h"
 #include <windows.h>
 #include <iostream>
 #include <iomanip>

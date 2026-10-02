@@ -1,0 +1,6 @@
+﻿case,expected_status,actual_status,http_status,success,body_bytes,final_url,error
+zero_budget,5,5,0,0,0,https://httpbingo.org/redirect/1,HTTPS redirect limit exceeded
+one_redirect,0,0,200,1,529,https://httpbingo.org/get,
+exceeded_budget,5,5,0,0,0,https://httpbingo.org/relative-redirect/2,HTTPS redirect limit exceeded
+destination_rejected,9,9,0,0,0,https://example.com/,HTTPS destination is not allowed
+downgrade_rejected,2,2,0,0,0,http://example.com/,HTTPS is strictly required

@@ -174,4 +174,42 @@ TEST_CASE(UpdaterNetworkBounds, SimulatedNetworkTimeout) {
     TEST_ASSERT(!checkRes.updateAvailable);
 }
 
+TEST_CASE(UpdaterNetworkBounds, PackageStagingUsesStreamingTransportAndFileHash) {
+    ScopedTempDir root;
+    struct StreamingFixture : IHttpTransport {
+        int bufferedCalls = 0, streamedCalls = 0;
+        HttpResponse Get(const std::wstring&, const HttpRequestOptions&) override { ++bufferedCalls; return {}; }
+        HttpResponse GetToFile(const std::wstring& url, const std::wstring& path, const HttpRequestOptions& options) override {
+            ++streamedCalls;
+            TEST_ASSERT(options.allowedHosts == std::vector<std::wstring>{L"updates.example.com"});
+            HttpResponse response; response.finalUrl = url; response.statusCode = 200;
+            response.success = CopyFileW(GetExePath().c_str(), path.c_str(), TRUE) != FALSE;
+            return response;
+        }
+    } transport;
+    ReleaseManifest manifest;
+    manifest.schemaVersion = 1; manifest.application = "Aperture"; manifest.version = "2.2.0.0"; manifest.channel = "stable";
+    manifest.publishedUtc = "2026-08-01T00:00:00Z"; manifest.expiryUtc = "2026-09-30T00:00:00Z";
+    manifest.downloadUrl = "https://updates.example.com/Aperture.exe";
+    manifest.fileSizeBytes = GetFileSizeInBytes(GetExePath()); manifest.sha256 = ComputeFileSha256Hex(GetExePath());
+    UpdaterConfig config; config.allowUnsignedForTesting = true; config.allowedHosts = {"updates.example.com"};
+    std::tm now{}; now.tm_year = 2026 - 1900; now.tm_mon = 7; now.tm_mday = 31;
+    config.mockCurrentTime = std::chrono::system_clock::from_time_t(_mkgmtime(&now));
+    const auto staged = DownloadAndStageUpdate(manifest, config, &transport, nullptr, root.GetPath());
+    struct StageCleanup {
+        std::wstring dir;
+        ~StageCleanup() {
+            if (dir.empty()) return;
+            DeleteFileW((dir + L"\\Aperture.exe").c_str()); RemoveDirectoryW(dir.c_str());
+            RemoveDirectoryW(dir.substr(0, dir.find_last_of(L'\\')).c_str());
+        }
+    } cleanup{staged.stagingDirectory};
+    TEST_ASSERT_EQ(staged.status, UpdaterStatusCode::Success);
+    TEST_ASSERT_EQ(transport.bufferedCalls, 0); TEST_ASSERT_EQ(transport.streamedCalls, 1);
+    TEST_ASSERT_EQ(ComputeFileSha256Hex(staged.stagedFiles.front()), manifest.sha256);
+    config.allowSameVersion = true; manifest.downloadUrl = "http://insecure.example.com/package";
+    TEST_ASSERT_EQ(DownloadAndStageUpdate(manifest, config, &transport, nullptr, root.GetPath()).status, UpdaterStatusCode::DisallowedRedirect);
+    TEST_ASSERT_EQ(transport.streamedCalls, 1);
+}
+
 } // namespace Aperture::Test

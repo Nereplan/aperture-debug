@@ -405,7 +405,9 @@ std::string ComputeSha256Hex(const void* data, size_t size) {
     NTSTATUS status = BCryptOpenAlgorithmProvider(&hAlg, BCRYPT_SHA256_ALGORITHM, NULL, 0);
     if (!BCRYPT_SUCCESS(status)) return "";
     DWORD hashObjectSize = 0, dataSize = 0;
-    BCryptGetProperty(hAlg, BCRYPT_OBJECT_LENGTH, (PUCHAR)&hashObjectSize, sizeof(DWORD), &dataSize, 0);
+    if (!BCRYPT_SUCCESS(BCryptGetProperty(hAlg, BCRYPT_OBJECT_LENGTH, (PUCHAR)&hashObjectSize, sizeof(DWORD), &dataSize, 0))) {
+        BCryptCloseAlgorithmProvider(hAlg, 0); return "";
+    }
     std::vector<uint8_t> hashObject(hashObjectSize);
     BCRYPT_HASH_HANDLE hHash = NULL;
     status = BCryptCreateHash(hAlg, &hHash, hashObject.data(), hashObjectSize, NULL, 0, 0);
@@ -426,22 +428,27 @@ std::string ComputeFileSha256Hex(const std::wstring& path) {
     NTSTATUS status = BCryptOpenAlgorithmProvider(&hAlg, BCRYPT_SHA256_ALGORITHM, NULL, 0);
     if (!BCRYPT_SUCCESS(status)) { CloseHandle(hFile); return ""; }
     DWORD hashObjectSize = 0, dataSize = 0;
-    BCryptGetProperty(hAlg, BCRYPT_OBJECT_LENGTH, (PUCHAR)&hashObjectSize, sizeof(DWORD), &dataSize, 0);
+    if (!BCRYPT_SUCCESS(BCryptGetProperty(hAlg, BCRYPT_OBJECT_LENGTH, (PUCHAR)&hashObjectSize, sizeof(DWORD), &dataSize, 0))) {
+        BCryptCloseAlgorithmProvider(hAlg, 0); CloseHandle(hFile); return "";
+    }
     std::vector<uint8_t> hashObject(hashObjectSize);
     BCRYPT_HASH_HANDLE hHash = NULL;
     status = BCryptCreateHash(hAlg, &hHash, hashObject.data(), hashObjectSize, NULL, 0, 0);
     if (!BCRYPT_SUCCESS(status)) { BCryptCloseAlgorithmProvider(hAlg, 0); CloseHandle(hFile); return ""; }
     std::vector<uint8_t> buffer(64 * 1024);
     DWORD bytesRead = 0;
-    while (ReadFile(hFile, buffer.data(), static_cast<DWORD>(buffer.size()), &bytesRead, NULL) && bytesRead > 0) {
-        BCryptHashData(hHash, buffer.data(), bytesRead, 0);
+    bool readOk = true;
+    for (;;) {
+        if (!ReadFile(hFile, buffer.data(), static_cast<DWORD>(buffer.size()), &bytesRead, NULL)) { readOk = false; break; }
+        if (!bytesRead) break;
+        if (!BCRYPT_SUCCESS(BCryptHashData(hHash, buffer.data(), bytesRead, 0))) { readOk = false; break; }
     }
     uint8_t hash[32] = { 0 };
-    BCryptFinishHash(hHash, hash, sizeof(hash), 0);
+    const bool hashOk = readOk && BCRYPT_SUCCESS(BCryptFinishHash(hHash, hash, sizeof(hash), 0));
     BCryptDestroyHash(hHash);
     BCryptCloseAlgorithmProvider(hAlg, 0);
     CloseHandle(hFile);
-    return ToHex(hash, sizeof(hash));
+    return hashOk ? ToHex(hash, sizeof(hash)) : "";
 }
 
 bool GenerateEcdsaP256KeyPair(std::vector<uint8_t>& outPublicBlob, std::vector<uint8_t>& outPrivateBlob) {
@@ -966,7 +973,7 @@ UpdateDownloadResult DownloadAndStageUpdate( const ReleaseManifest& manifest, co
     UpdateDownloadResult result;
     result.manifest = manifest;
     UpdateCheckResult valRes = ValidateReleaseManifest(manifest, config, rootDir);
-    if (!valRes.updateAvailable && !config.allowSameVersion) {
+    if (!valRes.updateAvailable) {
         result.status = valRes.status;
         result.message = valRes.message;
         return result;
@@ -982,30 +989,22 @@ UpdateDownloadResult DownloadAndStageUpdate( const ReleaseManifest& manifest, co
     options.timeoutMs = config.downloadTimeoutMs;
     options.maxRedirects = config.maxRedirects;
     options.userAgent = L"Aperture/2.0 (Updater)";
+    for (const auto& host : config.allowedHosts) options.allowedHosts.push_back(Utf8ToUtf16(host));
     if (progressCallback) progressCallback(0.1f);
-    HttpResponse httpResp = activeTransport->Get(Utf8ToUtf16(manifest.downloadUrl), options);
+    std::wstring stagedExe = stagingDir + L"\\Aperture.exe";
+    HttpResponse httpResp = activeTransport->GetToFile(Utf8ToUtf16(manifest.downloadUrl), stagedExe, options);
     if (!httpResp.success) {
-        result.status = UpdaterStatusCode::NetworkError;
+        result.status = httpResp.status == HttpTransportStatus::FileError ? UpdaterStatusCode::StagingError : UpdaterStatusCode::NetworkError;
         result.message = "Failed to download update package: " + Utf16ToUtf8(httpResp.errorMessage);
         return result;
     }
     if (progressCallback) progressCallback(0.5f);
-    std::string downloadedSha = ComputeSha256Hex(httpResp.body.data(), httpResp.body.size());
+    std::string downloadedSha = ComputeFileSha256Hex(stagedExe);
     if (!CaseInsensitiveEqual(downloadedSha, manifest.sha256)) {
         result.status = UpdaterStatusCode::HashMismatch;
         result.message = "Package SHA-256 mismatch: expected " + manifest.sha256 + ", got " + downloadedSha;
         return result;
     }
-    std::wstring stagedExe = stagingDir + L"\\Aperture.exe";
-    HANDLE hOut = CreateFileW(stagedExe.c_str(), GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
-    if (hOut == INVALID_HANDLE_VALUE) {
-        result.status = UpdaterStatusCode::StagingError;
-        result.message = "Failed to create staged binary file";
-        return result;
-    }
-    DWORD written = 0;
-    WriteFile(hOut, httpResp.body.data(), (DWORD)httpResp.body.size(), &written, NULL);
-    CloseHandle(hOut);
     result.stagedFiles.push_back(stagedExe);
     std::string peErr;
     if (!VerifyPeArchitectureX64(stagedExe, peErr)) {

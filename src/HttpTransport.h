@@ -13,7 +13,8 @@
 namespace Aperture {
 
 enum class HttpTransportStatus {
-    Success = 0, InvalidUrl, HttpsRequired, NetworkError, Timeout, TooManyRedirects, ResponseTooLarge, HttpError, Cancelled
+    Success = 0, InvalidUrl, HttpsRequired, NetworkError, Timeout, TooManyRedirects, ResponseTooLarge, HttpError, Cancelled,
+    DestinationRejected, FileError
 };
 
 struct HttpRequestOptions {
@@ -21,6 +22,8 @@ struct HttpRequestOptions {
     int timeoutMs = 5000;                       // 5 seconds default timeout
     int maxRedirects = 3;                       // Max 3 redirects
     std::wstring userAgent = L"Aperture/2.0";
+    std::vector<std::wstring> allowedHosts; // Exact, case-insensitive destinations, including every redirect hop.
+    std::function<bool()> isCancelled;
 };
 
 struct HttpResponse {
@@ -35,6 +38,7 @@ class IHttpTransport {
 public:
     virtual ~IHttpTransport() = default;
     virtual HttpResponse Get(const std::wstring& httpsUrl, const HttpRequestOptions& options = {}) = 0;
+    virtual HttpResponse GetToFile(const std::wstring& httpsUrl, const std::wstring& destination, const HttpRequestOptions& options = {});
 };
 
 class WinHttpTransport : public IHttpTransport {
@@ -42,6 +46,7 @@ public:
     WinHttpTransport() = default;
     ~WinHttpTransport() override = default;
     HttpResponse Get(const std::wstring& httpsUrl, const HttpRequestOptions& options = {}) override;
+    HttpResponse GetToFile(const std::wstring& httpsUrl, const std::wstring& destination, const HttpRequestOptions& options = {}) override;
 };
 
 class MockHttpTransport : public IHttpTransport {
