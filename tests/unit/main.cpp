@@ -38,6 +38,7 @@
 #include "TestFolderOperations.h"
 #include "TestEvaluationFixes.h"
 #include "TestHttpTransportFixes.h"
+#include "TestMpvInitialization.h"
 #include <windows.h>
 #include <iostream>
 #include <iomanip>

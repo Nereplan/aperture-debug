@@ -113,6 +113,14 @@ static LRESULT CALLBACK OverlayWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPAR
 
 App::App() {
     mainThreadId = GetCurrentThreadId();
+    auto logMpvInitialization = [](const MpvInitializationDiagnostic& diagnostic) {
+        auto error = AppError::Playback(Utf8ToUtf16(diagnostic.message), diagnostic.errorCode);
+        error.severity = diagnostic.essential ? ErrorSeverity::Error : ErrorSeverity::Warning;
+        Diagnostics::Log(error);
+    };
+    player.SetInitializationDiagnosticSink(logMpvInitialization);
+    previewPlayer.SetInitializationDiagnosticSink(logMpvInitialization);
+    for (auto& extractor : hubExtractors) extractor.SetInitializationDiagnosticSink(logMpvInitialization);
     commandDispatcher.SetContext(this);
     playlistSearchInput.SetMaxLength(512);
     mediaSearchInput.SetMaxLength(512);

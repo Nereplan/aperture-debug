@@ -250,6 +250,7 @@ set(APERTURE_HEADERS
     src/MediaFoundation.h
     src/MediaTransport.h
     src/MpvPlayer.h
+    src/MpvApi.h
     src/NetworkStream.h
     src/OnlineSubtitles.h
     src/OverlayRenderer.h

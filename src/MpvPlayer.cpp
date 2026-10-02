@@ -2,7 +2,6 @@
 #include "MpvPlayer.h"
 #include "AudioConfig.h"
 #include "Settings.h"
-#include "DllLoader.h"
 #include <shlwapi.h>
 #include <sstream>
 #include <cstring>
@@ -88,29 +87,6 @@ MpvPlayer::MpvPlayer() {}
 
 MpvPlayer::~MpvPlayer() { Shutdown(); }
 
-void MpvPlayer::LoadMpvFunctions(HMODULE hMod) {
-    if (!hMod) return;
-    fn_mpv_create = (pfn_mpv_create)GetProcAddress(hMod, "mpv_create");
-    fn_mpv_initialize = (pfn_mpv_initialize)GetProcAddress(hMod, "mpv_initialize");
-    fn_mpv_destroy = (pfn_mpv_destroy)GetProcAddress(hMod, "mpv_destroy");
-    fn_mpv_terminate_destroy = (pfn_mpv_terminate_destroy)GetProcAddress(hMod, "mpv_terminate_destroy");
-    fn_mpv_command = (pfn_mpv_command)GetProcAddress(hMod, "mpv_command");
-    fn_mpv_command_string = (pfn_mpv_command_string)GetProcAddress(hMod, "mpv_command_string");
-    fn_mpv_set_option = (pfn_mpv_set_option)GetProcAddress(hMod, "mpv_set_option");
-    fn_mpv_set_option_string = (pfn_mpv_set_option_string)GetProcAddress(hMod, "mpv_set_option_string");
-    fn_mpv_get_property = (pfn_mpv_get_property)GetProcAddress(hMod, "mpv_get_property");
-    fn_mpv_get_property_string = (pfn_mpv_get_property_string)GetProcAddress(hMod, "mpv_get_property_string");
-    fn_mpv_set_property = (pfn_mpv_set_property)GetProcAddress(hMod, "mpv_set_property");
-    fn_mpv_set_property_string = (pfn_mpv_set_property_string)GetProcAddress(hMod, "mpv_set_property_string");
-    fn_mpv_free = (pfn_mpv_free)GetProcAddress(hMod, "mpv_free");
-    fn_mpv_observe_property = (pfn_mpv_observe_property)GetProcAddress(hMod, "mpv_observe_property");
-    fn_mpv_wait_event = (pfn_mpv_wait_event)GetProcAddress(hMod, "mpv_wait_event");
-    // Optional for compatibility with older package-local libmpv builds. When
-    // present, it lets the event thread sleep until an event or shutdown.
-    fn_mpv_wakeup = (pfn_mpv_wakeup)GetProcAddress(hMod, "mpv_wakeup");
-    fn_mpv_error_string = (pfn_mpv_error_string)GetProcAddress(hMod, "mpv_error_string");
-}
-
 void MpvPlayer::ReportError(const char* operation, int errorCode, ErrorSeverity severity) {
     std::string message = operation ? operation : "mpv operation";
     if (fn_mpv_error_string && errorCode < 0) {
@@ -123,7 +99,6 @@ void MpvPlayer::ReportError(const char* operation, int errorCode, ErrorSeverity 
 
 void MpvPlayer::ReportErrorMessage(const std::wstring& message, ErrorSeverity severity) {
     { std::lock_guard<std::mutex> lock(stateMutex); lastError = message; }
-    if (severity == ErrorSeverity::Fatal) hasError = true;
     auto callback = CopyCallback(severity == ErrorSeverity::Fatal ? onError : onWarning);
     if (callback) callback(message);
 }
@@ -182,87 +157,83 @@ bool MpvPlayer::Initialize(HWND hParentWnd, HWND hChildVideoWnd) {
     hParent = hParentWnd;
     hVideoWnd = hChildVideoWnd;
     std::wstring exeDir = GetExeDir();
-    hMpvDll = DllLoader::LoadPackageLocalDll(L"libmpv-2.dll");
-    if (!hMpvDll) { return false; }
-    LoadMpvFunctions(hMpvDll);
-    if (!fn_mpv_create || !fn_mpv_initialize || !fn_mpv_terminate_destroy || !fn_mpv_command || !fn_mpv_wait_event) {
-        FreeLibrary(hMpvDll);
-        hMpvDll = NULL;
-        return false;
-    }
+    if (!LoadMpvApi(MpvApiProfile::Playback, "Playback")) return false;
     mpv = fn_mpv_create();
-    if (!mpv) { FreeLibrary(hMpvDll); hMpvDll = NULL; return false; }
+    if (!mpv) { RecordInitializationFailure("mpv_create", MPV_ERROR_NOMEM); ResetMpvApi(); return false; }
     // Attach to child HWND for direct hardware-accelerated video rendering
     int64_t wid = (int64_t)hVideoWnd;
-    if (fn_mpv_set_option) fn_mpv_set_option(mpv, "wid", MPV_FORMAT_INT64, &wid);
+    SetMpvWindow(mpv, wid);
     // Disable mpv default keyboard bindings so Win32/Direct2D receives all key events
-    if (fn_mpv_set_option_string) {
-        fn_mpv_set_option_string(mpv, "input-default-bindings", "no");
-        fn_mpv_set_option_string(mpv, "input-vo-keyboard", "no");
-        fn_mpv_set_option_string(mpv, "input-media-keys", "no");
-        // mpv's own OSD (track-change toasts, seek feedback) duplicates Aperture's OSD
-        // badge; silence it so notifications come from exactly one surface.
-        fn_mpv_set_option_string(mpv, "osd-level", "0");
-        // No yt-dlp hook: Aperture plays direct URLs only (network streams are validated http/https/rtsp/rtmp), so never invoke the bundled
-        // Lua hook path for unhandled inputs.
-        fn_mpv_set_option_string(mpv, "ytdl", "no");
+    SetMpvOption(mpv, "input-default-bindings", "no", MpvOptionRequirement::Essential);
+    SetMpvOption(mpv, "input-vo-keyboard", "no", MpvOptionRequirement::Essential);
+    SetMpvOption(mpv, "input-media-keys", "no", MpvOptionRequirement::Essential);
+    // mpv's own OSD (track-change toasts, seek feedback) duplicates Aperture's OSD
+    // badge; silence it so notifications come from exactly one surface.
+    SetMpvOption(mpv, "osd-level", "0");
+    // No yt-dlp hook: Aperture plays direct URLs only (network streams are validated http/https/rtsp/rtmp), so never invoke the bundled
+    // Lua hook path for unhandled inputs.
+    SetMpvOption(mpv, "load-scripts", "no", MpvOptionRequirement::Essential);
+    SetMpvOption(mpv, "scripts", "", MpvOptionRequirement::Essential);
+    // Builds without Lua omit ytdl; retain the checked disable on builds that expose it.
+    SetMpvOption(mpv, "ytdl", "no");
     // High performance playback settings: universal hardware decoding & EAC3/AC3 audio
-        fn_mpv_set_option_string(mpv, "gpu-context", "d3d11");
-        fn_mpv_set_option_string(mpv, "gpu-api", "d3d11");
-        // Use D3D11VA direct surfaces. The safe/auto modes can select the copy path on Windows, retaining a second full-resolution system
-        // memory frame queue alongside the GPU decoder surfaces.
-        fn_mpv_set_option_string(mpv, "hwdec", "d3d11va");
-        fn_mpv_set_option_string(mpv, "vo", "gpu");
-        // HEVC Main 10 frames are large (P010 is ~4 MiB at 1080p). mpv's default extra-surface cushion is unnecessary for this local player
-        // and directly inflates both D3D11 video memory and mapped pages.
-        fn_mpv_set_option_string(mpv, "hwdec-extra-frames", "0");
-        // Avoid keeping an extra frame ahead of the display clock. This is a local-file player and the lower latency is preferable to
-        // another full-resolution frame in the presentation pipeline.
-        fn_mpv_set_option_string(mpv, "video-latency-hacks", "yes");
-        // Keep the presentation queue bounded. Display timing is sufficient for a local file and avoids retaining extra full-resolution
-        // frames solely to let the audio clock lead video.
-        fn_mpv_set_option_string(mpv, "video-sync", "display");
-        fn_mpv_set_option_string(mpv, "framedrop", "vo");
-        fn_mpv_set_option_string(mpv, "video-timing-offset", "0");
-        fn_mpv_set_option_string(mpv, "vd-lavc-dr", "yes");
-        // Frame-accurate seeking for every seek type. mpv's default makes relative seeks keyframe-fast, which snaps quick skip steps onto
-        // the same keyframe and can land past a subtitle cue that should be on screen, both reported as seek imprecision.
-        fn_mpv_set_option_string(mpv, "hr-seek", "always");
-        fn_mpv_set_option_string(mpv, "force-window", "yes");
-        fn_mpv_set_option_string(mpv, "keep-open", "yes");
-        fn_mpv_set_option_string(mpv, "sub-auto", "fuzzy");
-        // Bound libass' rendered subtitle bitmap cache. Entries are recreated on demand, so this retains subtitle correctness without
-        // allowing a long ASS track to grow an unbounded glyph/bitmap working set.
-        fn_mpv_set_option_string(mpv, "sub-bitmap-max-size", "1");
-        fn_mpv_set_option_string(mpv, "audio-channels", "stereo");
-        fn_mpv_set_option_string(mpv, "audio-pitch-correction", "yes");
-        fn_mpv_set_option_string(mpv, "sub-font", "Inter");
-        fn_mpv_set_option_string(mpv, "sub-font-size", "46");
-        fn_mpv_set_option_string(mpv, "sub-border-size", "3.0");
-        fn_mpv_set_option_string(mpv, "sub-shadow-offset", "1.5");
-        fn_mpv_set_option_string(mpv, "sub-color", "#FFFFFF");
-        fn_mpv_set_option_string(mpv, "sub-border-color", "#000000");
-        fn_mpv_set_option_string(mpv, "secondary-sub-pos", "10");
-        fn_mpv_set_option_string(mpv, "secondary-sub-visibility", "yes");
-        fn_mpv_set_option_string(mpv, "secondary-sid", "no");
-        // This is a local-file player, so keep readahead small.  A large
-        // forward/backward demuxer cache is redundant with the OS file cache and becomes especially expensive when seeking through HEVC.
-        fn_mpv_set_option_string(mpv, "demuxer-max-bytes", "8MiB");
-        fn_mpv_set_option_string(mpv, "demuxer-max-back-bytes", "0");
-        // Let libass resolve the shipped private fonts (Inter, Space Grotesk, JetBrains Mono) for subtitles without a system-wide install.
-        std::string subFontsDir = Utf16ToUtf8(exeDir + L"\\fonts");
-        fn_mpv_set_option_string(mpv, "sub-fonts-dir", subFontsDir.c_str());
-        // Persist compiled GPU shaders under the app's root-local cache directory
-        // so later playback starts skip recompiling pipeline shaders.
-        std::wstring shaderCacheDirW = GetCacheDir(CacheClass::Shaders);
-        std::string shaderCacheDir = Utf16ToUtf8(shaderCacheDirW);
-        fn_mpv_set_option_string(mpv, "gpu-shader-cache-dir", shaderCacheDir.c_str());
-    }
-    if (fn_mpv_initialize(mpv) < 0) {
+    SetMpvOption(mpv, "gpu-context", "d3d11", MpvOptionRequirement::Essential);
+    SetMpvOption(mpv, "gpu-api", "d3d11", MpvOptionRequirement::Essential);
+    // Use D3D11VA direct surfaces. The safe/auto modes can select the copy path on Windows, retaining a second full-resolution system
+    // memory frame queue alongside the GPU decoder surfaces.
+    SetMpvOption(mpv, "hwdec", "d3d11va", MpvOptionRequirement::Optional, "no");
+    SetMpvOption(mpv, "vo", "gpu", MpvOptionRequirement::Essential);
+    // HEVC Main 10 frames are large (P010 is ~4 MiB at 1080p). mpv's default extra-surface cushion is unnecessary for this local player
+    // and directly inflates both D3D11 video memory and mapped pages.
+    SetMpvOption(mpv, "hwdec-extra-frames", "0");
+    // Avoid keeping an extra frame ahead of the display clock. This is a local-file player and the lower latency is preferable to
+    // another full-resolution frame in the presentation pipeline.
+    SetMpvOption(mpv, "video-latency-hacks", "yes");
+    // Keep the presentation queue bounded. Display timing is sufficient for a local file and avoids retaining extra full-resolution
+    // frames solely to let the audio clock lead video.
+    SetMpvOption(mpv, "video-sync", "display-vdrop", MpvOptionRequirement::Optional, "audio");
+    SetMpvOption(mpv, "framedrop", "vo");
+    SetMpvOption(mpv, "video-timing-offset", "0");
+    SetMpvOption(mpv, "vd-lavc-dr", "yes");
+    // Frame-accurate seeking for every seek type. mpv's default makes relative seeks keyframe-fast, which snaps quick skip steps onto
+    // the same keyframe and can land past a subtitle cue that should be on screen, both reported as seek imprecision.
+    SetMpvOption(mpv, "hr-seek", "always");
+    SetMpvOption(mpv, "force-window", "yes", MpvOptionRequirement::Essential);
+    SetMpvOption(mpv, "keep-open", "yes");
+    SetMpvOption(mpv, "sub-auto", "fuzzy");
+    // Bound libass' rendered subtitle bitmap cache. Entries are recreated on demand, so this retains subtitle correctness without
+    // allowing a long ASS track to grow an unbounded glyph/bitmap working set.
+    SetMpvOption(mpv, "sub-bitmap-max-size", "1");
+    SetMpvOption(mpv, "audio-channels", "stereo");
+    SetMpvOption(mpv, "audio-pitch-correction", "yes");
+    SetMpvOption(mpv, "sub-font", "Inter");
+    SetMpvOption(mpv, "sub-font-size", "46");
+    SetMpvOption(mpv, "sub-border-size", "3.0");
+    SetMpvOption(mpv, "sub-shadow-offset", "1.5");
+    SetMpvOption(mpv, "sub-color", "#FFFFFF");
+    SetMpvOption(mpv, "sub-border-color", "#000000");
+    SetMpvOption(mpv, "secondary-sub-pos", "10");
+    SetMpvOption(mpv, "secondary-sub-visibility", "yes");
+    SetMpvOption(mpv, "secondary-sid", "no");
+    // This is a local-file player, so keep readahead small.  A large
+    // forward/backward demuxer cache is redundant with the OS file cache and becomes especially expensive when seeking through HEVC.
+    SetMpvOption(mpv, "demuxer-max-bytes", "8MiB");
+    SetMpvOption(mpv, "demuxer-max-back-bytes", "0");
+    // Let libass resolve the shipped private fonts (Inter, Space Grotesk, JetBrains Mono) for subtitles without a system-wide install.
+    std::string subFontsDir = Utf16ToUtf8(exeDir + L"\\fonts");
+    SetMpvOption(mpv, "sub-fonts-dir", subFontsDir.c_str());
+    // Persist compiled GPU shaders under the app's root-local cache directory
+    // so later playback starts skip recompiling pipeline shaders.
+    std::wstring shaderCacheDirW = GetCacheDir(CacheClass::Shaders);
+    std::string shaderCacheDir = Utf16ToUtf8(shaderCacheDirW);
+    SetMpvOption(mpv, "gpu-shader-cache-dir", shaderCacheDir.c_str());
+    if (!EssentialOptionsAccepted()) { Shutdown(); return false; }
+    const int initializeResult = fn_mpv_initialize(mpv);
+    if (initializeResult < 0) {
+        RecordInitializationFailure("mpv_initialize", initializeResult);
         fn_mpv_destroy ? fn_mpv_destroy(mpv) : fn_mpv_terminate_destroy(mpv);
         mpv = nullptr;
-        FreeLibrary(hMpvDll);
-        hMpvDll = NULL;
+        ResetMpvApi();
         return false;
     }
     // Observe properties
@@ -284,7 +255,6 @@ bool MpvPlayer::Initialize(HWND hParentWnd, HWND hChildVideoWnd) {
     isInitialized = true;
     isRunning = true;
     ended = false;
-    hasError = false;
     { std::lock_guard<std::mutex> lock(stateMutex); lastError.clear(); }
     eventThread = std::thread(&MpvPlayer::EventLoop, this);
     if (customMpvConfigEnabled) {
@@ -325,10 +295,9 @@ void MpvPlayer::Shutdown() {
             mpv = nullptr;
         }
     }
-    if (hMpvDll) { FreeLibrary(hMpvDll); hMpvDll = NULL; }
+    ResetMpvApi();
     isInitialized = false;
     ended = true;
-    hasError = false;
     {
         std::lock_guard<std::mutex> lock(stateMutex);
         currentFilePath.clear();
@@ -434,7 +403,6 @@ void MpvPlayer::EventLoop() {
             }
         } else if (event->event_id == MPV_EVENT_FILE_LOADED) {
             ended = false;
-            hasError = false;
             { std::lock_guard<std::mutex> lock(stateMutex); lastError.clear(); }
             RefreshTracks();
             RefreshChapters();
@@ -655,7 +623,6 @@ bool MpvPlayer::Open(const std::wstring& filePath, double startSec) {
         tracksVersion.fetch_add(1, std::memory_order_release);
         lastError.clear();
     }
-    hasError = false;
     Play();
     return true;
 }
@@ -690,7 +657,6 @@ void MpvPlayer::Close() {
         lastError.clear();
     }
     ended = true;
-    hasError = false;
     if (commandIssued && ret < 0) ReportError("Unable to close media", ret);
 }
 
@@ -2090,83 +2056,59 @@ void MpvPreviewPlayer::OnRenderUpdate(void* ctx) {
 
 bool MpvPreviewPlayer::Initialize(ID2D1DeviceContext* pD2DContext, HMODULE hDll) {
     Shutdown();
-    if (hDll) {
-        if (GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS, (LPCWSTR)hDll, &hMpvDll) && hMpvDll) { ownsMpvDll = true; } else {
-            hMpvDll = DllLoader::LoadPackageLocalDll(L"libmpv-2.dll");
-            ownsMpvDll = hMpvDll != NULL;
-            if (!hMpvDll) { hMpvDll = hDll; ownsMpvDll = false; }
-        }
-    } else { hMpvDll = DllLoader::LoadPackageLocalDll(L"libmpv-2.dll"); ownsMpvDll = hMpvDll != NULL; }
-    if (!hMpvDll) return false;
-    fn_mpv_create = (pfn_mpv_create)GetProcAddress(hMpvDll, "mpv_create");
-    fn_mpv_initialize = (pfn_mpv_initialize)GetProcAddress(hMpvDll, "mpv_initialize");
-    fn_mpv_terminate_destroy = (pfn_mpv_terminate_destroy)GetProcAddress(hMpvDll, "mpv_terminate_destroy");
-    fn_mpv_command = (pfn_mpv_command)GetProcAddress(hMpvDll, "mpv_command");
-    fn_mpv_command_string = (pfn_mpv_command_string)GetProcAddress(hMpvDll, "mpv_command_string");
-    fn_mpv_set_option_string = (pfn_mpv_set_option_string)GetProcAddress(hMpvDll, "mpv_set_option_string");
-    fn_mpv_set_property_string = (pfn_mpv_set_property_string)GetProcAddress(hMpvDll, "mpv_set_property_string");
-    fn_mpv_render_context_create = (pfn_mpv_render_context_create)GetProcAddress(hMpvDll, "mpv_render_context_create");
-    fn_mpv_render_context_set_update_callback = (pfn_mpv_render_context_set_update_callback)GetProcAddress(hMpvDll, "mpv_render_context_set_update_callback");
-    fn_mpv_render_context_update = (pfn_mpv_render_context_update)GetProcAddress(hMpvDll, "mpv_render_context_update");
-    fn_mpv_render_context_render = (pfn_mpv_render_context_render)GetProcAddress(hMpvDll, "mpv_render_context_render");
-    fn_mpv_render_context_free = (pfn_mpv_render_context_free)GetProcAddress(hMpvDll, "mpv_render_context_free");
-    if (!fn_mpv_create || !fn_mpv_initialize || !fn_mpv_terminate_destroy ||
-        !fn_mpv_render_context_create || !fn_mpv_render_context_render) {
-        if (ownsMpvDll) FreeLibrary(hMpvDll);
-        hMpvDll = NULL;
-        ownsMpvDll = false;
-        return false;
-    }
+    if (!LoadMpvApi(MpvApiProfile::SoftwareRenderer, "Hover preview", hDll)) return false;
     mpv = fn_mpv_create();
-    if (!mpv) { if (ownsMpvDll) FreeLibrary(hMpvDll); hMpvDll = NULL; ownsMpvDll = false; return false; }
-    if (fn_mpv_set_option_string) {
-        fn_mpv_set_option_string(mpv, "vo", "libmpv");
-        fn_mpv_set_option_string(mpv, "hwdec", "no");
-        fn_mpv_set_option_string(mpv, "audio", "no");
-        fn_mpv_set_option_string(mpv, "mute", "yes");
-        // No fixed vf scale: the software render target size is chosen per mode (small for seekbar extraction, row-sized for card hover
-        // previews) and mpv scales into that target directly.
-        fn_mpv_set_option_string(mpv, "sid", "no");
-        fn_mpv_set_option_string(mpv, "sub-auto", "no");
-        fn_mpv_set_option_string(mpv, "vd-lavc-threads", "2");
-        fn_mpv_set_option_string(mpv, "framedrop", "vo");
-        fn_mpv_set_option_string(mpv, "video-sync", "display");
-        // The preview renders into a bounded software target. It needs only a
-        // small local read window; leaving mpv's larger default cache here
-        // creates a second high-bitrate media cache on card/timeline hover.
-        fn_mpv_set_option_string(mpv, "demuxer-max-bytes", "8MiB");
-        fn_mpv_set_option_string(mpv, "demuxer-max-back-bytes", "0");
-        // The preview is displayed at normal playback speed.  untimed=yes
-        // makes libmpv decode as fast as the CPU can produce frames while the
-        // UI consumes one frame per tick, allowing its queued frames to grow
-        // into hundreds of MiB on a 1080p source.  A hover preview also has no
-        // reason to loop or retain the demuxer at EOF.
-        fn_mpv_set_option_string(mpv, "loop-file", "no");
-        fn_mpv_set_option_string(mpv, "keep-open", "no");
-        fn_mpv_set_option_string(mpv, "untimed", "no");
-        fn_mpv_set_option_string(mpv, "hr-seek", "yes");
-        fn_mpv_set_option_string(mpv, "video-timing-offset", "0");
-        fn_mpv_set_option_string(mpv, "input-default-bindings", "no");
-        fn_mpv_set_option_string(mpv, "input-vo-keyboard", "no");
-        fn_mpv_set_option_string(mpv, "input-media-keys", "no");
-        // Direct URLs only: never invoke the Lua hook path.
-        fn_mpv_set_option_string(mpv, "ytdl", "no");
-    }
-    if (fn_mpv_initialize(mpv) < 0) {
+    if (!mpv) { RecordInitializationFailure("mpv_create", MPV_ERROR_NOMEM); ResetMpvApi(); return false; }
+    SetMpvOption(mpv, "vo", "libmpv", MpvOptionRequirement::Essential);
+    SetMpvOption(mpv, "hwdec", "no", MpvOptionRequirement::Essential);
+    SetMpvOption(mpv, "audio", "no", MpvOptionRequirement::Essential);
+    SetMpvOption(mpv, "mute", "yes");
+    // No fixed vf scale: the software render target size is chosen per mode (small for seekbar extraction, row-sized for card hover
+    // previews) and mpv scales into that target directly.
+    SetMpvOption(mpv, "sid", "no", MpvOptionRequirement::Essential);
+    SetMpvOption(mpv, "sub-auto", "no", MpvOptionRequirement::Essential);
+    SetMpvOption(mpv, "vd-lavc-threads", "2");
+    SetMpvOption(mpv, "framedrop", "vo");
+    SetMpvOption(mpv, "video-sync", "display-desync");
+    // The preview renders into a bounded software target. It needs only a
+    // small local read window; leaving mpv's larger default cache here
+    // creates a second high-bitrate media cache on card/timeline hover.
+    SetMpvOption(mpv, "demuxer-max-bytes", "8MiB");
+    SetMpvOption(mpv, "demuxer-max-back-bytes", "0");
+    // The preview is displayed at normal playback speed.  untimed=yes
+    // makes libmpv decode as fast as the CPU can produce frames while the
+    // UI consumes one frame per tick, allowing its queued frames to grow
+    // into hundreds of MiB on a 1080p source.  A hover preview also has no
+    // reason to loop or retain the demuxer at EOF.
+    SetMpvOption(mpv, "loop-file", "no");
+    SetMpvOption(mpv, "keep-open", "no");
+    SetMpvOption(mpv, "untimed", "no");
+    SetMpvOption(mpv, "hr-seek", "yes");
+    SetMpvOption(mpv, "video-timing-offset", "0");
+    SetMpvOption(mpv, "input-default-bindings", "no", MpvOptionRequirement::Essential);
+    SetMpvOption(mpv, "input-vo-keyboard", "no", MpvOptionRequirement::Essential);
+    SetMpvOption(mpv, "input-media-keys", "no", MpvOptionRequirement::Essential);
+    // Direct URLs only: never invoke the Lua hook path.
+    SetMpvOption(mpv, "load-scripts", "no", MpvOptionRequirement::Essential);
+    SetMpvOption(mpv, "scripts", "", MpvOptionRequirement::Essential);
+    // Builds without Lua omit ytdl; retain the checked disable on builds that expose it.
+    SetMpvOption(mpv, "ytdl", "no");
+    if (!EssentialOptionsAccepted()) { Shutdown(); return false; }
+    const int initializeResult = fn_mpv_initialize(mpv);
+    if (initializeResult < 0) {
+        RecordInitializationFailure("mpv_initialize", initializeResult);
         fn_mpv_terminate_destroy(mpv);
         mpv = nullptr;
-        if (ownsMpvDll) FreeLibrary(hMpvDll);
-        hMpvDll = NULL;
-        ownsMpvDll = false;
+        ResetMpvApi();
         return false;
     }
     mpv_render_param params[] = {{MPV_RENDER_PARAM_API_TYPE, (void *)MPV_RENDER_API_TYPE_SW}, {MPV_RENDER_PARAM_INVALID, nullptr}};
-    if (fn_mpv_render_context_create(&renderCtx, mpv, params) < 0) {
+    const int renderResult = fn_mpv_render_context_create(&renderCtx, mpv, params);
+    if (renderResult < 0) {
+        RecordInitializationFailure("software render context", renderResult);
         fn_mpv_terminate_destroy(mpv);
         mpv = nullptr;
-        if (ownsMpvDll) FreeLibrary(hMpvDll);
-        hMpvDll = NULL;
-        ownsMpvDll = false;
+        ResetMpvApi();
         return false;
     }
     if (fn_mpv_render_context_set_update_callback) { fn_mpv_render_context_set_update_callback(renderCtx, OnRenderUpdate, this); }
@@ -2202,9 +2144,7 @@ void MpvPreviewPlayer::Shutdown() {
     bitmapDevice.Reset();
     std::vector<uint8_t>().swap(pixelBuffer);
     memoryCache.Clear();
-    if (ownsMpvDll && hMpvDll) FreeLibrary(hMpvDll);
-    hMpvDll = NULL;
-    ownsMpvDll = false;
+    ResetMpvApi();
 }
 
 void MpvPreviewPlayer::SetPreviewOutputSize(int width, int height) {
@@ -2529,53 +2469,41 @@ bool MpvHubExtractor::EnsureInitialized() {
     if (mpv && renderCtx) return true;
     // Caller (Begin) holds mutex; use the lock-free teardown on failure.
     TeardownLocked();
-    if (!hMpvDll) { hMpvDll = DllLoader::LoadPackageLocalDll(L"libmpv-2.dll"); if (!hMpvDll) return false; ownsMpvDll = true; }
-    fn_mpv_create = (pfn_mpv_create)GetProcAddress(hMpvDll, "mpv_create");
-    fn_mpv_initialize = (pfn_mpv_initialize)GetProcAddress(hMpvDll, "mpv_initialize");
-    fn_mpv_terminate_destroy = (pfn_mpv_terminate_destroy)GetProcAddress(hMpvDll, "mpv_terminate_destroy");
-    fn_mpv_command = (pfn_mpv_command)GetProcAddress(hMpvDll, "mpv_command");
-    fn_mpv_command_string = (pfn_mpv_command_string)GetProcAddress(hMpvDll, "mpv_command_string");
-    fn_mpv_set_option_string = (pfn_mpv_set_option_string)GetProcAddress(hMpvDll, "mpv_set_option_string");
-    fn_mpv_set_property_string = (pfn_mpv_set_property_string)GetProcAddress(hMpvDll, "mpv_set_property_string");
-    fn_mpv_render_context_create = (pfn_mpv_render_context_create)GetProcAddress(hMpvDll, "mpv_render_context_create");
-    fn_mpv_render_context_set_update_callback = (pfn_mpv_render_context_set_update_callback)GetProcAddress(hMpvDll, "mpv_render_context_set_update_callback");
-    fn_mpv_render_context_update = (pfn_mpv_render_context_update)GetProcAddress(hMpvDll, "mpv_render_context_update");
-    fn_mpv_render_context_render = (pfn_mpv_render_context_render)GetProcAddress(hMpvDll, "mpv_render_context_render");
-    fn_mpv_render_context_free = (pfn_mpv_render_context_free)GetProcAddress(hMpvDll, "mpv_render_context_free");
-    if (!fn_mpv_create || !fn_mpv_initialize || !fn_mpv_terminate_destroy ||
-        !fn_mpv_render_context_create || !fn_mpv_render_context_render) {
-        TeardownLocked();
-        return false;
-    }
+    if (!LoadMpvApi(MpvApiProfile::SoftwareRenderer, "Hub extractor")) return false;
     mpv = fn_mpv_create();
-    if (!mpv) { TeardownLocked(); return false; }
-    if (fn_mpv_set_option_string) {
-        // Single-frame grab tunables: keyframe seeks, skipped loop filtering, and a tiny demuxer window. Exactness is irrelevant
-        // for a representative card frame; speed is everything.
-        fn_mpv_set_option_string(mpv, "vo", "libmpv");
-        fn_mpv_set_option_string(mpv, "hwdec", "no");
-        fn_mpv_set_option_string(mpv, "audio", "no");
-        fn_mpv_set_option_string(mpv, "sid", "no");
-        fn_mpv_set_option_string(mpv, "sub-auto", "no");
-        fn_mpv_set_option_string(mpv, "vd-lavc-threads", "2");
-        fn_mpv_set_option_string(mpv, "vd-lavc-skiploopfilter", "all");
-        fn_mpv_set_option_string(mpv, "vd-lavc-fast", "yes");
-        fn_mpv_set_option_string(mpv, "hr-seek", "no");
-        fn_mpv_set_option_string(mpv, "demuxer-max-bytes", "4MiB");
-        fn_mpv_set_option_string(mpv, "demuxer-max-back-bytes", "0");
-        fn_mpv_set_option_string(mpv, "loop-file", "no");
-        fn_mpv_set_option_string(mpv, "keep-open", "no");
-        fn_mpv_set_option_string(mpv, "untimed", "no");
-        fn_mpv_set_option_string(mpv, "video-sync", "display-desync");
-        fn_mpv_set_option_string(mpv, "input-default-bindings", "no");
-        fn_mpv_set_option_string(mpv, "input-vo-keyboard", "no");
-        fn_mpv_set_option_string(mpv, "input-media-keys", "no");
-    }
-    if (fn_mpv_initialize(mpv) < 0) { TeardownLocked(); return false; }
+    if (!mpv) { RecordInitializationFailure("mpv_create", MPV_ERROR_NOMEM); TeardownLocked(); return false; }
+    // Single-frame grab tunables: keyframe seeks, skipped loop filtering, and a tiny demuxer window. Exactness is irrelevant
+    // for a representative card frame; speed is everything.
+    SetMpvOption(mpv, "vo", "libmpv", MpvOptionRequirement::Essential);
+    SetMpvOption(mpv, "hwdec", "no", MpvOptionRequirement::Essential);
+    SetMpvOption(mpv, "audio", "no", MpvOptionRequirement::Essential);
+    SetMpvOption(mpv, "sid", "no", MpvOptionRequirement::Essential);
+    SetMpvOption(mpv, "sub-auto", "no", MpvOptionRequirement::Essential);
+    SetMpvOption(mpv, "vd-lavc-threads", "2");
+    SetMpvOption(mpv, "vd-lavc-skiploopfilter", "all");
+    SetMpvOption(mpv, "vd-lavc-fast", "yes");
+    SetMpvOption(mpv, "hr-seek", "no");
+    SetMpvOption(mpv, "demuxer-max-bytes", "4MiB");
+    SetMpvOption(mpv, "demuxer-max-back-bytes", "0");
+    SetMpvOption(mpv, "loop-file", "no");
+    SetMpvOption(mpv, "keep-open", "no");
+    SetMpvOption(mpv, "untimed", "no");
+    SetMpvOption(mpv, "video-sync", "display-desync");
+    SetMpvOption(mpv, "input-default-bindings", "no", MpvOptionRequirement::Essential);
+    SetMpvOption(mpv, "input-vo-keyboard", "no", MpvOptionRequirement::Essential);
+    SetMpvOption(mpv, "input-media-keys", "no", MpvOptionRequirement::Essential);
+    SetMpvOption(mpv, "load-scripts", "no", MpvOptionRequirement::Essential);
+    SetMpvOption(mpv, "scripts", "", MpvOptionRequirement::Essential);
+    // Builds without Lua omit ytdl; retain the checked disable on builds that expose it.
+    SetMpvOption(mpv, "ytdl", "no");
+    if (!EssentialOptionsAccepted()) { TeardownLocked(); return false; }
+    const int initializeResult = fn_mpv_initialize(mpv);
+    if (initializeResult < 0) { RecordInitializationFailure("mpv_initialize", initializeResult); TeardownLocked(); return false; }
     mpv_render_param params[] = {
         { MPV_RENDER_PARAM_API_TYPE, (void*)MPV_RENDER_API_TYPE_SW }, { MPV_RENDER_PARAM_INVALID, nullptr }
     };
-    if (fn_mpv_render_context_create(&renderCtx, mpv, params) < 0) { TeardownLocked(); return false; }
+    const int renderResult = fn_mpv_render_context_create(&renderCtx, mpv, params);
+    if (renderResult < 0) { RecordInitializationFailure("software render context", renderResult); TeardownLocked(); return false; }
     if (fn_mpv_render_context_set_update_callback) { fn_mpv_render_context_set_update_callback(renderCtx, OnRenderUpdate, this); }
     pixelBuffer.resize((size_t)kExtractWidth * kExtractHeight * 4u);
     StartSaveWorker();
@@ -2598,22 +2526,8 @@ void MpvHubExtractor::TeardownLocked() {
         renderCtx = nullptr;
     }
     if (mpv && fn_mpv_terminate_destroy) { fn_mpv_terminate_destroy(mpv); mpv = nullptr; }
-    if (ownsMpvDll && hMpvDll) FreeLibrary(hMpvDll);
-    hMpvDll = NULL;
-    ownsMpvDll = false;
+    ResetMpvApi();
     std::vector<uint8_t>().swap(pixelBuffer);
-    fn_mpv_create = nullptr;
-    fn_mpv_initialize = nullptr;
-    fn_mpv_terminate_destroy = nullptr;
-    fn_mpv_command = nullptr;
-    fn_mpv_command_string = nullptr;
-    fn_mpv_set_option_string = nullptr;
-    fn_mpv_set_property_string = nullptr;
-    fn_mpv_render_context_create = nullptr;
-    fn_mpv_render_context_set_update_callback = nullptr;
-    fn_mpv_render_context_update = nullptr;
-    fn_mpv_render_context_render = nullptr;
-    fn_mpv_render_context_free = nullptr;
 }
 
 bool MpvHubExtractor::Begin(const std::wstring& filePath, double startSec) {

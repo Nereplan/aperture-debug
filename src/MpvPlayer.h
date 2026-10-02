@@ -3,8 +3,7 @@
 #include "Common.h"
 #include "AudioConfig.h"
 #include "ThumbnailCodec.h"
-#include "include/mpv/client.h"
-#include "include/mpv/render.h"
+#include "MpvApi.h"
 #include <string>
 #include <vector>
 #include <deque>
@@ -102,8 +101,10 @@ struct PlayerDiagnostics {
     std::wstring activeToneMapping, activeGamutMapping, activeIccProfile, colorDiagnosticsStr;
 };
 
-class MpvPlayer {
+class MpvPlayer : private MpvApiOwner {
 public:
+    using MpvApiOwner::GetInitializationDiagnostics;
+    using MpvApiOwner::SetInitializationDiagnosticSink;
     MpvPlayer();
     ~MpvPlayer();
     bool Initialize(HWND hParentWnd, HWND hVideoChildWnd);
@@ -243,7 +244,6 @@ private:
     void HandleEofTransition();
     void RefreshTracks();
     void RefreshChapters();
-    void LoadMpvFunctions(HMODULE hModule);
     void SetImageAdjustment(int& state, int value, const char* property, const char* operation);
     enum class ErrorSeverity { Recoverable, Fatal };
     void ReportError(const char* operation, int errorCode, ErrorSeverity severity = ErrorSeverity::Recoverable);
@@ -251,12 +251,10 @@ private:
     HWND hParent = NULL;
     HWND hVideoWnd = NULL;
     mpv_handle* mpv = nullptr;
-    HMODULE hMpvDll = NULL;
     std::wstring currentFilePath;
     std::atomic<bool> isInitialized{ false };
     std::atomic<bool> isRunning{ false };
     std::atomic<bool> ended{ false };
-    std::atomic<bool> hasError{ false };
     std::atomic<bool> loop{ false };
     std::thread eventThread;
     mutable std::mutex stateMutex;
@@ -294,41 +292,7 @@ private:
     bool customMpvConfigEnabled = false;
     std::string customMpvConfigPath = "mpv.conf";
     CustomMpvApplyResult lastCustomMpvResult;
-    // Function pointers for dynamic loading
-    typedef mpv_handle* (*pfn_mpv_create)(void);
-    typedef int (*pfn_mpv_initialize)(mpv_handle*);
-    typedef void (*pfn_mpv_destroy)(mpv_handle*);
-    typedef void (*pfn_mpv_terminate_destroy)(mpv_handle*);
-    typedef int (*pfn_mpv_command)(mpv_handle*, const char**);
-    typedef int (*pfn_mpv_command_string)(mpv_handle*, const char*);
-    typedef int (*pfn_mpv_set_option)(mpv_handle*, const char*, mpv_format, void*);
-    typedef int (*pfn_mpv_set_option_string)(mpv_handle*, const char*, const char*);
-    typedef int (*pfn_mpv_get_property)(mpv_handle*, const char*, mpv_format, void*);
-    typedef char* (*pfn_mpv_get_property_string)(mpv_handle*, const char*);
-    typedef int (*pfn_mpv_set_property)(mpv_handle*, const char*, mpv_format, void*);
-    typedef int (*pfn_mpv_set_property_string)(mpv_handle*, const char*, const char*);
-    typedef void (*pfn_mpv_free)(void*);
-    typedef int (*pfn_mpv_observe_property)(mpv_handle*, uint64_t, const char*, mpv_format);
-    typedef mpv_event* (*pfn_mpv_wait_event)(mpv_handle*, double);
-    typedef void (*pfn_mpv_wakeup)(mpv_handle*);
-    typedef const char* (*pfn_mpv_error_string)(int);
-    pfn_mpv_create fn_mpv_create = nullptr;
-    pfn_mpv_initialize fn_mpv_initialize = nullptr;
-    pfn_mpv_destroy fn_mpv_destroy = nullptr;
-    pfn_mpv_terminate_destroy fn_mpv_terminate_destroy = nullptr;
-    pfn_mpv_command fn_mpv_command = nullptr;
-    pfn_mpv_command_string fn_mpv_command_string = nullptr;
-    pfn_mpv_set_option fn_mpv_set_option = nullptr;
-    pfn_mpv_set_option_string fn_mpv_set_option_string = nullptr;
-    pfn_mpv_get_property fn_mpv_get_property = nullptr;
-    pfn_mpv_get_property_string fn_mpv_get_property_string = nullptr;
-    pfn_mpv_set_property fn_mpv_set_property = nullptr;
-    pfn_mpv_set_property_string fn_mpv_set_property_string = nullptr;
-    pfn_mpv_free fn_mpv_free = nullptr;
-    pfn_mpv_observe_property fn_mpv_observe_property = nullptr;
-    pfn_mpv_wait_event fn_mpv_wait_event = nullptr;
-    pfn_mpv_wakeup fn_mpv_wakeup = nullptr;
-    pfn_mpv_error_string fn_mpv_error_string = nullptr;
+
 };
 
 // =========================================================================
@@ -458,8 +422,10 @@ size_t PurgeThumbnailDiskCacheForFile( const std::wstring& filePath, double dura
 size_t PruneOrphanedHubThumbnailDiskCache( const std::vector<std::wstring>& liveFilePaths, const std::wstring& root = GetExeDir() );
 
 // High-performance background video preview renderer using libmpv render context
-class MpvPreviewPlayer {
+class MpvPreviewPlayer : private MpvApiOwner {
 public:
+    using MpvApiOwner::GetInitializationDiagnostics;
+    using MpvApiOwner::SetInitializationDiagnosticSink;
     MpvPreviewPlayer();
     ~MpvPreviewPlayer();
     bool Initialize(ID2D1DeviceContext* pD2DContext, HMODULE hDll);
@@ -495,7 +461,6 @@ private:
                             UINT width, UINT height, const uint8_t* pixels);
     mpv_handle* mpv = nullptr;
     mpv_render_context* renderCtx = nullptr;
-    HMODULE hMpvDll = NULL;
     std::wstring currentPreviewPath;
     std::atomic<bool> isActive{ false };
     std::atomic<bool> isSeekbarActive{ false };
@@ -527,7 +492,6 @@ private:
     ComPtr<ID2D1Device> bitmapDevice;
     std::mutex renderMutex;
     mutable std::mutex lifecycleMutex;
-    bool ownsMpvDll = false;
     // Background disk-save queue: thumbnail persistence (directory budget scans + file I/O + flush) must never run on the render thread.
     // UpdateFrame enqueues a copy and returns; the saver thread persists it
     // under <root>\cache\thumbnails. Bounded and coalesced by key so fast scrubbing cannot pile up unbounded file writes.
@@ -540,39 +504,17 @@ private:
     std::condition_variable saveCv;
     std::deque<PreviewThumbnailFrame> saveQueue;
     bool saveStopping = false;
-    // Dynamic function pointers
-    typedef mpv_handle* (*pfn_mpv_create)(void);
-    typedef int (*pfn_mpv_initialize)(mpv_handle*);
-    typedef void (*pfn_mpv_terminate_destroy)(mpv_handle*);
-    typedef int (*pfn_mpv_command)(mpv_handle*, const char**);
-    typedef int (*pfn_mpv_command_string)(mpv_handle*, const char*);
-    typedef int (*pfn_mpv_set_option_string)(mpv_handle*, const char*, const char*);
-    typedef int (*pfn_mpv_set_property_string)(mpv_handle*, const char*, const char*);
-    typedef int (*pfn_mpv_render_context_create)(mpv_render_context**, mpv_handle*, mpv_render_param*);
-    typedef void (*pfn_mpv_render_context_set_update_callback)(mpv_render_context*, mpv_render_update_fn, void*);
-    typedef uint64_t (*pfn_mpv_render_context_update)(mpv_render_context*);
-    typedef int (*pfn_mpv_render_context_render)(mpv_render_context*, mpv_render_param*);
-    typedef void (*pfn_mpv_render_context_free)(mpv_render_context*);
-    pfn_mpv_create fn_mpv_create = nullptr;
-    pfn_mpv_initialize fn_mpv_initialize = nullptr;
-    pfn_mpv_terminate_destroy fn_mpv_terminate_destroy = nullptr;
-    pfn_mpv_command fn_mpv_command = nullptr;
-    pfn_mpv_command_string fn_mpv_command_string = nullptr;
-    pfn_mpv_set_option_string fn_mpv_set_option_string = nullptr;
-    pfn_mpv_set_property_string fn_mpv_set_property_string = nullptr;
-    pfn_mpv_render_context_create fn_mpv_render_context_create = nullptr;
-    pfn_mpv_render_context_set_update_callback fn_mpv_render_context_set_update_callback = nullptr;
-    pfn_mpv_render_context_update fn_mpv_render_context_update = nullptr;
-    pfn_mpv_render_context_render fn_mpv_render_context_render = nullptr;
-    pfn_mpv_render_context_free fn_mpv_render_context_free = nullptr;
+
 };
 
 // Dedicated hub thumbnail extractor for files the Windows shell cannot thumbnail (notably MKV, which has no inbox Explorer handler). It
 // owns a separate mpv instance tuned purely for fast single-frame grabs — keyframe seeks, skipped loop filtering, tiny demuxer window — so
 // extraction never contends with hover previews, seekbar work, or playback decoding, and can run in parallel with them. The App drives it
 // while idle: Begin once, Pump every tick (needs no D2D device), TakeResult when ready.
-class MpvHubExtractor {
+class MpvHubExtractor : private MpvApiOwner {
 public:
+    using MpvApiOwner::GetInitializationDiagnostics;
+    using MpvApiOwner::SetInitializationDiagnosticSink;
     MpvHubExtractor();
     ~MpvHubExtractor();
     bool Begin(const std::wstring& filePath, double startSec);
@@ -600,8 +542,6 @@ private:
     void QueueSave(PreviewThumbnailFrame frame, std::wstring cacheKey);
     mpv_handle* mpv = nullptr;
     mpv_render_context* renderCtx = nullptr;
-    HMODULE hMpvDll = NULL;
-    bool ownsMpvDll = false;
     std::atomic<bool> frameReady{ false };
     std::atomic<bool> isPrivateMode{ false };
     std::vector<uint8_t> pixelBuffer;
@@ -619,30 +559,7 @@ private:
     std::deque<PendingSave> saveQueue;
     bool saveStopping = false;
     static constexpr size_t kMaxPendingSaves = 8;
-    typedef mpv_handle* (*pfn_mpv_create)(void);
-    typedef int (*pfn_mpv_initialize)(mpv_handle*);
-    typedef void (*pfn_mpv_terminate_destroy)(mpv_handle*);
-    typedef int (*pfn_mpv_command)(mpv_handle*, const char**);
-    typedef int (*pfn_mpv_command_string)(mpv_handle*, const char*);
-    typedef int (*pfn_mpv_set_option_string)(mpv_handle*, const char*, const char*);
-    typedef int (*pfn_mpv_set_property_string)(mpv_handle*, const char*, const char*);
-    typedef int (*pfn_mpv_render_context_create)(mpv_render_context**, mpv_handle*, mpv_render_param*);
-    typedef void (*pfn_mpv_render_context_set_update_callback)(mpv_render_context*, mpv_render_update_fn, void*);
-    typedef uint64_t (*pfn_mpv_render_context_update)(mpv_render_context*);
-    typedef int (*pfn_mpv_render_context_render)(mpv_render_context*, mpv_render_param*);
-    typedef void (*pfn_mpv_render_context_free)(mpv_render_context*);
-    pfn_mpv_create fn_mpv_create = nullptr;
-    pfn_mpv_initialize fn_mpv_initialize = nullptr;
-    pfn_mpv_terminate_destroy fn_mpv_terminate_destroy = nullptr;
-    pfn_mpv_command fn_mpv_command = nullptr;
-    pfn_mpv_command_string fn_mpv_command_string = nullptr;
-    pfn_mpv_set_option_string fn_mpv_set_option_string = nullptr;
-    pfn_mpv_set_property_string fn_mpv_set_property_string = nullptr;
-    pfn_mpv_render_context_create fn_mpv_render_context_create = nullptr;
-    pfn_mpv_render_context_set_update_callback fn_mpv_render_context_set_update_callback = nullptr;
-    pfn_mpv_render_context_update fn_mpv_render_context_update = nullptr;
-    pfn_mpv_render_context_render fn_mpv_render_context_render = nullptr;
-    pfn_mpv_render_context_free fn_mpv_render_context_free = nullptr;
+
 };
 
 } // namespace Aperture
