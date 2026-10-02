@@ -2,7 +2,8 @@
 param(
     [string]$SourceDirectory = "",
     [string]$OutputDirectory = "",
-    [switch]$KeepBuild
+    [switch]$KeepBuild,
+    [switch]$ProgressOnly
 )
 $ErrorActionPreference = "Stop"
 if (-not $SourceDirectory) { $SourceDirectory = Join-Path $PSScriptRoot "..\..\src" }
@@ -30,7 +31,7 @@ $argsList += @('mfreadwrite.lib', 'oleaut32.lib', 'propsys.lib')
 Set-Content -LiteralPath $response -Value $argsList -Encoding UTF8
 & cmd.exe /d /c "`"$vcvars`" && cl.exe @`"$response`""
 if ($LASTEXITCODE -ne 0) { throw "Query benchmark compilation failed." }
-$rows = & $exe
+$rows = if ($ProgressOnly) { & $exe --progress } else { & $exe }
 if ($LASTEXITCODE -ne 0) { throw "Query benchmark failed." }
 $rows | Set-Content -LiteralPath (Join-Path $output 'results.csv') -Encoding UTF8
 $rows | Write-Output

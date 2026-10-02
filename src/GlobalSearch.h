@@ -67,6 +67,7 @@ struct GlobalSearchProjection {
 
 // Cached entry inside GlobalSearchIndex with pre-computed normalized keys
 struct CachedSearchEntry {
+    std::string mediaId;
     std::wstring filePath, title, fileName, normalizedTitle;
     std::wstring normalizedFileName, normalizedPath;
     std::vector<std::wstring> titleTokens;
@@ -90,6 +91,8 @@ public:
     void Invalidate();
     void RebuildIndex(const MediaLibrary& library);
     size_t GetEntryCount() const { return entries.size(); }
+    uint64_t GetTextRebuildCount() const { return textRebuildCount; }
+    uint64_t GetMetadataRefreshCount() const { return metadataRefreshCount; }
     // Search query execution
     std::vector<GlobalSearchResultItem> Query(const MediaLibrary& library, const std::wstring& rawQuery,
                                              const GlobalSearchQueryOptions& options, size_t& outTotalMatchCount);
@@ -103,8 +106,12 @@ public:
                                        const std::vector<std::wstring>& queryTokens);
 
 private:
+    void RefreshMetadata(const MediaLibrary& library);
     std::vector<CachedSearchEntry> entries;
+    std::unordered_map<std::wstring, size_t> historyEntryByPath; // At most the bounded history count.
+    uint64_t cachedSearchContentVersion = (std::numeric_limits<uint64_t>::max)();
     uint64_t cachedLibraryVersion = (std::numeric_limits<uint64_t>::max)();
+    uint64_t textRebuildCount = 0, metadataRefreshCount = 0;
 };
 
 // Global search state model with input editing, debounce, keyboard navigation, and actions

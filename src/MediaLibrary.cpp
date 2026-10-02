@@ -319,6 +319,7 @@ bool MediaLibrary::ProbeMediaMetadata(const std::wstring& path, double& d, uint3
 std::wstring MediaLibrary::NormalizePathKey(const std::wstring& path) { return Identity(path); }
 
 void MediaLibrary::RebuildPathIndex() {
+    ++searchContentVersion; // Membership/path changes also affect search text.
     pathToIndex.clear();
     idToIndex.clear();
     pathToIndex.reserve(mediaItems.size());
@@ -649,7 +650,7 @@ void MediaLibrary::InvalidatePlaylistStatsCache() const {
     smartPathsCache.clear();
 }
 
-void MediaLibrary::NotifyPlaylistChanged() { libraryVersion++; InvalidatePlaylistStatsCache(); }
+void MediaLibrary::NotifyPlaylistChanged() { libraryVersion++; ++searchContentVersion; InvalidatePlaylistStatsCache(); }
 
 PlaylistStats MediaLibrary::GetPlaylistStats(const std::string& playlistId) const {
     auto it = playlistStatsCache.find(playlistId);
@@ -768,7 +769,9 @@ bool MediaLibrary::SetMetadataOverrides(const std::wstring& path, const MediaMet
     MediaItem* item = FindByPath(path);
     if (!item) item = AddOrUpdateMedia(path);
     if (item) {
+        const auto oldTitle = item->GetDisplayTitle();
         if (overrides.HasAnyOverride()) { item->overrides = overrides; } else { item->overrides.reset(); }
+        if (oldTitle != item->GetDisplayTitle()) ++searchContentVersion;
         libraryVersion++;
         InvalidatePlaylistStatsCache();
         return true;
@@ -778,7 +781,12 @@ bool MediaLibrary::SetMetadataOverrides(const std::wstring& path, const MediaMet
 
 bool MediaLibrary::ClearMetadataOverrides(const std::wstring& path) {
     MediaItem* item = FindByPath(path);
-    if (item && item->overrides.has_value()) { item->overrides.reset(); libraryVersion++; InvalidatePlaylistStatsCache(); return true; }
+    if (item && item->overrides.has_value()) {
+        const auto oldTitle = item->GetDisplayTitle();
+        item->overrides.reset();
+        if (oldTitle != item->GetDisplayTitle()) ++searchContentVersion;
+        libraryVersion++; InvalidatePlaylistStatsCache(); return true;
+    }
     return false;
 }
 
@@ -1212,7 +1220,7 @@ void MediaLibrary::UpdateProgress(const std::wstring& path, double pos, double d
     // second-granular (or categorical) changes invalidate projections, not
     // every fractional position tick from the player.
     const bool visibleStateChanged = m->durationSec != oldDuration || m->status != oldStatus ||
-        ((long long)std::floor(m->lastPosSec) != (long long)std::floor(oldPosSec)) ||
+        (std::floor(m->lastPosSec) != std::floor(oldPosSec)) ||
         m->lastWatchedTimestamp != oldWatchedTimestamp;
     if (visibleStateChanged) { libraryVersion++; }
     const std::wstring resolvedKey = NormalizePathKey(resolved);
@@ -1263,12 +1271,15 @@ void MediaLibrary::AddToHistory(const std::wstring& path, double pos, double dur
         if (SamePath(i->filePath, resolved)) {
             HistoryRecord h = *i;
             history.erase(i);
+            const auto newTitle = GetFileNameFromPath(resolved);
+            if (h.title != newTitle || h.filePath != resolved) ++searchContentVersion;
             h.filePath = resolved;
-            h.title = GetFileNameFromPath(resolved);
+            h.title = newTitle;
             h.lastPosSec = std::isfinite(pos) ? std::max(0.0, pos) : 0.0;
             h.durationSec = std::isfinite(dur) && dur > 0 ? dur : h.durationSec;
             h.watchedTimestamp = std::max<int64_t>(GetCurrentTimestampSec(), h.watchedTimestamp);
             history.insert(history.begin(), h);
+            ++libraryVersion;
             Save();
             return;
         }
@@ -1281,18 +1292,21 @@ void MediaLibrary::AddToHistory(const std::wstring& path, double pos, double dur
     h.watchedTimestamp = GetCurrentTimestampSec();
     history.insert(history.begin(), h);
     if (history.size() > 100) history.resize(100);
+    ++libraryVersion; ++searchContentVersion;
     Save();
 }
 
 bool MediaLibrary::RemoveFromHistory(size_t i) {
     if (i >= history.size()) return false;
     history.erase(history.begin() + i);
+    ++libraryVersion; ++searchContentVersion;
     Save();
     return true;
 }
 
 void MediaLibrary::ClearHistory() {
     bool changed = !history.empty();
+    if (changed) ++searchContentVersion;
     history.clear();
     for (auto& m : mediaItems) {
         if (m.lastPosSec > 0.0 || m.status != "new" || m.lastWatchedTimestamp != 0) {
@@ -2152,6 +2166,7 @@ StorageStatus MediaLibrary::LoadFromRoot(const std::wstring& requestedRootDir, c
     libraryVersion++;
     InvalidatePlaylistStatsCache();
     lastLoadResult = loadResult;
+    ++searchContentVersion;
     if (!loadResult.libraryStatus.is_ok()) lastLoadStatus = loadResult.libraryStatus;
     else if (!loadResult.playlistsStatus.is_ok()) lastLoadStatus = loadResult.playlistsStatus;
     else if (!loadResult.historyStatus.is_ok()) lastLoadStatus = loadResult.historyStatus;

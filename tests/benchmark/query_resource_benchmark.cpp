@@ -38,7 +38,7 @@ void operator delete[](void* ptr) noexcept { ::operator delete(ptr); }
 void operator delete(void* ptr, size_t) noexcept { ::operator delete(ptr); }
 void operator delete[](void* ptr, size_t) noexcept { ::operator delete(ptr); }
 
-int main() {
+int main(int argc, char** argv) {
     using namespace Aperture;
     DWORD_PTR processMask = 0, systemMask = 0;
     if (GetProcessAffinityMask(GetCurrentProcess(), &processMask, &systemMask))
@@ -55,6 +55,34 @@ int main() {
         library.mediaItems.push_back(std::move(item));
     }
     std::puts("mode,sample,ms,allocations,allocated_bytes,peak_live_cpp_bytes,items,groups,order_hash");
+    if (argc > 1 && std::string(argv[1]) == "--progress") {
+        // Compare the former full text rebuild after progress (mode 14) with
+        // the metadata refresh (mode 13), using identical ranking/results.
+        library.RebuildPathIndex();
+        GlobalSearchQueryOptions options; options.maxResults = 50; options.checkFileExists = false;
+        for (int workload : {13, 14}) {
+            GlobalSearchIndex progressIndex; progressIndex.RebuildIndex(library);
+            for (int sample = 0; sample < 8; ++sample) {
+                library.UpdateProgress(library.mediaItems.front().filePath, 25 + sample, 1200);
+                if (workload == 14) progressIndex.Invalidate();
+                if (stats.live != 0) return 2;
+                stats = {}; measuring = sample > 0;
+                size_t total = 0;
+                const auto start = std::chrono::steady_clock::now();
+                const auto results = progressIndex.Query(library, L"series", options, total);
+                const auto end = std::chrono::steady_clock::now();
+                measuring = false;
+                const auto measured = stats;
+                uint64_t hash = 14695981039346656037ull;
+                for (const auto& result : results) for (wchar_t c : result.filePath) { hash ^= c; hash *= 1099511628211ull; }
+                if (sample > 0) std::printf("%d,%d,%.3f,%zu,%zu,%zu,%zu,%zu,%llu\n", workload, sample,
+                    std::chrono::duration<double, std::milli>(end - start).count(),
+                    measured.calls, measured.bytes, measured.peak, results.size(), total, hash);
+                if (workload == 14) progressIndex.Invalidate();
+            }
+        }
+        return 0;
+    }
     // Modes 0/1/2 retain the original flat/folder/series workloads; mode 3
     // exercises a capped flat projection, mode 4 manual library ordering,
     // and mode 7 a nearly unlimited projection (the full-sort fallback).

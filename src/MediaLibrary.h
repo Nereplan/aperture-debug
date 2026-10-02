@@ -345,6 +345,7 @@ public:
     void InvalidatePlaylistStatsCache() const;
     void NotifyPlaylistChanged();
     uint64_t GetVersion() const { return libraryVersion; }
+    uint64_t GetSearchContentVersion() const { return searchContentVersion; }
     MediaRelocationResult RelocateMissingMediaToRoot(const std::wstring& searchRoot);
     FolderRediscoveryResult RediscoverFolderChanges(bool saveChanges = true);
     size_t RemoveFolder(const std::wstring& folderPath, bool saveChanges = true);
@@ -409,6 +410,7 @@ private:
     struct SmartPathsCacheEntry { uint64_t version = 0; ULONGLONG availabilityCheckedMs = 0; std::vector<std::wstring> paths; };
     mutable std::unordered_map<std::string, SmartPathsCacheEntry> smartPathsCache;
     uint64_t libraryVersion = 0;
+    uint64_t searchContentVersion = 0;
     StorageStatus lastLoadStatus = StorageStatus::Ok();
     MediaLibraryLoadResult lastLoadResult;
     MediaLibrarySaveResult lastSaveResult;

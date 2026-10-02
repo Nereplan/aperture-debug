@@ -101,12 +101,20 @@ bool GlobalSearchIndex::CheckPathExistsOnDisk(const std::wstring& path) {
 // GlobalSearchIndex Cache Management & Search
 // ============================================================================
 
-bool GlobalSearchIndex::IsDirty(const MediaLibrary& library) const { return library.GetVersion() != cachedLibraryVersion; }
+bool GlobalSearchIndex::IsDirty(const MediaLibrary& library) const {
+    return library.GetSearchContentVersion() != cachedSearchContentVersion || library.GetVersion() != cachedLibraryVersion;
+}
 
-void GlobalSearchIndex::Invalidate() { cachedLibraryVersion = (std::numeric_limits<uint64_t>::max)(); entries.clear(); }
+void GlobalSearchIndex::Invalidate() {
+    cachedSearchContentVersion = cachedLibraryVersion = (std::numeric_limits<uint64_t>::max)();
+    entries.clear(); historyEntryByPath.clear();
+}
 
 void GlobalSearchIndex::RebuildIndex(const MediaLibrary& library) {
     entries.clear();
+    historyEntryByPath.clear();
+    historyEntryByPath.reserve(library.history.size());
+    ++textRebuildCount;
     std::unordered_map<std::wstring, size_t> pathToEntryIndex;
     const size_t entryCapacity = library.mediaItems.size() + library.history.size();
     entries.reserve(entryCapacity);
@@ -116,6 +124,7 @@ void GlobalSearchIndex::RebuildIndex(const MediaLibrary& library) {
         std::wstring normKey = MediaLibrary::NormalizePathKey(item.filePath);
         if (normKey.empty()) continue;
         CachedSearchEntry entry;
+        entry.mediaId = item.id;
         entry.filePath = item.filePath;
         entry.title = item.GetDisplayTitle();
         entry.fileName = ExtractFileName(item.filePath);
@@ -140,6 +149,7 @@ void GlobalSearchIndex::RebuildIndex(const MediaLibrary& library) {
         if (it != pathToEntryIndex.end()) {
             // Already present in library, elevate source and merge latest stats
             CachedSearchEntry& existing = entries[it->second];
+            historyEntryByPath[normKey] = it->second;
             existing.source = GlobalSearchResultSource::MediaAndHistory;
             if (hist.watchedTimestamp > existing.lastWatchedTimestamp) {
                 existing.lastWatchedTimestamp = hist.watchedTimestamp;
@@ -168,10 +178,42 @@ void GlobalSearchIndex::RebuildIndex(const MediaLibrary& library) {
             entry.addedTimestamp = hist.watchedTimestamp;
             entry.source = GlobalSearchResultSource::History;
             pathToEntryIndex[normKey] = entries.size();
+            historyEntryByPath[normKey] = entries.size();
             entries.push_back(std::move(entry));
         }
     }
     cachedLibraryVersion = library.GetVersion();
+    cachedSearchContentVersion = library.GetSearchContentVersion();
+}
+
+void GlobalSearchIndex::RefreshMetadata(const MediaLibrary& library) {
+    // Reuse normalized text/tokens. Production records have stable IDs, so
+    // statistics refresh needs no per-media path normalization or allocation.
+    for (auto& entry : entries) {
+        if (entry.source == GlobalSearchResultSource::History) {
+            entry.durationSec = entry.lastPosSec = 0;
+            entry.lastWatchedTimestamp = entry.addedTimestamp = 0;
+            continue;
+        }
+        const auto* media = entry.mediaId.empty() ? library.FindByPath(entry.filePath) : library.FindById(entry.mediaId);
+        if (!media) continue; // Membership changes are handled by text rebuilds.
+        entry.durationSec = media->durationSec; entry.lastPosSec = media->lastPosSec;
+        entry.lastWatchedTimestamp = media->lastWatchedTimestamp; entry.addedTimestamp = media->addedTimestamp;
+    }
+    for (const auto& history : library.history) {
+        const auto it = historyEntryByPath.find(MediaLibrary::NormalizePathKey(history.filePath));
+        if (it == historyEntryByPath.end()) continue;
+        auto& entry = entries[it->second];
+        if (entry.source == GlobalSearchResultSource::History || history.watchedTimestamp > entry.lastWatchedTimestamp) {
+            entry.lastPosSec = history.lastPosSec; entry.lastWatchedTimestamp = history.watchedTimestamp;
+        }
+        if (entry.source == GlobalSearchResultSource::History) {
+            entry.durationSec = history.durationSec; entry.addedTimestamp = history.watchedTimestamp;
+        } else if (entry.durationSec <= 0 && history.durationSec > 0) entry.durationSec = history.durationSec;
+    }
+    cachedLibraryVersion = library.GetVersion();
+    cachedSearchContentVersion = library.GetSearchContentVersion();
+    ++metadataRefreshCount;
 }
 
 int GlobalSearchIndex::CalculateRelevanceScore(const CachedSearchEntry& entry, const std::wstring& normalizedQuery,
@@ -251,7 +293,8 @@ std::vector<GlobalSearchResultItem> GlobalSearchIndex::Query(const MediaLibrary&
     outTotalMatchCount = 0;
     std::wstring normalizedQuery = NormalizeText(rawQuery);
     if (normalizedQuery.empty()) { return {}; }
-    if (IsDirty(library)) { RebuildIndex(library); }
+    if (library.GetSearchContentVersion() != cachedSearchContentVersion) { RebuildIndex(library); }
+    else if (library.GetVersion() != cachedLibraryVersion) { RefreshMetadata(library); }
     std::vector<std::wstring> queryTokens = Tokenize(normalizedQuery);
     struct ScoredMatch { int score = 0; const CachedSearchEntry* entry = nullptr; };
     std::vector<ScoredMatch> matches;

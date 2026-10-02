@@ -10,6 +10,44 @@
 
 namespace Aperture::Test {
 
+TEST_CASE(GlobalSearch, PlaybackProgressRefreshesStatisticsWithoutRebuildingText) {
+    MediaLibrary library;
+    MediaItem item; item.id = "stable_id"; item.filePath = L"C:\\Media\\episode.mkv";
+    item.title = L"Episode"; item.durationSec = 100;
+    library.mediaItems.push_back(item); library.RebuildPathIndex();
+    GlobalSearchIndex index; GlobalSearchQueryOptions options; options.checkFileExists = false;
+    TEST_ASSERT_EQ(index.Query(library, L"Episode", options).size(), 1ull);
+    const auto contentVersion = library.GetSearchContentVersion();
+    library.UpdateProgress(item.filePath, 25, 100);
+    const auto updated = index.Query(library, L"Episode", options);
+    TEST_ASSERT_EQ(updated.size(), 1ull);
+    TEST_ASSERT_EQ(updated.front().lastPosSec, 25.0);
+    TEST_ASSERT_EQ(library.GetSearchContentVersion(), contentVersion);
+    TEST_ASSERT_EQ(index.GetTextRebuildCount(), 1ull);
+    TEST_ASSERT_EQ(index.GetMetadataRefreshCount(), 1ull);
+    library.SetWatched(item.filePath, true);
+    TEST_ASSERT_EQ(index.Query(library, L"Episode", options).front().lastPosSec, 100.0);
+    TEST_ASSERT_EQ(index.GetTextRebuildCount(), 1ull);
+    MediaMetadataOverrides overrides; overrides.title = L"Renamed Episode";
+    TEST_ASSERT(library.SetMetadataOverrides(item.filePath, overrides));
+    TEST_ASSERT_EQ(index.Query(library, L"Renamed", options).front().title, std::wstring(L"Renamed Episode"));
+    TEST_ASSERT_EQ(index.GetTextRebuildCount(), 2ull);
+}
+
+TEST_CASE(GlobalSearch, HistoryMembershipInvalidatesCachedSearch) {
+    MediaLibrary library; GlobalSearchIndex index; GlobalSearchQueryOptions options; options.checkFileExists = false;
+    TEST_ASSERT(index.Query(library, L"history", options).empty());
+    library.AddToHistory(L"C:\\Media\\history-only.mkv", 10, 100);
+    auto found = index.Query(library, L"history", options);
+    TEST_ASSERT_EQ(found.size(), 1ull);
+    TEST_ASSERT_EQ(found.front().source, GlobalSearchResultSource::History);
+    TEST_ASSERT(library.RemoveFromHistory(0));
+    TEST_ASSERT(index.Query(library, L"history", options).empty());
+    library.AddToHistory(L"C:\\Media\\history-only.mkv", 20, 100);
+    TEST_ASSERT_EQ(index.Query(library, L"history", options).size(), 1ull);
+    library.ClearHistory(); TEST_ASSERT(index.Query(library, L"history", options).empty());
+}
+
 // ============================================================================
 // 1. Normalization & Tokenization Tests
 // ============================================================================

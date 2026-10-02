@@ -1,0 +1,24 @@
+{
+  "fixture_items": 25000,
+  "reported_samples_per_mode": 7,
+  "comparison": "Same optimized binary: metadata-only refresh versus forced full text rebuild after progress update",
+  "result_signature": {
+    "items": "50",
+    "groups": "25000",
+    "order_hash": "1621705931885563205"
+  },
+  "modes": {
+    "metadata_refresh": {
+      "ms": 4.385,
+      "allocations": 153.0,
+      "allocated_bytes": 16071.0,
+      "peak_live_cpp_bytes": 16071.0
+    },
+    "forced_text_rebuild": {
+      "ms": 99.476,
+      "allocations": 573156.0,
+      "allocated_bytes": 40369382.0,
+      "peak_live_cpp_bytes": 23177287.0
+    }
+  }
+}
