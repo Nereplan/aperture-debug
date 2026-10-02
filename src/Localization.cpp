@@ -45,6 +45,7 @@ constexpr StringEntryView kCanonicalStringEntries[] = {
     { "ux.playback_local", "Check that the file is available and opens in another player, then try again." },
     { "ux.playback_network", "Check your connection and whether the stream address still works, then try again." },
     { "ux.playback_engine", "A playback component could not start. Reopen Aperture or restore the app files, then try again." },
+    { "ux.smart_rule_invalid", "Enter a valid smart playlist rule" },
     { "ux.retry", "Try again" }, { "ux.back_library", "Back to library" }, { "ux.queue_single", "Start a one-item queue" },
     { "ux.queue_selected", "Start queue ({0} items)" }, { "ux.missing_title", "File unavailable" },
     { "ux.missing_body", "The file may have moved, or its drive may be disconnected. Reconnect the drive or locate the file to keep your progress." },

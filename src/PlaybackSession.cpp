@@ -1,4 +1,5 @@
 #include "PlaybackSession.h"
+#include "JsonStoreValidation.h"
 
 namespace Aperture {
 
@@ -122,6 +123,7 @@ void PlaybackSession::Close() {
 void PlaybackSession::SetPlaybackPosition(double posSec) { playbackPositionSec = (posSec >= 0.0 && std::isfinite(posSec)) ? posSec : 0.0; }
 
 void PlaybackSession::Reset() {
+    savesAllowed = true;
     Close();
     playbackPositionSec = 0.0;
     lastSavedJson.clear();
@@ -149,6 +151,7 @@ bool PlaybackSession::MigrateSchema(JsonValue& root, int fromVersion, int target
 }
 
 StorageStatus PlaybackSession::Save(const std::wstring& customPath, const std::wstring& baseDir) {
+    if (!savesAllowed) { lastSaveStatus = lastLoadStatus; return lastSaveStatus; }
     if (isPrivateMode) { lastSaveStatus = StorageStatus::Ok(); return lastSaveStatus; }
     const std::wstring targetPath = customPath.empty() ? (GetDataDir() + L"\\session.json") : customPath;
     if (customPath.empty()) {
@@ -158,16 +161,23 @@ StorageStatus PlaybackSession::Save(const std::wstring& customPath, const std::w
     JsonValue root = persistedFields.is_object() ? persistedFields : JsonValue::Object();
     root["schemaVersion"] = kCurrentSessionSchemaVersion;
     root["queueMode"] = (queueMode == QueueMode::Queue) ? "queue" : "direct";
-    root["currentFilePath"] = Utf16ToUtf8(ToRelocatablePath(currentFilePath, baseDir));
-    root["currentQueueIndex"] = (int)currentQueueIndex;
-    root["playbackPositionSec"] = (playbackPositionSec >= 0.0 && std::isfinite(playbackPositionSec)) ? playbackPositionSec : 0.0;
+    const bool localCurrent = CanPersistLocalTarget(currentFilePath);
+    root["currentFilePath"] = localCurrent ? Utf16ToUtf8(ToRelocatablePath(currentFilePath, baseDir)) : "";
+    root["playbackPositionSec"] = (localCurrent && playbackPositionSec >= 0.0 && std::isfinite(playbackPositionSec)) ? playbackPositionSec : 0.0;
     JsonValue qArr = JsonValue::Array();
     size_t count = std::min(playbackQueue.size(), kMaxQueueSize);
-    for (size_t i = 0; i < count; ++i) { qArr.push_back(JsonValue(Utf16ToUtf8(ToRelocatablePath(playbackQueue[i], baseDir)))); }
+    size_t localIndex = 0;
+    for (size_t i = 0; i < count; ++i) {
+        if (!CanPersistLocalTarget(playbackQueue[i])) continue;
+        if (i < currentQueueIndex) ++localIndex;
+        qArr.push_back(JsonValue(Utf16ToUtf8(ToRelocatablePath(playbackQueue[i], baseDir))));
+    }
+    root["currentQueueIndex"] = static_cast<int>(localIndex);
     root["queue"] = qArr;
     const std::string json = root.stringify(true);
     if (json != lastSavedJson || !FileExists(targetPath)) {
-        CreateRotatingBackup(targetPath, 3);
+        StorageStatus backup = CreateRotatingBackup(targetPath, 3);
+        if (!backup.is_ok()) { lastSaveStatus = backup; return lastSaveStatus; }
         StorageStatus writeRes = AtomicWriteTextFile(targetPath, json);
         if (!writeRes.is_ok()) { lastSaveStatus = writeRes; return lastSaveStatus; }
         lastSavedJson = json;
@@ -181,15 +191,29 @@ StorageStatus PlaybackSession::Load(const std::wstring& customPath, const std::w
     loadedSchemaVersion = 0;
     std::string jsonStr;
     const std::wstring targetPath = customPath.empty() ? (GetDataDir() + L"\\session.json") : customPath;
-    if (!FileExists(targetPath)) { lastLoadStatus = StorageStatus::Ok(targetPath); return lastLoadStatus; }
+    savesAllowed = false;
+    DWORD pathError = ERROR_SUCCESS;
+    const auto availability = QueryPathAvailability(targetPath, &pathError);
+    if (availability == PathAvailability::Missing) { savesAllowed = true; lastLoadStatus = StorageStatus::Ok(targetPath); return lastLoadStatus; }
+    if (availability == PathAvailability::Unavailable) {
+        lastLoadStatus = StorageStatus::Error(StorageErrorCode::FileReadFailed, pathError, targetPath, "Session file is unavailable");
+        return lastLoadStatus;
+    }
     StorageStatus readStatus = ReadTextFile(targetPath, jsonStr);
     JsonValue root;
-    bool parseOk = readStatus.is_ok() && JsonValue::parse(jsonStr, root) && root.is_object();
+    const bool parsed = readStatus.is_ok() && JsonValue::parse(jsonStr, root);
+    if (parsed && HasFutureStoreSchema(root, kCurrentSessionSchemaVersion)) {
+        lastLoadStatus = StorageStatus::Error(StorageErrorCode::SerializationFailed, ERROR_REVISION_MISMATCH, targetPath, "Session requires a newer application version");
+        return lastLoadStatus;
+    }
+    bool parseOk = parsed && HasSupportedStoreSchema(root, kCurrentSessionSchemaVersion) &&
+        (!root.has_key("queue") || root.get("queue").is_array());
     if (!parseOk) {
         std::string backupText;
         StorageStatus backupStatus = RestoreFromNewestValidBackup(targetPath, backupText, [](const std::string& t) {
             JsonValue j;
-            return JsonValue::parse(t, j) && j.is_object();
+            return JsonValue::parse(t, j) && HasSupportedStoreSchema(j, kCurrentSessionSchemaVersion) &&
+                (!j.has_key("queue") || j.get("queue").is_array());
         });
         if (backupStatus.is_ok() && JsonValue::parse(backupText, root) && root.is_object()) {
             recoveredFromBackup = true;
@@ -200,6 +224,10 @@ StorageStatus PlaybackSession::Load(const std::wstring& customPath, const std::w
         }
     }
     int fileVersion = root.get("schemaVersion").as_int(0);
+    if (fileVersion > kCurrentSessionSchemaVersion) {
+        lastLoadStatus = StorageStatus::Error(StorageErrorCode::SerializationFailed, ERROR_REVISION_MISMATCH, targetPath, "Session requires a newer application version");
+        return lastLoadStatus;
+    }
     loadedSchemaVersion = fileVersion;
     if (fileVersion < kCurrentSessionSchemaVersion) { MigrateSchema(root, fileVersion, kCurrentSessionSchemaVersion); }
     persistedFields = root;
@@ -210,7 +238,7 @@ StorageStatus PlaybackSession::Load(const std::wstring& customPath, const std::w
     playbackPositionSec = rawPos;
     startPositionSec = rawPos;
     std::wstring savedCurrent = root.get("currentFilePath").as_wstring();
-    std::wstring resolvedCurrent = savedCurrent.empty() ? L"" : ResolveAppPath(savedCurrent, baseDir);
+    std::wstring resolvedCurrent = ClassifyPlaybackTarget(savedCurrent) == PlaybackTargetKind::LocalFile ? ResolveAppPath(savedCurrent, baseDir) : L"";
     int savedIndex = root.get("currentQueueIndex").as_int(0);
     if (savedIndex < 0) savedIndex = 0;
     std::vector<std::wstring> validQueue;
@@ -220,7 +248,7 @@ StorageStatus PlaybackSession::Load(const std::wstring& customPath, const std::w
         for (size_t i = 0; i < cap; ++i) {
             if (!qArr[i].is_string()) continue;
             std::wstring rawItem = qArr[i].as_wstring();
-            if (rawItem.empty()) continue;
+            if (ClassifyPlaybackTarget(rawItem) != PlaybackTargetKind::LocalFile) continue;
             std::wstring resolvedItem = ResolveAppPath(rawItem, baseDir);
             if (resolvedItem.empty()) continue;
             if (FileExists(resolvedItem)) { validQueue.push_back(resolvedItem); }
@@ -258,6 +286,7 @@ StorageStatus PlaybackSession::Load(const std::wstring& customPath, const std::w
     state = PlaybackState::Closed;
     lastSavedJson.clear();
     lastLoadStatus = StorageStatus::Ok(targetPath);
+    savesAllowed = true;
     return lastLoadStatus;
 }
 

@@ -1,4 +1,5 @@
 #include "MediaLibrary.h"
+#include "SmartRuleParsing.h"
 #include "LibraryQuery.h"
 #include "AudioConfig.h"
 #include "MediaFoundation.h"
@@ -1164,7 +1165,7 @@ MediaImportResult MediaLibrary::ImportPaths(const std::vector<std::wstring>& pat
 
 bool MediaLibrary::RemoveMedia(const std::string &id) { return RemoveMedia(std::vector<std::string>{id}) != 0; }
 
-size_t MediaLibrary::RemoveMedia(const std::vector<std::string>& ids, size_t* outSkipped) {
+size_t MediaLibrary::RemoveMedia(const std::vector<std::string>& ids, size_t* outSkipped, bool saveChanges) {
     if (ids.empty() || mediaItems.empty()) { if (outSkipped) *outSkipped = ids.size(); return 0; }
     std::unordered_set<std::string> idsToRemove(ids.begin(), ids.end());
     std::unordered_set<std::wstring> removedPaths;
@@ -1186,7 +1187,7 @@ size_t MediaLibrary::RemoveMedia(const std::vector<std::string>& ids, size_t* ou
     RebuildPathIndex();
     libraryVersion++;
     InvalidatePlaylistStatsCache();
-    Save();
+    if (saveChanges) Save();
     return removedCount;
 }
 
@@ -1348,6 +1349,7 @@ WatchReconcileResult MediaLibrary::ReconcileWatchBatch(const WatchChangeBatch& b
             result.removedCount += subRes.removedCount;
             result.renamedCount += subRes.renamedCount;
             result.rescanCount += subRes.rescanCount;
+            if (!subRes.status.is_ok()) result.status = subRes.status;
             if (subRes.addedCount > 0 || subRes.updatedCount > 0 || subRes.removedCount > 0 || subRes.renamedCount > 0)
                 libraryModified = true;
             break;
@@ -1375,6 +1377,9 @@ WatchReconcileResult MediaLibrary::ReconcileWatchBatch(const WatchChangeBatch& b
             if (item.path.empty()) break;
             std::wstring resolved = ResolveAppPath(item.path);
             MediaItem* mi = FindByPath(resolved);
+            const std::wstring root = item.rootFolder.empty() ? batch.rootFolder : item.rootFolder;
+            if ((!root.empty() && QueryPathAvailability(root) != PathAvailability::Present) ||
+                QueryPathAvailability(resolved) != PathAvailability::Missing) break;
             if (mi) {
                 batchedRemovedIds.push_back(mi->id);
             } else {
@@ -1438,7 +1443,9 @@ WatchReconcileResult MediaLibrary::ReconcileWatchBatch(const WatchChangeBatch& b
                     result.renamedCount++;
                     libraryModified = true;
                 } else {
-                    if (RemoveMedia(mi->id)) { result.removedCount++; libraryModified = true; }
+                    if (QueryPathAvailability(newResolved) == PathAvailability::Missing && RemoveMedia(std::vector<std::string>{mi->id}, nullptr, false)) {
+                        result.removedCount++; libraryModified = true;
+                    }
                 }
             } else {
                 std::wstring oldDirPrefix = oldResolved;
@@ -1487,7 +1494,7 @@ WatchReconcileResult MediaLibrary::ReconcileWatchBatch(const WatchChangeBatch& b
     if (!batchedRemovedIds.empty()) {
         // One batched removal: a single path-index rebuild and a single save
         // instead of one full JSON save per deleted file.
-        const size_t removed = RemoveMedia(batchedRemovedIds);
+        const size_t removed = RemoveMedia(batchedRemovedIds, nullptr, false);
         result.removedCount += removed;
         if (removed > 0) libraryModified = true;
     }
@@ -1502,20 +1509,17 @@ WatchReconcileResult MediaLibrary::ReconcileRescan(const std::wstring& rootFolde
     if (resolvedRoot.empty()) return result;
     DWORD attr = GetFileAttributesW(resolvedRoot.c_str());
     if (attr == INVALID_FILE_ATTRIBUTES || !(attr & FILE_ATTRIBUTE_DIRECTORY)) {
-        std::wstring dirPrefix = resolvedRoot;
-        if (!dirPrefix.empty() && dirPrefix.back() != L'\\' && dirPrefix.back() != L'/') { dirPrefix += L'\\'; }
-        std::vector<std::string> idsToRemove;
-        for (const auto& m : mediaItems) {
-            if (m.filePath.size() >= dirPrefix.size() && _wcsnicmp(m.filePath.c_str(), dirPrefix.c_str(), dirPrefix.size()) == 0)
-                idsToRemove.push_back(m.id);
-        }
-        if (!idsToRemove.empty()) { size_t count = RemoveMedia(idsToRemove); result.removedCount += count; if (saveChanges) Save(); }
+        // Even PATH_NOT_FOUND can mean a disconnected volume/share. A rescan
+        // may remove entries only after enumerating an available root.
+        const DWORD err = attr == INVALID_FILE_ATTRIBUTES ? GetLastError() : ERROR_DIRECTORY;
+        result.status = StorageStatus::Error(StorageErrorCode::FileReadFailed, err, resolvedRoot, "Watched folder is unavailable; records retained");
         return result;
     }
     std::unordered_set<std::wstring> diskFiles;
     std::error_code ec;
-    std::filesystem::recursive_directory_iterator it(resolvedRoot, std::filesystem::directory_options::skip_permission_denied, ec), end;
+    std::filesystem::recursive_directory_iterator it(resolvedRoot, std::filesystem::directory_options::none, ec), end;
     bool changedAny = false;
+    bool scanComplete = !ec;
     for (; it != end && !ec; it.increment(ec)) {
         if (ec) { ec.clear(); continue; }
         const auto& entry = *it;
@@ -1540,6 +1544,14 @@ WatchReconcileResult MediaLibrary::ReconcileRescan(const std::wstring& rootFolde
                 }
             }
         }
+        if (entryEc) scanComplete = false;
+    }
+    scanComplete = scanComplete && !ec && QueryPathAvailability(resolvedRoot) == PathAvailability::Present;
+    if (!scanComplete) {
+        result.status = StorageStatus::Error(StorageErrorCode::FileReadFailed, ec ? static_cast<DWORD>(ec.value()) : ERROR_READ_FAULT,
+            resolvedRoot, "Watched folder scan was incomplete; removals deferred");
+        if (changedAny && saveChanges) Save();
+        return result;
     }
     std::wstring dirPrefix = resolvedRoot;
     if (!dirPrefix.empty() && dirPrefix.back() != L'\\' && dirPrefix.back() != L'/') { dirPrefix += L'\\'; }
@@ -1547,10 +1559,12 @@ WatchReconcileResult MediaLibrary::ReconcileRescan(const std::wstring& rootFolde
     for (const auto& m : mediaItems) {
         if (m.filePath.size() >= dirPrefix.size() && _wcsnicmp(m.filePath.c_str(), dirPrefix.c_str(), dirPrefix.size()) == 0) {
             std::wstring key = NormalizePathKey(m.filePath);
-            if (diskFiles.find(key) == diskFiles.end() && !FileExists(m.filePath)) { idsToRemove.push_back(m.id); }
+            if (diskFiles.find(key) == diskFiles.end() && QueryPathAvailability(m.filePath) == PathAvailability::Missing) {
+                idsToRemove.push_back(m.id);
+            }
         }
     }
-    if (!idsToRemove.empty()) { size_t count = RemoveMedia(idsToRemove); result.removedCount += count; changedAny = true; }
+    if (!idsToRemove.empty()) { size_t count = RemoveMedia(idsToRemove, nullptr, false); result.removedCount += count; changedAny = true; }
     if (changedAny && saveChanges) { Save(); }
     return result;
 }
@@ -1613,6 +1627,7 @@ bool MediaLibrary::RemoveFromPlaylist(const std::string& id, size_t i) {
 }
 
 Playlist* MediaLibrary::CreateSmartPlaylist(const std::string& name, const SmartPlaylistCriteria& criteria) {
+    if (!criteria.Validate()) return nullptr;
     Playlist p;
     p.type = PlaylistType::Smart;
     p.name = name.empty() ? "Smart Playlist" : name;
@@ -1629,10 +1644,12 @@ Playlist* MediaLibrary::CreateSmartPlaylist(const std::string& name, const Smart
 }
 
 bool MediaLibrary::UpdateSmartPlaylist(const std::string& playlistId, const std::string& name, const SmartPlaylistCriteria& criteria) {
+    if (!criteria.Validate()) return false;
     Playlist* p = FindPlaylist(playlistId);
     if (!p || !p->IsSmart()) return false;
     if (!name.empty()) { p->name = name; }
     p->smartCriteria = criteria;
+    p->criteriaValidationError.clear();
     libraryVersion++;
     InvalidatePlaylistStatsCache();
     Save();
@@ -1647,9 +1664,13 @@ std::vector<std::wstring> MediaLibrary::GetPlaylistPaths(const Playlist& playlis
 const std::vector<std::wstring>& MediaLibrary::GetPlaylistPathsRef(const Playlist& playlist) const {
     if (!playlist.IsSmart()) { return playlist.itemPaths; }
     auto it = smartPathsCache.find(playlist.id);
-    if (it != smartPathsCache.end() && it->second.version == libraryVersion) { return it->second.paths; }
+    const bool requiresAvailability = playlist.smartCriteria.RequiresAvailability();
+    const ULONGLONG now = requiresAvailability ? GetTickCount64() : 0;
+    if (it != smartPathsCache.end() && it->second.version == libraryVersion &&
+        (!requiresAvailability || now - it->second.availabilityCheckedMs < 2000)) { return it->second.paths; }
     SmartPathsCacheEntry entry;
     entry.version = libraryVersion;
+    entry.availabilityCheckedMs = now;
     entry.paths = EvaluateSmartPlaylist(playlist.smartCriteria);
     return smartPathsCache.insert_or_assign(playlist.id, std::move(entry)).first->second.paths;
 }
@@ -1661,10 +1682,19 @@ std::vector<std::wstring> MediaLibrary::GetPlaylistPaths(const std::string& play
 }
 
 std::vector<std::wstring> MediaLibrary::EvaluateSmartPlaylist(const SmartPlaylistCriteria& criteria) const {
+    if (!criteria.Validate()) return {};
+    const bool requiresAvailability = criteria.RequiresAvailability();
     std::vector<const MediaItem*> matched;
     matched.reserve(mediaItems.size());
     for (const auto& item : mediaItems) {
-        if (criteria.Matches(item)) { matched.push_back(&item); }
+        // Unavailable storage has unknown state, not a confirmed missing file.
+        bool exists = true;
+        if (requiresAvailability) {
+            const auto availability = QueryPathAvailability(item.filePath);
+            if (availability == PathAvailability::Unavailable) continue;
+            exists = availability == PathAvailability::Present;
+        }
+        if (criteria.Matches(item, exists)) { matched.push_back(&item); }
     }
     auto sortField = static_cast<LibrarySortField>(criteria.sortField);
     auto sortDir = static_cast<SortDirection>(criteria.sortDirection);
@@ -1724,6 +1754,7 @@ size_t MediaLibrary::GetPlaylistResumeIndex(const std::vector<std::wstring>& pat
 StorageStatus MediaLibrary::Load() { return LoadFromRoot(GetExeDir()); }
 
 StorageStatus MediaLibrary::LoadFromRoot(const std::wstring& requestedRootDir, const LibraryLoadMilestoneCallback& milestone) {
+    savesAllowed = false;
     mediaItems.clear();
     playlists.clear();
     history.clear();
@@ -1733,19 +1764,34 @@ StorageStatus MediaLibrary::LoadFromRoot(const std::wstring& requestedRootDir, c
     MediaLibraryLoadResult loadResult;
     const std::wstring rootDir = requestedRootDir.empty() ? GetExeDir() : requestedRootDir;
     const std::wstring dataDir = rootDir + L"\\data";
-    auto loadStore = [&](const std::wstring& filePath, JsonValue& outRoot, bool& outRecovered) -> StorageStatus {
+    auto loadStore = [&](const std::wstring& filePath, JsonValue& outRoot, bool& outRecovered, const char* collection, int currentVersion) -> StorageStatus {
         outRecovered = false;
-        if (!FileExists(filePath)) { return StorageStatus::Ok(filePath); }
+        DWORD pathError = ERROR_SUCCESS;
+        const auto availability = QueryPathAvailability(filePath, &pathError);
+        if (availability == PathAvailability::Missing) return StorageStatus::Ok(filePath);
+        if (availability == PathAvailability::Unavailable)
+            return StorageStatus::Error(StorageErrorCode::FileReadFailed, pathError, filePath, "Store is unavailable");
+        const auto valid = [collection, currentVersion](const JsonValue& root) {
+            if (root.is_array()) return true; // Supported legacy form.
+            if (!root.is_object() || !root.get(collection).is_array()) return false;
+            const auto& version = root.get("schemaVersion");
+            if (!root.has_key("schemaVersion")) return true;
+            const double number = version.as_number(-1);
+            return version.is_number() && std::isfinite(number) && number >= 0 && number <= currentVersion && std::floor(number) == number;
+        };
         std::string text;
         StorageStatus readRes = ReadTextFile(filePath, text);
-        if (readRes.is_ok() && JsonValue::parse(text, outRoot) && (outRoot.is_array() || outRoot.is_object()))
-            return StorageStatus::Ok(filePath);
+        if (readRes.is_ok() && JsonValue::parse(text, outRoot)) {
+            if (outRoot.is_object() && outRoot.get("schemaVersion").as_number(0) > currentVersion)
+                return StorageStatus::Error(StorageErrorCode::SerializationFailed, ERROR_REVISION_MISMATCH, filePath, "Store requires a newer application version");
+            if (valid(outRoot)) return StorageStatus::Ok(filePath);
+        }
         std::string backupText;
-        StorageStatus backupRes = RestoreFromNewestValidBackup(filePath, backupText, [](const std::string& t) {
+        StorageStatus backupRes = RestoreFromNewestValidBackup(filePath, backupText, [&](const std::string& t) {
             JsonValue j;
-            return JsonValue::parse(t, j) && (j.is_array() || j.is_object());
+            return JsonValue::parse(t, j) && valid(j);
         });
-        if (backupRes.is_ok() && JsonValue::parse(backupText, outRoot) && (outRoot.is_array() || outRoot.is_object())) {
+        if (backupRes.is_ok() && JsonValue::parse(backupText, outRoot) && valid(outRoot)) {
             outRecovered = true;
             return StorageStatus::Ok(filePath);
         }
@@ -1761,10 +1807,10 @@ StorageStatus MediaLibrary::LoadFromRoot(const std::wstring& requestedRootDir, c
     JsonValue plRoot;
     JsonValue histRoot;
     JsonValue watchRoot;
-    loadResult.libraryStatus = loadStore(libPath, libRoot, loadResult.libraryRecoveredFromBackup);
-    loadResult.playlistsStatus = loadStore(plPath, plRoot, loadResult.playlistsRecoveredFromBackup);
-    loadResult.historyStatus = loadStore(histPath, histRoot, loadResult.historyRecoveredFromBackup);
-    loadResult.watchedFoldersStatus = loadStore(watchPath, watchRoot, loadResult.watchedFoldersRecoveredFromBackup);
+    loadResult.libraryStatus = loadStore(libPath, libRoot, loadResult.libraryRecoveredFromBackup, "items", kCurrentLibrarySchemaVersion);
+    loadResult.playlistsStatus = loadStore(plPath, plRoot, loadResult.playlistsRecoveredFromBackup, "items", kCurrentPlaylistsSchemaVersion);
+    loadResult.historyStatus = loadStore(histPath, histRoot, loadResult.historyRecoveredFromBackup, "items", kCurrentHistorySchemaVersion);
+    loadResult.watchedFoldersStatus = loadStore(watchPath, watchRoot, loadResult.watchedFoldersRecoveredFromBackup, "folders", kCurrentWatchedFoldersSchemaVersion);
     if (milestone) milestone(L"library-files-read");
     // 1. Library
     if (loadResult.libraryStatus.is_ok()) {
@@ -2020,6 +2066,7 @@ StorageStatus MediaLibrary::LoadFromRoot(const std::wstring& requestedRootDir, c
                         }
                     }
                 }
+                if (isSmart) playlist.smartCriteria.Validate(&playlist.criteriaValidationError);
                 {
                     static constexpr const char* kKnownPlaylistKeys[] = {
                         "id", "name", "type", "isSmart", "itemPaths", "smartCriteria", "createdTimestamp"};
@@ -2109,11 +2156,18 @@ StorageStatus MediaLibrary::LoadFromRoot(const std::wstring& requestedRootDir, c
     else if (!loadResult.historyStatus.is_ok()) lastLoadStatus = loadResult.historyStatus;
     else if (!loadResult.watchedFoldersStatus.is_ok()) lastLoadStatus = loadResult.watchedFoldersStatus;
     else lastLoadStatus = StorageStatus::Ok(dataDir);
+    savesAllowed = lastLoadStatus.is_ok();
     return lastLoadStatus;
 }
 
 MediaLibrarySaveResult MediaLibrary::Save() {
     MediaLibrarySaveResult result;
+    if (!savesAllowed) {
+        result.success = false;
+        result.libraryStatus = result.playlistsStatus = result.historyStatus = result.watchedFoldersStatus = lastLoadStatus;
+        lastSaveResult = result;
+        return result;
+    }
     StorageStatus writability = CheckDataDirectoryWritability();
     if (!writability.is_ok()) {
         result.success = false;
@@ -2254,7 +2308,8 @@ MediaLibrarySaveResult MediaLibrary::Save() {
     std::wstring d = GetDataDir();
     auto saveDocument = [&](const std::wstring& path, const std::string& json, std::string& lastJson, StorageStatus& status, bool& saved) {
         if (json == lastJson && FileExists(path)) { status = StorageStatus::Ok(path); return; }
-        CreateRotatingBackup(path, 3);
+        status = CreateRotatingBackup(path, 3);
+        if (!status.is_ok()) { result.success = false; return; }
         status = AtomicWriteTextFile(path, json);
         if (status.is_ok()) { lastJson = json; saved = true; } else { result.success = false; }
     };
@@ -2273,6 +2328,23 @@ MediaLibrarySaveResult MediaLibrary::Save() {
     return result;
 }
 
+bool MediaLibrary::NeedsMetadataBackfill(const MediaItem& item) {
+    return !item.filePath.empty() && (!std::isfinite(item.durationSec) || item.durationSec <= 0 || item.metadataProbeFailed);
+}
+
+bool MediaLibrary::CanAttemptMetadataBackfill(const MediaItem& item, const MetadataBackfillOptions& options, int64_t now) {
+    if (!NeedsMetadataBackfill(item)) return false;
+    if (options.forceRetry) return true;
+    if (options.maxAttempts > 0 && item.probeAttemptCount >= options.maxAttempts) return false;
+    if (item.lastProbeAttemptTimestamp <= 0) return true;
+    const unsigned shift = (std::min)(item.probeAttemptCount > 0 ? item.probeAttemptCount - 1 : 0u, 30u);
+    const int64_t maximum = (std::max)(int64_t{0}, options.maxBackoffSec);
+    const int64_t base = (std::max)(int64_t{0}, options.baseBackoffSec);
+    const int64_t multiplier = int64_t{1} << shift;
+    const int64_t backoff = base > maximum / multiplier ? maximum : (std::min)(base * multiplier, maximum);
+    return now >= item.lastProbeAttemptTimestamp && now - item.lastProbeAttemptTimestamp >= backoff;
+}
+
 MetadataBackfillResult MediaLibrary::BackfillMissingMetadata(const MetadataBackfillOptions& options,
                                                              const MetadataBackfillProgressCallback& progress, bool saveChanges) {
     MetadataBackfillResult result;
@@ -2282,22 +2354,10 @@ MetadataBackfillResult MediaLibrary::BackfillMissingMetadata(const MetadataBackf
     eligibleIndices.reserve(mediaItems.size());
     for (size_t i = 0; i < mediaItems.size(); ++i) {
         const auto& item = mediaItems[i];
-        if (item.filePath.empty()) continue;
-        // Check if item needs metadata backfill
-        const bool needsBackfill = (item.durationSec <= 0.0) || item.metadataProbeFailed;
-        if (!needsBackfill) continue;
+        if (!NeedsMetadataBackfill(item)) continue;
         result.totalEligible++;
-        bool canAttempt = false;
-        if (options.forceRetry) { canAttempt = true; } else if (options.maxAttempts > 0 && item.probeAttemptCount >= options.maxAttempts) {
-            canAttempt = false;
-        } else if (item.lastProbeAttemptTimestamp > 0) {
-            uint32_t attempts = item.probeAttemptCount > 0 ? item.probeAttemptCount : 1;
-            int shift = std::min<int>((int)attempts - 1, 30);
-            int64_t backoff = options.baseBackoffSec * (1LL << shift);
-            if (backoff > options.maxBackoffSec || backoff < 0) { backoff = options.maxBackoffSec; }
-            if (now >= item.lastProbeAttemptTimestamp + backoff) { canAttempt = true; }
-        } else { canAttempt = true; }
-        if (canAttempt) { eligibleIndices.push_back(i); } else { result.skippedBackoffCount++; }
+        if (CanAttemptMetadataBackfill(item, options, now)) eligibleIndices.push_back(i);
+        else result.skippedBackoffCount++;
     }
     if (options.maxItems > 0 && eligibleIndices.size() > options.maxItems) { eligibleIndices.resize(options.maxItems); }
     if (progress && !progress(0, eligibleIndices.size(), L"")) { result.outcome = LongOperationOutcome::Canceled; return result; }
@@ -2312,7 +2372,9 @@ MetadataBackfillResult MediaLibrary::BackfillMissingMetadata(const MetadataBackf
         const bool fileExistsOnDisk = FileExists(item.filePath);
         double duration = 0.0;
         uint32_t width = 0, height = 0;
-        if (fileExistsOnDisk && probeFn(item.filePath, duration, width, height)) {
+        const bool probed = fileExistsOnDisk && probeFn(item.filePath, duration, width, height);
+        if (probed) { item.videoWidth = width; item.videoHeight = height; }
+        if (probed && std::isfinite(duration) && duration > 0) {
             item.durationSec = std::max(0.0, duration);
             item.videoWidth = width;
             item.videoHeight = height;
@@ -2361,78 +2423,6 @@ static std::string TrimStr(const std::string& s) {
     return s.substr(start, end - start);
 }
 
-static double ParseSecondsValue(const std::string& val) {
-    std::string s = ToLowerStr(TrimStr(val));
-    if (s.empty()) return 0.0;
-    if (s.find(':') != std::string::npos) {
-        // MM:SS or HH:MM:SS
-        double hours = 0.0, mins = 0.0, secs = 0.0;
-        size_t c1 = s.find(':');
-        size_t c2 = s.find(':', c1 + 1);
-        if (c2 != std::string::npos) {
-            hours = std::stod(s.substr(0, c1));
-            mins = std::stod(s.substr(c1 + 1, c2 - c1 - 1));
-            secs = std::stod(s.substr(c2 + 1));
-        } else { mins = std::stod(s.substr(0, c1)); secs = std::stod(s.substr(c1 + 1)); }
-        return hours * 3600.0 + mins * 60.0 + secs;
-    }
-    if (s.size() > 2 && s.substr(s.size() - 2) == "hr") return std::stod(s.substr(0, s.size() - 2)) * 3600.0;
-    if (s.back() == 'h') return std::stod(s.substr(0, s.size() - 1)) * 3600.0;
-    if (s.size() > 3 && s.substr(s.size() - 3) == "min") return std::stod(s.substr(0, s.size() - 3)) * 60.0;
-    if (s.back() == 'm') return std::stod(s.substr(0, s.size() - 1)) * 60.0;
-    if (s.back() == 's') return std::stod(s.substr(0, s.size() - 1));
-    try { return std::stod(s); } catch (...) { return 0.0; }
-}
-
-static uint64_t ParseBytesValue(const std::string& val) {
-    std::string s = ToLowerStr(TrimStr(val));
-    if (s.empty()) return 0;
-    double mult = 1.0;
-    if (s.size() > 2 && s.substr(s.size() - 2) == "gb") { mult = 1024.0 * 1024.0 * 1024.0; s = s.substr(0, s.size() - 2); }
-    else if (s.back() == 'g') { mult = 1024.0 * 1024.0 * 1024.0; s = s.substr(0, s.size() - 1); }
-    else if (s.size() > 2 && s.substr(s.size() - 2) == "mb") { mult = 1024.0 * 1024.0; s = s.substr(0, s.size() - 2); }
-    else if (s.back() == 'm') { mult = 1024.0 * 1024.0; s = s.substr(0, s.size() - 1); }
-    else if (s.size() > 2 && s.substr(s.size() - 2) == "kb") { mult = 1024.0; s = s.substr(0, s.size() - 2); }
-    else if (s.back() == 'k') { mult = 1024.0; s = s.substr(0, s.size() - 1); }
-    try { return static_cast<uint64_t>(std::stod(s) * mult); } catch (...) { return 0; }
-}
-
-static double ParseProgressValue(const std::string& val) {
-    std::string s = TrimStr(val);
-    if (s.empty()) return 0.0;
-    if (s.back() == '%') {
-        try { return std::stod(s.substr(0, s.size() - 1)) / 100.0; } catch (...) { return 0.0; }
-    }
-    try { double d = std::stod(s); if (d > 1.0) d /= 100.0; return d; } catch (...) { return 0.0; }
-}
-
-static int64_t ParseTimestampValue(const std::string& val) {
-    std::string s = ToLowerStr(TrimStr(val));
-    if (s.empty()) return 0;
-    int64_t now = GetCurrentTimestampSec();
-    if (s.size() > 4 && s.substr(s.size() - 4) == "days") {
-        double days = std::stod(s.substr(0, s.size() - 4));
-        return now - static_cast<int64_t>(days * 86400.0);
-    }
-    if (s.size() > 3 && s.substr(s.size() - 3) == "day") {
-        double days = std::stod(s.substr(0, s.size() - 3));
-        return now - static_cast<int64_t>(days * 86400.0);
-    }
-    if (s.back() == 'd') { double days = std::stod(s.substr(0, s.size() - 1)); return now - static_cast<int64_t>(days * 86400.0); }
-    try { return std::stoll(s); } catch (...) { return 0; }
-}
-
-static uint32_t ParseResolutionValue(const std::string& val) {
-    std::string s = ToLowerStr(TrimStr(val));
-    if (s == "4k" || s == "2160p" || s == "2160") return 2160;
-    if (s == "1440p" || s == "2k" || s == "1440") return 1440;
-    if (s == "1080p" || s == "fhd" || s == "1080") return 1080;
-    if (s == "720p" || s == "hd" || s == "720") return 720;
-    if (s == "480p" || s == "sd" || s == "480") return 480;
-    if (s.back() == 'p') s.pop_back();
-    try { return static_cast<uint32_t>(std::stoul(s)); } catch (...) { return 0; }
-}
-
 static bool StringOpMatches(const std::wstring& target, SmartRuleOperator op, const std::wstring& pattern) {
     if (op == SmartRuleOperator::Contains) return target.find(pattern) != std::wstring::npos;
     if (op == SmartRuleOperator::DoesNotContain) return target.find(pattern) == std::wstring::npos;
@@ -2462,7 +2452,23 @@ const std::wstring& SmartPlaylistRule::GetLowerPattern() const {
     return lowerPatternCache;
 }
 
+bool SmartPlaylistRule::Validate(std::string* error) const {
+    bool valid = static_cast<int>(field) >= 0 && field <= SmartRuleField::VideoHeight &&
+        static_cast<int>(op) >= 0 && op <= SmartRuleOperator::EndsWith;
+    if (valid && field >= SmartRuleField::Duration) {
+        if (numericField != static_cast<int>(field) || numericSource != value) {
+            numericSource = value;
+            numericField = static_cast<int>(field);
+            numericValid = SmartRuleParsing::Parse(field, ToLowerStr(TrimStr(value)), numericValue, relativeDate);
+        }
+        valid = numericValid;
+    }
+    if (!valid && error) *error = "Invalid value or operator in smart playlist rule: " + ToString();
+    return valid;
+}
+
 bool SmartPlaylistRule::Matches(const MediaItem& item, bool existsOnDisk) const {
+    if (!Validate()) return false;
     switch (field) {
         case SmartRuleField::Title: {
             std::wstring target = ToLowerWStr(item.GetDisplayTitle());
@@ -2487,19 +2493,20 @@ bool SmartPlaylistRule::Matches(const MediaItem& item, bool existsOnDisk) const 
             if (op == SmartRuleOperator::NotEquals || op == SmartRuleOperator::DoesNotContain) { return item.status != normPattern; }
             return item.status == normPattern;
         }
-        case SmartRuleField::Duration: { double exp = ParseSecondsValue(value); return NumericOpMatches(item.durationSec, op, exp); }
+        case SmartRuleField::Duration: return NumericOpMatches(item.durationSec, op, static_cast<double>(numericValue));
         case SmartRuleField::Progress: {
-            double exp = ParseProgressValue(value);
+            double exp = static_cast<double>(numericValue);
             return NumericOpMatches(item.GetProgressRatio(), op, exp);
         }
-        case SmartRuleField::FileSize: { uint64_t exp = ParseBytesValue(value); return NumericOpMatches(item.fileSizeBytes, op, exp); }
-        case SmartRuleField::DateAdded: { int64_t exp = ParseTimestampValue(value); return NumericOpMatches(item.addedTimestamp, op, exp); }
+        case SmartRuleField::FileSize: return NumericOpMatches(item.fileSizeBytes, op, static_cast<uint64_t>(numericValue));
+        case SmartRuleField::DateAdded:
         case SmartRuleField::LastWatched: {
-            int64_t exp = ParseTimestampValue(value);
-            return NumericOpMatches(item.lastWatchedTimestamp, op, exp);
+            const int64_t valueSeconds = static_cast<int64_t>(numericValue);
+            const int64_t exp = relativeDate ? GetCurrentTimestampSec() - valueSeconds : valueSeconds;
+            return NumericOpMatches(field == SmartRuleField::DateAdded ? item.addedTimestamp : item.lastWatchedTimestamp, op, exp);
         }
         case SmartRuleField::VideoHeight: {
-            uint32_t exp = ParseResolutionValue(value);
+            uint32_t exp = static_cast<uint32_t>(numericValue);
             return NumericOpMatches(item.videoHeight, op, exp);
         }
     }
@@ -2532,7 +2539,7 @@ static SmartRuleField SmartFieldFromString(const std::string& str) {
     if (s == "dateadded" || s == "added" || s == "date") return SmartRuleField::DateAdded;
     if (s == "lastwatched" || s == "watched" || s == "lastplayed" || s == "played") return SmartRuleField::LastWatched;
     if (s == "videoheight" || s == "height" || s == "resolution" || s == "res") return SmartRuleField::VideoHeight;
-    return SmartRuleField::Title;
+    return static_cast<SmartRuleField>(-1);
 }
 
 static std::string SmartOpToString(SmartRuleOperator op) {
@@ -2563,7 +2570,7 @@ static SmartRuleOperator SmartOpFromString(const std::string& str) {
     if (s == "lessthanorequal" || s == "lte" || s == "le" || s == "<=") return SmartRuleOperator::LessThanOrEqual;
     if (s == "startswith" || s == "starts_with") return SmartRuleOperator::StartsWith;
     if (s == "endswith" || s == "ends_with") return SmartRuleOperator::EndsWith;
-    return SmartRuleOperator::Contains;
+    return static_cast<SmartRuleOperator>(-1);
 }
 
 JsonValue SmartPlaylistRule::ToJson() const {
@@ -2616,6 +2623,9 @@ SmartPlaylistRule SmartPlaylistRule::FromString(const std::string& str) {
             std::string fieldPart = TrimStr(s.substr(0, pos));
             std::string valPart = TrimStr(s.substr(pos + opPair.first.size()));
             rule.field = SmartFieldFromString(fieldPart);
+            // A word operator inside the value (e.g. "is" in "missing")
+            // cannot replace the operator following the recognized field.
+            if (static_cast<int>(rule.field) < 0) continue;
             rule.op = opPair.second;
             rule.value = valPart;
             return rule;
@@ -2627,7 +2637,24 @@ SmartPlaylistRule SmartPlaylistRule::FromString(const std::string& str) {
     return rule;
 }
 
+bool SmartPlaylistCriteria::Validate(std::string* error) const {
+    if (!validationError.empty() || sortField < 0 || sortField > static_cast<int>(LibrarySortField::Manual) ||
+        sortDirection < 0 || sortDirection > 1 || limit > JsonValue::kMaxJsonContainerElements) {
+        if (error) *error = validationError.empty() ? "Invalid smart playlist sort or limit" : validationError;
+        return false;
+    }
+    for (const auto& rule : rules) if (!rule.Validate(error)) return false;
+    return true;
+}
+
+bool SmartPlaylistCriteria::RequiresAvailability() const {
+    for (const auto& rule : rules)
+        if (rule.field == SmartRuleField::Status && ToLowerStr(TrimStr(rule.value)) == "missing") return true;
+    return false;
+}
+
 bool SmartPlaylistCriteria::Matches(const MediaItem& item, bool existsOnDisk) const {
+    if (!validationError.empty()) return false;
     if (rules.empty()) return true;
     if (matchMode == SmartMatchMode::MatchAll) {
         for (const auto& rule : rules) { if (!rule.Matches(item, existsOnDisk)) return false; }
@@ -2697,14 +2724,23 @@ SmartPlaylistCriteria SmartPlaylistCriteria::FromRuleString(const std::string& s
             else if (sVal == "played" || sVal == "lastplayed" || sVal == "watched") crit.sortField = 2;
             else if (sVal == "duration" || sVal == "time") crit.sortField = 3;
             else if (sVal == "progress") crit.sortField = 4;
-            else { try { crit.sortField = std::stoi(sVal); } catch (...) {} }
+            else {
+                try { size_t consumed = 0; crit.sortField = std::stoi(sVal, &consumed); if (consumed != sVal.size()) crit.validationError = "Invalid sort field"; }
+                catch (...) { crit.validationError = "Invalid sort field"; }
+            }
         } else if (lowerPart == "asc" || lowerPart == "ascending" || lowerPart == "order:asc") {
             crit.sortDirection = 0;
         } else if (lowerPart == "desc" || lowerPart == "descending" || lowerPart == "order:desc") {
             crit.sortDirection = 1;
         } else if (lowerPart.rfind("limit:", 0) == 0 || lowerPart.rfind("max:", 0) == 0) {
             size_t colon = lowerPart.find(':');
-            try { crit.limit = static_cast<size_t>(std::stoll(lowerPart.substr(colon + 1))); } catch (...) {}
+            try {
+                const std::string number = TrimStr(lowerPart.substr(colon + 1));
+                size_t consumed = 0;
+                const auto limit = std::stoll(number, &consumed);
+                if (limit < 0 || consumed != number.size()) crit.validationError = "Invalid result limit";
+                else crit.limit = static_cast<size_t>(limit);
+            } catch (...) { crit.validationError = "Invalid result limit"; }
         } else { crit.rules.push_back(SmartPlaylistRule::FromString(part)); }
     }
     return crit;

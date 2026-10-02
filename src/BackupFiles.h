@@ -12,7 +12,11 @@ namespace Aperture {
 
 inline StorageStatus CreateRotatingBackup(const std::wstring& filePath, size_t maxBackups = 3, const std::wstring& customBackupDir = L"") {
     if (filePath.empty()) return StorageStatus::Error(StorageErrorCode::InvalidPath, ERROR_INVALID_PARAMETER, filePath, "Empty file path");
-    if (!FileExists(filePath)) return StorageStatus::Ok(filePath);
+    DWORD pathError = ERROR_SUCCESS;
+    const auto availability = QueryPathAvailability(filePath, &pathError);
+    if (availability == PathAvailability::Missing) return StorageStatus::Ok(filePath);
+    if (availability == PathAvailability::Unavailable)
+        return StorageStatus::Error(StorageErrorCode::FileReadFailed, pathError, filePath, "Cannot access source for recovery copy");
     std::wstring backupDir = customBackupDir;
     if (backupDir.empty()) {
         size_t lastSlash = filePath.find_last_of(L"\\/");
@@ -38,8 +42,14 @@ inline StorageStatus CreateRotatingBackup(const std::wstring& filePath, size_t m
         std::wstring dst = backupDir + L"\\" + fileName + L".bak." + std::to_wstring(i);
         std::wstring src = backupDir + L"\\" + fileName + L".bak." + std::to_wstring(i - 1);
         DWORD srcAttr = GetFileAttributesW(src.c_str());
-        if (srcAttr != INVALID_FILE_ATTRIBUTES && !(srcAttr & FILE_ATTRIBUTE_DIRECTORY))
-            MoveFileExW(src.c_str(), dst.c_str(), MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH);
+        if (srcAttr == INVALID_FILE_ATTRIBUTES) {
+            const DWORD error = GetLastError();
+            if (error != ERROR_FILE_NOT_FOUND && error != ERROR_PATH_NOT_FOUND)
+                return StorageStatus::Error(StorageErrorCode::FileReadFailed, error, src, "Cannot access recovery copy for rotation");
+        }
+        if (srcAttr != INVALID_FILE_ATTRIBUTES && !(srcAttr & FILE_ATTRIBUTE_DIRECTORY) &&
+            !MoveFileExW(src.c_str(), dst.c_str(), MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH))
+            return StorageStatus::Error(StorageErrorCode::AtomicRenameFailed, GetLastError(), src, "Failed to rotate recovery copy");
     }
     std::wstring bak1 = backupDir + L"\\" + fileName + L".bak.1";
     if (!CopyFileW(filePath.c_str(), bak1.c_str(), FALSE)) {
@@ -47,8 +57,8 @@ inline StorageStatus CreateRotatingBackup(const std::wstring& filePath, size_t m
         return StorageStatus::Error(StorageErrorCode::FileWriteFailed, err, bak1, "Failed to copy file to backup");
     }
     // Byte ceiling in addition to the count limit: a multi-megabyte library could otherwise make 3x backups dominate the portable folder.
-    // Cap the entire backups directory (default 32 MiB), pruning oldest first. Live
-    // files are untouched; only recovery copies are removed.
+    // The 32 MiB target prunes older generations. The newest recovery copy of
+    // every store is protected even when those essential copies exceed it.
     {
         constexpr uint64_t kBackupDirByteCeiling = 32ull * 1024ull * 1024ull;
         WIN32_FIND_DATAW fd{};
@@ -70,12 +80,15 @@ inline StorageStatus CreateRotatingBackup(const std::wstring& filePath, size_t m
                 std::sort(entries.begin(), entries.end(), [](const Entry& a, const Entry& b) { return a.writeFt < b.writeFt; });
                 for (const auto& e : entries) {
                     if (total <= kBackupDirByteCeiling) break;
+                    const size_t suffix = e.path.rfind(L".bak.");
+                    if (suffix != std::wstring::npos && e.path.substr(suffix + 5) == L"1") continue;
                     if (DeleteFileW(e.path.c_str())) { total = (e.bytes > total) ? 0 : (total - e.bytes); }
                 }
             }
         }
     }
-    return StorageStatus::Ok(bak1);
+    return FileExists(bak1) ? StorageStatus::Ok(bak1) :
+        StorageStatus::Error(StorageErrorCode::FileWriteFailed, ERROR_FILE_NOT_FOUND, bak1, "Recovery copy is missing");
 }
 
 inline StorageStatus RestoreFromNewestValidBackup( const std::wstring& filePath, std::string& outText,

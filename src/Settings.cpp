@@ -1,4 +1,5 @@
 #include "Settings.h"
+#include "JsonStoreValidation.h"
 #include "AudioConfig.h"
 #include "ChannelPolicy.h"
 #include "Localization.h"
@@ -51,6 +52,7 @@ std::string LowerAscii(std::string value) {
 Settings::Settings() { ResetToDefaults(); }
 
 void Settings::ResetToDefaults() {
+    savesAllowed = true; // An explicit reset authorizes replacing unrecovered settings.
     persistedFields = JsonValue::Object();
     lastSavedJson.clear();
     themePreset = "default";
@@ -129,6 +131,7 @@ void Settings::ResetToDefaults() {
     windowWidth = 1280;
     windowHeight = 780;
     windowMaximized = false;
+    hasWindowPlacement = false;
     pipX = -1;
     pipY = -1;
     pipWidth = 0;
@@ -512,16 +515,29 @@ StorageStatus Settings::Load() {
     loadedSchemaVersion = 0;
     std::string jsonStr;
     const std::wstring path = GetDataDir() + L"\\settings.json";
-    if (!FileExists(path)) { UpdateThemeColors(); lastLoadStatus = StorageStatus::Ok(path); return lastLoadStatus; }
+    savesAllowed = false;
+    DWORD pathError = ERROR_SUCCESS;
+    const auto availability = QueryPathAvailability(path, &pathError);
+    if (availability == PathAvailability::Missing) { savesAllowed = true; UpdateThemeColors(); lastLoadStatus = StorageStatus::Ok(path); return lastLoadStatus; }
+    if (availability == PathAvailability::Unavailable) {
+        UpdateThemeColors();
+        lastLoadStatus = StorageStatus::Error(StorageErrorCode::FileReadFailed, pathError, path, "Settings file is unavailable");
+        return lastLoadStatus;
+    }
     StorageStatus readStatus = ReadTextFile(path, jsonStr);
     JsonValue root;
-    bool parseOk = readStatus.is_ok() && JsonValue::parse(jsonStr, root) && root.is_object();
+    const bool parsed = readStatus.is_ok() && JsonValue::parse(jsonStr, root);
+    if (parsed && HasFutureStoreSchema(root, kCurrentSettingsSchemaVersion)) {
+        lastLoadStatus = StorageStatus::Error(StorageErrorCode::SerializationFailed, ERROR_REVISION_MISMATCH, path, "Settings require a newer application version");
+        return lastLoadStatus;
+    }
+    bool parseOk = parsed && HasSupportedStoreSchema(root, kCurrentSettingsSchemaVersion);
     if (!parseOk) {
         // Attempt recovery from rotating backup
         std::string backupText;
         StorageStatus backupStatus = RestoreFromNewestValidBackup(path, backupText, [](const std::string& t) {
             JsonValue j;
-            return JsonValue::parse(t, j) && j.is_object();
+            return JsonValue::parse(t, j) && HasSupportedStoreSchema(j, kCurrentSettingsSchemaVersion);
         });
         if (backupStatus.is_ok() && JsonValue::parse(backupText, root) && root.is_object()) {
             recoveredFromBackup = true;
@@ -533,6 +549,10 @@ StorageStatus Settings::Load() {
         }
     }
     int fileVersion = root.get("schemaVersion").as_int(0);
+    if (fileVersion > kCurrentSettingsSchemaVersion) {
+        lastLoadStatus = StorageStatus::Error(StorageErrorCode::SerializationFailed, ERROR_REVISION_MISMATCH, path, "Settings require a newer application version");
+        return lastLoadStatus;
+    }
     loadedSchemaVersion = fileVersion;
     if (fileVersion < kCurrentSettingsSchemaVersion) { MigrateSchema(root, fileVersion, kCurrentSettingsSchemaVersion); }
     persistedFields = root;
@@ -651,6 +671,7 @@ StorageStatus Settings::Load() {
     updateChannel = ChannelPolicy::Instance().CanonicalizeChannel(rawChannel);
     updateCheckUrl = root.get("updateCheckUrl").as_string(updateCheckUrl);
     muted = root.get("muted").as_bool(muted);
+    volume = root.get("volume").as_number(volume);
     lastAspectRatio = root.get("lastAspectRatio").as_string(lastAspectRatio);
     videoRotate = Integer(root.get("videoRotate"), videoRotate);
     brightness = Integer(root.get("brightness"), brightness);
@@ -663,6 +684,8 @@ StorageStatus Settings::Load() {
     windowWidth = Integer(root.get("windowWidth"), windowWidth);
     windowHeight = Integer(root.get("windowHeight"), windowHeight);
     windowMaximized = root.get("windowMaximized").as_bool(windowMaximized);
+    // Legacy -1/-1 was the unset sentinel; preserve other negative positions.
+    hasWindowPlacement = root.get("hasWindowPlacement").as_bool(windowX != -1 || windowY != -1);
     pipX = Integer(root.get("pipX"), pipX);
     pipY = Integer(root.get("pipY"), pipY);
     pipWidth = Integer(root.get("pipWidth"), pipWidth);
@@ -771,10 +794,12 @@ StorageStatus Settings::Load() {
     }
     UpdateThemeColors();
     lastLoadStatus = StorageStatus::Ok(path);
+    savesAllowed = true;
     return lastLoadStatus;
 }
 
 StorageStatus Settings::Save() {
+    if (!savesAllowed) { lastSaveStatus = lastLoadStatus; return lastSaveStatus; }
     StorageStatus writability = CheckDataDirectoryWritability();
     if (!writability.is_ok()) { lastSaveStatus = writability; return lastSaveStatus; }
     JsonValue root = persistedFields.is_object() ? persistedFields : JsonValue::Object();
@@ -861,6 +886,7 @@ StorageStatus Settings::Save() {
     root["smartSeriesDetection"] = smartSeriesDetection;
     root["diagnosticsLogging"] = diagnosticsLogging;
     root["muted"] = muted;
+    root["volume"] = std::clamp(std::isfinite(volume) ? volume : 1.0, 0.0, 1.0);
     root["lastAspectRatio"] = lastAspectRatio;
     root["videoRotate"] = videoRotate;
     root["brightness"] = brightness;
@@ -873,6 +899,7 @@ StorageStatus Settings::Save() {
     root["windowWidth"] = windowWidth;
     root["windowHeight"] = windowHeight;
     root["windowMaximized"] = windowMaximized;
+    root["hasWindowPlacement"] = hasWindowPlacement;
     root["pipX"] = pipX;
     root["pipY"] = pipY;
     root["pipWidth"] = pipWidth;
@@ -899,7 +926,8 @@ StorageStatus Settings::Save() {
     const std::string json = root.stringify(true);
     std::wstring path = GetDataDir() + L"\\settings.json";
     if (json != lastSavedJson || !FileExists(path)) {
-        CreateRotatingBackup(path, 3);
+        StorageStatus backup = CreateRotatingBackup(path, 3);
+        if (!backup.is_ok()) { lastSaveStatus = backup; return lastSaveStatus; }
         StorageStatus writeRes = AtomicWriteTextFile(path, json);
         if (!writeRes.is_ok()) { lastSaveStatus = writeRes; return lastSaveStatus; }
         lastSavedJson = json;

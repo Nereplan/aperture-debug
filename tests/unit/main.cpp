@@ -36,6 +36,7 @@
 #include "TestLibrarySnapshot.h"
 #include "TestPlaylistIO.h"
 #include "TestFolderOperations.h"
+#include "TestEvaluationFixes.h"
 #include <windows.h>
 #include <iostream>
 #include <iomanip>

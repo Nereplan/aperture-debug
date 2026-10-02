@@ -188,6 +188,7 @@ void App::PersistWindowPlacement() {
     RECT windowRect{};
     if (!GetWindowRect(hWnd, &windowRect)) return;
     settings.windowX = windowRect.left;
+    settings.hasWindowPlacement = true;
     settings.windowY = windowRect.top;
     settings.windowWidth = std::max(1L, windowRect.right - windowRect.left);
     settings.windowHeight = std::max(1L, windowRect.bottom - windowRect.top);

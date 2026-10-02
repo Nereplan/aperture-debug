@@ -202,7 +202,8 @@ private:
     static constexpr LONG kStatusLiveRegionId = 9999;
     enum PlayerEventFlags : uint32_t {
         PlayerEventNone = 0, PlayerEventEnded = 1u << 0, PlayerEventTime = 1u << 1, PlayerEventDuration = 1u << 2,
-        PlayerEventError = 1u << 3, PlayerEventPlayState = 1u << 4, PlayerEventTracks = 1u << 5, PlayerEventChapters = 1u << 6, };
+        PlayerEventError = 1u << 3, PlayerEventPlayState = 1u << 4, PlayerEventTracks = 1u << 5, PlayerEventChapters = 1u << 6,
+        PlayerEventWarning = 1u << 7, };
     std::atomic<uint32_t> pendingPlayerEvents{ PlayerEventNone };
     std::atomic<double> pendingPlayerTime{ 0.0 };
     // time-pos fires up to frame rate; the timeline reads GetCurrentTime()
@@ -211,6 +212,7 @@ private:
     std::atomic<double> lastQueuedPlayerTime{ -1.0e9 };
     std::mutex pendingPlayerErrorMutex;
     std::deque<AppError> pendingPlayerErrors;
+    std::deque<AppError> pendingPlayerWarnings;
     std::atomic<bool> playerEventPosted{ false };
     bool accessibilityDirty = true;
     ULONGLONG accessibilityLastRefreshMs = 0;

@@ -1,4 +1,5 @@
 #pragma once
+#include "StorageLimits.h"
 
 #include <string>
 #include <vector>
@@ -18,7 +19,7 @@ enum class JsonType { Null, Boolean, Number, String, Array, Object };
 
 class JsonValue {
 public:
-    static constexpr size_t kMaxJsonInputBytes = 64 * 1024 * 1024; // 64 MB max input
+    static constexpr size_t kMaxJsonInputBytes = kMaxPortableStoreBytes;
     static constexpr size_t kMaxJsonDepth = 128;                   // Max 128 nesting levels
     static constexpr size_t kMaxJsonContainerElements = 1000000;   // Max 1M elements
     static constexpr size_t kMaxJsonStringBytes = 16 * 1024 * 1024;// Max 16MB per string

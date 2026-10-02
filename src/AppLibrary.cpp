@@ -100,6 +100,12 @@ void App::FinishInitialLibraryLoad(uint64_t generation) {
     selectedMediaIndex = -1;
     activePlaylistId = library.playlists.empty() ? std::string() : library.playlists.front().id;
     libraryReady = true;
+    for (const auto& playlist : library.playlists) {
+        if (!playlist.criteriaValidationError.empty()) {
+            ShowOSD(IconType::VolumeMuted, Loc::Tr("ux.smart_rule_invalid"), 4.0f);
+            break;
+        }
+    }
     libraryLoadFailed = false;
     deferredLibraryReadyWorkPending = true;
     Diagnostics::RecordStartupMilestone(L"library-snapshot-adopted", false);
@@ -389,6 +395,7 @@ void App::HandleFolderWatchEvents() {
     bool libraryModified = false;
     for (const auto& batch : batches) {
         WatchReconcileResult res = library.ReconcileWatchBatch(batch, true);
+        if (!res.status.is_ok()) ReportStorageFailure(res.status, L"watched folder");
         if (res.addedCount > 0 || res.updatedCount > 0 || res.removedCount > 0 || res.renamedCount > 0 || res.rescanCount > 0)
             libraryModified = true;
     }
@@ -447,11 +454,15 @@ void App::AddWatchedFolderPrompt() {
 void App::RescanAllWatchedFolders() {
     const auto& folders = library.GetWatchedFolders();
     if (folders.empty()) { ShowOSD(IconType::VolumeMuted, L"No watched folders configured"); return; }
-    for (const auto& f : folders) { library.ReconcileRescan(f, true); }
+    bool complete = true;
+    for (const auto& f : folders) {
+        const auto result = library.ReconcileRescan(f, true);
+        if (!result.status.is_ok()) { complete = false; ReportStorageFailure(result.status, L"watched folder"); }
+    }
     InvalidateMediaLayoutCache();
     InvalidateRect(hWnd, NULL, FALSE);
     ScheduleMetadataBackfill();
-    ShowOSD(IconType::Refresh, L"Watched Folders Rescanned");
+    if (complete) ShowOSD(IconType::Refresh, L"Watched Folders Rescanned");
 }
 
 

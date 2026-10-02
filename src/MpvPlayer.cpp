@@ -111,23 +111,20 @@ void MpvPlayer::LoadMpvFunctions(HMODULE hMod) {
     fn_mpv_error_string = (pfn_mpv_error_string)GetProcAddress(hMod, "mpv_error_string");
 }
 
-void MpvPlayer::ReportError(const char* operation, int errorCode) {
+void MpvPlayer::ReportError(const char* operation, int errorCode, ErrorSeverity severity) {
     std::string message = operation ? operation : "mpv operation";
     if (fn_mpv_error_string && errorCode < 0) {
         const char* detail = fn_mpv_error_string(errorCode);
         if (detail && *detail) { message += ": "; message += detail; }
     }
     std::wstring wideMessage = Utf8ToUtf16(message);
-    { std::lock_guard<std::mutex> lock(stateMutex); lastError = wideMessage; }
-    hasError = true;
-    auto callback = CopyCallback(onError);
-    if (callback) callback(wideMessage);
+    ReportErrorMessage(wideMessage, severity);
 }
 
-void MpvPlayer::ReportErrorMessage(const std::wstring& message) {
+void MpvPlayer::ReportErrorMessage(const std::wstring& message, ErrorSeverity severity) {
     { std::lock_guard<std::mutex> lock(stateMutex); lastError = message; }
-    hasError = true;
-    auto callback = CopyCallback(onError);
+    if (severity == ErrorSeverity::Fatal) hasError = true;
+    auto callback = CopyCallback(severity == ErrorSeverity::Fatal ? onError : onWarning);
     if (callback) callback(message);
 }
 void MpvPlayer::SetOnEnded(std::function<void()> callback) {
@@ -154,6 +151,10 @@ void MpvPlayer::SetOnError(std::function<void(const std::wstring&)> callback) {
     std::lock_guard<std::mutex> lock(callbackMutex);
     onError = std::move(callback);
 }
+void MpvPlayer::SetOnWarning(std::function<void(const std::wstring&)> callback) {
+    std::lock_guard<std::mutex> lock(callbackMutex);
+    onWarning = std::move(callback);
+}
 
 void MpvPlayer::SetOnTracksChanged(std::function<void()> callback) {
     std::lock_guard<std::mutex> lock(callbackMutex);
@@ -172,6 +173,7 @@ void MpvPlayer::ClearCallbacks() {
     onDurationChanged = nullptr;
     onPlayStateChanged = nullptr;
     onError = nullptr;
+    onWarning = nullptr;
     onTracksChanged = nullptr;
     onChaptersChanged = nullptr;
 }
@@ -442,7 +444,7 @@ void MpvPlayer::EventLoop() {
             const mpv_end_file_reason reason = end ? end->reason : MPV_END_FILE_REASON_EOF;
             if (reason == MPV_END_FILE_REASON_ERROR) {
                 { std::lock_guard<std::mutex> lock(stateMutex); isPaused = true; }
-                ReportError("Playback error", end ? end->error : -1);
+                ReportError("Playback error", end ? end->error : -1, ErrorSeverity::Fatal);
                 continue;
             }
             if (reason == MPV_END_FILE_REASON_EOF) HandleEofTransition();
@@ -639,7 +641,7 @@ bool MpvPlayer::Open(const std::wstring& filePath, double startSec) {
             ret = fn_mpv_command(mpv, cmd);
         }
     }
-    if (ret < 0) { ReportError("Unable to open media", ret); return false; }
+    if (ret < 0) { ReportError("Unable to open media", ret, ErrorSeverity::Fatal); return false; }
     {
         std::lock_guard<std::mutex> lock(stateMutex);
         currentFilePath = filePath;
@@ -2040,12 +2042,6 @@ size_t PruneOrphanedHubThumbnailDiskCache( const std::vector<std::wstring>& live
 
 MpvPreviewPlayer::MpvPreviewPlayer() {}
 
-void MpvPreviewPlayer::StartSaveWorker() {
-    std::lock_guard<std::mutex> lock(saveMutex);
-    saveStopping = false;
-    if (!saveWorker.joinable()) { saveWorker = std::thread(&MpvPreviewPlayer::SaveWorkerThread, this); }
-}
-
 void MpvPreviewPlayer::StopSaveWorker() {
     { std::lock_guard<std::mutex> lock(saveMutex); saveStopping = true; }
     saveCv.notify_all();
@@ -2059,6 +2055,7 @@ void MpvPreviewPlayer::QueueDiskSave(const PreviewThumbnailFrame& frame) {
     if (isPrivateMode.load()) return;
     std::lock_guard<std::mutex> lock(saveMutex);
     if (saveStopping) return;
+    if (!saveWorker.joinable()) saveWorker = std::thread(&MpvPreviewPlayer::SaveWorkerThread, this);
     // Coalesce: re-seeking the same quantized second replaces the pending
     // copy instead of queueing duplicate file writes.
     for (auto& queued : saveQueue) {
@@ -2173,14 +2170,8 @@ bool MpvPreviewPlayer::Initialize(ID2D1DeviceContext* pD2DContext, HMODULE hDll)
         return false;
     }
     if (fn_mpv_render_context_set_update_callback) { fn_mpv_render_context_set_update_callback(renderCtx, OnRenderUpdate, this); }
-    pixelBuffer.resize(bufferWidth * bufferHeight * 4, 0);
-    StartSaveWorker();
-    if (pD2DContext) {
-        pD2DContext->CreateBitmap( D2D1::SizeU(bufferWidth, bufferHeight),
-            D2D1::BitmapProperties(D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_IGNORE)), &previewBitmap );
-        pD2DContext->CreateBitmap( D2D1::SizeU(bufferWidth, bufferHeight),
-            D2D1::BitmapProperties(D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_IGNORE)), &seekbarBitmap );
-    }
+    { std::lock_guard<std::mutex> lock(saveMutex); saveStopping = false; }
+    BindDeviceContext(pD2DContext);
     return true;
 }
 
@@ -2208,6 +2199,7 @@ void MpvPreviewPlayer::Shutdown() {
     if (mpv && fn_mpv_terminate_destroy) { fn_mpv_terminate_destroy(mpv); mpv = nullptr; }
     previewBitmap.Reset();
     seekbarBitmap.Reset();
+    bitmapDevice.Reset();
     std::vector<uint8_t>().swap(pixelBuffer);
     memoryCache.Clear();
     if (ownsMpvDll && hMpvDll) FreeLibrary(hMpvDll);
@@ -2230,7 +2222,7 @@ void MpvPreviewPlayer::SetPreviewOutputSize(int width, int height) {
 // the next UpdateFrame call (which carries the device context).
 void MpvPreviewPlayer::EnsureBufferDimensionsLocked(int width, int height, ID2D1DeviceContext* pD2DContext) {
     if (width <= 0 || height <= 0) return;
-    if (bufferWidth == width && bufferHeight == height) return;
+    if (bufferWidth == width && bufferHeight == height && !pixelBuffer.empty()) return;
     bufferWidth = width;
     bufferHeight = height;
     bufferIsPreviewSized = (width == requestedPreviewWidth && height == requestedPreviewHeight);
@@ -2243,7 +2235,35 @@ void MpvPreviewPlayer::EnsureBufferDimensionsLocked(int width, int height, ID2D1
     }
     previewBitmap.Reset();
     seekbarBitmap.Reset();
-    (void)pD2DContext;
+    BindDeviceContextLocked(pD2DContext);
+}
+
+void MpvPreviewPlayer::BindDeviceContext(ID2D1DeviceContext* context) {
+    std::lock_guard<std::mutex> lifecycleLock(lifecycleMutex);
+    BindDeviceContextLocked(context);
+}
+void MpvPreviewPlayer::BindDeviceContextLocked(ID2D1DeviceContext* context) {
+    if (!context) return;
+    ComPtr<ID2D1Device> device;
+    context->GetDevice(&device);
+    if (device.Get() == bitmapDevice.Get()) return;
+    // Keep the previous device alive until this comparison so pointer reuse
+    // cannot conceal a device generation change.
+    previewBitmap.Reset(); seekbarBitmap.Reset(); bitmapDevice = device;
+    hasSeekbarThumbnail = false;
+    frameReady = true;
+}
+bool MpvPreviewPlayer::UploadBitmapLocked(ComPtr<ID2D1Bitmap>& bitmap, ID2D1DeviceContext* context,
+                                         UINT width, UINT height, const uint8_t* pixels) {
+    if (!context || !pixels || !width || !height) return false;
+    if (bitmap) {
+        const auto size = bitmap->GetPixelSize();
+        if (size.width != width || size.height != height) bitmap.Reset();
+    }
+    if (!bitmap && FAILED(context->CreateBitmap(D2D1::SizeU(width, height),
+        D2D1::BitmapProperties(D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_IGNORE)), &bitmap))) return false;
+    if (FAILED(bitmap->CopyFromMemory(nullptr, pixels, width * 4))) { bitmap.Reset(); return false; }
+    return true;
 }
 
 void MpvPreviewPlayer::StartPreview(const std::wstring& filePath, double startSec) {
@@ -2300,6 +2320,7 @@ void MpvPreviewPlayer::StopPreview() {
 bool MpvPreviewPlayer::RequestSeekbarThumbnail( const std::wstring& filePath, double rawTimeSec, double durationSec, uint64_t mediaToken,
     ID2D1DeviceContext* pD2DContext ) {
     std::lock_guard<std::mutex> lifecycleLock(lifecycleMutex);
+    BindDeviceContextLocked(pD2DContext);
     if (filePath.empty() || durationSec <= 0.0) { ResetSeekbarPreviewLocked(); return false; }
     double quantized = QuantizePreviewTime(rawTimeSec, durationSec, 1.0);
     uint64_t seq = ++currentSequenceId;
@@ -2312,11 +2333,7 @@ bool MpvPreviewPlayer::RequestSeekbarThumbnail( const std::wstring& filePath, do
     if (memoryCache.TryGet(filePath, quantized, frame)) {
         std::lock_guard<std::mutex> lock(renderMutex);
         if (pD2DContext && !frame.bgraPixels.empty()) {
-            if (!seekbarBitmap) {
-                pD2DContext->CreateBitmap( D2D1::SizeU(frame.width, frame.height),
-                    D2D1::BitmapProperties(D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_IGNORE)), &seekbarBitmap );
-            }
-            if (seekbarBitmap) { seekbarBitmap->CopyFromMemory(nullptr, frame.bgraPixels.data(), (UINT32)(frame.width * 4)); }
+            if (!UploadBitmapLocked(seekbarBitmap, pD2DContext, frame.width, frame.height, frame.bgraPixels.data())) return false;
         }
         hasSeekbarThumbnail = true;
         isSeekbarLoading = false;
@@ -2328,11 +2345,7 @@ bool MpvPreviewPlayer::RequestSeekbarThumbnail( const std::wstring& filePath, do
         memoryCache.Put(frame);
         std::lock_guard<std::mutex> lock(renderMutex);
         if (pD2DContext && !frame.bgraPixels.empty()) {
-            if (!seekbarBitmap) {
-                pD2DContext->CreateBitmap( D2D1::SizeU(frame.width, frame.height),
-                    D2D1::BitmapProperties(D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_IGNORE)), &seekbarBitmap );
-            }
-            if (seekbarBitmap) { seekbarBitmap->CopyFromMemory(nullptr, frame.bgraPixels.data(), (UINT32)(frame.width * 4)); }
+            if (!UploadBitmapLocked(seekbarBitmap, pD2DContext, frame.width, frame.height, frame.bgraPixels.data())) return false;
         }
         hasSeekbarThumbnail = true;
         isSeekbarLoading = false;
@@ -2415,6 +2428,7 @@ void MpvPreviewPlayer::ResetSeekbarPreview() { std::lock_guard<std::mutex> lifec
 
 bool MpvPreviewPlayer::UpdateFrame(ID2D1DeviceContext* pD2DContext) {
     std::lock_guard<std::mutex> lifecycleLock(lifecycleMutex);
+    BindDeviceContextLocked(pD2DContext);
     if (!mpv || !renderCtx || !fn_mpv_render_context_render) return false;
     if (!isActive && !isSeekbarActive) return false;
     auto now = std::chrono::steady_clock::now();
@@ -2455,11 +2469,7 @@ bool MpvPreviewPlayer::UpdateFrame(ID2D1DeviceContext* pD2DContext) {
             bool didUpdate = false;
             // 1. Update Media Card Live Preview Bitmap if active
             if (isActive && !isSeekbarActive) {
-                if (!previewBitmap && pD2DContext) {
-                    pD2DContext->CreateBitmap( D2D1::SizeU(bufferWidth, bufferHeight),
-                        D2D1::BitmapProperties(D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_IGNORE)), &previewBitmap );
-                }
-                if (previewBitmap) { previewBitmap->CopyFromMemory(nullptr, pixelBuffer.data(), (UINT32)stride); didUpdate = true; }
+                didUpdate = UploadBitmapLocked(previewBitmap, pD2DContext, bufferWidth, bufferHeight, pixelBuffer.data());
             }
             // 2. Update Seekbar Thumbnail & Caches if seekbar is active
             if (isSeekbarActive && !currentPreviewPath.empty()) {
@@ -2475,12 +2485,7 @@ bool MpvPreviewPlayer::UpdateFrame(ID2D1DeviceContext* pD2DContext) {
                 QueueDiskSave(frame);
                 // Stale check: only update live seekbar bitmap if request wasn't superseded
                 if (inFlightSequenceId == currentSequenceId && inFlightMediaToken == requestedMediaToken) {
-                    if (!seekbarBitmap && pD2DContext) {
-                        pD2DContext->CreateBitmap( D2D1::SizeU(bufferWidth, bufferHeight),
-                            D2D1::BitmapProperties(D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_IGNORE)), &seekbarBitmap );
-                    }
-                    if (seekbarBitmap) {
-                        seekbarBitmap->CopyFromMemory(nullptr, pixelBuffer.data(), (UINT32)stride);
+                    if (UploadBitmapLocked(seekbarBitmap, pD2DContext, bufferWidth, bufferHeight, pixelBuffer.data())) {
                         hasSeekbarThumbnail = true;
                         isSeekbarLoading = false;
                         activeSeekbarTime = inFlightTime;

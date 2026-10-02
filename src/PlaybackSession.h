@@ -3,6 +3,7 @@
 #include "Common.h"
 #include "Json.h"
 #include "MediaLibrary.h"
+#include "PlaybackTarget.h"
 #include <optional>
 #include <windows.h>
 #include <string>
@@ -35,6 +36,7 @@ public:
     StorageStatus Save(const std::wstring& customPath = L"", const std::wstring& baseDir = GetExeDir());
     bool WasRecoveredFromBackup() const { return recoveredFromBackup; }
     int GetLoadedSchemaVersion() const { return loadedSchemaVersion; }
+    StorageStatus GetLastLoadStatus() const { return lastLoadStatus; }
     void Reset();
     // State Transitions
     bool OpenDirect(const std::wstring& filePath, double startPosSec = 0.0);
@@ -107,6 +109,10 @@ public:
     void SetPriorUnmutedVolume(double vol) { if (vol > 0.01) priorUnmutedVolume = vol; }
     // Private Playback Session Mode
     bool IsPrivateMode() const { return isPrivateMode; }
+    PlaybackPersistencePolicy PersistencePolicy() const { return {isPrivateMode}; }
+    bool CanPersistPlayback() const { return PersistencePolicy().CanWritePlayback(); }
+    bool CanPersistLocalTarget(const std::wstring& path) const { return PersistencePolicy().CanWriteLocalTarget(path); }
+    bool CanPersistRecentStreams(bool optedIn) const { return PersistencePolicy().CanWriteRecentStreams(optedIn); }
     void SetPrivateMode(bool enabled) { isPrivateMode = enabled; }
     void TogglePrivateMode() { isPrivateMode = !isPrivateMode; }
     // Helpers
@@ -126,6 +132,7 @@ private:
     bool recoveredFromBackup = false;
     StorageStatus lastSaveStatus;
     StorageStatus lastLoadStatus;
+    bool savesAllowed = true;
     std::vector<std::wstring> playbackQueue;
     size_t currentQueueIndex = 0;
     // Track Cache

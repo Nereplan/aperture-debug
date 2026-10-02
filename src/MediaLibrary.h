@@ -147,6 +147,7 @@ struct SmartPlaylistRule {
     SmartRuleOperator op = SmartRuleOperator::Contains;
     std::string value;
     bool Matches(const MediaItem& item, bool existsOnDisk = true) const;
+    bool Validate(std::string* error = nullptr) const;
     // Lazily normalized pattern for Title/Path rules. Rules are matched against
     // every library item per evaluation, so the constant pattern is normalized
     // once per rule instead of once per item.
@@ -159,6 +160,10 @@ struct SmartPlaylistRule {
     // Only GetLowerPattern() should read or write these.
     mutable std::string lowerPatternSource;
     mutable std::wstring lowerPatternCache;
+    mutable std::string numericSource;
+    mutable int numericField = -1;
+    mutable long double numericValue = 0;
+    mutable bool numericValid = false, relativeDate = false;
 };
 
 struct SmartPlaylistCriteria {
@@ -168,6 +173,9 @@ struct SmartPlaylistCriteria {
     int sortDirection = 0; // 0: Ascending, 1: Descending
     size_t limit = 0; // 0 = unlimited
     bool Matches(const MediaItem& item, bool existsOnDisk = true) const;
+    bool Validate(std::string* error = nullptr) const;
+    bool RequiresAvailability() const;
+    std::string validationError;
     JsonValue ToJson() const;
     static SmartPlaylistCriteria FromJson(const JsonValue& json);
     std::string ToRuleString() const;
@@ -183,6 +191,7 @@ struct Playlist {
     SmartPlaylistCriteria smartCriteria;
     int64_t createdTimestamp = 0;
     JsonValue extraFields;
+    std::string criteriaValidationError;
     bool IsSmart() const { return type == PlaylistType::Smart; }
 };
 
@@ -271,7 +280,10 @@ struct MediaLibrarySaveResult {
     explicit operator bool() const { return is_ok(); }
 };
 
-struct WatchReconcileResult { size_t addedCount = 0, updatedCount = 0, removedCount = 0, renamedCount = 0; size_t rescanCount = 0; };
+struct WatchReconcileResult {
+    size_t addedCount = 0, updatedCount = 0, removedCount = 0, renamedCount = 0, rescanCount = 0;
+    StorageStatus status = StorageStatus::Ok();
+};
 
 struct MediaRelocationResult {
     size_t missingCount = 0, relocatedCount = 0, ambiguousCount = 0, notFoundCount = 0;
@@ -315,7 +327,7 @@ public:
     MediaImportResult ImportPaths(const std::vector<std::wstring>& paths, const MediaImportProgressCallback& progress = {},
                                   bool saveChanges = true, ImportConflictPolicy conflictPolicy = ImportConflictPolicy::KeepExisting);
     bool RemoveMedia(const std::string& id);
-    size_t RemoveMedia(const std::vector<std::string>& ids, size_t* outSkipped = nullptr);
+    size_t RemoveMedia(const std::vector<std::string>& ids, size_t* outSkipped = nullptr, bool saveChanges = true);
     MediaItem* FindByPath(const std::wstring& path);
     const MediaItem* FindByPath(const std::wstring& path) const;
     MediaItem* FindById(const std::string& id);
@@ -378,7 +390,9 @@ public:
     static bool ProbeMediaMetadata(const std::wstring& path, double& outDurationSec, uint32_t& outWidth, uint32_t& outHeight);
     // Retries missing/failed metadata probes with deterministic backoff and bounding
     MetadataBackfillResult BackfillMissingMetadata(const MetadataBackfillOptions& options = {},
-                                                   const MetadataBackfillProgressCallback& progress = {}, bool saveChanges = true);
+                                                    const MetadataBackfillProgressCallback& progress = {}, bool saveChanges = true);
+    static bool NeedsMetadataBackfill(const MediaItem& item);
+    static bool CanAttemptMetadataBackfill(const MediaItem& item, const MetadataBackfillOptions& options, int64_t now);
 private:
     std::string GenerateId(const std::wstring& path);
     MediaItem* AddOrUpdateMediaCore(const std::wstring& path, bool& changed, bool& metadataProbeFailed, bool probeMetadata = true);
@@ -388,12 +402,13 @@ private:
     mutable std::unordered_map<std::string, size_t> idToIndex;
     struct PlaylistStatsCacheEntry { uint64_t version = 0; PlaylistStats stats; };
     mutable std::unordered_map<std::string, PlaylistStatsCacheEntry> playlistStatsCache;
-    struct SmartPathsCacheEntry { uint64_t version = 0; std::vector<std::wstring> paths; };
+    struct SmartPathsCacheEntry { uint64_t version = 0; ULONGLONG availabilityCheckedMs = 0; std::vector<std::wstring> paths; };
     mutable std::unordered_map<std::string, SmartPathsCacheEntry> smartPathsCache;
     uint64_t libraryVersion = 0;
     StorageStatus lastLoadStatus = StorageStatus::Ok();
     MediaLibraryLoadResult lastLoadResult;
     MediaLibrarySaveResult lastSaveResult;
+    bool savesAllowed = true;
 };
 
 } // namespace Aperture

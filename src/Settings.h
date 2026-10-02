@@ -139,6 +139,7 @@ public:
     int hue = 0;                          // -100 to 100
     // --- Window State ---
     int windowX = -1, windowY = -1, windowWidth = 1280, windowHeight = 780;
+    bool hasWindowPlacement = false;
     bool windowMaximized = false;
     int pipX = -1, pipY = -1, pipWidth = 0, pipHeight = 0;
     // Shortcuts
@@ -153,6 +154,7 @@ public:
     StorageStatus Save();
     bool WasRecoveredFromBackup() const { return recoveredFromBackup; }
     int GetLoadedSchemaVersion() const { return loadedSchemaVersion; }
+    StorageStatus GetLastLoadStatus() const { return lastLoadStatus; }
     CacheBudgetConfig GetCacheBudgets() const {
         CacheBudgetConfig cfg;
         cfg.totalCeilingBytes = static_cast<uint64_t>(std::max(0, cacheTotalBudgetMB)) * 1024ULL * 1024ULL;
@@ -226,6 +228,7 @@ private:
     StorageStatus lastSaveStatus = StorageStatus::Ok();
     StorageStatus lastLoadStatus = StorageStatus::Ok();
     bool recoveredFromBackup = false;
+    bool savesAllowed = true;
     int loadedSchemaVersion = 0;
 };
 

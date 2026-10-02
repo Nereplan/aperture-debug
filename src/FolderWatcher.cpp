@@ -30,7 +30,6 @@ bool FolderWatcher::Start() {
 void FolderWatcher::Stop() {
     if (!isRunning.exchange(false)) { return; }
     stopRequested.store(true);
-    if (hIOCP) { PostQueuedCompletionStatus(hIOCP, 0, kStopCompletionKey, NULL); }
     {
         std::lock_guard<std::mutex> lock(watchMutex);
         for (auto& pair : watches) {
@@ -42,6 +41,7 @@ void FolderWatcher::Stop() {
             }
         }
     }
+    if (hIOCP) { PostQueuedCompletionStatus(hIOCP, 0, kStopCompletionKey, NULL); }
     if (workerThread.joinable()) { workerThread.join(); }
     { std::lock_guard<std::mutex> lock(watchMutex); retiredWatches.clear(); }
     if (hIOCP) { CloseHandle(hIOCP); hIOCP = NULL; }
@@ -77,6 +77,7 @@ bool FolderWatcher::RemoveWatch(const std::wstring& folderPath) {
     std::lock_guard<std::mutex> lock(watchMutex);
     auto it = watches.find(key);
     if (it == watches.end()) return false;
+    it->second->retired = true;
     if (it->second->hDirectory != INVALID_HANDLE_VALUE) {
         it->second->retired = true;
         CancelIoEx(it->second->hDirectory, &it->second->overlapped);
@@ -84,7 +85,7 @@ bool FolderWatcher::RemoveWatch(const std::wstring& folderPath) {
         it->second->hDirectory = INVALID_HANDLE_VALUE;
         it->second->active = false;
     }
-    if (isRunning.load()) { retiredWatches.push_back(std::move(it->second)); }
+    if (it->second->pendingRead) { retiredWatches.push_back(std::move(it->second)); }
     watches.erase(it);
     return true;
 }
@@ -93,6 +94,7 @@ void FolderWatcher::ClearWatches() {
     std::lock_guard<std::mutex> lock(watchMutex);
     for (auto& pair : watches) {
         if (!pair.second) continue;
+        pair.second->retired = true;
         if (pair.second->hDirectory != INVALID_HANDLE_VALUE) {
             pair.second->retired = true;
             CancelIoEx(pair.second->hDirectory, &pair.second->overlapped);
@@ -100,7 +102,7 @@ void FolderWatcher::ClearWatches() {
             pair.second->hDirectory = INVALID_HANDLE_VALUE;
             pair.second->active = false;
         }
-        if (isRunning.load()) { retiredWatches.push_back(std::move(pair.second)); }
+        if (pair.second->pendingRead) { retiredWatches.push_back(std::move(pair.second)); }
     }
     watches.clear();
 }
@@ -113,8 +115,21 @@ std::vector<std::wstring> FolderWatcher::GetWatchedFolders() const {
     return result;
 }
 
+size_t FolderWatcher::GetRetiredWatchCount() const {
+    std::lock_guard<std::mutex> lock(watchMutex); return retiredWatches.size();
+}
+bool FolderWatcher::HasPendingReadsLocked() const {
+    for (const auto& pair : watches) if (pair.second->pendingRead) return true;
+    for (const auto& watch : retiredWatches) if (watch->pendingRead) return true;
+    return false;
+}
+void FolderWatcher::ReclaimRetiredWatchLocked(DirectoryWatch* watch) {
+    const auto it = std::find_if(retiredWatches.begin(), retiredWatches.end(),
+        [watch](const auto& entry) { return entry.get() == watch; });
+    if (it != retiredWatches.end()) retiredWatches.erase(it);
+}
 bool FolderWatcher::ArmReadDirectoryChanges(DirectoryWatch* dirWatch) {
-    if (!dirWatch || dirWatch->retired || !hIOCP) return false;
+    if (!dirWatch || dirWatch->retired || dirWatch->pendingRead || !hIOCP) return false;
     if (dirWatch->hDirectory == INVALID_HANDLE_VALUE) {
         // Attempt to open directory handle
         DWORD attr = GetFileAttributesW(dirWatch->rootPath.c_str());
@@ -150,18 +165,21 @@ bool FolderWatcher::ArmReadDirectoryChanges(DirectoryWatch* dirWatch) {
         return false;
     }
     dirWatch->active = true;
+    dirWatch->pendingRead = true;
     return true;
 }
 
 void FolderWatcher::WorkerLoop() {
-    std::wstring pendingOldRename, pendingOldRenameRoot;
-    while (isRunning.load() && !stopRequested.load()) {
+    for (;;) {
+        if (stopRequested.load()) {
+            std::lock_guard<std::mutex> lock(watchMutex);
+            if (!HasPendingReadsLocked()) break;
+        }
         DWORD bytesTransferred = 0;
         ULONG_PTR completionKey = 0;
         LPOVERLAPPED pOverlapped = nullptr;
         const DWORD waitTimeoutMs = 50; // 50ms wait to allow timely event coalescing flush
         BOOL ok = GetQueuedCompletionStatus( hIOCP, &bytesTransferred, &completionKey, &pOverlapped, waitTimeoutMs );
-        if (stopRequested.load()) { break; }
         if (!ok) {
             DWORD err = GetLastError();
             if (err == WAIT_TIMEOUT) {
@@ -169,11 +187,15 @@ void FolderWatcher::WorkerLoop() {
                 FlushCoalescedEvents(false);
                 continue;
             }
-            if (completionKey == kStopCompletionKey) { break; }
-            if (completionKey != 0) {
+            if (completionKey == kStopCompletionKey) continue;
+            if (completionKey != 0 && pOverlapped) {
                 DirectoryWatch* dirWatch = reinterpret_cast<DirectoryWatch*>(completionKey);
                 std::lock_guard<std::mutex> lock(watchMutex);
-                if (!dirWatch->retired) {
+                dirWatch->pendingRead = false;
+                dirWatch->active = false;
+                if (dirWatch->retired) {
+                    ReclaimRetiredWatchLocked(dirWatch);
+                } else {
                     if (err == ERROR_NOTIFY_ENUM_DIR || err == ERROR_MORE_DATA) {
                         // Buffer overflow: trigger full rescan for this watched root
                         TriggerRescan(dirWatch->rootPath);
@@ -189,11 +211,15 @@ void FolderWatcher::WorkerLoop() {
             FlushCoalescedEvents(false);
             continue;
         }
-        if (completionKey == kStopCompletionKey) { break; }
+        if (completionKey == kStopCompletionKey) continue;
         if (completionKey != 0 && pOverlapped) {
             DirectoryWatch* dirWatch = reinterpret_cast<DirectoryWatch*>(completionKey);
             std::lock_guard<std::mutex> lock(watchMutex);
-            if (!dirWatch->retired) {
+            dirWatch->pendingRead = false;
+            dirWatch->active = false;
+            if (dirWatch->retired) {
+                ReclaimRetiredWatchLocked(dirWatch);
+            } else {
                 if (bytesTransferred == 0) {
                     // Zero bytes on IOCP notification indicates notification buffer overflow
                     TriggerRescan(dirWatch->rootPath);

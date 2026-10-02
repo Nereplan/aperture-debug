@@ -151,7 +151,7 @@ void App::OnOleDrop(IDataObject* pDataObj, POINTL pt) {
         DroppedUrlResult dropResult = NetworkStreamValidator::ExtractAndValidateFromDataObject(pDataObj);
         if (dropResult.hasUrl) {
             if (dropResult.parsedUrl.isValid) {
-                if (networkStreamModel.IsRecentStreamsEnabled()) {
+                if (playbackSession.CanPersistRecentStreams(networkStreamModel.IsRecentStreamsEnabled())) {
                     networkStreamModel.AddRecentStream(dropResult.parsedUrl.rawUrl);
                     networkStreamModel.SaveRecentStreams(GetExeDir());
                 }

@@ -227,6 +227,7 @@ public:
     void SetOnDurationChanged(std::function<void(double)> callback);
     void SetOnPlayStateChanged(std::function<void(bool)> callback);
     void SetOnError(std::function<void(const std::wstring&)> callback);
+    void SetOnWarning(std::function<void(const std::wstring&)> callback);
     void SetOnTracksChanged(std::function<void()> callback);
     void SetOnChaptersChanged(std::function<void()> callback);
     void ClearCallbacks();
@@ -244,8 +245,9 @@ private:
     void RefreshChapters();
     void LoadMpvFunctions(HMODULE hModule);
     void SetImageAdjustment(int& state, int value, const char* property, const char* operation);
-    void ReportError(const char* operation, int errorCode);
-    void ReportErrorMessage(const std::wstring& message);
+    enum class ErrorSeverity { Recoverable, Fatal };
+    void ReportError(const char* operation, int errorCode, ErrorSeverity severity = ErrorSeverity::Recoverable);
+    void ReportErrorMessage(const std::wstring& message, ErrorSeverity severity = ErrorSeverity::Recoverable);
     HWND hParent = NULL;
     HWND hVideoWnd = NULL;
     mpv_handle* mpv = nullptr;
@@ -265,6 +267,7 @@ private:
     std::function<void(double)> onDurationChanged;
     std::function<void(bool)> onPlayStateChanged;
     std::function<void(const std::wstring&)> onError;
+    std::function<void(const std::wstring&)> onWarning;
     std::function<void()> onTracksChanged;
     std::function<void()> onChaptersChanged;
     template <typename Callback>
@@ -480,12 +483,16 @@ public:
     bool IsPrivateMode() const { return isPrivateMode.load(); }
     void SetPrivateMode(bool enabled) { isPrivateMode.store(enabled); }
     bool UpdateFrame(ID2D1DeviceContext* pD2DContext);
+    void BindDeviceContext(ID2D1DeviceContext* context);
 
 private:
     static void OnRenderUpdate(void* ctx);
     void StopMpvLocked();
     void ResetSeekbarPreviewLocked();
     void EnsureBufferDimensionsLocked(int width, int height, ID2D1DeviceContext* pD2DContext);
+    void BindDeviceContextLocked(ID2D1DeviceContext* context);
+    bool UploadBitmapLocked(ComPtr<ID2D1Bitmap>& bitmap, ID2D1DeviceContext* context,
+                            UINT width, UINT height, const uint8_t* pixels);
     mpv_handle* mpv = nullptr;
     mpv_render_context* renderCtx = nullptr;
     HMODULE hMpvDll = NULL;
@@ -517,6 +524,7 @@ private:
     int requestedPreviewWidth = 960, requestedPreviewHeight = 540, bufferWidth = kSeekbarBufferWidth, bufferHeight = kSeekbarBufferHeight;
     bool bufferIsPreviewSized = false;
     ComPtr<ID2D1Bitmap> previewBitmap, seekbarBitmap;
+    ComPtr<ID2D1Device> bitmapDevice;
     std::mutex renderMutex;
     mutable std::mutex lifecycleMutex;
     bool ownsMpvDll = false;
@@ -524,7 +532,6 @@ private:
     // UpdateFrame enqueues a copy and returns; the saver thread persists it
     // under <root>\cache\thumbnails. Bounded and coalesced by key so fast scrubbing cannot pile up unbounded file writes.
     static constexpr size_t kMaxPendingDiskSaves = 8;
-    void StartSaveWorker();
     void StopSaveWorker();
     void SaveWorkerThread();
     void QueueDiskSave(const PreviewThumbnailFrame& frame);

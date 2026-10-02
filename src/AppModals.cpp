@@ -429,6 +429,11 @@ void App::ShowEditSmartPlaylistModal(const std::string& playlistId) {
         const std::wstring raw = Text16ToWideString(modalInput.GetText());
         std::string ruleStr = Utf16ToUtf8(raw);
         SmartPlaylistCriteria criteria = SmartPlaylistCriteria::FromRuleString(ruleStr);
+        std::string validation;
+        if (!criteria.Validate(&validation)) {
+            ShowOSD(IconType::VolumeMuted, Loc::Tr("ux.smart_rule_invalid") + L": " + Utf8ToUtf16(validation), 4.0f);
+            return;
+        }
         Playlist* p = library.FindPlaylist(playlistId);
         std::string name = p ? p->name : "Smart Playlist";
         if (library.UpdateSmartPlaylist(playlistId, name, criteria)) { ShowOSD(IconType::FolderPlaylist, L"Rules Updated!"); }
@@ -643,7 +648,7 @@ void App::ShowOpenNetworkStreamModal() {
             ShowOSD(IconType::VolumeMuted, NetworkStreamValidator::GetSafeErrorMessage(parsed.error, input), 4.0f);
             return;
         }
-        if (networkStreamModel.IsRecentStreamsEnabled()) {
+        if (playbackSession.CanPersistRecentStreams(networkStreamModel.IsRecentStreamsEnabled())) {
             networkStreamModel.AddRecentStream(parsed.rawUrl);
             networkStreamModel.SaveRecentStreams(GetExeDir());
         }

@@ -88,6 +88,11 @@ bool App::EnsurePlayerInitialized() {
         { std::lock_guard<std::mutex> lock(pendingPlayerErrorMutex); pendingPlayerErrors.push_back(AppError::Playback(err)); }
         QueuePlayerEvent(PlayerEventError);
     });
+    player.SetOnWarning([this](const std::wstring& err) {
+        { std::lock_guard<std::mutex> lock(pendingPlayerErrorMutex);
+          if (pendingPlayerWarnings.size() < 64) pendingPlayerWarnings.push_back(AppError::Playback(err)); }
+        QueuePlayerEvent(PlayerEventWarning);
+    });
     playerInitialized = true;
     return true;
 }
@@ -166,6 +171,7 @@ void App::ClearPendingPlayerEvents() {
     playerEventPosted.store(false, std::memory_order_release);
     std::lock_guard<std::mutex> lock(pendingPlayerErrorMutex);
     pendingPlayerErrors.clear();
+    pendingPlayerWarnings.clear();
 }
 
 
@@ -175,9 +181,9 @@ void App::HandlePlayerEvents() {
     // The observed time/duration channels already cover playback, pause and
     // seeks. Update durable progress once per coalesced event, rather than
     // also polling and copying the path on every UI frame.
-    if ((events & (PlayerEventTime | PlayerEventDuration)) && !playbackSession.IsPrivateMode()) {
+    if ((events & (PlayerEventTime | PlayerEventDuration)) && playbackSession.CanPersistPlayback()) {
         const auto path = player.GetCurrentFilePath();
-        if (!path.empty()) library.UpdateProgress(path, player.GetCurrentTime(), player.GetDuration());
+        if (playbackSession.CanPersistLocalTarget(path)) library.UpdateProgress(path, player.GetCurrentTime(), player.GetDuration());
     }
     if (events & PlayerEventTime) {
         const double currentTime = pendingPlayerTime.load(std::memory_order_acquire);
@@ -222,6 +228,12 @@ void App::HandlePlayerEvents() {
             }
         } else { ShowOSD(IconType::Play, L"Playback Finished"); }
         UpdateMediaTransport(true);
+    }
+    if (events & PlayerEventWarning) {
+        std::deque<AppError> warnings;
+        { std::lock_guard<std::mutex> lock(pendingPlayerErrorMutex); warnings.swap(pendingPlayerWarnings); }
+        for (const auto& warning : warnings) Diagnostics::Log(warning);
+        if (!warnings.empty()) ShowOSD(IconType::VolumeMuted, warnings.back().userMessage, 4.0f);
     }
     if (events & PlayerEventError) {
         std::deque<AppError> errors;
@@ -535,7 +547,7 @@ bool App::ExecuteAutomationCommand(const Ipc::AutomationCommand& cmd, Ipc::Autom
         double vol0to1 = vol0to100 / 100.0;
         player.SetVolume(vol0to1);
         player.SetMuted(false);
-        settings.volume = static_cast<int>(std::round(vol0to100));
+        settings.volume = vol0to1;
         settings.muted = false;
         if (vol0to1 > 0.01) { playbackSession.SetPriorUnmutedVolume(vol0to1); }
         ShowOSD(vol0to1 <= 0.01 ? IconType::VolumeMuted : IconType::VolumeHigh, std::to_wstring(static_cast<int>(std::round(vol0to100))) + L"%");
@@ -655,7 +667,7 @@ void App::OpenAndPlayMedia(const std::wstring& filePath, double startPosSec, boo
     } else { playbackSession.OpenDirect(resolvedPath, startPosSec); }
     // Private playback reads existing preferences but creates no durable media record and does not update last-watched metadata.
     MediaItem* item = isNetworkStream ? nullptr : library.FindByPath(resolvedPath);
-    if (!isNetworkStream && !playbackSession.IsPrivateMode()) {
+    if (playbackSession.CanPersistLocalTarget(resolvedPath)) {
         // A new CLI/drop target was synchronously opened by MF before mpv
         // could start decoding it. Its preferences are empty, so build the
         // record now and let the existing worker fill metadata in parallel.
@@ -665,7 +677,12 @@ void App::OpenAndPlayMedia(const std::wstring& filePath, double startPosSec, boo
         item = library.AddOrUpdateMedia(resolvedPath, !deferProbe);
         if (deferProbe && item) ScheduleMetadataBackfill();
     }
-    if (!isNetworkStream && !playbackSession.IsPrivateMode()) PromoteLastWatchedMedia();
+    if (playbackSession.CanPersistLocalTarget(resolvedPath)) {
+        PromoteLastWatchedMedia();
+        // Promotion swaps records in the vector: preserve the target identity,
+        // not the address returned before the mutation.
+        item = library.FindByPath(resolvedPath);
+    }
     // Cache active preferences in playback session
     playbackSession.SetActivePreferences(item ? item->preferences : std::nullopt);
     // Apply per-media preferences or fallback to Settings defaults
@@ -781,7 +798,8 @@ void App::OpenAndPlayMedia(const std::wstring& filePath, double startPosSec, boo
         ShowWindow(hVideoWnd, SW_SHOW);
         ShowWindow(hOverlayWnd, SW_SHOW);
         SyncOverlayPosition();
-        library.AddToHistory(resolvedPath, seekPos, item ? item->durationSec : 0.0);
+        if (playbackSession.CanPersistLocalTarget(resolvedPath))
+            library.AddToHistory(resolvedPath, seekPos, item ? item->durationSec : 0.0);
         std::wstring title = item ? item->title : GetFileTitleFromPath(resolvedPath);
         SetWindowTextW(hWnd, (title + L" - " + std::wstring(Version::ProductNameWide)).c_str());
         Render();
@@ -807,7 +825,7 @@ void App::ClosePlayer() {
         mediaGenerationToken++;
         previewPlayer.StopPreview();
         previewPlayer.ResetSeekbarPreview();
-        if (!player.GetCurrentFilePath().empty()) {
+        if (playbackSession.CanPersistLocalTarget(player.GetCurrentFilePath())) {
             double curTime = player.GetCurrentTime();
             if (curTime >= 0.0 && std::isfinite(curTime)) { playbackSession.SetPlaybackPosition(curTime); }
             library.UpdateProgress(player.GetCurrentFilePath(), player.GetCurrentTime(), player.GetDuration());
@@ -874,9 +892,8 @@ void App::ClosePlayer() {
 
 
 void App::PersistCurrentPlaybackProgress() {
-    if (playbackSession.IsPrivateMode()) return;
     const std::wstring path = player.GetCurrentFilePath();
-    if (path.empty()) return;
+    if (!playbackSession.CanPersistLocalTarget(path)) return;
     library.UpdateProgress(path, player.GetCurrentTime(), player.GetDuration());
     SaveLibrary();
 }

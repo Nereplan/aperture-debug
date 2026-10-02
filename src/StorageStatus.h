@@ -3,6 +3,8 @@
 // Storage & persistence status types shared by every durable-write subsystem.
 
 #include <cstdint>
+#include <cstddef>
+#include "StorageLimits.h"
 #include <optional>
 #include <string>
 

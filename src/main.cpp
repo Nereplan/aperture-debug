@@ -139,11 +139,21 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
     const PlaybackCommandLineOptions& initialOptions = cmdLineParse.options;
     // 5. Single-Instance Coordination via Mutex & IPC
     HANDLE hSingleInstanceMutex = NULL;
+    std::unique_ptr<void, decltype(&CloseHandle)> windowReadyEvent(nullptr, &CloseHandle);
     if (!initialOptions.benchmarkProbe && !initialOptions.visualCaptureProbe) {
         hSingleInstanceMutex = CreateMutexW(NULL, FALSE, L"Local\\Aperture_SingleInstance_Mutex_V1");
         if (hSingleInstanceMutex && GetLastError() == ERROR_ALREADY_EXISTS) {
             HWND hExistingWnd = NULL;
-            for (int retry = 0; retry < 25; ++retry) { hExistingWnd = FindWindowW(CLASS_NAME, NULL); if (hExistingWnd) break; Sleep(40); }
+            const ULONGLONG readinessDeadline = GetTickCount64() + 10000;
+            while (GetTickCount64() < readinessDeadline) {
+                std::unique_ptr<void, decltype(&CloseHandle)> ready(OpenEventW(SYNCHRONIZE, FALSE, L"Local\\Aperture_WindowReady_V1"), &CloseHandle);
+                if (!ready || WaitForSingleObject(ready.get(), 40) == WAIT_OBJECT_0) {
+                    hExistingWnd = FindWindowW(CLASS_NAME, NULL);
+                    if (hExistingWnd) break;
+                }
+                Sleep(40);
+            }
+            bool delivered = false;
             if (hExistingWnd) {
                 std::vector<uint8_t> envelope = Ipc::SerializeEnvelope(initialOptions, Ipc::Command::OpenFiles, 1);
                 if (!envelope.empty()) {
@@ -152,8 +162,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
                     cds.cbData = static_cast<DWORD>(envelope.size());
                     cds.lpData = envelope.data();
                     DWORD_PTR dwResult = 0;
-                    if (!SendMessageTimeoutW(hExistingWnd, WM_COPYDATA, (WPARAM)NULL, (LPARAM)&cds, SMTO_ABORTIFHUNG | SMTO_BLOCK, 5000, &dwResult))
-                        SendMessageW(hExistingWnd, WM_COPYDATA, (WPARAM)NULL, (LPARAM)&cds);
+                    delivered = SendMessageTimeoutW(hExistingWnd, WM_COPYDATA, (WPARAM)NULL, (LPARAM)&cds,
+                        SMTO_ABORTIFHUNG | SMTO_BLOCK, 5000, &dwResult) != 0 && dwResult != FALSE;
                 }
                 if (IsIconic(hExistingWnd)) { ShowWindow(hExistingWnd, SW_RESTORE); }
                 SetForegroundWindow(hExistingWnd);
@@ -161,8 +171,15 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
             CloseHandle(hSingleInstanceMutex);
             Renderer::ShutdownPrewarm();
             CoUninitialize();
+            if (!delivered) {
+                MessageBoxW(nullptr, L"The running Aperture window could not accept this request. Wait for it to respond, then try again.",
+                    L"Aperture", MB_OK | MB_ICONWARNING);
+                return ERROR_TIMEOUT;
+            }
             return 0;
         }
+        windowReadyEvent.reset(CreateEventW(nullptr, TRUE, FALSE, L"Local\\Aperture_WindowReady_V1"));
+        if (windowReadyEvent) ResetEvent(windowReadyEvent.get());
     }
     // Prewarm Direct3D 11 device asynchronously on worker thread immediately
     // so driver initialization overlaps window setup, fonts, and library loading.
@@ -202,7 +219,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
     // persisted in physical pixels by the per-monitor-v2 process and validated against the current monitors.
     RECT workArea{};
     RECT savedRect{};
-    if (startupSettings.windowX >= 0 && startupSettings.windowY >= 0) {
+    if (startupSettings.hasWindowPlacement) {
         savedRect.left = startupSettings.windowX;
         savedRect.top = startupSettings.windowY;
         savedRect.right = savedRect.left + std::max(1, startupSettings.windowWidth);
@@ -220,8 +237,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
     int workH = std::max(420, (int)(workArea.bottom - workArea.top));
     int winW = std::clamp(startupSettings.windowWidth, 640, workW);
     int winH = std::clamp(startupSettings.windowHeight, 420, workH);
-    int winX = startupSettings.windowX >= 0 ? savedRect.left : workArea.left + (workW - winW) / 2;
-    int winY = startupSettings.windowY >= 0 ? savedRect.top : workArea.top + (workH - winH) / 2;
+    int winX = startupSettings.hasWindowPlacement ? savedRect.left : workArea.left + (workW - winW) / 2;
+    int winY = startupSettings.hasWindowPlacement ? savedRect.top : workArea.top + (workH - winH) / 2;
     // Keep a usable caption strip visible even when a monitor was removed.
     winX = std::clamp(winX, (int)workArea.left - winW + 64, (int)workArea.right - 64);
     winY = std::clamp(winY, (int)workArea.top, (int)workArea.bottom - 64);
@@ -288,6 +305,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
         CoUninitialize();
         return -1;
     }
+    if (windowReadyEvent) SetEvent(windowReadyEvent.get());
     // GPU first frame after init: invalidates over the shell with the same theme colors, so the handoff has no flicker. UpdateWindow blocks
     // until the GPU frame presents (joining the D3D worker if needed).
     InvalidateRect(hWnd, NULL, FALSE);

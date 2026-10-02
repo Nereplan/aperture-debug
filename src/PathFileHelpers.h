@@ -11,6 +11,16 @@
 namespace Aperture {
 
 // --- Path & File Helpers ---
+enum class PathAvailability { Present, Missing, Unavailable };
+inline PathAvailability QueryPathAvailability(const std::wstring& path, DWORD* error = nullptr) {
+    const DWORD attr = GetFileAttributesW(path.c_str());
+    const DWORD err = attr == INVALID_FILE_ATTRIBUTES ? GetLastError() : ERROR_SUCCESS;
+    if (error) *error = err;
+    if (attr != INVALID_FILE_ATTRIBUTES) return PathAvailability::Present;
+    return err == ERROR_FILE_NOT_FOUND || err == ERROR_PATH_NOT_FOUND
+        ? PathAvailability::Missing : PathAvailability::Unavailable;
+}
+
 inline std::wstring GetFullPathDynamic(const std::wstring& path) {
     if (path.empty()) return {};
     const DWORD required = GetFullPathNameW(path.c_str(), 0, nullptr, nullptr);
@@ -281,6 +291,8 @@ inline StorageStatus CheckDataDirectoryWritability() {
 }
 
 inline StorageStatus AtomicWriteTextFile(const std::wstring& path, const std::string& text) {
+    if (text.size() > kMaxPortableStoreBytes)
+        return StorageStatus::Error(StorageErrorCode::SerializationFailed, ERROR_FILE_TOO_LARGE, path, "Output exceeds the readable store size limit");
     if (path.empty()) { return StorageStatus::Error(StorageErrorCode::InvalidPath, ERROR_INVALID_PARAMETER, path, "Path is empty"); }
     size_t lastSlash = path.find_last_of(L"\\/");
     std::wstring dir = (lastSlash != std::wstring::npos) ? path.substr(0, lastSlash) : L".";
@@ -329,7 +341,7 @@ inline StorageStatus ReadTextFile(const std::wstring& path, std::string& out) {
         CloseHandle(hFile);
         return StorageStatus::Error(StorageErrorCode::FileReadFailed, err, path, "Failed to get file size");
     }
-    if (size.QuadPart > 64 * 1024 * 1024) {
+    if (size.QuadPart > static_cast<LONGLONG>(kMaxPortableStoreBytes)) {
         CloseHandle(hFile);
         return StorageStatus::Error(StorageErrorCode::FileReadFailed, ERROR_FILE_TOO_LARGE, path, "File exceeds size limit");
     }

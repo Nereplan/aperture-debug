@@ -876,7 +876,7 @@ void App::Shutdown() {
     // resources. This also makes WM_CLOSE followed by the destructor safe.
     previewPlayer.StopPreview();
     if (playbackSession.IsOpen()) {
-        if (!playbackSession.IsPrivateMode() && !player.GetCurrentFilePath().empty()) {
+        if (playbackSession.CanPersistLocalTarget(player.GetCurrentFilePath())) {
             double curTime = player.GetCurrentTime();
             if (curTime >= 0.0 && std::isfinite(curTime)) { playbackSession.SetPlaybackPosition(curTime); }
             library.UpdateProgress(player.GetCurrentFilePath(), player.GetCurrentTime(), player.GetDuration());
@@ -1026,6 +1026,7 @@ bool App::Initialize(HWND hwnd, HWND hVideoChild, HINSTANCE hinst, const Playbac
     // that copy instead of re-reading and re-validating the file.
     if (startupSettings) settings = *startupSettings;
     else settings.Load();
+    if (!settings.GetLastLoadStatus().is_ok()) ReportStorageFailure(settings.GetLastLoadStatus(), L"settings load");
     systemVisualPreferences.Refresh();
     Diagnostics::SetLoggingEnabled(settings.diagnosticsLogging);
     Diagnostics::RecordHeartbeat(L"app-initialized");
@@ -1044,7 +1045,10 @@ bool App::Initialize(HWND hwnd, HWND hVideoChild, HINSTANCE hinst, const Playbac
     // they are shown or applied to the player.
     settings.audioDelayMs = std::clamp(settings.audioDelayMs, -5000, 5000);
     settings.subDelayMs = std::clamp(settings.subDelayMs, -10000, 10000);
-    if (settings.restoreSession) { playbackSession.Load(); }
+    if (settings.restoreSession) {
+        const auto status = playbackSession.Load();
+        if (!status.is_ok()) ReportStorageFailure(status, L"session load");
+    }
     // The auto update check performs a synchronous network request; running it
     // here would gate the first GPU frame on the network (connect timeout 5 s).
     // It is deferred to Update() once the first shell has been presented.
@@ -1142,7 +1146,7 @@ void App::ExecuteCommandLineOptions(const PlaybackCommandLineOptions& options) {
     if (options.volume.has_value()) {
         double vol = std::clamp(*options.volume, 0.0, 100.0);
         player.SetVolume(vol / 100.0);
-        settings.volume = static_cast<int>(std::round(vol));
+        settings.volume = vol / 100.0;
     }
     if (options.loop) { player.SetLoop(true); settings.loop = true; loopToggleAnim.SnapTo(1.0f); }
     if (options.mediaTargets.empty()) {
@@ -1555,10 +1559,11 @@ void App::Render() {
     // redundant WM_SHOWWINDOW traffic on the video/overlay windows.
     if (hVideoWnd && IsWindowVisible(hVideoWnd)) ShowWindow(hVideoWnd, SW_HIDE);
     if (hOverlayWnd && IsWindowVisible(hOverlayWnd)) ShowWindow(hOverlayWnd, SW_HIDE);
-    HubRenderViewModel vm = BuildHubRenderViewModel();
     renderer.BeginDraw();
+    previewPlayer.BindDeviceContext(renderer.GetD2DContext());
+    HubRenderViewModel vm = BuildHubRenderViewModel();
     UIComponents::DrawHub(renderer, settings, vm);
-    renderer.EndDraw();
+    if (!renderer.EndDraw() || renderer.IsOccluded()) return;
     if (!firstGpuShellRecorded) { firstGpuShellRecorded = true; Diagnostics::RecordStartupMilestone(L"first-gpu-shell", false); }
     if (libraryReady && !librarySnapshotFrameRendered) {
         librarySnapshotFrameRendered = true;
@@ -1654,7 +1659,7 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
             break;
         case WM_GETOBJECT:
             if (bootstrapping) break;
-            if (static_cast<LONG>(lParam) == OBJID_CLIENT) {
+            if (static_cast<LONG>(lParam) == OBJID_CLIENT || static_cast<LONG>(lParam) == static_cast<LONG>(UiaRootObjectId)) {
                 RefreshAccessibilityTree(true);
                 return accessibilityTree.HandleGetObject(wParam, lParam);
             }
@@ -4740,8 +4745,9 @@ bool App::CaptureClientContent(const std::wstring& outputPath) {
     // A flip-model Present rotates buffers. Draw the requested hub state into
     // the current buffer and finish it without rotating before readback.
     if (playbackSession.IsOpen()) return false;
-    const auto vm = BuildHubRenderViewModel();
     renderer.BeginDraw();
+    previewPlayer.BindDeviceContext(renderer.GetD2DContext());
+    const auto vm = BuildHubRenderViewModel();
     UIComponents::DrawHub(renderer, settings, vm);
     if (!renderer.EndDraw(false)) return false;
     return renderer.CaptureBackBufferToPng(outputPath);

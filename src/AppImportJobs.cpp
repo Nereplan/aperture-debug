@@ -171,20 +171,8 @@ void App::CancelImportJob() {
 
 bool App::HasEligibleBackfillItems(const MetadataBackfillOptions& options) const {
     const int64_t now = options.nowTimestamp > 0 ? options.nowTimestamp : GetCurrentTimestampSec();
-    for (const auto& item : library.mediaItems) {
-        if (item.filePath.empty()) continue;
-        const bool needsBackfill = (item.durationSec <= 0.0) || item.metadataProbeFailed;
-        if (!needsBackfill) continue;
-        if (options.forceRetry) return true;
-        if (options.maxAttempts > 0 && item.probeAttemptCount >= options.maxAttempts) continue;
-        if (item.lastProbeAttemptTimestamp > 0) {
-            uint32_t attempts = item.probeAttemptCount > 0 ? item.probeAttemptCount : 1;
-            int shift = std::min<int>((int)attempts - 1, 30);
-            int64_t backoff = options.baseBackoffSec * (1LL << shift);
-            if (backoff > options.maxBackoffSec || backoff < 0) { backoff = options.maxBackoffSec; }
-            if (now >= item.lastProbeAttemptTimestamp + backoff) { return true; }
-        } else { return true; }
-    }
+    for (const auto& item : library.mediaItems)
+        if (MediaLibrary::CanAttemptMetadataBackfill(item, options, now)) return true;
     return false;
 }
 
@@ -213,22 +201,7 @@ void App::ScheduleMetadataBackfill(const MetadataBackfillOptions& options) {
         snapshot.reserve(std::min<size_t>(cap, library.mediaItems.size()));
         for (const auto& item : library.mediaItems) {
             if (snapshot.size() >= cap) break;
-            if (item.filePath.empty()) continue;
-            const bool needsBackfill = (item.durationSec <= 0.0) || item.metadataProbeFailed;
-            if (!needsBackfill) continue;
-            bool canAttempt = false;
-            if (effectiveOptions.forceRetry) {
-                canAttempt = true;
-            } else if (effectiveOptions.maxAttempts > 0 && item.probeAttemptCount >= effectiveOptions.maxAttempts) {
-                continue;
-            } else if (item.lastProbeAttemptTimestamp > 0) {
-                uint32_t attempts = item.probeAttemptCount > 0 ? item.probeAttemptCount : 1;
-                int shift = std::min<int>((int)attempts - 1, 30);
-                int64_t backoff = effectiveOptions.baseBackoffSec * (1LL << shift);
-                if (backoff > effectiveOptions.maxBackoffSec || backoff < 0) { backoff = effectiveOptions.maxBackoffSec; }
-                if (now >= item.lastProbeAttemptTimestamp + backoff) { canAttempt = true; }
-            } else { canAttempt = true; }
-            if (canAttempt) { snapshot.push_back(item); }
+            if (MediaLibrary::CanAttemptMetadataBackfill(item, effectiveOptions, now)) snapshot.push_back(item);
         }
     }
     if (snapshot.empty()) {

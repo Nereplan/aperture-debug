@@ -42,6 +42,7 @@ public:
     bool RemoveWatch(const std::wstring& folderPath);
     void ClearWatches();
     std::vector<std::wstring> GetWatchedFolders() const;
+    size_t GetRetiredWatchCount() const;
     // Coalescing configuration
     void SetCoalesceWindowMs(uint32_t ms) { coalesceWindowMs = ms; }
     void SetMaxBatchSize(size_t maxItems) { maxBatchSize = maxItems; }
@@ -56,15 +57,17 @@ private:
         HANDLE hDirectory = INVALID_HANDLE_VALUE;
         OVERLAPPED overlapped = {};
         std::vector<BYTE> buffer;
-        bool active = false, retired = false;
+        bool active = false, retired = false, pendingRead = false;
     };
     bool ArmReadDirectoryChanges(DirectoryWatch* dirWatch);
     void ProcessNotificationBuffer(DirectoryWatch* dirWatch, DWORD bytesTransferred);
     void WorkerLoop();
+    void ReclaimRetiredWatchLocked(DirectoryWatch* watch);
+    bool HasPendingReadsLocked() const;
     mutable std::mutex watchMutex;
     std::unordered_map<std::wstring, std::unique_ptr<DirectoryWatch>> watches;
     // Cancelled OVERLAPPED completions retain their completion-key pointer.
-    // Keep removed watches alive until the worker has drained and stopped.
+    // Keep removed watches alive only until their last completion is consumed.
     std::vector<std::unique_ptr<DirectoryWatch>> retiredWatches;
     std::atomic<bool> isRunning{ false };
     std::atomic<bool> stopRequested{ false };
