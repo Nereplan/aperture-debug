@@ -1,0 +1,121 @@
+﻿{
+    "gate":  "static_analysis",
+    "passed":  true,
+    "durationSec":  71.5,
+    "configuration":  "Release",
+    "warningsAsErrors":  false,
+    "sourcesAnalyzed":  51,
+    "totalWarnings":  28,
+    "baselineMaxTotal":  76,
+    "newWarningCount":  0,
+    "increaseCount":  0,
+    "resolvedCount":  16,
+    "errorCount":  0,
+    "newWarnings":  [
+
+                    ],
+    "countIncreases":  [
+
+                       ],
+    "resolvedWarnings":  [
+                             {
+                                 "Fingerprint":  "src/App.cpp|C6031|Return value ignored: \u0027CoInitializeEx\u0027.",
+                                 "BaselineMax":  2,
+                                 "ActualCount":  0,
+                                 "Resolved":  2
+                             },
+                             {
+                                 "Fingerprint":  "src/App.cpp|C6246|Local declaration of \u0027btnSize\u0027 hides declaration of the same name in outer scope. For additional information, see previous declaration at line \u0027\u003cline\u003e\u0027 of \u0027\u003cfile\u003e\u0027.",
+                                 "BaselineMax":  2,
+                                 "ActualCount":  0,
+                                 "Resolved":  2
+                             },
+                             {
+                                 "Fingerprint":  "src/Common.h|C6262|Function uses \u0027196736\u0027 bytes of stack. Consider moving some data to heap.",
+                                 "BaselineMax":  30,
+                                 "ActualCount":  0,
+                                 "Resolved":  30
+                             },
+                             {
+                                 "Fingerprint":  "src/MpvPlayer.cpp|C6011|Dereferencing NULL pointer \u0027fn_mpv_get_property\u0027.",
+                                 "BaselineMax":  1,
+                                 "ActualCount":  0,
+                                 "Resolved":  1
+                             },
+                             {
+                                 "Fingerprint":  "src/OverlayRenderer.cpp|C6246|Local declaration of \u0027it\u0027 hides declaration of the same name in outer scope. For additional information, see previous declaration at line \u0027\u003cline\u003e\u0027 of \u0027\u003cfile\u003e\u0027.",
+                                 "BaselineMax":  1,
+                                 "ActualCount":  0,
+                                 "Resolved":  1
+                             },
+                             {
+                                 "Fingerprint":  "src/OverlayRenderer.cpp|C6387|\u0027family\u0027 could be \u00270\u0027: this does not adhere to the specification for the function \u0027IDWriteFactory::CreateTextFormat\u0027.",
+                                 "BaselineMax":  1,
+                                 "ActualCount":  0,
+                                 "Resolved":  1
+                             },
+                             {
+                                 "Fingerprint":  "src/Renderer.cpp|C6031|Return value ignored: \u0027CoCreateInstance\u0027.",
+                                 "BaselineMax":  2,
+                                 "ActualCount":  1,
+                                 "Resolved":  1
+                             },
+                             {
+                                 "Fingerprint":  "src/Renderer.cpp|C6031|Return value ignored: \u0027CoInitialize\u0027.",
+                                 "BaselineMax":  1,
+                                 "ActualCount":  0,
+                                 "Resolved":  1
+                             },
+                             {
+                                 "Fingerprint":  "src/Renderer.cpp|C6246|Local declaration of \u0027it\u0027 hides declaration of the same name in outer scope. For additional information, see previous declaration at line \u0027\u003cline\u003e\u0027 of \u0027\u003cfile\u003e\u0027.",
+                                 "BaselineMax":  1,
+                                 "ActualCount":  0,
+                                 "Resolved":  1
+                             },
+                             {
+                                 "Fingerprint":  "src/Renderer.cpp|C6387|\u0027family\u0027 could be \u00270\u0027: this does not adhere to the specification for the function \u0027IDWriteFactory::CreateTextFormat\u0027.",
+                                 "BaselineMax":  1,
+                                 "ActualCount":  0,
+                                 "Resolved":  1
+                             },
+                             {
+                                 "Fingerprint":  "src/UIComponents.cpp|C6246|Local declaration of \u0027durStr\u0027 hides declaration of the same name in outer scope. For additional information, see previous declaration at line \u0027\u003cline\u003e\u0027 of \u0027\u003cfile\u003e\u0027.",
+                                 "BaselineMax":  1,
+                                 "ActualCount":  0,
+                                 "Resolved":  1
+                             },
+                             {
+                                 "Fingerprint":  "src/UIComponents.cpp|C6246|Local declaration of \u0027titleRect\u0027 hides declaration of the same name in outer scope. For additional information, see previous declaration at line \u0027\u003cline\u003e\u0027 of \u0027\u003cfile\u003e\u0027.",
+                                 "BaselineMax":  2,
+                                 "ActualCount":  1,
+                                 "Resolved":  1
+                             },
+                             {
+                                 "Fingerprint":  "src/Updater.cpp|C6031|Return value ignored: \u0027BCryptFinishHash\u0027.",
+                                 "BaselineMax":  2,
+                                 "ActualCount":  1,
+                                 "Resolved":  1
+                             },
+                             {
+                                 "Fingerprint":  "src/Updater.cpp|C6031|Return value ignored: \u0027BCryptGetProperty\u0027.",
+                                 "BaselineMax":  2,
+                                 "ActualCount":  0,
+                                 "Resolved":  2
+                             },
+                             {
+                                 "Fingerprint":  "src/Updater.cpp|C6031|Return value ignored: \u0027BCryptHashData\u0027.",
+                                 "BaselineMax":  2,
+                                 "ActualCount":  1,
+                                 "Resolved":  1
+                             },
+                             {
+                                 "Fingerprint":  "src/main.cpp|C6262|Function uses \u002719900\u0027 bytes of stack. Consider moving some data to heap.",
+                                 "BaselineMax":  1,
+                                 "ActualCount":  0,
+                                 "Resolved":  1
+                             }
+                         ],
+    "errors":  [
+
+               ]
+}

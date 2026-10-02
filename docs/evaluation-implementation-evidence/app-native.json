@@ -1,0 +1,11 @@
+﻿{
+    "mode":  "app",
+    "status":  "PASS",
+    "seeds":  [
+
+              ],
+    "startedUtc":  "2026-10-02T08:58:49.8317710Z",
+    "artifactDirectory":  "C:\\Users\\Alperen\\AppData\\Local\\Temp\\Aperture-workflows-decf27727fe7451781dc8b644942a915",
+    "failure":  null,
+    "finishedUtc":  "2026-10-02T08:59:15.9257897Z"
+}
