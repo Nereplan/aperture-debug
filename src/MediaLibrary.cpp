@@ -1,5 +1,6 @@
 #include "MediaLibrary.h"
 #include "SmartRuleParsing.h"
+#include "PlaybackTarget.h"
 #include "LibraryQuery.h"
 #include "AudioConfig.h"
 #include "MediaFoundation.h"
@@ -830,7 +831,7 @@ bool MediaLibrary::IsSupportedMediaExtension(const std::wstring& path) {
 MediaItem* MediaLibrary::AddOrUpdateMediaCore(const std::wstring& path, bool& changed, bool& metadataProbeFailed, bool probeMetadata) {
     changed = false;
     metadataProbeFailed = false;
-    if (path.empty()) return nullptr;
+    if (ClassifyPlaybackTarget(path) != PlaybackTargetKind::LocalFile) return nullptr;
     std::wstring resolvedPath = ResolveAppPath(path);
     const bool exists = FileExists(resolvedPath);
     const uint64_t size = exists ? GetFileSizeInBytes(resolvedPath) : 0;
@@ -1256,7 +1257,7 @@ size_t MediaLibrary::SetWatched(const std::vector<std::wstring>& paths, bool wat
 }
 
 void MediaLibrary::AddToHistory(const std::wstring& path, double pos, double dur) {
-    if (path.empty()) return;
+    if (ClassifyPlaybackTarget(path) != PlaybackTargetKind::LocalFile) return;
     std::wstring resolved = ResolveAppPath(path);
     for (auto i = history.begin(); i != history.end(); ++i) {
         if (SamePath(i->filePath, resolved)) {
@@ -1826,7 +1827,7 @@ StorageStatus MediaLibrary::LoadFromRoot(const std::wstring& requestedRootDir, c
                 MediaItem item;
                 item.id = json.get("id").as_string();
                 std::wstring rawPath = json.get("filePath").as_wstring();
-                if (rawPath.empty()) continue;
+                if (ClassifyPlaybackTarget(rawPath) != PlaybackTargetKind::LocalFile) continue;
                 item.filePath = ResolveAppPath(rawPath, rootDir);
                 if (item.filePath.empty()) continue;
                 item.title = json.get("title").as_wstring();
@@ -2106,7 +2107,7 @@ StorageStatus MediaLibrary::LoadFromRoot(const std::wstring& requestedRootDir, c
                 if (!json.is_object()) continue;
                 HistoryRecord record;
                 std::wstring rawPath = json.get("filePath").as_wstring();
-                if (rawPath.empty()) continue;
+                if (ClassifyPlaybackTarget(rawPath) != PlaybackTargetKind::LocalFile) continue;
                 record.filePath = ResolveAppPath(rawPath, rootDir);
                 if (record.filePath.empty() || !seenPaths.insert(NormalizePathKey(record.filePath)).second) continue;
                 record.title = json.get("title").as_wstring();
@@ -2329,7 +2330,8 @@ MediaLibrarySaveResult MediaLibrary::Save() {
 }
 
 bool MediaLibrary::NeedsMetadataBackfill(const MediaItem& item) {
-    return !item.filePath.empty() && (!std::isfinite(item.durationSec) || item.durationSec <= 0 || item.metadataProbeFailed);
+    return ClassifyPlaybackTarget(item.filePath) == PlaybackTargetKind::LocalFile &&
+        (!std::isfinite(item.durationSec) || item.durationSec <= 0 || item.metadataProbeFailed);
 }
 
 bool MediaLibrary::CanAttemptMetadataBackfill(const MediaItem& item, const MetadataBackfillOptions& options, int64_t now) {
@@ -2411,7 +2413,7 @@ MetadataBackfillResult MediaLibrary::BackfillMissingMetadata(const MetadataBackf
 // Smart Playlist Rule & Criteria Implementation
 // ============================================================================
 
-static std::string ToLowerStr(const std::string& str) { std::string s = str; for (auto& c : s) c = (char)::tolower(c); return s; }
+static std::string ToLowerStr(const std::string& str) { std::string s = str; for (auto& c : s) c = (char)::tolower(static_cast<unsigned char>(c)); return s; }
 
 static std::wstring ToLowerWStr(const std::wstring& str) { std::wstring s = str; for (auto& c : s) c = (wchar_t)::towlower(c); return s; }
 
@@ -2583,6 +2585,9 @@ JsonValue SmartPlaylistRule::ToJson() const {
 
 SmartPlaylistRule SmartPlaylistRule::FromJson(const JsonValue& json) {
     SmartPlaylistRule rule;
+    if (!json.is_object() || !json.get("field").is_string() || !json.get("op").is_string() || !json.get("value").is_string()) {
+        rule.field = static_cast<SmartRuleField>(-1); return rule;
+    }
     if (json.is_object()) {
         rule.field = SmartFieldFromString(json.get("field").as_string("title"));
         rule.op = SmartOpFromString(json.get("op").as_string("contains"));
@@ -2609,6 +2614,7 @@ SmartPlaylistRule SmartPlaylistRule::FromString(const std::string& str) {
     SmartPlaylistRule rule;
     std::string s = TrimStr(str);
     if (s.empty()) return rule;
+    const std::string lower = ToLowerStr(s);
     static const std::vector<std::pair<std::string, SmartRuleOperator>> ops = {
         { ">=", SmartRuleOperator::GreaterThanOrEqual }, { "<=", SmartRuleOperator::LessThanOrEqual },
         { "!=", SmartRuleOperator::NotEquals }, { "==", SmartRuleOperator::Equals }, { "!contains", SmartRuleOperator::DoesNotContain },
@@ -2618,7 +2624,7 @@ SmartPlaylistRule SmartPlaylistRule::FromString(const std::string& str) {
         { "=", SmartRuleOperator::Equals }, { ":", SmartRuleOperator::Contains }
     };
     for (const auto& opPair : ops) {
-        size_t pos = s.find(opPair.first);
+        size_t pos = lower.find(opPair.first);
         if (pos != std::string::npos && pos > 0) {
             std::string fieldPart = TrimStr(s.substr(0, pos));
             std::string valPart = TrimStr(s.substr(pos + opPair.first.size()));
@@ -2638,7 +2644,8 @@ SmartPlaylistRule SmartPlaylistRule::FromString(const std::string& str) {
 }
 
 bool SmartPlaylistCriteria::Validate(std::string* error) const {
-    if (!validationError.empty() || sortField < 0 || sortField > static_cast<int>(LibrarySortField::Manual) ||
+    if (!validationError.empty() || static_cast<int>(matchMode) < 0 || matchMode > SmartMatchMode::MatchAny ||
+        sortField < 0 || sortField > static_cast<int>(LibrarySortField::Manual) ||
         sortDirection < 0 || sortDirection > 1 || limit > JsonValue::kMaxJsonContainerElements) {
         if (error) *error = validationError.empty() ? "Invalid smart playlist sort or limit" : validationError;
         return false;
@@ -2666,6 +2673,7 @@ bool SmartPlaylistCriteria::Matches(const MediaItem& item, bool existsOnDisk) co
 }
 
 JsonValue SmartPlaylistCriteria::ToJson() const {
+    if (hasInvalidSource && !Validate()) return invalidSource;
     JsonValue obj = JsonValue::Object();
     obj["matchMode"] = (matchMode == SmartMatchMode::MatchAll) ? "all" : "any";
     obj["sortField"] = sortField;
@@ -2679,16 +2687,35 @@ JsonValue SmartPlaylistCriteria::ToJson() const {
 
 SmartPlaylistCriteria SmartPlaylistCriteria::FromJson(const JsonValue& json) {
     SmartPlaylistCriteria crit;
-    if (!json.is_object()) return crit;
+    if (!json.is_object()) {
+        crit.validationError = "Smart playlist criteria must be an object";
+        crit.invalidSource = json; crit.hasInvalidSource = true; return crit;
+    }
     std::string mode = json.get("matchMode").as_string("all");
+    if ((json.has_key("matchMode") && !json.get("matchMode").is_string()) ||
+        (mode != "all" && mode != "and" && mode != "any" && mode != "or")) crit.validationError = "Invalid match mode";
     crit.matchMode = (mode == "any" || mode == "or") ? SmartMatchMode::MatchAny : SmartMatchMode::MatchAll;
-    crit.sortField = json.get("sortField").as_int(0);
-    crit.sortDirection = json.get("sortDirection").as_int(0);
-    crit.limit = static_cast<size_t>(json.get("limit").as_int64(0));
+    const auto boundedInteger = [&](const char* name, size_t maximum) -> size_t {
+        if (!json.has_key(name)) return 0;
+        const auto& value = json.get(name); const double number = value.as_number(-1);
+        if (!value.is_number() || !std::isfinite(number) || number < 0 || number > maximum || std::floor(number) != number) {
+            crit.validationError = std::string("Invalid smart playlist ") + name; return 0;
+        }
+        return static_cast<size_t>(number);
+    };
+    crit.sortField = static_cast<int>(boundedInteger("sortField", static_cast<size_t>(LibrarySortField::Manual)));
+    crit.sortDirection = static_cast<int>(boundedInteger("sortDirection", 1));
+    crit.limit = boundedInteger("limit", JsonValue::kMaxJsonContainerElements);
+    if (json.has_key("rules") && !json.get("rules").is_array()) crit.validationError = "Smart playlist rules must be an array";
     if (json.has_key("rules") && json.get("rules").is_array()) {
         const auto& arr = json.get("rules").as_array();
         crit.rules.reserve(arr.size());
         for (const auto& rJson : arr) { crit.rules.push_back(SmartPlaylistRule::FromJson(rJson)); }
+    }
+    std::string validation;
+    if (!crit.Validate(&validation)) {
+        crit.validationError = validation;
+        crit.invalidSource = json; crit.hasInvalidSource = true;
     }
     return crit;
 }

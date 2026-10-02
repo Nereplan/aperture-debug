@@ -176,6 +176,10 @@ struct SmartPlaylistCriteria {
     bool Validate(std::string* error = nullptr) const;
     bool RequiresAvailability() const;
     std::string validationError;
+    // Preserve invalid loaded input so an unrelated save cannot normalize it
+    // into an enabled rule. Explicit editor repair creates new criteria.
+    JsonValue invalidSource;
+    bool hasInvalidSource = false;
     JsonValue ToJson() const;
     static SmartPlaylistCriteria FromJson(const JsonValue& json);
     std::string ToRuleString() const;

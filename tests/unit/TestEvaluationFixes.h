@@ -121,6 +121,47 @@ TEST_CASE(EvaluationFixes, MissingSmartRuleChecksActualAvailability) {
     TEST_ASSERT(library.EvaluateSmartPlaylist(criteria).empty());
 }
 
+TEST_CASE(EvaluationFixes, InvalidLoadedCriteriaRemainDisabledAcrossSerialization) {
+    for (const char* source : {
+        R"({"limit":18446744073709551616,"rules":[]})",
+        R"({"sortField":1e100,"rules":[]})",
+        R"({"sortDirection":0.5,"rules":[]})",
+        R"({"matchMode":"unknown","rules":[]})",
+        R"({"rules":{}})",
+        R"({"rules":[{"field":"duration","op":"greaterThan","value":12}]})",
+        R"({"rules":[{"field":"unknown","op":"contains","value":"x"}]})",
+        R"({"rules":[{"field":"title","op":"unknown","value":"x"}]})",
+        "null"}) {
+        JsonValue original; TEST_ASSERT(JsonValue::parse(source, original));
+        const auto criteria = SmartPlaylistCriteria::FromJson(original);
+        TEST_ASSERT(!criteria.Validate()); TEST_ASSERT(!criteria.Matches(MediaItem{}));
+        const auto persisted = criteria.ToJson();
+        TEST_ASSERT_EQ(persisted.stringify(), original.stringify());
+        TEST_ASSERT(!SmartPlaylistCriteria::FromJson(persisted).Validate());
+    }
+    TEST_ASSERT(SmartPlaylistCriteria::FromRuleString("STATUS IS missing").RequiresAvailability());
+}
+
+TEST_CASE(EvaluationFixes, JsonIntegerConversionsRejectRoundedExclusiveUpperBounds) {
+    TEST_ASSERT_EQ(JsonValue(std::ldexp(1.0, 63)).as_int64(42), int64_t(42));
+    TEST_ASSERT_EQ(JsonValue(std::ldexp(1.0, 64)).as_uint64(42), uint64_t(42));
+    TEST_ASSERT_EQ(JsonValue(-std::ldexp(1.0, 63)).as_int64(42), (std::numeric_limits<int64_t>::min)());
+    TEST_ASSERT_EQ(JsonValue(1234.0).as_int64(), int64_t(1234));
+}
+
+TEST_CASE(EvaluationFixes, LegacyStreamRecordsAreExcludedFromLocalStores) {
+    ScopedTempDir stage;
+    TEST_ASSERT(stage.CreateSubDir(L"data"));
+    TEST_ASSERT(stage.WriteFile(L"data\\library.json", R"({"items":[{"id":"stream","filePath":"https://example.com/movie.mkv?token=legacy"}]})"));
+    TEST_ASSERT(stage.WriteFile(L"data\\history.json", R"({"items":[{"filePath":"https://example.com/movie.mkv?token=legacy"}]})"));
+    MediaLibrary library; TEST_ASSERT(library.LoadFromRoot(stage.GetPath()).is_ok());
+    TEST_ASSERT(library.mediaItems.empty()); TEST_ASSERT(library.history.empty());
+    const auto url = L"https://example.com/movie.mkv?token=never-save";
+    library.AddToHistory(url, 1, 10); TEST_ASSERT(library.history.empty());
+    TEST_ASSERT(library.AddOrUpdateMedia(url, false) == nullptr);
+    MediaItem stream; stream.filePath = url; TEST_ASSERT(!MediaLibrary::NeedsMetadataBackfill(stream));
+}
+
 TEST_CASE(EvaluationFixes, UnresolvedDurationHasBoundedBackoff) {
     ScopedTempDir stage; TEST_ASSERT(stage.WriteFile(L"unknown.mkv", "fixture"));
     MediaLibrary library; MediaItem item; item.id = "unknown"; item.filePath = stage.SubPath(L"unknown.mkv");

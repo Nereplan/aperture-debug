@@ -47,8 +47,8 @@ public:
     bool as_bool(bool def = false) const { return is_bool() ? std::get<bool>(value) : def; }
     double as_number(double def = 0.0) const { return is_number() ? std::get<double>(value) : def; }
     int as_int(int def = 0) const { const double n = as_number(); return is_number() && std::isfinite(n) && n >= (double)std::numeric_limits<int>::min() && n <= (double)std::numeric_limits<int>::max() ? (int)n : def; }
-    int64_t as_int64(int64_t def = 0) const { const double n = as_number(); return is_number() && std::isfinite(n) && n >= (double)std::numeric_limits<int64_t>::min() && n <= (double)std::numeric_limits<int64_t>::max() ? (int64_t)n : def; }
-    uint64_t as_uint64(uint64_t def = 0) const { const double n = as_number(); return is_number() && std::isfinite(n) && n >= 0 && n <= (double)std::numeric_limits<uint64_t>::max() ? (uint64_t)n : def; }
+    int64_t as_int64(int64_t def = 0) const { const double n = as_number(); return is_number() && std::isfinite(n) && n >= -std::ldexp(1.0, 63) && n < std::ldexp(1.0, 63) ? (int64_t)n : def; }
+    uint64_t as_uint64(uint64_t def = 0) const { const double n = as_number(); return is_number() && std::isfinite(n) && n >= 0 && n < std::ldexp(1.0, 64) ? (uint64_t)n : def; }
     float as_float(float def = 0.0f) const { return is_number() ? (float)as_number() : def; }
     std::string as_string(const std::string& def = "") const { return is_string() ? std::get<std::string>(value) : def; }
     const std::string& as_string_ref() const;
