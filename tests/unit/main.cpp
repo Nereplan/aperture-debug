@@ -39,6 +39,8 @@
 #include "TestEvaluationFixes.h"
 #include "TestHttpTransportFixes.h"
 #include "TestMpvInitialization.h"
+#include "TestLibrarySaving.h"
+#include "TestOverlayPacing.h"
 #include <windows.h>
 #include <iostream>
 #include <iomanip>

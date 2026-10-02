@@ -587,6 +587,9 @@ bool App::PumpUpdateJobs() {
         return false;
     }
     bool changed = false;
+    // Keep the single bounded completion queued while another transient surface
+    // owns focus. An asynchronous update prompt must never replace its callbacks.
+    if (activeModal == ModalType::None && !ArePopupsOpen()) {
     if (auto completion = updateCheckJob.TakeResult()) {
         changed = true;
         if (!completion->result) {
@@ -615,6 +618,7 @@ bool App::PumpUpdateJobs() {
                 ShowOSD(IconType::VolumeMuted, GetUpdaterStatusMessage(res.status, res.message));
             }
         }
+    }
     }
     if (auto completion = updateDownloadJob.TakeResult()) {
         changed = true;

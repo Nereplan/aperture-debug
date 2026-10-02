@@ -40,10 +40,12 @@ struct MpvApiFunctions {
     }
 
     bool Bind(HMODULE module, MpvApiProfile profile, std::string& missing,
-              SymbolResolver resolve = &GetProcAddress) {
+              SymbolResolver resolve = nullptr) {
         Clear();
         missing.clear();
-#define APERTURE_BIND_MPV_FUNCTION(name) fn_##name = reinterpret_cast<decltype(fn_##name)>(resolve(module, #name));
+        // Production uses the Win32 import directly; explicit resolvers remain
+        // available for deterministic export-failure tests.
+#define APERTURE_BIND_MPV_FUNCTION(name) fn_##name = reinterpret_cast<decltype(fn_##name)>(resolve ? resolve(module, #name) : GetProcAddress(module, #name));
         APERTURE_MPV_API_FUNCTIONS(APERTURE_BIND_MPV_FUNCTION)
 #undef APERTURE_BIND_MPV_FUNCTION
         auto require = [&](bool present, const char* name) {

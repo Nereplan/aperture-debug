@@ -3657,7 +3657,6 @@ void UIComponents::DrawImportProgress(Renderer& r, const Settings& s, const Impo
 
 void UIComponents::DrawPlayerOverlay(OverlayRenderer& r, const Settings& s, const PlayerRenderViewModel& vm) {
     r.BeginDraw();
-    r.Clear(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.0f));
     if (vm.subtitle.visible && !vm.subtitle.text.empty())
         r.DrawSubtitle(vm.subtitle.text, vm.subtitle.bounds, vm.subtitle.bgStyle, vm.subtitle.textColor, vm.subtitle.fontSizePoints, vm.subtitle.position);
     DrawDoubleTapFeedback(r, s, vm.doubleTap);

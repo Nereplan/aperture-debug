@@ -1,0 +1,13 @@
+{
+  "ready": true,
+  "startupMs": 44.08,
+  "shownMs": 27.05,
+  "populatedMs": 284.99,
+  "libraryReady": true,
+  "workingSetBytes": 57753600,
+  "peakWorkingSetBytes": 59318272,
+  "privateBytes": 61796352,
+  "peakPrivateBytes": 63062016,
+  "gdiObjects": 18,
+  "userObjects": 17
+}

@@ -192,6 +192,10 @@ TEST_CASE(FolderWatcher, AddDeleteRenameReconciliation) {
     removeBatch.rootFolder = watchedRoot;
     removeBatch.items.push_back({ WatchAction::Removed, file2, L"", watchedRoot });
 
+    const auto staleRemove = lib.ReconcileWatchBatch(removeBatch, false);
+    TEST_ASSERT_EQ(staleRemove.removedCount, 0);
+    TEST_ASSERT(lib.FindByPath(file2) != nullptr);
+    TEST_ASSERT(DeleteFileW(file2.c_str()) != FALSE);
     WatchReconcileResult removeRes = lib.ReconcileWatchBatch(removeBatch, false);
     TEST_ASSERT_EQ(removeRes.removedCount, 1);
     TEST_ASSERT(lib.FindByPath(file2) == nullptr);

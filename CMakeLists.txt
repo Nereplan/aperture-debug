@@ -204,6 +204,7 @@ set(APERTURE_SOURCES
     src/Localization.cpp
     src/MediaLibrary.cpp
     src/MediaFoundation.cpp
+    src/MediaProbeIsolation.cpp
     src/MediaTransport.cpp
     src/MpvPlayer.cpp
     src/NetworkStream.cpp
@@ -251,6 +252,14 @@ set(APERTURE_HEADERS
     src/MediaTransport.h
     src/MpvPlayer.h
     src/MpvApi.h
+    src/LibrarySaveComparison.h
+    src/LibrarySaveWorker.h
+    src/MediaProbeIsolation.h
+    src/AsyncOwnedJob.h
+    src/OperationCancellation.h
+    src/OnlineSubtitleJobs.h
+    src/WinHttpAsyncRequest.h
+    src/OverlayFramePacer.h
     src/NetworkStream.h
     src/OnlineSubtitles.h
     src/OverlayRenderer.h

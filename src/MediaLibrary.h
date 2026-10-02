@@ -12,6 +12,7 @@
 #include <functional>
 #include <unordered_map>
 #include <optional>
+#include <thread>
 
 namespace Aperture {
 
@@ -301,6 +302,32 @@ struct FolderRediscoveryResult {
 
 using LibraryLoadMilestoneCallback = std::function<void(const wchar_t* phase)>;
 
+// Published values never refer to mutable library data. Unchanged media records
+// are shared across generations; a progress update copies one record and the
+// small pointer vector, rather than every owning title/path/preferences value.
+struct MediaLibrarySaveSnapshot {
+    using MediaRecords = std::vector<std::shared_ptr<const MediaItem>>;
+    std::wstring rootDir;
+    uint64_t seriesId = 0, libraryGeneration = 0, playlistsGeneration = 0;
+    uint64_t historyGeneration = 0, watchedFoldersGeneration = 0;
+    std::shared_ptr<const MediaRecords> mediaItems;
+    std::shared_ptr<const std::vector<Playlist>> playlists;
+    std::shared_ptr<const std::vector<HistoryRecord>> history;
+    std::shared_ptr<const std::vector<std::wstring>> watchedFolders;
+    MediaLibraryLoadResult loadResult;
+};
+
+// Exclusively owned by the synchronous caller or the serialized save worker.
+struct MediaLibrarySaveState {
+    uint64_t seriesId = 0, libraryGeneration = 0, playlistsGeneration = 0;
+    uint64_t historyGeneration = 0, watchedFoldersGeneration = 0;
+    uint64_t serializedStoreCount = 0;
+    std::string lastLibraryJson, lastPlaylistsJson, lastHistoryJson, lastWatchedFoldersJson;
+};
+
+MediaLibrarySaveResult WriteLibrarySaveSnapshot(const MediaLibrarySaveSnapshot& snapshot,
+                                               MediaLibrarySaveState& state);
+
 class MediaLibrary {
 public:
     static constexpr int kCurrentLibrarySchemaVersion = 2, kCurrentPlaylistsSchemaVersion = 2, kCurrentHistorySchemaVersion = 2;
@@ -321,6 +348,14 @@ public:
     // the supplied application root, not the process working directory.
     StorageStatus LoadFromRoot(const std::wstring& rootDir, const LibraryLoadMilestoneCallback& milestone = {});
     MediaLibrarySaveResult Save();
+    // Copies/moves never inherit the originating model's UI save dispatch.
+    void SetSaveRequestHandler(std::function<MediaLibrarySaveResult()> handler) {
+        saveRequestOwner = this; saveRequestThread = std::this_thread::get_id(); saveRequestHandler = std::move(handler);
+    }
+    // Capture on the model's owning thread. Comparison detects direct public
+    // edits too; dirty detection must not depend on callers remembering Notify.
+    std::shared_ptr<const MediaLibrarySaveSnapshot> CaptureSaveSnapshot(
+        const std::shared_ptr<const MediaLibrarySaveSnapshot>& previous = {}) const;
     MediaLibraryLoadResult GetLastLoadResult() const { return lastLoadResult; }
     // Playback can defer probing a new record to the existing metadata worker.
     MediaItem* AddOrUpdateMedia(const std::wstring& path, bool probeMetadata = true);
@@ -369,8 +404,8 @@ public:
     const std::vector<std::wstring>& GetWatchedFolders() const { return watchedFolders; }
     bool AddWatchedFolder(const std::wstring& path, bool saveChanges = true);
     bool RemoveWatchedFolder(const std::wstring& path, bool saveChanges = true);
-    WatchReconcileResult ReconcileWatchBatch(const WatchChangeBatch& batch, bool saveChanges = true);
-    WatchReconcileResult ReconcileRescan(const std::wstring& rootFolder, bool saveChanges = true);
+    WatchReconcileResult ReconcileWatchBatch(const WatchChangeBatch& batch, bool saveChanges = true, bool probeMetadata = true);
+    WatchReconcileResult ReconcileRescan(const std::wstring& rootFolder, bool saveChanges = true, bool probeMetadata = true);
     Playlist* CreatePlaylist(const std::string& name);
     bool DeletePlaylist(const std::string& playlistId);
     bool AddToPlaylist(const std::string& playlistId, const std::wstring& path);
@@ -402,7 +437,12 @@ private:
     std::string GenerateId(const std::wstring& path);
     MediaItem* AddOrUpdateMediaCore(const std::wstring& path, bool& changed, bool& metadataProbeFailed, bool probeMetadata = true);
     bool SetWatchedCore(const std::wstring& path, bool watched);
-    std::string lastLibraryJson, lastPlaylistsJson, lastHistoryJson, lastWatchedFoldersJson;
+    const MediaLibrary* saveRequestOwner = nullptr;
+    std::thread::id saveRequestThread;
+    std::function<MediaLibrarySaveResult()> saveRequestHandler;
+    std::wstring portableRoot;
+    std::shared_ptr<const MediaLibrarySaveSnapshot> lastSaveSnapshot;
+    MediaLibrarySaveState saveState;
     mutable std::unordered_map<std::wstring, size_t> pathToIndex;
     mutable std::unordered_map<std::string, size_t> idToIndex;
     struct PlaylistStatsCacheEntry { uint64_t version = 0; PlaylistStats stats; };
@@ -414,7 +454,6 @@ private:
     StorageStatus lastLoadStatus = StorageStatus::Ok();
     MediaLibraryLoadResult lastLoadResult;
     MediaLibrarySaveResult lastSaveResult;
-    bool savesAllowed = true;
 };
 
 } // namespace Aperture

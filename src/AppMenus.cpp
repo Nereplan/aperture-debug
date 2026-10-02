@@ -1214,7 +1214,7 @@ void App::OpenSubtitleSafeAreaContextMenu(float x, float y) {
 bool App::PumpOnlineSubtitleJobs() {
     const std::wstring currentMedia = player.GetCurrentFilePath().empty()
         ? playbackSession.GetCurrentFilePath() : player.GetCurrentFilePath();
-    bool changed = onlineSubtitleJobs.SyncContext(currentMedia, settings);
+    bool changed = onlineSubtitleJobs.SyncContext(currentMedia, settings, mediaGenerationToken, playbackSession.IsPrivateMode());
     changed = onlineSubtitleJobs.PumpSearch() || changed;
     if (auto download = onlineSubtitleJobs.TakeDownload()) {
         changed = true;
@@ -1245,7 +1245,7 @@ void App::OpenOnlineSubtitlesContextMenu(float x, float y) {
     contextMenuItems.push_back({ "sep_onl1", L"", L"", IconType::Play, true });
     const std::wstring currentMedia = player.GetCurrentFilePath().empty()
         ? playbackSession.GetCurrentFilePath() : player.GetCurrentFilePath();
-    onlineSubtitleJobs.SyncContext(currentMedia, settings);
+    onlineSubtitleJobs.SyncContext(currentMedia, settings, mediaGenerationToken, playbackSession.IsPrivateMode());
     if (!settings.onlineSubtitlesEnabled) {
         contextMenuItems.push_back({ "onl_dis_info", L"Online Retrieval is Disabled", L"", IconType::Subtitles, false, false, false, nullptr });
         contextMenuItems.push_back({ "onl_enable", L"Enable Online Subtitles (Opt-In)", L"", IconType::Plus, false, false, false, [this, x, y]() {
@@ -1287,7 +1287,7 @@ void App::OpenOnlineSubtitlesContextMenu(float x, float y) {
                         [this, x, y, item, currentMedia]() {
                             const std::wstring activeMedia = player.GetCurrentFilePath().empty()
                                 ? playbackSession.GetCurrentFilePath() : player.GetCurrentFilePath();
-                            onlineSubtitleJobs.SyncContext(activeMedia, settings);
+                            onlineSubtitleJobs.SyncContext(activeMedia, settings, mediaGenerationToken, playbackSession.IsPrivateMode());
                             if (onlineSubtitleJobs.StartDownload(item, currentMedia, settings))
                                 ShowOSD(IconType::Subtitles, L"Downloading online subtitle...");
                             OpenOnlineSubtitlesContextMenu(x, y);

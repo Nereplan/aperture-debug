@@ -11,11 +11,12 @@ namespace Aperture {
 class OnlineSubtitleJobs {
 public:
     enum class SearchState { Idle, Loading, Ready };
-    bool SyncContext(const std::wstring& media, const Settings& settings) {
+    bool SyncContext(const std::wstring& media, const Settings& settings, uint64_t mediaGeneration = 0, bool privateMode = false) {
         if (media_ == media && endpoint_ == settings.onlineSubtitleEndpoint && language_ == settings.subLang &&
-            enabled_ == settings.onlineSubtitlesEnabled) return false;
+            enabled_ == settings.onlineSubtitlesEnabled && mediaGeneration_ == mediaGeneration && privateMode_ == privateMode) return false;
         Cancel(); media_ = media; endpoint_ = settings.onlineSubtitleEndpoint;
         language_ = settings.subLang; enabled_ = settings.onlineSubtitlesEnabled;
+        mediaGeneration_ = mediaGeneration; privateMode_ = privateMode;
         state_ = SearchState::Idle; searchResult_ = {}; return true;
     }
     void EnsureSearch(const Settings& settings, IHttpTransport* testTransport = nullptr) {
@@ -66,7 +67,8 @@ public:
 private:
     std::wstring media_;
     std::string endpoint_, language_;
-    bool enabled_ = false, downloading_ = false;
+    uint64_t mediaGeneration_ = 0;
+    bool enabled_ = false, downloading_ = false, privateMode_ = false;
     SearchState state_ = SearchState::Idle;
     OnlineSubtitleResult searchResult_;
     AsyncOwnedJob<OnlineSubtitleResult> search_, download_;

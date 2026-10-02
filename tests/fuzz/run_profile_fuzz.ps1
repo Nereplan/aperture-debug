@@ -50,6 +50,8 @@ $srcFiles = @(
     "`"$rootDir\src\Json.cpp`"",
     "`"$rootDir\src\Settings.cpp`"",
     "`"$rootDir\src\MediaLibrary.cpp`"",
+    "`"$rootDir\src\MediaFoundation.cpp`"",
+    "`"$rootDir\src\MediaProbeIsolation.cpp`"",
     "`"$scriptDir\profile_fuzz.cpp`""
 )
 $sourcesJoined = $srcFiles -join " "

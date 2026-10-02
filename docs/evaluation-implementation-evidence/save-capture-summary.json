@@ -1,0 +1,42 @@
+[
+  {
+    "items": 500,
+    "mode": "unchanged_capture",
+    "samples": 7,
+    "median_ms": 0.061,
+    "allocations": "2",
+    "allocated_bytes": "168",
+    "json_bytes": "192318",
+    "content_hash": "6986250780404406989"
+  },
+  {
+    "items": 500,
+    "mode": "progress_capture",
+    "samples": 7,
+    "median_ms": 0.074,
+    "allocations": "17",
+    "allocated_bytes": "10559",
+    "json_bytes": "192323",
+    "content_hash": "5315837825685257211"
+  },
+  {
+    "items": 25000,
+    "mode": "unchanged_capture",
+    "samples": 7,
+    "median_ms": 9.323,
+    "allocations": "2",
+    "allocated_bytes": "168",
+    "json_bytes": "9024568",
+    "content_hash": "13353129619659467689"
+  },
+  {
+    "items": 25000,
+    "mode": "progress_capture",
+    "samples": 7,
+    "median_ms": 10.065,
+    "allocations": "17",
+    "allocated_bytes": "402559",
+    "json_bytes": "9024573",
+    "content_hash": "17246791759775021839"
+  }
+]

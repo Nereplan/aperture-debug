@@ -197,6 +197,7 @@ $srcFiles = @(
     "`"$rootDir\src\Localization.cpp`"",
     "`"$rootDir\src\MediaLibrary.cpp`"",
     "`"$rootDir\src\MediaFoundation.cpp`"",
+    "`"$rootDir\src\MediaProbeIsolation.cpp`"",
     "`"$rootDir\src\FolderWatcher.cpp`"",
     "`"$rootDir\src\MpvPlayer.cpp`"",
     "`"$rootDir\src\PlaybackSession.cpp`"",

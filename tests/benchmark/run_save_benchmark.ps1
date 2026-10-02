@@ -2,7 +2,8 @@
 param(
     [string]$SourceDirectory = "",
     [string]$OutputDirectory = "",
-    [switch]$KeepBuild
+    [switch]$KeepBuild,
+    [switch]$CaptureOnly
 )
 $ErrorActionPreference = "Stop"
 if (-not $SourceDirectory) { $SourceDirectory = Join-Path $PSScriptRoot "..\..\src" }
@@ -23,14 +24,16 @@ try {
 $argsList = @('/nologo', '/utf-8', '/O2', '/EHsc', '/std:c++17', '/DUNICODE', '/D_UNICODE',
     "/I`"$source`"", "/Fo`"$build\\`"", "/Fe:`"$exe`"",
     "`"$(Join-Path $PSScriptRoot 'save_resource_benchmark.cpp')`"")
-foreach ($file in @('Json', 'Settings', 'ChannelPolicy', 'Localization', 'AudioConfig', 'MediaLibrary', 'LibraryQuery', 'GlobalSearch', 'TextInputModel', 'FolderWatcher', 'MediaFoundation')) {
+foreach ($file in @('Json', 'Settings', 'ChannelPolicy', 'Localization', 'AudioConfig', 'MediaLibrary', 'LibraryQuery', 'GlobalSearch', 'TextInputModel', 'FolderWatcher', 'MediaFoundation', 'MediaProbeIsolation')) {
     $argsList += "`"$(Join-Path $source ($file + '.cpp'))`""
 }
 $argsList += @('mfreadwrite.lib', 'oleaut32.lib', 'propsys.lib')
 Set-Content -LiteralPath $response -Value $argsList -Encoding UTF8
 & cmd.exe /d /c "`"$vcvars`" && cl.exe @`"$response`""
 if ($LASTEXITCODE -ne 0) { throw "Save benchmark compilation failed." }
-$rows = & $exe
+$benchmarkArgs = @()
+if ($CaptureOnly) { $benchmarkArgs += "--capture-only" }
+$rows = & $exe @benchmarkArgs
 if ($LASTEXITCODE -ne 0) { throw "Save benchmark failed." }
 $rows | Set-Content -LiteralPath (Join-Path $output 'results.csv') -Encoding UTF8
 $rows | Write-Output

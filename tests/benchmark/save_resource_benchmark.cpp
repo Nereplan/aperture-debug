@@ -43,7 +43,7 @@ static void Check(bool condition) {
     if (!condition) throw std::runtime_error("Save benchmark verification failed");
 }
 
-int main() {
+int main(int argc, char** argv) {
     using namespace Aperture;
     // The runner places this executable in a unique temporary directory.
     // Every save, backup and reload stays beside it; no user profile is read.
@@ -51,7 +51,9 @@ int main() {
     if (GetProcessAffinityMask(GetCurrentProcess(), &processMask, &systemMask))
         SetProcessAffinityMask(GetCurrentProcess(), processMask & (~processMask + 1));
     std::puts("items,mode,sample,ms,allocations,allocated_bytes,peak_live_cpp_bytes,json_bytes,content_hash");
-    for (int count : {500, 25000}) for (int mode : {0, 1, 2, 3}) {
+    const bool captureOnly = argc > 1 && std::string(argv[1]) == "--capture-only";
+    const std::vector<int> modes = captureOnly ? std::vector<int>{4, 5} : std::vector<int>{0, 1, 2, 3};
+    for (int count : {500, 25000}) for (int mode : modes) {
         for (int sample = 0; sample < 8; ++sample) {
             Check(stats.live == 0);
             stats = {};
@@ -95,17 +97,27 @@ int main() {
             library.watchedFolders.push_back(L"C:\\Benchmark\\Series");
             // 0 first save; 1 unchanged save; 2 periodic progress; 3 load.
             if (mode != 0) Check(library.Save().is_ok());
-            if (mode == 2) library.mediaItems.front().lastPosSec = 42.125;
+            auto baseline = mode >= 4 ? library.CaptureSaveSnapshot() : std::shared_ptr<const MediaLibrarySaveSnapshot>{};
+            if (mode == 2 || mode == 5) library.mediaItems.front().lastPosSec = 42.125;
             stats = {};
             measuring = sample > 0 && mode != 3;
             const auto start = std::chrono::steady_clock::now();
-            const auto saved = library.Save();
+            MediaLibrarySaveResult saved;
+            std::shared_ptr<const MediaLibrarySaveSnapshot> captured;
+            if (mode >= 4) captured = library.CaptureSaveSnapshot(baseline);
+            else saved = library.Save();
             const auto end = std::chrono::steady_clock::now();
             measuring = false;
+            if (mode >= 4) {
+                MediaLibrarySaveState state;
+                Check(captured && WriteLibrarySaveSnapshot(*captured, state).is_ok());
+            }
             Check(saved.is_ok());
+            if (mode < 4) {
             Check(saved.librarySaved == (mode == 0 || mode == 2));
             Check(saved.playlistsSaved == (mode == 0));
             Check(saved.historySaved == (mode == 0));
+            }
             const auto measured = stats;
             MediaLibrary loadedProbe;
             AllocationStats loadStats;

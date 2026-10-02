@@ -513,6 +513,9 @@ StorageStatus Settings::Load() {
     ResetToDefaults();
     recoveredFromBackup = false;
     loadedSchemaVersion = 0;
+    savesAllowed = false;
+    const auto rootStatus = CheckPortableRootAvailability(GetExeDir());
+    if (!rootStatus.is_ok()) { UpdateThemeColors(); lastLoadStatus = rootStatus; return lastLoadStatus; }
     std::string jsonStr;
     const std::wstring path = GetDataDir() + L"\\settings.json";
     savesAllowed = false;

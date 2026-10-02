@@ -34,7 +34,7 @@ try {
     $argsList = @('/nologo','/utf-8','/O2','/EHsc','/std:c++17','/DUNICODE','/D_UNICODE',
         "/I`"$source`"", "/Fo`"$run\\`"", "/Fe:`"$exe`"", "`"$(Join-Path $PSScriptRoot $main)`"")
     $sources = if ($AppOnly) { @('Json') } else {
-        @('Json','Settings','ChannelPolicy','Localization','AudioConfig','MediaLibrary','LibraryQuery','GlobalSearch','TextInputModel','FolderWatcher','MediaFoundation')
+        @('Json','Settings','ChannelPolicy','Localization','AudioConfig','MediaLibrary','LibraryQuery','GlobalSearch','TextInputModel','FolderWatcher','MediaFoundation','MediaProbeIsolation')
     }
     foreach ($file in $sources) { $argsList += "`"$(Join-Path $source ($file + '.cpp'))`"" }
     $argsList += @('mfreadwrite.lib','oleaut32.lib','propsys.lib','user32.lib','shell32.lib','advapi32.lib')
@@ -47,13 +47,20 @@ try {
         $appDirectory = Join-Path $run 'app'
         New-Item -ItemType Directory -Path $appDirectory | Out-Null
         Copy-Item -LiteralPath $Executable -Destination (Join-Path $appDirectory 'Aperture.exe')
+        $diagnosticPdb = Join-Path $root 'scratch/build/ninja-Release/Aperture.pdb'
+        if (Test-Path -LiteralPath $diagnosticPdb) { Copy-Item -LiteralPath $diagnosticPdb -Destination $appDirectory }
         Copy-Item -LiteralPath (Join-Path $root 'libmpv-2.dll') -Destination $appDirectory
         foreach ($asset in @('fonts','locales')) { Copy-Item -LiteralPath (Join-Path $root $asset) -Destination $appDirectory -Recurse }
         $runArgs = @((Join-Path $appDirectory 'Aperture.exe'))
         if ($BenchmarkMediaPath) { $runArgs += (Resolve-Path -LiteralPath $BenchmarkMediaPath).Path }
     } else { $runArgs = @($seedValues | ForEach-Object { [string]$_ }) }
-    & $exe @runArgs 2>&1 | Tee-Object -FilePath $log -Append | Write-Host
-    if ($LASTEXITCODE -ne 0) { throw "Workflow assertions failed; see $log" }
+    $previousErrorAction = $ErrorActionPreference
+    try {
+        $ErrorActionPreference = 'Continue'
+        & $exe @runArgs 2>&1 | Tee-Object -FilePath $log -Append | Write-Host
+        $workflowExit = $LASTEXITCODE
+    } finally { $ErrorActionPreference = $previousErrorAction }
+    if ($workflowExit -ne 0) { throw "Workflow assertions failed; see $log" }
     $result.status = 'PASS'
     $exitCode = 0
 } catch {

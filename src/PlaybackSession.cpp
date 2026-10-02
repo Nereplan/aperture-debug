@@ -189,6 +189,11 @@ StorageStatus PlaybackSession::Save(const std::wstring& customPath, const std::w
 StorageStatus PlaybackSession::Load(const std::wstring& customPath, const std::wstring& baseDir) {
     recoveredFromBackup = false;
     loadedSchemaVersion = 0;
+    savesAllowed = false;
+    if (customPath.empty()) {
+        const auto rootStatus = CheckPortableRootAvailability(GetExeDir());
+        if (!rootStatus.is_ok()) { lastLoadStatus = rootStatus; return lastLoadStatus; }
+    }
     std::string jsonStr;
     const std::wstring targetPath = customPath.empty() ? (GetDataDir() + L"\\session.json") : customPath;
     savesAllowed = false;

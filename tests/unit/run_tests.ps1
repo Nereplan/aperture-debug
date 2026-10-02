@@ -64,6 +64,7 @@ $srcFiles = @(
     "`"$rootDir\src\Renderer.cpp`"",
     "`"$rootDir\src\LibrarySnapshot.cpp`"",
     "`"$rootDir\src\MediaFoundation.cpp`"",
+    "`"$rootDir\src\MediaProbeIsolation.cpp`"",
     "`"$rootDir\src\TooltipManager.cpp`"",
     "`"$rootDir\src\PlaylistIO.cpp`"",
     "`"$rootDir\src\NetworkStream.cpp`"",

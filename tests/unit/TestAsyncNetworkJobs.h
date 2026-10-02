@@ -148,4 +148,15 @@ TEST_CASE(AsyncNetworkJobs, PreCancelledServiceSkipsTransportAndStorage) {
     TEST_ASSERT_EQ(calls.load(), 0);
 }
 
+TEST_CASE(AsyncNetworkJobs, SamePathReopenAndPrivacyChangeInvalidateContext) {
+    Settings settings; settings.onlineSubtitlesEnabled = true;
+    OnlineSubtitleJobs jobs;
+    const std::wstring media = L"C:\\Media\\Movie.mp4";
+    TEST_ASSERT(jobs.SyncContext(media, settings, 10, false));
+    TEST_ASSERT(!jobs.SyncContext(media, settings, 10, false));
+    TEST_ASSERT(jobs.SyncContext(media, settings, 11, false));
+    TEST_ASSERT(jobs.SyncContext(media, settings, 11, true));
+    TEST_ASSERT(jobs.SyncContext(media, settings, 11, false));
+}
+
 } // namespace Aperture::Test

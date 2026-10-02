@@ -847,6 +847,46 @@ void App::UpdateAutoscroll(float dt) {
     }
 }
 
+void App::BeginClose() {
+    if (closeRequested || shutdownComplete) return;
+    closeRequested = true;
+    accessibilityActions.clear();
+    accessibilityTree.SetWindow(nullptr);
+    accessibilityTree.ClearNodes();
+    playerCallbacksDisabled.store(true, std::memory_order_release);
+    ClearPendingPlayerEvents();
+    StopAutoscroll(true);
+    if (playbackSession.IsOpen()) {
+        player.Pause();
+        PersistCurrentPlaybackProgress();
+        if (playbackSession.CanPersistLocalTarget(player.GetCurrentFilePath())) PromoteLastWatchedMedia();
+    }
+    if (playbackSession.IsPiP()) PersistPiPGeometry(); else PersistWindowPlacement();
+    SaveAll(); ReportLibrarySaveResult(SubmitPendingLibrarySave());
+    closeSaveSerial = librarySaveWorker.RequestFlush();
+    libraryLoadCancelRequested.store(true, std::memory_order_release);
+    librarySnapshotMailbox.Cancel();
+    if (libraryLoadWorker.joinable()) CancelSynchronousIo(libraryLoadWorker.native_handle());
+    deferredLibraryCommands.clear(); pendingPlaybackOpen.reset();
+    CancelImportJob(); CancelBackfillJob(); CancelNetworkJobs();
+    renderer.CancelThumbnailWork();
+    if (hOverlayWnd) ShowWindow(hOverlayWnd, SW_HIDE);
+    if (hWnd) ShowWindow(hWnd, SW_HIDE);
+}
+
+bool App::PollClose() {
+    PumpLibrarySaveResults();
+    if (!closeRequested || shutdownComplete) return shutdownComplete;
+    if (!libraryLoadWorkerDone.load(std::memory_order_acquire) ||
+        (importWorker.joinable() && !importDone.load(std::memory_order_acquire)) ||
+        (backfillWorker.joinable() && !backfillDone.load(std::memory_order_acquire)) ||
+        AreNetworkJobsRunning() || renderer.AreThumbnailWorkersRunning() || renderer.AreDeviceWorkersRunning() ||
+        !librarySaveWorker.IsComplete(closeSaveSerial)) return false;
+    Shutdown();
+    if (hWnd && IsWindow(hWnd)) DestroyWindow(hWnd);
+    return true;
+}
+
 void App::Shutdown() {
     if (shutdownComplete) return;
     if (hOverlayWnd) ShowWindow(hOverlayWnd, SW_HIDE);
@@ -867,6 +907,10 @@ void App::Shutdown() {
     pendingImeEcho.clear();
     CancelImportJob();
     CancelBackfillJob();
+    CancelNetworkJobs();
+    if (importWorker.joinable()) importWorker.join();
+    if (backfillWorker.joinable()) backfillWorker.join();
+    updateCheckJob.StopAndJoin(); updateDownloadJob.StopAndJoin(); onlineSubtitleJobs.StopAndJoin();
     // Workers have joined above, so no probe can still hold MF. Balance only
     // when MF was ever acquired; a hub that never probed skips MFShutdown.
     MediaFoundation::ShutdownIfInitialized();
@@ -884,7 +928,7 @@ void App::Shutdown() {
     // resources. This also makes WM_CLOSE followed by the destructor safe.
     previewPlayer.StopPreview();
     if (playbackSession.IsOpen()) {
-        if (playbackSession.CanPersistLocalTarget(player.GetCurrentFilePath())) {
+        if (!closeRequested && playbackSession.CanPersistLocalTarget(player.GetCurrentFilePath())) {
             double curTime = player.GetCurrentTime();
             if (curTime >= 0.0 && std::isfinite(curTime)) { playbackSession.SetPlaybackPosition(curTime); }
             library.UpdateProgress(player.GetCurrentFilePath(), player.GetCurrentTime(), player.GetDuration());
@@ -900,7 +944,10 @@ void App::Shutdown() {
     } else {
         PersistWindowPlacement();
     }
-    SaveAll();
+    if (!closeRequested) SaveAll();
+    ReportLibrarySaveResult(SubmitPendingLibrarySave());
+    librarySaveWorker.StopAndFlush(); PumpLibrarySaveResults();
+    library.SetSaveRequestHandler({});
     if (!settings.jumpListEnabled) jumpListController.Clear();
     if (hWnd && pOleDropTarget) { RevokeDragDrop(hWnd); pOleDropTarget->Release(); pOleDropTarget = nullptr; }
     if (oleInitialized) { OleUninitialize(); oleInitialized = false; }
@@ -1142,7 +1189,8 @@ bool App::Initialize(HWND hwnd, HWND hVideoChild, HINSTANCE hinst, const Playbac
 }
 
 void App::ExecuteCommandLineOptions(const PlaybackCommandLineOptions& options) {
-    if (!libraryReady) {
+    if (closeRequested) return;
+    if (!libraryReady || renderer.AreDeviceWorkersRunning()) {
         // Includes startup options and second-instance WM_COPYDATA commands. They are replayed in arrival order immediately after
         // publication. Keep the IPC-facing queue bounded if a large library takes a while
         // to load; the newest command is more useful than an arbitrarily old
@@ -1189,7 +1237,22 @@ void App::ExecuteCommandLineOptions(const PlaybackCommandLineOptions& options) {
 
 bool App::Update(float dt) {
     Diagnostics::RecordHeartbeat(L"running");
-    bool needsRedraw = false;
+    if (closeRequested) { PollClose(); return false; }
+    bool needsRedraw = PumpLibrarySaveResults();
+    needsRedraw = PumpOnlineSubtitleJobs() || needsRedraw;
+    needsRedraw = PumpUpdateJobs() || needsRedraw;
+    // A graphics driver can hold the process loader lock while it initializes.
+    // Avoid UI-thread joins or mpv export binding until that worker has finished.
+    if (renderer.AreDeviceWorkersRunning()) return needsRedraw;
+    if (libraryReady && !deferredLibraryCommands.empty()) {
+        std::deque<PlaybackCommandLineOptions> commands; commands.swap(deferredLibraryCommands);
+        for (const auto& command : commands) ExecuteCommandLineOptions(command);
+        needsRedraw = true;
+    }
+    if (pendingPlaybackOpen) {
+        auto request = std::move(*pendingPlaybackOpen); pendingPlaybackOpen.reset();
+        OpenAndPlayMedia(request.path, request.position, request.preserveQueue); needsRedraw = true;
+    }
     if (activeDragType != DragType::None) {
         const float blend = 1.0f - std::exp(-22.0f * std::min(dt, 0.05f));
         for (auto& entry : dragOffsets) {
@@ -1265,8 +1328,9 @@ bool App::Update(float dt) {
             // an empty layered overlay needs no per-frame clear or upload.
             // Subtitle timing, diagnostics and visible controls stay live;
             // transient animations request their own redraws below.
-            if (controlsOpacity > 0.0f || subtitles.GetActiveTrack() || showPlaybackDiagnostics ||
-                isSettingsFlyoutOpen || isContextMenuOpen) needsRedraw = true;
+            if (overlayRenderer.ShouldRefreshPlayback(controlsOpacity > 0.0f || showPlaybackDiagnostics ||
+                isSettingsFlyoutOpen || isContextMenuOpen, subtitles.GetActiveTrack() ?
+                subtitles.GetCurrentSubtitleText(player.GetCurrentTime(), settings.subDelayMs) : std::wstring{})) needsRedraw = true;
             progressSaveTimerSec += dt;
             if (progressSaveTimerSec >= 5.0f) { progressSaveTimerSec = 0.0f; SaveLibrary(); SaveSession(); }
         }
@@ -1543,10 +1607,15 @@ bool App::Update(float dt) {
     }
     if (timelineHoverAnim.Tick()) needsRedraw = true;
     if (jumpAheadAnim.Tick()) needsRedraw = true;
+    if (playbackSession.IsOpen()) {
+        if (needsRedraw) overlayRenderer.RequestRedraw();
+        return overlayRenderer.IsFrameDue();
+    }
     return needsRedraw;
 }
 
 void App::Render() {
+    if (renderer.AreDeviceWorkersRunning()) return;
     RefreshAccessibilityTree(false);
     if (playbackSession.IsOpen()) {
         hubTooltips.SetActive(false);
@@ -1557,6 +1626,7 @@ void App::Render() {
         if (!EnsureOverlayReady()) return;
         RECT clientScreenRect{};
         if (!GetClientScreenRect(hWnd, clientScreenRect)) return;
+        if (!overlayRenderer.BeginFrame(hOverlayWnd)) return;
         PlayerRenderViewModel vm = BuildPlayerRenderViewModel();
         UIComponents::DrawPlayerOverlay(overlayRenderer, settings, vm);
         overlayRenderer.EndDrawAndPresent(hOverlayWnd, clientScreenRect.left, clientScreenRect.top);
@@ -1620,6 +1690,8 @@ void App::PrepareVisualCaptureScene(const std::wstring& scene) {
 }
 
 LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
+    if (closeRequested && uMsg != WM_CLOSE && uMsg != WM_DESTROY && uMsg != WM_NCDESTROY &&
+        uMsg != WM_PAINT && uMsg != WM_ERASEBKGND) return DefWindowProc(hwnd, uMsg, wParam, lParam);
     float dp = renderer.GetDpiScale();
     // Bootstrap shell (window visible before Initialize): no taskbar, tooltip,
     // playback, or worker dispatch until appInitialized. WM_PAINT/WM_ERASEBKGND
@@ -1884,7 +1956,7 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
             // Bootstrap shell: only before Initialize, when the window is visible but subsystems (library, D3D) are not ready. GDI first
             // pixels without blocking. After Initialize, always take the GPU path (which joins the D3D worker synchronously, as before), so
             // the first post-init UpdateWindow is the real GPU frame.
-            if (!appInitialized && !renderer.HasPresentedFrame()) {
+            if ((!appInitialized || renderer.AreDeviceWorkersRunning()) && !renderer.HasPresentedFrame()) {
                 PaintBootstrapShell(hdc, ps.rcPaint);
                 EndPaint(hWnd, &ps);
                 if (!bootstrapShellPainted) { bootstrapShellPainted = true; Diagnostics::RecordStartupMilestone(L"bootstrap-shell"); }
@@ -4158,7 +4230,7 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
             if (autoscroll.suppressNextClick) { autoscroll.suppressNextClick = false; return TRUE; }
             break;
         }
-        case WM_CLOSE: { Shutdown(); DestroyWindow(hWnd); return 0; }
+        case WM_CLOSE: { BeginClose(); return 0; }
         case WM_DESTROY: { PostQuitMessage(0); return 0; }
     }
     return DefWindowProc(hwnd, uMsg, wParam, lParam);

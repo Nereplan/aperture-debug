@@ -24,6 +24,9 @@
 #include "PlaylistIO.h"
 #include "LibraryQuery.h"
 #include "LibrarySnapshot.h"
+#include "LibrarySaveWorker.h"
+#include "OnlineSubtitleJobs.h"
+#include "AsyncOwnedJob.h"
 #include "IpcProtocol.h"
 #include "Updater.h"
 #include "TouchInput.h"
@@ -44,6 +47,9 @@ public:
     // startupSettings (already loaded in wWinMain) can be adopted to avoid a second settings.json read/parse during Initialize.
     bool Initialize(HWND hWnd, HWND hVideoWnd, HINSTANCE hInstance, const PlaybackCommandLineOptions& startupOptions, const Settings* startupSettings = nullptr);
     void Shutdown();
+    void BeginClose();
+    bool PollClose();
+    bool IsClosing() const { return closeRequested || shutdownComplete; }
     bool IsLibraryReady() const { return libraryReady; }
     bool IsLibraryLoadComplete() const { return libraryReady || libraryLoadFailed; }
     bool HasRenderedLibrarySnapshot() const { return librarySnapshotFrameRendered; }
@@ -64,8 +70,11 @@ public:
     // and GPU-present state for the shell→GPU handoff and milestone timing.
     void SetBootstrapColors(COLORREF bg, COLORREF text, COLORREF subtext);
     bool HasPresentedFrame() const;
-    HANDLE GetFrameLatencyWaitableObject() const { return playbackSession.IsOpen() ? NULL : renderer.GetFrameLatencyWaitableObject(); }
-    bool IsOccluded() const { return renderer.IsOccluded(); }
+    HANDLE GetFrameLatencyWaitableObject() const { return playbackSession.IsOpen() ? overlayRenderer.GetFrameLatencyWaitableObject() : renderer.GetFrameLatencyWaitableObject(); }
+    bool HasPendingPlaybackFrame() const { return playbackSession.IsOpen() && overlayRenderer.HasPendingFrame(); }
+    DWORD GetPlaybackFrameWaitMs() const { return overlayRenderer.GetFrameWaitMs(); }
+    bool RequiresSubtitleTick() const { return playbackSession.IsOpen() && player.IsPlaying() && subtitles.GetActiveTrack(); }
+    bool IsOccluded() const { return playbackSession.IsOpen() ? IsIconic(hWnd) != FALSE : renderer.IsOccluded(); }
     // ICommandContext Implementation
     Settings& GetSettings() override { return settings; }
     MpvPlayer& GetPlayer() override { return player; }
@@ -119,6 +128,23 @@ private:
     HINSTANCE hInstance = NULL;
     Settings settings;
     MediaLibrary library;
+    LibrarySaveWorker librarySaveWorker;
+    std::shared_ptr<const MediaLibrarySaveSnapshot> submittedLibrarySnapshot, libraryReloadBaseline;
+    uint64_t closeSaveSerial = 0;
+    bool librarySaveRequested = false;
+    MediaLibrarySaveResult QueueLibrarySave();
+    MediaLibrarySaveResult SubmitPendingLibrarySave();
+    bool PumpLibrarySaveResults();
+    bool ReportLibrarySaveResult(const MediaLibrarySaveResult& result);
+    OnlineSubtitleJobs onlineSubtitleJobs;
+    AsyncOwnedJob<UpdateCheckResult> updateCheckJob;
+    AsyncOwnedJob<UpdateDownloadResult> updateDownloadJob;
+    bool updateCheckManual = true, updateCheckPersistState = false, updateJobsPrivateMode = false;
+    std::string updateJobChannel, updateJobUrl;
+    bool PumpOnlineSubtitleJobs();
+    bool PumpUpdateJobs();
+    void CancelNetworkJobs();
+    bool AreNetworkJobsRunning() const;
     SubtitleEngine subtitles;
     MpvPlayer player;
     MpvPreviewPlayer previewPlayer;
@@ -137,7 +163,7 @@ private:
     HWND hOverlayWnd = NULL;
     HWND hVideoWnd = NULL;
     // WM_CLOSE and the destructor can both reach cleanup. Keep resource teardown idempotent and only balance COM/OLE initialization once.
-    bool shutdownComplete = false;
+    bool shutdownComplete = false, closeRequested = false;
     // Media Foundation is reference-counted and lazy (see MediaFoundation):
     // acquired for import/metadata work, never for an idle hub. No App-owned
     // flag is needed; Shutdown balances via ShutdownIfInitialized after
@@ -163,6 +189,8 @@ private:
     bool inPresentationTransition = false;
     bool isUserSizingMoving = false;
     uint64_t mediaGenerationToken = 0;
+    struct PendingPlaybackOpen { std::wstring path; double position; bool preserveQueue; };
+    std::optional<PendingPlaybackOpen> pendingPlaybackOpen;
     // Theme-colored brush used for the pre-first-frame erase and the GDI bootstrap shell. Same color as the hub canvas so the GDI→GPU
     // handoff has no visible jump.
     HBRUSH hStartupBgBrush = nullptr;
@@ -182,7 +210,7 @@ private:
     // The initial portable library is built on one worker and published as a generation-tagged move-only package. Only the UI thread
     // mutates the live MediaLibrary after adoption.
     std::thread libraryLoadWorker;
-    std::atomic<bool> libraryLoadCancelRequested{ false };
+    std::atomic<bool> libraryLoadCancelRequested{ false }, libraryLoadWorkerDone{ true };
     LibrarySnapshotMailbox librarySnapshotMailbox;
     bool libraryLoadInProgress = false, libraryReady = false, libraryLoadFailed = false, librarySnapshotFrameRendered = false;
     // The startup update check performs a synchronous network request; it is

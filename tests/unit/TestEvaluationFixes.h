@@ -69,6 +69,27 @@ TEST_CASE(EvaluationFixes, CompleteRescanHonorsDeferredSave) {
     TEST_ASSERT_EQ(text, std::string("keep this store"));
 }
 
+TEST_CASE(EvaluationFixes, DeferredMetadataDoesNotProbeExistingChangedOrUnresolvedFiles) {
+    ScopedTempDir stage;
+    TEST_ASSERT(stage.WriteFile(L"changed.mkv", "invalid media fixture"));
+    MediaLibrary library; TEST_ASSERT(library.LoadFromRoot(stage.GetPath()).is_ok());
+    MediaItem item; item.id = "changed"; item.filePath = stage.SubPath(L"changed.mkv");
+    item.durationSec = 60; item.fileSizeBytes = 1; item.lastPosSec = 12;
+    item.probeAttemptCount = 4; item.lastProbeAttemptTimestamp = 100;
+    library.mediaItems.push_back(item); library.RebuildPathIndex();
+    auto updated = library.AddOrUpdateMedia(item.filePath, false);
+    TEST_ASSERT(updated != nullptr && updated->metadataProbeFailed);
+    TEST_ASSERT_EQ(updated->durationSec, 60.0);
+    TEST_ASSERT_EQ(updated->lastPosSec, 12.0);
+    TEST_ASSERT_EQ(updated->probeAttemptCount, 0u);
+    TEST_ASSERT_EQ(updated->lastProbeAttemptTimestamp, int64_t{0});
+    TEST_ASSERT(MediaLibrary::CanAttemptMetadataBackfill(*updated, {}, GetCurrentTimestampSec()));
+    updated->durationSec = 0;
+    updated = library.AddOrUpdateMedia(item.filePath, false);
+    TEST_ASSERT_EQ(updated->probeAttemptCount, 0u);
+    TEST_ASSERT_EQ(updated->lastProbeAttemptTimestamp, int64_t{0});
+}
+
 TEST_CASE(EvaluationFixes, InvalidStoreShapeAndFutureSchemaAreProtected) {
     ScopedTempDir stage; stage.CreateSubDir(L"data");
     for (const std::string text : {std::string("{\"schemaVersion\":2,\"items\":{}}"),

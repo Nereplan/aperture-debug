@@ -1,3 +1,4 @@
+#include "MediaProbeIsolation.h"
 #include "Common.h"
 #include "App.h"
 #include "AppInternals.h"
@@ -26,8 +27,9 @@ LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
     App* pApp = reinterpret_cast<App*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
     if (pApp) {
         if (uMsg == WM_COPYDATA) {
+            if (pApp->IsClosing()) return FALSE;
             PCOPYDATASTRUCT pCDS = reinterpret_cast<PCOPYDATASTRUCT>(lParam);
-            if (!pCDS || pCDS->cbData == 0 || pCDS->cbData > Ipc::MAX_IPC_PAYLOAD_SIZE) { return FALSE; }
+            if (!pCDS || !pCDS->lpData || pCDS->cbData == 0 || pCDS->cbData > Ipc::MAX_IPC_PAYLOAD_SIZE) { return FALSE; }
             if (pCDS->dwData == Ipc::IPC_MAGIC_V2) {
                 if (pCDS->cbData < sizeof(Ipc::EnvelopeHeader)) { return FALSE; }
                 const Ipc::EnvelopeHeader* peekHeader = reinterpret_cast<const Ipc::EnvelopeHeader*>(pCDS->lpData);
@@ -102,6 +104,10 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
     // Check if invoked in update-helper mode before mutex acquisition or UI creation
     int argCount = 0;
     LPWSTR* argList = CommandLineToArgvW(GetCommandLineW(), &argCount);
+    if (Aperture::IsMediaProbeHelperCommand(argCount, argList)) {
+        const int result = Aperture::RunMediaProbeHelper(argCount, argList);
+        LocalFree(argList); return result;
+    }
     if (argList && argCount > 1) {
         for (int i = 1; i < argCount; ++i) {
             if (wcscmp(argList[i], L"--update-helper") == 0) {
@@ -481,11 +487,11 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
             if (needsRedraw) { InvalidateRect(hWnd, NULL, FALSE); UpdateWindow(hWnd); }
             if (needsRedraw || processedMessages) { idleWaitMs = 16; } else { idleWaitMs = std::min<DWORD>(64, idleWaitMs * 2); }
             HANDLE hWaitable = g_pApp->GetFrameLatencyWaitableObject();
-            if (needsRedraw) {
+            if (needsRedraw || g_pApp->HasPendingPlaybackFrame()) {
                 if (g_pApp->IsOccluded()) { MsgWaitForMultipleObjects(0, NULL, FALSE, 16, QS_ALLINPUT); } else if (hWaitable) {
                     MsgWaitForMultipleObjectsEx(1, &hWaitable, 1000, QS_ALLINPUT, 0);
-                } else { MsgWaitForMultipleObjects(0, NULL, FALSE, 8, QS_ALLINPUT); }
-            } else { MsgWaitForMultipleObjects(0, NULL, FALSE, idleWaitMs, QS_ALLINPUT); }
+                } else { MsgWaitForMultipleObjects(0, NULL, FALSE, g_pApp->HasPendingPlaybackFrame() ? g_pApp->GetPlaybackFrameWaitMs() : 8, QS_ALLINPUT); }
+            } else { MsgWaitForMultipleObjects(0, NULL, FALSE, g_pApp->RequiresSubtitleTick() ? std::min<DWORD>(16, idleWaitMs) : idleWaitMs, QS_ALLINPUT); }
         }
     }
 

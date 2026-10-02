@@ -38,6 +38,8 @@ public:
     static JsonValue Array() { JsonValue v; v.value.emplace<ArrayType>(); return v; }
     static JsonValue Object() { JsonValue v; v.value.emplace<ObjectType>(); return v; }
     JsonType GetType() const { return static_cast<JsonType>(value.index()); }
+    bool operator==(const JsonValue& other) const { return value == other.value; }
+    bool operator!=(const JsonValue& other) const { return !(*this == other); }
     bool is_null() const { return GetType() == JsonType::Null; }
     bool is_bool() const { return GetType() == JsonType::Boolean; }
     bool is_number() const { return GetType() == JsonType::Number; }

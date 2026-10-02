@@ -142,7 +142,7 @@
       "platform": "windows-x64",
       "script": "tests/unit/run_tests.ps1",
       "command": "powershell",
-      "arguments": [],
+      "arguments": ["-LibmpvPath", "libmpv-2.dll"],
       "prerequisites": [
         "msvc_x64"
       ],

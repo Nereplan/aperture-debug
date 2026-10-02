@@ -32,24 +32,51 @@ bool App::SaveSettings() {
 }
 
 
-bool App::SaveLibrary() {
-    // Never serialize the placeholder library. If startup loading failed or a close arrived before publication, the valid/corrupt source
-    // stores must remain untouched for recovery on the next launch.
-    if (!libraryReady) return true;
-    MediaLibrarySaveResult res = library.Save();
-    if (!res.is_ok()) {
-        if (!res.libraryStatus.is_ok()) {
-            ReportStorageFailure(res.libraryStatus, L"media library");
-        } else if (!res.playlistsStatus.is_ok()) {
-            ReportStorageFailure(res.playlistsStatus, L"playlists");
-        } else if (!res.historyStatus.is_ok()) { ReportStorageFailure(res.historyStatus, L"history"); } else {
-            StorageStatus err = StorageStatus::Error(StorageErrorCode::FileOpenFailed, 0, GetDataDir(), "Failed to save library data");
-            ReportStorageFailure(err, L"media library");
-        }
-        return false;
-    }
-    return true;
+MediaLibrarySaveResult App::QueueLibrarySave() {
+    // Mutators and command callers can request the same save in one message.
+    // Capture their final state once on the next UI pump (or explicit barrier).
+    if (libraryReady) librarySaveRequested = true;
+    return {};
 }
+
+MediaLibrarySaveResult App::SubmitPendingLibrarySave() {
+    MediaLibrarySaveResult result;
+    if (!libraryReady || !librarySaveRequested) return result;
+    try {
+        submittedLibrarySnapshot = library.CaptureSaveSnapshot(submittedLibrarySnapshot);
+        if (!librarySaveWorker.Submit(submittedLibrarySnapshot)) throw std::runtime_error("Save worker is stopped");
+        librarySaveRequested = false;
+    } catch (...) {
+        result.success = false;
+        result.libraryStatus = StorageStatus::Error(StorageErrorCode::SerializationFailed, 0, GetExeDir(), "Failed to queue library save");
+    }
+    return result;
+}
+
+bool App::ReportLibrarySaveResult(const MediaLibrarySaveResult& res) {
+    if (res.is_ok()) return true;
+    if (!res.libraryStatus.is_ok()) ReportStorageFailure(res.libraryStatus, L"media library");
+    else if (!res.playlistsStatus.is_ok()) ReportStorageFailure(res.playlistsStatus, L"playlists");
+    else if (!res.historyStatus.is_ok()) ReportStorageFailure(res.historyStatus, L"history");
+    else if (!res.watchedFoldersStatus.is_ok()) ReportStorageFailure(res.watchedFoldersStatus, L"watched folders");
+    return false;
+}
+
+bool App::PumpLibrarySaveResults() {
+    bool failed = !ReportLibrarySaveResult(SubmitPendingLibrarySave());
+    for (const auto& result : librarySaveWorker.TakeResults()) failed = !ReportLibrarySaveResult(result) || failed;
+    if (librarySaveWorker.TakeDroppedFailure()) {
+        StorageStatus status;
+        status.success = false;
+        status.code = StorageErrorCode::SerializationFailed;
+        status.win32Error = ERROR_NOT_ENOUGH_MEMORY;
+        ReportStorageFailure(status, L"media library");
+        failed = true;
+    }
+    return failed;
+}
+
+bool App::SaveLibrary() { return ReportLibrarySaveResult(QueueLibrarySave()); }
 
 
 bool App::SaveSession() {

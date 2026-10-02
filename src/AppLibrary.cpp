@@ -29,6 +29,7 @@ void App::StartLibraryLoad(LibraryGroupMode groupMode, bool preserveExisting) {
     if (libraryLoadInProgress) return;
     if (libraryLoadWorker.joinable()) libraryLoadWorker.join();
     libraryLoadCancelRequested.store(false, std::memory_order_release);
+    libraryLoadWorkerDone.store(false, std::memory_order_release);
     libraryLoadInProgress = true;
     if (!preserveExisting) { libraryReady = false; libraryLoadFailed = false; librarySnapshotFrameRendered = false; }
     deferredLibraryReadyWorkPending = false;
@@ -37,7 +38,17 @@ void App::StartLibraryLoad(LibraryGroupMode groupMode, bool preserveExisting) {
     const std::wstring rootDir = GetExeDir();
     const HWND notifyWindow = hWnd;
     const uint64_t baseVersion = library.GetVersion();
-    libraryLoadWorker = std::thread([this, generation, groupMode, rootDir, notifyWindow, preserveExisting, baseVersion]() {
+    if (preserveExisting && (!SaveLibrary() || !ReportLibrarySaveResult(SubmitPendingLibrarySave()))) {
+        libraryLoadWorkerDone.store(true, std::memory_order_release);
+        libraryLoadInProgress = false;
+        return;
+    }
+    libraryReloadBaseline = preserveExisting ? submittedLibrarySnapshot : nullptr;
+    const uint64_t saveBarrier = librarySaveWorker.RequestFlush();
+    try {
+    libraryLoadWorker = std::thread([this, generation, groupMode, rootDir, notifyWindow, preserveExisting, baseVersion, saveBarrier]() {
+        struct Completion { std::atomic<bool>& done; ~Completion() { done.store(true, std::memory_order_release); } } completion{libraryLoadWorkerDone};
+        if (!librarySaveWorker.WaitUntil(saveBarrier, &libraryLoadCancelRequested)) return;
         LibrarySnapshotBuildOptions options;
         options.generation = generation;
         options.groupMode = groupMode;
@@ -46,12 +57,33 @@ void App::StartLibraryLoad(LibraryGroupMode groupMode, bool preserveExisting) {
         options.baseLibraryVersion = baseVersion;
         options.cancelRequested = &libraryLoadCancelRequested;
         options.milestone = [](const wchar_t* phase) { Diagnostics::RecordStartupMilestone(phase, false); };
-        auto snapshot = BuildLibraryStartupSnapshot(options);
+        std::unique_ptr<LibraryStartupSnapshot> snapshot;
+        try {
+            if (preserveExisting && !librarySaveWorker.WasSuccessful(saveBarrier)) {
+                snapshot = std::make_unique<LibraryStartupSnapshot>();
+                snapshot->generation = generation; snapshot->preservesExisting = true;
+                snapshot->loadStatus = StorageStatus::Error(StorageErrorCode::FileWriteFailed, 0, rootDir,
+                    "Refresh skipped because pending library changes could not be saved");
+            } else snapshot = BuildLibraryStartupSnapshot(options);
+        }
+        catch (...) {
+            snapshot = std::make_unique<LibraryStartupSnapshot>();
+            snapshot->generation = generation; snapshot->preservesExisting = preserveExisting;
+            snapshot->loadStatus = StorageStatus::Error(StorageErrorCode::FileReadFailed, 0, rootDir, "Library startup worker failed");
+        }
         if (!snapshot || snapshot->canceled || libraryLoadCancelRequested.load(std::memory_order_acquire)) { return; }
         if (!librarySnapshotMailbox.Publish(std::move(snapshot))) return;
         Diagnostics::RecordStartupMilestone(L"library-snapshot-posted", false);
         PostMessageW(notifyWindow, kLibrarySnapshotReadyMessage, static_cast<WPARAM>(generation), 0);
     });
+    } catch (...) {
+        libraryLoadWorkerDone.store(true, std::memory_order_release);
+        libraryLoadInProgress = false;
+        libraryLoadFailed = !preserveExisting;
+        libraryLoadStatus = StorageStatus::Error(StorageErrorCode::FileReadFailed, ERROR_NOT_ENOUGH_MEMORY,
+            rootDir, "Could not start the library startup worker");
+        ReportStorageFailure(libraryLoadStatus, L"media library startup");
+    }
 }
 
 
@@ -69,11 +101,14 @@ void App::FinishInitialLibraryLoad(uint64_t generation) {
         InvalidateRect(hWnd, nullptr, FALSE);
         return;
     }
-    if (snapshot->preservesExisting && library.GetVersion() != snapshot->baseLibraryVersion) {
+    if (snapshot->preservesExisting && (library.GetVersion() != snapshot->baseLibraryVersion ||
+        library.CaptureSaveSnapshot(libraryReloadBaseline) != libraryReloadBaseline)) {
         ShowOSD(IconType::Refresh, L"Library changed while refresh was running; kept the newer in-memory state", 4.0f);
         return;
     }
     library = std::move(snapshot->library);
+    submittedLibrarySnapshot.reset(); libraryReloadBaseline.reset(); librarySaveRequested = false;
+    library.SetSaveRequestHandler([this] { return QueueLibrarySave(); });
     m_mediaQueryEngine.InvalidateCache();
     LibraryQueryOptions initialOptions;
     initialOptions.groupMode = snapshot->groupMode;
@@ -135,7 +170,7 @@ void App::RunDeferredLibraryReadyWork() {
 void App::CancelInitialLibraryLoad() {
     libraryLoadCancelRequested.store(true, std::memory_order_release);
     librarySnapshotMailbox.Cancel();
-    if (libraryLoadWorker.joinable()) libraryLoadWorker.join();
+    if (libraryLoadWorker.joinable()) { CancelSynchronousIo(libraryLoadWorker.native_handle()); libraryLoadWorker.join(); }
     libraryLoadInProgress = false;
     deferredLibraryCommands.clear();
 }
@@ -394,7 +429,7 @@ void App::HandleFolderWatchEvents() {
     if (batches.empty()) return;
     bool libraryModified = false;
     for (const auto& batch : batches) {
-        WatchReconcileResult res = library.ReconcileWatchBatch(batch, true);
+        WatchReconcileResult res = library.ReconcileWatchBatch(batch, true, false);
         if (!res.status.is_ok()) ReportStorageFailure(res.status, L"watched folder");
         if (res.addedCount > 0 || res.updatedCount > 0 || res.removedCount > 0 || res.renamedCount > 0 || res.rescanCount > 0)
             libraryModified = true;
@@ -441,7 +476,7 @@ void App::AddWatchedFolderPrompt() {
         // Start on demand: Initialize() leaves the watcher stopped when the profile has no watched folders so an idle hub keeps one fewer
         // thread/IOCP.
         if (!folderWatcher.IsRunning()) { folderWatcher.Start(); }
-        library.ReconcileRescan(watchedPath);
+        library.ReconcileRescan(watchedPath, true, false);
         InvalidateMediaLayoutCache();
         InvalidateRect(hWnd, NULL, FALSE);
         ShowOSD(IconType::FolderPlaylist, L"Added Watched Folder: " + GetFileNameFromPath(watchedPath));
@@ -456,7 +491,7 @@ void App::RescanAllWatchedFolders() {
     if (folders.empty()) { ShowOSD(IconType::VolumeMuted, L"No watched folders configured"); return; }
     bool complete = true;
     for (const auto& f : folders) {
-        const auto result = library.ReconcileRescan(f, true);
+        const auto result = library.ReconcileRescan(f, true, false);
         if (!result.status.is_ok()) { complete = false; ReportStorageFailure(result.status, L"watched folder"); }
     }
     InvalidateMediaLayoutCache();
@@ -469,6 +504,10 @@ void App::RescanAllWatchedFolders() {
 void App::TogglePrivateMode() {
     const bool enabled = !playbackSession.IsPrivateMode();
     playbackSession.SetPrivateMode(enabled);
+    // Fence requests immediately, including an on/off toggle within one UI tick.
+    CancelNetworkJobs();
+    onlineSubtitleJobs.SyncContext(playbackSession.IsOpen() ? player.GetCurrentFilePath() : std::wstring{},
+        settings, mediaGenerationToken, enabled);
     previewPlayer.SetPrivateMode(enabled);
     hubExtractors[0].SetPrivateMode(enabled);
     hubExtractors[1].SetPrivateMode(enabled);

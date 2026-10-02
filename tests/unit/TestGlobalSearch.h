@@ -48,6 +48,26 @@ TEST_CASE(GlobalSearch, HistoryMembershipInvalidatesCachedSearch) {
     library.ClearHistory(); TEST_ASSERT(index.Query(library, L"history", options).empty());
 }
 
+TEST_CASE(GlobalSearch, DirectMediaInsertionInvalidatesWarmIndex) {
+    MediaLibrary library;
+    MediaItem seed; seed.id = "seed"; seed.filePath = L"C:\\Media\\existing.mkv";
+    seed.title = L"Existing";
+    library.mediaItems.push_back(seed); library.RebuildPathIndex();
+    library.SetSaveRequestHandler([] { return MediaLibrarySaveResult{}; });
+    GlobalSearchIndex index; GlobalSearchQueryOptions options; options.checkFileExists = false;
+    TEST_ASSERT_EQ(index.Query(library, L"Existing", options).size(), 1ull);
+    TEST_ASSERT(index.Query(library, L"NewlyAdded", options).empty());
+    const auto contentVersion = library.GetSearchContentVersion();
+    const auto* added = library.AddOrUpdateMedia(L"C:\\Media\\NewlyAdded.mkv", false);
+    TEST_ASSERT(added != nullptr);
+    TEST_ASSERT(library.GetSearchContentVersion() > contentVersion);
+    const auto found = index.Query(library, L"NewlyAdded", options);
+    TEST_ASSERT_EQ(found.size(), 1ull);
+    TEST_ASSERT_EQ(found.front().filePath, std::wstring(L"C:\\Media\\NewlyAdded.mkv"));
+    TEST_ASSERT_EQ(index.GetTextRebuildCount(), 2ull);
+    TEST_ASSERT(library.history.empty());
+}
+
 // ============================================================================
 // 1. Normalization & Tokenization Tests
 // ============================================================================

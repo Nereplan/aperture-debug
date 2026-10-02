@@ -99,6 +99,7 @@ bool App::EnsurePlayerInitialized() {
 
 
 bool App::EnsurePreviewInitialized() {
+    if (renderer.AreDeviceWorkersRunning()) return false;
     if (previewInitialized) return true;
     if (previewInitAttempted) return false;
     previewInitAttempted = true;
@@ -502,6 +503,7 @@ std::wstring App::RelocateMissingMedia(const std::wstring& missingPath) {
 
 
 bool App::ExecuteAutomationCommand(const Ipc::AutomationCommand& cmd, Ipc::AutomationStatus* outStatus) {
+    if (closeRequested) return false;
     switch (cmd.op) {
     case Ipc::AutomationOp::Play: {
         if (playbackSession.IsOpen()) {
@@ -636,6 +638,11 @@ void App::ShowPlaybackRecovery(const std::wstring& path, const std::wstring& exp
 
 
 void App::OpenAndPlayMedia(const std::wstring& filePath, double startPosSec, bool preserveQueue) {
+    if (closeRequested) return;
+    if (renderer.AreDeviceWorkersRunning()) {
+        pendingPlaybackOpen = PendingPlaybackOpen{filePath, startPosSec, preserveQueue};
+        return;
+    }
     StopAutoscroll(true);
     playerKeyboardFocusId = 0;
     isKeyboardNavActive = false;
@@ -668,14 +675,10 @@ void App::OpenAndPlayMedia(const std::wstring& filePath, double startPosSec, boo
     // Private playback reads existing preferences but creates no durable media record and does not update last-watched metadata.
     MediaItem* item = isNetworkStream ? nullptr : library.FindByPath(resolvedPath);
     if (playbackSession.CanPersistLocalTarget(resolvedPath)) {
-        // A new CLI/drop target was synchronously opened by MF before mpv
-        // could start decoding it. Its preferences are empty, so build the
-        // record now and let the existing worker fill metadata in parallel.
-        // If a backfill is already active, retain the normal probe path so a
-        // new record cannot miss the worker's already captured batch.
-        const bool deferProbe = !item && !backfillJobActive;
-        item = library.AddOrUpdateMedia(resolvedPath, !deferProbe);
-        if (deferProbe && item) ScheduleMetadataBackfill();
+        // Metadata uses the owned isolated worker even when a batch is already
+        // active; its completion chains any newly eligible records.
+        item = library.AddOrUpdateMedia(resolvedPath, false);
+        if (item) ScheduleMetadataBackfill();
     }
     if (playbackSession.CanPersistLocalTarget(resolvedPath)) {
         PromoteLastWatchedMedia();

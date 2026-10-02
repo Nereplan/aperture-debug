@@ -161,6 +161,7 @@ $srcFiles = @(
     (Join-Path $rootDir "src\Localization.cpp"),
     (Join-Path $rootDir "src\MediaLibrary.cpp"),
     (Join-Path $rootDir "src\MediaFoundation.cpp"),
+    (Join-Path $rootDir "src\MediaProbeIsolation.cpp"),
     (Join-Path $rootDir "src\FolderWatcher.cpp"),
     (Join-Path $rootDir "src\LibraryQuery.cpp"),
     (Join-Path $rootDir "src\GlobalSearch.cpp"),

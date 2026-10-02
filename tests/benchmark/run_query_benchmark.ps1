@@ -24,7 +24,7 @@ try {
 $argsList = @('/nologo', '/utf-8', '/O2', '/EHsc', '/std:c++17', '/DUNICODE', '/D_UNICODE',
     "/I`"$source`"", "/Fo`"$build\\`"", "/Fe:`"$exe`"",
     "`"$(Join-Path $PSScriptRoot 'query_resource_benchmark.cpp')`"")
-foreach ($file in @('Json', 'Settings', 'ChannelPolicy', 'Localization', 'AudioConfig', 'MediaLibrary', 'LibraryQuery', 'GlobalSearch', 'TextInputModel', 'FolderWatcher', 'MediaFoundation')) {
+foreach ($file in @('Json', 'Settings', 'ChannelPolicy', 'Localization', 'AudioConfig', 'MediaLibrary', 'LibraryQuery', 'GlobalSearch', 'TextInputModel', 'FolderWatcher', 'MediaFoundation', 'MediaProbeIsolation')) {
     $argsList += "`"$(Join-Path $source ($file + '.cpp'))`""
 }
 $argsList += @('mfreadwrite.lib', 'oleaut32.lib', 'propsys.lib')

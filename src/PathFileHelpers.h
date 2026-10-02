@@ -64,9 +64,19 @@ inline std::wstring GetExeDir() {
 
 inline std::wstring GetDataDir() {
     std::wstring dir = GetExeDir() + L"\\data";
+    const DWORD rootAttributes = GetFileAttributesW(GetExeDir().c_str());
+    if (rootAttributes == INVALID_FILE_ATTRIBUTES || !(rootAttributes & FILE_ATTRIBUTE_DIRECTORY)) return dir;
     DWORD attr = GetFileAttributesW(dir.c_str());
     if (attr == INVALID_FILE_ATTRIBUTES || !(attr & FILE_ATTRIBUTE_DIRECTORY)) { SHCreateDirectoryExW(NULL, dir.c_str(), NULL); }
     return dir;
+}
+
+inline StorageStatus CheckPortableRootAvailability(const std::wstring& rootDir) {
+    const DWORD attributes = GetFileAttributesW(rootDir.c_str());
+    if (attributes != INVALID_FILE_ATTRIBUTES && (attributes & FILE_ATTRIBUTE_DIRECTORY)) return StorageStatus::Ok(rootDir);
+    return StorageStatus::Error(StorageErrorCode::FileReadFailed,
+        attributes == INVALID_FILE_ATTRIBUTES ? GetLastError() : ERROR_DIRECTORY,
+        rootDir, "Portable data root is unavailable; existing stores are protected");
 }
 inline uint64_t Fnv1a64(const void* data, size_t size) {
     const uint8_t* ptr = static_cast<const uint8_t*>(data);
@@ -268,8 +278,10 @@ inline std::wstring GetBackupDir() {
     return dir;
 }
 
-inline StorageStatus CheckDataDirectoryWritability() {
-    std::wstring dir = GetDataDir();
+inline StorageStatus CheckDataDirectoryWritability(const std::wstring& rootDir = GetExeDir()) {
+    StorageStatus rootStatus = CheckPortableRootAvailability(rootDir);
+    if (!rootStatus.is_ok()) return rootStatus;
+    std::wstring dir = rootDir + L"\\data";
     DWORD attr = GetFileAttributesW(dir.c_str());
     if (attr == INVALID_FILE_ATTRIBUTES || !(attr & FILE_ATTRIBUTE_DIRECTORY)) {
         int res = SHCreateDirectoryExW(NULL, dir.c_str(), NULL);
