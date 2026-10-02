@@ -64,6 +64,11 @@ public:
     static void ShutdownPrewarm();
     bool Initialize(HWND hWnd, const std::string& initialFont = "");
     void Shutdown();
+    // Close first requests cancellation, keeps the message loop responsive,
+    // and joins only after these App-owned workers have finished.
+    void CancelThumbnailWork();
+    bool AreThumbnailWorkersRunning() const { return activeThumbnailWorkers.load(std::memory_order_acquire) != 0; }
+    bool AreDeviceWorkersRunning() const;
     void Resize(UINT width, UINT height);
     void SetDpi(float dpi);
     void BeginDraw();
@@ -309,6 +314,7 @@ private:
     // UI-thread state: workers use the existing coalesced ready notification.
     bool deferredThumbnailUploads = false;
     std::array<std::thread, 4> thumbnailWorkers;
+    std::atomic<size_t> activeThumbnailWorkers{ 0 };
     std::mutex thumbnailMutex;
     // Serializes persistent hub writes with ClearThumbnailCache so a stale
     // decode cannot recreate a file after library removal has purged it.
@@ -393,6 +399,7 @@ private:
     bool hasPresentedFrame = false;
     // Worker that pre-creates the D3D11 device during startup.
     std::thread deviceWorker;
+    std::atomic<bool> deviceWorkerDone{ true };
     ComPtr<ID3D11Device> asyncD3dDevice;
     ComPtr<ID3D11DeviceContext> asyncD3dContext;
     bool asyncDeviceFailed = false;

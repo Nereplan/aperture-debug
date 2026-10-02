@@ -4,7 +4,7 @@
 #include "CollectionAlgorithms.h"
 #include "IpcProtocol.h"
 #include "LibraryQuery.h"
-#include "MediaFoundation.h"
+#include "MediaProbeIsolation.h"
 #include "OnlineSubtitles.h"
 #include "Reorder.h"
 #include "Updater.h"
@@ -42,12 +42,15 @@ void App::StartImportJob(const std::vector<std::wstring>& paths, const std::stri
     importLaunchFirst = launchFirst;
     importCancelHovered = false;
     importJobActive = true;
-    importWorker = std::thread([this, paths]() {
-        const HRESULT coHr = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
-        // Lazy MF: hold for the whole import job so probes share one
-        // startup; nested per-probe acquires only bump the refcount.
-        MediaFoundation::ScopedAcquire mfJobGuard;
+    try { importWorker = std::thread([this, paths]() {
+        struct CompletionGuard {
+            std::atomic<bool>& done;
+            ~CompletionGuard() { done.store(true, std::memory_order_release); }
+        } completed{ importDone };
         try {
+            // Source readers live in a reusable helper process. Cancel interrupts
+            // a stalled codec without terminating this App-owning C++ thread.
+            ScopedMediaProbeIsolation probes([this]() { return importCancelRequested.load(std::memory_order_acquire); });
             // The worker owns this snapshot exclusively. It never reads or writes App::library, and persistence is deferred to the UI
             // thread after the worker has joined.
             MediaLibrary staged;
@@ -66,12 +69,24 @@ void App::StartImportJob(const std::vector<std::wstring>& paths, const std::stri
             importResult = {};
             importResult.outcome = importCancelRequested.load(std::memory_order_acquire) ? LongOperationOutcome::Canceled
                 : LongOperationOutcome::Failed;
-            if (importResult.outcome == LongOperationOutcome::Failed)
-                importResult.status = StorageStatus::Error( StorageErrorCode::FileReadFailed, 0, L"", "Media import worker failed");
+            if (importResult.outcome == LongOperationOutcome::Failed) {
+                // Error reporting itself must not throw out of the worker.
+                importResult.status.success = false;
+                importResult.status.code = StorageErrorCode::FileReadFailed;
+                try { importResult.status.message = "Media import worker failed"; } catch (...) {}
+            }
         }
-        if (SUCCEEDED(coHr)) { CoUninitialize(); }
+        // CompletionGuard publishes after the helper's bounded teardown,
+        // including constructor/allocation failures.
+    }); } catch (...) {
+        // A thread-construction failure must still have a completion for the
+        // normal UI pump, rather than leaving an active job without an owner.
+        importResult.outcome = LongOperationOutcome::Failed;
+        importResult.status.success = false;
+        importResult.status.code = StorageErrorCode::FileReadFailed;
+        importResult.status.win32Error = ERROR_NOT_ENOUGH_MEMORY;
         importDone.store(true, std::memory_order_release);
-    });
+    }
 }
 
 
@@ -88,7 +103,14 @@ void App::FinishImportJob() {
     // Import completion updates library/UI state and is valid before the player is initialized. playerCallbacksDisabled is a callback
     // lifetime fence, not a general-purpose app readiness flag.
     if (shutdownComplete || importCancelRequested.load(std::memory_order_acquire)) {
+        if (importWorker.joinable()) importWorker.join();
+        stagedImportItems.clear();
+        importResult = {};
+        importJobActive = false;
+        importDone.store(false, std::memory_order_release);
+        importCancelHovered = false;
         pendingDropImports.clear();
+        if (hWnd && !shutdownComplete) InvalidateRect(hWnd, nullptr, FALSE);
         return;
     }
     if (importWorker.joinable()) importWorker.join();
@@ -161,9 +183,18 @@ void App::FinishImportJob() {
 void App::CancelImportJob() {
     if (!importJobActive && !importWorker.joinable()) return;
     importCancelRequested.store(true, std::memory_order_release);
-    if (importWorker.joinable()) importWorker.join();
-    importJobActive = false;
-    importDone.store(false, std::memory_order_release);
+    if (importWorker.joinable()) {
+        // Interrupt a synchronous filesystem read as well. MF calls are
+        // independently interrupted by the helper's cancellation poll.
+        CancelSynchronousIo(importWorker.native_handle());
+        if (importDone.load(std::memory_order_acquire)) {
+            importWorker.join();
+            importJobActive = false;
+            importDone.store(false, std::memory_order_release);
+            stagedImportItems.clear();
+            importResult = {};
+        }
+    } else { importJobActive = false; }
     importCancelHovered = false;
     pendingDropImports.clear();
 }
@@ -209,11 +240,17 @@ void App::ScheduleMetadataBackfill(const MetadataBackfillOptions& options) {
         backfillJobActive = false;
         return;
     }
-    backfillWorker = std::thread([this, stagedSnapshot = std::move(snapshot), effectiveOptions]() mutable {
-        const HRESULT coHr = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
-        // Lazy MF: hold for the whole backfill job; per-probe acquires nest.
-        MediaFoundation::ScopedAcquire mfJobGuard;
+    try { backfillWorker = std::thread([this, stagedSnapshot = std::move(snapshot), effectiveOptions]() mutable {
+        struct CompletionGuard {
+            std::atomic<bool>& done;
+            HWND window;
+            ~CompletionGuard() {
+                done.store(true, std::memory_order_release);
+                if (window) PostMessageW(window, kBackfillEventMessage, 0, 0);
+            }
+        } completed{ backfillDone, hWnd };
         try {
+            ScopedMediaProbeIsolation probes([this]() { return backfillCancelRequested.load(std::memory_order_acquire); });
             MediaLibrary staged;
             staged.mediaItems = std::move(stagedSnapshot);
             staged.RebuildPathIndex();
@@ -229,20 +266,33 @@ void App::ScheduleMetadataBackfill(const MetadataBackfillOptions& options) {
             backfillResult = {};
             backfillResult.outcome = backfillCancelRequested.load(std::memory_order_acquire) ? LongOperationOutcome::Canceled
                 : LongOperationOutcome::Failed;
-            if (backfillResult.outcome == LongOperationOutcome::Failed)
-                backfillResult.status = StorageStatus::Error( StorageErrorCode::FileReadFailed, 0, L"", "Metadata backfill worker failed");
+            if (backfillResult.outcome == LongOperationOutcome::Failed) {
+                backfillResult.status.success = false;
+                backfillResult.status.code = StorageErrorCode::FileReadFailed;
+                try { backfillResult.status.message = "Metadata backfill worker failed"; } catch (...) {}
+            }
         }
-        if (SUCCEEDED(coHr)) { CoUninitialize(); }
+    }); } catch (...) {
+        backfillResult.outcome = LongOperationOutcome::Failed;
+        backfillResult.status.success = false;
+        backfillResult.status.code = StorageErrorCode::FileReadFailed;
+        backfillResult.status.win32Error = ERROR_NOT_ENOUGH_MEMORY;
         backfillDone.store(true, std::memory_order_release);
-        if (hWnd) { PostMessageW(hWnd, kBackfillEventMessage, 0, 0); }
-    });
+    }
 }
 
 
 void App::FinishBackfillJob() {
     if (!backfillJobActive || !backfillDone.load(std::memory_order_acquire)) return;
     // Metadata completion has the same lifecycle as import completion and must not depend on whether an mpv player exists yet.
-    if (shutdownComplete || backfillCancelRequested.load(std::memory_order_acquire)) return;
+    if (shutdownComplete || backfillCancelRequested.load(std::memory_order_acquire)) {
+        if (backfillWorker.joinable()) backfillWorker.join();
+        stagedBackfillItems.clear();
+        backfillResult = {};
+        backfillJobActive = false;
+        backfillDone.store(false, std::memory_order_release);
+        return;
+    }
     if (backfillWorker.joinable()) backfillWorker.join();
     const auto stagedItems = std::move(stagedBackfillItems);
     const auto result = backfillResult;
@@ -298,9 +348,16 @@ void App::FinishBackfillJob() {
 void App::CancelBackfillJob() {
     if (!backfillJobActive && !backfillWorker.joinable()) return;
     backfillCancelRequested.store(true, std::memory_order_release);
-    if (backfillWorker.joinable()) backfillWorker.join();
-    backfillJobActive = false;
-    backfillDone.store(false, std::memory_order_release);
+    if (backfillWorker.joinable()) {
+        CancelSynchronousIo(backfillWorker.native_handle());
+        if (backfillDone.load(std::memory_order_acquire)) {
+            backfillWorker.join();
+            backfillJobActive = false;
+            backfillDone.store(false, std::memory_order_release);
+            stagedBackfillItems.clear();
+            backfillResult = {};
+        }
+    } else { backfillJobActive = false; }
 }
 
 } // namespace Aperture

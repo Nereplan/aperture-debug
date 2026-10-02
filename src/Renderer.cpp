@@ -2,6 +2,7 @@
 #include "Renderer.h"
 #include "Localization.h"
 #include "MpvPlayer.h"
+#include "MediaProbeIsolation.h"
 #include <cmath>
 
 namespace Aperture {
@@ -51,6 +52,7 @@ struct PrewarmDeviceState {
     ComPtr<ID3D11DeviceContext> context;
     bool failed = false;
     std::atomic<bool> started{ false };
+    std::atomic<bool> done{ true };
     ~PrewarmDeviceState() { Shutdown(); }
     void Shutdown() {
         if (worker.joinable()) { worker.join(); }
@@ -71,16 +73,7 @@ Renderer::~Renderer() { Shutdown(); }
 void Renderer::Shutdown() {
     deferredThumbnailUploads = false;
     // The async thumbnail worker must be signaled and joined before releasing state.
-    {
-        std::lock_guard<std::mutex> lock(thumbnailMutex);
-        thumbnailWorkerStopping = true;
-        thumbnailGeneration++;
-        pendingThumbnailRequests.clear();
-        inFlightThumbnailKeys.clear();
-        completedThumbnailResults.clear();
-        completedThumbnailBytes = 0;
-    }
-    thumbnailCv.notify_all();
+    CancelThumbnailWork();
     for (auto& worker : thumbnailWorkers) { if (worker.joinable()) worker.join(); }
     // The async device worker must never outlive the renderer object.
     ShutdownPrewarm();
@@ -95,6 +88,25 @@ void Renderer::Shutdown() {
     textRenderingParams.Reset();
     customFontCollection.Reset();
     wicFactory.Reset();
+}
+
+void Renderer::CancelThumbnailWork() {
+    {
+        std::lock_guard<std::mutex> lock(thumbnailMutex);
+        thumbnailWorkerStopping = true;
+        thumbnailGeneration++;
+        pendingThumbnailRequests.clear();
+        inFlightThumbnailKeys.clear();
+        completedThumbnailResults.clear();
+        completedThumbnailBytes = 0;
+    }
+    thumbnailCv.notify_all();
+    for (auto& worker : thumbnailWorkers) if (worker.joinable()) CancelSynchronousIo(worker.native_handle());
+}
+
+bool Renderer::AreDeviceWorkersRunning() const {
+    return !deviceWorkerDone.load(std::memory_order_acquire) ||
+        (s_prewarmState.started.load(std::memory_order_acquire) && !s_prewarmState.done.load(std::memory_order_acquire));
 }
 
 size_t Renderer::ClearThumbnailCacheInternal() {
@@ -298,14 +310,29 @@ bool Renderer::Initialize(HWND hwnd, const std::string& initialFont) {
 
 void Renderer::PrewarmD3DDeviceAsync() {
     if (s_prewarmState.started.exchange(true)) return;
-    s_prewarmState.worker = std::thread([]() { s_prewarmState.failed = !CreateD3DDevice(s_prewarmState.device, s_prewarmState.context); });
+    s_prewarmState.done.store(false, std::memory_order_release);
+    try { s_prewarmState.worker = std::thread([]() {
+        s_prewarmState.failed = !CreateD3DDevice(s_prewarmState.device, s_prewarmState.context);
+        s_prewarmState.done.store(true, std::memory_order_release);
+    }); } catch (...) {
+        s_prewarmState.failed = true;
+        s_prewarmState.done.store(true, std::memory_order_release);
+        s_prewarmState.started.store(false, std::memory_order_release);
+    }
 }
 
 void Renderer::ShutdownPrewarm() { s_prewarmState.Shutdown(); }
 
 void Renderer::BeginCreateDeviceAsync() {
     if (s_prewarmState.started.load() || deviceWorker.joinable() || d3dDevice || asyncDeviceFailed) return;
-    deviceWorker = std::thread([this]() { asyncDeviceFailed = !CreateD3DDevice(asyncD3dDevice, asyncD3dContext); });
+    deviceWorkerDone.store(false, std::memory_order_release);
+    try { deviceWorker = std::thread([this]() {
+        asyncDeviceFailed = !CreateD3DDevice(asyncD3dDevice, asyncD3dContext);
+        deviceWorkerDone.store(true, std::memory_order_release);
+    }); } catch (...) {
+        asyncDeviceFailed = true;
+        deviceWorkerDone.store(true, std::memory_order_release);
+    }
 }
 
 bool Renderer::EnsureD3DDevice() {
@@ -1262,158 +1289,110 @@ void Renderer::EnsureThumbnailWorkers() {
     for (size_t i = 0; i < thumbnailWorkers.size(); ++i) {
         if (depth >= i * 4 && !thumbnailWorkers[i].joinable()) {
             thumbnailWorkerStopping = false;
-            thumbnailWorkers[i] = std::thread(&Renderer::ThumbnailWorkerThread, this);
+            activeThumbnailWorkers.fetch_add(1, std::memory_order_acq_rel);
+            try { thumbnailWorkers[i] = std::thread(&Renderer::ThumbnailWorkerThread, this); }
+            catch (...) { activeThumbnailWorkers.fetch_sub(1, std::memory_order_acq_rel); break; }
         }
     }
 }
 
 void Renderer::ThumbnailWorkerThread() {
-    HRESULT hrCom = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
-    if (FAILED(hrCom)) { CoInitialize(nullptr); }
-    ComPtr<IWICImagingFactory> workerWicFactory;
-    CoCreateInstance(CLSID_WICImagingFactory, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&workerWicFactory));
-    while (true) {
-        ThumbnailRequest req;
-        {
-            std::unique_lock<std::mutex> lock(thumbnailMutex);
-            thumbnailCv.wait(lock, [this]() { return thumbnailWorkerStopping || !pendingThumbnailRequests.empty(); });
-            if (thumbnailWorkerStopping) { break; }
-            if (pendingThumbnailRequests.empty()) { continue; }
-            auto best = pendingThumbnailRequests.begin();
-            for (auto it = std::next(best); it != pendingThumbnailRequests.end(); ++it) {
-                if (it->priorityFrame > best->priorityFrame ||
-                    (it->priorityFrame == best->priorityFrame && it->priorityOrder < best->priorityOrder)) {
-                    best = it;
-                }
-            }
-            req = std::move(*best);
-            pendingThumbnailRequests.erase(best);
-        }
-        ThumbnailResult result;
-        result.key = req.key;
-        result.generation = req.generation;
-        result.success = false;
-        // Tier 1: our own persistent hub disk tier (plain file read, no COM). Shell hits are persisted here after first decode, so restarts
-        // and repeat scrolls never touch the shell for known files.
-        PreviewThumbnailFrame diskFrame;
-        if (LoadHubThumbnailFromDiskCache(req.key.path, (int)req.key.width, (int)req.key.height, diskFrame, GetExeDir(), !thumbnailPrivateMode.load())) {
-            if (diskFrame.width > 0 && diskFrame.height > 0 && !diskFrame.bgraPixels.empty() &&
-                diskFrame.bgraPixels.size() == (size_t)(uint32_t)diskFrame.width * (uint32_t)diskFrame.height * 4u) {
-                result.pixels = std::move(diskFrame.bgraPixels);
-                result.pixelWidth = (UINT)diskFrame.width;
-                result.pixelHeight = (UINT)diskFrame.height;
-                result.success = true;
-                statDiskDecodes.fetch_add(1, std::memory_order_relaxed);
-            }
-        }
-        // Tier 2: Windows Explorer thumbnail cache integration. Step A: Instant check in Windows thumbcache (SIIGBF_INCACHEONLY) - zero
-        // disk/video decoding. Step B: On miss, extract via Windows Shell thumbnail provider (populates Windows cache too). Step C: High
-        // quality bicubic downscale to canonical 320x180 via IWICBitmapScaler (~230 KiB instead of 8 MiB).
-        if (!result.success && FileExists(req.key.path) && workerWicFactory) {
-            ComPtr<IShellItemImageFactory> imageFactory;
-            HRESULT hr = SHCreateItemFromParsingName(req.key.path.c_str(), nullptr, IID_PPV_ARGS(&imageFactory));
-            if (SUCCEEDED(hr) && imageFactory) {
-                SIZE sz = { static_cast<LONG>(req.key.width), static_cast<LONG>(req.key.height) };
-                HBITMAP hBitmap = nullptr;
-                // Fast path: query Windows Explorer thumbnail cache first
-                hr = imageFactory->GetImage(sz, SIIGBF_INCACHEONLY | SIIGBF_BIGGERSIZEOK | SIIGBF_THUMBNAILONLY, &hBitmap);
-                if (FAILED(hr) || !hBitmap) {
-                    // Fallback: extract via Windows Shell provider
-                    hr = imageFactory->GetImage(sz, SIIGBF_BIGGERSIZEOK | SIIGBF_THUMBNAILONLY, &hBitmap);
-                }
-                if (SUCCEEDED(hr) && hBitmap) {
-                    ComPtr<IWICBitmap> wicBitmap;
-                    hr = workerWicFactory->CreateBitmapFromHBITMAP(hBitmap, nullptr, WICBitmapIgnoreAlpha, &wicBitmap);
-                    DeleteObject(hBitmap);
-                    if (SUCCEEDED(hr) && wicBitmap) {
-                        UINT srcW = 0, srcH = 0;
-                        wicBitmap->GetSize(&srcW, &srcH);
-                        if (srcW > 0 && srcH > 0) {
-                            // Downscale to target thumbnail size (e.g. 320x180) to keep memory tiny (~230 KB)
-                            // and eliminate cache thrashing entirely.
-                            float scaleX = (float)req.key.width / (float)srcW;
-                            float scaleY = (float)req.key.height / (float)srcH;
-                            float scale = std::min(scaleX, scaleY);
-                            UINT targetW = (srcW > req.key.width || srcH > req.key.height)
-                                ? std::max(1u, (UINT)std::round(srcW * scale)) : srcW;
-                            UINT targetH = (srcW > req.key.width || srcH > req.key.height)
-                                ? std::max(1u, (UINT)std::round(srcH * scale)) : srcH;
-                            ComPtr<IWICBitmapSource> sourceImage = wicBitmap;
-                            if (targetW != srcW || targetH != srcH) {
-                                ComPtr<IWICBitmapScaler> scaler;
-                                if (SUCCEEDED(workerWicFactory->CreateBitmapScaler(&scaler))) {
-                                    if (SUCCEEDED(scaler->Initialize(wicBitmap.Get(), targetW, targetH, WICBitmapInterpolationModeHighQualityCubic)))
-                                        sourceImage = scaler;
-                                }
-                            }
-                            ComPtr<IWICFormatConverter> converter;
-                            hr = workerWicFactory->CreateFormatConverter(&converter);
-                            if (SUCCEEDED(hr) && converter) {
-                                hr = converter->Initialize( sourceImage.Get(), GUID_WICPixelFormat32bppPBGRA, WICBitmapDitherTypeNone,
-                                    nullptr, 0.0f, WICBitmapPaletteTypeCustom );
-                                if (SUCCEEDED(hr)) {
-                                    UINT w = 0, h = 0;
-                                    hr = converter->GetSize(&w, &h);
-                                    if (SUCCEEDED(hr) && w > 0 && h > 0) {
-                                        const UINT stride = w * 4, bufferSize = stride * h;
-                                        try {
-                                            result.pixels.resize(bufferSize);
-                                            WICRect rc = { 0, 0, static_cast<INT>(w), static_cast<INT>(h) };
-                                            hr = converter->CopyPixels(&rc, stride, bufferSize, result.pixels.data());
-                                            if (SUCCEEDED(hr)) {
-                                                result.pixelWidth = w;
-                                                result.pixelHeight = h;
-                                                result.success = true;
-                                                statShellDecodes.fetch_add(1, std::memory_order_relaxed);
-                                                // Persist the downscaled thumbnail to our fast disk tier
-                                                if (!thumbnailPrivateMode.load()) {
-                                                    PreviewThumbnailFrame persist;
-                                                    persist.filePath = req.key.path;
-                                                    persist.timestampSec = 0.0;
-                                                    persist.width = (int)w;
-                                                    persist.height = (int)h;
-                                                    persist.bgraPixels = result.pixels;
-                                                    std::lock_guard<std::mutex> persistenceLock(thumbnailPersistenceMutex);
-                                                    bool requestIsCurrent = false;
-                                                    {
-                                                        std::lock_guard<std::mutex> lock(thumbnailMutex);
-                                                        requestIsCurrent = !thumbnailWorkerStopping &&
-                                                            req.generation == thumbnailGeneration;
-                                                    }
-                                                    if (requestIsCurrent) { SaveHubThumbnailToDiskCache(persist); }
-                                                }
-                                            } else { result.pixels.clear(); }
-                                        } catch (...) { result.pixels.clear(); result.success = false; }
-                                    }
-                                }
-                            }
-                        }
+    struct CompletionGuard {
+        std::atomic<size_t>& count;
+        ~CompletionGuard() { count.fetch_sub(1, std::memory_order_release); }
+    } completed{ activeThumbnailWorkers };
+    ThumbnailRequest req;
+    try {
+        uint64_t activeGeneration = 0;
+        MediaProbeIsolation probes([this, &activeGeneration]() {
+            std::lock_guard<std::mutex> lock(thumbnailMutex);
+            return thumbnailWorkerStopping || activeGeneration != thumbnailGeneration;
+        });
+        while (true) {
+            {
+                std::unique_lock<std::mutex> lock(thumbnailMutex);
+                thumbnailCv.wait(lock, [this]() { return thumbnailWorkerStopping || !pendingThumbnailRequests.empty(); });
+                if (thumbnailWorkerStopping) { break; }
+                if (pendingThumbnailRequests.empty()) { continue; }
+                auto best = pendingThumbnailRequests.begin();
+                for (auto it = std::next(best); it != pendingThumbnailRequests.end(); ++it) {
+                    if (it->priorityFrame > best->priorityFrame ||
+                        (it->priorityFrame == best->priorityFrame && it->priorityOrder < best->priorityOrder)) {
+                        best = it;
                     }
                 }
+                req = std::move(*best);
+                activeGeneration = req.generation;
+                pendingThumbnailRequests.erase(best);
+            }
+            ThumbnailResult result;
+            result.key = req.key;
+            result.generation = req.generation;
+            result.success = false;
+            // Tier 1: our own persistent hub disk tier (plain file read, no COM). Shell hits are persisted here after first decode, so restarts
+            // and repeat scrolls never touch the shell for known files.
+            PreviewThumbnailFrame diskFrame;
+            if (LoadHubThumbnailFromDiskCache(req.key.path, (int)req.key.width, (int)req.key.height, diskFrame, GetExeDir(), !thumbnailPrivateMode.load())) {
+                if (diskFrame.width > 0 && diskFrame.height > 0 && !diskFrame.bgraPixels.empty() &&
+                    diskFrame.bgraPixels.size() == (size_t)(uint32_t)diskFrame.width * (uint32_t)diskFrame.height * 4u) {
+                    result.pixels = std::move(diskFrame.bgraPixels);
+                    result.pixelWidth = (UINT)diskFrame.width;
+                    result.pixelHeight = (UINT)diskFrame.height;
+                    result.success = true;
+                    statDiskDecodes.fetch_add(1, std::memory_order_relaxed);
+                }
+            }
+            // Tier 2: preserve Shell cache lookup, provider extraction and WIC
+            // cubic downscaling, but isolate the provider in a disposable process.
+            // The cancellation poll kills only that process; this Renderer-owning
+            // thread always unwinds its normal C++ lifetime.
+            if (!result.success && probes.GetThumbnail(req.key.path, req.key.width, req.key.height,
+                    result.pixels, result.pixelWidth, result.pixelHeight)) {
+                result.success = true;
+                statShellDecodes.fetch_add(1, std::memory_order_relaxed);
+                if (!thumbnailPrivateMode.load()) {
+                    PreviewThumbnailFrame persist;
+                    persist.filePath = req.key.path;
+                    persist.timestampSec = 0.0;
+                    persist.width = static_cast<int>(result.pixelWidth);
+                    persist.height = static_cast<int>(result.pixelHeight);
+                    persist.bgraPixels = result.pixels;
+                    std::lock_guard<std::mutex> persistenceLock(thumbnailPersistenceMutex);
+                    bool requestIsCurrent = false;
+                    {
+                        std::lock_guard<std::mutex> lock(thumbnailMutex);
+                        requestIsCurrent = !thumbnailWorkerStopping && req.generation == thumbnailGeneration;
+                    }
+                    if (requestIsCurrent && !thumbnailPrivateMode.load()) SaveHubThumbnailToDiskCache(persist);
+                }
+            }
+            HWND notifyHwnd = NULL;
+            {
+                std::unique_lock<std::mutex> lock(thumbnailMutex);
+                thumbnailCv.wait(lock, [&]() {
+                    return thumbnailWorkerStopping || req.generation != thumbnailGeneration ||
+                        (completedThumbnailResults.size() < kMaxCompletedThumbnailResults &&
+                         completedThumbnailBytes + result.pixels.size() <= kMaxCompletedThumbnailBytes);
+                });
+                if (!thumbnailWorkerStopping && req.generation == thumbnailGeneration) {
+                    completedThumbnailBytes += result.pixels.size();
+                    completedThumbnailResults.push_back(std::move(result));
+                    notifyHwnd = hWnd;
+                }
+            }
+            if (notifyHwnd && IsWindow(notifyHwnd) && !thumbnailNotificationPosted.exchange(true, std::memory_order_acq_rel)) {
+                if (!PostMessageW(notifyHwnd, kThumbnailReadyMessage, 0, 0))
+                    thumbnailNotificationPosted.store(false, std::memory_order_release);
             }
         }
-        HWND notifyHwnd = NULL;
-        {
-            std::unique_lock<std::mutex> lock(thumbnailMutex);
-            thumbnailCv.wait(lock, [&]() {
-                return thumbnailWorkerStopping || req.generation != thumbnailGeneration ||
-                    (completedThumbnailResults.size() < kMaxCompletedThumbnailResults &&
-                     completedThumbnailBytes + result.pixels.size() <= kMaxCompletedThumbnailBytes);
-            });
-            if (!thumbnailWorkerStopping && req.generation == thumbnailGeneration) {
-                completedThumbnailBytes += result.pixels.size();
-                completedThumbnailResults.push_back(std::move(result));
-                notifyHwnd = hWnd;
-            }
-        }
-        if (notifyHwnd && IsWindow(notifyHwnd) && !thumbnailNotificationPosted.exchange(true, std::memory_order_acq_rel)) {
-            if (!PostMessageW(notifyHwnd, kThumbnailReadyMessage, 0, 0))
-                thumbnailNotificationPosted.store(false, std::memory_order_release);
-        }
+    } catch (...) {
+        // Resource exhaustion discards this worker's current request. Other
+        // workers remain usable, and close still observes a completed owner.
+        std::lock_guard<std::mutex> lock(thumbnailMutex);
+        inFlightThumbnailKeys.erase(req.key);
     }
-    workerWicFactory.Reset();
-    CoUninitialize();
 }
+
 
 void Renderer::EnqueueThumbnailRequest(const ThumbnailKey& key, bool lowPriority) {
     // Demand-driven startup: the first queued request creates the first

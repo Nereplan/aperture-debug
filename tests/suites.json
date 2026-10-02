@@ -560,6 +560,20 @@
       "description": "Deterministic async shutdown stress harness exercising concurrent media/folder work, player event callbacks, HTTP updater/subtitle bounded fakes, diagnostics watchdog, and UI callback dispatch under seeded schedules with lifetime/leak invariant verification."
     },
     {
+      "id": "media_probe_isolation",
+      "name": "Native Media Probe Isolation and Cancellation",
+      "category": "stress",
+      "tier": "pr",
+      "platform": "windows-x64",
+      "script": "tests/native/run_media_probe_isolation.ps1",
+      "command": "powershell",
+      "arguments": [],
+      "prerequisites": ["msvc_x64"],
+      "artifactPolicy": "isolated_temp",
+      "timeoutSeconds": 120,
+      "description": "Actual MF WAV metadata and Shell BMP thumbnails through the production subprocess protocol; confirmed blocked-provider cancellation/deadline, process exit/recovery, strict input bounds, helper reuse and measured idle resource release. Test-only frozen provider exists only in this native test build."
+    },
+    {
       "id": "thumbnail_cache",
       "name": "Thumbnail Cache Workflows",
       "category": "persistence",

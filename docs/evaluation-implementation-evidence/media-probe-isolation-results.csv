@@ -1,0 +1,15 @@
+﻿case,status,value
+metadata-and-reuse,pass,0
+shell-thumbnail-and-bounds,pass,0
+blocked-provider-timeout-and-recovery,pass,516
+blocked-provider-cancellation,pass,78
+input-validation,pass,0
+helper-unavailable-and-handle-cleanup,pass,0
+scoped-probe-routing,pass,0
+resource-first-metadata-ms,pass,120.176
+resource-reused-metadata-ms,pass,1.357
+resource-single-helper-private-bytes,pass,3969024
+resource-single-helper-working-bytes,pass,19824640
+resource-four-shell-helpers-private-bytes,pass,14700544
+resource-idle-exit-ms,pass,5017.050
+idle-exit-and-restart,pass,0
