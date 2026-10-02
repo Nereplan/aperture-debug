@@ -1211,11 +1211,41 @@ void App::OpenSubtitleSafeAreaContextMenu(float x, float y) {
     PresentPlayerContextMenu(x, y, 280.0f, false, PlayerMenuReveal::Cursor);
 }
 
+bool App::PumpOnlineSubtitleJobs() {
+    const std::wstring currentMedia = player.GetCurrentFilePath().empty()
+        ? playbackSession.GetCurrentFilePath() : player.GetCurrentFilePath();
+    bool changed = onlineSubtitleJobs.SyncContext(currentMedia, settings);
+    changed = onlineSubtitleJobs.PumpSearch() || changed;
+    if (auto download = onlineSubtitleJobs.TakeDownload()) {
+        changed = true;
+        if (download->success && !download->savedFilePath.empty()) {
+            const bool loaded = player.LoadExternalSubtitle(download->savedFilePath, false);
+            if (loaded) {
+                subtitles.Clear();
+                ShowOSD(IconType::Subtitles, L"Loaded Online Subtitle: " + GetFileNameFromPath(download->savedFilePath));
+            } else ShowOSD(IconType::Subtitles, L"Downloaded but could not load");
+        } else if (download->status != OnlineSubtitleStatus::Cancelled) {
+            ShowOSD(IconType::Subtitles, L"Download Failed: " +
+                (download->errorMessage.empty() ? std::wstring(L"Download failed") : download->errorMessage));
+        }
+    }
+    if (changed && isContextMenuOpen && !contextMenuItems.empty() && contextMenuItems.front().id == "onl_title")
+        OpenOnlineSubtitlesContextMenu(contextMenuOrigin.x, contextMenuOrigin.y);
+    return changed;
+}
+
 void App::OpenOnlineSubtitlesContextMenu(float x, float y) {
-    PushFocusSnapshot(TransientSurfaceType::ContextMenu);
+    const bool refreshing = isContextMenuOpen && !contextMenuItems.empty() && contextMenuItems.front().id == "onl_title";
+    const int oldHovered = hoveredContextMenuItem;
+    const std::string hoveredId = oldHovered >= 0 && static_cast<size_t>(oldHovered) < contextMenuItems.size()
+        ? contextMenuItems[oldHovered].id : std::string();
+    if (!refreshing) PushFocusSnapshot(TransientSurfaceType::ContextMenu);
     contextMenuItems.clear();
     contextMenuItems.push_back({ "onl_title", L"Online Subtitles", L"", IconType::Subtitles, false, false, false, nullptr });
     contextMenuItems.push_back({ "sep_onl1", L"", L"", IconType::Play, true });
+    const std::wstring currentMedia = player.GetCurrentFilePath().empty()
+        ? playbackSession.GetCurrentFilePath() : player.GetCurrentFilePath();
+    onlineSubtitleJobs.SyncContext(currentMedia, settings);
     if (!settings.onlineSubtitlesEnabled) {
         contextMenuItems.push_back({ "onl_dis_info", L"Online Retrieval is Disabled", L"", IconType::Subtitles, false, false, false, nullptr });
         contextMenuItems.push_back({ "onl_enable", L"Enable Online Subtitles (Opt-In)", L"", IconType::Plus, false, false, false, [this, x, y]() {
@@ -1224,20 +1254,27 @@ void App::OpenOnlineSubtitlesContextMenu(float x, float y) {
             ShowOSD(IconType::Subtitles, L"Online Subtitles Enabled");
             OpenOnlineSubtitlesContextMenu(x, y);
         }});
+    } else if (currentMedia.empty()) {
+        contextMenuItems.push_back({ "onl_no_media", L"No media file currently active", L"", IconType::Subtitles, false, false, false, nullptr });
     } else {
-        std::wstring currentMedia = player.GetCurrentFilePath().empty() ? playbackSession.GetCurrentFilePath() : player.GetCurrentFilePath();
-        if (currentMedia.empty()) {
-            contextMenuItems.push_back({ "onl_no_media", L"No media file currently active", L"", IconType::Subtitles, false, false, false, nullptr });
+        const std::wstring query = OnlineSubtitleService::DeriveSearchQuery(currentMedia);
+        const std::wstring qDisplay = query.length() > 22 ? query.substr(0, 22) + L"..." : query;
+        contextMenuItems.push_back({ "onl_query", L"Query: " + qDisplay, L"", IconType::Subtitles, false, false, false, nullptr });
+        contextMenuItems.push_back({ "sep_onl2", L"", L"", IconType::Play, true });
+        onlineSubtitleJobs.EnsureSearch(settings);
+        if (onlineSubtitleJobs.GetSearchState() == OnlineSubtitleJobs::SearchState::Loading) {
+            contextMenuItems.push_back({ "onl_loading", L"Searching online subtitles...", L"", IconType::Subtitles, false, false, false, nullptr });
+        } else if (onlineSubtitleJobs.IsDownloading()) {
+            contextMenuItems.push_back({ "onl_downloading", L"Downloading subtitle...", L"", IconType::Subtitles, false, false, false, nullptr });
         } else {
-            std::wstring query = OnlineSubtitleService::DeriveSearchQuery(currentMedia);
-            std::wstring qDisplay = query.length() > 22 ? query.substr(0, 22) + L"..." : query;
-            contextMenuItems.push_back({ "onl_query", L"Query: " + qDisplay, L"", IconType::Subtitles, false, false, false, nullptr });
-            contextMenuItems.push_back({ "sep_onl2", L"", L"", IconType::Play, true });
-            OnlineSubtitleResult searchRes = OnlineSubtitleService::Instance().Search(currentMedia, L"", settings);
+            const auto& searchRes = onlineSubtitleJobs.GetSearchResult();
             if (!searchRes.success) {
                 std::wstring errLabel = searchRes.errorMessage.empty() ? L"Search failed" : searchRes.errorMessage;
                 if (errLabel.length() > 30) errLabel = errLabel.substr(0, 30) + L"...";
                 contextMenuItems.push_back({ "onl_err", errLabel, L"", IconType::Subtitles, false, false, false, nullptr });
+                contextMenuItems.push_back({ "onl_retry", L"Retry Search", L"", IconType::Refresh, false, false, false, [this, x, y]() {
+                    onlineSubtitleJobs.RetrySearch(settings); OpenOnlineSubtitlesContextMenu(x, y);
+                }});
             } else if (searchRes.searchResults.empty()) {
                 contextMenuItems.push_back({ "onl_none", L"No subtitles found", L"", IconType::Subtitles, false, false, false, nullptr });
             } else {
@@ -1246,22 +1283,15 @@ void App::OpenOnlineSubtitlesContextMenu(float x, float y) {
                     std::wstring label = item.title;
                     if (label.length() > 22) label = label.substr(0, 22) + L"...";
                     if (!item.language.empty()) label += L" [" + item.language + L"]";
-                    OnlineSubtitleSearchResult capItem = item;
-                    std::wstring capMedia = currentMedia;
-                    contextMenuItems.push_back({ "onl_item_" + std::to_string(i), label, L"", IconType::Subtitles, false, false, false, [this, x, y, capItem, capMedia]() {
-                        OnlineSubtitleResult dlRes = OnlineSubtitleService::Instance().DownloadAndLoad(capItem, capMedia, settings);
-                        if (dlRes.success && !dlRes.savedFilePath.empty()) {
-                            bool loaded = player.LoadExternalSubtitle(dlRes.savedFilePath, false);
-                            if (loaded) {
-                                subtitles.Clear();
-                                ShowOSD(IconType::Subtitles, L"Loaded Online Subtitle: " + GetFileNameFromPath(dlRes.savedFilePath));
-                            } else { ShowOSD(IconType::Subtitles, L"Downloaded but could not load"); }
-                        } else {
-                            std::wstring errMsg = dlRes.errorMessage.empty() ? L"Download failed" : dlRes.errorMessage;
-                            ShowOSD(IconType::Subtitles, L"Download Failed: " + errMsg);
-                        }
-                        OpenOnlineSubtitlesContextMenu(x, y);
-                    }});
+                    contextMenuItems.push_back({ "onl_item_" + std::to_string(i), label, L"", IconType::Subtitles, false, false, false,
+                        [this, x, y, item, currentMedia]() {
+                            const std::wstring activeMedia = player.GetCurrentFilePath().empty()
+                                ? playbackSession.GetCurrentFilePath() : player.GetCurrentFilePath();
+                            onlineSubtitleJobs.SyncContext(activeMedia, settings);
+                            if (onlineSubtitleJobs.StartDownload(item, currentMedia, settings))
+                                ShowOSD(IconType::Subtitles, L"Downloading online subtitle...");
+                            OpenOnlineSubtitlesContextMenu(x, y);
+                        }});
                 }
             }
         }
@@ -1270,6 +1300,11 @@ void App::OpenOnlineSubtitlesContextMenu(float x, float y) {
     contextMenuItems.push_back(
         {"onl_back", L"\x2190 Back", L"", IconType::ChevronLeft, false, false, false, [this, x, y]() { OpenSubtitlesContextMenu(x, y); }});
     PresentPlayerContextMenu(x, y, 300.0f, false, PlayerMenuReveal::Cursor);
+    if (refreshing && !hoveredId.empty()) {
+        for (size_t i = 0; i < contextMenuItems.size(); ++i)
+            if (contextMenuItems[i].id == hoveredId) { hoveredContextMenuItem = static_cast<int>(i); break; }
+    }
+    MarkAccessibilityDirty();
 }
 
 void App::OpenSubtitleProfilesContextMenu(float x, float y) {

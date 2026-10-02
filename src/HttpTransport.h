@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Common.h"
+#include "OperationCancellation.h"
 #include <string>
 #include <vector>
 #include <map>
@@ -24,6 +25,8 @@ struct HttpRequestOptions {
     std::wstring userAgent = L"Aperture/2.0";
     std::vector<std::wstring> allowedHosts; // Exact, case-insensitive destinations, including every redirect hop.
     std::function<bool()> isCancelled;
+    std::shared_ptr<OperationCancellation> cancellation;
+    bool IsCancelled() const { return (cancellation && cancellation->IsCancelled()) || (isCancelled && isCancelled()); }
 };
 
 struct HttpResponse {

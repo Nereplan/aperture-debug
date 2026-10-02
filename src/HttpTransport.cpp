@@ -1,5 +1,6 @@
 #include "HttpTransport.h"
 #include "HttpBodyReader.h"
+#include "WinHttpAsyncRequest.h"
 #include <windows.h>
 #include <winhttp.h>
 #include <shlwapi.h>
@@ -47,14 +48,16 @@ bool QueryHeaderString(HINTERNET request, DWORD query, std::wstring& output) {
     output.assign(buffer.data()); return true;
 }
 HttpResponse PerformGet(const std::wstring& initialUrl, const HttpRequestOptions& options, const HttpDetail::BodySink& sink = {}) {
+    if (options.IsCancelled()) return HttpFailure(HttpTransportStatus::Cancelled, L"Request cancelled", initialUrl);
     if (!SystemDllPresent(L"winhttp.dll")) return HttpFailure(HttpTransportStatus::NetworkError, L"WinHTTP is unavailable", initialUrl);
     URL_COMPONENTS components{}; HttpResponse result;
     if (!ParseDestination(initialUrl, options, components, result)) return result;
     InternetHandle session(WinHttpOpen(options.userAgent.c_str(), WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
-        WINHTTP_NO_PROXY_NAME, WINHTTP_NO_PROXY_BYPASS, 0));
+        WINHTTP_NO_PROXY_NAME, WINHTTP_NO_PROXY_BYPASS, options.cancellation ? WINHTTP_FLAG_ASYNC : 0));
     const auto networkFailure = [&](const wchar_t* operation, const std::wstring& url) {
         const DWORD error = GetLastError();
-        return HttpFailure(error == ERROR_WINHTTP_TIMEOUT ? HttpTransportStatus::Timeout : HttpTransportStatus::NetworkError,
+        return HttpFailure(options.IsCancelled() ? HttpTransportStatus::Cancelled :
+                           error == ERROR_WINHTTP_TIMEOUT ? HttpTransportStatus::Timeout : HttpTransportStatus::NetworkError,
                            std::wstring(operation) + L": error " + std::to_wstring(error), url);
     };
     if (!session) return networkFailure(L"Failed to initialize HTTPS session", initialUrl);
@@ -63,7 +66,7 @@ HttpResponse PerformGet(const std::wstring& initialUrl, const HttpRequestOptions
     std::wstring currentUrl = initialUrl;
     const int maxRedirects = std::clamp(options.maxRedirects, 0, 20);
     for (int redirects = 0;; ++redirects) {
-        if (options.isCancelled && options.isCancelled()) return HttpFailure(HttpTransportStatus::Cancelled, L"Request cancelled", currentUrl);
+        if (options.IsCancelled()) return HttpFailure(HttpTransportStatus::Cancelled, L"Request cancelled", currentUrl);
         if (!ParseDestination(currentUrl, options, components, result)) return result;
         const std::wstring host(components.lpszHostName, components.dwHostNameLength);
         std::wstring path(components.lpszUrlPath, components.dwUrlPathLength);
@@ -80,16 +83,26 @@ HttpResponse PerformGet(const std::wstring& initialUrl, const HttpRequestOptions
         DWORD policy = WINHTTP_OPTION_REDIRECT_POLICY_NEVER;
         if (!WinHttpSetOption(request.get(), WINHTTP_OPTION_REDIRECT_POLICY, &policy, sizeof(policy)))
             return networkFailure(L"Failed to configure redirect policy", currentUrl);
-        if (!WinHttpSendRequest(request.get(), WINHTTP_NO_ADDITIONAL_HEADERS, 0, WINHTTP_NO_REQUEST_DATA, 0, 0, 0))
+        std::unique_ptr<HttpDetail::AsyncRequest> asyncRequest;
+        if (options.cancellation) {
+            asyncRequest = std::make_unique<HttpDetail::AsyncRequest>(request.release(), options.cancellation);
+            if (!asyncRequest->IsReady()) return networkFailure(L"Failed to configure asynchronous HTTPS request", currentUrl);
+        }
+        const auto use = [&](const auto& operation) { return asyncRequest ? asyncRequest->Use(operation) : operation(request.get()) != FALSE; };
+        const auto send = [&](HINTERNET handle) { return WinHttpSendRequest(handle, WINHTTP_NO_ADDITIONAL_HEADERS, 0, WINHTTP_NO_REQUEST_DATA, 0, 0,
+            asyncRequest ? asyncRequest->Context() : 0); };
+        if (!(asyncRequest ? asyncRequest->Call(WINHTTP_CALLBACK_STATUS_SENDREQUEST_COMPLETE, send) : use(send)))
             return networkFailure(L"Failed to send HTTPS request", currentUrl);
-        if (!WinHttpReceiveResponse(request.get(), nullptr)) return networkFailure(L"Failed to receive HTTPS response", currentUrl);
+        const auto receive = [](HINTERNET handle) { return WinHttpReceiveResponse(handle, nullptr); };
+        if (!(asyncRequest ? asyncRequest->Call(WINHTTP_CALLBACK_STATUS_HEADERS_AVAILABLE, receive) : use(receive)))
+            return networkFailure(L"Failed to receive HTTPS response", currentUrl);
         DWORD code = 0, codeSize = sizeof(code);
-        if (!WinHttpQueryHeaders(request.get(), WINHTTP_QUERY_STATUS_CODE | WINHTTP_QUERY_FLAG_NUMBER,
-            WINHTTP_HEADER_NAME_BY_INDEX, &code, &codeSize, WINHTTP_NO_HEADER_INDEX)) return networkFailure(L"Failed to read HTTP status", currentUrl);
+        if (!use([&](HINTERNET handle) { return WinHttpQueryHeaders(handle, WINHTTP_QUERY_STATUS_CODE | WINHTTP_QUERY_FLAG_NUMBER,
+            WINHTTP_HEADER_NAME_BY_INDEX, &code, &codeSize, WINHTTP_NO_HEADER_INDEX); })) return networkFailure(L"Failed to read HTTP status", currentUrl);
         if (code == 301 || code == 302 || code == 303 || code == 307 || code == 308) {
             if (redirects >= maxRedirects) return HttpFailure(HttpTransportStatus::TooManyRedirects, L"HTTPS redirect limit exceeded", currentUrl);
             std::wstring location;
-            if (!QueryHeaderString(request.get(), WINHTTP_QUERY_LOCATION, location) || location.empty())
+            if (!use([&](HINTERNET handle) { return QueryHeaderString(handle, WINHTTP_QUERY_LOCATION, location); }) || location.empty())
                 return HttpFailure(HttpTransportStatus::InvalidUrl, L"Missing or invalid redirect destination", currentUrl);
             std::vector<wchar_t> combined(32769, 0); DWORD combinedSize = static_cast<DWORD>(combined.size());
             if (FAILED(UrlCombineW(currentUrl.c_str(), location.c_str(), combined.data(), &combinedSize, 0)))
@@ -101,14 +114,15 @@ HttpResponse PerformGet(const std::wstring& initialUrl, const HttpRequestOptions
             result.status = HttpTransportStatus::HttpError; result.errorMessage = L"HTTP request returned status " + std::to_wstring(code); return result;
         }
         std::wstring length; std::optional<uint64_t> expected;
-        if (QueryHeaderString(request.get(), WINHTTP_QUERY_CONTENT_LENGTH, length)) {
+        if (use([&](HINTERNET handle) { return QueryHeaderString(handle, WINHTTP_QUERY_CONTENT_LENGTH, length); })) {
             try { size_t consumed = 0; auto value = std::stoull(length, &consumed);
                   if (consumed == length.size() && !length.empty() && length.front() != L'-') expected = value;
                   else return HttpFailure(HttpTransportStatus::NetworkError, L"Invalid response content length", currentUrl);
             } catch (...) { return HttpFailure(HttpTransportStatus::NetworkError, L"Invalid response content length", currentUrl); }
         }
         HttpDetail::ReadBody(result, options, [&](char* buffer, DWORD capacity, DWORD& bytes, DWORD& error) {
-            if (WinHttpReadData(request.get(), buffer, capacity, &bytes)) return true;
+            const auto read = [&](HINTERNET handle) { return WinHttpReadData(handle, buffer, capacity, asyncRequest ? nullptr : &bytes); };
+            if (asyncRequest ? asyncRequest->Call(WINHTTP_CALLBACK_STATUS_READ_COMPLETE, read, &bytes) : use(read)) return true;
             error = GetLastError(); return false;
         }, sink, expected);
         return result;
@@ -116,6 +130,7 @@ HttpResponse PerformGet(const std::wstring& initialUrl, const HttpRequestOptions
 }
 HttpResponse DownloadFile(const std::wstring& url, const std::wstring& destination, const HttpRequestOptions& options,
                           const std::function<HttpResponse(const HttpDetail::BodySink&)>& download) {
+    if (options.IsCancelled()) return HttpFailure(HttpTransportStatus::Cancelled, L"Request cancelled", url);
     FileHandle output(CreateFileW(destination.c_str(), GENERIC_WRITE, 0, nullptr, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, nullptr), &CloseHandle);
     if (output.get() == INVALID_HANDLE_VALUE) {
         output.release(); return HttpFailure(HttpTransportStatus::FileError, L"Failed to create download staging file", url);
@@ -123,6 +138,7 @@ HttpResponse DownloadFile(const std::wstring& url, const std::wstring& destinati
     auto result = download([&](const char* bytes, DWORD count) {
         DWORD written = 0; return WriteFile(output.get(), bytes, count, &written, nullptr) && written == count;
     });
+    if (options.IsCancelled()) result = HttpFailure(HttpTransportStatus::Cancelled, L"Request cancelled", result.finalUrl);
     if (result.success && !FlushFileBuffers(output.get())) {
         result.success = false; result.status = HttpTransportStatus::FileError; result.errorMessage = L"Failed to flush download staging file";
     }
@@ -149,6 +165,9 @@ HttpResponse IHttpTransport::GetToFile(const std::wstring& url, const std::wstri
                 return HttpFailure(HttpTransportStatus::ResponseTooLarge, L"Response size exceeded configured ceiling", finalUrl);
             size_t offset = 0;
             while (offset < result.body.size()) {
+                if (options.IsCancelled()) {
+                    result.success = false; result.status = HttpTransportStatus::Cancelled; result.errorMessage = L"Request cancelled"; break;
+                }
                 const DWORD bytes = static_cast<DWORD>(std::min<size_t>(64 * 1024, result.body.size() - offset));
                 if (!sink(result.body.data() + offset, bytes)) {
                     result.success = false; result.status = HttpTransportStatus::FileError; result.errorMessage = L"Failed to write downloaded response"; break;

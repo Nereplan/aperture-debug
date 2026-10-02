@@ -333,8 +333,11 @@ StorageStatus OnlineSubtitleService::SaveSubtitleAtomically( const std::string& 
 }
 
 OnlineSubtitleResult OnlineSubtitleService::Search( const std::wstring& mediaPath, const std::wstring& overrideTitle,
-    const Settings &settings, IHttpTransport *customTransport) {
+    const Settings &settings, IHttpTransport *customTransport, std::shared_ptr<OperationCancellation> cancellation) {
     OnlineSubtitleResult result;
+    const auto cancelled = [&] { if (!cancellation || !cancellation->IsCancelled()) return false;
+        result.status = OnlineSubtitleStatus::Cancelled; result.errorMessage = L"Subtitle search cancelled"; return true; };
+    if (cancelled()) return result;
     if (!settings.onlineSubtitlesEnabled) {
         result.status = OnlineSubtitleStatus::Disabled;
         result.errorMessage = L"Online Subtitle Retrieval is disabled by user settings";
@@ -357,8 +360,10 @@ OnlineSubtitleResult OnlineSubtitleService::Search( const std::wstring& mediaPat
     options.maxResponseBytes = 1024 * 1024; // 1 MB search response limit
     options.timeoutMs = 5000;
     options.maxRedirects = 3;
+    options.cancellation = cancellation;
     HttpResponse response = transport->Get(searchUrl, options);
     result.httpStatusCode = response.statusCode;
+    if (cancelled()) return result;
     if (!response.success) {
         result.status = MapHttpTransportStatus(response.status);
         result.errorMessage = response.errorMessage.empty() ? L"Network request failed" : response.errorMessage;
@@ -376,9 +381,13 @@ OnlineSubtitleResult OnlineSubtitleService::Search( const std::wstring& mediaPat
 }
 
 OnlineSubtitleResult OnlineSubtitleService::DownloadAndLoad( const OnlineSubtitleSearchResult& item, const std::wstring& mediaPath,
-    const Settings& settings, IHttpTransport* customTransport, const std::wstring& rootDir)
+    const Settings& settings, IHttpTransport* customTransport, const std::wstring& rootDir,
+    std::shared_ptr<OperationCancellation> cancellation)
 {
     OnlineSubtitleResult result;
+    const auto cancelled = [&] { if (!cancellation || !cancellation->IsCancelled()) return false;
+        result.status = OnlineSubtitleStatus::Cancelled; result.errorMessage = L"Subtitle download cancelled"; return true; };
+    if (cancelled()) return result;
     if (!settings.onlineSubtitlesEnabled) {
         result.status = OnlineSubtitleStatus::Disabled;
         result.errorMessage = L"Online Subtitle Retrieval is disabled by user settings";
@@ -394,8 +403,10 @@ OnlineSubtitleResult OnlineSubtitleService::DownloadAndLoad( const OnlineSubtitl
     options.maxResponseBytes = kMaxSubtitleFileBytes; // 4 MB limit
     options.timeoutMs = 10000;                       // 10 seconds for file download
     options.maxRedirects = 3;
+    options.cancellation = cancellation;
     HttpResponse response = transport->Get(Utf8ToUtf16(item.downloadUrl), options);
     result.httpStatusCode = response.statusCode;
+    if (cancelled()) return result;
     if (!response.success) {
         result.status = MapHttpTransportStatus(response.status);
         result.errorMessage = response.errorMessage.empty() ? L"Failed to download subtitle file" : response.errorMessage;
@@ -410,6 +421,7 @@ OnlineSubtitleResult OnlineSubtitleService::DownloadAndLoad( const OnlineSubtitl
         return result;
     }
     // Save Atomically to Root-Local Cache
+    if (cancelled()) return result;
     std::wstring queryTitle = DeriveSearchQuery(mediaPath, item.title);
     std::wstring savedPath;
     StorageStatus saveStatus = SaveSubtitleAtomically( normalizedText, queryTitle, item.language, item.id, item.format, savedPath, rootDir);
@@ -418,6 +430,7 @@ OnlineSubtitleResult OnlineSubtitleService::DownloadAndLoad( const OnlineSubtitl
         result.errorMessage = Utf8ToUtf16(saveStatus.message);
         return result;
     }
+    if (cancelled()) return result;
     result.success = true;
     result.status = OnlineSubtitleStatus::Success;
     result.savedFilePath = savedPath;

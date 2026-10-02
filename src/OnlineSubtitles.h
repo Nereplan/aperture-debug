@@ -81,9 +81,10 @@ public:
         const std::wstring& rootDir = GetExeDir());
     // High-level operations
     OnlineSubtitleResult Search( const std::wstring& mediaPath, const std::wstring& overrideTitle, const Settings& settings,
-        IHttpTransport* customTransport = nullptr);
+        IHttpTransport* customTransport = nullptr, std::shared_ptr<OperationCancellation> cancellation = {});
     OnlineSubtitleResult DownloadAndLoad( const OnlineSubtitleSearchResult& item, const std::wstring& mediaPath, const Settings& settings,
-        IHttpTransport* customTransport = nullptr, const std::wstring& rootDir = GetExeDir());
+        IHttpTransport* customTransport = nullptr, const std::wstring& rootDir = GetExeDir(),
+        std::shared_ptr<OperationCancellation> cancellation = {});
 
 private:
     std::unique_ptr<IHttpTransport> defaultTransport_;

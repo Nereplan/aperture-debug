@@ -914,6 +914,9 @@ UpdateCheckResult ValidateReleaseManifest(const ReleaseManifest &manifest, const
 
 UpdateCheckResult CheckForUpdates(const UpdaterConfig &config, IHttpTransport *transport, const std::wstring &rootDir) {
     UpdateCheckResult result;
+    const auto cancelled = [&] { if (!config.cancellation || !config.cancellation->IsCancelled()) return false;
+        result.status = UpdaterStatusCode::Cancelled; result.message = "Update check cancelled"; return true; };
+    if (cancelled()) return result;
     if (!config.IsTrustConfigured()) {
         result.status = UpdaterStatusCode::NotConfigured;
         result.message = "Software update trust root and release endpoints are not configured for this build.";
@@ -934,8 +937,11 @@ UpdateCheckResult CheckForUpdates(const UpdaterConfig &config, IHttpTransport *t
     options.timeoutMs = config.connectTimeoutMs;
     options.maxRedirects = config.maxRedirects;
     options.userAgent = L"Aperture/2.0 (Updater)";
+    options.cancellation = config.cancellation;
+    for (const auto& host : config.allowedHosts) options.allowedHosts.push_back(Utf8ToUtf16(host));
     HttpResponse httpResp = activeTransport->Get(Utf8ToUtf16(config.manifestUrl), options);
     result.httpStatusCode = httpResp.statusCode;
+    if (cancelled()) return result;
     if (!httpResp.success) {
         if (httpResp.status == HttpTransportStatus::Timeout) {
             result.status = UpdaterStatusCode::Timeout;
@@ -972,14 +978,17 @@ UpdateDownloadResult DownloadAndStageUpdate( const ReleaseManifest& manifest, co
     std::function<void(float progress)> progressCallback, const std::wstring &rootDir) {
     UpdateDownloadResult result;
     result.manifest = manifest;
+    const auto cancelled = [&] { if (!config.cancellation || !config.cancellation->IsCancelled()) return false;
+        result.status = UpdaterStatusCode::Cancelled; result.message = "Update download cancelled"; return true; };
+    if (cancelled()) return result;
     UpdateCheckResult valRes = ValidateReleaseManifest(manifest, config, rootDir);
     if (!valRes.updateAvailable) {
         result.status = valRes.status;
         result.message = valRes.message;
         return result;
     }
-    ScopedTempDirectory tempDir(L"Aperture_Update_");
-    std::wstring stagingDir = tempDir.SubPath(L"staged");
+    auto tempDir = std::make_shared<ScopedTempDirectory>(L"Aperture_Update_");
+    std::wstring stagingDir = tempDir->SubPath(L"staged");
     CreateDirectoryW(stagingDir.c_str(), NULL);
     std::unique_ptr<IHttpTransport> defaultTransport;
     IHttpTransport* activeTransport = transport;
@@ -989,10 +998,12 @@ UpdateDownloadResult DownloadAndStageUpdate( const ReleaseManifest& manifest, co
     options.timeoutMs = config.downloadTimeoutMs;
     options.maxRedirects = config.maxRedirects;
     options.userAgent = L"Aperture/2.0 (Updater)";
+    options.cancellation = config.cancellation;
     for (const auto& host : config.allowedHosts) options.allowedHosts.push_back(Utf8ToUtf16(host));
     if (progressCallback) progressCallback(0.1f);
     std::wstring stagedExe = stagingDir + L"\\Aperture.exe";
     HttpResponse httpResp = activeTransport->GetToFile(Utf8ToUtf16(manifest.downloadUrl), stagedExe, options);
+    if (cancelled()) return result;
     if (!httpResp.success) {
         result.status = httpResp.status == HttpTransportStatus::FileError ? UpdaterStatusCode::StagingError : UpdaterStatusCode::NetworkError;
         result.message = "Failed to download update package: " + Utf16ToUtf8(httpResp.errorMessage);
@@ -1000,6 +1011,7 @@ UpdateDownloadResult DownloadAndStageUpdate( const ReleaseManifest& manifest, co
     }
     if (progressCallback) progressCallback(0.5f);
     std::string downloadedSha = ComputeFileSha256Hex(stagedExe);
+    if (cancelled()) return result;
     if (!CaseInsensitiveEqual(downloadedSha, manifest.sha256)) {
         result.status = UpdaterStatusCode::HashMismatch;
         result.message = "Package SHA-256 mismatch: expected " + manifest.sha256 + ", got " + downloadedSha;
@@ -1023,8 +1035,9 @@ UpdateDownloadResult DownloadAndStageUpdate( const ReleaseManifest& manifest, co
         }
     }
     if (progressCallback) progressCallback(1.0f);
+    if (cancelled()) return result;
     result.stagingDirectory = stagingDir;
-    tempDir.DisableAutoCleanup();
+    result.stagingLease = std::move(tempDir);
     result.status = UpdaterStatusCode::Success;
     result.message = "Update downloaded and staged successfully";
     return result;
@@ -1063,6 +1076,7 @@ UpdateApplyResult LaunchHelperAndExit(const UpdateDownloadResult &downloadResult
     }
     CloseHandle(pi.hThread);
     CloseHandle(pi.hProcess);
+    if (downloadResult.stagingLease) downloadResult.stagingLease->DisableAutoCleanup();
     result.status = UpdaterStatusCode::Success;
     result.message = "Update helper launched successfully";
     return result;

@@ -4,6 +4,7 @@
 #include "../../src/Updater.h"
 #include <windows.h>
 #include <string>
+#include "TestAsyncUpdateCancellation.h"
 
 namespace Aperture::Test {
 

@@ -6,6 +6,7 @@
 #include "../../src/Settings.h"
 #include <string>
 #include <vector>
+#include "TestAsyncNetworkJobs.h"
 
 namespace Aperture::Test {
 

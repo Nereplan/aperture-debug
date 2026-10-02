@@ -80,6 +80,7 @@ struct UpdaterConfig {
     std::string overridePinnedPublicKeyHex;         // Explicit test trust injection
     std::string overridePinnedSignerThumbprint;     // Explicit test trust injection
     std::optional<std::chrono::system_clock::time_point> mockCurrentTime; // For deterministic tests
+    std::shared_ptr<OperationCancellation> cancellation;
     UpdaterConfig(const std::string& channelName = "stable");
     bool IsTrustConfigured() const;
     std::string GetEffectivePublicKeyHex() const;
@@ -96,12 +97,15 @@ struct UpdateCheckResult {
     int httpStatusCode = 0;
 };
 
+class ScopedTempDirectory;
 struct UpdateDownloadResult {
     UpdaterStatusCode status = UpdaterStatusCode::Success;
     std::wstring stagingDirectory;
     std::vector<std::wstring> stagedFiles;
     ReleaseManifest manifest;
     std::string message;
+    // Cancelled/stale asynchronous results release their staging directory.
+    std::shared_ptr<ScopedTempDirectory> stagingLease;
 };
 
 struct UpdateApplyResult { UpdaterStatusCode status = UpdaterStatusCode::Success; std::string message; };

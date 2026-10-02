@@ -543,53 +543,104 @@ void App::CheckForUpdates(bool isManual) {
             result > 32 ? L"Checking for updates. Aperture will restart when the update is ready." : L"Could not start the updater.");
         return;
     }
-    UpdaterConfig cfg;
-    cfg.channel = settings.updateChannel;
-    if (!settings.updateCheckUrl.empty()) { cfg.manifestUrl = settings.updateCheckUrl; }
-    UpdateCheckResult res = Aperture::CheckForUpdates(cfg);
-    if (!playbackSession.IsPrivateMode()) {
-        UpdaterState st;
-        st.lastCheckUtc = FormatIso8601Utc(std::chrono::system_clock::now());
-        st.lastCheckStatus = (res.status == UpdaterStatusCode::UpdateAvailable) ? "update_available" :
-                             (res.status == UpdaterStatusCode::UpToDate) ? "up_to_date" : "failed";
-        st.lastAvailableVersion = res.manifest.version;
-        st.lastError = res.message;
-        SaveUpdaterState(st, false);
+    if (updateDownloadJob.IsRunning() || updateCheckJob.IsRunning()) {
+        if (isManual) ShowOSD(IconType::SettingsGear, L"An update operation is already in progress.");
+        return;
     }
-    if (res.status == UpdaterStatusCode::UpdateAvailable) {
-        std::wstring msg = L"A new version of Aperture (" + Utf8ToUtf16(res.manifest.version) + L") is available to install.\n\n" +
-                           (!res.manifest.releaseNotes.empty() ? Utf8ToUtf16(res.manifest.releaseNotes) + L"\n\n" : L"") +
-                           L"Would you like to download and install this update now?";
-        ReleaseManifest targetManifest = res.manifest;
-        ShowConfirmationModal( L"Software Update Available", msg, L"Update Now", [this, targetManifest]() {
-                TriggerUpdateDownloadAndApply(targetManifest);
-            }, nullptr, false );
-    } else if (res.status == UpdaterStatusCode::UpToDate) {
-        if (isManual)
-            ShowOSD(IconType::Checkmark, L"Aperture is up to date (" + Utf8ToUtf16(SemanticVersion::Current().ToString()) + L")");
-    } else {
-        if (isManual) { ShowOSD(IconType::VolumeMuted, GetUpdaterStatusMessage(res.status, res.message)); }
-    }
+    UpdaterConfig cfg(settings.updateChannel);
+    if (!settings.updateCheckUrl.empty()) cfg.manifestUrl = settings.updateCheckUrl;
+    updateJobChannel = settings.updateChannel;
+    updateJobUrl = settings.updateCheckUrl;
+    updateJobsPrivateMode = playbackSession.IsPrivateMode();
+    updateCheckManual = isManual;
+    updateCheckPersistState = !playbackSession.IsPrivateMode();
+    const std::wstring root = GetExeDir();
+    updateCheckJob.Start([cfg, root](const auto& cancellation) mutable {
+        cfg.cancellation = cancellation;
+        return Aperture::CheckForUpdates(cfg, nullptr, root);
+    });
+    if (isManual) ShowOSD(IconType::SettingsGear, L"Checking for updates...");
 }
 
-
 void App::TriggerUpdateDownloadAndApply(const ReleaseManifest& manifest) {
+    if (updateDownloadJob.IsRunning()) return;
+    updateCheckJob.Cancel();
     ShowOSD(IconType::SettingsGear, L"Downloading Aperture update...");
-    UpdaterConfig cfg;
-    cfg.channel = settings.updateChannel;
-    if (!settings.updateCheckUrl.empty()) { cfg.manifestUrl = settings.updateCheckUrl; }
-    UpdateDownloadResult dlRes = DownloadAndStageUpdate(manifest, cfg);
-    if (dlRes.status != UpdaterStatusCode::Success) {
-        ShowOSD(IconType::VolumeMuted, GetUpdaterStatusMessage(dlRes.status, dlRes.message));
-        return;
+    UpdaterConfig cfg(settings.updateChannel);
+    if (!settings.updateCheckUrl.empty()) cfg.manifestUrl = settings.updateCheckUrl;
+    updateJobChannel = settings.updateChannel;
+    updateJobUrl = settings.updateCheckUrl;
+    updateJobsPrivateMode = playbackSession.IsPrivateMode();
+    const std::wstring root = GetExeDir();
+    updateDownloadJob.Start([manifest, cfg, root](const auto& cancellation) mutable {
+        cfg.cancellation = cancellation;
+        return DownloadAndStageUpdate(manifest, cfg, nullptr, nullptr, root);
+    });
+}
+
+bool App::PumpUpdateJobs() {
+    if (updateJobChannel != settings.updateChannel || updateJobUrl != settings.updateCheckUrl ||
+        updateJobsPrivateMode != playbackSession.IsPrivateMode()) {
+        updateCheckJob.Cancel(); updateDownloadJob.Cancel();
+        updateJobChannel = settings.updateChannel; updateJobUrl = settings.updateCheckUrl;
+        updateJobsPrivateMode = playbackSession.IsPrivateMode();
+        return false;
     }
-    ShowOSD(IconType::Checkmark, L"Update staged. Launching updater helper...");
-    UpdateApplyResult applyRes = LaunchHelperAndExit(dlRes, true);
-    if (applyRes.status != UpdaterStatusCode::Success) {
-        ShowOSD(IconType::VolumeMuted, GetUpdaterStatusMessage(applyRes.status, applyRes.message));
-        return;
+    bool changed = false;
+    if (auto completion = updateCheckJob.TakeResult()) {
+        changed = true;
+        if (!completion->result) {
+            if (updateCheckManual) ShowOSD(IconType::VolumeMuted, L"Update check failed: " + Utf8ToUtf16(completion->error));
+        } else {
+            const auto& res = *completion->result;
+            if (updateCheckPersistState && !playbackSession.IsPrivateMode() && res.status != UpdaterStatusCode::Cancelled) {
+                UpdaterState st;
+                st.lastCheckUtc = FormatIso8601Utc(std::chrono::system_clock::now());
+                st.lastCheckStatus = (res.status == UpdaterStatusCode::UpdateAvailable) ? "update_available" :
+                                     (res.status == UpdaterStatusCode::UpToDate) ? "up_to_date" : "failed";
+                st.lastAvailableVersion = res.manifest.version;
+                st.lastError = res.message;
+                const auto status = SaveUpdaterState(st, false);
+                if (!status.is_ok()) ReportStorageFailure(status, L"Save update check");
+            }
+            if (res.status == UpdaterStatusCode::UpdateAvailable) {
+                const std::wstring message = L"A new version of Aperture (" + Utf8ToUtf16(res.manifest.version) + L") is available to install.\n\n" +
+                    (!res.manifest.releaseNotes.empty() ? Utf8ToUtf16(res.manifest.releaseNotes) + L"\n\n" : L"") +
+                    L"Would you like to download and install this update now?";
+                ShowConfirmationModal(L"Software Update Available", message, L"Update Now",
+                    [this, manifest = res.manifest]() { TriggerUpdateDownloadAndApply(manifest); }, nullptr, false);
+            } else if (res.status == UpdaterStatusCode::UpToDate && updateCheckManual) {
+                ShowOSD(IconType::Checkmark, L"Aperture is up to date (" + Utf8ToUtf16(SemanticVersion::Current().ToString()) + L")");
+            } else if (res.status != UpdaterStatusCode::Cancelled && updateCheckManual) {
+                ShowOSD(IconType::VolumeMuted, GetUpdaterStatusMessage(res.status, res.message));
+            }
+        }
     }
-    PostQuitMessage(0);
+    if (auto completion = updateDownloadJob.TakeResult()) {
+        changed = true;
+        if (!completion->result) {
+            ShowOSD(IconType::VolumeMuted, L"Update download failed: " + Utf8ToUtf16(completion->error));
+        } else {
+            const auto& result = *completion->result;
+            if (result.status == UpdaterStatusCode::Success) {
+                ShowOSD(IconType::Checkmark, L"Update staged. Launching updater helper...");
+                const auto apply = LaunchHelperAndExit(result, true);
+                if (apply.status == UpdaterStatusCode::Success) PostMessageW(hWnd, WM_CLOSE, 0, 0);
+                else ShowOSD(IconType::VolumeMuted, GetUpdaterStatusMessage(apply.status, apply.message));
+            } else if (result.status != UpdaterStatusCode::Cancelled) {
+                ShowOSD(IconType::VolumeMuted, GetUpdaterStatusMessage(result.status, result.message));
+            }
+        }
+    }
+    return changed;
+}
+
+void App::CancelNetworkJobs() {
+    onlineSubtitleJobs.Cancel(); updateCheckJob.Cancel(); updateDownloadJob.Cancel();
+}
+
+bool App::AreNetworkJobsRunning() const {
+    return onlineSubtitleJobs.IsRunning() || updateCheckJob.IsRunning() || updateDownloadJob.IsRunning();
 }
 
 
