@@ -93,16 +93,16 @@ TEST_CASE(Stress, NetworkStreamModelConcurrentAsyncOpenAndCancel) {
         NetworkStreamModel model;
         std::atomic<bool> stopRunning{false};
         std::atomic<uint32_t> callbacksCompleted{0};
+        std::atomic<uint32_t> projectionsRead{0}, inconsistentProjections{0};
 
         // UI projection / query thread
-        std::thread uiReader([&model, &stopRunning]() {
+        std::thread uiReader([&]() {
             while (!stopRunning.load(std::memory_order_relaxed)) {
                 NetworkStreamProjection proj = model.GetProjection();
-                std::wstring err = model.GetLastError();
-                bool opening = model.IsOpening();
-                (void)proj;
-                (void)err;
-                (void)opening;
+                const bool expectedValid = proj.currentInput.rfind(L"https://stream.example.com/", 0) == 0;
+                if (proj.isValidInput != expectedValid || proj.recentStreamsEnabled || !proj.recentStreams.empty())
+                    inconsistentProjections.fetch_add(1, std::memory_order_relaxed);
+                projectionsRead.fetch_add(1, std::memory_order_relaxed);
                 std::this_thread::yield();
             }
         });
@@ -137,6 +137,16 @@ TEST_CASE(Stress, NetworkStreamModelConcurrentAsyncOpenAndCancel) {
             uiReader.join();
         }
         model.CancelOpen();
+        TEST_ASSERT(!model.IsOpening());
+        TEST_ASSERT(!model.GetProjection().isOpening);
+        TEST_ASSERT(projectionsRead.load() > 0);
+        TEST_ASSERT_EQ(inconsistentProjections.load(), 0u);
+        // Invalid inputs complete synchronously; each open may complete only once.
+        TEST_ASSERT(callbacksCompleted.load() >= kCycles / 2);
+        TEST_ASSERT(callbacksCompleted.load() <= kCycles);
+        model.Close();
+        TEST_ASSERT(!model.IsOpen());
+        TEST_ASSERT(model.GetLastError().empty());
     }
 }
 

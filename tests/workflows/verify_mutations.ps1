@@ -16,7 +16,8 @@ $mutations = @(
        old2='else if (a.durationSec > b.durationSec) primaryResult = 1;'; new2='else if (a.durationSec > b.durationSec) primaryResult = -1;';
        expected='Duration order differs from oracle' },
     @{ name='lose-resume-position'; file='MediaLibrary.cpp';
-       old='j["lastPosSec"] = m.lastPosSec;'; new='j["lastPosSec"] = 0.0;';
+       old='field("\"lastPosSec\":", item.lastPosSec);'; new='field("\"lastPosSec\":", 0.0);';
+       old2='j["lastPosSec"] = m.lastPosSec;'; new2='j["lastPosSec"] = 0.0;';
        expected='Resume position lost after reopen' }
 )
 try {
@@ -36,6 +37,7 @@ try {
         [IO.File]::WriteAllText($file, $original, [Text.UTF8Encoding]::new($false))
         $evidence = [IO.File]::ReadAllText($log)
         if ($code -eq 0 -or $evidence.Contains('Workflow harness compilation failed') -or
+            $evidence.Contains('Native test compilation failed') -or
             -not $evidence.Contains('FAIL ' + $mutation.expected)) {
             throw "Mutation was not rejected by the expected assertion: $($mutation.name). See $log"
         }

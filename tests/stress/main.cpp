@@ -39,7 +39,8 @@ int main(int argc, char* argv[]) {
         return 2;
     }
     std::cout << "Stress: " << config.iterations << " iterations, seed " << config.seed << "\n";
-    if (std::find(forwarded.begin(), forwarded.end(), "--help") != forwarded.end())
+    if (std::find(forwarded.begin(), forwarded.end(), "--help") != forwarded.end() ||
+        std::find(forwarded.begin(), forwarded.end(), "-h") != forwarded.end())
         std::cout << "Stress options: --iterations <positive count>, --seed <integer>, --soak\n";
     std::vector<char*> args;
     for (auto& arg : forwarded) args.push_back(arg.data());
