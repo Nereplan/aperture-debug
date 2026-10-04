@@ -615,15 +615,4 @@ TEST_CASE(SubtitleProfiles, SafeAreaSerializationAndRoundTrip) {
     TEST_ASSERT(!loadedProf->unknownFields.has_key("safeAreaY"));
 }
 
-TEST_CASE(SubtitleProfiles, SafeAreaDiagnosticsProjection) {
-    PlayerDiagnostics diag;
-    diag.activeSubSafeAreaX = 10;
-    diag.activeSubSafeAreaY = 15;
-    diag.activeSubSafeArea = std::to_wstring(diag.activeSubSafeAreaX) + L"% H, " + std::to_wstring(diag.activeSubSafeAreaY) + L"% V";
-
-    TEST_ASSERT_EQ(diag.activeSubSafeAreaX, 10);
-    TEST_ASSERT_EQ(diag.activeSubSafeAreaY, 15);
-    TEST_ASSERT_EQ(diag.activeSubSafeArea, std::wstring(L"10% H, 15% V"));
-}
-
 } // namespace Aperture::Test

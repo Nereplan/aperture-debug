@@ -161,19 +161,6 @@ TEST_CASE(BulkOperations, BulkAddToPlaylistWithDuplicateSkipping) {
     TEST_ASSERT_EQ(smartSkipped, 2);
 }
 
-TEST_CASE(BulkOperations, ContextMenuItemDisabledStateInvariants) {
-    ContextMenuItem itemNormal;
-    itemNormal.id = "test_normal";
-    itemNormal.label = L"Select All";
-    TEST_ASSERT(!itemNormal.isDisabled);
-
-    ContextMenuItem itemDisabled;
-    itemDisabled.id = "test_disabled";
-    itemDisabled.label = L"Mark Selected as Watched";
-    itemDisabled.isDisabled = true;
-    TEST_ASSERT(itemDisabled.isDisabled);
-}
-
 TEST_CASE(BulkOperations, EmptySelectionAndZeroOpInvariants) {
     MediaLibrary lib;
     size_t skippedRemove = 0;

@@ -94,10 +94,10 @@ int main(int argc, char** argv) {
     if (argc > 1 && std::string(argv[1]) == "--test") {
         int failed = 0;
         for (const auto& test : Aperture::Test::TestRegistry::Instance().GetTests()) {
-            const auto before = Aperture::Test::TestRegistry::Instance().GetFailures().size();
+            const auto before = Aperture::Test::TestRegistry::Instance().FailureCount();
             try {
                 test.fn();
-                if (Aperture::Test::TestRegistry::Instance().GetFailures().size() == before) std::cout << "PASS " << test.suite << "::" << test.name << "\n";
+                if (Aperture::Test::TestRegistry::Instance().FailureCount() == before) std::cout << "PASS " << test.suite << "::" << test.name << "\n";
                 else { ++failed; std::cerr << "FAIL " << test.suite << "::" << test.name << "\n"; }
             }
             catch (const std::exception& error) { ++failed; std::cerr << error.what() << "\n"; }

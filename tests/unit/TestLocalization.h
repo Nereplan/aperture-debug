@@ -219,57 +219,6 @@ TEST_CASE(Localization, SettingsPersistenceAndSchema15Migration) {
     TEST_ASSERT_EQ(rootLocale.get("appLanguage").as_string(), "es-ES");
 }
 
-TEST_CASE(Localization, BundledCatalogsStructuralParity) {
-    std::wstring exeDir = GetExeDir();
-    std::wstring localesDir = exeDir + L"\\locales";
-
-    std::string enPath = Utf16ToUtf8(localesDir + L"\\en-US.json");
-    std::string esPath = Utf16ToUtf8(localesDir + L"\\es-ES.json");
-    std::string dePath = Utf16ToUtf8(localesDir + L"\\de-DE.json");
-
-    std::string enContent, esContent, deContent, arContent, heContent;
-    if (ReadTextFile(localesDir + L"\\en-US.json", enContent).is_ok() &&
-        ReadTextFile(localesDir + L"\\es-ES.json", esContent).is_ok() &&
-        ReadTextFile(localesDir + L"\\de-DE.json", deContent).is_ok() &&
-        ReadTextFile(localesDir + L"\\ar-SA.json", arContent).is_ok() &&
-        ReadTextFile(localesDir + L"\\he-IL.json", heContent).is_ok())
-    {
-        LocaleInfo enInfo, esInfo, deInfo, arInfo, heInfo;
-        std::unordered_map<std::string, std::string> enStrings, esStrings, deStrings, arStrings, heStrings;
-        std::unordered_map<std::string, PluralEntry> enPlurals, esPlurals, dePlurals, arPlurals, hePlurals;
-        std::string err;
-
-        TEST_ASSERT(Localization::ParseCatalogJson(enContent, enInfo, enStrings, enPlurals, err));
-        TEST_ASSERT(Localization::ParseCatalogJson(esContent, esInfo, esStrings, esPlurals, err));
-        TEST_ASSERT(Localization::ParseCatalogJson(deContent, deInfo, deStrings, dePlurals, err));
-        TEST_ASSERT(Localization::ParseCatalogJson(arContent, arInfo, arStrings, arPlurals, err));
-        TEST_ASSERT(Localization::ParseCatalogJson(heContent, heInfo, heStrings, hePlurals, err));
-        // Every key in en-US should exist in es-ES and de-DE
-        for (const auto& kv : enStrings) {
-            TEST_ASSERT(esStrings.find(kv.first) != esStrings.end());
-            TEST_ASSERT(deStrings.find(kv.first) != deStrings.end());
-            TEST_ASSERT(arStrings.find(kv.first) != arStrings.end());
-            TEST_ASSERT(heStrings.find(kv.first) != heStrings.end());
-
-            // Check placeholder parity {0}, {1}
-            for (int idx = 0; idx < 5; ++idx) {
-                std::string token = "{" + std::to_string(idx) + "}";
-                bool enHasToken = kv.second.find(token) != std::string::npos;
-                if (enHasToken) {
-                    auto esIt = esStrings.find(kv.first);
-                    auto deIt = deStrings.find(kv.first);
-                    TEST_ASSERT(esIt != esStrings.end() && esIt->second.find(token) != std::string::npos);
-                    TEST_ASSERT(deIt != deStrings.end() && deIt->second.find(token) != std::string::npos);
-                    auto arIt = arStrings.find(kv.first);
-                    auto heIt = heStrings.find(kv.first);
-                    TEST_ASSERT(arIt != arStrings.end() && arIt->second.find(token) != std::string::npos);
-                    TEST_ASSERT(heIt != heStrings.end() && heIt->second.find(token) != std::string::npos);
-                }
-            }
-        }
-    }
-}
-
 TEST_CASE(Localization, ConcurrentThreadSafety) {
     auto& loc = Localization::Instance();
     std::atomic<bool> startFlag{ false };

@@ -23,24 +23,16 @@ $exitCode = 1
 try {
     Set-Content -LiteralPath $log -Value ("Mode=$mode Seeds=" + ($seedValues -join ','))
     Write-Host ("Workflow suite: $mode | seeds=" + ($seedValues -join ','))
-    $vswhere = "${env:ProgramFiles(x86)}/Microsoft Visual Studio/Installer/vswhere.exe"
-    $vs = & $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
-    if (-not $vs) { throw 'MSVC x64 toolchain not found' }
-    $vcvars = Join-Path $vs 'VC/Auxiliary/Build/vcvars64.bat'
+    . (Join-Path $PSScriptRoot '../support/native_build.ps1')
     $source = if ($SourceDirectory) { (Resolve-Path -LiteralPath $SourceDirectory).Path } else { Join-Path $root 'src' }
     $exe = Join-Path $run 'workflows.exe'
-    $response = Join-Path $run 'compile.rsp'
     $main = if ($AppOnly) { 'app_workflows.cpp' } else { 'library_workflows.cpp' }
-    $argsList = @('/nologo','/utf-8','/O2','/EHsc','/std:c++17','/DUNICODE','/D_UNICODE',
-        "/I`"$source`"", "/Fo`"$run\\`"", "/Fe:`"$exe`"", "`"$(Join-Path $PSScriptRoot $main)`"")
     $sources = if ($AppOnly) { @('Json') } else {
         @('Json','Settings','ChannelPolicy','Localization','AudioConfig','MediaLibrary','LibraryQuery','GlobalSearch','TextInputModel','FolderWatcher','MediaFoundation','MediaProbeIsolation')
     }
-    foreach ($file in $sources) { $argsList += "`"$(Join-Path $source ($file + '.cpp'))`"" }
-    $argsList += @('mfreadwrite.lib','oleaut32.lib','propsys.lib','user32.lib','shell32.lib','advapi32.lib')
-    Set-Content -LiteralPath $response -Value $argsList -Encoding UTF8
-    & cmd.exe /d /c "`"$vcvars`" && cl.exe @`"$response`"" 2>&1 | Tee-Object -FilePath $log -Append | Write-Host
-    if ($LASTEXITCODE -ne 0) { throw 'Workflow harness compilation failed' }
+    $sourceFiles = @((Join-Path $PSScriptRoot $main)) + @($sources | ForEach-Object { Join-Path $source ($_ + '.cpp') })
+    Build-ApertureTestHarness -Sources $sourceFiles -Output $exe -SourceDirectory $source -Libraries @('mfreadwrite.lib','oleaut32.lib','propsys.lib','user32.lib','shell32.lib','advapi32.lib') 2>&1 |
+        Tee-Object -FilePath $log -Append | Write-Host
     if ($AppOnly) {
         if (-not $Executable) { $Executable = Join-Path $root 'release/Aperture.exe' }
         $Executable = (Resolve-Path -LiteralPath $Executable).Path

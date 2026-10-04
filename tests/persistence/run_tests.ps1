@@ -9,30 +9,7 @@ $ErrorActionPreference = "Stop"
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $rootDir = Resolve-Path (Join-Path $scriptDir "..\..")
 
-$vsPath = $null
-$vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
-if (Test-Path -LiteralPath $vswhere) {
-    $vsPath = & $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
-}
-if (-not $vsPath -or -not (Test-Path $vsPath)) {
-    $candidates = @(
-        "C:\Program Files\Microsoft Visual Studio\2022\Enterprise",
-        "C:\Program Files\Microsoft Visual Studio\2022\Professional",
-        "C:\Program Files\Microsoft Visual Studio\2022\Community",
-        "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools"
-    )
-    foreach ($cand in $candidates) {
-        if (Test-Path $cand) { $vsPath = $cand; break }
-    }
-}
-if (-not $vsPath -or -not (Test-Path $vsPath)) {
-    throw "Visual Studio 2022 installation not found!"
-}
-
-$vcvars = "$vsPath\VC\Auxiliary\Build\vcvars64.bat"
-if (-not (Test-Path -LiteralPath $vcvars)) {
-    throw "vcvars64.bat not found at $vcvars"
-}
+. (Join-Path $scriptDir '../support/native_build.ps1')
 $tempDir = Join-Path ([System.IO.Path]::GetTempPath()) ("Aperture_persistence_tests_" + [System.Guid]::NewGuid().ToString("N"))
 New-Item -ItemType Directory -Path $tempDir -Force | Out-Null
 $exeOutput = Join-Path $tempDir "Aperture_Persistence_Tests.exe"
@@ -55,15 +32,9 @@ $srcFiles = @(
     "`"$rootDir\src\PlaybackSession.cpp`"",
     "`"$scriptDir\main.cpp`""
 )
-$sourcesJoined = $srcFiles -join " "
-$clCmd = "`"$vcvars`" && cl.exe /nologo /utf-8 /O2 /MT /EHsc /std:c++17 /DUNICODE /D_UNICODE /I `"$rootDir\src`" /I `"$rootDir`" /I `"$rootDir\tests\support`" /I `"$scriptDir`" /Fo`"$tempDir\\`" $sourcesJoined $libs /Fe:`"$exeOutput`" /link /SUBSYSTEM:CONSOLE"
-
 $exitCode = 1
 try {
-    cmd.exe /c $clCmd
-    if ($LASTEXITCODE -ne 0) {
-        throw "Compilation failed with code $LASTEXITCODE"
-    }
+    Build-ApertureTestHarness -Sources $srcFiles -Output $exeOutput -Libraries ($libs -split ' ')
 
     $argsList = @()
     if ($Suite) { $argsList += "--suite", $Suite }
@@ -76,7 +47,11 @@ try {
 }
 finally {
     if ($tempDir -and (Test-Path -LiteralPath $tempDir)) {
-        Remove-Item -LiteralPath $tempDir -Recurse -Force -ErrorAction SilentlyContinue
+        $resolved = [IO.Path]::GetFullPath($tempDir)
+        $prefix = [IO.Path]::GetFullPath([IO.Path]::GetTempPath()).TrimEnd('\','/') + '\'
+        if (-not $resolved.StartsWith($prefix, [StringComparison]::OrdinalIgnoreCase) -or
+            (Split-Path -Leaf $resolved) -notmatch '^Aperture_persistence_tests_[a-f0-9]{32}$') { throw 'Unsafe test build cleanup.' }
+        Remove-Item -LiteralPath $resolved -Recurse -Force
     }
 }
 

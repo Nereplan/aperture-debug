@@ -203,19 +203,4 @@ TEST_CASE(ScreenshotCapture, NoExternalFallbackInvariant) {
                 checkStatus.code == StorageErrorCode::DirectoryCreationFailed);
 }
 
-TEST_CASE(ScreenshotCapture, LiveMpvSmokeOrExactLimitation) {
-    MpvPlayer player;
-    HMODULE hMpv = LoadLibraryW(L"libmpv-2.dll");
-    if (!hMpv) {
-        hMpv = LoadLibraryW(L"mpv-2.dll");
-    }
-
-    if (!hMpv) {
-        std::cout << "[SMOKE NOTICE] libmpv-2.dll is not present in test environment; exercised path generation, collision handling, sanitization, writability, containment, and failure projection directly.\n";
-        return;
-    }
-
-    FreeLibrary(hMpv);
-}
-
 } // namespace Aperture::Test

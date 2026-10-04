@@ -405,6 +405,12 @@ $overallTimer = [System.Diagnostics.Stopwatch]::StartNew()
 $failedCount = 0
 $timeoutCount = 0
 
+# Shared objects live only for this invocation and are removed even on failure.
+$previousObjectPool = $env:APERTURE_NATIVE_TEST_OBJECTS
+$objectPool = Join-Path ([IO.Path]::GetTempPath()) ('Aperture-test-objects-' + [guid]::NewGuid().ToString('N'))
+New-Item -ItemType Directory -Path $objectPool | Out-Null
+$env:APERTURE_NATIVE_TEST_OBJECTS = $objectPool
+try {
 foreach ($suite in $selectedSuites) {
     $suiteId = $suite.id
     $suiteName = $suite.name
@@ -446,7 +452,7 @@ foreach ($suite in $selectedSuites) {
             $timedOut = $procResult.TimedOut
         } else {
             # Default to PowerShell invocation
-            $procResult = Invoke-BoundedProcess -Executable "powershell.exe" -ArgumentList (@("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", $scriptFull) + $suiteArgs) -WorkingDirectory $repoRoot -TimeoutSeconds $suiteTimeout
+            $procResult = Invoke-BoundedProcess -Executable (Join-Path $PSHOME $(if ($PSVersionTable.PSVersion.Major -ge 6) { "pwsh.exe" } else { "powershell.exe" })) -ArgumentList (@("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", $scriptFull) + $suiteArgs) -WorkingDirectory $repoRoot -TimeoutSeconds $suiteTimeout
             $exitCode = $procResult.ExitCode
             $timedOut = $procResult.TimedOut
         }
@@ -486,6 +492,15 @@ foreach ($suite in $selectedSuites) {
         Write-Warning "FailFast enabled: aborting remaining suites after failure in '$suiteId'."
         break
     }
+}
+
+} finally {
+    $env:APERTURE_NATIVE_TEST_OBJECTS = $previousObjectPool
+    $resolved = [IO.Path]::GetFullPath($objectPool)
+    $prefix = [IO.Path]::GetFullPath([IO.Path]::GetTempPath()).TrimEnd('\','/') + '\'
+    if (-not $resolved.StartsWith($prefix, [StringComparison]::OrdinalIgnoreCase) -or
+        (Split-Path -Leaf $resolved) -notmatch '^Aperture-test-objects-[a-f0-9]{32}$') { throw 'Unsafe object pool cleanup.' }
+    Remove-Item -LiteralPath $resolved -Recurse -Force
 }
 
 $overallTimer.Stop()

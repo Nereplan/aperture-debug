@@ -245,35 +245,4 @@ TEST_CASE(ColorManagement, SafeFallbackAndFailureReportingWhenUninitialized) {
     TEST_ASSERT_EQ(plan.normalizedGamutMapping, std::string("clip"));
 }
 
-TEST_CASE(ColorManagement, HdrMetadataProjectionLogic) {
-    PlayerDiagnostics d;
-    d.colorPrimaries = L"bt.2020";
-    d.colorTransfer = L"pq";
-    d.maxCll = 1000.0;
-    d.maxFall = 400.0;
-
-    std::wstring trLower = d.colorTransfer;
-    for (auto& c : trLower) c = (wchar_t)towlower(c);
-    std::wstring primLower = d.colorPrimaries;
-    for (auto& c : primLower) c = (wchar_t)towlower(c);
-
-    bool isHdr = (trLower == L"pq" || trLower == L"smpte2084" || trLower == L"hlg" || trLower == L"arib-std-b67" ||
-                  d.sigPeak > 1.05 || d.maxCll > 100.0 || primLower == L"bt.2020");
-    TEST_ASSERT(isHdr);
-
-    if (trLower == L"pq" || trLower == L"smpte2084") {
-        d.hdrType = L"HDR10 (PQ)";
-    }
-    TEST_ASSERT_EQ(d.hdrType, std::wstring(L"HDR10 (PQ)"));
-
-    // SDR Case
-    PlayerDiagnostics sdrDiag;
-    sdrDiag.colorPrimaries = L"bt.709";
-    sdrDiag.colorTransfer = L"srgb";
-    sdrDiag.maxCll = 0.0;
-    std::wstring sdrTr = sdrDiag.colorTransfer;
-    bool sdrIsHdr = (sdrTr == L"pq" || sdrTr == L"hlg" || sdrDiag.maxCll > 100.0 || sdrDiag.colorPrimaries == L"bt.2020");
-    TEST_ASSERT(!sdrIsHdr);
-}
-
 } // namespace Aperture::Test

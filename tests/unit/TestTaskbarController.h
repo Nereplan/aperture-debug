@@ -451,11 +451,40 @@ TEST_CASE(TaskbarController, WindowMessageHandling) {
 // 7. Icon Creation and Destruction Lifecycle
 TEST_CASE(TaskbarController, IconLifecycle) {
     TaskbarController controller;
-    controller.CreateIcons(16, 16);
-    controller.CreateIcons(24, 24);
-    controller.CreateIcons(32, 32);
+    Microsoft::WRL::ComPtr<MockTaskbarList3> mock;
+    mock.Attach(new MockTaskbarList3());
+    controller.SetTaskbarListForTesting(mock, reinterpret_cast<HWND>(0x12345));
+    TaskbarSnapshot playing;
+    playing.playbackState = PlaybackState::Playing;
+    playing.isPlaying = playing.isPlayPauseEnabled = true;
+    for (int size : {16, 24, 32}) {
+        controller.CreateIcons(size, size);
+        controller.Update(playing, true);
+        const auto& buttons = mock->updatedButtons.empty() ? mock->addedButtons : mock->updatedButtons;
+        TEST_ASSERT_EQ(buttons.size(), size_t(3));
+        for (const auto& button : buttons) {
+            ICONINFO info{};
+            const bool valid = GetIconInfo(button.hIcon, &info) != FALSE;
+            TEST_ASSERT(valid);
+            if (!valid) continue;
+            BITMAP bitmap{};
+            TEST_ASSERT(GetObjectW(info.hbmColor, sizeof(bitmap), &bitmap) != 0);
+            // Publishing uses the shell's current icon metrics.
+            TEST_ASSERT_EQ(bitmap.bmWidth, GetSystemMetrics(SM_CXSMICON));
+            TEST_ASSERT_EQ(bitmap.bmHeight, GetSystemMetrics(SM_CYSMICON));
+            DeleteObject(info.hbmColor);
+            DeleteObject(info.hbmMask);
+        }
+    }
+    const auto icons = mock->updatedButtons;
     controller.DestroyIcons();
-    controller.DestroyIcons(); // Double destroy safety
+    controller.DestroyIcons();
+    for (const auto& button : icons) {
+        ICONINFO info{};
+        const bool valid = GetIconInfo(button.hIcon, &info) != FALSE;
+        TEST_ASSERT(!valid);
+        if (valid) { DeleteObject(info.hbmColor); DeleteObject(info.hbmMask); }
+    }
 }
 
 TEST_CASE(TaskbarController, IdleClearAndProgressOnlyUpdatesAvoidExplorerCalls) {

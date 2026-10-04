@@ -16,26 +16,6 @@ TEST_CASE(UnwritableRoot, CheckDirectoryWritabilityNormal) {
     TEST_ASSERT_EQ(status.code, StorageErrorCode::Success);
 }
 
-TEST_CASE(UnwritableRoot, ReadOnlyDirectoryDetection) {
-    ScopedTempDir tempDir;
-    std::wstring dataDir = tempDir.SubPath(L"readonly_data");
-    CreateDirectoryW(dataDir.c_str(), NULL);
-
-    // Set read-only attribute on directory
-    SetFileAttributesW(dataDir.c_str(), FILE_ATTRIBUTE_READONLY);
-
-    // Test writing temporary file to verify access restriction
-    std::wstring probeFile = dataDir + L"\\.test_write.tmp";
-    HANDLE hFile = CreateFileW(probeFile.c_str(), GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
-    if (hFile != INVALID_HANDLE_VALUE) {
-        CloseHandle(hFile);
-        DeleteFileW(probeFile.c_str());
-    }
-
-    // Restore attributes so RAII cleanup can delete it cleanly
-    SetFileAttributesW(dataDir.c_str(), FILE_ATTRIBUTE_NORMAL);
-}
-
 TEST_CASE(UnwritableRoot, AtomicWriteToInvalidPath) {
     std::wstring invalidPath = L"";
     StorageStatus status = AtomicWriteTextFile(invalidPath, "test");
@@ -64,14 +44,16 @@ TEST_CASE(UnwritableRoot, AtomicWriteToReadonlyFile) {
     tempDir.WriteFile(L"locked_file.json", "initial");
 
     // Set file to read-only
-    SetFileAttributesW(roFile.c_str(), FILE_ATTRIBUTE_READONLY);
+    TEST_ASSERT(SetFileAttributesW(roFile.c_str(), FILE_ATTRIBUTE_READONLY));
 
     // Atomic write creates a .tmp file and tries to MoveFileEx with REPLACE_EXISTING.
     // Overwriting a readonly destination may fail with ACCESS_DENIED or AtomicRenameFailed.
     StorageStatus status = AtomicWriteTextFile(roFile, "new_content");
-    if (!status.is_ok()) {
-        TEST_ASSERT_EQ(status.code, StorageErrorCode::AtomicRenameFailed);
-    }
+    TEST_ASSERT(!status.is_ok());
+    TEST_ASSERT_EQ(status.code, StorageErrorCode::AtomicRenameFailed);
+    std::string preserved;
+    TEST_ASSERT(ReadTextFile(roFile, preserved).is_ok());
+    TEST_ASSERT_EQ(preserved, std::string("initial"));
 
     // Restore file attributes for clean teardown
     SetFileAttributesW(roFile.c_str(), FILE_ATTRIBUTE_NORMAL);

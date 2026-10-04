@@ -14,6 +14,9 @@
 #include <sstream>
 #include <chrono>
 #include <type_traits>
+#include <atomic>
+#include <mutex>
+#include <stdexcept>
 
 namespace Aperture::Test {
 
@@ -22,7 +25,7 @@ template <typename T, typename Enable = void>
 struct Formatter {
     static void Format(std::ostream& os, const T& value) {
         if constexpr (std::is_enum_v<T>) {
-            os << static_cast<std::underlying_type_t<T>>(value);
+            os << +static_cast<std::underlying_type_t<T>>(value);
         } else {
             os << value;
         }
@@ -51,6 +54,13 @@ template <>
 struct Formatter<wchar_t*> {
     static void Format(std::ostream& os, wchar_t* ws) {
         Formatter<const wchar_t*>::Format(os, ws);
+    }
+};
+
+template <size_t N>
+struct Formatter<wchar_t[N]> {
+    static void Format(std::ostream& os, const wchar_t (&value)[N]) {
+        Formatter<const wchar_t*>::Format(os, value);
     }
 };
 
@@ -93,29 +103,63 @@ public:
     }
 
     void AddFailure(const std::string& testName, const std::string& file, int line, const std::string& cond, const std::string& msg = "") {
+        std::lock_guard<std::mutex> lock(failureMutex);
         failures.push_back({ testName, file, line, cond, msg });
     }
 
-    const std::vector<TestFailure>& GetFailures() const {
+    std::vector<TestFailure> GetFailures() const {
+        std::lock_guard<std::mutex> lock(failureMutex);
         return failures;
     }
 
+    size_t FailureCount() const {
+        std::lock_guard<std::mutex> lock(failureMutex);
+        return failures.size();
+    }
+
+    void RecordAssertion() { assertions.fetch_add(1, std::memory_order_relaxed); }
+    size_t AssertionCount() const { return assertions.load(std::memory_order_relaxed); }
+
     void ClearFailures() {
+        std::lock_guard<std::mutex> lock(failureMutex);
         failures.clear();
     }
 
     void SetCurrentTest(const std::string& name) {
+        std::lock_guard<std::mutex> lock(failureMutex);
         currentTest = name;
     }
 
-    const std::string& GetCurrentTest() const {
+    std::string GetCurrentTest() const {
+        std::lock_guard<std::mutex> lock(failureMutex);
         return currentTest;
     }
 
 private:
+    mutable std::mutex failureMutex;
+    std::atomic<size_t> assertions{0};
     std::vector<TestCase> tests;
     std::vector<TestFailure> failures;
     std::string currentTest;
+};
+
+// Compare inside one full expression so references to elements of temporary
+// containers stay alive through both comparison and failure formatting.
+template <bool Equal, typename A, typename B>
+void AssertComparison(const A& actual, const B& expected, const char* file, int line, const char* condition) {
+    auto& registry = TestRegistry::Instance();
+    registry.RecordAssertion();
+    bool matches;
+    if constexpr (Equal) matches = actual == expected;
+    else matches = actual != expected;
+    if (!matches) {
+        registry.AddFailure(registry.GetCurrentTest(), file, line, condition,
+            "Expected: " + ToString(actual) + (Equal ? " == " : " != ") + ToString(expected));
+    }
+}
+
+struct TestSkipped : std::runtime_error {
+    using std::runtime_error::runtime_error;
 };
 
 struct TestRegistrar {
@@ -133,6 +177,7 @@ struct TestRegistrar {
 
 #define TEST_ASSERT(cond) \
     do { \
+        ::Aperture::Test::TestRegistry::Instance().RecordAssertion(); \
         if (!(cond)) { \
             ::Aperture::Test::TestRegistry::Instance().AddFailure( \
                 ::Aperture::Test::TestRegistry::Instance().GetCurrentTest(), \
@@ -142,6 +187,7 @@ struct TestRegistrar {
 
 #define TEST_ASSERT_MSG(cond, msg) \
     do { \
+        ::Aperture::Test::TestRegistry::Instance().RecordAssertion(); \
         if (!(cond)) { \
             ::Aperture::Test::TestRegistry::Instance().AddFailure( \
                 ::Aperture::Test::TestRegistry::Instance().GetCurrentTest(), \
@@ -150,23 +196,9 @@ struct TestRegistrar {
     } while (0)
 
 #define TEST_ASSERT_EQ(a, b) \
-    do { \
-        if (!((a) == (b))) { \
-            std::ostringstream _oss; \
-            _oss << "Expected: " << ::Aperture::Test::ToString(a) << " == " << ::Aperture::Test::ToString(b); \
-            ::Aperture::Test::TestRegistry::Instance().AddFailure( \
-                ::Aperture::Test::TestRegistry::Instance().GetCurrentTest(), \
-                __FILE__, __LINE__, #a " == " #b, _oss.str()); \
-        } \
-    } while (0)
+    do { ::Aperture::Test::AssertComparison<true>((a), (b), __FILE__, __LINE__, #a " == " #b); } while (0)
 
 #define TEST_ASSERT_NEQ(a, b) \
-    do { \
-        if (!((a) != (b))) { \
-            std::ostringstream _oss; \
-            _oss << "Expected: " << ::Aperture::Test::ToString(a) << " != " << ::Aperture::Test::ToString(b); \
-            ::Aperture::Test::TestRegistry::Instance().AddFailure( \
-                ::Aperture::Test::TestRegistry::Instance().GetCurrentTest(), \
-                __FILE__, __LINE__, #a " != " #b, _oss.str()); \
-        } \
-    } while (0)
+    do { ::Aperture::Test::AssertComparison<false>((a), (b), __FILE__, __LINE__, #a " != " #b); } while (0)
+
+#define TEST_SKIP(reason) throw ::Aperture::Test::TestSkipped(reason)

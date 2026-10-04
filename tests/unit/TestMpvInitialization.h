@@ -90,8 +90,7 @@ TEST_CASE(MpvInitialization, EssentialOutputAndWindowRejectionsPreventInitializa
 
 TEST_CASE(MpvInitialization, BundledProfilesHonorEssentialPolicyAndRetainIndependentDllReferences) {
     if (!FileExists(GetExeDir() + L"\\libmpv-2.dll")) {
-        std::cout << "  [NATIVE NOTICE] Bundled profile test requires -LibmpvPath; DLL absent in this isolated test directory.\n";
-        return;
+        TEST_SKIP("Bundled libmpv-2.dll is absent from the isolated test directory");
     }
     struct Window {
         HWND parent = CreateWindowExW(0, L"STATIC", L"mpv profile test", WS_POPUP, 0, 0, 320, 180,

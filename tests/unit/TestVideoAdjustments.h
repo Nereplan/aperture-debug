@@ -160,59 +160,18 @@ TEST_CASE(VideoAdjustments, SerializationRoundTripAndUnknownFields) {
 }
 
 TEST_CASE(VideoAdjustments, JsonValidationAndRejection) {
-    // Test parsing JSON with valid, invalid, and out-of-bounds fields directly
-    JsonValue prefJson = JsonValue::Object();
-    prefJson["videoRotate"] = 45; // invalid (not multiple of 90)
-    prefJson["brightness"] = 250; // out of range
-    prefJson["contrast"] = -300; // out of range
-    prefJson["saturation"] = 50;  // valid
-    prefJson["gamma"] = 999;     // out of range
-    prefJson["hue"] = -200;      // out of range
-
-    MediaPlaybackPreferences prefs;
-    if (prefJson.has_key("videoRotate") && prefJson.get("videoRotate").is_number()) {
-        int r = prefJson.get("videoRotate").as_int();
-        if (MediaPlaybackPreferences::IsValidVideoRotate(r)) {
-            prefs.videoRotate = r;
-        }
-    }
-    if (prefJson.has_key("brightness") && prefJson.get("brightness").is_number()) {
-        double val = prefJson.get("brightness").as_number();
-        if (std::isfinite(val) && MediaPlaybackPreferences::IsValidBrightness((int)std::round(val))) {
-            prefs.brightness = (int)std::round(val);
-        }
-    }
-    if (prefJson.has_key("contrast") && prefJson.get("contrast").is_number()) {
-        double val = prefJson.get("contrast").as_number();
-        if (std::isfinite(val) && MediaPlaybackPreferences::IsValidContrast((int)std::round(val))) {
-            prefs.contrast = (int)std::round(val);
-        }
-    }
-    if (prefJson.has_key("saturation") && prefJson.get("saturation").is_number()) {
-        double val = prefJson.get("saturation").as_number();
-        if (std::isfinite(val) && MediaPlaybackPreferences::IsValidSaturation((int)std::round(val))) {
-            prefs.saturation = (int)std::round(val);
-        }
-    }
-    if (prefJson.has_key("gamma") && prefJson.get("gamma").is_number()) {
-        double val = prefJson.get("gamma").as_number();
-        if (std::isfinite(val) && MediaPlaybackPreferences::IsValidGamma((int)std::round(val))) {
-            prefs.gamma = (int)std::round(val);
-        }
-    }
-    if (prefJson.has_key("hue") && prefJson.get("hue").is_number()) {
-        double val = prefJson.get("hue").as_number();
-        if (std::isfinite(val) && MediaPlaybackPreferences::IsValidHue((int)std::round(val))) {
-            prefs.hue = (int)std::round(val);
-        }
-    }
-
-    TEST_ASSERT(!prefs.videoRotate.has_value());
-    TEST_ASSERT(!prefs.brightness.has_value());
-    TEST_ASSERT(!prefs.contrast.has_value());
-    TEST_ASSERT(prefs.saturation.has_value() && *prefs.saturation == 50);
-    TEST_ASSERT(!prefs.gamma.has_value());
-    TEST_ASSERT(!prefs.hue.has_value());
+    ScopedTempDir tempDir(L"Aperture_VideoValidation_");
+    TEST_ASSERT(tempDir.WriteFile(LR"(data\library.json)", R"({"schemaVersion":2,"items":[{"id":"invalid","filePath":"sample.mp4","preferences":{"videoRotate":45,"brightness":250,"contrast":-300,"saturation":50,"gamma":999,"hue":-200,"extraPluginSetting":"retained"}}]})"));
+    MediaLibrary library;
+    TEST_ASSERT(library.LoadFromRoot(tempDir.GetPath()).is_ok());
+    const auto* item = library.FindById("invalid");
+    TEST_ASSERT(item && item->preferences);
+    if (!item || !item->preferences) return;
+    const auto& prefs = *item->preferences;
+    TEST_ASSERT(!prefs.videoRotate); TEST_ASSERT(!prefs.brightness); TEST_ASSERT(!prefs.contrast);
+    TEST_ASSERT(prefs.saturation && *prefs.saturation == 50);
+    TEST_ASSERT(!prefs.gamma); TEST_ASSERT(!prefs.hue);
+    TEST_ASSERT_EQ(prefs.extraFields.get("extraPluginSetting").as_string(), std::string("retained"));
 }
 
 TEST_CASE(VideoAdjustments, MpvPlayerClampingAndNormalization) {
