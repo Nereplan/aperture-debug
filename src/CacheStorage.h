@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string_view>
+
 // Disposable on-disk cache subsystem: budgets, atomic cache IO, scanning, and eviction.
 
 #include "AppIncludes.h"
@@ -230,8 +232,8 @@ namespace Detail {
     }
     inline bool IsSeekThumbnail(const std::wstring& path) {
         const auto pos = path.find_last_of(L"\\/");
-        const auto name = path.substr(pos == std::wstring::npos ? 0 : pos + 1);
-        if (name.size() != 26 || _wcsnicmp(name.c_str(), L"thumb_", 6) != 0 || _wcsicmp(name.c_str() + 22, L".bin") != 0) return false;
+        const auto name = std::wstring_view(path).substr(pos == std::wstring::npos ? 0 : pos + 1);
+        if (name.size() != 26 || _wcsnicmp(name.data(), L"thumb_", 6) != 0 || _wcsicmp(name.data() + 22, L".bin") != 0) return false;
         return std::all_of(name.begin() + 6, name.begin() + 22, [](wchar_t c) { return iswxdigit(c) != 0; });
     }
     inline void AddIndexFile(CacheIndex& index, const CacheFileInfo& file) {
@@ -274,15 +276,20 @@ namespace Detail {
             return tiered && ((seek ? index.seek : index.hub) - oldSize + incoming > ThumbnailTierBudget(config, seek));
         };
         if (!exceeds()) return result;
-        std::vector<CacheFileInfo> candidates;
-        for (const auto& entry : index.files) if (_wcsicmp(entry.first.c_str(), replacing.c_str()) != 0) candidates.push_back(entry.second);
-        std::sort(candidates.begin(), candidates.end(), CompareCacheFilesOldestFirst);
+        // The index owns stable records for the duration of this locked pass.
+        // Borrow candidates instead of copying every path. Clear an erased
+        // record's slot before the next phase can revisit it.
+        std::vector<const CacheFileInfo*> candidates;
+        candidates.reserve(index.files.size());
+        for (const auto& entry : index.files) if (_wcsicmp(entry.first.c_str(), replacing.c_str()) != 0) candidates.push_back(&entry.second);
+        std::sort(candidates.begin(), candidates.end(), [](const auto* a, const auto* b) { return CompareCacheFilesOldestFirst(*a, *b); });
         // First satisfy the target tier/class. Preview churn cannot evict hub
         // thumbnails, even when the overall budget is under pressure.
         for (int phase = 0; phase < 2 && exceeds(); ++phase) {
-            for (const auto& file : candidates) {
+            for (auto& candidate : candidates) {
                 if (!exceeds()) break;
-                if (index.files.find(file.path) == index.files.end()) continue;
+                if (!candidate) continue;
+                const auto& file = *candidate;
                 if (phase == 0 && (!target || file.cacheClass != *target ||
                     (tiered && IsSeekThumbnail(file.path) != seek))) continue;
                 if (phase == 1 && tiered && file.cacheClass == CacheClass::Thumbnails) continue;
@@ -295,6 +302,7 @@ namespace Detail {
                 if (DeleteFileW(file.path.c_str()) || GetLastError() == ERROR_FILE_NOT_FOUND) {
                     ++result.filesEvicted; result.bytesEvicted += file.sizeBytes;
                     RemoveIndexFile(index, file.path);
+                    candidate = nullptr;
                 } else ++result.filesLocked;
             }
         }

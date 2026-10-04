@@ -91,15 +91,15 @@ std::wstring GetTrackTextInternal(const SubtitleTrack* track, double currentPlay
     if (adjustedTime < 0.0 || !std::isfinite(adjustedTime)) return L"";
     auto upper = std::upper_bound(track->cues.begin(), track->cues.end(), adjustedTime,
         [](double time, const SubtitleCue& cue) { return time < cue.startTimeSec; });
-    size_t first = static_cast<size_t>(upper - track->cues.begin());
-    while (first > 0 && track->cues[first - 1].startTimeSec <= adjustedTime) --first;
     // The text is constant until the next cue starts (window grows) or an
     // active cue ends (window content changes), whichever comes first.
     double nextBoundary = upper != track->cues.end() ? upper->startTimeSec : std::numeric_limits<double>::infinity();
     std::wstring rendered;
     std::set<std::wstring> seen;
     size_t renderedCount = 0;
-    for (auto it = track->cues.begin() + static_cast<std::ptrdiff_t>(first); it != upper; ++it) {
+    // Cues before upper all start at or before this time. Walk them once;
+    // nested/overlapping cues can still be active far before the nearest start.
+    for (auto it = track->cues.begin(); it != upper; ++it) {
         if (adjustedTime < it->startTimeSec || adjustedTime > it->endTimeSec || it->text.empty()) continue;
         nextBoundary = std::min(nextBoundary, it->endTimeSec);
         if (!seen.insert(it->text).second) continue;

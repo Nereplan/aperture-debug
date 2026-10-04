@@ -55,8 +55,41 @@ double Psnr(const std::vector<uint8_t>& a, const std::vector<uint8_t>& b) {
     return sum == 0 ? 99 : 10*std::log10(255.0*255/(sum/(a.size()/4*3)));
 }
 
+void TestEvictionPhases(const fs::path& root) {
+    const auto target = fs::path(GetCacheDir(CacheClass::Thumbnails, root.wstring())) / L"hub_phase.bin";
+    const auto locked = fs::path(GetCacheDir(CacheClass::Generic, root.wstring())) / L"locked.bin";
+    const auto fallback = fs::path(GetCacheDir(CacheClass::Shaders, root.wstring())) / L"fallback.bin";
+    Write(target, std::string(100, 't'));
+    Write(locked, std::string(300, 'l'));
+    Write(fallback, std::string(300, 'f'));
+    unsigned timestamp = 1;
+    for (const auto& path : {target, locked, fallback}) {
+        HANDLE handle = CreateFileW(path.c_str(), FILE_WRITE_ATTRIBUTES, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+            nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+        Check(handle != INVALID_HANDLE_VALUE, "Set deterministic eviction age");
+        FILETIME age{timestamp++, 1};
+        const bool set = SetFileTime(handle, nullptr, &age, &age) != FALSE;
+        CloseHandle(handle);
+        Check(set, "Eviction fixture timestamp");
+    }
+    Check(SetFileAttributesW(target.c_str(), FILE_ATTRIBUTE_READONLY) != FALSE, "Read-only eviction target");
+    HANDLE handle = CreateFileW(locked.c_str(), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE,
+        nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+    Check(handle != INVALID_HANDLE_VALUE, "Locked eviction fixture");
+    CacheBudgetConfig config;
+    config.totalCeilingBytes = 400; config.thumbnailBudgetBytes = 100;
+    const auto result = EvictCacheToBudget(config, root.wstring(), CacheClass::Thumbnails, 100);
+    CloseHandle(handle);
+    Check(result.filesEvicted == 2 && result.bytesEvicted == 400, "Target and fallback phases each evict once");
+    Check(result.filesAttempted == 3 && result.filesLocked == 1, "Second phase skips the erased candidate and retains the lock");
+    Check(!fs::exists(target) && !fs::exists(fallback) && fs::exists(locked), "Correct eviction membership");
+    Check(QueryCacheStats(root.wstring()).totalBytes == 300, "Eviction accounting across both phases");
+    Check(Read(locked) == std::string(300, 'l'), "Locked payload remains intact");
+}
+
 void SelfTest(const fs::path& root) {
     fs::create_directories(root);
+    TestEvictionPhases(root/L"eviction-phases");
     bool staCodecPassed = false;
     std::thread sta([&]() {
         HRESULT initialized = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);

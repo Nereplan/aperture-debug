@@ -365,8 +365,11 @@ public:
     // Imports files and recursively scans directories. The library is saved at most once, after all accepted paths have been processed.
     MediaImportResult ImportPaths(const std::vector<std::wstring>& paths, const MediaImportProgressCallback& progress = {},
                                   bool saveChanges = true, ImportConflictPolicy conflictPolicy = ImportConflictPolicy::KeepExisting);
+    struct RemovedMediaInfo { std::wstring filePath; double durationSec = 0.0; };
     bool RemoveMedia(const std::string& id);
-    size_t RemoveMedia(const std::vector<std::string>& ids, size_t* outSkipped = nullptr, bool saveChanges = true);
+    // Optional owned metadata for cleanup after vector erasure invalidates pointers.
+    size_t RemoveMedia(const std::vector<std::string>& ids, size_t* outSkipped = nullptr, bool saveChanges = true,
+                       std::vector<RemovedMediaInfo>* outRemoved = nullptr);
     MediaItem* FindByPath(const std::wstring& path);
     const MediaItem* FindByPath(const std::wstring& path) const;
     MediaItem* FindById(const std::string& id);

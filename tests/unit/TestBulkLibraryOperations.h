@@ -89,6 +89,45 @@ TEST_CASE(BulkOperations, BulkRemoveMediaFromLibraryAndPlaylists) {
     TEST_ASSERT(lib.history[0].filePath == path1);
 }
 
+TEST_CASE(BulkOperations, RemovalMetadataDescribesEveryErasedRecordAndClearsOnNoOp) {
+    MediaLibrary lib;
+    auto add = [&](const std::string& id, const std::wstring& path, double duration) {
+        MediaItem item;
+        item.id = id; item.filePath = path; item.durationSec = duration;
+        lib.mediaItems.push_back(std::move(item));
+    };
+    add("duplicate", L"C:\\Media\\first.mkv", 101.5);
+    add("keep", L"C:\\Media\\keep.mkv", 202.5);
+    add("duplicate", L"C:\\Media\\second.mkv", 303.5);
+    add("", L"C:\\Media\\empty-id.mkv", 404.5);
+    std::vector<MediaLibrary::RemovedMediaInfo> removed{{L"stale", -1}};
+    size_t skipped = 0;
+    TEST_ASSERT_EQ(lib.RemoveMedia({"duplicate", "duplicate", "missing"}, &skipped, false, &removed), size_t(2));
+    TEST_ASSERT_EQ(skipped, size_t(1));
+    TEST_ASSERT_EQ(removed.size(), size_t(2));
+    TEST_ASSERT_EQ(removed[0].filePath, std::wstring(L"C:\\Media\\first.mkv"));
+    TEST_ASSERT_EQ(removed[0].durationSec, 101.5);
+    TEST_ASSERT_EQ(removed[1].filePath, std::wstring(L"C:\\Media\\second.mkv"));
+    TEST_ASSERT_EQ(removed[1].durationSec, 303.5);
+    TEST_ASSERT_EQ(lib.mediaItems.size(), size_t(2));
+    TEST_ASSERT(lib.FindById("keep") != nullptr);
+    auto owned = removed;
+    TEST_ASSERT_EQ(lib.RemoveMedia({""}, &skipped, false, &removed), size_t(1));
+    TEST_ASSERT_EQ(removed.size(), size_t(1));
+    TEST_ASSERT_EQ(removed[0].durationSec, 404.5);
+    TEST_ASSERT_EQ(lib.RemoveMedia({"missing"}, &skipped, false, &removed), size_t(0));
+    TEST_ASSERT_EQ(skipped, size_t(1));
+    TEST_ASSERT(removed.empty());
+    removed = owned;
+    TEST_ASSERT_EQ(lib.RemoveMedia({}, &skipped, false, &removed), size_t(0));
+    TEST_ASSERT(removed.empty());
+    lib.mediaItems.clear();
+    TEST_ASSERT_EQ(owned[1].filePath, std::wstring(L"C:\\Media\\second.mkv"));
+    removed = owned;
+    TEST_ASSERT_EQ(lib.RemoveMedia({"duplicate"}, &skipped, false, &removed), size_t(0));
+    TEST_ASSERT(removed.empty());
+}
+
 TEST_CASE(BulkOperations, BulkSetWatchedAndUnwatched) {
     MediaLibrary lib;
     const std::wstring path1 = L"C:\\media\\watched_1.mp4";

@@ -3,8 +3,31 @@
 #include "../support/TestFramework.h"
 #include "../../src/Subtitles.h"
 #include "../../src/SubtitleDiscovery.h"
+#include <limits>
 
 namespace Aperture::Test {
+
+TEST_CASE(SubtitlesDual, NestedCuesKeepInclusiveEndsAndCacheBoundariesAcrossSeeks) {
+    SubtitleEngine engine;
+    SubtitleTrack track;
+    track.cues = {{0, 100, L"long"}, {1, 2, L"short"}, {2, 5, L"nested"}, {2, 20, L"nested"},
+                  {3, 3, L"point"}, {4, 10, L""}, {5, 6, L"last"}};
+    engine.tracks.push_back(std::move(track));
+    engine.SelectPrimaryTrack(0);
+    const double infinity = std::numeric_limits<double>::infinity();
+    TEST_ASSERT_EQ(engine.GetCurrentSubtitleText(1.5), std::wstring(L"long\nshort"));
+    TEST_ASSERT_EQ(engine.GetCurrentSubtitleText(2), std::wstring(L"long\nshort\nnested"));
+    TEST_ASSERT_EQ(engine.GetCurrentSubtitleText(std::nextafter(2.0, infinity)), std::wstring(L"long\nnested"));
+    TEST_ASSERT_EQ(engine.GetCurrentSubtitleText(3), std::wstring(L"long\nnested\npoint"));
+    TEST_ASSERT_EQ(engine.GetCurrentSubtitleText(3.25), std::wstring(L"long\nnested"));
+    TEST_ASSERT_EQ(engine.GetCurrentSubtitleText(5.5), std::wstring(L"long\nnested\nlast"));
+    TEST_ASSERT_EQ(engine.GetCurrentSubtitleText(6), std::wstring(L"long\nnested\nlast"));
+    TEST_ASSERT_EQ(engine.GetCurrentSubtitleText(std::nextafter(6.0, infinity)), std::wstring(L"long\nnested"));
+    TEST_ASSERT_EQ(engine.GetCurrentSubtitleText(0.5), std::wstring(L"long"));
+    TEST_ASSERT_EQ(engine.GetCurrentSubtitleText(100), std::wstring(L"long"));
+    TEST_ASSERT(engine.GetCurrentSubtitleText(std::nextafter(100.0, infinity)).empty());
+    TEST_ASSERT_EQ(engine.GetCurrentSubtitleText(2, 500), std::wstring(L"long\nshort"));
+}
 
 TEST_CASE(SubtitlesDual, InitialState) {
     SubtitleEngine engine;

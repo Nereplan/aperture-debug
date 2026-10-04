@@ -154,20 +154,9 @@ void App::ConfirmDeleteSelectedMedia() {
         : L"Are you sure you want to remove " + std::to_wstring(count) + L" selected items from the library? The media files on disk will not be deleted.";
     ShowConfirmationModal(L"Remove from Library", message, L"Remove", [this, idsToDelete]() {
         ArmLibraryUndo(L"Library removal");
-        // Snapshot paths/durations before removal so per-file thumbnail cache entries can be purged (keys are one-way hashes).
-        struct CacheTarget { std::string id; std::wstring path; double durationSec = 0.0; };
-        std::vector<CacheTarget> purgeCandidates;
-        purgeCandidates.reserve(idsToDelete.size());
-        for (const auto& id : idsToDelete) {
-            for (const auto& item : library.mediaItems) {
-                if (item.id == id) {
-                    purgeCandidates.push_back({ item.id, item.filePath, item.durationSec });
-                    break;
-                }
-            }
-        }
+        std::vector<MediaLibrary::RemovedMediaInfo> removedItems;
         size_t skipped = 0;
-        const size_t removed = library.RemoveMedia(idsToDelete, &skipped);
+        const size_t removed = library.RemoveMedia(idsToDelete, &skipped, true, &removedItems);
         SaveLibrary();
         if (removed > 0) {
             // Drain every producer before deleting disk entries, then cancel
@@ -178,10 +167,8 @@ void App::ConfirmDeleteSelectedMedia() {
             hubExtractors[0].Shutdown();
             hubExtractors[1].Shutdown();
             renderer.ClearThumbnailCache();
-            for (const auto& candidate : purgeCandidates) {
-                const bool stillPresent = std::any_of( library.mediaItems.begin(), library.mediaItems.end(),
-                    [&candidate](const MediaItem& item) { return item.id == candidate.id; });
-                if (!stillPresent) { PurgeThumbnailCacheForFile(candidate.path, candidate.durationSec); }
+            for (const auto& item : removedItems) {
+                PurgeThumbnailCacheForFile(item.filePath, item.durationSec);
             }
             // Also removes dimension-dependent legacy hub keys, whose hashes cannot be reconstructed reliably after shell extraction.
             PruneOrphanedHubThumbnailCache();
