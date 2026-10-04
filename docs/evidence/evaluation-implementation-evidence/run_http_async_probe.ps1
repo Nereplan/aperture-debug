@@ -1,5 +1,5 @@
 $ErrorActionPreference = 'Stop'
-$root = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..'))
+$root = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..'))
 $work = Join-Path $root 'scratch/evaluation-fixes/http-async-probe'
 New-Item -ItemType Directory -Path $work -Force | Out-Null
 $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"

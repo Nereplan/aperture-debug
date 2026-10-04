@@ -93,11 +93,11 @@ Final validation: **18/18 PR regression suites**, including unit, persistence, I
 
 The repository's checked-in visual goldens already fail against the original binary. Fixed test-only BOM/obsolete-store fixtures, then captured all four scenes from the unmodified baseline and compared the optimized binary: **zero differing pixels in every scene**. Checked-in golden images were preserved. This is a passing original-versus-optimized UI comparison, not a claim that the stale golden gate passes.
 
-## 9. Remaining high-impact opportunities
+## 9. Follow-up opportunities at this baseline
 
 The later [backend optimization report](BACKEND_OPTIMIZATION_REPORT.md) records the 1 October follow-up, including faster full-library saves, batch playlist membership, cache writes and event-driven player waits.
 
-- Avoid full-library serialization during periodic progress saves. At 25,000 entries it still costs about 453 ms. A safe design must account for public record mutation, preserve unknown fields/atomic recovery, and drain any asynchronous writer on shutdown.
+- At this baseline, periodic progress saves serialized the full library at about 453 ms for 25,000 entries. The later [evaluation implementation](EVALUATION_IMPLEMENTATION.md) records coalesced background saves and compact snapshots, including unknown-field preservation, atomic recovery, and shutdown draining.
 - The follow-up libmpv rebuild is now integrated; see [LIBMPV_INTEGRATION_REPORT.md](LIBMPV_INTEGRATION_REPORT.md) for its separate measurements and playback validation. The earlier results above describe the application-only optimization stage.
 - Add actual decoder/present timestamps and GPU frame tracing to measure video-first-frame latency and pacing across H.264/HEVC/AV1, 4K, subtitles and hardware/software decoding. Present quality should drive further pipeline changes.
 - Profile existing backfill/import activity during large-library startup and first-time media open, especially when another metadata batch is already active.

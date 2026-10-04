@@ -80,7 +80,7 @@ Existing raw/PNG entries migrate through the bounded background worker only when
 | 12 flat/palette/checkerboard/subtitle graphics | 218,030 | 12,805 | 94.13% |
 | All 22 samples | 660,241 | 455,016 | 31.08% |
 
-Individual graphic fixtures saved approximately 65–98%. The aggregate is dominated by artificial checkerboards and is **not a forecast for a real media library**. Natural-grain, mixed-photo, transparent, and the decoded photographic cache sample had identical encoded sizes. Full per-frame sizes and median times are in [codec.csv](size-evidence/codec.csv).
+Individual graphic fixtures saved approximately 65–98%. The aggregate is dominated by artificial checkerboards and is **not a forecast for a real media library**. Natural-grain, mixed-photo, transparent, and the decoded photographic cache sample had identical encoded sizes. Full per-frame sizes and median times are in [codec.csv](../evidence/size-evidence/codec.csv).
 
 ## Sharing rollback payloads
 
@@ -92,7 +92,7 @@ Package tests exercise no-op installation, three retained revisions, sharing wit
 
 Storage evidence counts unique file identities using Windows `st_dev`/`st_ino` and sums their lengths once. Ordinary folder-size totals double-count hard links; allocated clusters and file-system metadata are excluded. Thus these are distinct payload bytes, not exact free-space deltas. Both installed copies retain three complete snapshots. All 59 pre-recorded profile/cache/configuration files remained byte-identical, and live files were verified independent of the pool.
 
-Raw measurements are in [storage-before.json](size-evidence/storage-before.json), [storage-after.json](size-evidence/storage-after.json), and [gate-summary.json](size-evidence/gate-summary.json). Private profile paths and contents are excluded.
+Raw measurements are in [storage-before.json](../evidence/size-evidence/storage-before.json), [storage-after.json](../evidence/size-evidence/storage-after.json), and [gate-summary.json](../evidence/size-evidence/gate-summary.json). Private profile paths and contents are excluded.
 
 ## Reproducing the checks
 

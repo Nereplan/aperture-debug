@@ -19,7 +19,7 @@ Every sample preserves the duplicate-entry count, group count, and hash of the o
 
 The unknown-resolution workload uses about 1.5% more peak temporary heap for weighted component tracking. Dense incomplete-metadata buckets can still require quadratic comparisons within the duration window; the fast adjacent-duration path applies when the full metadata predicate suffices.
 
-Raw evidence: [before samples](duplicate-detection-evidence/before.csv), [after samples](duplicate-detection-evidence/after.csv), [comparison and allocation counts](duplicate-detection-evidence/comparison.json).
+Raw evidence: [before samples](../evidence/duplicate-detection-evidence/before.csv), [after samples](../evidence/duplicate-detection-evidence/after.csv), [comparison and allocation counts](../evidence/duplicate-detection-evidence/comparison.json).
 
 ## Validation
 

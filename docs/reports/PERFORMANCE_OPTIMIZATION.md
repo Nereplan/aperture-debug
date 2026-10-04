@@ -83,7 +83,7 @@ For a size/duration run of `k` candidates, the connectivity phase uses sorting a
 
 ## Evidence and reproduction
 
-Raw CSVs and comparison JSONs are in [performance-evidence](performance-evidence). Workloads are exposed through `run_query_benchmark.ps1` as the default set, `-DuplicatesOnly`, `-ExtendedOnly`, and `-ProgressOnly`. `compare_query_benchmark.ps1` accepts the corresponding switches. Both scripts reject conflicting workload selections.
+Raw CSVs and comparison JSONs are in [performance-evidence](../evidence/performance-evidence). Workloads are exposed through `run_query_benchmark.ps1` as the default set, `-DuplicatesOnly`, `-ExtendedOnly`, and `-ProgressOnly`. `compare_query_benchmark.ps1` accepts the corresponding switches. Both scripts reject conflicting workload selections.
 
 Use the current harness against a separate source checkout of `17ed90a` and the current source. Keep harness output and checkouts outside the project workspace:
 

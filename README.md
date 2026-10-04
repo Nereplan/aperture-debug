@@ -36,4 +36,4 @@ Use `./scripts/publish_release.ps1 -PrepareOnly` to build and write release note
 
 For an existing source checkout, **Update Source.cmd** fast-forwards from its configured upstream, builds, tests, and updates your local apps. It stops if source changes are uncommitted or the branches have diverged.
 
-See [Build and release](docs/BUILD_AND_RELEASE.md), [portable data](docs/PORTABLE_DATA_MIGRATIONS.md), and [custom libmpv builds](docs/CUSTOM_MPV_BUILD.md).
+See the [documentation index](docs/README.md) for build, testing, portable-data, engine-build, and measured optimization references.

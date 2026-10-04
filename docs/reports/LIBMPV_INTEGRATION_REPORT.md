@@ -26,7 +26,7 @@ The recipe builds the shader chain at `-Os`, and FFmpeg/libplacebo/mpv with size
 
 The existing lean codec/container/protocol configuration is retained, with `dynaudnorm` and `pan` added for night mode and channel mapping. D3D11 decoding/rendering, WASAPI, libass, colour management, screenshots and the software-render preview remain available. Optional libdovi is disabled, while FFmpeg Dolby Vision metadata parsing and libplacebo reshaping remain compiled in. The original DLL's precise source revision remains uncertain; its version string/imports are evidence, not proof of a source commit.
 
-The wrapper validates cleanup paths before writes, holds an exclusive build lock, handles spaces through a stable temporary drive alias, honors `-OutputDir`, records the installed MSYS2 packages, and avoids global package updates. It rejects cached dependencies when the recipe or package inventory changes. See [CUSTOM_MPV_BUILD.md](CUSTOM_MPV_BUILD.md) for setup and commands.
+The wrapper validates cleanup paths before writes, holds an exclusive build lock, handles spaces through a stable temporary drive alias, honors `-OutputDir`, records the installed MSYS2 packages, and avoids global package updates. It rejects cached dependencies when the recipe or package inventory changes. See [CUSTOM_MPV_BUILD.md](../CUSTOM_MPV_BUILD.md) for setup and commands.
 
 ## Validation
 

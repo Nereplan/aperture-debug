@@ -28,6 +28,6 @@ Run the manual playback suite after an engine change:
 
 Playback tests compile an isolated harness, copy the selected DLL, verify its loaded absolute path and file hash, and fail on any failed scenario or timeout. Generated media and logs live in `scratch/libmpv-tests/`. Use `-DllPath`, `-MediaDir`, and `-Scenario` for comparisons; `bench` and `startup` are separate performance scenarios. The legacy `balance` property is recorded as a diagnostic because both original and new v0.41.0 engines report it missing. The self-signed loopback HTTPS fixture bypasses certificate verification only in its test client; `-TrustedHttpsUrl` separately tests a normally trusted endpoint with verification enabled.
 
-The integration results and limitations are in [LIBMPV_INTEGRATION_REPORT.md](LIBMPV_INTEGRATION_REPORT.md). Source/flags and the captured toolchain support rebuilding the same configuration; timestamps and toolchain differences can change the binary hash.
+The integration results and limitations are in [LIBMPV_INTEGRATION_REPORT.md](reports/LIBMPV_INTEGRATION_REPORT.md). Source/flags and the captured toolchain support rebuilding the same configuration; timestamps and toolchain differences can change the binary hash.
 
 When updating libmpv, update the matching headers in `include/mpv/` and the dependency inventory, run the loader and playback tests, and create a new complete release package. The portable updater distributes the DLL, fonts, and locale catalogs together with the application executable.

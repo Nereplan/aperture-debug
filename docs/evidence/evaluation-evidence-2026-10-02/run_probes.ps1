@@ -1,5 +1,5 @@
 $ErrorActionPreference = 'Stop'
-$source = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '../../src')).Path
+$source = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '../../../src')).Path
 $tempBase = [IO.Path]::GetFullPath([IO.Path]::GetTempPath()).TrimEnd('\','/') + '\'
 $probeBuild = Join-Path $tempBase ('Aperture-evaluation-' + [Guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $probeBuild | Out-Null
