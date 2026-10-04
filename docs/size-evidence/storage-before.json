@@ -1,0 +1,75 @@
+{
+  "release": {
+    "installed": {
+      "files": 158,
+      "logicalBytes": 118396513,
+      "uniqueBytes": 118396513
+    },
+    "update-backups": {
+      "files": 114,
+      "logicalBytes": 88721982,
+      "uniqueBytes": 88721982
+    },
+    "cache": {
+      "files": 7,
+      "logicalBytes": 35239,
+      "uniqueBytes": 35239
+    }
+  },
+  "debug": {
+    "installed": {
+      "files": 159,
+      "logicalBytes": 122042618,
+      "uniqueBytes": 122042618
+    },
+    "update-backups": {
+      "files": 120,
+      "logicalBytes": 91482990,
+      "uniqueBytes": 91482990
+    },
+    "cache": {
+      "files": 0,
+      "logicalBytes": 0,
+      "uniqueBytes": 0
+    }
+  },
+  "exeSections": [
+    {
+      "name": ".text",
+      "rawBytes": 2364416
+    },
+    {
+      "name": ".rdata",
+      "rawBytes": 506368
+    },
+    {
+      "name": ".data",
+      "rawBytes": 91136
+    },
+    {
+      "name": ".pdata",
+      "rawBytes": 65536
+    },
+    {
+      "name": ".didat",
+      "rawBytes": 512
+    },
+    {
+      "name": ".fptable",
+      "rawBytes": 512
+    },
+    {
+      "name": "_RDATA",
+      "rawBytes": 512
+    },
+    {
+      "name": ".rsrc",
+      "rawBytes": 78336
+    },
+    {
+      "name": ".reloc",
+      "rawBytes": 14336
+    }
+  ],
+  "packageBytes": 13271078
+}

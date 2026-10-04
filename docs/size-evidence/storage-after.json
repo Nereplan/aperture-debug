@@ -1,0 +1,86 @@
+{
+  "release": {
+    "installed": {
+      "files": 189,
+      "logicalBytes": 154418874,
+      "uniqueBytes": 65530223
+    },
+    "update-backups": {
+      "files": 145,
+      "logicalBytes": 124734007,
+      "uniqueBytes": 35845356
+    },
+    "cache": {
+      "files": 7,
+      "logicalBytes": 35239,
+      "uniqueBytes": 35239
+    },
+    "completeBackups": 3,
+    "liveFilesIndependentOfSnapshots": true,
+    "exeBytes": 3125760,
+    "libmpvBytes": 25240576,
+    "protectedFilesVerified": 32
+  },
+  "debug": {
+    "installed": {
+      "files": 185,
+      "logicalBytes": 158293252,
+      "uniqueBytes": 66643593
+    },
+    "update-backups": {
+      "files": 146,
+      "logicalBytes": 127723288,
+      "uniqueBytes": 36073629
+    },
+    "cache": {
+      "files": 0,
+      "logicalBytes": 0,
+      "uniqueBytes": 0
+    },
+    "completeBackups": 3,
+    "liveFilesIndependentOfSnapshots": true,
+    "exeBytes": 3125760,
+    "libmpvBytes": 25240576,
+    "protectedFilesVerified": 27
+  },
+  "exeSections": [
+    {
+      "name": ".text",
+      "rawBytes": 2367488
+    },
+    {
+      "name": ".rdata",
+      "rawBytes": 506368
+    },
+    {
+      "name": ".data",
+      "rawBytes": 91136
+    },
+    {
+      "name": ".pdata",
+      "rawBytes": 65536
+    },
+    {
+      "name": ".didat",
+      "rawBytes": 512
+    },
+    {
+      "name": ".fptable",
+      "rawBytes": 512
+    },
+    {
+      "name": "_RDATA",
+      "rawBytes": 512
+    },
+    {
+      "name": ".rsrc",
+      "rawBytes": 78336
+    },
+    {
+      "name": ".reloc",
+      "rawBytes": 14336
+    }
+  ],
+  "packageBytes": 13274144,
+  "sourceCommit": "4b30177"
+}

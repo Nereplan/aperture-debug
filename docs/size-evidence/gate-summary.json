@@ -1,0 +1,197 @@
+{
+  "date": "2026-10-04",
+  "baselineTree": "ea0a340",
+  "sourceCommit": "4b30177",
+  "before": {
+    "suites": {
+      "local_release": {
+        "result": "PASS",
+        "seconds": 2.91
+      },
+      "github_update": {
+        "result": "PASS",
+        "seconds": 2.32
+      },
+      "update_retention": {
+        "result": "PASS",
+        "seconds": 1.21
+      },
+      "workspace_cleanup": {
+        "result": "PASS",
+        "seconds": 1.25
+      },
+      "workflows": {
+        "result": "PASS",
+        "seconds": 39.63
+      },
+      "unit": {
+        "result": "PASS",
+        "seconds": 87.67
+      },
+      "corpus": {
+        "result": "PASS",
+        "seconds": 43.63
+      },
+      "persistence": {
+        "result": "PASS",
+        "seconds": 35.66
+      },
+      "ipc": {
+        "result": "PASS",
+        "seconds": 3.38
+      },
+      "loader": {
+        "result": "PASS",
+        "seconds": 22.53
+      },
+      "diagnostics": {
+        "result": "PASS",
+        "seconds": 23.29
+      },
+      "updater": {
+        "result": "PASS",
+        "seconds": 13.91
+      },
+      "channel_policy": {
+        "result": "PASS",
+        "seconds": 0.35
+      },
+      "dependencies": {
+        "result": "PASS",
+        "seconds": 0.78
+      },
+      "runtime_layout": {
+        "result": "PASS",
+        "seconds": 0.72
+      },
+      "threat_boundaries": {
+        "result": "PASS",
+        "seconds": 0.1
+      },
+      "static_analysis": {
+        "result": "PASS",
+        "seconds": 53.37
+      },
+      "stress": {
+        "result": "PASS",
+        "seconds": 91.87
+      },
+      "media_probe_isolation": {
+        "result": "PASS",
+        "seconds": 11.58
+      },
+      "thumbnail_cache": {
+        "result": "PASS",
+        "seconds": 18.54
+      }
+    },
+    "totalSuites": 20,
+    "passed": 20,
+    "failed": 0,
+    "timeouts": 0,
+    "totalSeconds": 454.76
+  },
+  "after": {
+    "suites": {
+      "local_release": {
+        "result": "PASS",
+        "seconds": 2.91
+      },
+      "github_update": {
+        "result": "PASS",
+        "seconds": 2.53
+      },
+      "update_retention": {
+        "result": "PASS",
+        "seconds": 2.59
+      },
+      "workspace_cleanup": {
+        "result": "PASS",
+        "seconds": 1.28
+      },
+      "workflows": {
+        "result": "PASS",
+        "seconds": 40.66
+      },
+      "unit": {
+        "result": "PASS",
+        "seconds": 62.85
+      },
+      "corpus": {
+        "result": "PASS",
+        "seconds": 6.1
+      },
+      "persistence": {
+        "result": "PASS",
+        "seconds": 8.86
+      },
+      "ipc": {
+        "result": "PASS",
+        "seconds": 3.33
+      },
+      "loader": {
+        "result": "PASS",
+        "seconds": 22.56
+      },
+      "diagnostics": {
+        "result": "PASS",
+        "seconds": 23.01
+      },
+      "updater": {
+        "result": "PASS",
+        "seconds": 13.45
+      },
+      "channel_policy": {
+        "result": "PASS",
+        "seconds": 0.33
+      },
+      "dependencies": {
+        "result": "PASS",
+        "seconds": 0.76
+      },
+      "runtime_layout": {
+        "result": "PASS",
+        "seconds": 0.69
+      },
+      "threat_boundaries": {
+        "result": "PASS",
+        "seconds": 0.1
+      },
+      "static_analysis": {
+        "result": "PASS",
+        "seconds": 53.25
+      },
+      "stress": {
+        "result": "PASS",
+        "seconds": 94.2
+      },
+      "media_probe_isolation": {
+        "result": "PASS",
+        "seconds": 11.54
+      },
+      "thumbnail_cache": {
+        "result": "PASS",
+        "seconds": 19.15
+      }
+    },
+    "totalSuites": 20,
+    "passed": 20,
+    "failed": 0,
+    "timeouts": 0,
+    "totalSeconds": 370.26
+  },
+  "mutations": {
+    "suites": {
+      "workflow_mutations": {
+        "result": "PASS",
+        "seconds": 70.69
+      }
+    },
+    "totalSuites": 1,
+    "passed": 1,
+    "failed": 0,
+    "timeouts": 0,
+    "totalSeconds": 70.72
+  },
+  "note": "Single local runs, not controlled timing medians. Manual mutation compilation overlapped part of the verified PR gate. Both mutation variants were rejected by behavioral assertions."
+}
