@@ -13,6 +13,107 @@
 
 namespace Aperture::Test {
 
+TEST_CASE(LibraryQuery, BorrowedSearchMatchesOwningReference) {
+    // Frozen owning traversal: display title, raw title, filename, full path, series.
+    const auto reference = [](const MediaItem& item, const std::wstring& query) {
+        if (query.empty()) return true;
+        const auto contains = [&](const std::wstring& text) {
+            return LibraryQueryEngine::NormalizeSearchText(text).find(query) != std::wstring::npos;
+        };
+        return contains(item.GetDisplayTitle()) || contains(item.title) || contains(GetFileNameFromPath(item.filePath)) ||
+            contains(item.filePath) || (item.overrides && item.overrides->series && contains(*item.overrides->series));
+    };
+    const std::vector<std::wstring> words = {L"  RawTitle  ", L"A/B", L"媒体 字幕", L"İstanbul I", L"", std::wstring(330, L'a') + L" end tail"};
+    const std::vector<std::wstring> queries = {L"", L"viewtitle", L"rawtitle", L"a/b", L"媒体", L"ı", L"series",
+        L"end tail", L"end\ttail", L"hidden", L"mkv", std::wstring(300, L'a'), std::wstring(1, wchar_t{0})};
+    for (size_t i = 0; i < 96; ++i) {
+        MediaItem item;
+        item.title = words[i % words.size()];
+        item.filePath = LR"(C:\Hidden\)" + words[(i / 3) % words.size()] + L"  .mkv";
+        if (i % 4 == 0) item.filePath += std::wstring(1, wchar_t{0});
+        if (i % 3 == 0) { MediaMetadataOverrides overrides; overrides.title = L"ViewTitle"; overrides.series = L"Series name"; item.overrides = overrides; }
+        for (const auto& query : queries) {
+            const auto normalized = LibraryQueryEngine::NormalizeSearchText(query);
+            TEST_ASSERT_EQ(LibraryQueryEngine::MatchesSearchQuery(item, normalized), reference(item, normalized));
+        }
+    }
+}
+
+TEST_CASE(LibraryQuery, CappedGroupedProjectionKeepsVisiblePrefixAndSummaries) {
+    MediaLibrary library;
+    for (size_t i = 0; i < 320; ++i) {
+        const size_t ordinal = 319 - i;
+        const auto group = L"Group " + std::to_wstring(ordinal / 40);
+        MediaItem item; item.id = std::to_string(ordinal);
+        item.filePath = LR"(C:\Grouped\)" + group + LR"(\)" + group + L".S01E" + std::to_wstring(ordinal % 40 + 1) + L".mkv";
+        item.title = L"Display " + std::to_wstring(ordinal % 13);
+        item.durationSec = 10 + ordinal; item.fileSizeBytes = 1000 + ordinal;
+        library.mediaItems.push_back(std::move(item));
+    }
+    for (const auto mode : {LibraryGroupMode::Folder, LibraryGroupMode::Series}) {
+        for (const auto direction : {SortDirection::Ascending, SortDirection::Descending}) {
+            LibraryQueryOptions options; options.groupMode = mode; options.sortDirection = direction;
+            LibraryQueryEngine seed;
+            const auto collapseKey = seed.Query(library, options).groups[1].key;
+            options.collapsedGroups = std::make_shared<const std::unordered_set<std::wstring>>(std::unordered_set<std::wstring>{collapseKey});
+            LibraryQueryEngine reference;
+            const auto& full = reference.Query(library, options);
+            for (const size_t cap : {size_t(1), size_t(17), size_t(43), size_t(80), size_t(500)}) {
+                options.maxItems = cap;
+                LibraryQueryEngine bounded;
+                const auto& actual = bounded.Query(library, options);
+                TEST_ASSERT_EQ(actual.filteredCount, full.filteredCount);
+                TEST_ASSERT_EQ(actual.items.size(), (std::min)(cap, full.items.size()));
+                for (size_t i = 0; i < actual.items.size(); ++i) TEST_ASSERT_EQ(actual.items[i].id, full.items[i].id);
+                for (size_t i = 0; i < actual.groups.size(); ++i) {
+                    const auto& group = actual.groups[i]; const auto& expected = full.groups[i];
+                    TEST_ASSERT_EQ(group.key, expected.key); TEST_ASSERT_EQ(group.title, expected.title);
+                    TEST_ASSERT_EQ(group.count, expected.count); TEST_ASSERT_EQ(group.startIndex, expected.startIndex);
+                    TEST_ASSERT_EQ(group.isCollapsed, expected.isCollapsed);
+                    if (group.isCollapsed || group.startIndex + group.count <= actual.items.size()) {
+                        TEST_ASSERT_EQ(group.totalDurationSec, expected.totalDurationSec);
+                        TEST_ASSERT_EQ(group.totalSizeBytes, expected.totalSizeBytes);
+                    }
+                }
+            }
+        }
+    }
+}
+
+TEST_CASE(LibraryQuery, GroupingParserRetainsEpisodeKeysAndPublicSourceFields) {
+    const std::vector<std::wstring> paths = {
+        LR"(C:\Shows\Dr.Who\S01E03.mkv)", LR"(C:\Shows\Dr.Who\S01E01.mkv)",
+        L"C:/Shows/Dr.Who/S02E02.MKV", LR"(C:\Shows\[Subs] New Show.2x04 [1080p].mp4)",
+        LR"(C:\Shows\[Subs] New Show.Episode 02.mkv)", LR"(C:\Shows\[1080p].mkv)",
+        LR"(C:\Shows\Show.S01E01.srt)", LR"(C:\Shows\Movie.2024.mkv)"
+    };
+    MediaLibrary library;
+    std::vector<EpisodeInfo> episodes;
+    for (size_t i = 0; i < paths.size(); ++i) {
+        const auto info = LibraryQueryEngine::ParseEpisodeInfo(paths[i]);
+        TEST_ASSERT_EQ(info.rawPath, paths[i]);
+        TEST_ASSERT_EQ(info.rawFileName, GetFileNameFromPath(paths[i]));
+        TEST_ASSERT_EQ(info.directoryPath, ExtractDirectory(paths[i]));
+        episodes.push_back(info);
+        MediaItem item; item.id = std::to_string(i); item.filePath = paths[i]; item.title = L"Title " + std::to_wstring(i);
+        library.mediaItems.push_back(std::move(item));
+    }
+    LibraryQueryEngine engine; LibraryQueryOptions options; options.groupMode = LibraryGroupMode::Series;
+    const auto& projection = engine.Query(library, options);
+    TEST_ASSERT_EQ(projection.items.size(), paths.size());
+    for (const auto& group : projection.groups) {
+        int season = -1, episode = -1;
+        for (size_t i = group.startIndex; i < group.startIndex + group.count; ++i) {
+            const auto& info = episodes[projection.items[i].originalLibraryIndex];
+            TEST_ASSERT_EQ(group.key, info.isValid ? info.seriesStem : std::wstring(L"__standalone__"));
+            if (!group.isSpecial) {
+                TEST_ASSERT(info.seasonNumber > season || (info.seasonNumber == season && info.episodeNumber >= episode));
+                season = info.seasonNumber; episode = info.episodeNumber;
+            }
+        }
+    }
+}
+
 // ============================================================================
 // 1. Episode Token & Pattern Extraction Tests
 // ============================================================================

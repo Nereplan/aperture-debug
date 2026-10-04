@@ -15,8 +15,8 @@ namespace Aperture::Test {
 TEST_CASE(DuplicateDetection, ContentClustersMatchIndependentPairwiseOracle) {
     std::mt19937 random(0xA9E274);
     const double durations[] = {0.0, 0.5, 0.75, 1.0, 1.25, 4.5, 4.75, 4.999, 5.0, 5.25, 5.5, 5.5001, 8.0, 8.5, 9.0};
-    for (int sample = 0; sample < 32; ++sample) {
-        std::vector<MediaItem> items(48);
+    for (int sample = 0; sample < 128; ++sample) {
+        std::vector<MediaItem> items(96);
         for (size_t i = 0; i < items.size(); ++i) {
             auto& item = items[i];
             item.id = std::to_string(i);
@@ -24,9 +24,21 @@ TEST_CASE(DuplicateDetection, ContentClustersMatchIndependentPairwiseOracle) {
             item.title = L"Title " + std::to_wstring(random() % 5);
             item.fileSizeBytes = random() % 5 == 0 ? 0 : 1000 + random() % 3;
             item.durationSec = durations[random() % std::size(durations)];
-            const unsigned resolution = random() % 4;
-            item.videoWidth = resolution == 0 ? 0 : (resolution == 1 ? 1280 : 1920);
+            if (sample % 4 == 0) item.durationSec = 4.0 + (random() % 5) * 0.25;
+            if (sample % 4 == 1) item.durationSec = 1200.0 + (random() % 5) * 0.25;
+            const unsigned resolution = random() % 5;
+            item.videoWidth = resolution == 0 ? -1 : (resolution == 1 ? 1280 : 1920);
             item.videoHeight = resolution < 2 ? 0 : (resolution == 2 ? 1080 : 720);
+            if (i % 11 == 0) item.title.clear();
+        }
+        struct Keys { std::wstring stem, title, file; };
+        std::vector<Keys> keys;
+        for (const auto& item : items) {
+            const auto name = GetFileNameFromPath(item.filePath);
+            const auto dot = name.find_last_of(L'.');
+            keys.push_back({LibraryQueryEngine::ExtractSeriesStem(name),
+                LibraryQueryEngine::NormalizeSearchText(item.title.empty() ? name : item.title),
+                LibraryQueryEngine::NormalizeSearchText(dot != std::wstring::npos && dot > 0 ? name.substr(0, dot) : name)});
         }
         // Brute-force edges followed by graph traversal are independent of the
         // production duration windows and disjoint-set implementation.
@@ -36,13 +48,12 @@ TEST_CASE(DuplicateDetection, ContentClustersMatchIndependentPairwiseOracle) {
                 const auto& a = items[i]; const auto& b = items[j];
                 if (!a.fileSizeBytes || a.fileSizeBytes != b.fileSizeBytes || a.durationSec <= 0.5 || b.durationSec <= 0.5 ||
                     std::abs(a.durationSec - b.durationSec) > 0.5) continue;
-                const bool known = a.videoWidth && a.videoHeight && b.videoWidth && b.videoHeight;
+                const bool known = a.videoWidth > 0 && a.videoHeight > 0 && b.videoWidth > 0 && b.videoHeight > 0;
                 if (known && (a.videoWidth != b.videoWidth || a.videoHeight != b.videoHeight)) continue;
-                const auto fileA = GetFileNameFromPath(a.filePath), fileB = GetFileNameFromPath(b.filePath);
                 const bool matches = (known && a.durationSec >= 5.0) ||
-                    LibraryQueryEngine::ExtractSeriesStem(fileA) == LibraryQueryEngine::ExtractSeriesStem(fileB) ||
-                    LibraryQueryEngine::NormalizeSearchText(a.title) == LibraryQueryEngine::NormalizeSearchText(b.title) ||
-                    fileA == fileB;
+                    (!keys[i].stem.empty() && keys[i].stem == keys[j].stem) ||
+                    (!keys[i].title.empty() && keys[i].title == keys[j].title) ||
+                    (!keys[i].file.empty() && keys[i].file == keys[j].file);
                 if (matches) { edges[i].push_back(j); edges[j].push_back(i); }
             }
         }
@@ -78,6 +89,24 @@ TEST_CASE(DuplicateDetection, ContentClustersMatchIndependentPairwiseOracle) {
         TEST_ASSERT_EQ(result.totalDuplicateEntries, duplicateEntries);
         TEST_ASSERT_EQ(result.totalReclaimableBytes, duplicateBytes);
     }
+}
+
+TEST_CASE(DuplicateDetection, UnknownResolutionBridgesBothDurationNeighbors) {
+    std::vector<MediaItem> items(4);
+    for (size_t i = 0; i < items.size(); ++i) {
+        items[i].id = std::to_string(i);
+        items[i].filePath = LR"(C:\Bridge\)" + std::to_wstring(i) + L".mkv";
+        items[i].title = L"Shared"; items[i].fileSizeBytes = 1000;
+        items[i].durationSec = i == 0 ? 6.0 : (i == 1 ? 6.9 : 6.45);
+        items[i].videoWidth = i < 2 ? 0 : (i == 2 ? 1920 : 1280);
+        items[i].videoHeight = i < 2 ? 0 : (i == 2 ? 1080 : 720);
+    }
+    const auto bridged = LibraryQueryEngine::DetectDuplicates(items);
+    TEST_ASSERT_EQ(bridged.totalDuplicateGroups, 1);
+    TEST_ASSERT_EQ(bridged.totalDuplicateEntries, 3);
+    // With no wildcard records, equal text cannot bridge different known dimensions.
+    items.erase(items.begin(), items.begin() + 2);
+    TEST_ASSERT_EQ(LibraryQueryEngine::DetectDuplicates(items).totalDuplicateGroups, 0);
 }
 
 TEST_CASE(DuplicateDetection, MetadataChainsAndFiveSecondInputOrder) {

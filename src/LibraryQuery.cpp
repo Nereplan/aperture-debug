@@ -6,7 +6,6 @@
 #include <algorithm>
 #include <cwctype>
 #include <sstream>
-#include <iomanip>
 #include <numeric>
 #include <cmath>
 #include <unordered_map>
@@ -36,15 +35,18 @@ std::wstring NormalizeDirectoryPath(const std::wstring& path) {
     while (result.size() > 1 && (result.back() == L'\\' || result.back() == L'/')) { result.pop_back(); }
     return result;
 }
-std::wstring ExtractFileNameWithoutExt(const std::wstring& path) {
-    std::wstring fileName = GetFileNameFromPath(path);
-    size_t lastDot = fileName.find_last_of(L'.');
-    if (lastDot != std::wstring::npos && lastDot > 0) { return fileName.substr(0, lastDot); }
-    return fileName;
+std::wstring_view FileNameView(std::wstring_view path) {
+    const size_t slash = path.find_last_of(LR"(\/)");
+    return slash == std::wstring_view::npos ? path : path.substr(slash + 1);
+}
+
+std::wstring_view FileBaseNameView(std::wstring_view name) {
+    const size_t dot = name.find_last_of(L'.');
+    return dot != std::wstring_view::npos && dot > 0 ? name.substr(0, dot) : name;
 }
 
 // Strips brackets like [1080p], (2024), {Erai-raws}, etc.
-std::wstring StripBracketedContent(const std::wstring& text) {
+std::wstring StripBracketedContent(std::wstring_view text) {
     std::wstring result;
     result.reserve(text.size());
     int squareDepth = 0, parenDepth = 0, curlyDepth = 0;
@@ -89,7 +91,7 @@ namespace {
 // titles and paths; only unusually long strings fall back to the heap.
 struct SearchTextBuffer {
     static constexpr size_t kInlineChars = 256;
-    wchar_t inlineBuf[kInlineChars] = {};
+    wchar_t inlineBuf[kInlineChars];
     std::wstring heapBuf;
     size_t len = 0;
     void Reset() { len = 0; heapBuf.clear(); }
@@ -102,7 +104,7 @@ struct SearchTextBuffer {
     std::wstring_view View() const { return heapBuf.empty() ? std::wstring_view(inlineBuf, len) : std::wstring_view(heapBuf); }
 };
 
-void NormalizeSearchTextInto(const std::wstring& text, SearchTextBuffer& out) {
+void NormalizeSearchTextInto(std::wstring_view text, SearchTextBuffer& out) {
     out.Reset();
     if (text.empty()) return;
     bool prevSpace = false;
@@ -117,9 +119,7 @@ void NormalizeSearchTextInto(const std::wstring& text, SearchTextBuffer& out) {
         if (out.heapBuf.empty()) { --out.len; } else { out.heapBuf.pop_back(); --out.len; }
     }
 }
-} // namespace
-
-std::wstring LibraryQueryEngine::NormalizeSearchText(const std::wstring& text) {
+std::wstring NormalizeSearchTextFromView(std::wstring_view text) {
     if (text.empty()) return L"";
     std::wstring result;
     result.reserve(text.size());
@@ -135,14 +135,14 @@ std::wstring LibraryQueryEngine::NormalizeSearchText(const std::wstring& text) {
     return result;
 }
 
-std::wstring LibraryQueryEngine::ExtractSeriesStem(const std::wstring& filename) {
+std::wstring SeriesStemFromView(std::wstring_view filename) {
     std::wstring clean = StripBracketedContent(filename);
-    std::wstring lower = ToLowerString(clean);
     // Replace non-alphanumeric separators with spaces
     std::wstring result;
-    result.reserve(lower.size());
+    result.reserve(clean.size());
     bool prevSpace = false;
-    for (wchar_t c : lower) {
+    for (wchar_t c : clean) {
+        c = std::towlower(c);
         if (std::iswalnum(c)) { result.push_back(c); prevSpace = false; } else {
             if (!prevSpace && !result.empty()) { result.push_back(L' '); prevSpace = true; }
         }
@@ -150,6 +150,11 @@ std::wstring LibraryQueryEngine::ExtractSeriesStem(const std::wstring& filename)
     while (!result.empty() && result.back() == L' ') { result.pop_back(); }
     return result;
 }
+
+} // namespace
+
+std::wstring LibraryQueryEngine::NormalizeSearchText(const std::wstring& text) { return NormalizeSearchTextFromView(text); }
+std::wstring LibraryQueryEngine::ExtractSeriesStem(const std::wstring& filename) { return SeriesStemFromView(filename); }
 
 bool LibraryQueryEngine::AreSameDirectory(const std::wstring& path1, const std::wstring& path2) {
     std::wstring dir1 = NormalizeDirectoryPath(ExtractDirectory(path1));
@@ -171,15 +176,19 @@ std::wstring CapitalizeWords(const std::wstring& text) {
 }
 } // anonymous namespace
 
-EpisodeInfo LibraryQueryEngine::ParseEpisodeInfo(const std::wstring& filePath) {
+namespace {
+EpisodeInfo ParseEpisodeInfoImpl(const std::wstring& filePath, bool includeSource) {
     EpisodeInfo info;
-    info.rawPath = filePath;
-    info.rawFileName = GetFileNameFromPath(filePath);
-    info.directoryPath = ExtractDirectory(filePath);
+    const auto fileName = FileNameView(filePath);
+    if (includeSource) {
+        info.rawPath = filePath;
+        info.rawFileName.assign(fileName);
+        info.directoryPath = ExtractDirectory(filePath);
+    }
     info.isValid = false;
     // Reject non-supported media extensions
     if (!MediaLibrary::IsSupportedMediaExtension(filePath)) { return info; }
-    std::wstring baseName = ExtractFileNameWithoutExt(info.rawFileName);
+    const auto baseName = FileBaseNameView(fileName);
     std::wstring cleanName = StripBracketedContent(baseName);
     if (cleanName.empty()) { cleanName = baseName; }
     const size_t len = cleanName.size();
@@ -312,16 +321,20 @@ EpisodeInfo LibraryQueryEngine::ParseEpisodeInfo(const std::wstring& filePath) {
         }
     }
     if (foundPattern && info.hasEpisode) {
-        std::wstring rawStem = cleanName.substr(0, stemEndPos);
-        info.seriesStem = ExtractSeriesStem(rawStem);
+        info.seriesStem = SeriesStemFromView(std::wstring_view(cleanName).substr(0, stemEndPos));
         if (info.seriesStem.empty()) {
             // Fallback to parent directory stem if filename stem was empty
-            info.seriesStem = ExtractSeriesStem(GetFileNameFromPath(info.directoryPath));
+            if (!includeSource) info.directoryPath = ExtractDirectory(filePath);
+            info.seriesStem = SeriesStemFromView(FileNameView(info.directoryPath));
         }
         info.isValid = !info.seriesStem.empty();
     }
     return info;
 }
+
+} // namespace
+
+EpisodeInfo LibraryQueryEngine::ParseEpisodeInfo(const std::wstring& filePath) { return ParseEpisodeInfoImpl(filePath, true); }
 
 bool LibraryQueryEngine::MatchesStatusFilter(const MediaItem& item, LibraryStatusFilter filter, bool existsOnDisk) {
     switch (filter) {
@@ -339,13 +352,15 @@ bool LibraryQueryEngine::MatchesStatusFilter(const MediaItem& item, LibraryStatu
 bool LibraryQueryEngine::MatchesSearchQuery(const MediaItem& item, const std::wstring& normalizedQuery) {
     if (normalizedQuery.empty()) return true;
     SearchTextBuffer buffer;
-    auto containsNormalized = [&](const std::wstring& text) {
+    auto containsNormalized = [&](std::wstring_view text) {
         NormalizeSearchTextInto(text, buffer);
         return buffer.View().find(normalizedQuery) != std::wstring_view::npos;
     };
-    if (containsNormalized(item.GetDisplayTitle())) return true;
-    if (containsNormalized(item.title)) return true;
-    if (containsNormalized(GetFileNameFromPath(item.filePath))) return true;
+    const auto displayTitle = item.GetDisplayTitleView();
+    if (containsNormalized(displayTitle)) return true;
+    if (!item.title.empty() && (displayTitle.data() != item.title.data() || displayTitle.size() != item.title.size()) &&
+        containsNormalized(item.title)) return true;
+    // Every normalized filename match is also a full-path substring match.
     if (containsNormalized(item.filePath)) return true;
     if (item.overrides.has_value() && item.overrides->series.has_value() && !item.overrides->series->empty()) {
         if (containsNormalized(*item.overrides->series)) return true;
@@ -521,7 +536,7 @@ const LibraryQueryProjection& LibraryQueryEngine::Query( const MediaLibrary& lib
             directory = ExtractDirectory(item.filePath);
             groupKey = NormalizeDirectoryPath(directory);
         } else if (options.groupMode == LibraryGroupMode::Series) {
-            const EpisodeInfo episode = ParseEpisodeInfo(item.filePath);
+            const EpisodeInfo episode = ParseEpisodeInfoImpl(item.filePath, false);
             m.seasonNumber = episode.seasonNumber;
             m.episodeNumber = episode.episodeNumber;
             if (item.overrides.has_value() && item.overrides->series.has_value() && !item.overrides->series->empty()) {
@@ -653,8 +668,8 @@ const LibraryQueryProjection& LibraryQueryEngine::Query( const MediaLibrary& lib
             if (cmp == CSTR_GREATER_THAN) return false;
             return a.key < b.key;
         });
-        // Sort items inside each group
-        for (auto& bucket : buckets) {
+        // Sort only groups that will be emitted; capped queries can stop early.
+        auto sortBucket = [&](GroupBucket& bucket) {
             if (options.groupMode == LibraryGroupMode::Series && !bucket.isSpecial) {
                 // In series mode, sort by season and episode number, with CompareItems as tie-breaker
                 std::sort(bucket.items.begin(), bucket.items.end(), [&](const ItemMatch& a, const ItemMatch& b) {
@@ -675,7 +690,7 @@ const LibraryQueryProjection& LibraryQueryEngine::Query( const MediaLibrary& lib
                     return CompareItems(*a.item, *b.item, options.sortField, options.sortDirection) < 0;
                 });
             }
-        }
+        };
         // Flatten groups into projection.items and record groups
         projection.groups.reserve(buckets.size());
         size_t visibleCount = 0;
@@ -683,8 +698,9 @@ const LibraryQueryProjection& LibraryQueryEngine::Query( const MediaLibrary& lib
             if (!options.CollapsedGroupCount(bucket.key)) visibleCount += bucket.items.size();
         }
         projection.items.reserve(options.maxItems > 0 ? (std::min)(visibleCount, options.maxItems) : visibleCount);
-        for (const auto& bucket : buckets) {
+        for (auto& bucket : buckets) {
             if (bucket.items.empty()) continue;
+            sortBucket(bucket);
             LibraryGroupSummary grp;
             grp.key = bucket.key;
             grp.title = bucket.title;
@@ -718,219 +734,261 @@ const LibraryQueryProjection& LibraryQueryEngine::Query( const MediaLibrary& lib
 
 DuplicateDetectionResult LibraryQueryEngine::DetectDuplicates(const std::vector<MediaItem>& items) {
     DuplicateDetectionResult result;
-    const size_t N = items.size();
-    if (N < 2) return result;
-    std::vector<bool> assigned(N, false);
-    // All match kinds use the same keeper order. Sort original indices directly
-    // so parallel pointer/index arrays need no permutation or temporary copies.
-    auto populateGroup = [&](DuplicateGroup& group, const std::vector<size_t>& indices) -> const MediaItem& {
-        group.originalIndices = indices;
+    const size_t count = items.size();
+    if (count < 2) return result;
+    std::vector<bool> assigned(count);
+    size_t unassignedCount = count;
+    auto populateGroup = [&](DuplicateGroup& group, auto first, auto last, auto indexOf) -> const MediaItem& {
+        group.originalIndices.reserve(static_cast<size_t>(std::distance(first, last)));
+        for (; first != last; ++first) group.originalIndices.push_back(indexOf(*first));
         std::sort(group.originalIndices.begin(), group.originalIndices.end(), [&](size_t a, size_t b) {
-            const auto& itemA = items[a];
-            const auto& itemB = items[b];
-            const bool playedA = itemA.status == "done" || itemA.lastPosSec > 0.0;
-            const bool playedB = itemB.status == "done" || itemB.lastPosSec > 0.0;
+            const auto& left = items[a]; const auto& right = items[b];
+            const bool playedA = left.status == "done" || left.lastPosSec > 0.0;
+            const bool playedB = right.status == "done" || right.lastPosSec > 0.0;
             if (playedA != playedB) return playedA > playedB;
-            const double progressA = itemA.GetProgressRatio(), progressB = itemB.GetProgressRatio();
+            const double progressA = left.GetProgressRatio(), progressB = right.GetProgressRatio();
             if (progressA != progressB) return progressA > progressB;
-            if (itemA.addedTimestamp != itemB.addedTimestamp && itemA.addedTimestamp > 0 && itemB.addedTimestamp > 0)
-                return itemA.addedTimestamp < itemB.addedTimestamp;
-            if (itemA.filePath.size() != itemB.filePath.size()) return itemA.filePath.size() < itemB.filePath.size();
-            const int cmp = CompareStringOrdinal(itemA.filePath.c_str(), -1, itemB.filePath.c_str(), -1, TRUE);
+            if (left.addedTimestamp != right.addedTimestamp && left.addedTimestamp > 0 && right.addedTimestamp > 0)
+                return left.addedTimestamp < right.addedTimestamp;
+            if (left.filePath.size() != right.filePath.size()) return left.filePath.size() < right.filePath.size();
+            const int cmp = CompareStringOrdinal(left.filePath.c_str(), -1, right.filePath.c_str(), -1, TRUE);
             if (cmp == CSTR_LESS_THAN) return true;
             if (cmp == CSTR_GREATER_THAN) return false;
-            return itemA.id < itemB.id;
+            return left.id < right.id;
         });
-        group.items.reserve(indices.size());
-        for (const size_t index : group.originalIndices) {
-            assigned[index] = true;
-            group.items.push_back(&items[index]);
-        }
+        group.items.reserve(group.originalIndices.size());
+        for (const size_t index : group.originalIndices) { assigned[index] = true; --unassignedCount; group.items.push_back(&items[index]); }
         const auto& keeper = *group.items.front();
         group.title = keeper.title.empty() ? GetFileNameFromPath(keeper.filePath) : keeper.title;
         group.individualSizeBytes = keeper.fileSizeBytes;
-        group.totalDuplicateSizeBytes = (indices.size() - 1) * keeper.fileSizeBytes;
+        group.totalDuplicateSizeBytes = (group.items.size() - 1) * keeper.fileSizeBytes;
         group.durationSec = keeper.durationSec;
         return keeper;
     };
-    // --- Pass 1A: Exact Windows File Identity (volumeSerialNumber + fileIndex) ---
-    struct VolIdxKey {
-        uint32_t vol;
-        uint64_t idx;
-        bool operator==(const VolIdxKey& o) const { return vol == o.vol && idx == o.idx; }
-    };
-    struct VolIdxHash {
-        size_t operator()(const VolIdxKey& k) const { return std::hash<uint64_t>()(((uint64_t)k.vol << 32) ^ k.idx); }
-    };
-    std::unordered_map<VolIdxKey, std::vector<size_t>, VolIdxHash> volIdxGroups;
-    for (size_t i = 0; i < N; ++i) {
-        const auto& item = items[i];
-        if (item.volumeSerialNumber != 0 && item.fileIndex != 0) { volIdxGroups[{item.volumeSerialNumber, item.fileIndex}].push_back(i); }
-    }
-    for (const auto& pair : volIdxGroups) {
-        const auto& key = pair.first;
-        const auto& indices = pair.second;
-        if (indices.size() >= 2) {
-            DuplicateGroup grp;
-            grp.matchKind = DuplicateMatchKind::ExactFileIdentity;
-            grp.key = L"dup_exact_fid_" + std::to_wstring(key.vol) + L"_" + std::to_wstring(key.idx);
-            populateGroup(grp, indices);
-            grp.subtitle = L"Exact file identity (" + std::to_wstring(grp.items.size()) + L" entries \x2022 matching volume & file index)";
-            result.groups.push_back(std::move(grp));
+    // Sort compact arrays instead of allocating a node/vector for each unique
+    // identity/path. Each phase releases its temporary keys before the next.
+    {
+        std::vector<size_t> identities;
+        for (size_t i = 0; i < count; ++i)
+            if (items[i].volumeSerialNumber && items[i].fileIndex) identities.push_back(i);
+        std::sort(identities.begin(), identities.end(), [&](size_t a, size_t b) {
+            if (items[a].volumeSerialNumber != items[b].volumeSerialNumber) return items[a].volumeSerialNumber < items[b].volumeSerialNumber;
+            if (items[a].fileIndex != items[b].fileIndex) return items[a].fileIndex < items[b].fileIndex;
+            return a < b;
+        });
+        for (size_t first = 0; first < identities.size();) {
+            size_t last = first + 1;
+            const auto& item = items[identities[first]];
+            while (last < identities.size() && items[identities[last]].volumeSerialNumber == item.volumeSerialNumber &&
+                   items[identities[last]].fileIndex == item.fileIndex) ++last;
+            if (last - first > 1) {
+                DuplicateGroup group; group.matchKind = DuplicateMatchKind::ExactFileIdentity;
+                group.key = L"dup_exact_fid_" + std::to_wstring(item.volumeSerialNumber) + L"_" + std::to_wstring(item.fileIndex);
+                populateGroup(group, identities.begin() + first, identities.begin() + last, [](size_t index) { return index; });
+                group.subtitle = L"Exact file identity (" + std::to_wstring(group.items.size()) + L" entries • matching volume & file index)";
+                result.groups.push_back(std::move(group));
+            }
+            first = last;
         }
     }
-    // --- Pass 1B: Exact Normalized Path Alias ---
-    std::unordered_map<std::wstring, std::vector<size_t>> pathAliasGroups;
-    for (size_t i = 0; i < N; ++i) {
-        if (assigned[i]) continue;
-        const auto& item = items[i];
-        std::wstring normPath = NormalizePathKey(item.filePath);
-        if (!normPath.empty()) { pathAliasGroups[normPath].push_back(i); }
-    }
-    for (const auto& pair : pathAliasGroups) {
-        const auto& normPath = pair.first;
-        const auto& indices = pair.second;
-        if (indices.size() >= 2) {
-            DuplicateGroup grp;
-            grp.matchKind = DuplicateMatchKind::ExactPathAlias;
-            grp.key = L"dup_exact_path_" + normPath;
-            populateGroup(grp, indices);
-            grp.subtitle = L"Exact path alias (" + std::to_wstring(grp.items.size()) + L" entries \x2022 same normalized location)";
-            result.groups.push_back(std::move(grp));
+    {
+        struct PathAlias { std::wstring key; size_t index; };
+        std::vector<PathAlias> paths; paths.reserve(unassignedCount);
+        for (size_t i = 0; i < count; ++i) {
+            if (assigned[i]) continue;
+            auto key = NormalizePathKey(items[i].filePath);
+            if (!key.empty()) paths.push_back({std::move(key), i});
+        }
+        std::sort(paths.begin(), paths.end(), [](const PathAlias& a, const PathAlias& b) {
+            return a.key != b.key ? a.key < b.key : a.index < b.index;
+        });
+        for (size_t first = 0; first < paths.size();) {
+            size_t last = first + 1;
+            while (last < paths.size() && paths[last].key == paths[first].key) ++last;
+            if (last - first > 1) {
+                DuplicateGroup group; group.matchKind = DuplicateMatchKind::ExactPathAlias;
+                group.key = L"dup_exact_path_" + paths[first].key;
+                populateGroup(group, paths.begin() + first, paths.begin() + last, [](const PathAlias& path) { return path.index; });
+                group.subtitle = L"Exact path alias (" + std::to_wstring(group.items.size()) + L" entries • same normalized location)";
+                result.groups.push_back(std::move(group));
+            }
+            first = last;
         }
     }
-    // --- Pass 2: Conservative Content Match ---
-    std::vector<size_t> candidateIndices;
-    for (size_t i = 0; i < N; ++i) {
-        if (assigned[i]) continue;
-        const auto& item = items[i];
-        if (item.fileSizeBytes > 0 && item.durationSec > 0.5) { candidateIndices.push_back(i); }
-    }
-    struct ContentTextKeys { std::wstring stem; std::wstring title; std::wstring file; };
-    // Populate only after cheap metadata checks pass; unrelated sizes and
-    // durations never need text normalization. Reuse keys across comparisons.
-    std::vector<std::optional<ContentTextKeys>> contentTextKeys;
-    auto textKeysFor = [&](size_t candidate) -> const ContentTextKeys& {
-        if (contentTextKeys.empty()) contentTextKeys.resize(candidateIndices.size());
-        auto& cached = contentTextKeys[candidate];
-        if (!cached) {
-            const auto& item = items[candidateIndices[candidate]];
-            const auto fileName = GetFileNameFromPath(item.filePath);
-            cached = ContentTextKeys{ExtractSeriesStem(fileName), NormalizeSearchText(item.title.empty() ? fileName : item.title),
-                                     NormalizeSearchText(ExtractFileNameWithoutExt(item.filePath))};
-        }
-        return *cached;
-    };
-    auto MatchesContentConservatively = [&](size_t first, size_t second) -> bool {
-        const auto& a = items[candidateIndices[first]];
-        const auto& b = items[candidateIndices[second]];
-        const bool knownResolution = a.videoWidth > 0 && a.videoHeight > 0 && b.videoWidth > 0 && b.videoHeight > 0;
-        if (knownResolution) {
-            if (a.videoWidth != b.videoWidth || a.videoHeight != b.videoHeight) return false;
-            // Matching video metadata already suffices; avoid normalizing text.
-            if (a.durationSec >= 5.0) return true;
-        }
-        const auto& keysA = textKeysFor(first);
-        const auto& keysB = textKeysFor(second);
-        if (!keysA.stem.empty() && keysA.stem == keysB.stem) return true;
-        if (!keysA.title.empty() && keysA.title == keysB.title) return true;
-        if (!keysA.file.empty() && keysA.file == keysB.file) return true;
-        return false;
-    };
-    const size_t numCands = candidateIndices.size();
-    std::vector<size_t> parent(numCands), componentSize(numCands, 1);
-    std::iota(parent.begin(), parent.end(), size_t{0});
-    auto findRoot = [&](size_t index) {
+    std::vector<size_t> candidates; candidates.reserve(unassignedCount);
+    for (size_t i = 0; i < count; ++i)
+        if (!assigned[i] && items[i].fileSizeBytes > 0 && items[i].durationSec > 0.5) candidates.push_back(i);
+    // A negative root value is its component size; nonnegative values are
+    // parent indices. One array supports weighted union and iterative compression.
+    std::vector<std::ptrdiff_t> parent(candidates.size(), -1);
+    auto rootOf = [&](size_t index) {
         size_t root = index;
-        while (parent[root] != root) root = parent[root];
-        while (parent[index] != index) {
-            const size_t next = parent[index];
-            parent[index] = root;
-            index = next;
+        while (parent[root] >= 0) root = static_cast<size_t>(parent[root]);
+        while (parent[index] >= 0) {
+            const size_t next = static_cast<size_t>(parent[index]);
+            parent[index] = static_cast<std::ptrdiff_t>(root); index = next;
         }
         return root;
     };
-    auto unionSets = [&](size_t a, size_t b) {
-        a = findRoot(a); b = findRoot(b);
+    auto unite = [&](size_t a, size_t b) {
+        a = rootOf(a); b = rootOf(b);
         if (a == b) return;
-        if (componentSize[a] < componentSize[b]) std::swap(a, b);
-        parent[b] = a;
-        componentSize[a] += componentSize[b];
+        if (parent[a] > parent[b]) std::swap(a, b);
+        parent[a] += parent[b]; parent[b] = static_cast<std::ptrdiff_t>(a);
     };
-    std::unordered_map<uint64_t, std::vector<size_t>> candidatesBySize;
-    for (size_t i = 0; i < numCands; ++i) candidatesBySize[items[candidateIndices[i]].fileSizeBytes].push_back(i);
-    for (auto& entry : candidatesBySize) {
-        auto& bucket = entry.second;
-        if (bucket.size() < 2) continue;
-        std::sort(bucket.begin(), bucket.end(), [&](size_t a, size_t b) {
-            const double durationA = items[candidateIndices[a]].durationSec;
-            const double durationB = items[candidateIndices[b]].durationSec;
-            return durationA != durationB ? durationA < durationB : a < b;
-        });
-        const auto& first = items[candidateIndices[bucket.front()]];
-        const bool metadataOnly = first.durationSec >= 5.0 && first.videoWidth > 0 && first.videoHeight > 0 &&
-            std::all_of(bucket.begin(), bucket.end(), [&](size_t index) {
-                const auto& item = items[candidateIndices[index]];
-                return item.videoWidth == first.videoWidth && item.videoHeight == first.videoHeight;
-            });
-        if (metadataOnly) {
-            // Equal size/resolution videos match solely within 0.5 seconds.
-            // Adjacent durations span exactly the same connected components as
-            // all pairs, including chains whose endpoints differ by more than 0.5.
-            for (size_t i = 1; i < bucket.size(); ++i) {
-                const double gap = items[candidateIndices[bucket[i]]].durationSec - items[candidateIndices[bucket[i - 1]]].durationSec;
-                if (!(gap > 0.5)) unionSets(bucket[i - 1], bucket[i]);
+    auto itemFor = [&](size_t candidate) -> const MediaItem& { return items[candidates[candidate]]; };
+    auto knownResolution = [](const MediaItem& item) { return item.videoWidth > 0 && item.videoHeight > 0; };
+    auto sameResolution = [&](size_t a, size_t b) {
+        const auto& left = itemFor(a); const auto& right = itemFor(b);
+        const bool knownA = knownResolution(left), knownB = knownResolution(right);
+        return knownA == knownB && (!knownA || (left.videoWidth == right.videoWidth && left.videoHeight == right.videoHeight));
+    };
+    auto resolutionThenDuration = [&](size_t a, size_t b) {
+        const auto& left = itemFor(a); const auto& right = itemFor(b);
+        const bool knownA = knownResolution(left), knownB = knownResolution(right);
+        if (knownA != knownB) return knownA < knownB;
+        if (knownA) {
+            if (left.videoWidth != right.videoWidth) return left.videoWidth < right.videoWidth;
+            if (left.videoHeight != right.videoHeight) return left.videoHeight < right.videoHeight;
+        }
+        return left.durationSec != right.durationSec ? left.durationSec < right.durationSec : a < b;
+    };
+    std::vector<size_t> ordered(candidates.size());
+    std::iota(ordered.begin(), ordered.end(), size_t{0});
+    std::sort(ordered.begin(), ordered.end(), [&](size_t a, size_t b) {
+        const auto& left = itemFor(a); const auto& right = itemFor(b);
+        if (left.fileSizeBytes != right.fileSizeBytes) return left.fileSizeBytes < right.fileSizeBytes;
+        return left.durationSec != right.durationSec ? left.durationSec < right.durationSec : a < b;
+    });
+    struct TextKeys { std::wstring stem, title, file; };
+    auto textKeysFor = [&](const MediaItem& item) {
+        const auto name = FileNameView(item.filePath);
+        return TextKeys{SeriesStemFromView(name), NormalizeSearchTextFromView(item.title.empty() ? name : std::wstring_view(item.title)),
+            NormalizeSearchTextFromView(FileBaseNameView(name))};
+    };
+    for (size_t first = 0; first < ordered.size();) {
+        size_t last = first + 1;
+        // A duration gap over 0.5 separates components even when sizes match.
+        while (last < ordered.size() && itemFor(ordered[last]).fileSizeBytes == itemFor(ordered[first]).fileSizeBytes &&
+               !(itemFor(ordered[last]).durationSec - itemFor(ordered[last - 1]).durationSec > 0.5)) ++last;
+        if (last - first < 2) { first = last; continue; }
+        if (last - first == 2) {
+            const size_t a = (std::min)(ordered[first], ordered[first + 1]), b = (std::max)(ordered[first], ordered[first + 1]);
+            const auto& left = itemFor(a); const auto& right = itemFor(b);
+            const bool known = knownResolution(left) && knownResolution(right);
+            if (!known || sameResolution(a, b)) {
+                if (known && left.durationSec >= 5.0) { unite(a, b); }
+                else {
+                    const auto leftKeys = textKeysFor(left), rightKeys = textKeysFor(right);
+                    if ((!leftKeys.stem.empty() && leftKeys.stem == rightKeys.stem) ||
+                        (!leftKeys.title.empty() && leftKeys.title == rightKeys.title) ||
+                        (!leftKeys.file.empty() && leftKeys.file == rightKeys.file)) unite(a, b);
+                }
             }
-            continue;
+            first = last; continue;
         }
-        for (size_t i = 0; i + 1 < bucket.size(); ++i) {
-            for (size_t j = i + 1; j < bucket.size(); ++j) {
-                const double gap = items[candidateIndices[bucket[j]]].durationSec - items[candidateIndices[bucket[i]]].durationSec;
-                if (gap > 0.5) break;
-                const size_t a = (std::min)(bucket[i], bucket[j]), b = (std::max)(bucket[i], bucket[j]);
-                // Preserve the original input order at the five-second rule.
-                if (findRoot(a) != findRoot(b) && MatchesContentConservatively(a, b)) unionSets(a, b);
+        std::vector<size_t> known;
+        bool needsText = false;
+        for (size_t i = first; i < last; ++i) {
+            const auto& item = itemFor(ordered[i]);
+            if (knownResolution(item)) known.push_back(ordered[i]);
+            if (!knownResolution(item) || item.durationSec < 5.0) needsText = true;
+        }
+        std::sort(known.begin(), known.end(), resolutionThenDuration);
+        for (size_t begin = 0; begin < known.size();) {
+            size_t end = begin + 1;
+            while (end < known.size() && sameResolution(known[begin], known[end])) ++end;
+            size_t high = begin;
+            while (high < end && itemFor(known[high]).durationSec < 5.0) ++high;
+            for (size_t i = high + 1; i < end; ++i)
+                if (!(itemFor(known[i]).durationSec - itemFor(known[i - 1]).durationSec > 0.5)) unite(known[i - 1], known[i]);
+            // Below-five-second records only receive a metadata edge from an
+            // earlier input record at/above five. Eligible high records are all
+            // within [5, 5.5), so the earliest eligible input is a sufficient edge.
+            size_t nextHigh = high, earliest = candidates.size();
+            for (size_t i = begin; i < high; ++i) {
+                while (nextHigh < end && !(itemFor(known[nextHigh]).durationSec - itemFor(known[i]).durationSec > 0.5)) {
+                    earliest = (std::min)(earliest, known[nextHigh]); ++nextHigh;
+                }
+                if (earliest < known[i]) unite(earliest, known[i]);
+            }
+            begin = end;
+        }
+        if (needsText) {
+            std::vector<TextKeys> keys; keys.reserve(last - first);
+            for (size_t i = first; i < last; ++i) keys.push_back(textKeysFor(itemFor(ordered[i])));
+            std::vector<size_t> keyed, compatible;
+            keyed.reserve(keys.size()); compatible.reserve(keys.size());
+            auto candidateAt = [&](size_t local) { return ordered[first + local]; };
+            // A text equality is sufficient only within a compatible resolution.
+            // Unknown-resolution records also connect to known records. Nearest
+            // unknown neighbors on either side suffice: a one-second window can
+            // meet at most two components separated by gaps greater than 0.5.
+            for (int field = 0; field < 3; ++field) {
+                auto textAt = [&](size_t local) -> const std::wstring& {
+                    return field == 0 ? keys[local].stem : (field == 1 ? keys[local].title : keys[local].file);
+                };
+                keyed.clear();
+                for (size_t i = 0; i < keys.size(); ++i) if (!textAt(i).empty()) keyed.push_back(i);
+                std::sort(keyed.begin(), keyed.end(), [&](size_t a, size_t b) { return textAt(a) != textAt(b) ? textAt(a) < textAt(b) : a < b; });
+                for (size_t begin = 0; begin < keyed.size();) {
+                    size_t end = begin + 1;
+                    while (end < keyed.size() && textAt(keyed[end]) == textAt(keyed[begin])) ++end;
+                    if (end - begin > 1) {
+                        compatible.assign(keyed.begin() + begin, keyed.begin() + end);
+                        std::sort(compatible.begin(), compatible.end(), [&](size_t a, size_t b) { return resolutionThenDuration(candidateAt(a), candidateAt(b)); });
+                        size_t unknownEnd = 0;
+                        while (unknownEnd < compatible.size() && !knownResolution(itemFor(candidateAt(compatible[unknownEnd])))) ++unknownEnd;
+                        for (size_t i = 1; i < compatible.size(); ++i) {
+                            const size_t a = candidateAt(compatible[i - 1]), b = candidateAt(compatible[i]);
+                            if (sameResolution(a, b) && !(itemFor(b).durationSec - itemFor(a).durationSec > 0.5)) unite(a, b);
+                        }
+                        for (size_t i = unknownEnd; i < compatible.size() && unknownEnd > 0; ++i) {
+                            const size_t candidate = candidateAt(compatible[i]);
+                            const double duration = itemFor(candidate).durationSec;
+                            const auto next = std::lower_bound(compatible.begin(), compatible.begin() + unknownEnd, duration,
+                                [&](size_t local, double value) { return itemFor(candidateAt(local)).durationSec < value; });
+                            if (next != compatible.begin() + unknownEnd && !(itemFor(candidateAt(*next)).durationSec - duration > 0.5)) unite(candidate, candidateAt(*next));
+                            if (next != compatible.begin() && !(duration - itemFor(candidateAt(*(next - 1))).durationSec > 0.5)) unite(candidate, candidateAt(*(next - 1)));
+                        }
+                    }
+                    begin = end;
+                }
             }
         }
+        first = last;
     }
-    std::unordered_map<size_t, std::vector<size_t>> contentClusters;
-    for (size_t i = 0; i < numCands; ++i) {
-        const size_t root = findRoot(i);
-        if (componentSize[root] > 1) contentClusters[root].push_back(candidateIndices[i]);
+    struct ClusterMember { size_t root, index; };
+    std::vector<ClusterMember> members;
+    for (size_t i = 0; i < candidates.size(); ++i) {
+        const size_t root = rootOf(i);
+        if (parent[root] < -1) members.push_back({root, candidates[i]});
     }
-    for (const auto& pair : contentClusters) {
-        const auto& clusterIndices = pair.second;
-        if (clusterIndices.size() >= 2) {
-            DuplicateGroup grp;
-            grp.matchKind = DuplicateMatchKind::LikelyContent;
-            const auto& keeper = populateGroup(grp, clusterIndices);
-            grp.key = L"dup_content_" + std::to_wstring(keeper.fileSizeBytes) + L"_" + std::to_wstring((uint64_t)std::round(keeper.durationSec * 1000));
-            std::wstring resStr;
-            if (keeper.videoWidth > 0 && keeper.videoHeight > 0)
-                resStr = L" \x2022 " + std::to_wstring(keeper.videoWidth) + L"x" + std::to_wstring(keeper.videoHeight);
-            grp.subtitle = L"Likely content match (" + std::to_wstring(grp.items.size()) + L" entries \x2022 " +
-                           FormatFileSize(grp.individualSizeBytes) + L" \x2022 " + FormatDuration(grp.durationSec) + resStr + L")";
-            result.groups.push_back(std::move(grp));
-        }
+    std::sort(members.begin(), members.end(), [](const ClusterMember& a, const ClusterMember& b) { return a.root != b.root ? a.root < b.root : a.index < b.index; });
+    for (size_t first = 0; first < members.size();) {
+        size_t last = first + 1;
+        while (last < members.size() && members[last].root == members[first].root) ++last;
+        DuplicateGroup group; group.matchKind = DuplicateMatchKind::LikelyContent;
+        const auto& keeper = populateGroup(group, members.begin() + first, members.begin() + last, [](const ClusterMember& member) { return member.index; });
+        group.key = L"dup_content_" + std::to_wstring(keeper.fileSizeBytes) + L"_" + std::to_wstring((uint64_t)std::round(keeper.durationSec * 1000));
+        std::wstring resolution;
+        if (knownResolution(keeper)) resolution = L" • " + std::to_wstring(keeper.videoWidth) + L"x" + std::to_wstring(keeper.videoHeight);
+        group.subtitle = L"Likely content match (" + std::to_wstring(group.items.size()) + L" entries • " +
+            FormatFileSize(group.individualSizeBytes) + L" • " + FormatDuration(group.durationSec) + resolution + L")";
+        result.groups.push_back(std::move(group)); first = last;
     }
-    // --- Deterministic Sorting of Groups ---
     std::sort(result.groups.begin(), result.groups.end(), [](const DuplicateGroup& a, const DuplicateGroup& b) {
-        if (a.matchKind != b.matchKind) { return static_cast<int>(a.matchKind) < static_cast<int>(b.matchKind); }
-        int cmp = CompareStringOrdinal(a.title.c_str(), -1, b.title.c_str(), -1, TRUE);
+        if (a.matchKind != b.matchKind) return static_cast<int>(a.matchKind) < static_cast<int>(b.matchKind);
+        const int cmp = CompareStringOrdinal(a.title.c_str(), -1, b.title.c_str(), -1, TRUE);
         if (cmp == CSTR_LESS_THAN) return true;
         if (cmp == CSTR_GREATER_THAN) return false;
         if (a.key != b.key) return a.key < b.key;
         return a.items.front()->filePath < b.items.front()->filePath;
     });
-    // Compute totals
     result.totalDuplicateGroups = result.groups.size();
-    result.totalDuplicateEntries = 0;
-    result.totalReclaimableBytes = 0;
-    for (const auto& grp : result.groups) {
-        if (grp.items.size() > 1) {
-            result.totalDuplicateEntries += (grp.items.size() - 1);
-            result.totalReclaimableBytes += grp.totalDuplicateSizeBytes;
-        }
+    for (const auto& group : result.groups) {
+        result.totalDuplicateEntries += group.items.size() - 1;
+        result.totalReclaimableBytes += group.totalDuplicateSizeBytes;
     }
     return result;
 }
