@@ -1,7 +1,5 @@
 #include "GlobalSearch.h"
 #include <cwctype>
-#include <sstream>
-#include <iomanip>
 
 namespace Aperture {
 
@@ -57,26 +55,70 @@ std::wstring GlobalSearchIndex::NormalizeText(const std::wstring& text) {
     return result;
 }
 
+namespace {
+bool IsSearchTokenDelimiter(wchar_t c) {
+    if (c > 127) return std::iswspace(c) != 0;
+    switch (c) {
+        case L' ': case L'\t': case L'\r': case L'\n': case L'\v': case L'\f':
+        case L'.': case L'_': case L'-': case L'\\': case L'/':
+        case L'[': case L']': case L'(': case L')': case L'{': case L'}':
+        case L',': case L';': case L':': case L'!': case L'?': case L'+':
+        case L'=': case L'\'': case L'"': case L'@': case L'#': case L'$':
+        case L'%': case L'^': case L'&': case L'*': case L'|': case L'~':
+        case L'`': case L'<': case L'>': return true;
+        default: return false;
+    }
+}
+
+std::wstring_view SearchFileNameView(std::wstring_view path) {
+    const size_t slash = path.find_last_of(L"\\/");
+    return slash == std::wstring_view::npos ? path : path.substr(slash + 1);
+}
+
+size_t NormalizedFileNameOffset(const std::wstring& path) {
+    auto name = SearchFileNameView(path);
+    while (!name.empty() && (name.front() == L'\0' || std::iswspace(name.front()))) name.remove_prefix(1);
+    // NormalizeText already trims whitespace/NULs at the end of the full path.
+    return path.size() - name.size();
+}
+
+CachedSearchTokens BuildSearchTokens(const std::wstring& original, const std::wstring& normalized) {
+    CachedSearchTokens result;
+    if (original.find(L'\0') != std::wstring::npos) {
+        result.originalText = std::make_unique<std::wstring>(original);
+        for (auto& c : *result.originalText) c = static_cast<wchar_t>(std::towlower(c));
+    }
+    const auto& text = result.originalText ? *result.originalText : normalized;
+    size_t count = 0;
+    bool inToken = false;
+    for (const wchar_t c : text) {
+        const bool delimiter = IsSearchTokenDelimiter(c);
+        if (!delimiter && !inToken) ++count;
+        inToken = !delimiter;
+    }
+    result.ranges.reserve(count);
+    size_t start = 0;
+    for (size_t i = 0; i <= text.size(); ++i) {
+        if (i == text.size() || IsSearchTokenDelimiter(text[i])) {
+            if (i > start) result.ranges.push_back({start, i - start});
+            start = i + 1;
+        }
+    }
+    return result;
+}
+} // namespace
+
+std::wstring_view CachedSearchEntry::GetFileNameView() const { return SearchFileNameView(filePath); }
+std::wstring_view CachedSearchEntry::GetNormalizedFileNameView() const {
+    return {normalizedPath.data() + normalizedFileNameOffset, normalizedPath.size() - normalizedFileNameOffset};
+}
+
 std::vector<std::wstring> GlobalSearchIndex::Tokenize(const std::wstring& text) {
     std::vector<std::wstring> tokens;
     if (text.empty()) return tokens;
-    auto isDelimiter = [](wchar_t c) -> bool {
-        if (std::iswspace(c)) return true;
-        switch (c) {
-            case L'.': case L'_': case L'-': case L'\\': case L'/':
-            case L'[': case L']': case L'(': case L')': case L'{': case L'}':
-            case L',': case L';': case L':': case L'!': case L'?': case L'+':
-            case L'=': case L'\'': case L'"': case L'@': case L'#': case L'$':
-            case L'%': case L'^': case L'&': case L'*': case L'|': case L'~':
-            case L'`': case L'<': case L'>':
-                return true;
-            default:
-                return false;
-        }
-    };
     std::wstring current;
     for (wchar_t c : text) {
-        if (isDelimiter(c)) {
+        if (IsSearchTokenDelimiter(c)) {
             if (!current.empty()) { tokens.push_back(current); current.clear(); }
         } else { current.push_back(static_cast<wchar_t>(std::towlower(c))); }
     }
@@ -118,27 +160,35 @@ void GlobalSearchIndex::RebuildIndex(const MediaLibrary& library) {
     std::unordered_map<std::wstring, size_t> pathToEntryIndex;
     const size_t entryCapacity = library.mediaItems.size() + library.history.size();
     entries.reserve(entryCapacity);
-    pathToEntryIndex.reserve(entryCapacity);
+    const size_t missingEntry = (std::numeric_limits<size_t>::max)();
+    pathToEntryIndex.reserve(library.history.size());
+    for (const auto& hist : library.history) {
+        auto key = MediaLibrary::NormalizePathKey(hist.filePath);
+        if (!key.empty()) pathToEntryIndex.emplace(std::move(key), missingEntry);
+    }
     // 1. Process Media Items from MediaLibrary
     for (const auto& item : library.mediaItems) {
-        std::wstring normKey = MediaLibrary::NormalizePathKey(item.filePath);
-        if (normKey.empty()) continue;
+        if (item.filePath.empty()) continue;
+        if (!pathToEntryIndex.empty()) {
+            const auto key = MediaLibrary::NormalizePathKey(item.filePath);
+            if (key.empty()) continue;
+            const auto history = pathToEntryIndex.find(key);
+            if (history != pathToEntryIndex.end()) history->second = entries.size();
+        }
         CachedSearchEntry entry;
         entry.mediaId = item.id;
         entry.filePath = item.filePath;
         entry.title = item.GetDisplayTitle();
-        entry.fileName = ExtractFileName(item.filePath);
         entry.normalizedTitle = NormalizeText(entry.title);
-        entry.normalizedFileName = NormalizeText(entry.fileName);
         entry.normalizedPath = NormalizeText(item.filePath);
-        entry.titleTokens = Tokenize(entry.title);
-        entry.pathTokens = Tokenize(item.filePath);
+        entry.normalizedFileNameOffset = NormalizedFileNameOffset(entry.normalizedPath);
+        entry.titleTokens = BuildSearchTokens(entry.title, entry.normalizedTitle);
+        entry.pathTokens = BuildSearchTokens(item.filePath, entry.normalizedPath);
         entry.durationSec = item.durationSec;
         entry.lastPosSec = item.lastPosSec;
         entry.lastWatchedTimestamp = item.lastWatchedTimestamp;
         entry.addedTimestamp = item.addedTimestamp;
         entry.source = GlobalSearchResultSource::Media;
-        pathToEntryIndex[normKey] = entries.size();
         entries.push_back(std::move(entry));
     }
     // 2. Process History Records from MediaLibrary
@@ -146,7 +196,7 @@ void GlobalSearchIndex::RebuildIndex(const MediaLibrary& library) {
         std::wstring normKey = MediaLibrary::NormalizePathKey(hist.filePath);
         if (normKey.empty()) continue;
         auto it = pathToEntryIndex.find(normKey);
-        if (it != pathToEntryIndex.end()) {
+        if (it != pathToEntryIndex.end() && it->second != missingEntry) {
             // Already present in library, elevate source and merge latest stats
             CachedSearchEntry& existing = entries[it->second];
             historyEntryByPath[normKey] = it->second;
@@ -158,7 +208,7 @@ void GlobalSearchIndex::RebuildIndex(const MediaLibrary& library) {
             if (existing.title.empty() && !hist.title.empty()) {
                 existing.title = hist.title;
                 existing.normalizedTitle = NormalizeText(hist.title);
-                existing.titleTokens = Tokenize(hist.title);
+                existing.titleTokens = BuildSearchTokens(hist.title, existing.normalizedTitle);
             }
             if (existing.durationSec <= 0.0 && hist.durationSec > 0.0) { existing.durationSec = hist.durationSec; }
         } else {
@@ -166,12 +216,11 @@ void GlobalSearchIndex::RebuildIndex(const MediaLibrary& library) {
             CachedSearchEntry entry;
             entry.filePath = hist.filePath;
             entry.title = hist.title.empty() ? ExtractFileName(hist.filePath) : hist.title;
-            entry.fileName = ExtractFileName(hist.filePath);
             entry.normalizedTitle = NormalizeText(entry.title);
-            entry.normalizedFileName = NormalizeText(entry.fileName);
             entry.normalizedPath = NormalizeText(hist.filePath);
-            entry.titleTokens = Tokenize(entry.title);
-            entry.pathTokens = Tokenize(hist.filePath);
+            entry.normalizedFileNameOffset = NormalizedFileNameOffset(entry.normalizedPath);
+            entry.titleTokens = BuildSearchTokens(entry.title, entry.normalizedTitle);
+            entry.pathTokens = BuildSearchTokens(hist.filePath, entry.normalizedPath);
             entry.durationSec = hist.durationSec;
             entry.lastPosSec = hist.lastPosSec;
             entry.lastWatchedTimestamp = hist.watchedTimestamp;
@@ -227,30 +276,34 @@ int GlobalSearchIndex::CalculateRelevanceScore(const CachedSearchEntry& entry, c
         // Title prefix match
         int lengthBonus = (std::max)(0, 100 - static_cast<int>(entry.normalizedTitle.length()));
         score += 6000 + lengthBonus;
-    } else if (entry.normalizedFileName == normalizedQuery) {
-        score += 5000;
-    } else if (!entry.normalizedFileName.empty() && entry.normalizedFileName.rfind(normalizedQuery, 0) == 0) { score += 4000; } else {
-        // Token boundary / prefix matches in title
-        bool matchedTokenPrefix = false;
-        for (const auto& tok : entry.titleTokens) {
-            if (tok.rfind(normalizedQuery, 0) == 0) { score += 3000; matchedTokenPrefix = true; break; }
-        }
-        if (!matchedTokenPrefix) {
-            // Substring in title
-            size_t titlePos = entry.normalizedTitle.find(normalizedQuery);
-            if (titlePos != std::wstring::npos) {
-                int posPenalty = static_cast<int>((std::min)(titlePos, size_t(500)));
-                score += 2000 - posPenalty;
-            } else {
-                // Substring in filename
-                size_t filePos = entry.normalizedFileName.find(normalizedQuery);
-                if (filePos != std::wstring::npos) {
-                    int posPenalty = static_cast<int>((std::min)(filePos, size_t(500)));
-                    score += 1500 - posPenalty;
+    } else {
+        const auto normalizedFileName = entry.GetNormalizedFileNameView();
+        if (normalizedFileName == normalizedQuery) {
+            score += 5000;
+        } else if (!normalizedFileName.empty() && normalizedFileName.rfind(normalizedQuery, 0) == 0) { score += 4000; } else {
+            // Token boundary / prefix matches in title
+            bool matchedTokenPrefix = false;
+            for (const auto& range : entry.titleTokens.ranges) {
+                const auto tok = entry.titleTokens.View(entry.normalizedTitle, range);
+                if (tok.rfind(normalizedQuery, 0) == 0) { score += 3000; matchedTokenPrefix = true; break; }
+            }
+            if (!matchedTokenPrefix) {
+                // Substring in title
+                size_t titlePos = entry.normalizedTitle.find(normalizedQuery);
+                if (titlePos != std::wstring::npos) {
+                    int posPenalty = static_cast<int>((std::min)(titlePos, size_t(500)));
+                    score += 2000 - posPenalty;
                 } else {
-                    // Substring in full path
-                    size_t pathPos = entry.normalizedPath.find(normalizedQuery);
-                    if (pathPos != std::wstring::npos) { score += 800; }
+                    // Substring in filename
+                    size_t filePos = normalizedFileName.find(normalizedQuery);
+                    if (filePos != std::wstring::npos) {
+                        int posPenalty = static_cast<int>((std::min)(filePos, size_t(500)));
+                        score += 1500 - posPenalty;
+                    } else {
+                        // Substring in full path
+                        size_t pathPos = entry.normalizedPath.find(normalizedQuery);
+                        if (pathPos != std::wstring::npos) { score += 800; }
+                    }
                 }
             }
         }
@@ -262,7 +315,8 @@ int GlobalSearchIndex::CalculateRelevanceScore(const CachedSearchEntry& entry, c
         for (const auto& qTok : queryTokens) {
             bool tokenFound = false;
             // Check title tokens
-            for (const auto& tTok : entry.titleTokens) {
+            for (const auto& range : entry.titleTokens.ranges) {
+                const auto tTok = entry.titleTokens.View(entry.normalizedTitle, range);
                 if (tTok == qTok) {
                     tokenMatchScore += 600;
                     tokenFound = true;
@@ -273,7 +327,8 @@ int GlobalSearchIndex::CalculateRelevanceScore(const CachedSearchEntry& entry, c
             if (!tokenFound && entry.normalizedTitle.find(qTok) != std::wstring::npos) { tokenMatchScore += 300; tokenFound = true; }
             // Check path tokens / path substring
             if (!tokenFound) {
-                for (const auto& pTok : entry.pathTokens) {
+                for (const auto& range : entry.pathTokens.ranges) {
+                    const auto pTok = entry.pathTokens.View(entry.normalizedPath, range);
                     if (pTok == qTok || pTok.rfind(qTok, 0) == 0) { tokenMatchScore += 200; tokenFound = true; break; }
                 }
             }
@@ -324,6 +379,16 @@ std::vector<GlobalSearchResultItem> GlobalSearchIndex::Query(const MediaLibrary&
     for (const auto& entry : entries) {
         if (entry.source == GlobalSearchResultSource::Media && !options.includeMedia) { continue; }
         if (entry.source == GlobalSearchResultSource::History && !options.includeHistory) { continue; }
+        if (queryTokens.size() > 1 && !entry.titleTokens.originalText && !entry.pathTokens.originalText) {
+            // Token/prefix hits imply a substring in the normalized backing
+            // text. Reject impossible multi-word matches before scoring.
+            bool possible = true;
+            for (const auto& token : queryTokens) {
+                if (entry.normalizedTitle.find(token) == std::wstring::npos &&
+                    entry.normalizedPath.find(token) == std::wstring::npos) { possible = false; break; }
+            }
+            if (!possible) continue;
+        }
         const int score = CalculateRelevanceScore(entry, normalizedQuery, queryTokens);
         if (score <= 0) continue;
         ++outTotalMatchCount;
@@ -352,7 +417,7 @@ std::vector<GlobalSearchResultItem> GlobalSearchIndex::Query(const MediaLibrary&
         GlobalSearchResultItem item;
         item.filePath = src->filePath;
         item.title = src->title;
-        item.fileName = src->fileName;
+        item.fileName = src->GetFileNameView();
         item.durationSec = src->durationSec;
         item.lastPosSec = src->lastPosSec;
         item.lastWatchedTimestamp = src->lastWatchedTimestamp;

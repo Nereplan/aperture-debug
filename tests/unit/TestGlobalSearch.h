@@ -7,8 +7,241 @@
 #include <vector>
 #include <string>
 #include <fstream>
+#include <cwctype>
 
 namespace Aperture::Test {
+
+// Frozen pre-optimization semantics use owning token strings and exhaustive
+// scoring; they do not share compact token ranges or the candidate prefilter.
+namespace GlobalSearchReference {
+struct Entry {
+    std::wstring normalizedTitle, normalizedFileName, normalizedPath;
+    std::vector<std::wstring> titleTokens, pathTokens;
+};
+std::wstring Normalize(const std::wstring& text) {
+    if (text.empty()) return L"";
+    // 1. Trim leading whitespace
+    size_t start = 0;
+    while (start < text.size() && (std::iswspace(text[start]) || text[start] == L'\0')) { start++; }
+    if (start >= text.size()) return L"";
+    // 2. Trim trailing whitespace
+    size_t end = text.size();
+    while (end > start && (std::iswspace(text[end - 1]) || text[end - 1] == L'\0')) { end--; }
+    // 3. Lowercase, normalize path separators, and collapse multiple whitespace
+    std::wstring result;
+    result.reserve(end - start);
+    bool lastWasSpace = false;
+    for (size_t i = start; i < end; ++i) {
+        wchar_t c = text[i];
+        if (c == L'/') { c = L'\\'; }
+        if (std::iswspace(c)) {
+            if (!lastWasSpace) { result.push_back(L' '); lastWasSpace = true; }
+        } else { result.push_back(static_cast<wchar_t>(std::towlower(c))); lastWasSpace = false; }
+    }
+    return result;
+}
+
+std::vector<std::wstring> Tokenize(const std::wstring& text) {
+    std::vector<std::wstring> tokens;
+    if (text.empty()) return tokens;
+    auto isDelimiter = [](wchar_t c) -> bool {
+        if (std::iswspace(c)) return true;
+        switch (c) {
+            case L'.': case L'_': case L'-': case L'\\': case L'/':
+            case L'[': case L']': case L'(': case L')': case L'{': case L'}':
+            case L',': case L';': case L':': case L'!': case L'?': case L'+':
+            case L'=': case L'\'': case L'"': case L'@': case L'#': case L'$':
+            case L'%': case L'^': case L'&': case L'*': case L'|': case L'~':
+            case L'`': case L'<': case L'>':
+                return true;
+            default:
+                return false;
+        }
+    };
+    std::wstring current;
+    for (wchar_t c : text) {
+        if (isDelimiter(c)) {
+            if (!current.empty()) { tokens.push_back(current); current.clear(); }
+        } else { current.push_back(static_cast<wchar_t>(std::towlower(c))); }
+    }
+    if (!current.empty()) { tokens.push_back(current); }
+    return tokens;
+}
+
+int Score(const Entry& entry, const std::wstring& normalizedQuery,
+                                               const std::vector<std::wstring>& queryTokens) {
+    if (normalizedQuery.empty()) return 0;
+    int score = 0;
+    // 1. Direct Single-Phrase Checks
+    if (entry.normalizedTitle == normalizedQuery) {
+        score += 10000;
+    } else if (!entry.normalizedTitle.empty() && entry.normalizedTitle.rfind(normalizedQuery, 0) == 0) {
+        // Title prefix match
+        int lengthBonus = (std::max)(0, 100 - static_cast<int>(entry.normalizedTitle.length()));
+        score += 6000 + lengthBonus;
+    } else if (entry.normalizedFileName == normalizedQuery) {
+        score += 5000;
+    } else if (!entry.normalizedFileName.empty() && entry.normalizedFileName.rfind(normalizedQuery, 0) == 0) { score += 4000; } else {
+        // Token boundary / prefix matches in title
+        bool matchedTokenPrefix = false;
+        for (const auto& tok : entry.titleTokens) {
+            if (tok.rfind(normalizedQuery, 0) == 0) { score += 3000; matchedTokenPrefix = true; break; }
+        }
+        if (!matchedTokenPrefix) {
+            // Substring in title
+            size_t titlePos = entry.normalizedTitle.find(normalizedQuery);
+            if (titlePos != std::wstring::npos) {
+                int posPenalty = static_cast<int>((std::min)(titlePos, size_t(500)));
+                score += 2000 - posPenalty;
+            } else {
+                // Substring in filename
+                size_t filePos = entry.normalizedFileName.find(normalizedQuery);
+                if (filePos != std::wstring::npos) {
+                    int posPenalty = static_cast<int>((std::min)(filePos, size_t(500)));
+                    score += 1500 - posPenalty;
+                } else {
+                    // Substring in full path
+                    size_t pathPos = entry.normalizedPath.find(normalizedQuery);
+                    if (pathPos != std::wstring::npos) { score += 800; }
+                }
+            }
+        }
+    }
+    // 2. Multi-Token Query Refinement
+    if (queryTokens.size() > 1) {
+        int tokenMatchScore = 0;
+        bool allTokensMatched = true;
+        for (const auto& qTok : queryTokens) {
+            bool tokenFound = false;
+            // Check title tokens
+            for (const auto& tTok : entry.titleTokens) {
+                if (tTok == qTok) {
+                    tokenMatchScore += 600;
+                    tokenFound = true;
+                    break;
+                } else if (tTok.rfind(qTok, 0) == 0) { tokenMatchScore += 400; tokenFound = true; break; }
+            }
+            // Check title substring if not matched in tokens
+            if (!tokenFound && entry.normalizedTitle.find(qTok) != std::wstring::npos) { tokenMatchScore += 300; tokenFound = true; }
+            // Check path tokens / path substring
+            if (!tokenFound) {
+                for (const auto& pTok : entry.pathTokens) {
+                    if (pTok == qTok || pTok.rfind(qTok, 0) == 0) { tokenMatchScore += 200; tokenFound = true; break; }
+                }
+            }
+            if (!tokenFound && entry.normalizedPath.find(qTok) != std::wstring::npos) { tokenMatchScore += 100; tokenFound = true; }
+            if (!tokenFound) { allTokensMatched = false; break; }
+        }
+        if (allTokensMatched) { score += tokenMatchScore; } else if (score < 5000) {
+            // For multi-token queries that didn't exact-match title/filename, all tokens must match
+            return 0;
+        }
+    }
+    return score;
+}
+
+} // namespace GlobalSearchReference
+
+TEST_CASE(GlobalSearch, CompactIndexMatchesReferenceScoresAndOrdering) {
+    MediaLibrary library;
+    const std::vector<std::wstring> words = {
+        L"Alpha Beta", L"alpha.beta", L"Sci-Fi (2024)", L" ALPHA\tGamma ",
+        L"日本語 episode", L"İstanbul", L"Straße", L"short", L"\v\f spaced words \r\n",
+        std::wstring(L"\0Alpha Beta\0", 12), std::wstring(L"Alpha\0 Beta", 11),
+        std::wstring(L"Alpha\0", 6), L"Alpha / Beta", L"", L"..."
+    };
+    for (size_t i = 0; i < 384; ++i) {
+        MediaItem item;
+        item.id = std::to_string(i);
+        item.title = words[i % words.size()];
+        const auto& name = words[(i * 7 + 3) % words.size()];
+        item.filePath = LR"(C:\Corpus\)" + std::to_wstring(i) + LR"(\ )" + name + L" .mkv";
+        item.addedTimestamp = i % 13; item.lastWatchedTimestamp = i % 17;
+        library.mediaItems.push_back(std::move(item));
+    }
+    GlobalSearchIndex index;
+    GlobalSearchQueryOptions options; options.checkFileExists = false;
+    std::vector<std::wstring> queries = {L"alpha", L"alpha beta", L"sci fi", L"episode 日本語", L"short", L"absent query", L"mkv", L"corpus alpha", L"spaced words", L".", L"İstanbul", L"straße", std::wstring(L"alpha\0 beta", 11)};
+    for (const auto& query : queries) {
+        const auto normalized = GlobalSearchReference::Normalize(query);
+        const auto tokens = GlobalSearchReference::Tokenize(normalized);
+        struct Expected { size_t originalIndex; int score; };
+        std::vector<Expected> expected;
+        for (size_t i = 0; i < library.mediaItems.size(); ++i) {
+            const auto& item = library.mediaItems[i];
+            const auto title = item.GetDisplayTitle();
+            const auto fileName = GetFileNameFromPath(item.filePath);
+            GlobalSearchReference::Entry entry;
+            entry.normalizedTitle = GlobalSearchReference::Normalize(title);
+            entry.normalizedFileName = GlobalSearchReference::Normalize(fileName);
+            entry.normalizedPath = GlobalSearchReference::Normalize(item.filePath);
+            entry.titleTokens = GlobalSearchReference::Tokenize(title);
+            entry.pathTokens = GlobalSearchReference::Tokenize(item.filePath);
+            const int score = GlobalSearchReference::Score(entry, normalized, tokens);
+            if (score > 0) expected.push_back({i, score});
+        }
+        std::sort(expected.begin(), expected.end(), [&](const Expected& a, const Expected& b) {
+            if (a.score != b.score) return a.score > b.score;
+            const auto& left = library.mediaItems[a.originalIndex]; const auto& right = library.mediaItems[b.originalIndex];
+            if (left.lastWatchedTimestamp != right.lastWatchedTimestamp) return left.lastWatchedTimestamp > right.lastWatchedTimestamp;
+            if (left.addedTimestamp != right.addedTimestamp) return left.addedTimestamp > right.addedTimestamp;
+            const int title = _wcsicmp(left.GetDisplayTitle().c_str(), right.GetDisplayTitle().c_str());
+            return title != 0 ? title < 0 : _wcsicmp(left.filePath.c_str(), right.filePath.c_str()) < 0;
+        });
+        for (const size_t cap : {size_t(0), size_t(1), size_t(50), size_t(1000)}) {
+            options.maxResults = cap;
+            size_t total = 0;
+            const auto actual = index.Query(library, query, options, total);
+            TEST_ASSERT_EQ(total, expected.size());
+            TEST_ASSERT_EQ(actual.size(), (std::min)(cap, expected.size()));
+            for (size_t i = 0; i < actual.size(); ++i) {
+                TEST_ASSERT_EQ(actual[i].filePath, library.mediaItems[expected[i].originalIndex].filePath);
+                TEST_ASSERT_EQ(actual[i].matchScore, expected[i].score);
+                TEST_ASSERT_EQ(actual[i].fileName, GetFileNameFromPath(actual[i].filePath));
+            }
+        }
+    }
+    // A larger rebuild moves small-string entries and their relative ranges.
+    const std::vector<MediaItem> additional(library.mediaItems.begin(), library.mediaItems.begin() + 40);
+    library.mediaItems.insert(library.mediaItems.end(), additional.begin(), additional.end());
+    index.Invalidate();
+    options.maxResults = 1000;
+    const auto results = index.Query(library, L"short", options);
+    TEST_ASSERT(!results.empty());
+}
+
+TEST_CASE(GlobalSearch, TokenDelimitersMatchReferenceForEveryWideCharacter) {
+    std::wstring text;
+    text.reserve(65536);
+    for (unsigned int c = 0; c <= 65535; ++c) text.push_back(static_cast<wchar_t>(c));
+    TEST_ASSERT(GlobalSearchIndex::Tokenize(text) == GlobalSearchReference::Tokenize(text));
+}
+
+TEST_CASE(GlobalSearch, HistoryMergeRetainsLastMediaAlias) {
+    MediaLibrary library;
+    MediaItem first; first.id = "first"; first.filePath = LR"(C:\Aliased\clip.mkv)"; first.title = L"Target first";
+    MediaItem second = first; second.id = "second"; second.filePath = L"c:/aliased/clip.mkv"; second.title = L"Target second";
+    library.mediaItems = {first, second};
+    HistoryRecord history;
+    history.filePath = first.filePath; history.title = L"Target history";
+    history.watchedTimestamp = 200; history.lastPosSec = 42; history.durationSec = 900;
+    library.history.push_back(history);
+    GlobalSearchIndex index; GlobalSearchQueryOptions options; options.checkFileExists = false;
+    const auto results = index.Query(library, L"target", options);
+    TEST_ASSERT_EQ(results.size(), size_t(2));
+    // Prefix length contributes to relevance, so verify merge targets by their original paths.
+    const auto media = std::find_if(results.begin(), results.end(), [&](const auto& result) { return result.filePath == first.filePath; });
+    const auto merged = std::find_if(results.begin(), results.end(), [&](const auto& result) { return result.filePath == second.filePath; });
+    TEST_ASSERT(media != results.end()); TEST_ASSERT(merged != results.end());
+    if (media == results.end() || merged == results.end()) return;
+    TEST_ASSERT_EQ(media->title, first.title);
+    TEST_ASSERT(media->source == GlobalSearchResultSource::Media);
+    TEST_ASSERT_EQ(merged->title, second.title);
+    TEST_ASSERT(merged->source == GlobalSearchResultSource::MediaAndHistory);
+    TEST_ASSERT_EQ(merged->lastPosSec, 42.0);
+    TEST_ASSERT_EQ(merged->durationSec, 900.0);
+}
+
 
 TEST_CASE(GlobalSearch, PlaybackProgressRefreshesStatisticsWithoutRebuildingText) {
     MediaLibrary library;

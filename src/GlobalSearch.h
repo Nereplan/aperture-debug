@@ -65,16 +65,30 @@ struct GlobalSearchProjection {
     }
 };
 
-// Cached entry inside GlobalSearchIndex with pre-computed normalized keys
+struct SearchTokenRange { size_t offset = 0, length = 0; };
+struct CachedSearchTokens {
+    std::vector<SearchTokenRange> ranges;
+    // NormalizeText trims boundary NULs while the token API preserves them.
+    // Only those unusual inputs need their own lowercase token backing text.
+    std::unique_ptr<std::wstring> originalText;
+    std::wstring_view View(const std::wstring& normalized, const SearchTokenRange& range) const {
+        const auto& text = originalText ? *originalText : normalized;
+        return {text.data() + range.offset, range.length};
+    }
+};
+
+// Cached entry inside GlobalSearchIndex with pre-computed normalized keys.
+// Tokens are offsets into owned text, so moving the index cannot dangle views.
 struct CachedSearchEntry {
     std::string mediaId;
-    std::wstring filePath, title, fileName, normalizedTitle;
-    std::wstring normalizedFileName, normalizedPath;
-    std::vector<std::wstring> titleTokens;
-    std::vector<std::wstring> pathTokens;
+    std::wstring filePath, title, normalizedTitle, normalizedPath;
+    CachedSearchTokens titleTokens, pathTokens;
+    size_t normalizedFileNameOffset = 0;
     double durationSec = 0.0, lastPosSec = 0.0;
     int64_t lastWatchedTimestamp = 0, addedTimestamp = 0;
     GlobalSearchResultSource source = GlobalSearchResultSource::Media;
+    std::wstring_view GetFileNameView() const;
+    std::wstring_view GetNormalizedFileNameView() const;
 };
 
 // In-memory normalized index derived from MediaLibrary without external stores
