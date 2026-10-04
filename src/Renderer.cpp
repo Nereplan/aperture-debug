@@ -122,9 +122,6 @@ size_t Renderer::ClearThumbnailCacheInternal() {
     negativeInfo.clear();
     negativeAttempts.clear();
     hubExtractAttempted.clear();
-    statDiskDecodes.store(0, std::memory_order_release);
-    statShellDecodes.store(0, std::memory_order_release);
-    statInjected.store(0, std::memory_order_release);
     thumbnailNotificationPosted.store(false, std::memory_order_release);
     {
         std::lock_guard<std::mutex> lock(thumbnailMutex);
@@ -136,15 +133,6 @@ size_t Renderer::ClearThumbnailCacheInternal() {
     }
     thumbnailCv.notify_all();
     return evicted;
-}
-
-Renderer::ThumbnailStats Renderer::GetThumbnailStats() {
-    ThumbnailStats stats;
-    stats.diskDecodes = statDiskDecodes.load(std::memory_order_relaxed);
-    stats.shellDecodes = statShellDecodes.load(std::memory_order_relaxed);
-    stats.injected = statInjected.load(std::memory_order_relaxed);
-    stats.stillMissing = negativeCache.size();
-    return stats;
 }
 
 size_t Renderer::ClearThumbnailCache() {
@@ -1339,7 +1327,6 @@ void Renderer::ThumbnailWorkerThread() {
                     result.pixelWidth = (UINT)diskFrame.width;
                     result.pixelHeight = (UINT)diskFrame.height;
                     result.success = true;
-                    statDiskDecodes.fetch_add(1, std::memory_order_relaxed);
                 }
             }
             // Tier 2: preserve Shell cache lookup, provider extraction and WIC
@@ -1349,7 +1336,6 @@ void Renderer::ThumbnailWorkerThread() {
             if (!result.success && probes.GetThumbnail(req.key.path, req.key.width, req.key.height,
                     result.pixels, result.pixelWidth, result.pixelHeight)) {
                 result.success = true;
-                statShellDecodes.fetch_add(1, std::memory_order_relaxed);
                 if (!thumbnailPrivateMode.load()) {
                     PreviewThumbnailFrame persist;
                     persist.filePath = req.key.path;
@@ -1663,7 +1649,6 @@ bool Renderer::InjectThumbnail(const std::wstring& filePath, UINT w, UINT h, con
     negativeCache.erase(key);
     negativeLru.remove(key);
     negativeInfo.erase(key);
-    statInjected.fetch_add(1, std::memory_order_relaxed);
     return true;
 }
 

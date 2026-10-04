@@ -211,18 +211,6 @@ bool ChannelPolicy::IsStabilityDowngrade(const std::string& fromChannel, const s
     return from->stabilityRank < to->stabilityRank;
 }
 
-std::wstring ChannelPolicy::GetChannelDisplayName(const std::string& channelId) const {
-    const ChannelDefinition* chan = FindChannel(channelId);
-    if (chan) { return chan->displayName; }
-    return L"Stable";
-}
-
-std::string ChannelPolicy::GetChannelDescription(const std::string& channelId) const {
-    const ChannelDefinition* chan = FindChannel(channelId);
-    if (chan) { return chan->description; }
-    return "";
-}
-
 int ChannelPolicy::GetChannelMaxExpiryDays(const std::string& channelId) const {
     const ChannelDefinition* chan = FindChannel(channelId);
     if (chan) { return chan->maxExpiryDays; }

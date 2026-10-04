@@ -39,7 +39,7 @@ struct SurfaceStyle {
     D2D1_COLOR_F innerHighlight = D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.06f);
     D2D1_COLOR_F gradientStart = D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.0f);
     D2D1_COLOR_F gradientEnd = D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.0f);
-    bool hasGradient = false, hasInnerHighlight = true, useSpecularBorder = true;
+    bool hasGradient = false, hasInnerHighlight = true;
     // Left Accent Bar (Seamlessly clipped inside rounded card geometry)
     float leftAccentBarAlpha = 0.0f;
     D2D1_COLOR_F leftAccentBarColor = D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.0f);
@@ -139,14 +139,6 @@ public:
     void PopClip();
     // Thumbnails & Backdrop Art Requests canonicalize internally (hub -> 320x180, backdrop -> 640x360).
     ComPtr<ID2D1Bitmap> GetOrCreateVideoThumbnail(const std::wstring& filePath, UINT reqW = 320, UINT reqH = 180);
-    // Where decoded thumbnails came from (event counts, not per-frame). Lets users verify the Windows shell cache is actually being used.
-    struct ThumbnailStats {
-        uint64_t diskDecodes = 0;   // served from our persistent hub tier
-        uint64_t shellDecodes = 0;  // served from the Explorer thumbnail cache
-        uint64_t injected = 0;      // mpv-extracted frames injected
-        size_t stillMissing = 0;    // quarantined keys right now
-    };
-    ThumbnailStats GetThumbnailStats();
     // Private sessions read (but never write) the persistent hub disk tier.
     void SetThumbnailPrivateMode(bool enabled) { thumbnailPrivateMode.store(enabled); }
     // Pops the oldest shell-miss path not yet offered for mpv extraction. UI thread only (App idle driver).
@@ -329,9 +321,6 @@ private:
     static constexpr uint64_t kMaxCompletedThumbnailBytes = 16ull * 1024ull * 1024ull;
     uint64_t completedThumbnailBytes = 0;
     std::atomic<bool> thumbnailNotificationPosted{ false };
-    std::atomic<uint64_t> statDiskDecodes{ 0 };
-    std::atomic<uint64_t> statShellDecodes{ 0 };
-    std::atomic<uint64_t> statInjected{ 0 };
     // Stop collections are device resources and can be shared by all of the short-lived gradient brushes used during a frame.
     ComPtr<ID2D1StrokeStyle> dashedStrokeStyle, ringStrokeStyle;
     // Font Formats

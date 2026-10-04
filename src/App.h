@@ -619,7 +619,7 @@ private:
     std::unordered_map<size_t, AnimatedFloat> playlistCardExpands;
     void ClearPlaylistCardHover();
     bool isPlaylistAddHovered = false, isPlaylistAddFilesHovered = false, isPlaylistPlayAllHovered = false;
-    bool isPlaylistEditRulesHovered = false, isPlaylistDeleteHovered = false, isPlaylistResumeHovered = false;
+    bool isPlaylistDeleteHovered = false, isPlaylistResumeHovered = false;
     bool isPlaylistDropTargetActive = false, isRailFolderDropActive = false, isClearHistoryHovered = false, isClearHistoryPressed = false;
     // Snapshot taken at OLE DragEnter: true when the CF_HDROP payload carries at least one folder, so drag-over can preview
     // "create playlist from folder" before the drop happens.

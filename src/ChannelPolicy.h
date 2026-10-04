@@ -36,8 +36,6 @@ public:
     bool IsValidPrereleaseForChannel(const std::string& channelId, const std::string& prerelease) const;
     // Returns true if moving from fromChannel to toChannel is a move to a less stable channel (lower stability rank)
     bool IsStabilityDowngrade(const std::string& fromChannel, const std::string& toChannel) const;
-    std::wstring GetChannelDisplayName(const std::string& channelId) const;
-    std::string GetChannelDescription(const std::string& channelId) const;
     int GetChannelMaxExpiryDays(const std::string& channelId) const;
     // Load / parse policy from JSON text (for testing and runtime overrides)
     bool LoadFromJson(const std::string& jsonText, std::string& outError);

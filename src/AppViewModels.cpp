@@ -193,8 +193,6 @@ PlayerRenderViewModel App::BuildPlayerRenderViewModel() const {
         vm.pipOverlay.isVolumeSliderOpen = isPiPVolumeSliderOpen;
         vm.pipOverlay.volume = (float)player.GetVolume();
         vm.pipOverlay.isMuted = player.IsMuted() || player.GetVolume() <= 0.001;
-        const auto pipLayout = Presentation::PiP(RectWidth(vm.winBounds), RectHeight(vm.winBounds), dp);
-        vm.pipOverlay.volumeSliderBounds = pipLayout.volumeSlider;
         vm.pipOverlay.volumeSliderAnim = pipVolumeAnim.current;
     } else {
         vm.topBar.visible = true;
@@ -382,10 +380,8 @@ HubRenderViewModel App::BuildHubRenderViewModel() {
             vm.mediaTab.groupControlBounds = toolbarGeometry.group;
             vm.mediaTab.flatBtnBounds = toolbarGeometry.flat;
             mediaFlatBtnBounds = vm.mediaTab.flatBtnBounds;
-            vm.mediaTab.folderBtnBounds = toolbarGeometry.folder;
             vm.mediaTab.seriesBtnBounds = toolbarGeometry.series;
             mediaSeriesBtnBounds = vm.mediaTab.seriesBtnBounds;
-            vm.mediaTab.duplicatesBtnBounds = toolbarGeometry.duplicates;
             vm.mediaTab.activeGroupMode = static_cast<int>(libraryGroupMode);
             vm.mediaTab.hoveredGroupBtn = hoveredGroupBtn;
             vm.mediaTab.searchHovered = hoveredMediaToolbarAction == 0;
@@ -407,8 +403,6 @@ HubRenderViewModel App::BuildHubRenderViewModel() {
                 vm.mediaTab.searchVisual.compositionEnd = compositionRange.end;
                 vm.mediaTab.searchVisual.compositionCaretIndex = mediaSearchInput.GetDisplayCaret();
             }
-            vm.mediaTab.compactToolbar = toolbarGeometry.compact;
-            vm.mediaTab.showSearchLabel = !toolbarGeometry.compact;
             vm.mediaTab.showSummary = toolbarGeometry.showSummary;
             vm.mediaTab.sortLabel = GetLibrarySortLabel();
             static const LibraryQueryProjection kPendingProjection;
@@ -558,12 +552,6 @@ HubRenderViewModel App::BuildHubRenderViewModel() {
                             hvm.isSelected = (selectedFolderKeys.count(grp.key) > 0);
                             hvm.isDeleteHovered = (hoveredFolderDeleteIndex == (int)g);
                             hvm.headerRect = D2D1::RectF(cardLeft, headerTopPx, cardRight, headerBottomPx - 4.0f * dp);
-                            float delSz = 15.0f * dp;
-                            float delY = hvm.headerRect.top + (RectHeight(hvm.headerRect) - delSz) * 0.5f;
-                            hvm.deleteRect = D2D1::RectF(hvm.headerRect.right - 24.0f * dp, delY, hvm.headerRect.right - 8.0f * dp, delY + delSz);
-                            float dragHandleW = 12.0f * dp, dragHandleH = 14.0f * dp;
-                            float dragHandleY = hvm.headerRect.top + (RectHeight(hvm.headerRect) - dragHandleH) * 0.5f;
-                            hvm.dragHandleRect = D2D1::RectF(hvm.headerRect.left + 4.0f * dp, dragHandleY, hvm.headerRect.left + 4.0f * dp + dragHandleW, dragHandleY + dragHandleH);
                             if (libraryGroupMode == LibraryGroupMode::Series && !grp.isSpecial) {
                                 hvm.countText = std::to_wstring(grp.count) + L" episodes";
                             } else if (libraryGroupMode == LibraryGroupMode::Duplicates) {
@@ -637,8 +625,6 @@ HubRenderViewModel App::BuildHubRenderViewModel() {
                 } else if (activeDragType == DragType::MediaFolder && dragFromIndex >= 0 && dragFromIndex < (int)proj.groups.size()) {
                     vm.mediaTab.isFolderDrag = true;
                     vm.mediaTab.dragFromFolderIndex = dragFromIndex;
-                    vm.mediaTab.dragToFolderIndex = dragToIndex;
-                    vm.mediaTab.folderDragOffsetY = dragCurrentY - dragStartY;
                     const auto& grp = proj.groups[dragFromIndex];
                     VisibleMediaGroupHeaderViewModel dragHvm;
                     dragHvm.key = grp.key;
@@ -671,7 +657,6 @@ HubRenderViewModel App::BuildHubRenderViewModel() {
             vm.playlistsTab.rail.dragToIndex = (activeDragType == DragType::PlaylistRail) ? dragToIndex : -1;
             vm.playlistsTab.rail.dragOffsetY = (activeDragType == DragType::PlaylistRail) ? (dragCurrentY - dragStartY) : 0.0f;
             vm.playlistsTab.rail.isRailFocused = isKeyboardNavActive && (activeFocusPane == FocusPane::PlaylistRail);
-            vm.playlistsTab.rail.focusedItemIndex = keyboardFocusedIndex;
             vm.playlistsTab.rail.isInlineRenaming = isInlineRenaming;
             vm.playlistsTab.rail.inlineRenamePlaylistId = inlineRenamePlaylistId;
             if (isInlineRenaming) {
@@ -701,14 +686,12 @@ HubRenderViewModel App::BuildHubRenderViewModel() {
                     renderY += CardDragOffset(static_cast<int>(i), 0, (slot - static_cast<int>(i)) * (itemH + 6.0f * dp)).y;
                 }
                 const auto& pl = library.playlists[i];
-                // Stats come from the cached projection; the raw item count is
-                // the same materialized path count it is derived from.
+                // Reuse cached playlist statistics for the visible rail items.
                 PlaylistStats plStats = library.GetPlaylistStats(pl.id);
                 PlaylistRailItemViewModel rItem;
                 rItem.id = pl.id;
                 rItem.name = pl.name;
                 rItem.isSmart = pl.IsSmart();
-                rItem.rawItemCount = (size_t)plStats.totalCount;
                 rItem.isActive = (pl.id == activePlaylistId);
                 rItem.isFocused = vm.playlistsTab.rail.isRailFocused && (keyboardFocusedIndex == (int)i);
                 rItem.isHovered = (hoveredPlaylistRailIndex == (int)i);
@@ -753,7 +736,6 @@ HubRenderViewModel App::BuildHubRenderViewModel() {
                 if (currentPl->IsSmart()) { vm.playlistsTab.detail.metaStr += L" \x00B7 Smart"; }
                 vm.playlistsTab.detail.isAddFilesHovered = isPlaylistAddFilesHovered;
                 vm.playlistsTab.detail.isPlayAllHovered = isPlaylistPlayAllHovered;
-                vm.playlistsTab.detail.isEditRulesHovered = isPlaylistEditRulesHovered;
                 vm.playlistsTab.detail.isDeletePlHovered = isPlaylistDeleteHovered;
                 vm.playlistsTab.detail.isResumeHovered = isPlaylistResumeHovered;
                 vm.playlistsTab.detail.isDropTargetActive = isPlaylistDropTargetActive;
@@ -1070,7 +1052,6 @@ HubRenderViewModel App::BuildHubRenderViewModel() {
         vm.modal.message = modalMessage;
         vm.modal.confirmText = modalConfirmText;
         vm.modal.isDestructive = modalIsDestructive;
-        vm.modal.textValue = Text16ToWideString(modalInput.GetText());
         const bool confirmation = activeModal == ModalType::Confirmation || activeModal == ModalType::DeletePlaylist;
         vm.modal.isOkHovered = isModalOkHovered || modalKeyboardFocus == (confirmation ? 0 : 1);
         vm.modal.isCancelHovered = isModalCancelHovered || modalKeyboardFocus == (confirmation ? 1 : 2);
@@ -1098,7 +1079,6 @@ HubRenderViewModel App::BuildHubRenderViewModel() {
         vm.globalSearch.isFocused = (activeTextInputField == TextInputField::GlobalSearch);
         vm.globalSearch.isCloseHovered = isGlobalSearchCloseHovered;
         vm.globalSearch.query = globalSearchModel.GetQuery();
-        vm.globalSearch.overlayBounds = vm.winBounds;
         const float cardW = std::min(440.0f * dp, winW - 36.0f * dp);
         const float cardH = std::min(390.0f * dp, winH - 106.0f * dp);
         const float cardLeft = 18.0f * dp, cardTop = 76.0f * dp;
@@ -1119,7 +1099,6 @@ HubRenderViewModel App::BuildHubRenderViewModel() {
         vm.globalSearch.searchVisual.focused = vm.globalSearch.isFocused;
         vm.globalSearch.searchVisual.caretVisible = vm.globalSearch.isFocused && textInputCaretVisible;
         const auto& results = globalSearchModel.GetResults();
-        vm.globalSearch.totalMatches = globalSearchModel.GetTotalMatchCount();
         vm.globalSearch.visibleItems.reserve(results.size());
         float itemY = cardTop + 52.0f * dp;
         for (size_t i = 0; i < results.size(); ++i) {
@@ -1129,7 +1108,6 @@ HubRenderViewModel App::BuildHubRenderViewModel() {
             itemVm.title = srcItem.title;
             itemVm.fileName = srcItem.fileName;
             itemVm.durationText = srcItem.GetFormattedDuration();
-            itemVm.sourceBadge = srcItem.GetSourceDisplayName();
             itemVm.progressRatio = srcItem.GetProgressRatio();
             itemVm.existsOnDisk = srcItem.existsOnDisk;
             itemVm.isSelected = (static_cast<int>(i) == vm.globalSearch.selectedIndex);

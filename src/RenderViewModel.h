@@ -72,7 +72,6 @@ struct ModalViewModel {
     ModalType type = ModalType::None;
     std::wstring title, prompt, message, confirmText;
     bool isDestructive = true;
-    std::wstring textValue;
     TextInputVisualState visualState;
     bool isOkHovered = false, isCancelHovered = false, isOkPressed = false, isCancelPressed = false;
 };
@@ -162,7 +161,6 @@ struct PiPOverlayViewModel {
     bool isVolumeSliderOpen = false;
     float volume = 1.0f;
     bool isMuted = false;
-    D2D1_RECT_F volumeSliderBounds = { 0, 0, 0, 0 };
     float volumeSliderAnim = 0.0f;
 };
 
@@ -268,8 +266,6 @@ struct VisibleMediaGroupHeaderViewModel {
     D2D1_RECT_F headerRect = { 0, 0, 0, 0 };
     bool isSpecial = false, isSeries = false, isCollapsed = false, isHovered = false;
     bool isSelected = false, isDeleteHovered = false;
-    D2D1_RECT_F deleteRect = { 0, 0, 0, 0 };
-    D2D1_RECT_F dragHandleRect = { 0, 0, 0, 0 };
 };
 
 struct VisibleMediaCardViewModel {
@@ -318,16 +314,14 @@ struct MediaTabViewModel {
     D2D1_RECT_F sortBtnBounds = { 0, 0, 0, 0 };
     D2D1_RECT_F groupControlBounds = { 0, 0, 0, 0 };
     D2D1_RECT_F flatBtnBounds = { 0, 0, 0, 0 };
-    D2D1_RECT_F folderBtnBounds = { 0, 0, 0, 0 };
     D2D1_RECT_F seriesBtnBounds = { 0, 0, 0, 0 };
-    D2D1_RECT_F duplicatesBtnBounds = { 0, 0, 0, 0 };
     int activeGroupMode = 0; // 0: Flat, 1: Folders, 2: Series, 3: Duplicates
     int hoveredGroupBtn = -1; // -1: None, 0: Flat, 1: Folders, 2: Series, 3: Duplicates
     bool searchHovered = false, searchFocused = false, searchClearHovered = false, hasSearchQuery = false;
     D2D1_RECT_F searchClearBounds = { 0, 0, 0, 0 };
     std::wstring filterQuery;
     TextInputVisualState searchVisual;
-    bool sortHovered = false, compactToolbar = false, showSearchLabel = true, showSummary = true;
+    bool sortHovered = false, showSummary = true;
     std::wstring sortLabel, summaryText;
     D2D1_RECT_F summaryTextBounds = { 0, 0, 0, 0 };
     // Visible group headers
@@ -338,8 +332,7 @@ struct MediaTabViewModel {
     const MediaItem* pDragCloneItem = nullptr;
     bool hasDragClone = false;
     bool isFolderDrag = false;
-    int dragFromFolderIndex = -1, dragToFolderIndex = -1;
-    float folderDragOffsetY = 0.0f;
+    int dragFromFolderIndex = -1;
     VisibleMediaGroupHeaderViewModel dragCloneFolder;
 };
 
@@ -348,7 +341,6 @@ struct PlaylistRailItemViewModel {
     bool isSmart = false;
     int totalVids = 0, watchedCount = 0;
     float progressRatio = 0.0f;
-    size_t rawItemCount = 0;
     bool isActive = false, isFocused = false, isHovered = false;
     D2D1_RECT_F itemRect = { 0, 0, 0, 0 };
     D2D1_RECT_F titleRect = { 0, 0, 0, 0 };
@@ -366,7 +358,6 @@ struct PlaylistsRailViewModel {
     int dragFromIndex = -1, dragToIndex = -1;
     float dragOffsetY = 0.0f;
     bool isRailFocused = false;
-    int focusedItemIndex = -1;
     bool isInlineRenaming = false;
     std::string inlineRenamePlaylistId;
     TextInputVisualState inlineRenameVisual;
@@ -408,7 +399,7 @@ struct PlaylistDetailViewModel {
     bool hasPlaylist = false;
     std::string playlistId, playlistName;
     std::wstring metaStr;
-    bool isSmart = false, isEditRulesHovered = false, isAddFilesHovered = false, isPlayAllHovered = false;
+    bool isSmart = false, isAddFilesHovered = false, isPlayAllHovered = false;
     bool isDeletePlHovered = false, isResumeHovered = false, isDropTargetActive = false, isEmpty = false;
     // Drop target active while the OLE payload carries a folder; the banner
     // then advertises "add folder's videos" instead of "drop files".
@@ -456,7 +447,7 @@ struct VisibleHistoryItemViewModel {
     const HistoryRecord* pRecord = nullptr;
     D2D1_RECT_F itemRect = { 0, 0, 0, 0 };
     bool isHovered = false, isDeleteHovered = false, isSelected = false, isKeyboardFocused = false;
-    std::wstring formattedTime, formattedDuration, displayTitle;
+    std::wstring formattedDuration, displayTitle;
 };
 
 inline std::wstring FormatHistoryProgress(const HistoryRecord& record) {
@@ -595,7 +586,6 @@ struct ImportProgressViewModel {
 };
 struct GlobalSearchItemViewModel {
     std::wstring filePath, title, fileName, durationText;
-    std::wstring sourceBadge;
     double progressRatio = 0.0;
     bool isSelected = false, isHovered = false, existsOnDisk = true;
     D2D1_RECT_F itemRect = { 0, 0, 0, 0 };
@@ -605,13 +595,11 @@ struct GlobalSearchSurfaceViewModel {
     bool isOpen = false, isFocused = false, isCloseHovered = false;
     std::wstring query;
     TextInputVisualState searchVisual;
-    D2D1_RECT_F overlayBounds = { 0, 0, 0, 0 };
     D2D1_RECT_F searchBoxBounds = { 0, 0, 0, 0 };
     D2D1_RECT_F inputBounds = { 0, 0, 0, 0 };
     D2D1_RECT_F closeBounds = { 0, 0, 0, 0 };
     D2D1_RECT_F listClipBounds = { 0, 0, 0, 0 };
     int selectedIndex = -1, hoveredIndex = -1;
-    size_t totalMatches = 0;
     std::vector<GlobalSearchItemViewModel> visibleItems;
 };
 

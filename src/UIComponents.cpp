@@ -600,7 +600,6 @@ void UIComponents::DrawSettingsView(Renderer& r, const Settings& s, const Settin
         style.glowColor = clearColor;
         style.glowBlur = 0.0f;
         style.hasInnerHighlight = false;
-        style.useSpecularBorder = false;
         return style;
     };
     auto drawFlatPanel = [&](const D2D1_RECT_F& rect, float radius, const D2D1_COLOR_F& fill, const D2D1_COLOR_F& border, float borderWidth = 1.0f) {
