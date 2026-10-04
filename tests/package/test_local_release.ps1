@@ -3,7 +3,7 @@ param()
 $ErrorActionPreference = 'Stop'
 $root = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
 $fixture = Join-Path $root ('scratch/local-release-test-' + [Guid]::NewGuid().ToString('N'))
-$global:ReleaseTestGit = (Get-Command git -CommandType Application).Source
+$global:ReleaseTestGit = (Get-Command git -CommandType Application | Select-Object -First 1).Source
 $global:ReleaseTestState = @{ root = $fixture; calls = @(); failBuild = $false; remoteTag = $false; releases = '[]'; changeSource = $false; missingCommit = $false; failUpload = $false }
 $savedActions = $env:GITHUB_ACTIONS
 
