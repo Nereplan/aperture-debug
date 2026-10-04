@@ -1,0 +1,72 @@
+[
+  {
+    "mode": "remove-500-half",
+    "samplesPerVersion": 7,
+    "beforeMedianMs": 1.7737,
+    "afterMedianMs": 1.4115,
+    "timeReductionPercent": 20.420589727687886,
+    "beforePeakCppBytes": 250725.0,
+    "afterPeakCppBytes": 242725.0,
+    "beforeAllocations": 3508.0,
+    "afterAllocations": 3508.0,
+    "items": "500",
+    "changed": "250",
+    "resultHash": "6332800545376029723"
+  },
+  {
+    "mode": "remove-25000-sparse",
+    "samplesPerVersion": 7,
+    "beforeMedianMs": 83.851,
+    "afterMedianMs": 81.2906,
+    "timeReductionPercent": 3.0535115860275983,
+    "beforePeakCppBytes": 8416368.0,
+    "afterPeakCppBytes": 8414768.0,
+    "beforeAllocations": 175007.0,
+    "afterAllocations": 175007.0,
+    "items": "25000",
+    "changed": "50",
+    "resultHash": "2932922666078682171"
+  },
+  {
+    "mode": "remove-25000-half",
+    "samplesPerVersion": 7,
+    "beforeMedianMs": 877.8638,
+    "afterMedianMs": 92.1731,
+    "timeReductionPercent": 89.50029605959375,
+    "beforePeakCppBytes": 12424725.0,
+    "afterPeakCppBytes": 12024725.0,
+    "beforeAllocations": 175013.0,
+    "afterAllocations": 175013.0,
+    "items": "25000",
+    "changed": "12500",
+    "resultHash": "4279082087833974361"
+  },
+  {
+    "mode": "evict-25000-one",
+    "samplesPerVersion": 7,
+    "beforeMedianMs": 108.7244,
+    "afterMedianMs": 3.5812,
+    "timeReductionPercent": 96.7061671529114,
+    "beforePeakCppBytes": 13808231.0,
+    "afterPeakCppBytes": 201895.0,
+    "beforeAllocations": 25035.0,
+    "afterAllocations": 10.0,
+    "items": "25000",
+    "changed": "1",
+    "resultHash": "13785246425763172489"
+  },
+  {
+    "mode": "evict-25000-100",
+    "samplesPerVersion": 7,
+    "beforeMedianMs": 115.483,
+    "afterMedianMs": 11.4968,
+    "timeReductionPercent": 90.04459530840036,
+    "beforePeakCppBytes": 13808231.0,
+    "afterPeakCppBytes": 201895.0,
+    "beforeAllocations": 25827.0,
+    "afterAllocations": 802.0,
+    "items": "25000",
+    "changed": "100",
+    "resultHash": "5135172248409803668"
+  }
+]

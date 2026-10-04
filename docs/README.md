@@ -18,6 +18,7 @@ Read the most recent report relevant to the subsystem. Measurements with differe
 
 | Report | Scope |
 |---|---|
+| [Bulk removal and cache eviction follow-up](reports/MAINTENANCE_FOLLOWUP.md) | 4 October: removed quadratic UI cleanup scans, borrowed eviction records, removed redundant subtitle work, and shared benchmark probes |
 | [Test efficiency and disk usage](reports/TEST_AND_STORAGE_OPTIMIZATION.md) | 4 October: removed ineffective tests, shared native compilation, adaptive thumbnail encoding, and deduplicated rollback storage |
 | [Measured performance improvements](reports/PERFORMANCE_OPTIMIZATION.md) | 4 October: search tokens/scoring, duplicate connectivity, filtering, grouping, and comparative CPU/heap evidence |
 | [Dead code and duplicate detection](reports/DEAD_CODE_AND_DUPLICATE_OPTIMIZATION.md) | 4 October: removed unused render state and first duplicate-scan optimization |

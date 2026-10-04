@@ -1,0 +1,193 @@
+{
+  "date": "2026-10-04",
+  "applicationVersion": "2.0.0.0",
+  "baselineCommit": "1e89ccd6176ce131c86e3a562a8644c323a54576",
+  "productionCommit": "79840ed476e35aa973a93d93054e6657713dbcd5",
+  "benchmarkCommit": "69e974b0c99ed4a14f20afa2b49d6ef0331ef5a1",
+  "fuzzRepairCommit": "5fecf8dbef277f8f36c20c2518c057c9712ba964",
+  "localBuildAndGate": {
+    "command": "./build_and_release.ps1 -FailFast",
+    "sourceCommit": "69e974b0c99ed4a14f20afa2b49d6ef0331ef5a1",
+    "applicationSourceUnchangedByFuzzRepair": true,
+    "durationSeconds": 529.67,
+    "passed": 20,
+    "failed": 0,
+    "timeouts": 0,
+    "suites": [
+      {
+        "id": "local_release",
+        "result": "PASS",
+        "durationSeconds": 4.69,
+        "exitCode": 0
+      },
+      {
+        "id": "github_update",
+        "result": "PASS",
+        "durationSeconds": 3.4,
+        "exitCode": 0
+      },
+      {
+        "id": "update_retention",
+        "result": "PASS",
+        "durationSeconds": 3.33,
+        "exitCode": 0
+      },
+      {
+        "id": "workspace_cleanup",
+        "result": "PASS",
+        "durationSeconds": 1.86,
+        "exitCode": 0
+      },
+      {
+        "id": "workflows",
+        "result": "PASS",
+        "durationSeconds": 51.54,
+        "exitCode": 0
+      },
+      {
+        "id": "unit",
+        "result": "PASS",
+        "durationSeconds": 118.11,
+        "exitCode": 0
+      },
+      {
+        "id": "corpus",
+        "result": "PASS",
+        "durationSeconds": 9.17,
+        "exitCode": 0
+      },
+      {
+        "id": "persistence",
+        "result": "PASS",
+        "durationSeconds": 14.6,
+        "exitCode": 0
+      },
+      {
+        "id": "ipc",
+        "result": "PASS",
+        "durationSeconds": 4.64,
+        "exitCode": 0
+      },
+      {
+        "id": "loader",
+        "result": "PASS",
+        "durationSeconds": 28.17,
+        "exitCode": 0
+      },
+      {
+        "id": "diagnostics",
+        "result": "PASS",
+        "durationSeconds": 30.06,
+        "exitCode": 0
+      },
+      {
+        "id": "updater",
+        "result": "PASS",
+        "durationSeconds": 17.8,
+        "exitCode": 0
+      },
+      {
+        "id": "channel_policy",
+        "result": "PASS",
+        "durationSeconds": 0.47,
+        "exitCode": 0
+      },
+      {
+        "id": "dependencies",
+        "result": "PASS",
+        "durationSeconds": 1.1,
+        "exitCode": 0
+      },
+      {
+        "id": "runtime_layout",
+        "result": "PASS",
+        "durationSeconds": 0.96,
+        "exitCode": 0
+      },
+      {
+        "id": "threat_boundaries",
+        "result": "PASS",
+        "durationSeconds": 0.14,
+        "exitCode": 0
+      },
+      {
+        "id": "static_analysis",
+        "result": "PASS",
+        "durationSeconds": 89.79,
+        "exitCode": 0
+      },
+      {
+        "id": "stress",
+        "result": "PASS",
+        "durationSeconds": 106.66,
+        "exitCode": 0
+      },
+      {
+        "id": "media_probe_isolation",
+        "result": "PASS",
+        "durationSeconds": 13.48,
+        "exitCode": 0
+      },
+      {
+        "id": "thumbnail_cache",
+        "result": "PASS",
+        "durationSeconds": 29.6,
+        "exitCode": 0
+      }
+    ],
+    "unitCases": {
+      "passed": 383,
+      "failed": 0,
+      "skipped": 0
+    },
+    "focusedBulkCases": {
+      "passed": 7,
+      "failed": 0,
+      "skipped": 0
+    },
+    "thumbnailCacheAssertions": 8519
+  },
+  "subtitleFuzz": {
+    "command": "./tests/run_tests.ps1 -Id fuzz_subtitle -PassThruArgs @('-Seed', '20261004', '-Iterations', '10000') -FailFast",
+    "sourceCommit": "5fecf8dbef277f8f36c20c2518c057c9712ba964",
+    "seed": 20261004,
+    "iterations": 10000,
+    "srtRunsAccepted": 7567,
+    "vttRunsAccepted": 7567,
+    "assRunsAccepted": 1587,
+    "mutantsRejectedByAllParsers": 846,
+    "srtAndAssCuesValidated": 198490,
+    "invariantFailures": 0,
+    "crashesOrHangs": 0
+  },
+  "allocationProbeCompatibility": {
+    "querySamplesCompared": 91,
+    "queryFieldsCompared": [
+      "mode",
+      "sample",
+      "items",
+      "groups",
+      "order_hash",
+      "allocations",
+      "peak_live_cpp_bytes"
+    ],
+    "reference": "../performance-evidence/after-default.csv",
+    "saveCaptureSamplesPassingContentAndReloadChecks": 28
+  },
+  "package": {
+    "artifact": "Aperture-2.0.0.0-windows-x64.zip",
+    "zipSha256": "e8703364dfdbfaad5ef9ef162217e990ef4078945c28e7faf447ef5214e05ec4",
+    "binarySha256": "d8adad8f526a9dd6a7c9d65fcff8301832ba037020086b4099806d80e7dc3d04",
+    "manifestFiles": 10,
+    "verificationCommand": "./scripts/verify_package.ps1 -PackageDirectory <extracted-zip-with-empty-data-directory>",
+    "manifestHashesArchitectureAndDependencyClosure": "PASS",
+    "isolatedStartupExactPidShutdownAndStageCleanup": "PASS",
+    "originalPackageDataUntouched": true,
+    "releaseAndDebugInstallHashesMatch": true,
+    "bothInstallsRetainSavedData": true
+  },
+  "documentation": {
+    "localLinksChecked": 180,
+    "brokenLocalLinks": 0
+  }
+}
