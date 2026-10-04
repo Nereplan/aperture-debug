@@ -18,6 +18,8 @@ Read the most recent report relevant to the subsystem. Measurements with differe
 
 | Report | Scope |
 |---|---|
+| [UI refresh performance](reports/UI_REFRESH_PERFORMANCE.md) | 5 October: accessibility snapshot ownership and exact chapter-boundary caching, with CPU/allocation measurements |
+| [Subtitle lookup performance](reports/SUBTITLE_LOOKUP_PERFORMANCE.md) | 5 October: indexed expired cue ranges, preserved overlap/seek behavior, and measured CPU/index-memory tradeoffs |
 | [Bulk removal and cache eviction follow-up](reports/MAINTENANCE_FOLLOWUP.md) | 4 October: removed quadratic UI cleanup scans, borrowed eviction records, removed redundant subtitle work, and shared benchmark probes |
 | [Test efficiency and disk usage](reports/TEST_AND_STORAGE_OPTIMIZATION.md) | 4 October: removed ineffective tests, shared native compilation, adaptive thumbnail encoding, and deduplicated rollback storage |
 | [Measured performance improvements](reports/PERFORMANCE_OPTIMIZATION.md) | 4 October: search tokens/scoring, duplicate connectivity, filtering, grouping, and comparative CPU/heap evidence |

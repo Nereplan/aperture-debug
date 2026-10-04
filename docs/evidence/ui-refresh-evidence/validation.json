@@ -1,0 +1,144 @@
+{
+  "date": "2026-10-05",
+  "baseline": "0373c27",
+  "sourceCommit": "e44f2a9c50e6f9761d8c37c826ed43d7f717980f",
+  "regression": {
+    "suitesPassed": 20,
+    "suitesFailed": 0,
+    "timeouts": 0,
+    "unitPassed": 389,
+    "unitFailed": 0,
+    "unitSkipped": 0,
+    "suites": [
+      {
+        "id": "local_release",
+        "seconds": 4.84,
+        "result": "PASS"
+      },
+      {
+        "id": "github_update",
+        "seconds": 3.35,
+        "result": "PASS"
+      },
+      {
+        "id": "update_retention",
+        "seconds": 3.44,
+        "result": "PASS"
+      },
+      {
+        "id": "workspace_cleanup",
+        "seconds": 1.79,
+        "result": "PASS"
+      },
+      {
+        "id": "workflows",
+        "seconds": 47.35,
+        "result": "PASS"
+      },
+      {
+        "id": "unit",
+        "seconds": 72.45,
+        "result": "PASS"
+      },
+      {
+        "id": "corpus",
+        "seconds": 8.55,
+        "result": "PASS"
+      },
+      {
+        "id": "persistence",
+        "seconds": 12.49,
+        "result": "PASS"
+      },
+      {
+        "id": "ipc",
+        "seconds": 4.97,
+        "result": "PASS"
+      },
+      {
+        "id": "loader",
+        "seconds": 27.89,
+        "result": "PASS"
+      },
+      {
+        "id": "diagnostics",
+        "seconds": 29.3,
+        "result": "PASS"
+      },
+      {
+        "id": "updater",
+        "seconds": 17.43,
+        "result": "PASS"
+      },
+      {
+        "id": "channel_policy",
+        "seconds": 0.5,
+        "result": "PASS"
+      },
+      {
+        "id": "dependencies",
+        "seconds": 1.24,
+        "result": "PASS"
+      },
+      {
+        "id": "runtime_layout",
+        "seconds": 1.01,
+        "result": "PASS"
+      },
+      {
+        "id": "threat_boundaries",
+        "seconds": 0.18,
+        "result": "PASS"
+      },
+      {
+        "id": "static_analysis",
+        "seconds": 79.21,
+        "result": "PASS"
+      },
+      {
+        "id": "stress",
+        "seconds": 103.44,
+        "result": "PASS"
+      },
+      {
+        "id": "media_probe_isolation",
+        "seconds": 14.42,
+        "result": "PASS"
+      },
+      {
+        "id": "thumbnail_cache",
+        "seconds": 30.05,
+        "result": "PASS"
+      }
+    ]
+  },
+  "package": {
+    "path": "dist/Aperture-2.0.0.0-windows-x64.zip",
+    "version": "2.0.0.0",
+    "filesVerified": 10,
+    "binarySha256": "fa39f146fab74fb4db17094c33a1c166adc4b9ed856a3bfaa45ae63c5dbcbb0b",
+    "releaseMatchesPackage": true,
+    "debugMatchesPackage": true
+  },
+  "subtitleBenchmark": {
+    "rowsPerVersion": 64,
+    "matchingResultHashes": true
+  },
+  "uiBenchmark": {
+    "rowsPerVersion": 48,
+    "matchingResultHashes": true
+  },
+  "subtitleFuzz": {
+    "seed": 20261005,
+    "iterations": 10000,
+    "cuesValidated": 186058,
+    "invariantFailures": 0,
+    "crashesOrHangs": 0,
+    "result": "PASS"
+  },
+  "realAppWorkflow": {
+    "result": "BLOCKED",
+    "runnerExitCode": 1,
+    "reason": "A separate Aperture instance is open; the harness refused to interfere with its session. No playback/restart smoke-test pass is claimed."
+  }
+}
