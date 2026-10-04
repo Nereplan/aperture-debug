@@ -2,6 +2,7 @@
 #include <fstream>
 #include <sstream>
 #include <set>
+#include <string_view>
 #include <cctype>
 #include <cstring>
 #include <cstdlib>
@@ -56,7 +57,36 @@ bool ParseTimingLine(const std::string& line, double& start, double& end, double
     return (start >= 0.0 && end >= 0.0 && std::isfinite(start) && std::isfinite(end));
 }
 
-std::wstring GetTrackTextInternal(const SubtitleTrack* track, double currentPlaybackTimeSec, int delayMs, double* validUntilSec);
+constexpr size_t kCueBlockSize = 32;
+
+void BuildCueEndIndex(const SubtitleTrack& track, SubtitleEngine::RenderedTextCacheSlot& slot) {
+    slot.cueEndTree.clear();
+    slot.cueBlockBase = 0;
+    if (track.cues.size() > 64) {
+        const size_t blocks = (track.cues.size() + kCueBlockSize - 1) / kCueBlockSize;
+        size_t base = 1;
+        while (base < blocks) base *= 2;
+        slot.cueEndTree.assign(base * 2, -std::numeric_limits<double>::infinity());
+        for (size_t i = 0; i < track.cues.size(); ++i) {
+            const auto& cue = track.cues[i];
+            if (cue.text.empty()) continue;
+            // Parsed cues have finite ends. Keep manually supplied NaN ends
+            // conservative, matching the rendering predicate below.
+            const double end = std::isnan(cue.endTimeSec) ? std::numeric_limits<double>::infinity() : cue.endTimeSec;
+            auto& maximum = slot.cueEndTree[base + i / kCueBlockSize];
+            maximum = std::max(maximum, end);
+        }
+        for (size_t i = base - 1; i > 0; --i) {
+            slot.cueEndTree[i] = std::max(slot.cueEndTree[i * 2], slot.cueEndTree[i * 2 + 1]);
+        }
+        slot.cueBlockBase = base;
+    }
+    slot.indexedCues = track.cues.data();
+    slot.indexedCueCount = track.cues.size();
+}
+
+std::wstring GetTrackTextInternal(const SubtitleTrack* track, double currentPlaybackTimeSec, int delayMs,
+                                 const SubtitleEngine::RenderedTextCacheSlot& slot, double* validUntilSec);
 
 // Renders through a per-slot cache: playback redraws query the same track at
 // frame rate, yet the rendered text can only change at a cue boundary (a cue
@@ -68,12 +98,17 @@ std::wstring GetTrackTextCached(const SubtitleTrack* track, double currentPlayba
     const int clampedDelayMs = SubtitleDiscovery::ClampDelayMs(delayMs);
     double delaySec = static_cast<double>(clampedDelayMs) / 1000.0;
     double adjustedTime = currentPlaybackTimeSec - delaySec;
+    if (slot.track != track || slot.generation != generation || slot.indexedCues != track->cues.data() ||
+        slot.indexedCueCount != track->cues.size()) {
+        BuildCueEndIndex(*track, slot);
+        slot.validUntilSec = 0.0;
+    }
     if (std::isfinite(adjustedTime) && adjustedTime >= 0.0 && slot.track == track && slot.delayMs == clampedDelayMs &&
         slot.generation == generation && adjustedTime >= slot.validFromSec && adjustedTime < slot.validUntilSec) {
         return slot.text;
     }
     double validUntil = 0.0;
-    std::wstring rendered = GetTrackTextInternal(track, currentPlaybackTimeSec, clampedDelayMs, &validUntil);
+    std::wstring rendered = GetTrackTextInternal(track, currentPlaybackTimeSec, clampedDelayMs, slot, &validUntil);
     slot.track = track;
     slot.delayMs = clampedDelayMs;
     slot.generation = generation;
@@ -83,7 +118,8 @@ std::wstring GetTrackTextCached(const SubtitleTrack* track, double currentPlayba
     return rendered;
 }
 
-std::wstring GetTrackTextInternal(const SubtitleTrack* track, double currentPlaybackTimeSec, int delayMs, double* validUntilSec) {
+std::wstring GetTrackTextInternal(const SubtitleTrack* track, double currentPlaybackTimeSec, int delayMs,
+                                 const SubtitleEngine::RenderedTextCacheSlot& slot, double* validUntilSec) {
     if (validUntilSec) { *validUntilSec = 0.0; }
     if (!track || track->cues.empty() || !std::isfinite(currentPlaybackTimeSec)) return L"";
     double delaySec = static_cast<double>(SubtitleDiscovery::ClampDelayMs(delayMs)) / 1000.0;
@@ -95,18 +131,34 @@ std::wstring GetTrackTextInternal(const SubtitleTrack* track, double currentPlay
     // active cue ends (window content changes), whichever comes first.
     double nextBoundary = upper != track->cues.end() ? upper->startTimeSec : std::numeric_limits<double>::infinity();
     std::wstring rendered;
-    std::set<std::wstring> seen;
+    std::set<std::wstring_view> seen;
     size_t renderedCount = 0;
-    // Cues before upper all start at or before this time. Walk them once;
-    // nested/overlapping cues can still be active far before the nearest start.
-    for (auto it = track->cues.begin(); it != upper; ++it) {
-        if (adjustedTime < it->startTimeSec || adjustedTime > it->endTimeSec || it->text.empty()) continue;
-        nextBoundary = std::min(nextBoundary, it->endTimeSec);
-        if (!seen.insert(it->text).second) continue;
-        if (!rendered.empty()) rendered += L'\n';
-        rendered += it->text;
-        ++renderedCount;
-        if (renderedCount >= 64 || rendered.size() >= SubtitleEngine::kMaxCueTextBytes) break;
+    const size_t upperIndex = static_cast<size_t>(upper - track->cues.begin());
+    auto renderRange = [&](size_t first, size_t end) {
+        for (size_t i = first; i < end; ++i) {
+            const auto& cue = track->cues[i];
+            if (adjustedTime < cue.startTimeSec || adjustedTime > cue.endTimeSec || cue.text.empty()) continue;
+            nextBoundary = std::min(nextBoundary, cue.endTimeSec);
+            if (!seen.insert(cue.text).second) continue;
+            if (!rendered.empty()) rendered += L'\n';
+            rendered += cue.text;
+            ++renderedCount;
+            if (renderedCount >= 64 || rendered.size() >= SubtitleEngine::kMaxCueTextBytes) return false;
+        }
+        return true;
+    };
+    if (slot.cueBlockBase == 0) {
+        renderRange(0, upperIndex);
+    } else {
+        // Visit in cue order, pruning expired subtrees even when an early,
+        // long-running cue overlaps thousands of shorter, expired cues.
+        auto visit = [&](auto&& self, size_t node, size_t first, size_t end) -> bool {
+            if (first >= upperIndex || slot.cueEndTree[node] < adjustedTime) return true;
+            if (node >= slot.cueBlockBase) return renderRange(first, std::min(end, upperIndex));
+            const size_t middle = first + (end - first) / 2;
+            return self(self, node * 2, first, middle) && self(self, node * 2 + 1, middle, end);
+        };
+        visit(visit, 1, 0, slot.cueBlockBase * kCueBlockSize);
     }
     if (nextBoundary <= adjustedTime) { nextBoundary = std::nextafter(adjustedTime, std::numeric_limits<double>::infinity()); }
     if (validUntilSec) { *validUntilSec = nextBoundary; }
@@ -125,6 +177,8 @@ SubtitleEngine::SubtitleEngine() : activeTrackIndex(-1), primaryTrackIndex(-1), 
 void SubtitleEngine::Clear() {
     ++tracksGeneration;
     tracks.clear();
+    primaryTextCache = {};
+    secondaryTextCache = {};
     activeTrackIndex = -1;
     primaryTrackIndex = -1;
     secondaryTrackIndex = -1;

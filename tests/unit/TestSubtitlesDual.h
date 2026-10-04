@@ -4,8 +4,101 @@
 #include "../../src/Subtitles.h"
 #include "../../src/SubtitleDiscovery.h"
 #include <limits>
+#include <set>
 
 namespace Aperture::Test {
+
+// Independent linear oracle: deliberately ignores the render cache and index.
+inline std::wstring SubtitleLookupReference(const SubtitleTrack& track, double time, int delayMs = 0) {
+    time -= static_cast<double>(SubtitleDiscovery::ClampDelayMs(delayMs)) / 1000.0;
+    if (!std::isfinite(time) || time < 0) return L"";
+    std::wstring text;
+    std::set<std::wstring> seen;
+    size_t count = 0;
+    for (const auto& cue : track.cues) {
+        if (cue.startTimeSec > time) break;
+        if (cue.endTimeSec < time || cue.text.empty() || !seen.insert(cue.text).second) continue;
+        if (!text.empty()) text += L'\n';
+        text += cue.text;
+        if (++count == 64 || text.size() >= SubtitleEngine::kMaxCueTextBytes) break;
+    }
+    return text;
+}
+
+TEST_CASE(SubtitlesDual, IndexedOverlapsMatchLinearLookupAcrossBoundariesAndSeeks) {
+    SubtitleEngine engine;
+    SubtitleTrack track;
+    track.cues.push_back({0, 2000, L"long running"});
+    for (int i = 0; i < 1025; ++i) {
+        const double start = i / 3;
+        const double duration = (i * 37) % 19;
+        track.cues.push_back({start, start + duration, i % 11 == 0 ? L"" : L"cue " + std::to_wstring(i % 73)});
+    }
+    engine.tracks.push_back(std::move(track));
+    engine.SelectPrimaryTrack(0);
+    engine.SelectSecondaryTrack(0);
+    engine.SetSecondaryDelayMs(-500);
+    const double infinity = std::numeric_limits<double>::infinity();
+    auto check = [&](double time) {
+        TEST_ASSERT_EQ(engine.GetPrimarySubtitleText(time), SubtitleLookupReference(engine.tracks[0], time));
+        TEST_ASSERT_EQ(engine.GetSecondarySubtitleText(time), SubtitleLookupReference(engine.tracks[0], time, -500));
+    };
+    for (int i = 0; i < 360; ++i) {
+        check(i);
+        check(std::nextafter(static_cast<double>(i), infinity));
+        check(i + 0.5);
+    }
+    uint32_t seed = 20261005;
+    for (int i = 0; i < 500; ++i) {
+        seed = seed * 1664525u + 1013904223u;
+        check(static_cast<double>(seed % 1440) / 4.0);
+    }
+    check(2000);
+    check(std::nextafter(2000.0, infinity));
+    check(-1);
+    check(infinity);
+    check(std::numeric_limits<double>::quiet_NaN());
+}
+
+TEST_CASE(SubtitlesDual, IndexedLookupPreservesOutputLimitsAndDuplicateExpiration) {
+    SubtitleEngine engine;
+    SubtitleTrack track;
+    for (int i = 0; i < 200; ++i) track.cues.push_back({0, 1.0 + i, L"cue " + std::to_wstring(i / 2)});
+    engine.tracks.push_back(std::move(track));
+    engine.SelectPrimaryTrack(0);
+    for (double time : {0.0, 1.0, 1.5, 2.0, 2.5, 100.0, 200.0, 201.0, 0.5}) {
+        TEST_ASSERT_EQ(engine.GetPrimarySubtitleText(time), SubtitleLookupReference(engine.tracks[0], time));
+    }
+    engine.tracks[0].cues[0].text.assign(SubtitleEngine::kMaxCueTextBytes, L'x');
+    ++engine.tracksGeneration;
+    TEST_ASSERT_EQ(engine.GetPrimarySubtitleText(0), SubtitleLookupReference(engine.tracks[0], 0));
+}
+
+TEST_CASE(SubtitlesDual, IndexedLookupRefreshesForTrackChangesAndClear) {
+    SubtitleEngine engine;
+    for (int trackIndex = 0; trackIndex < 2; ++trackIndex) {
+        SubtitleTrack track;
+        for (int i = 0; i < 129; ++i) track.cues.push_back({double(i), i + 0.5, std::to_wstring(trackIndex) + L" cue"});
+        engine.tracks.push_back(std::move(track));
+    }
+    for (int index : {0, 1, 0}) {
+        engine.SelectPrimaryTrack(index);
+        TEST_ASSERT_EQ(engine.GetPrimarySubtitleText(128.25), SubtitleLookupReference(engine.tracks[index], 128.25));
+    }
+    engine.tracks[0].cues[0] = {0, 500, L"edited"};
+    ++engine.tracksGeneration;
+    TEST_ASSERT_EQ(engine.GetPrimarySubtitleText(128.25), std::wstring(L"edited\n0 cue"));
+    engine.tracks[0].cues.resize(1);
+    TEST_ASSERT_EQ(engine.GetPrimarySubtitleText(128.25), std::wstring(L"edited"));
+    engine.tracks[0].cues.clear();
+    TEST_ASSERT(engine.GetPrimarySubtitleText(128.25).empty());
+    engine.Clear();
+    SubtitleTrack replacement;
+    replacement.cues = {{0, 500, L"replacement"}};
+    engine.tracks.push_back(std::move(replacement));
+    engine.SelectPrimaryTrack(0);
+    TEST_ASSERT_EQ(engine.GetPrimarySubtitleText(128.25), std::wstring(L"replacement"));
+}
 
 TEST_CASE(SubtitlesDual, NestedCuesKeepInclusiveEndsAndCacheBoundariesAcrossSeeks) {
     SubtitleEngine engine;

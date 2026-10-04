@@ -25,8 +25,8 @@ public:
     static constexpr size_t kMaxFormattingNestingDepth = 32;                                   // Max tag nesting depth
     static constexpr size_t kMaxFormattingWorkUnits = 65536;                                   // Work limit for clean/entity operations per cue
     std::vector<SubtitleTrack> tracks;
-    // Bumped whenever the track list changes, so the per-frame rendered-text
-    // cache can never alias a rebuilt track.
+    // Bump whenever tracks or their cues change, so text and lookup indexes
+    // cannot alias a rebuilt track (including in-place cue edits).
     uint64_t tracksGeneration = 0;
     struct RenderedTextCacheSlot {
         const SubtitleTrack* track = nullptr;
@@ -34,6 +34,12 @@ public:
         uint64_t generation = 0;
         double validFromSec = 0.0, validUntilSec = 0.0;
         std::wstring text;
+        const SubtitleCue* indexedCues = nullptr;
+        size_t indexedCueCount = 0;
+        // Maximum cue end per subtree, with 32 cues per leaf. Allocated only
+        // for selected tracks larger than 64 cues, and reused across seeks.
+        size_t cueBlockBase = 0;
+        std::vector<double> cueEndTree;
     };
     mutable RenderedTextCacheSlot primaryTextCache;
     mutable RenderedTextCacheSlot secondaryTextCache;
