@@ -6,6 +6,7 @@
 #include <deque>
 #include <thread>
 #include <set>
+#include <functional>
 
 namespace Aperture {
 
@@ -26,6 +27,17 @@ public:
         if (stopping_) return false;
         auto identity = root + L"\\" + key;
         if (pending_.count(identity)) return true;
+        const auto remembered = std::find_if(optimal_.begin(), optimal_.end(),
+            [&](const Optimal& entry) { return entry.identity == identity; });
+        if (remembered != optimal_.end()) {
+            const bool unchanged = remembered->bytes == bytes.size() && remembered->hash == std::hash<std::string>{}(bytes);
+            if (unchanged) {
+                auto recent = std::move(*remembered);
+                optimal_.erase(remembered); optimal_.push_back(std::move(recent));
+                return false;
+            }
+            optimal_.erase(remembered);
+        }
         if (queue_.size() >= 32 || queuedBytes_ + bytes.size() > 8 * 1024 * 1024) return false;
         if (!worker_.joinable()) worker_ = std::thread([this]() { Run(); });
         queue_.push_back({root, key, bytes}); pending_.insert(identity); queuedBytes_ += bytes.size();
@@ -38,6 +50,14 @@ public:
     }
 private:
     struct Item { std::wstring root, key; std::string bytes; };
+    struct Optimal { std::wstring identity; size_t bytes, hash; };
+    static constexpr size_t kRememberedLimit = 128;
+    void RememberOptimal(const std::wstring& root, const std::wstring& key, const std::string& bytes) {
+        Optimal entry{root + LR"(\)" + key, bytes.size(), std::hash<std::string>{}(bytes)};
+        std::lock_guard<std::mutex> lock(mutex_);
+        if (optimal_.size() == kRememberedLimit) optimal_.pop_front();
+        optimal_.push_back(std::move(entry));
+    }
     void Run() {
         SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_BELOW_NORMAL);
         for (;;) {
@@ -50,8 +70,15 @@ private:
             }
             try {
                 std::string smaller;
-                if (ThumbnailCodec::Upgrade(item.bytes, smaller)) {
-                    AtomicWriteCacheFile(CacheClass::Thumbnails, item.key, smaller, GetGlobalCacheBudgets(), item.root, &item.bytes);
+                const auto result = ThumbnailCodec::TryUpgrade(item.bytes, smaller);
+                if (result == ThumbnailCodec::UpgradeResult::Converted) {
+                    if (AtomicWriteCacheFile(CacheClass::Thumbnails, item.key, smaller, GetGlobalCacheBudgets(), item.root, &item.bytes).is_ok()) {
+                        ThumbnailDiskHeader header{};
+                        std::memcpy(&header, smaller.data(), sizeof(header));
+                        if (header.version == 2) RememberOptimal(item.root, item.key, smaller);
+                    }
+                } else if (result == ThumbnailCodec::UpgradeResult::AlreadyOptimal) {
+                    RememberOptimal(item.root, item.key, item.bytes);
                 }
             } catch (...) { /* Disposable cache: keep the old entry and allow a later retry. */ }
             {
@@ -64,6 +91,8 @@ private:
     std::mutex mutex_;
     std::condition_variable ready_, idle_;
     std::deque<Item> queue_;
+    // Content fingerprints only: bounded RAM, no duplicate pixels or disk metadata.
+    std::deque<Optimal> optimal_;
     std::set<std::wstring> pending_;
     std::thread worker_;
     size_t queuedBytes_ = 0;

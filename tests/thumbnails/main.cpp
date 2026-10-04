@@ -75,6 +75,23 @@ void SelfTest(const fs::path& root) {
     Check(ThumbnailCodec::Decode(encoded, header, decoded) && header.version == 3 && header.timestamp == 12.5, "JPEG roundtrip metadata");
     Check(Psnr(original, decoded) > 32, "JPEG quality on seeded gradients and grain");
     Check(encoded.size() < original.size()/4, "Opaque compression regression");
+    for (bool checkerboard : {false, true}) {
+        std::vector<uint8_t> graphic(320 * 180 * 4, 255);
+        for (int y = 0; y < 180; ++y) for (int x = 0; x < 320; ++x) {
+            const size_t offset = (static_cast<size_t>(y) * 320 + x) * 4;
+            const uint8_t value = checkerboard ? ((x + y) % 2 ? 0 : 255) : 32;
+            graphic[offset] = graphic[offset + 1] = graphic[offset + 2] = value;
+        }
+        std::vector<uint8_t> jpeg;
+        Check(ThumbnailCodec::EncodeImage(graphic.data(), 320, 180, true, jpeg), "Graphic JPEG baseline");
+        std::string adaptive;
+        Check(ThumbnailCodec::Encode(graphic, 320, 180, 0, adaptive), "Adaptive graphic encode");
+        Check(adaptive.size() < jpeg.size() + sizeof(ThumbnailDiskHeader), "Graphics use fewer bytes than fixed JPEG");
+        Check(ThumbnailCodec::Decode(adaptive, header, decoded) && header.version == 2 && decoded == graphic,
+              "Smaller opaque graphics remain lossless");
+        std::string upgraded;
+        Check(!ThumbnailCodec::Upgrade(adaptive, upgraded), "Optimal PNG is not rewritten");
+    }
     const auto transparent = Pixels(42, true);
     std::string alpha;
     Check(ThumbnailCodec::Encode(transparent, 320, 180, 0, alpha), "Transparent encode");
@@ -144,6 +161,20 @@ void SelfTest(const fs::path& root) {
     Write(cache/Wide(Key(2)),alpha);
     migrations.Queue(migrationRoot,Wide(Key(2)),alpha); migrations.WaitIdle();
     Check(Read(cache/Wide(Key(2)))==alpha,"Unhelpful conversion preserves transparent cache");
+    Check(!migrations.Queue(migrationRoot,Wide(Key(2)),alpha),"Optimal PNG does not re-encode on repeated reads");
+    auto changedAlpha = alpha;
+    std::memcpy(&header,changedAlpha.data(),sizeof(header)); header.timestamp = 1;
+    std::memcpy(changedAlpha.data(),&header,sizeof(header));
+    Write(cache/Wide(Key(2)),changedAlpha);
+    Check(migrations.Queue(migrationRoot,Wide(Key(2)),changedAlpha),"Changed content at the same key and size is rechecked");
+    migrations.WaitIdle();
+    Check(!migrations.Queue(migrationRoot,Wide(Key(2)),changedAlpha),"Changed optimal content is remembered");
+    for (unsigned i = 1000; i < 1129; ++i) {
+        Check(migrations.Queue(migrationRoot,Wide(Key(i)),alpha),"Bounded migration history accepts new keys");
+        migrations.WaitIdle();
+    }
+    Check(migrations.Queue(migrationRoot,Wide(Key(2)),changedAlpha),"Old migration fingerprints expire from bounded history");
+    migrations.WaitIdle();
 
     const auto concurrentRoot=(root/L"concurrent").wstring();
     std::atomic<unsigned> failures{0}; std::vector<std::thread> writers;

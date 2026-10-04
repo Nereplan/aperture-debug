@@ -132,6 +132,33 @@ inline bool Decode(const std::string& bytes, ThumbnailDiskHeader& header, std::v
     return true;
 }
 
+// Sample at most 512 pixels. Flat graphics and limited palettes are worth a
+// lossless PNG attempt; natural frames keep the single JPEG encoding path.
+inline bool MayCompressBetterAsPng(const std::vector<uint8_t>& pixels, int w, int h) {
+    uint32_t palette[32]{};
+    size_t colors = 0, repeated = 0, probes = 0;
+    bool paletteFull = false;
+    for (int row = 0; row < std::min(h, 16); ++row) {
+        const int y = row * h / std::min(h, 16);
+        for (int column = 0; column < std::min(w, 16); ++column) {
+            const int x = column * w / std::min(w, 16);
+            const size_t index = (static_cast<size_t>(y) * w + x) * 4;
+            const size_t neighbor = x + 1 < w ? index + 4 : index;
+            repeated += std::memcmp(pixels.data() + index, pixels.data() + neighbor, 3) == 0;
+            ++probes;
+            if (paletteFull) continue;
+            for (size_t offset : {index, neighbor}) {
+                const uint32_t rgb = uint32_t(pixels[offset]) | (uint32_t(pixels[offset + 1]) << 8) |
+                                     (uint32_t(pixels[offset + 2]) << 16);
+                if (std::find(palette, palette + colors, rgb) != palette + colors) continue;
+                if (colors == 32) { paletteFull = true; break; }
+                palette[colors++] = rgb;
+            }
+        }
+    }
+    return !paletteFull || repeated * 10 >= probes * 9;
+}
+
 inline bool Encode(const std::vector<uint8_t>& pixels, int w, int h, double time, std::string& out) {
     out.clear();
     if (w <= 0 || h <= 0 || w > 1920 || h > 1080 || pixels.size() != static_cast<size_t>(w) * h * 4 ||
@@ -140,8 +167,15 @@ inline bool Encode(const std::vector<uint8_t>& pixels, int w, int h, double time
     for (size_t i = 3; i < pixels.size(); i += 4) { if (pixels[i] != 255) { opaque = false; break; } }
     std::vector<uint8_t> encoded;
     bool jpeg = opaque && EncodeImage(pixels.data(), w, h, true, encoded);
-    // PNG preserves transparency, and provides a compressed fallback if JPEG fails.
-    if (!jpeg && !EncodeImage(pixels.data(), w, h, false, encoded)) return false;
+    // Keep JPEG quality and full chroma resolution. For graphics, retain a
+    // lossless PNG only when it actually occupies less space.
+    if (jpeg && MayCompressBetterAsPng(pixels, w, h)) {
+        std::vector<uint8_t> png;
+        if (EncodeImage(pixels.data(), w, h, false, png) && png.size() < encoded.size()) {
+            encoded.swap(png);
+            jpeg = false;
+        }
+    } else if (!jpeg && !EncodeImage(pixels.data(), w, h, false, encoded)) return false;
     ThumbnailDiskHeader header;
     header.version = jpeg ? 3 : 2; header.width = w; header.height = h;
     header.stride = w * 4; header.timestamp = time; header.pixelBytes = static_cast<uint32_t>(encoded.size());
@@ -151,12 +185,24 @@ inline bool Encode(const std::vector<uint8_t>& pixels, int w, int h, double time
     return true;
 }
 
-inline bool Upgrade(const std::string& oldBytes, std::string& newBytes) {
+enum class UpgradeResult { Converted, AlreadyOptimal, Failed };
+
+inline UpgradeResult TryUpgrade(const std::string& oldBytes, std::string& newBytes) {
+    newBytes.clear();
     ThumbnailDiskHeader header{}; std::vector<uint8_t> pixels;
-    if (!Decode(oldBytes, header, pixels) || header.version == 3 ||
-        !Encode(pixels, header.width, header.height, header.timestamp, newBytes) || newBytes.size() >= oldBytes.size()) return false;
+    if (!Decode(oldBytes, header, pixels)) return UpgradeResult::Failed;
+    if (header.version == 3) return UpgradeResult::AlreadyOptimal;
+    if (!Encode(pixels, header.width, header.height, header.timestamp, newBytes)) return UpgradeResult::Failed;
+    if (newBytes.size() >= oldBytes.size()) {
+        newBytes.clear();
+        return UpgradeResult::AlreadyOptimal;
+    }
     ThumbnailDiskHeader check{}; std::vector<uint8_t> decoded;
-    return Decode(newBytes, check, decoded);
+    return Decode(newBytes, check, decoded) ? UpgradeResult::Converted : UpgradeResult::Failed;
+}
+
+inline bool Upgrade(const std::string& oldBytes, std::string& newBytes) {
+    return TryUpgrade(oldBytes, newBytes) == UpgradeResult::Converted;
 }
 } // namespace ThumbnailCodec
 } // namespace Aperture
