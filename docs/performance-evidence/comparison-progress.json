@@ -1,0 +1,32 @@
+[
+  {
+    "mode": "metadata_refresh",
+    "samplesPerVersion": 7,
+    "beforeMedianMs": 2.576,
+    "afterMedianMs": 2.287,
+    "elapsedReductionPercent": 11.22,
+    "beforePeakCppBytes": 16071.0,
+    "afterPeakCppBytes": 16071.0,
+    "peakReductionPercent": 0.0,
+    "beforeAllocations": 153.0,
+    "afterAllocations": 153.0,
+    "items": 50,
+    "groups": 25000,
+    "orderHash": "1621705931885563205"
+  },
+  {
+    "mode": "forced_text_rebuild",
+    "samplesPerVersion": 7,
+    "beforeMedianMs": 85.637,
+    "afterMedianMs": 41.888,
+    "elapsedReductionPercent": 51.09,
+    "beforePeakCppBytes": 23177287.0,
+    "afterPeakCppBytes": 10124871.0,
+    "peakReductionPercent": 56.32,
+    "beforeAllocations": 573156.0,
+    "afterAllocations": 150155.0,
+    "items": 50,
+    "groups": 25000,
+    "orderHash": "1621705931885563205"
+  }
+]

@@ -55,6 +55,78 @@ int main(int argc, char** argv) {
         library.mediaItems.push_back(std::move(item));
     }
     std::puts("mode,sample,ms,allocations,allocated_bytes,peak_live_cpp_bytes,items,groups,order_hash");
+    if (argc > 1 && std::string(argv[1]) == "--extended") {
+        for (int workload : {19, 20, 21, 22, 23, 24, 25}) {
+            auto items = library.mediaItems;
+            if (workload >= 22 && workload <= 24) {
+                items.resize(4000);
+                for (size_t i = 0; i < items.size(); ++i) {
+                    auto& item = items[i];
+                    item.fileSizeBytes = 1000000;
+                    item.title = L"Group " + std::to_wstring(i % (workload == 24 ? 16 : 100));
+                    item.durationSec = workload == 24 ? 4.5 + (i % 5) * 0.25 : 1200.0;
+                    if (workload == 23 || (workload == 24 && i % 7 != 0)) {
+                        item.videoWidth = 1280 + (i % 4) * 640;
+                        item.videoHeight = 720 + (i % 4) * 360;
+                    }
+                }
+            }
+            MediaLibrary extended; extended.mediaItems = std::move(items);
+            if (workload == 21) {
+                for (size_t i = 0; i < 1000; ++i) {
+                    HistoryRecord history;
+                    history.filePath = i < 500 ? extended.mediaItems[i * 40].filePath : L"C:\\History\\Series " + std::to_wstring(i) + L".mkv";
+                    history.title = L"Series history " + std::to_wstring(i);
+                    history.durationSec = 1200; history.watchedTimestamp = i + 1;
+                    extended.history.push_back(std::move(history));
+                }
+            }
+            LibraryQueryOptions options;
+            if (workload == 19 || workload == 20) options.groupMode = LibraryGroupMode::Folder;
+            if (workload == 19) {
+                auto collapsed = std::make_shared<std::unordered_set<std::wstring>>();
+                for (int i = 1; i < 500; ++i) collapsed->insert(L"c:\\benchmark\\series" + std::to_wstring(i));
+                options.collapsedGroups = std::move(collapsed);
+            }
+            if (workload == 20) options.maxItems = 17;
+            if (workload == 25) options.searchQuery = L"absent query";
+            for (int sample = 0; sample < 8; ++sample) {
+                LibraryQueryEngine engine; GlobalSearchIndex search;
+                if (stats.live != 0) return 2;
+                stats = {}; measuring = sample > 0;
+                size_t count = 0, groups = 0;
+                uint64_t hash = 14695981039346656037ull;
+                const auto start = std::chrono::steady_clock::now();
+                if (workload >= 22 && workload <= 24) {
+                    const auto result = LibraryQueryEngine::DetectDuplicates(extended.mediaItems);
+                    const auto end = std::chrono::steady_clock::now(); measuring = false;
+                    count = result.totalDuplicateEntries; groups = result.totalDuplicateGroups;
+                    for (const auto& group : result.groups) {
+                        hash ^= static_cast<uint64_t>(group.matchKind); hash *= 1099511628211ull;
+                        for (const auto i : group.originalIndices) { hash ^= i; hash *= 1099511628211ull; }
+                    }
+                    if (sample > 0) std::printf("%d,%d,%.3f,%zu,%zu,%zu,%zu,%zu,%llu\n", workload, sample,
+                        std::chrono::duration<double, std::milli>(end - start).count(), stats.calls, stats.bytes, stats.peak, count, groups, hash);
+                } else if (workload == 21) {
+                    search.RebuildIndex(extended);
+                    const auto end = std::chrono::steady_clock::now(); measuring = false;
+                    const auto measured = stats;
+                    GlobalSearchQueryOptions query; query.checkFileExists = false;
+                    const auto results = search.Query(extended, L"series", query, groups);
+                    for (const auto& result : results) for (const wchar_t c : result.filePath) { hash ^= c; hash *= 1099511628211ull; }
+                    if (sample > 0) std::printf("%d,%d,%.3f,%zu,%zu,%zu,%zu,%zu,%llu\n", workload, sample,
+                        std::chrono::duration<double, std::milli>(end - start).count(), measured.calls, measured.bytes, measured.peak, search.GetEntryCount(), groups, hash);
+                } else {
+                    const auto& result = engine.Query(extended, options);
+                    const auto end = std::chrono::steady_clock::now(); measuring = false;
+                    for (const auto& item : result.items) { hash ^= item.originalLibraryIndex; hash *= 1099511628211ull; }
+                    if (sample > 0) std::printf("%d,%d,%.3f,%zu,%zu,%zu,%zu,%zu,%llu\n", workload, sample,
+                        std::chrono::duration<double, std::milli>(end - start).count(), stats.calls, stats.bytes, stats.peak, result.items.size(), result.groups.size(), hash);
+                }
+            }
+        }
+        return 0;
+    }
     if (argc > 1 && std::string(argv[1]) == "--duplicates") {
         for (int workload : {15, 16, 17, 18}) {
             const size_t count = workload == 16 ? 4000 : 25000;

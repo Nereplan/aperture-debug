@@ -1,0 +1,62 @@
+[
+  {
+    "mode": "duplicates_duration_windows",
+    "samplesPerVersion": 7,
+    "beforeMedianMs": 57.751,
+    "afterMedianMs": 49.917,
+    "elapsedReductionPercent": 13.57,
+    "beforePeakCppBytes": 16095130.0,
+    "afterPeakCppBytes": 10316044.0,
+    "peakReductionPercent": 35.91,
+    "beforeAllocations": 303804.0,
+    "afterAllocations": 191256.0,
+    "items": 12500,
+    "groups": 12500,
+    "orderHash": "95321302015412817"
+  },
+  {
+    "mode": "duplicates_dense_metadata",
+    "samplesPerVersion": 7,
+    "beforeMedianMs": 4.549,
+    "afterMedianMs": 4.279,
+    "elapsedReductionPercent": 5.94,
+    "beforePeakCppBytes": 1021032.0,
+    "afterPeakCppBytes": 536747.0,
+    "peakReductionPercent": 47.43,
+    "beforeAllocations": 20095.0,
+    "afterAllocations": 8060.0,
+    "items": 3999,
+    "groups": 1,
+    "orderHash": "17124514152943295033"
+  },
+  {
+    "mode": "duplicates_file_identity",
+    "samplesPerVersion": 7,
+    "beforeMedianMs": 4.69,
+    "afterMedianMs": 4.487,
+    "elapsedReductionPercent": 4.33,
+    "beforePeakCppBytes": 988333.0,
+    "afterPeakCppBytes": 918565.0,
+    "peakReductionPercent": 7.06,
+    "beforeAllocations": 9528.0,
+    "afterAllocations": 3544.0,
+    "items": 24500,
+    "groups": 500,
+    "orderHash": "10790601562117304137"
+  },
+  {
+    "mode": "duplicates_unknown_resolution",
+    "samplesPerVersion": 7,
+    "beforeMedianMs": 81.916,
+    "afterMedianMs": 65.394,
+    "elapsedReductionPercent": 20.17,
+    "beforePeakCppBytes": 20969039.0,
+    "afterPeakCppBytes": 9533962.0,
+    "peakReductionPercent": 54.53,
+    "beforeAllocations": 478505.0,
+    "afterAllocations": 265956.0,
+    "items": 12500,
+    "groups": 12500,
+    "orderHash": "6512046468891191449"
+  }
+]

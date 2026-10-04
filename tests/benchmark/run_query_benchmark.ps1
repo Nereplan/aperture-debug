@@ -4,10 +4,11 @@ param(
     [string]$OutputDirectory = "",
     [switch]$KeepBuild,
     [switch]$ProgressOnly,
-    [switch]$DuplicatesOnly
+    [switch]$DuplicatesOnly,
+    [switch]$ExtendedOnly
 )
 $ErrorActionPreference = "Stop"
-if ($ProgressOnly -and $DuplicatesOnly) { throw 'Select only one benchmark workload.' }
+if (@(@($ProgressOnly, $DuplicatesOnly, $ExtendedOnly) | Where-Object { $_ }).Count -gt 1) { throw 'Select only one benchmark workload.' }
 if (-not $SourceDirectory) { $SourceDirectory = Join-Path $PSScriptRoot "..\..\src" }
 if (-not $OutputDirectory) { $OutputDirectory = Join-Path $PSScriptRoot "..\..\scratch\query-benchmark" }
 $source = (Resolve-Path -LiteralPath $SourceDirectory).Path
@@ -33,7 +34,7 @@ $argsList += @('mfreadwrite.lib', 'oleaut32.lib', 'propsys.lib')
 Set-Content -LiteralPath $response -Value $argsList -Encoding UTF8
 & cmd.exe /d /c "`"$vcvars`" && cl.exe @`"$response`""
 if ($LASTEXITCODE -ne 0) { throw "Query benchmark compilation failed." }
-$rows = if ($ProgressOnly) { & $exe --progress } elseif ($DuplicatesOnly) { & $exe --duplicates } else { & $exe }
+$rows = if ($ProgressOnly) { & $exe --progress } elseif ($DuplicatesOnly) { & $exe --duplicates } elseif ($ExtendedOnly) { & $exe --extended } else { & $exe }
 if ($LASTEXITCODE -ne 0) { throw "Query benchmark failed." }
 $rows | Set-Content -LiteralPath (Join-Path $output 'results.csv') -Encoding UTF8
 $rows | Write-Output

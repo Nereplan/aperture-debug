@@ -3,9 +3,12 @@ param(
     [Parameter(Mandatory)][string]$BeforeCsv,
     [Parameter(Mandatory)][string]$AfterCsv,
     [Parameter(Mandatory)][string]$OutputJson,
-    [switch]$DuplicatesOnly
+    [switch]$ProgressOnly,
+    [switch]$DuplicatesOnly,
+    [switch]$ExtendedOnly
 )
 $ErrorActionPreference = 'Stop'
+if (@(@($ProgressOnly, $DuplicatesOnly, $ExtendedOnly) | Where-Object { $_ }).Count -gt 1) { throw 'Select only one benchmark workload.' }
 $before = @(Import-Csv -LiteralPath $BeforeCsv)
 $after = @(Import-Csv -LiteralPath $AfterCsv)
 function Median($values) {
@@ -17,9 +20,18 @@ $names = @('flat', 'folder', 'series', 'capped', 'manual', 'smart_playlist',
     'search', 'nearly_unlimited', 'extension', 'index_build', 'multi_token_path',
     'multi_token_title', 'search_miss')
 $modes = @(0..12)
+if ($ProgressOnly) {
+    $modes = @(13, 14)
+    $names = @('metadata_refresh', 'forced_text_rebuild')
+}
 if ($DuplicatesOnly) {
     $modes = @(15, 16, 17, 18)
     $names = @('duplicates_duration_windows', 'duplicates_dense_metadata', 'duplicates_file_identity', 'duplicates_unknown_resolution')
+}
+if ($ExtendedOnly) {
+    $modes = @(19..25)
+    $names = @('collapsed_folders', 'capped_folders', 'index_with_history', 'dense_unknown_resolution',
+        'dense_mixed_resolution', 'mixed_threshold_duplicates', 'library_search_miss')
 }
 if ($before.Count -ne 7 * $modes.Count -or $after.Count -ne 7 * $modes.Count) { throw 'Expected seven samples for each workload' }
 $summary = for ($index = 0; $index -lt $modes.Count; ++$index) {
