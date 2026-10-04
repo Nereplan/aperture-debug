@@ -506,20 +506,18 @@ void TestExplicitLimits() {
 
     // 5. Malformed Timestamps
     {
-        double t1 = SubtitleEngine::ParseTimestamp("999999999999999999999999999:00:00");
-        if (!std::isfinite(t1)) {
-            std::cerr << "[FAIL] Malformed timestamp produced non-finite number!" << std::endl;
-            std::exit(1);
-        }
-        double t2 = SubtitleEngine::ParseTimestamp("nan:inf:123");
-        if (!std::isfinite(t2)) {
-            std::cerr << "[FAIL] NaN/Inf timestamp produced non-finite number!" << std::endl;
-            std::exit(1);
-        }
-        double t3 = SubtitleEngine::ParseTimestamp("-10:-20:-30");
-        if (t3 < 0.0 || !std::isfinite(t3)) {
-            std::cerr << "[FAIL] Negative timestamp produced negative or non-finite result!" << std::endl;
-            std::exit(1);
+        for (const char* malformed : { "999999999999999999999999999:00:00", "nan:inf:123", "-10:-20:-30" }) {
+            // ParseTimestamp uses -1 to distinguish rejection from a valid zero.
+            if (SubtitleEngine::ParseTimestamp(malformed) != -1.0) {
+                std::cerr << "[FAIL] Malformed timestamp was not rejected: " << malformed << std::endl;
+                std::exit(1);
+            }
+            std::vector<SubtitleCue> cues;
+            std::string srt = std::string("1\n") + malformed + " --> 00:00:05,000\nInvalid cue\n";
+            if (SubtitleEngine::ParseSrt(srt, cues) || !cues.empty()) {
+                std::cerr << "[FAIL] Malformed timestamp created an SRT cue: " << malformed << std::endl;
+                std::exit(1);
+            }
         }
     }
 
