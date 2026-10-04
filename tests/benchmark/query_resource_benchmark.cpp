@@ -55,6 +55,46 @@ int main(int argc, char** argv) {
         library.mediaItems.push_back(std::move(item));
     }
     std::puts("mode,sample,ms,allocations,allocated_bytes,peak_live_cpp_bytes,items,groups,order_hash");
+    if (argc > 1 && std::string(argv[1]) == "--duplicates") {
+        for (int workload : {15, 16, 17, 18}) {
+            const size_t count = workload == 16 ? 4000 : 25000;
+            auto items = library.mediaItems;
+            items.resize(count);
+            for (size_t i = 0; i < count; ++i) {
+                auto& item = items[i];
+                item.fileSizeBytes = 1000000;
+                item.durationSec = workload == 15 || workload == 18 ? 1200.0 + i / 2 : 1200.0;
+                item.videoWidth = 1920; item.videoHeight = 1080;
+                if (workload == 18) {
+                    item.videoWidth = item.videoHeight = 0;
+                    item.title = L"Pair " + std::to_wstring(i / 2);
+                }
+                if (workload == 17) {
+                    item.volumeSerialNumber = 1;
+                    item.fileIndex = i / 50 + 1;
+                }
+            }
+            for (int sample = 0; sample < 8; ++sample) {
+                if (stats.live != 0) return 2;
+                stats = {}; measuring = sample > 0;
+                const auto start = std::chrono::steady_clock::now();
+                const auto result = LibraryQueryEngine::DetectDuplicates(items);
+                const auto end = std::chrono::steady_clock::now();
+                measuring = false;
+                const auto measured = stats;
+                uint64_t hash = 14695981039346656037ull;
+                for (const auto& group : result.groups) {
+                    hash ^= static_cast<uint64_t>(group.matchKind); hash *= 1099511628211ull;
+                    for (const auto index : group.originalIndices) { hash ^= index; hash *= 1099511628211ull; }
+                }
+                if (sample > 0) std::printf("%d,%d,%.3f,%zu,%zu,%zu,%zu,%zu,%llu\n", workload, sample,
+                    std::chrono::duration<double, std::milli>(end - start).count(),
+                    measured.calls, measured.bytes, measured.peak, result.totalDuplicateEntries,
+                    result.totalDuplicateGroups, hash);
+            }
+        }
+        return 0;
+    }
     if (argc > 1 && std::string(argv[1]) == "--progress") {
         // Compare the former full text rebuild after progress (mode 14) with
         // the metadata refresh (mode 13), using identical ranking/results.

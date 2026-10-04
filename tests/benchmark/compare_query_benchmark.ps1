@@ -2,7 +2,8 @@
 param(
     [Parameter(Mandatory)][string]$BeforeCsv,
     [Parameter(Mandatory)][string]$AfterCsv,
-    [Parameter(Mandatory)][string]$OutputJson
+    [Parameter(Mandatory)][string]$OutputJson,
+    [switch]$DuplicatesOnly
 )
 $ErrorActionPreference = 'Stop'
 $before = @(Import-Csv -LiteralPath $BeforeCsv)
@@ -15,8 +16,14 @@ function Median($values) {
 $names = @('flat', 'folder', 'series', 'capped', 'manual', 'smart_playlist',
     'search', 'nearly_unlimited', 'extension', 'index_build', 'multi_token_path',
     'multi_token_title', 'search_miss')
-if ($before.Count -ne 91 -or $after.Count -ne 91) { throw 'Expected seven samples for each of thirteen workloads' }
-$summary = for ($mode = 0; $mode -lt $names.Count; ++$mode) {
+$modes = @(0..12)
+if ($DuplicatesOnly) {
+    $modes = @(15, 16, 17, 18)
+    $names = @('duplicates_duration_windows', 'duplicates_dense_metadata', 'duplicates_file_identity', 'duplicates_unknown_resolution')
+}
+if ($before.Count -ne 7 * $modes.Count -or $after.Count -ne 7 * $modes.Count) { throw 'Expected seven samples for each workload' }
+$summary = for ($index = 0; $index -lt $modes.Count; ++$index) {
+    $mode = $modes[$index]
     $b = @($before | Where-Object { [int]$_.mode -eq $mode })
     $a = @($after | Where-Object { [int]$_.mode -eq $mode })
     if ($b.Count -ne 7 -or $a.Count -ne 7) { throw "Missing samples for mode $mode" }
@@ -27,7 +34,7 @@ $summary = for ($mode = 0; $mode -lt $names.Count; ++$mode) {
     $beforePeak = Median $b.peak_live_cpp_bytes
     $afterPeak = Median $a.peak_live_cpp_bytes
     [pscustomobject][ordered]@{
-        mode = $names[$mode]
+        mode = $names[$index]
         samplesPerVersion = 7
         beforeMedianMs = $beforeMs
         afterMedianMs = $afterMs

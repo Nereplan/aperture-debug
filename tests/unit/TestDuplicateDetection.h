@@ -8,8 +8,115 @@
 #include <vector>
 #include <string>
 #include <algorithm>
+#include <random>
 
 namespace Aperture::Test {
+
+TEST_CASE(DuplicateDetection, ContentClustersMatchIndependentPairwiseOracle) {
+    std::mt19937 random(0xA9E274);
+    const double durations[] = {0.0, 0.5, 0.75, 1.0, 1.25, 4.5, 4.75, 4.999, 5.0, 5.25, 5.5, 5.5001, 8.0, 8.5, 9.0};
+    for (int sample = 0; sample < 32; ++sample) {
+        std::vector<MediaItem> items(48);
+        for (size_t i = 0; i < items.size(); ++i) {
+            auto& item = items[i];
+            item.id = std::to_string(i);
+            item.filePath = L"C:\\Oracle\\" + std::to_wstring(i) + L"\\clip" + std::to_wstring(random() % 7) + L".mkv";
+            item.title = L"Title " + std::to_wstring(random() % 5);
+            item.fileSizeBytes = random() % 5 == 0 ? 0 : 1000 + random() % 3;
+            item.durationSec = durations[random() % std::size(durations)];
+            const unsigned resolution = random() % 4;
+            item.videoWidth = resolution == 0 ? 0 : (resolution == 1 ? 1280 : 1920);
+            item.videoHeight = resolution < 2 ? 0 : (resolution == 2 ? 1080 : 720);
+        }
+        // Brute-force edges followed by graph traversal are independent of the
+        // production duration windows and disjoint-set implementation.
+        std::vector<std::vector<size_t>> edges(items.size());
+        for (size_t i = 0; i < items.size(); ++i) {
+            for (size_t j = i + 1; j < items.size(); ++j) {
+                const auto& a = items[i]; const auto& b = items[j];
+                if (!a.fileSizeBytes || a.fileSizeBytes != b.fileSizeBytes || a.durationSec <= 0.5 || b.durationSec <= 0.5 ||
+                    std::abs(a.durationSec - b.durationSec) > 0.5) continue;
+                const bool known = a.videoWidth && a.videoHeight && b.videoWidth && b.videoHeight;
+                if (known && (a.videoWidth != b.videoWidth || a.videoHeight != b.videoHeight)) continue;
+                const auto fileA = GetFileNameFromPath(a.filePath), fileB = GetFileNameFromPath(b.filePath);
+                const bool matches = (known && a.durationSec >= 5.0) ||
+                    LibraryQueryEngine::ExtractSeriesStem(fileA) == LibraryQueryEngine::ExtractSeriesStem(fileB) ||
+                    LibraryQueryEngine::NormalizeSearchText(a.title) == LibraryQueryEngine::NormalizeSearchText(b.title) ||
+                    fileA == fileB;
+                if (matches) { edges[i].push_back(j); edges[j].push_back(i); }
+            }
+        }
+        std::vector<bool> visited(items.size());
+        std::vector<std::vector<size_t>> expected;
+        for (size_t i = 0; i < items.size(); ++i) {
+            if (visited[i]) continue;
+            std::vector<size_t> component{i}; visited[i] = true;
+            for (size_t next = 0; next < component.size(); ++next) {
+                for (const size_t neighbor : edges[component[next]]) {
+                    if (!visited[neighbor]) { visited[neighbor] = true; component.push_back(neighbor); }
+                }
+            }
+            if (component.size() > 1) {
+                std::sort(component.begin(), component.end());
+                expected.push_back(std::move(component));
+            }
+        }
+        const auto result = LibraryQueryEngine::DetectDuplicates(items);
+        std::vector<std::vector<size_t>> actual;
+        size_t duplicateEntries = 0;
+        uint64_t duplicateBytes = 0;
+        for (const auto& group : result.groups) {
+            TEST_ASSERT(group.matchKind == DuplicateMatchKind::LikelyContent);
+            for (size_t i = 0; i < group.items.size(); ++i) TEST_ASSERT(group.items[i] == &items[group.originalIndices[i]]);
+            auto indices = group.originalIndices;
+            std::sort(indices.begin(), indices.end()); actual.push_back(std::move(indices));
+            duplicateEntries += group.items.size() - 1;
+            duplicateBytes += (group.items.size() - 1) * group.items.front()->fileSizeBytes;
+        }
+        std::sort(expected.begin(), expected.end()); std::sort(actual.begin(), actual.end());
+        TEST_ASSERT(actual == expected);
+        TEST_ASSERT_EQ(result.totalDuplicateEntries, duplicateEntries);
+        TEST_ASSERT_EQ(result.totalReclaimableBytes, duplicateBytes);
+    }
+}
+
+TEST_CASE(DuplicateDetection, MetadataChainsAndFiveSecondInputOrder) {
+    std::vector<MediaItem> items(3);
+    for (size_t i = 0; i < items.size(); ++i) {
+        items[i].id = std::to_string(i);
+        items[i].filePath = L"C:\\Chain\\" + std::to_wstring(i) + L".mkv";
+        items[i].title = L"Distinct " + std::to_wstring(i);
+        items[i].fileSizeBytes = 1000;
+        items[i].videoWidth = 1920; items[i].videoHeight = 1080;
+        items[i].durationSec = 8.0 - i * 0.5;
+    }
+    auto result = LibraryQueryEngine::DetectDuplicates(items);
+    TEST_ASSERT_EQ(result.totalDuplicateGroups, 1);
+    TEST_ASSERT_EQ(result.totalDuplicateEntries, 2);
+    items.resize(2);
+    items[0].durationSec = 4.75; items[1].durationSec = 5.0;
+    TEST_ASSERT_EQ(LibraryQueryEngine::DetectDuplicates(items).totalDuplicateGroups, 0);
+    std::swap(items[0], items[1]);
+    TEST_ASSERT_EQ(LibraryQueryEngine::DetectDuplicates(items).totalDuplicateGroups, 1);
+
+    // Equal titles/keys must not let union order choose the group display order.
+    items.resize(4);
+    for (size_t i = 0; i < items.size(); ++i) {
+        items[i].id = std::to_string(i);
+        items[i].title = L"Same title";
+        items[i].filePath = L"C:\\Collision\\" + std::to_wstring(3 - i) + L".mkv";
+        items[i].durationSec = 60.0; items[i].fileSizeBytes = 1000;
+        items[i].videoWidth = i < 2 ? 1920 : 1280;
+        items[i].videoHeight = i < 2 ? 1080 : 720;
+    }
+    result = LibraryQueryEngine::DetectDuplicates(items);
+    TEST_ASSERT_EQ(result.totalDuplicateGroups, 2);
+    const auto firstKeeper = result.groups.front().items.front()->filePath;
+    std::reverse(items.begin(), items.end());
+    result = LibraryQueryEngine::DetectDuplicates(items);
+    TEST_ASSERT_EQ(result.totalDuplicateGroups, 2);
+    TEST_ASSERT_EQ(result.groups.front().items.front()->filePath, firstKeeper);
+}
 
 TEST_CASE(DuplicateDetection, RepeatedComparisonsAndMetadataChanges) {
     std::vector<MediaItem> items(24);
