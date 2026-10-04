@@ -31,6 +31,7 @@
 #include "Updater.h"
 #include "TouchInput.h"
 #include "SettingsLayout.h"
+#include "ChapterMarkerCache.h"
 #include <memory>
 #include <atomic>
 #include <deque>
@@ -876,12 +877,7 @@ private:
     mutable uint64_t m_audioTracksCacheVersion = (std::numeric_limits<uint64_t>::max)();
     const std::vector<MpvTrackInfo>& GetCachedSubtitleTracks() const;
     const std::vector<MpvTrackInfo>& GetCachedAudioTracks() const;
-    // Chapter markers rebuild only when playback crosses a chapter boundary
-    // (quarter-second resolution); the snapshot is shared into the view model.
-    mutable std::shared_ptr<const std::vector<TimelineChapterMarker>> m_chapterMarkersSnapshot;
-    mutable uint64_t m_chapterMarkersSnapshotVersion = (std::numeric_limits<uint64_t>::max)();
-    mutable long long m_chapterMarkersSnapshotQuarter = -1;
-    mutable double m_chapterMarkersSnapshotDuration = -1.0;
+    mutable ChapterMarkerCache m_chapterMarkersCache;
     std::shared_ptr<const std::vector<TimelineChapterMarker>> GetChapterMarkersSnapshot() const;
     // Cached history timeline projection (group buckets + ordering). History
     // ordering only changes when the library changes or the day rolls over.

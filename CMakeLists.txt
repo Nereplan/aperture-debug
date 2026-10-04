@@ -266,6 +266,7 @@ set(APERTURE_HEADERS
     src/PlaybackSession.h
     src/PlaylistIO.h
     src/RenderViewModel.h
+    src/ChapterMarkerCache.h
     src/Renderer.h
     src/resource.h
     src/Settings.h

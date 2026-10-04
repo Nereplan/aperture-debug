@@ -187,13 +187,6 @@ void AccessibilityTree::SetWindow(HWND hwnd) {
 
 HWND AccessibilityTree::GetWindow() const { std::lock_guard<std::mutex> lock(mutex_); return hwnd_; }
 
-bool AccessibilityTree::ValidateNodes(const std::vector<AccessibilityNode>& nodes) const {
-    std::unordered_set<LONG> ids;
-    ids.reserve(nodes.size());
-    for (const AccessibilityNode& node : nodes) { if (node.id <= 0 || !ids.insert(node.id).second) return false; }
-    return true;
-}
-
 void AccessibilityTree::NotifySimple(DWORD eventId, LONG childId) const {
     HWND hwnd = nullptr;
     { std::lock_guard<std::mutex> lock(mutex_); hwnd = hwnd_; }
@@ -293,18 +286,21 @@ bool AccessibilityTree::GetNodeCopy(LONG childId, AccessibilityNode& outNode) co
 }
 
 bool AccessibilityTree::ReplaceNodes(const std::vector<AccessibilityNode>& nodes) {
-    if (!ValidateNodes(nodes)) return false;
     std::vector<AccessibilityNode> oldNodes;
     std::vector<AccessibilityChildProvider*> providersToDisconnect;
     HWND hwnd = nullptr;
     std::unordered_set<LONG> newIds;
     newIds.reserve(nodes.size());
-    for (const auto& n : nodes) newIds.insert(n.id);
+    for (const auto& n : nodes) { if (n.id <= 0 || !newIds.insert(n.id).second) return false; }
+    // Copy the incoming snapshot before taking the lock, then transfer the
+    // existing snapshot to the notification pass without copying its strings,
+    // relationship vectors, and callbacks. Failed copies leave the tree intact.
+    std::vector<AccessibilityNode> replacement = nodes;
     {
         std::lock_guard<std::mutex> lock(mutex_);
         hwnd = hwnd_;
-        oldNodes = nodes_;
-        nodes_ = nodes;
+        oldNodes.swap(nodes_);
+        nodes_.swap(replacement);
         // Disconnect providers that are no longer in the tree
         auto it = childProviders_.begin();
         while (it != childProviders_.end()) {

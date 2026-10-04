@@ -209,7 +209,6 @@ private:
     void NotifyNodeChanges(const AccessibilityNode& old, const AccessibilityNode& node, bool uiaListening);
     void NotifySimple(DWORD eventId, LONG childId) const;
     void NotifyReorder() const;
-    bool ValidateNodes(const std::vector<AccessibilityNode>& nodes) const;
     AccessibilityChildProvider* GetOrCreateChildProviderLocked(LONG childId);
     void InvalidateAndDisconnectChildProviders();
     std::atomic<ULONG> refCount_{1};

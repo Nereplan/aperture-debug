@@ -1270,4 +1270,46 @@ TEST_CASE(Accessibility, MsaaIAccessibleContract) {
     }
 }
 
+TEST_CASE(Accessibility, ReplacementOwnsIncomingStateAndRejectsInvalidTreesAtomically) {
+    AccessibilityTree tree;
+    int oldInvocations = 0, newInvocations = 0;
+    AccessibilityNode first;
+    first.id = 1;
+    first.name = L"Original";
+    first.onInvoke = [&](LONG) { ++oldInvocations; };
+    TEST_ASSERT(tree.ReplaceNodes({first}));
+    ComPtr<IRawElementProviderSimple> provider(tree.GetProviderForNode(1));
+    TEST_ASSERT(provider.Get() != nullptr);
+
+    std::vector<AccessibilityNode> replacement{first};
+    replacement[0].name = L"Updated";
+    replacement[0].flowsToIds = {2, 3};
+    replacement[0].onInvoke = [&](LONG) { ++newInvocations; };
+    TEST_ASSERT(tree.ReplaceNodes(replacement));
+    replacement[0].name = L"Mutated caller storage";
+    replacement[0].flowsToIds.clear();
+    replacement[0].onInvoke = {};
+    AccessibilityNode current;
+    TEST_ASSERT(tree.GetNodeCopy(1, current));
+    TEST_ASSERT_EQ(current.name, std::wstring(L"Updated"));
+    TEST_ASSERT_EQ(current.flowsToIds.size(), size_t(2));
+    TEST_ASSERT(current.onInvoke != nullptr);
+    current.onInvoke(1);
+    TEST_ASSERT_EQ(oldInvocations, 0);
+    TEST_ASSERT_EQ(newInvocations, 1);
+
+    TEST_ASSERT(!tree.ReplaceNodes({first, first}));
+    first.id = 0;
+    TEST_ASSERT(!tree.ReplaceNodes({first}));
+    TEST_ASSERT(tree.GetNodeCopy(1, current));
+    TEST_ASSERT_EQ(current.name, std::wstring(L"Updated"));
+    VariantScope name;
+    TEST_ASSERT_EQ(provider->GetPropertyValue(UIA_NamePropertyId, &name), S_OK);
+    TEST_ASSERT_EQ(name.Ref().vt, VT_BSTR);
+    TEST_ASSERT_EQ(std::wstring(name.Ref().bstrVal), std::wstring(L"Updated"));
+    TEST_ASSERT(tree.ReplaceNodes({}));
+    VariantScope removed;
+    TEST_ASSERT_EQ(provider->GetPropertyValue(UIA_NamePropertyId, &removed), UIA_E_ELEMENTNOTAVAILABLE);
+}
+
 } // namespace Aperture::Test

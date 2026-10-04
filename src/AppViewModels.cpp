@@ -61,34 +61,9 @@ const std::vector<MpvTrackInfo>& App::GetCachedAudioTracks() const {
 
 std::shared_ptr<const std::vector<TimelineChapterMarker>> App::GetChapterMarkersSnapshot() const {
     const std::vector<MpvChapterInfo>& chapters = GetCachedChapters();
-    const uint64_t version = player.GetChaptersVersion();
-    const double duration = player.GetDuration();
-    const double currentTime = player.GetCurrentTime();
-    // The isPassed set is constant between chapter crossings; quarter-second
-    // granularity caps rebuilds at four per second worst case.
-    const long long quarter = (long long)(currentTime * 4.0);
-    if (m_chapterMarkersSnapshot && version == m_chapterMarkersSnapshotVersion &&
-        quarter == m_chapterMarkersSnapshotQuarter && duration == m_chapterMarkersSnapshotDuration) {
-        return m_chapterMarkersSnapshot;
-    }
-    auto markers = std::make_shared<std::vector<TimelineChapterMarker>>();
-    if (duration > 0.0) {
-        markers->reserve(std::min<size_t>(chapters.size(), 500));
-        for (size_t i = 0; i < chapters.size() && i < 500; ++i) {
-            const auto& ch = chapters[i];
-            TimelineChapterMarker marker;
-            marker.time = ch.time;
-            marker.normalizedPosition = std::clamp(static_cast<float>(ch.time / duration), 0.0f, 1.0f);
-            marker.title = ch.title.length() > 80 ? ch.title.substr(0, 77) + L"..." : ch.title;
-            marker.isPassed = (ch.time <= currentTime);
-            markers->push_back(std::move(marker));
-        }
-    }
-    m_chapterMarkersSnapshot = std::move(markers);
-    m_chapterMarkersSnapshotVersion = version;
-    m_chapterMarkersSnapshotQuarter = quarter;
-    m_chapterMarkersSnapshotDuration = duration;
-    return m_chapterMarkersSnapshot;
+    // Use the version of this copied chapter list. The player can publish a
+    // newer version between calls; it must not label an older list as current.
+    return m_chapterMarkersCache.Get(chapters, m_chaptersCacheVersion, player.GetDuration(), player.GetCurrentTime());
 }
 
 const HistoryTimelineProjection& App::GetHistoryProjection() {
