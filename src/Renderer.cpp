@@ -618,7 +618,7 @@ void Renderer::DrawRingProgress(float cx, float cy, float radius, float thicknes
 }
 
 ComPtr<IDWriteTextLayout> Renderer::GetOrCreateTextLayout( const std::wstring& text, FontType font, float maxW, float maxH,
-    DWRITE_TEXT_ALIGNMENT align, DWRITE_PARAGRAPH_ALIGNMENT valign ) {
+    DWRITE_TEXT_ALIGNMENT align, DWRITE_PARAGRAPH_ALIGNMENT valign, TextLayoutMode mode ) {
     if (!dwriteFactory || text.empty()) return nullptr;
     // Rapidly changing time/progress strings (e.g. "00:03 / 01:23", "75%") must not occupy long-lived cache slots: create them directly.
     bool isTransient = false;
@@ -638,13 +638,26 @@ ComPtr<IDWriteTextLayout> Renderer::GetOrCreateTextLayout( const std::wstring& t
         layout->SetFlowDirection(DWRITE_FLOW_DIRECTION_TOP_TO_BOTTOM);
         layout->SetTextAlignment(align);
         layout->SetParagraphAlignment(valign);
+        // Wrapping/trimming belong to the cache key. Mutating them for each
+        // draw invalidates DirectWrite's layout work even on a cache hit.
+        if (mode != TextLayoutMode::SingleLine) {
+            layout->SetWordWrapping(DWRITE_WORD_WRAPPING_EMERGENCY_BREAK);
+        }
+        if (mode == TextLayoutMode::WrappedEllipsis) {
+            DWRITE_TRIMMING trimming{};
+            trimming.granularity = DWRITE_TRIMMING_GRANULARITY_CHARACTER;
+            ComPtr<IDWriteInlineObject> ellipsis;
+            if (SUCCEEDED(dwriteFactory->CreateEllipsisTrimmingSign(tf, &ellipsis))) {
+                layout->SetTrimming(&trimming, ellipsis.Get());
+            }
+        }
         return layout;
     };
     if (isTransient) return createLayout();
     // Copy-free probe: the map's transparent comparator matches on a view, so
     // a cache hit never copies the text into a LayoutKey.
     const LayoutKeyProbe probe{ std::wstring_view(text), font,
-        (int)std::lround(maxW * 4.0f), (int)std::lround(maxH * 4.0f), align, valign };
+        (int)std::lround(maxW * 4.0f), (int)std::lround(maxH * 4.0f), align, valign, mode };
     auto it = layoutCache.find(probe);
     if (it != layoutCache.end()) {
         layoutLru.splice(layoutLru.begin(), layoutLru, it->second.lruIt);
@@ -657,7 +670,7 @@ ComPtr<IDWriteTextLayout> Renderer::GetOrCreateTextLayout( const std::wstring& t
             // Key text twice (map + LRU) + shaped glyph runs (~2 KiB base).
             return (uint64_t)k.text.size() * sizeof(wchar_t) * 2ull + 2048ull + sizeof(LayoutKey);
         };
-        LayoutKey key{ std::wstring(text), font, probe.maxW, probe.maxH, probe.align, probe.valign };
+        LayoutKey key{ std::wstring(text), font, probe.maxW, probe.maxH, probe.align, probe.valign, probe.mode };
         uint64_t incoming = estimateBytes(key);
         while ((!layoutCache.empty()) && (layoutCache.size() >= kLayoutCacheEntryLimit ||
                 layoutCacheBytes + incoming > kLayoutCacheByteLimit) && !layoutLru.empty()) {
@@ -708,22 +721,12 @@ void Renderer::DrawStringWrapped(const std::wstring& text, const D2D1_RECT_F& re
     if (!d2dContext || !solidBrush || text.empty()) return;
     D2D1_RECT_F snappedRect = SnapRect(rect);
     ComPtr<IDWriteTextLayout> layout = GetOrCreateTextLayout(
-        text, font, std::max(1.0f, RectWidth(snappedRect)), std::max(1.0f, RectHeight(snappedRect)), align, valign );
+        text, font, std::max(1.0f, RectWidth(snappedRect)), std::max(1.0f, RectHeight(snappedRect)), align, valign,
+        TextLayoutMode::WrappedEllipsis );
     if (!layout) return;
-    layout->SetWordWrapping(DWRITE_WORD_WRAPPING_EMERGENCY_BREAK);
-    DWRITE_TRIMMING trimming{};
-    trimming.granularity = DWRITE_TRIMMING_GRANULARITY_CHARACTER;
-    ComPtr<IDWriteInlineObject> ellipsis;
-    IDWriteTextFormat* tf = GetTextFormat(font);
-    if (tf && dwriteFactory && SUCCEEDED(dwriteFactory->CreateEllipsisTrimmingSign(tf, &ellipsis))) {
-        layout->SetTrimming(&trimming, ellipsis.Get());
-    }
     solidBrush->SetColor(color);
     d2dContext->DrawTextLayout( D2D1::Point2F(snappedRect.left, snappedRect.top), layout.Get(), solidBrush.Get(),
         D2D1_DRAW_TEXT_OPTIONS_ENABLE_COLOR_FONT | D2D1_DRAW_TEXT_OPTIONS_CLIP );
-    layout->SetWordWrapping(DWRITE_WORD_WRAPPING_NO_WRAP);
-    DWRITE_TRIMMING clearTrimming{};
-    layout->SetTrimming(&clearTrimming, nullptr);
 }
 
 void Renderer::DrawStringWithShadow(const std::wstring& text, const D2D1_RECT_F& rect, const D2D1_COLOR_F& color, const D2D1_COLOR_F& shadowColor, FontType font, DWRITE_TEXT_ALIGNMENT align, DWRITE_PARAGRAPH_ALIGNMENT valign, float shadowOffsetY) {
@@ -746,12 +749,11 @@ D2D1_SIZE_F Renderer::MeasureString(const std::wstring& text, FontType font, flo
 float Renderer::MeasureStringWrappedHeight(const std::wstring& text, FontType font, float maxWidth) {
     if (!dwriteFactory || text.empty() || maxWidth <= 1.0f) return 0.0f;
     ComPtr<IDWriteTextLayout> layout = GetOrCreateTextLayout(
-        text, font, maxWidth, 10000.0f, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_NEAR);
+        text, font, maxWidth, 10000.0f, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_NEAR,
+        TextLayoutMode::Wrapped);
     if (!layout) return 0.0f;
-    layout->SetWordWrapping(DWRITE_WORD_WRAPPING_EMERGENCY_BREAK);
     DWRITE_TEXT_METRICS tm{};
     layout->GetMetrics(&tm);
-    layout->SetWordWrapping(DWRITE_WORD_WRAPPING_NO_WRAP);
     return tm.height;
 }
 

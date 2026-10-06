@@ -390,9 +390,11 @@ int App::HitTestMediaGroupHeader(float yDIP, size_t groupCount) {
     if (groupCount == 0 || yDIP < 0.0f) return -1;
     const auto& offsets = m_mediaLayoutCache.groupHeaderOffsetsDIP;
     const float kGroupHeaderHDIP = 38.0f;
-    for (size_t g = 0; g < offsets.size() && g < groupCount; ++g) {
-        if (yDIP >= offsets[g] && yDIP < offsets[g] + kGroupHeaderHDIP) { return (int)g; }
-    }
+    const auto end = offsets.begin() + std::min(offsets.size(), groupCount);
+    const auto after = std::upper_bound(offsets.begin(), end, yDIP);
+    if (after == offsets.begin()) return -1;
+    const size_t g = static_cast<size_t>(after - offsets.begin() - 1);
+    if (yDIP >= offsets[g] && yDIP < offsets[g] + kGroupHeaderHDIP) return static_cast<int>(g);
     return -1;
 }
 

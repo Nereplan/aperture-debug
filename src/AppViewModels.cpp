@@ -509,11 +509,19 @@ HubRenderViewModel App::BuildHubRenderViewModel() {
                 const float kGroupHeaderHDIP = 38.0f;
                 // Project group headers
                 if (libraryGroupMode != LibraryGroupMode::Flat) {
-                    for (size_t g = 0; g < proj.groups.size(); ++g) {
-                        if (g >= m_mediaLayoutCache.groupHeaderOffsetsDIP.size()) break;
+                    const auto& headerOffsets = m_mediaLayoutCache.groupHeaderOffsetsDIP;
+                    const size_t groupCount = std::min(proj.groups.size(), headerOffsets.size());
+                    // Offsets are sorted even when groups are collapsed. Keep
+                    // the pixel-space comparison identical at clip boundaries.
+                    const auto firstHeader = std::lower_bound(headerOffsets.begin(), headerOffsets.begin() + groupCount,
+                        vm.mediaTab.clipBounds.top, [&](float offset, float clipTop) {
+                            return listTop + (offset * dp) - mediaScrollY + (kGroupHeaderHDIP * dp) < clipTop;
+                        });
+                    for (size_t g = static_cast<size_t>(firstHeader - headerOffsets.begin()); g < groupCount; ++g) {
                         const auto& grp = proj.groups[g];
-                        float headerTopDIP = m_mediaLayoutCache.groupHeaderOffsetsDIP[g];
+                        float headerTopDIP = headerOffsets[g];
                         float headerTopPx = listTop + (headerTopDIP * dp) - mediaScrollY;
+                        if (headerTopPx > vm.mediaTab.clipBounds.bottom) break;
                         float headerBottomPx = headerTopPx + (kGroupHeaderHDIP * dp);
                         if (headerBottomPx >= vm.mediaTab.clipBounds.top && headerTopPx <= vm.mediaTab.clipBounds.bottom) {
                             VisibleMediaGroupHeaderViewModel hvm;
@@ -652,7 +660,11 @@ HubRenderViewModel App::BuildHubRenderViewModel() {
             float headerH = 48.0f * dp, bottomBtnH = 34.0f * dp, itemH = 52.0f * dp;
             float curRailY = vm.playlistsTab.rail.bounds.top + headerH - 2.0f * dp - playlistRailScrollY;
             int railDragFrom = vm.playlistsTab.rail.dragFromIndex, railDragTo = vm.playlistsTab.rail.dragToIndex;
-            vm.playlistsTab.rail.items.reserve(library.playlists.size());
+            const float railClipTop = vm.playlistsTab.rail.bounds.top + headerH - 4.0f * dp;
+            const float railClipBottom = vm.playlistsTab.rail.bounds.bottom - bottomBtnH - 18.0f * dp;
+            const size_t visibleRailCapacity = static_cast<size_t>(std::ceil(
+                std::max(0.0f, railClipBottom - railClipTop) / (itemH + 6.0f * dp))) + 2;
+            vm.playlistsTab.rail.items.reserve(std::min(library.playlists.size(), visibleRailCapacity));
             for (size_t i = 0; i < library.playlists.size(); ++i) {
                 if (railDragFrom >= 0 && (int)i == railDragFrom) { curRailY += itemH + 6.0f * dp; continue; }
                 float renderY = curRailY;
@@ -660,6 +672,11 @@ HubRenderViewModel App::BuildHubRenderViewModel() {
                     const int slot = Reorder::Slot(static_cast<int>(i), railDragFrom, railDragTo);
                     renderY += CardDragOffset(static_cast<int>(i), 0, (slot - static_cast<int>(i)) * (itemH + 6.0f * dp)).y;
                 }
+                curRailY += itemH + 6.0f * dp;
+                // Preserve drag animation targets for every row, but resolve
+                // statistics and copy labels only after the visibility check.
+                if (renderY > railClipBottom && railDragFrom < 0) break;
+                if (renderY + itemH < railClipTop || renderY > railClipBottom) continue;
                 const auto& pl = library.playlists[i];
                 // Reuse cached playlist statistics for the visible rail items.
                 PlaylistStats plStats = library.GetPlaylistStats(pl.id);
@@ -681,10 +698,7 @@ HubRenderViewModel App::BuildHubRenderViewModel() {
                 rItem.titleRect = D2D1::RectF(rItem.ringCX + ringRadius + 10.0f * dp, rItem.itemRect.top + 7.0f * dp, rItem.itemRect.right - 10.0f * dp, rItem.itemRect.top + 27.0f * dp);
                 rItem.subRect = D2D1::RectF(rItem.ringCX + ringRadius + 10.0f * dp, rItem.itemRect.top + 27.0f * dp, rItem.itemRect.right - 10.0f * dp, rItem.itemRect.top + 45.0f * dp);
                 rItem.isInlineRenaming = (isInlineRenaming && inlineRenamePlaylistId == pl.id);
-                float railClipTop = vm.playlistsTab.rail.bounds.top + headerH - 4.0f * dp;
-                float railClipBottom = vm.playlistsTab.rail.bounds.bottom - bottomBtnH - 18.0f * dp;
-                if (renderY + itemH >= railClipTop && renderY <= railClipBottom) { vm.playlistsTab.rail.items.push_back(std::move(rItem)); }
-                curRailY += itemH + 6.0f * dp;
+                vm.playlistsTab.rail.items.push_back(std::move(rItem));
             }
             if (railDragFrom >= 0 && railDragFrom < (int)library.playlists.size()) {
                 const auto& pl = library.playlists[railDragFrom];

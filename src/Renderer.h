@@ -324,12 +324,14 @@ private:
     // Stop collections are device resources and can be shared by all of the short-lived gradient brushes used during a frame.
     ComPtr<ID2D1StrokeStyle> dashedStrokeStyle, ringStrokeStyle;
     // Font Formats
+    enum class TextLayoutMode { SingleLine, Wrapped, WrappedEllipsis };
     struct LayoutKey {
         std::wstring text;
         FontType font;
         int maxW, maxH;
         DWRITE_TEXT_ALIGNMENT align;
         DWRITE_PARAGRAPH_ALIGNMENT valign;
+        TextLayoutMode mode;
     };
     // Copy-free lookup key: GetOrCreateTextLayout is called hundreds of times
     // per rendered frame, and probing with a full LayoutKey would copy the text
@@ -340,6 +342,7 @@ private:
         int maxW, maxH;
         DWRITE_TEXT_ALIGNMENT align;
         DWRITE_PARAGRAPH_ALIGNMENT valign;
+        TextLayoutMode mode;
     };
     struct LayoutKeyLess {
         using is_transparent = void;
@@ -350,6 +353,7 @@ private:
             if (a.maxH != b.maxH) return a.maxH < b.maxH;
             if (a.align != b.align) return a.align < b.align;
             if (a.valign != b.valign) return a.valign < b.valign;
+            if (a.mode != b.mode) return a.mode < b.mode;
             return a.text < b.text;
         }
     };
@@ -364,7 +368,8 @@ private:
     std::list<LayoutKey> layoutLru;
     uint64_t layoutCacheBytes = 0;
     ComPtr<IDWriteTextLayout> GetOrCreateTextLayout( const std::wstring& text, FontType font, float maxW, float maxH,
-        DWRITE_TEXT_ALIGNMENT align = DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT valign = DWRITE_PARAGRAPH_ALIGNMENT_NEAR );
+        DWRITE_TEXT_ALIGNMENT align = DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT valign = DWRITE_PARAGRAPH_ALIGNMENT_NEAR,
+        TextLayoutMode mode = TextLayoutMode::SingleLine );
     IWICImagingFactory* EnsureWicFactory();
     // D3D11CreateDevice is pure driver initialization (~190 ms) and does not need the HWND, so it runs on a worker kicked off at startup
     // and is joined by the first CreateDeviceResources call.

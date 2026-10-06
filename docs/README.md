@@ -18,6 +18,7 @@ Read the most recent report relevant to the subsystem. Measurements with differe
 
 | Report | Scope |
 |---|---|
+| [Scrolling and text optimization](reports/SCROLL_AND_TEXT_OPTIMIZATION.md) | 7 October: offscreen playlist work, group-header lookup, and wrapped text reuse; compile-only validation, with tests and measurements deferred |
 | [UI refresh performance](reports/UI_REFRESH_PERFORMANCE.md) | 5 October: accessibility snapshot ownership and exact chapter-boundary caching, with CPU/allocation measurements |
 | [Subtitle lookup performance](reports/SUBTITLE_LOOKUP_PERFORMANCE.md) | 5 October: indexed expired cue ranges, preserved overlap/seek behavior, and measured CPU/index-memory tradeoffs |
 | [Bulk removal and cache eviction follow-up](reports/MAINTENANCE_FOLLOWUP.md) | 4 October: removed quadratic UI cleanup scans, borrowed eviction records, removed redundant subtitle work, and shared benchmark probes |
