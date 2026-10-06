@@ -22,6 +22,8 @@
 namespace Aperture {
 namespace {
 
+constexpr ULONGLONG kSmartAvailabilityCacheTtlMs = 2000;
+
 // Keep the supported suffixes in one place. This is also the lookup order
 // used by the allocation-free membership test below.
 constexpr std::array<std::wstring_view, 37> kSupportedExtensionValues = {
@@ -659,21 +661,38 @@ void MediaLibrary::NotifyPlaylistChanged() { libraryVersion++; ++searchContentVe
 
 PlaylistStats MediaLibrary::GetPlaylistStats(const std::string& playlistId) const {
     auto it = playlistStatsCache.find(playlistId);
-    if (it != playlistStatsCache.end() && it->second.version == libraryVersion) { return it->second.stats; }
+    if (it != playlistStatsCache.end() && it->second.version == libraryVersion &&
+        (!it->second.requiresAvailability || GetTickCount64() - it->second.availabilityCheckedMs < kSmartAvailabilityCacheTtlMs)) {
+        return it->second.stats;
+    }
     PlaylistStats stats;
     const Playlist* pl = FindPlaylist(playlistId);
     if (!pl) return stats;
     const auto& paths = GetPlaylistPathsRef(*pl);
     stats.totalCount = (int)paths.size();
-    for (const auto& path : paths) {
-        const MediaItem* mi = FindByPath(path);
+    size_t firstUnfinished = paths.size(), firstInProgress = paths.size();
+    for (size_t i = 0; i < paths.size(); ++i) {
+        const MediaItem* mi = FindByPath(paths[i]);
+        if ((!mi || mi->status == "new") && firstUnfinished == paths.size()) firstUnfinished = i;
+        if (mi && mi->status == "in_progress" && firstInProgress == paths.size()) firstInProgress = i;
         if (mi) {
             stats.totalSizeBytes += mi->fileSizeBytes;
             stats.totalDurationSec += mi->durationSec;
             if ((mi->durationSec > 0.0 && (mi->lastPosSec / mi->durationSec) >= 0.90) || (mi->status == "done")) { stats.watchedCount++; }
         }
     }
-    playlistStatsCache[playlistId] = { libraryVersion, stats };
+    // Match GetPlaylistResumeIndex: prefer any in-progress item, then the
+    // first new/missing record, and otherwise start at the first item.
+    if (firstInProgress < paths.size()) stats.resumeIndex = firstInProgress;
+    else if (firstUnfinished < paths.size()) stats.resumeIndex = firstUnfinished;
+    PlaylistStatsCacheEntry entry{ libraryVersion, stats };
+    entry.requiresAvailability = pl->IsSmart() && pl->smartCriteria.RequiresAvailability();
+    if (entry.requiresAvailability) {
+        // Share the path snapshot's deadline, not the time the stats scan
+        // finished, so statistics and resume selection expire together.
+        entry.availabilityCheckedMs = smartPathsCache.at(playlistId).availabilityCheckedMs;
+    }
+    playlistStatsCache[playlistId] = entry;
     return stats;
 }
 
@@ -1702,11 +1721,14 @@ const std::vector<std::wstring>& MediaLibrary::GetPlaylistPathsRef(const Playlis
     const bool requiresAvailability = playlist.smartCriteria.RequiresAvailability();
     const ULONGLONG now = requiresAvailability ? GetTickCount64() : 0;
     if (it != smartPathsCache.end() && it->second.version == libraryVersion &&
-        (!requiresAvailability || now - it->second.availabilityCheckedMs < 2000)) { return it->second.paths; }
+        (!requiresAvailability || now - it->second.availabilityCheckedMs < kSmartAvailabilityCacheTtlMs)) { return it->second.paths; }
     SmartPathsCacheEntry entry;
     entry.version = libraryVersion;
     entry.availabilityCheckedMs = now;
     entry.paths = EvaluateSmartPlaylist(playlist.smartCriteria);
+    // Availability refreshes can change membership without a library edit.
+    // Retire both cached aggregates and resume selection with that snapshot.
+    playlistStatsCache.erase(playlist.id);
     return smartPathsCache.insert_or_assign(playlist.id, std::move(entry)).first->second.paths;
 }
 

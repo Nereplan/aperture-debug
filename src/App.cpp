@@ -647,16 +647,8 @@ float App::GetMaxScrollForPaneInViewport(AutoscrollPane pane, float winW, float 
     }
     case AutoscrollPane::History: {
         if (currentTab != TabView::History) return 0.0f;
-        float historyContentBottom = 87.0f * dp;
-        if (!library.history.empty()) {
-            const HistoryTimelineProjection& proj = GetHistoryProjection();
-            const float kGroupHeaderH = 34.0f * dp, kItemH = 76.0f * dp, kItemGap = 8.0f * dp, kGroupGap = 16.0f * dp;
-            for (size_t g = 0; g < proj.groups.size(); ++g) {
-                if (g > 0) historyContentBottom += kGroupGap;
-                historyContentBottom += kGroupHeaderH + 6.0f * dp + proj.groups[g].count * (kItemH + kItemGap);
-            }
-            historyContentBottom -= kItemGap;
-        }
+        const float historyContentBottom = library.history.empty() ? kHistoryContentInset * dp
+            : HistoryContentHeight(GetHistoryProjection().groups, dp);
         return std::max(0.0f, historyContentBottom - viewH);
     }
     case AutoscrollPane::Settings: {
@@ -2590,7 +2582,7 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                     D2D1_RECT_F clearBtnRect = D2D1::RectF(viewBounds.right - clearW - 6.0f * dp, clearTop,
                         viewBounds.right - 6.0f * dp, clearTop + clearH);
                     isClearHistoryHovered = PtInRectF(clearBtnRect, x, y);
-                    float curY = viewBounds.top + 87.0f * dp - historyScrollY;
+                    float headerY = viewBounds.top + kHistoryContentInset * dp - historyScrollY;
                     hoveredHistoryIndex = -1;
                     hoveredHistoryDeleteIndex = -1;
                     hoveredHistoryEmptyBtn = -1;
@@ -2600,24 +2592,25 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                         }
                     } else {
                         const HistoryTimelineProjection& proj = GetHistoryProjection();
-                        const float kGroupHeaderH = 34.0f * dp, kItemH = 76.0f * dp, kItemGap = 8.0f * dp, kGroupGap = 16.0f * dp;
                         const float delSize = 28.0f * dp;
                         for (size_t g = 0; g < proj.groups.size(); ++g) {
-                            if (g > 0) curY += kGroupGap;
-                            curY += kGroupHeaderH + 6.0f * dp;
-                            for (size_t idx = proj.groups[g].startIndex; idx < proj.groups[g].startIndex + proj.groups[g].count; ++idx) {
+                            const HistoryGroupLayout layout(headerY, proj.groups[g].count, dp);
+                            headerY = layout.NextHeaderTop();
+                            const auto [firstRow, lastRow] = layout.VisibleRows(y, y);
+                            for (size_t row = firstRow; row < lastRow; ++row) {
+                                const size_t idx = proj.groups[g].startIndex + row;
                                 size_t origIdx = proj.itemIndices[idx];
-                                D2D1_RECT_F itemRect = D2D1::RectF(viewBounds.left + 12.0f * dp, curY,
-                                    viewBounds.right - 24.0f * dp, curY + kItemH);
+                                const float rowY = layout.RowTop(row);
+                                D2D1_RECT_F itemRect = D2D1::RectF(viewBounds.left + 12.0f * dp, rowY,
+                                    viewBounds.right - 24.0f * dp, rowY + layout.rowHeight);
                                 if (PtInRectF(itemRect, x, y)) {
                                     hoveredHistoryIndex = (int)origIdx;
                                     D2D1_RECT_F delRect = D2D1::RectF(itemRect.right - delSize - 10.0f * dp,
-                                        itemRect.top + (kItemH - delSize) * 0.5f, itemRect.right - 10.0f * dp,
-                                        itemRect.top + (kItemH + delSize) * 0.5f);
+                                        itemRect.top + (layout.rowHeight - delSize) * 0.5f, itemRect.right - 10.0f * dp,
+                                        itemRect.top + (layout.rowHeight + delSize) * 0.5f);
                                     if (PtInRectF(delRect, x, y)) hoveredHistoryDeleteIndex = (int)origIdx;
                                     break;
                                 }
-                                curY += kItemH + kItemGap;
                             }
                             if (hoveredHistoryIndex >= 0) break;
                         }

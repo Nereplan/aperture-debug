@@ -982,16 +982,8 @@ void App::RefreshAccessibilityTree(bool force) {
                         float histMax = GetMaxScrollForPane(AutoscrollPane::History);
                         if (histMax > 0.5f) {
                             float viewH = std::max(1.0f * dp, (winH - padY) - viewTop);
-                            float historyContentBottom = 87.0f * dp;
-                            if (!library.history.empty()) {
-                                const HistoryTimelineProjection& proj = GetHistoryProjection();
-                                const float kGroupHeaderH = 34.0f * dp, kItemH = 76.0f * dp, kItemGap = 8.0f * dp, kGroupGap = 16.0f * dp;
-                                for (size_t g = 0; g < proj.groups.size(); ++g) {
-                                    if (g > 0) historyContentBottom += kGroupGap;
-                                    historyContentBottom += kGroupHeaderH + 6.0f * dp + proj.groups[g].count * (kItemH + kItemGap);
-                                }
-                                historyContentBottom -= kItemGap;
-                            }
+                            const float historyContentBottom = library.history.empty() ? kHistoryContentInset * dp
+                                : HistoryContentHeight(GetHistoryProjection().groups, dp);
                             ConfigureAccessibleScroll(n, &App::historyScrollY, histMax, viewH, historyContentBottom, 84.0f, dp);
                         }
                     } else if (i == 3 && currentTab == TabView::Settings) {
@@ -1516,12 +1508,13 @@ void App::RefreshAccessibilityTree(bool force) {
                     });
             } else {
                 const HistoryTimelineProjection& proj = GetHistoryProjection();
-                float y = view.top + 87.0f * dp - historyScrollY;
-                const float kGroupHeaderH = 34.0f * dp, kItemH = 76.0f * dp, kItemGap = 8.0f * dp, kGroupGap = 16.0f * dp;
+                float headerY = view.top + kHistoryContentInset * dp - historyScrollY;
                 for (size_t g = 0; g < proj.groups.size(); ++g) {
-                    if (g > 0) y += kGroupGap;
                     const auto& grp = proj.groups[g];
-                    const RECT grpBounds = screenRect(view.left + 12.0f * dp, y, view.right - 24.0f * dp, y + kGroupHeaderH);
+                    const HistoryGroupLayout layout(headerY, grp.count, dp);
+                    headerY = layout.NextHeaderTop();
+                    const RECT grpBounds = screenRect(view.left + 12.0f * dp, layout.headerTop,
+                        view.right - 24.0f * dp, layout.headerTop + layout.headerHeight);
                     if (intersects(grpBounds)) {
                         addNode(4080 + static_cast<int>(grp.group) * 2, grp.title, grp.title + L" (" + grp.countText + L")", L"", ROLE_SYSTEM_GROUPING,
                             stateBits(false, false, false, false, false), grpBounds, L"", L"", nullptr, [&, g](AccessibilityNode& n) {
@@ -1540,12 +1533,16 @@ void App::RefreshAccessibilityTree(bool force) {
                                 if (!grpItemIds.empty()) { n.flowsToIds = {grpItemIds.front()}; }
                             });
                     }
-                    y += kGroupHeaderH + 6.0f * dp;
-                    for (size_t idx = grp.startIndex; idx < grp.startIndex + grp.count; ++idx) {
+                    // Keep a pixel of margin for screenRect's integer rounding;
+                    // intersects() remains the final accessibility clip check.
+                    const auto [firstRow, lastRow] = layout.VisibleRows(viewTop - 1.0f, winH + 1.0f);
+                    for (size_t row = firstRow; row < lastRow; ++row) {
+                        const size_t idx = grp.startIndex + row;
                         size_t origIdx = proj.itemIndices[idx];
                         if (origIdx >= library.history.size()) continue;
                         const auto& record = library.history[origIdx];
-                        const RECT bounds = screenRect(view.left + 12.0f * dp, y, view.right - 24.0f * dp, y + kItemH);
+                        const float y = layout.RowTop(row);
+                        const RECT bounds = screenRect(view.left + 12.0f * dp, y, view.right - 24.0f * dp, y + layout.rowHeight);
                         if (intersects(bounds)) {
                             const bool selected = selectedHistoryIndices.count(origIdx) != 0;
                             std::wstring itemTitle = record.title.empty() ? GetFileNameFromPath(record.filePath) : record.title;
@@ -1585,7 +1582,6 @@ void App::RefreshAccessibilityTree(bool force) {
                                     };
                                 });
                         }
-                        y += kItemH + kItemGap;
                     }
                 }
             }

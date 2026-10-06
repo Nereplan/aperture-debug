@@ -1,5 +1,6 @@
 #include "Presentation.h"
 #include "UIComponents.h"
+#include "AppLayout.h"
 #include "BuildInfo.h"
 #include "ChannelPolicy.h"
 #include "Version.h"
@@ -3529,7 +3530,7 @@ void UIComponents::DrawHistoryList(Renderer& r, const Settings& s, const History
     };
     D2D1_RECT_F clip = D2D1::RectF(vm.bounds.left + 2.0f * dp, vm.bounds.top + 73.0f * dp, vm.bounds.right - 8.0f * dp, vm.bounds.bottom);
     r.PushClip(clip);
-    if (!vm.visibleItems.empty() || !vm.groups.empty()) {
+    if (vm.hasProjectedLayout || !vm.visibleItems.empty() || !vm.groups.empty()) {
         for (const auto& grp : vm.groups) {
             if (grp.headerRect.bottom >= clip.top && grp.headerRect.top <= clip.bottom) { DrawHistoryGroupHeader(r, s, grp); }
         }
@@ -3567,19 +3568,23 @@ void UIComponents::DrawHistoryList(Renderer& r, const Settings& s, const History
     } else {
         static const std::vector<HistoryRecord> kEmptyHistory;
         auto proj = ProjectHistoryTimeline(vm.pHistory ? *vm.pHistory : kEmptyHistory);
-        float curY = vm.bounds.top + 87.0f * dp - vm.scrollY;
-        const float kGroupHeaderH = 34.0f * dp, kItemH = 76.0f * dp, kItemGap = 8.0f * dp, kGroupGap = 16.0f * dp;
+        float headerY = vm.bounds.top + kHistoryContentInset * dp - vm.scrollY;
         for (size_t g = 0; g < proj.groups.size(); ++g) {
-            if (g > 0) curY += kGroupGap;
             HistoryGroupSummary grp = proj.groups[g];
-            grp.headerRect = D2D1::RectF(vm.bounds.left + 12.0f * dp, curY, vm.bounds.right - 24.0f * dp, curY + kGroupHeaderH);
+            const HistoryGroupLayout layout(headerY, grp.count, dp);
+            headerY = layout.NextHeaderTop();
+            grp.headerRect = D2D1::RectF(vm.bounds.left + 12.0f * dp, layout.headerTop,
+                vm.bounds.right - 24.0f * dp, layout.headerTop + layout.headerHeight);
             if (grp.headerRect.bottom >= clip.top && grp.headerRect.top <= clip.bottom) { DrawHistoryGroupHeader(r, s, grp); }
-            curY += kGroupHeaderH + 6.0f * dp;
-            for (size_t idx = grp.startIndex; idx < grp.startIndex + grp.count; ++idx) {
+            const auto [firstRow, lastRow] = layout.VisibleRows(clip.top, clip.bottom);
+            for (size_t row = firstRow; row < lastRow; ++row) {
+                const size_t idx = grp.startIndex + row;
                 size_t origIdx = proj.itemIndices[idx];
                 if (!vm.pHistory || origIdx >= vm.pHistory->size()) continue;
                 const auto& rec = (*vm.pHistory)[origIdx];
-                D2D1_RECT_F itemRect = D2D1::RectF(vm.bounds.left + 12.0f * dp, curY, vm.bounds.right - 24.0f * dp, curY + kItemH);
+                const float rowY = layout.RowTop(row);
+                D2D1_RECT_F itemRect = D2D1::RectF(vm.bounds.left + 12.0f * dp, rowY,
+                    vm.bounds.right - 24.0f * dp, rowY + layout.rowHeight);
                 if (itemRect.bottom >= clip.top && itemRect.top <= clip.bottom) {
                     bool hovered = (vm.hoveredIndex == (int)origIdx);
                     bool selected = (vm.selectedIndices.count(origIdx) > 0);
@@ -3600,8 +3605,9 @@ void UIComponents::DrawHistoryList(Renderer& r, const Settings& s, const History
                     r.DrawString(FormatHistoryProgress(rec), D2D1::RectF(itemRect.left + 16.0f * dp, itemRect.top + 38.0f * dp, itemRect.left + 250.0f * dp, itemRect.bottom - 9.0f * dp), rec.lastPosSec > 0.0 ? th.accent : th.textMuted, FontType::MonoSmall, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
                     if (hovered) {
                         const float delSize = 28.0f * dp;
-                        D2D1_RECT_F delRect = D2D1::RectF(itemRect.right - delSize - 10.0f * dp, itemRect.top + (kItemH - delSize) * 0.5f,
-                            itemRect.right - 10.0f * dp, itemRect.top + (kItemH + delSize) * 0.5f);
+                        D2D1_RECT_F delRect = D2D1::RectF(itemRect.right - delSize - 10.0f * dp,
+                            itemRect.top + (layout.rowHeight - delSize) * 0.5f,
+                            itemRect.right - 10.0f * dp, itemRect.top + (layout.rowHeight + delSize) * 0.5f);
                         bool delHover = (vm.hoveredDeleteIndex == (int)origIdx);
                         if (delHover) {
                             r.FillRoundedRect(delRect, 6.0f * dp, ColorWithAlpha(th.red, 0.22f));
@@ -3610,7 +3616,6 @@ void UIComponents::DrawHistoryList(Renderer& r, const Settings& s, const History
                         r.DrawIcon(IconType::CloseX, InsetRectF(delRect, 7.0f * dp, 7.0f * dp), delHover ? th.red : th.textMuted);
                     }
                 }
-                curY += kItemH + kItemGap;
             }
         }
     }

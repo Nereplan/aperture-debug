@@ -433,20 +433,24 @@ void App::AutoScrollToFocusedItem() {
     } else if (currentTab == TabView::History) {
         if (keyboardFocusedIndex < 0 || keyboardFocusedIndex >= (int)library.history.size()) return;
         const HistoryTimelineProjection& proj = GetHistoryProjection();
-        float itemH = 76.0f * dp, itemGap = 8.0f * dp, groupHeaderH = 34.0f * dp, groupGap = 16.0f * dp;
-        float curY = 0.0f;
+        float headerY = 0.0f, curY = 0.0f, itemH = 0.0f;
         bool found = false;
         for (size_t g = 0; g < proj.groups.size(); ++g) {
-            if (g > 0) curY += groupGap;
-            curY += groupHeaderH + 6.0f * dp;
-            for (size_t idx = proj.groups[g].startIndex; idx < proj.groups[g].startIndex + proj.groups[g].count; ++idx) {
-                if (proj.itemIndices[idx] == (size_t)keyboardFocusedIndex) { found = true; break; }
-                curY += itemH + itemGap;
+            const auto& group = proj.groups[g];
+            const HistoryGroupLayout layout(headerY, group.count, dp);
+            headerY = layout.NextHeaderTop();
+            const auto begin = proj.itemIndices.begin() + group.startIndex;
+            const auto end = begin + group.count;
+            const auto focused = std::find(begin, end, static_cast<size_t>(keyboardFocusedIndex));
+            if (focused != end) {
+                curY = layout.RowTop(static_cast<size_t>(focused - begin));
+                itemH = layout.rowHeight;
+                found = true;
+                break;
             }
-            if (found) break;
         }
         if (found) {
-            float histViewH = viewH - 87.0f * dp;
+            float histViewH = viewH - kHistoryContentInset * dp;
             if (curY < historyScrollY) {
                 historyScrollY = std::max(0.0f, curY);
             } else if (curY + itemH > historyScrollY + histViewH) { historyScrollY = curY + itemH - histViewH + 10.0f * dp; }

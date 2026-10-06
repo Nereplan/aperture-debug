@@ -731,7 +731,7 @@ HubRenderViewModel App::BuildHubRenderViewModel() {
                 vm.playlistsTab.detail.isFolderDrop = isPlaylistDropTargetActive && oleDragPayloadHasFolder;
                 vm.playlistsTab.detail.isEmpty = plItemPaths.empty();
                 if (!plItemPaths.empty()) {
-                    size_t resumeIndex = library.GetPlaylistResumeIndex(plItemPaths);
+                    size_t resumeIndex = plStats.resumeIndex;
                     const std::wstring* pResumePath = (resumeIndex < plItemPaths.size()) ? &plItemPaths[resumeIndex] : &plItemPaths[0];
                     MediaItem* pResumeMedia = pResumePath ? library.FindByPath(*pResumePath) : nullptr;
                     float detailHeadH = 50.0f * dp, resumeH = 112.0f * dp;
@@ -889,7 +889,7 @@ HubRenderViewModel App::BuildHubRenderViewModel() {
             vm.historyTab.isClearHovered = isClearHistoryHovered;
             vm.historyTab.isClearPressed = isClearHistoryPressed;
             vm.historyTab.scrollY = historyScrollY;
-            vm.historyTab.selectedIndices = selectedHistoryIndices;
+            vm.historyTab.hasProjectedLayout = true;
             if (library.history.empty()) {
                 vm.historyTab.isEmpty = true;
                 vm.historyTab.emptyState.visible = true;
@@ -920,25 +920,27 @@ HubRenderViewModel App::BuildHubRenderViewModel() {
             } else {
                 historyEmptyBtnBounds.clear();
                 const HistoryTimelineProjection& proj = GetHistoryProjection();
-                float curY = vm.viewBounds.top + 87.0f * dp - historyScrollY;
-                const float kGroupHeaderH = 34.0f * dp, kItemH = 76.0f * dp, kItemGap = 8.0f * dp, kGroupGap = 16.0f * dp;
-                // Only rows inside the (margin-extended) viewport get view
-                // models; offscreen rows are pure layout arithmetic.
+                float headerY = vm.viewBounds.top + kHistoryContentInset * dp - historyScrollY;
+                // Search each group's implicit row positions; hidden rows
+                // need neither view models nor a per-row layout walk.
                 const float clipTop = vm.viewBounds.top - 80.0f * dp;
                 const float clipBottom = vm.viewBounds.bottom + 80.0f * dp;
                 for (size_t g = 0; g < proj.groups.size(); ++g) {
-                    if (g > 0) curY += kGroupGap;
+                    const HistoryGroupLayout layout(headerY, proj.groups[g].count, dp);
+                    headerY = layout.NextHeaderTop();
                     HistoryGroupSummary grp = proj.groups[g];
-                    grp.headerRect = D2D1::RectF(vm.viewBounds.left + 12.0f * dp, curY, vm.viewBounds.right - 24.0f * dp, curY + kGroupHeaderH);
+                    grp.headerRect = D2D1::RectF(vm.viewBounds.left + 12.0f * dp, layout.headerTop,
+                        vm.viewBounds.right - 24.0f * dp, layout.headerTop + layout.headerHeight);
                     if (grp.headerRect.bottom >= clipTop && grp.headerRect.top <= clipBottom) { vm.historyTab.groups.push_back(grp); }
-                    curY += kGroupHeaderH + 6.0f * dp;
-                    for (size_t idx = grp.startIndex; idx < grp.startIndex + grp.count; ++idx) {
+                    const auto [firstRow, lastRow] = layout.VisibleRows(clipTop, clipBottom);
+                    for (size_t row = firstRow; row < lastRow; ++row) {
+                        const size_t idx = grp.startIndex + row;
                         size_t origIdx = proj.itemIndices[idx];
                         if (origIdx >= library.history.size()) continue;
                         const HistoryRecord& rec = library.history[origIdx];
-                        const D2D1_RECT_F itemRect = D2D1::RectF(vm.viewBounds.left + 12.0f * dp, curY, vm.viewBounds.right - 24.0f * dp, curY + kItemH);
-                        curY += kItemH + kItemGap;
-                        if (itemRect.bottom < clipTop || itemRect.top > clipBottom) continue;
+                        const float rowY = layout.RowTop(row);
+                        const D2D1_RECT_F itemRect = D2D1::RectF(vm.viewBounds.left + 12.0f * dp, rowY,
+                            vm.viewBounds.right - 24.0f * dp, rowY + layout.rowHeight);
                         VisibleHistoryItemViewModel item;
                         item.originalIndex = origIdx;
                         item.pRecord = &rec;

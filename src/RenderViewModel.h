@@ -536,6 +536,9 @@ inline HistoryTimelineProjection ProjectHistoryTimeline( const std::vector<Histo
 struct HistoryTabViewModel {
     D2D1_RECT_F bounds = { 0, 0, 0, 0 };
     bool isEmpty = false;
+    // A projected viewport may contain no rows during overscroll. Do not
+    // mistake that for a request to rebuild the full history in the renderer.
+    bool hasProjectedLayout = false;
     EmptyStateViewModel emptyState;
     // Borrowed for one frame; see VisibleHistoryItemViewModel::pRecord.
     const std::vector<HistoryRecord>* pHistory = nullptr;

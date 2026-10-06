@@ -113,25 +113,27 @@ void App::RefreshHubTooltips(bool force) {
         }
     } else if (currentTab == TabView::History) {
         const HistoryTimelineProjection& projection = GetHistoryProjection();
-        float y = view.top + 87.0f * dp - historyScrollY;
+        float headerY = view.top + kHistoryContentInset * dp - historyScrollY;
         for (size_t groupIndex = 0; groupIndex < projection.groups.size(); ++groupIndex) {
-            if (groupIndex > 0) y += 16.0f * dp;
-            y += 40.0f * dp;
             const auto& group = projection.groups[groupIndex];
-            for (size_t i = group.startIndex; i < group.startIndex + group.count; ++i) {
+            const HistoryGroupLayout layout(headerY, group.count, dp);
+            headerY = layout.NextHeaderTop();
+            const auto [firstRow, lastRow] = layout.VisibleRows(view.top, view.bottom);
+            for (size_t rowIndex = firstRow; rowIndex < lastRow; ++rowIndex) {
+                const size_t i = group.startIndex + rowIndex;
                 if (i >= projection.itemIndices.size()) break;
                 const size_t historyIndex = projection.itemIndices[i];
                 if (historyIndex >= library.history.size()) continue;
                 const HistoryRecord& record = library.history[historyIndex];
                 const std::wstring title = record.title.empty() ? GetFileNameFromPath(record.filePath) : record.title;
-                const D2D1_RECT_F row = D2D1::RectF(view.left + 12.0f * dp, y, view.right - 24.0f * dp, y + 76.0f * dp);
+                const float y = layout.RowTop(rowIndex);
+                const D2D1_RECT_F row = D2D1::RectF(view.left + 12.0f * dp, y, view.right - 24.0f * dp, y + layout.rowHeight);
                 const float titleWidth = std::max(80.0f * dp, RectWidth(row) - 150.0f * dp);
                 if (row.bottom >= view.top && row.top <= view.bottom &&
                     renderer.MeasureString(title, FontType::Medium).width > titleWidth) {
                     add(30000 + static_cast<TooltipManager::ToolId>(historyIndex), title,
                         TooltipClientRect(row.left, row.top, row.right, row.bottom));
                 }
-                y += 84.0f * dp;
             }
         }
     }

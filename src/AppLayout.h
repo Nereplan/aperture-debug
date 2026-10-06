@@ -8,6 +8,57 @@ namespace Aperture {
 inline constexpr float kMediaPinnedRestHeight = 92.0f;
 inline constexpr float kMediaRestHeight = 76.0f;
 
+// History uses fixed-height rows. Share their geometry so drawing, pointer
+// lookup, tooltips, accessibility, and focus scrolling can skip hidden rows.
+inline constexpr float kHistoryContentInset = 87.0f;
+
+struct HistoryGroupLayout {
+    float headerTop, headerHeight, rowHeight;
+    size_t rowCount;
+    float firstRowTop, rowPitch, rowGap, groupGap;
+
+    HistoryGroupLayout(float top, size_t count, float dp)
+        : headerTop(top), headerHeight(34.0f * dp), rowHeight(76.0f * dp), rowCount(count),
+          firstRowTop(top + headerHeight + 6.0f * dp), rowPitch(rowHeight + 8.0f * dp),
+          rowGap(8.0f * dp), groupGap(16.0f * dp) {}
+
+    float RowTop(size_t row) const { return firstRowTop + static_cast<float>(row) * rowPitch; }
+    float NextHeaderTop() const { return RowTop(rowCount) + groupGap; }
+    float ContentBottom() const { return rowCount ? RowTop(rowCount) - rowGap : headerTop + headerHeight; }
+
+    // Search the implicit sorted row positions instead of allocating offsets
+    // or walking the rows above the viewport. Exact pixel comparisons keep
+    // partially visible rows and avoid division rounding at row boundaries.
+    std::pair<size_t, size_t> VisibleRows(float clipTop, float clipBottom) const {
+        if (clipBottom < clipTop) return { 0, 0 };
+        size_t first = 0, end = rowCount;
+        while (first < end) {
+            const size_t mid = first + (end - first) / 2;
+            if (RowTop(mid) + rowHeight < clipTop) first = mid + 1;
+            else end = mid;
+        }
+        size_t last = first;
+        end = rowCount;
+        while (last < end) {
+            const size_t mid = last + (end - last) / 2;
+            if (RowTop(mid) <= clipBottom) last = mid + 1;
+            else end = mid;
+        }
+        return { first, last };
+    }
+};
+
+template <typename Groups>
+float HistoryContentHeight(const Groups& groups, float dp) {
+    float top = kHistoryContentInset * dp, bottom = top;
+    for (const auto& group : groups) {
+        const HistoryGroupLayout layout(top, group.count, dp);
+        bottom = layout.ContentBottom();
+        top = layout.NextHeaderTop();
+    }
+    return bottom;
+}
+
 // Reuse the unchanged prefix during card expansion. Recalculate from the
 // first changed row instead of repeatedly adding deltas (which accumulates
 // floating-point drift across hover reversals).

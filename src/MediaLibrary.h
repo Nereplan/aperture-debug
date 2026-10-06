@@ -207,7 +207,12 @@ struct HistoryRecord {
     JsonValue extraFields;
 };
 
-struct PlaylistStats { uint64_t totalSizeBytes = 0; double totalDurationSec = 0.0; int watchedCount = 0; int totalCount = 0; };
+struct PlaylistStats {
+    uint64_t totalSizeBytes = 0;
+    double totalDurationSec = 0.0;
+    int watchedCount = 0, totalCount = 0;
+    size_t resumeIndex = 0;
+};
 enum class ImportConflictPolicy {
     KeepExisting = 0, // Default: preserve existing record, update size/duration if changed/missing
     Overwrite,        // Overwrite existing item title, metadata, timestamps from disk probe
@@ -448,7 +453,12 @@ private:
     MediaLibrarySaveState saveState;
     mutable std::unordered_map<std::wstring, size_t> pathToIndex;
     mutable std::unordered_map<std::string, size_t> idToIndex;
-    struct PlaylistStatsCacheEntry { uint64_t version = 0; PlaylistStats stats; };
+    struct PlaylistStatsCacheEntry {
+        uint64_t version = 0;
+        PlaylistStats stats;
+        bool requiresAvailability = false;
+        ULONGLONG availabilityCheckedMs = 0;
+    };
     mutable std::unordered_map<std::string, PlaylistStatsCacheEntry> playlistStatsCache;
     struct SmartPathsCacheEntry { uint64_t version = 0; ULONGLONG availabilityCheckedMs = 0; std::vector<std::wstring> paths; };
     mutable std::unordered_map<std::string, SmartPathsCacheEntry> smartPathsCache;

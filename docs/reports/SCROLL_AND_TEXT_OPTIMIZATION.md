@@ -31,7 +31,9 @@ Wrapped text keeps the existing wrapping, clipping, and ellipsis settings. Font,
 
 ## Further optimization candidates
 
+The subsequent [history and playlist pass](HISTORY_AND_PLAYLIST_OPTIMIZATION.md) implements the two candidates below, with compile-only validation.
+
 - `App::BuildHubRenderViewModel` and history hover handling still walk history rows outside the viewport. A shared history layout index could narrow drawing and hit checks together while keeping scrolling, selection, and accessibility aligned.
 - The playlist detail pane calls `MediaLibrary::GetPlaylistResumeIndex` on each view-model build. That scan repeatedly normalizes and looks up playlist paths. Caching the result could help large playlists, but must track status changes, reordering, and smart-playlist availability refreshes, which can occur without a library-version change.
 
-Profile those paths with a representative library before expanding the optimization scope.
+Their runtime impact still needs measurement with a representative library.
