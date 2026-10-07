@@ -41,6 +41,7 @@
 #include "TestMpvInitialization.h"
 #include "TestLibrarySaving.h"
 #include "TestWatchReconcile.h"
+#include "TestMetadataBackfill.h"
 #include "TestOverlayPacing.h"
 
 int main(int argc, char* argv[]) {

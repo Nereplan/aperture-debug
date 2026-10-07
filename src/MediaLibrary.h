@@ -264,6 +264,34 @@ struct MetadataBackfillResult {
     StorageStatus status = StorageStatus::Ok();
 };
 
+// File/probe state used to reject stale worker results. Playback, bookmarks
+// and overrides are deliberately absent: they remain owned by the live item.
+struct MetadataBackfillBaseline {
+    std::string id;
+    std::wstring path;
+    double durationSec = 0;
+    uint64_t size = 0, fileIndex = 0;
+    uint32_t volume = 0, width = 0, height = 0, attempts = 0;
+    int64_t lastAttempt = 0;
+    bool failed = false;
+    static bool SameDuration(double a, double b) { return a == b || (std::isnan(a) && std::isnan(b)); }
+    static MetadataBackfillBaseline Capture(const MediaItem& item) {
+        return {item.id, item.filePath, item.durationSec, item.fileSizeBytes, item.fileIndex, item.volumeSerialNumber,
+            item.videoWidth, item.videoHeight, item.probeAttemptCount, item.lastProbeAttemptTimestamp, item.metadataProbeFailed};
+    }
+    bool Matches(const MediaItem& item) const {
+        return id == item.id && NormalizePathKey(path) == NormalizePathKey(item.filePath) &&
+            SameDuration(durationSec, item.durationSec) && size == item.fileSizeBytes && fileIndex == item.fileIndex &&
+            volume == item.volumeSerialNumber && width == item.videoWidth && height == item.videoHeight &&
+            attempts == item.probeAttemptCount && lastAttempt == item.lastProbeAttemptTimestamp && failed == item.metadataProbeFailed;
+    }
+};
+
+struct MetadataBackfillMergeResult {
+    size_t changedCount = 0, discardedCount = 0;
+    bool viewChanged = false;
+};
+
 using MetadataBackfillProgressCallback = std::function<bool(size_t processed, size_t total, const std::wstring& currentPath)>;
 struct MediaLibraryLoadResult {
     bool success = true;
@@ -478,6 +506,8 @@ public:
     // Retries missing/failed metadata probes with deterministic backoff and bounding
     MetadataBackfillResult BackfillMissingMetadata(const MetadataBackfillOptions& options = {},
                                                     const MetadataBackfillProgressCallback& progress = {}, bool saveChanges = true);
+    MetadataBackfillMergeResult MergeMetadataBackfill(const std::vector<MetadataBackfillBaseline>& baseline,
+        const std::vector<MediaItem>& updates);
     static bool NeedsMetadataBackfill(const MediaItem& item);
     static bool CanAttemptMetadataBackfill(const MediaItem& item, const MetadataBackfillOptions& options, int64_t now);
 private:

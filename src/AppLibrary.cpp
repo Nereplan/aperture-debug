@@ -165,6 +165,8 @@ void App::CancelInitialLibraryLoad() {
 
 void App::InvalidateLibraryDerivedState() {
     // Replacement/undo can restore an older object with coincident counters.
+    backfillCursor.Reset();
+    backfillBaseline.clear();
     watchReconcileWorker.Cancel();
     watchRetryAfterTick = 0;
     for (const auto& root : library.GetWatchedFolders()) watchReconcileWorker.Queue({true, root, {}});

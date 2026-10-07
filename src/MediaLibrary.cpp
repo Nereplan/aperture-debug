@@ -2759,6 +2759,48 @@ MediaLibrarySaveResult MediaLibrary::Save() {
     return lastSaveResult;
 }
 
+MetadataBackfillMergeResult MediaLibrary::MergeMetadataBackfill(const std::vector<MetadataBackfillBaseline>& baseline,
+    const std::vector<MediaItem>& updates) {
+    MetadataBackfillMergeResult result;
+    bool catalogChanged = false, playbackChanged = false;
+    for (size_t i = 0; i < updates.size(); ++i) {
+        const auto& update = updates[i];
+        if (i >= baseline.size() || update.id != baseline[i].id ||
+            NormalizePathKey(update.filePath) != NormalizePathKey(baseline[i].path)) {
+            ++result.discardedCount; continue;
+        }
+        auto* live = update.id.empty() ? FindByPath(update.filePath) : FindById(update.id);
+        if (!live || !baseline[i].Matches(*live)) { ++result.discardedCount; continue; }
+        const bool metadataChanged = !MetadataBackfillBaseline::SameDuration(live->durationSec, update.durationSec) ||
+            live->videoWidth != update.videoWidth || live->videoHeight != update.videoHeight ||
+            live->fileSizeBytes != update.fileSizeBytes || live->fileIndex != update.fileIndex ||
+            live->volumeSerialNumber != update.volumeSerialNumber;
+        const bool retryChanged = live->metadataProbeFailed != update.metadataProbeFailed ||
+            live->probeAttemptCount != update.probeAttemptCount || live->lastProbeAttemptTimestamp != update.lastProbeAttemptTimestamp;
+        if (!metadataChanged && !retryChanged) continue;
+        live->durationSec = update.durationSec;
+        live->videoWidth = update.videoWidth; live->videoHeight = update.videoHeight;
+        live->fileSizeBytes = update.fileSizeBytes;
+        live->fileIndex = update.fileIndex; live->volumeSerialNumber = update.volumeSerialNumber;
+        live->metadataProbeFailed = update.metadataProbeFailed;
+        live->probeAttemptCount = update.probeAttemptCount; live->lastProbeAttemptTimestamp = update.lastProbeAttemptTimestamp;
+        if (std::isfinite(live->durationSec) && live->durationSec > 0 && live->lastPosSec > live->durationSec) {
+            live->lastPosSec = live->durationSec;
+            playbackChanged = true;
+        }
+        catalogChanged |= metadataChanged;
+        ++result.changedCount;
+    }
+    if (result.changedCount) ++libraryVersion;
+    if (catalogChanged) ++revisions.catalog;
+    if (playbackChanged) ++revisions.playback;
+    result.viewChanged = catalogChanged || playbackChanged;
+    if (result.viewChanged) InvalidatePlaylistStatsCache();
+    // IDs, paths and vector positions did not change. Lookup maps and search
+    // text remain valid; retry bookkeeping does not invalidate UI projections.
+    return result;
+}
+
 bool MediaLibrary::NeedsMetadataBackfill(const MediaItem& item) {
     return ClassifyPlaybackTarget(item.filePath) == PlaybackTargetKind::LocalFile &&
         (!std::isfinite(item.durationSec) || item.durationSec <= 0 || item.metadataProbeFailed);

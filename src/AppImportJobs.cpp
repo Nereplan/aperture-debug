@@ -200,19 +200,33 @@ void App::CancelImportJob() {
 }
 
 
-bool App::HasEligibleBackfillItems(const MetadataBackfillOptions& options) const {
-    const int64_t now = options.nowTimestamp > 0 ? options.nowTimestamp : GetCurrentTimestampSec();
-    for (const auto& item : library.mediaItems)
-        if (MediaLibrary::CanAttemptMetadataBackfill(item, options, now)) return true;
-    return false;
+void App::ScheduleMetadataBackfill(const MetadataBackfillOptions& options) {
+    if (backfillJobActive) return;
+    backfillOptions = options;
+    if (backfillOptions.maxItems == 0) backfillOptions.maxItems = 32;
+    backfillCursor.Reset();
+    backfillLastSaveTick = GetTickCount64();
+    StartNextMetadataBackfillBatch();
 }
 
 
-void App::ScheduleMetadataBackfill(const MetadataBackfillOptions& options) {
-    if (backfillJobActive) return;
-    MetadataBackfillOptions effectiveOptions = options;
-    if (effectiveOptions.maxItems == 0) { effectiveOptions.maxItems = 32; }
-    if (!HasEligibleBackfillItems(effectiveOptions)) return;
+void App::StartNextMetadataBackfillBatch() {
+    if (backfillJobActive || shutdownComplete || playerCallbacksDisabled.load(std::memory_order_acquire)) return;
+    const MetadataBackfillOptions effectiveOptions = backfillOptions;
+    std::vector<MediaItem> snapshot;
+    try {
+        snapshot = backfillCursor.Take(library, effectiveOptions);
+        if (snapshot.empty()) return;
+        backfillBaseline.clear();
+        backfillBaseline.reserve(snapshot.size());
+        for (const auto& item : snapshot) backfillBaseline.push_back(MetadataBackfillBaseline::Capture(item));
+    } catch (...) {
+        backfillCursor.Reset();
+        backfillBaseline.clear();
+        ReportStorageFailure(StorageStatus::Error(StorageErrorCode::FileReadFailed, ERROR_NOT_ENOUGH_MEMORY,
+            L"", "Could not prepare metadata refresh"), L"metadata backfill");
+        return;
+    }
     if (backfillWorker.joinable()) backfillWorker.join();
     backfillCancelRequested.store(false, std::memory_order_release);
     backfillDone.store(false, std::memory_order_release);
@@ -221,25 +235,8 @@ void App::ScheduleMetadataBackfill(const MetadataBackfillOptions& options) {
     backfillResult = {};
     stagedBackfillItems.clear();
     backfillJobActive = true;
-    // Copy at most maxItems eligible records, never the full library. The old path copied the entire mediaItems vector (strings, JSON,
-    // bookmarks) on the UI thread and rebuilt a full index only to probe <=32 files — tens of MiB transient at 25k items. Eligibility
-    // mirrors
-    // MediaLibrary::BackfillMissingMetadata so the worker sees the same set.
-    std::vector<MediaItem> snapshot;
-    {
-        const int64_t now = effectiveOptions.nowTimestamp > 0 ? effectiveOptions.nowTimestamp : GetCurrentTimestampSec();
-        const size_t cap = effectiveOptions.maxItems > 0 ? effectiveOptions.maxItems : 32;
-        snapshot.reserve(std::min<size_t>(cap, library.mediaItems.size()));
-        for (const auto& item : library.mediaItems) {
-            if (snapshot.size() >= cap) break;
-            if (MediaLibrary::CanAttemptMetadataBackfill(item, effectiveOptions, now)) snapshot.push_back(item);
-        }
-    }
-    if (snapshot.empty()) {
-        // Lost a race with HasEligibleBackfillItems (state changed between check and collect). Do not leave a dangling active job.
-        backfillJobActive = false;
-        return;
-    }
+    // The cursor copies at most one batch and visits each stable catalog row
+    // once across the entire pass. The worker never reads the live library.
     try { backfillWorker = std::thread([this, stagedSnapshot = std::move(snapshot), effectiveOptions]() mutable {
         struct CompletionGuard {
             std::atomic<bool>& done;
@@ -288,6 +285,7 @@ void App::FinishBackfillJob() {
     if (shutdownComplete || backfillCancelRequested.load(std::memory_order_acquire)) {
         if (backfillWorker.joinable()) backfillWorker.join();
         stagedBackfillItems.clear();
+        backfillBaseline.clear();
         backfillResult = {};
         backfillJobActive = false;
         backfillDone.store(false, std::memory_order_release);
@@ -299,49 +297,25 @@ void App::FinishBackfillJob() {
     stagedBackfillItems.clear();
     backfillJobActive = false;
     backfillDone.store(false, std::memory_order_release);
-    bool anyChanged = false;
-    for (const auto& stagedItem : stagedItems) {
-        MediaItem* existing = library.FindByPath(stagedItem.filePath);
-        if (!existing && !stagedItem.id.empty()) { existing = library.FindById(stagedItem.id); }
-        if (existing) {
-            if (existing->durationSec != stagedItem.durationSec || existing->videoWidth != stagedItem.videoWidth ||
-                existing->videoHeight != stagedItem.videoHeight || existing->fileSizeBytes != stagedItem.fileSizeBytes ||
-                existing->fileIndex != stagedItem.fileIndex || existing->volumeSerialNumber != stagedItem.volumeSerialNumber ||
-                existing->metadataProbeFailed != stagedItem.metadataProbeFailed ||
-                existing->probeAttemptCount != stagedItem.probeAttemptCount ||
-                existing->lastProbeAttemptTimestamp != stagedItem.lastProbeAttemptTimestamp) {
-                existing->durationSec = stagedItem.durationSec;
-                existing->videoWidth = stagedItem.videoWidth;
-                existing->videoHeight = stagedItem.videoHeight;
-                existing->fileSizeBytes = stagedItem.fileSizeBytes;
-                existing->fileIndex = stagedItem.fileIndex;
-                existing->volumeSerialNumber = stagedItem.volumeSerialNumber;
-                existing->metadataProbeFailed = stagedItem.metadataProbeFailed;
-                existing->probeAttemptCount = stagedItem.probeAttemptCount;
-                existing->lastProbeAttemptTimestamp = stagedItem.lastProbeAttemptTimestamp;
-                if (existing->durationSec > 0.0 && existing->lastPosSec > existing->durationSec)
-                    existing->lastPosSec = existing->durationSec;
-                anyChanged = true;
-            }
-        }
-    }
-    if (anyChanged) {
-        library.RebuildPathIndex();
-        library.InvalidatePlaylistStatsCache();
-        library.NotifyPlaylistChanged();
+    const auto previousCatalog = library.GetRevisions().catalog;
+    const auto merged = library.MergeMetadataBackfill(backfillBaseline, stagedItems);
+    backfillBaseline.clear();
+    backfillCursor.AcceptOwnChanges(previousCatalog, library.GetRevisions().catalog);
+    backfillPassDirty |= merged.changedCount > 0;
+    if (merged.viewChanged) {
         InvalidateMediaLayoutCache();
-        // A chained continuation saves on its own final batch; saving per
-        // batch serialized the whole backfill into repeated full JSON writes.
-        const bool chainsAnotherBatch = result.outcome == LongOperationOutcome::Completed &&
-            !backfillCancelRequested.load(std::memory_order_acquire) && !shutdownComplete && HasEligibleBackfillItems();
-        if (!chainsAnotherBatch) { SaveLibrary(); }
         if (hWnd) InvalidateRect(hWnd, NULL, FALSE);
-        AnnounceStatus(L"Metadata backfill completed");
     }
     if (!result.status.is_ok()) { ReportStorageFailure(result.status, L"metadata backfill"); }
     if (result.outcome == LongOperationOutcome::Completed && !backfillCancelRequested.load(std::memory_order_acquire) && !shutdownComplete) {
-        if (HasEligibleBackfillItems()) { ScheduleMetadataBackfill(); }
+        StartNextMetadataBackfillBatch();
     }
+    // Checkpoint a long pass, and always save its final batch. Retry-only
+    // changes are durable too, even though they do not rebuild any views.
+    if (backfillPassDirty && (!backfillJobActive || GetTickCount64() - backfillLastSaveTick >= 5000)) {
+        if (SaveLibrary()) { backfillPassDirty = false; backfillLastSaveTick = GetTickCount64(); }
+    }
+    if (!backfillJobActive && merged.changedCount) AnnounceStatus(L"Metadata backfill completed");
 }
 
 
@@ -355,6 +329,7 @@ void App::CancelBackfillJob() {
             backfillJobActive = false;
             backfillDone.store(false, std::memory_order_release);
             stagedBackfillItems.clear();
+            backfillBaseline.clear();
             backfillResult = {};
         }
     } else { backfillJobActive = false; }

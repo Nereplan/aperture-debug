@@ -2,7 +2,7 @@
 
 7 October 2026. Source baseline: `bd5db22` (library view pipeline redesign).
 
-This pass reduces repeated work in saving, searching, smart playlists and watched-folder updates. It does not claim measured latency or memory improvements: the user requested no tests or benchmarks.
+This pass reduces repeated work in saving, searching, smart playlists, watched-folder updates and metadata backfill. It does not claim measured latency or memory improvements: the user requested no tests or benchmarks. The metadata follow-up starts from `91b9ccd`.
 
 ## Saving
 
@@ -36,9 +36,21 @@ Cancellation and generations discard results from replaced libraries. Newer queu
 
 Continuous filesystem changes can defer publication until a current scan completes. Manual/startup folder rediscovery outside the watcher pipeline still uses its existing synchronous implementation.
 
+## Metadata backfill
+
+Chained metadata batches now share a forward cursor. A stable catalog is examined once across the pass, rather than repeatedly scanning its processed prefix for eligibility, collection and continuation. External catalog edits restart the cursor. Only the next bounded batch (32 records by default) is copied into the worker.
+
+Completion merges only file/probe metadata against captured baseline facts. It rejects removed, replaced, renamed or otherwise superseded records and retains live playback, bookmarks and overrides. Metadata changes advance the catalog revision without rebuilding ID/path maps or search text. Retry-only bookkeeping remains durable without invalidating catalog, playlist or history views.
+
+Long passes request a save checkpoint every five seconds and at completion. Each eligible record is attempted once per stable pass; later scheduling retains the existing retry limits and backoff rules. Regression source covers a complete multi-batch pass, external insertion, stale results, preservation of live edits and retry-only invalidation.
+
 ## Validation
 
 - Native application compiled and linked locally with MSVC using `build.ps1 -SkipDependencyCheck`; no application launch.
-- Regression source passed MSVC syntax-only compilation. One existing malformed path literal found by that check was corrected.
+- Regression source passed MSVC syntax-only compilation, including the metadata follow-up. The final syntax check had no diagnostics; malformed path literals from the previous view tests were corrected.
 - Added regression cases for save-byte reuse and failed retry, search candidate counts and lazy metadata, prepared smart-rule semantics and time boundaries, bounded watch queues, batch application, stale observations, rename recovery and cancellation.
 - Tests, benchmarks and runtime measurements were **not run**. The changes require the user's behavioral and performance validation before release.
+
+## Remaining candidates
+
+Further architectural work could move the separate folder-rediscovery operation off the UI thread, introduce persisted file fingerprints to avoid safe-to-skip duplicate import probes, and replace full-document saving with a journal. These change larger behavior or storage contracts and need workload measurements and regression execution before choosing a design.

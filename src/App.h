@@ -26,6 +26,7 @@
 #include "LibraryQuery.h"
 #include "LibrarySnapshot.h"
 #include "LibrarySaveWorker.h"
+#include "MetadataBackfillCursor.h"
 #include "OnlineSubtitleJobs.h"
 #include "AsyncOwnedJob.h"
 #include "IpcProtocol.h"
@@ -284,6 +285,11 @@ private:
     bool backfillJobActive = false;
     MetadataBackfillResult backfillResult;
     std::vector<MediaItem> stagedBackfillItems;
+    std::vector<MetadataBackfillBaseline> backfillBaseline;
+    MetadataBackfillCursor backfillCursor;
+    MetadataBackfillOptions backfillOptions;
+    bool backfillPassDirty = false;
+    ULONGLONG backfillLastSaveTick = 0;
     WatchReconcileWorker watchReconcileWorker;
     FolderWatcher folderWatcher;
     ULONGLONG watchRetryAfterTick = 0;
@@ -302,9 +308,9 @@ private:
     void FinishImportJob();
     void CancelImportJob();
     void ScheduleMetadataBackfill(const MetadataBackfillOptions& options = {});
+    void StartNextMetadataBackfillBatch();
     void FinishBackfillJob();
     void CancelBackfillJob();
-    bool HasEligibleBackfillItems(const MetadataBackfillOptions& options = {}) const;
     bool EnsurePlayerInitialized();
     bool EnsurePreviewInitialized();
     // Representative start position for hub fallback extraction (resume pos else 10% capped at 10s, mirroring the hover preview rule).
