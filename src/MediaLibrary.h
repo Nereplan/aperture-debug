@@ -16,6 +16,8 @@
 
 namespace Aperture {
 
+class PreparedSmartPlaylist;
+
 struct MediaPlaybackPreferences {
     std::optional<double> playbackSpeed;       // Valid range: [0.25, 4.0]
     std::optional<std::string> aspectRatio;    // Valid modes: "auto", "16:9", "4:3", "21:9", "fill", "cover"
@@ -293,7 +295,10 @@ struct MediaLibrarySaveResult {
 struct WatchReconcileResult {
     size_t addedCount = 0, updatedCount = 0, removedCount = 0, renamedCount = 0, rescanCount = 0;
     StorageStatus status = StorageStatus::Ok();
+    bool needsRescan = false;
 };
+
+struct PreparedWatchDelta;
 
 struct MediaRelocationResult {
     size_t missingCount = 0, relocatedCount = 0, ambiguousCount = 0, notFoundCount = 0;
@@ -327,7 +332,13 @@ struct MediaLibrarySaveState {
     uint64_t seriesId = 0, libraryGeneration = 0, playlistsGeneration = 0;
     uint64_t historyGeneration = 0, watchedFoldersGeneration = 0;
     uint64_t serializedStoreCount = 0;
+    uint64_t serializedMediaRecordCount = 0, reusedMediaRecordCount = 0;
     std::string lastLibraryJson, lastPlaylistsJson, lastHistoryJson, lastWatchedFoldersJson;
+    // One committed generation, with spans into lastLibraryJson rather than
+    // duplicate per-record strings. Owning records prevents pointer ABA reuse.
+    struct RecordSpan { size_t offset = 0, length = 0; };
+    std::shared_ptr<const MediaLibrarySaveSnapshot::MediaRecords> lastMediaRecords;
+    std::vector<RecordSpan> lastMediaSpans;
 };
 
 MediaLibrarySaveResult WriteLibrarySaveSnapshot(const MediaLibrarySaveSnapshot& snapshot,
@@ -398,7 +409,7 @@ public:
     // the two affected index entries. Returns true when an item moved.
     bool PromoteMostRecentlyWatched();
     PlaylistStats GetPlaylistStats(const std::string& playlistId) const;
-    void InvalidatePlaylistStatsCache() const;
+    void InvalidatePlaylistStatsCache(bool clearSmartPaths = true) const;
     // Conservative notification for legacy callers editing public records.
     // Membership/path edits must also repair lookup maps with RebuildPathIndex.
     void NotifyPlaylistChanged();
@@ -433,6 +444,9 @@ public:
     bool RemoveWatchedFolder(const std::wstring& path, bool saveChanges = true);
     WatchReconcileResult ReconcileWatchBatch(const WatchChangeBatch& batch, bool saveChanges = true, bool probeMetadata = true);
     WatchReconcileResult ReconcileRescan(const std::wstring& rootFolder, bool saveChanges = true, bool probeMetadata = true);
+    // Apply worker-observed file changes in one transaction, without filesystem
+    // calls. Baseline checks protect edits made while the worker was running.
+    WatchReconcileResult ApplyPreparedWatchDelta(const PreparedWatchDelta& delta, bool saveChanges = true);
     Playlist* CreatePlaylist(const std::string& name);
     bool DeletePlaylist(const std::string& playlistId);
     bool AddToPlaylist(const std::string& playlistId, const std::wstring& path);
@@ -457,6 +471,8 @@ public:
     // smart-playlist membership without changing any library revision.
     PlaylistPathsView ResolvePlaylistPaths(const Playlist& playlist) const;
     std::vector<std::wstring> EvaluateSmartPlaylist(const SmartPlaylistCriteria& criteria) const;
+    uint64_t GetSmartPlaylistEvaluationCount() const { return smartPlaylistEvaluationCount; }
+    uint64_t GetSmartPlaylistDiskProbeCount() const { return smartPlaylistDiskProbeCount; }
     // Fast metadata extraction using Media Foundation Source Reader
     static bool ProbeMediaMetadata(const std::wstring& path, double& outDurationSec, uint32_t& outWidth, uint32_t& outHeight);
     // Retries missing/failed metadata probes with deterministic backoff and bounding
@@ -479,13 +495,27 @@ private:
     struct PlaylistStatsCacheEntry {
         LibraryRevisions revisions;
         PlaylistStats stats;
-        bool requiresAvailability = false;
-        ULONGLONG availabilityCheckedMs = 0;
+        ULONGLONG expiresAtTick = (std::numeric_limits<ULONGLONG>::max)();
+        int64_t evaluatedAtSec = 0, expiresAtSec = (std::numeric_limits<int64_t>::max)();
+        bool timeDependent = false;
     };
     mutable std::unordered_map<std::string, PlaylistStatsCacheEntry> playlistStatsCache;
-    struct SmartPathsCacheEntry { LibraryRevisions revisions; uint64_t generation = 0; ULONGLONG availabilityCheckedMs = 0; std::vector<std::wstring> paths; };
+    struct SmartPathsCacheEntry {
+        LibraryRevisions revisions;
+        uint64_t generation = 0;
+        ULONGLONG expiresAtTick = (std::numeric_limits<ULONGLONG>::max)();
+        int64_t evaluatedAtSec = 0, expiresAtSec = (std::numeric_limits<int64_t>::max)();
+        bool timeDependent = false, playbackDependent = false;
+        std::vector<std::wstring> paths;
+    };
     mutable std::unordered_map<std::string, SmartPathsCacheEntry> smartPathsCache;
+    struct SmartAvailabilityEntry { PathAvailability value = PathAvailability::Unavailable; ULONGLONG checkedAtTick = 0; bool known = false; };
+    mutable std::vector<SmartAvailabilityEntry> smartAvailability;
+    mutable uint64_t smartAvailabilityCatalog = (std::numeric_limits<uint64_t>::max)();
+    std::vector<std::wstring> EvaluatePreparedSmartPlaylist(const PreparedSmartPlaylist& plan,
+        ULONGLONG& expiresAtTick, int64_t& expiresAtSec, bool useAvailabilityCache = true) const;
     mutable uint64_t smartPathsGeneration = 0;
+    mutable uint64_t smartPlaylistEvaluationCount = 0, smartPlaylistDiskProbeCount = 0;
     uint64_t libraryVersion = 0;
     LibraryRevisions revisions;
     uint64_t searchContentVersion = 0;

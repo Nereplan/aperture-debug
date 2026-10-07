@@ -872,6 +872,7 @@ void App::BeginClose() {
     if (libraryLoadWorker.joinable()) CancelSynchronousIo(libraryLoadWorker.native_handle());
     deferredLibraryCommands.clear(); pendingPlaybackOpen.reset();
     CancelImportJob(); CancelBackfillJob(); CancelNetworkJobs();
+    watchReconcileWorker.Cancel();
     renderer.CancelThumbnailWork();
     if (hOverlayWnd) ShowWindow(hOverlayWnd, SW_HIDE);
     if (hWnd) ShowWindow(hWnd, SW_HIDE);
@@ -883,7 +884,7 @@ bool App::PollClose() {
     if (!libraryLoadWorkerDone.load(std::memory_order_acquire) ||
         (importWorker.joinable() && !importDone.load(std::memory_order_acquire)) ||
         (backfillWorker.joinable() && !backfillDone.load(std::memory_order_acquire)) ||
-        AreNetworkJobsRunning() || renderer.AreThumbnailWorkersRunning() || renderer.AreDeviceWorkersRunning() ||
+        AreNetworkJobsRunning() || watchReconcileWorker.IsRunning() || renderer.AreThumbnailWorkersRunning() || renderer.AreDeviceWorkersRunning() ||
         !librarySaveWorker.IsComplete(closeSaveSerial)) return false;
     Shutdown();
     if (hWnd && IsWindow(hWnd)) DestroyWindow(hWnd);
@@ -919,7 +920,7 @@ void App::Shutdown() {
     MediaFoundation::ShutdownIfInitialized();
     folderWatcher.SetCallback(nullptr);
     folderWatcher.Stop();
-    { std::lock_guard<std::mutex> lock(pendingWatchMutex); pendingWatchBatches.clear(); }
+    watchReconcileWorker.StopAndJoin();
     accessibilityActions.clear();
     accessibilityTree.SetWindow(nullptr);
     accessibilityTree.ClearNodes();
@@ -1176,7 +1177,8 @@ bool App::Initialize(HWND hwnd, HWND hVideoChild, HINSTANCE hinst, const Playbac
         } else if (scene == L"settings_system") { SetSettingsCategory(SettingsCategory::System); }
     }
     folderWatcher.SetCallback([this](const WatchChangeBatch& batch) {
-        { std::lock_guard<std::mutex> lock(pendingWatchMutex); pendingWatchBatches.push_back(batch); }
+        if (playerCallbacksDisabled.load(std::memory_order_acquire)) return;
+        watchReconcileWorker.Queue(batch);
         if (!watchEventPosted.exchange(true)) { if (hWnd) PostMessageW(hWnd, kFolderWatchEventMessage, 0, 0); }
     });
     // Watched roots, Jump List publication, and metadata backfill begin only after the adopted snapshot has rendered once.
@@ -1242,6 +1244,8 @@ bool App::Update(float dt) {
     Diagnostics::RecordHeartbeat(L"running");
     if (closeRequested) { PollClose(); return false; }
     bool needsRedraw = PumpLibrarySaveResults();
+    if (libraryReady && (watchReconcileWorker.HasCompleted() ||
+        (!watchReconcileWorker.IsRunning() && watchReconcileWorker.HasPending()))) HandleFolderWatchEvents();
     needsRedraw = PumpOnlineSubtitleJobs() || needsRedraw;
     needsRedraw = PumpUpdateJobs() || needsRedraw;
     // A graphics driver can hold the process loader lock while it initializes.

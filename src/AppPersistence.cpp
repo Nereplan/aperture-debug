@@ -33,20 +33,29 @@ bool App::SaveSettings() {
 
 
 MediaLibrarySaveResult App::QueueLibrarySave() {
-    // Mutators and command callers can request the same save in one message.
-    // Capture their final state once on the next UI pump (or explicit barrier).
-    if (libraryReady) librarySaveRequested = true;
+    // Coalesce edit bursts before deep comparison/capture, not just before
+    // disk writes. Close and refresh barriers force the current state through.
+    if (libraryReady) {
+        librarySaveCaptureSchedule.Request(GetTickCount64(), !librarySaveRequested);
+        librarySaveRequested = true;
+    }
     return {};
 }
 
-MediaLibrarySaveResult App::SubmitPendingLibrarySave() {
+MediaLibrarySaveResult App::SubmitPendingLibrarySave(bool force) {
     MediaLibrarySaveResult result;
     if (!libraryReady || !librarySaveRequested) return result;
+    if (!force && !librarySaveCaptureSchedule.IsDue(GetTickCount64())) return result;
     try {
         submittedLibrarySnapshot = library.CaptureSaveSnapshot(submittedLibrarySnapshot);
         if (!librarySaveWorker.Submit(submittedLibrarySnapshot)) throw std::runtime_error("Save worker is stopped");
+        // Capture has already debounced this batch. Do not stack a second
+        // worker delay, particularly at shutdown/reload synchronization points.
+        librarySaveWorker.RequestFlush();
         librarySaveRequested = false;
+        librarySaveCaptureSchedule.Complete();
     } catch (...) {
+        librarySaveCaptureSchedule.Request(GetTickCount64(), true);
         result.success = false;
         result.libraryStatus = StorageStatus::Error(StorageErrorCode::SerializationFailed, 0, GetExeDir(), "Failed to queue library save");
     }
@@ -63,7 +72,7 @@ bool App::ReportLibrarySaveResult(const MediaLibrarySaveResult& res) {
 }
 
 bool App::PumpLibrarySaveResults() {
-    bool failed = !ReportLibrarySaveResult(SubmitPendingLibrarySave());
+    bool failed = !ReportLibrarySaveResult(SubmitPendingLibrarySave(false));
     for (const auto& result : librarySaveWorker.TakeResults()) failed = !ReportLibrarySaveResult(result) || failed;
     if (librarySaveWorker.TakeDroppedFailure()) {
         StorageStatus status;

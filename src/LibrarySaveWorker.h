@@ -10,6 +10,23 @@
 
 namespace Aperture {
 
+// UI-owned admission control: coalesce before capturing a potentially large
+// immutable snapshot. A continuous edit stream still saves every 500 ms.
+class LibrarySaveCaptureSchedule {
+public:
+    void Request(uint64_t nowMs, bool newBatch = false) {
+        if (!pending_ || newBatch) firstRequestMs_ = nowMs;
+        lastRequestMs_ = nowMs; pending_ = true;
+    }
+    bool IsDue(uint64_t nowMs) const {
+        return pending_ && (nowMs - lastRequestMs_ >= 100 || nowMs - firstRequestMs_ >= 500);
+    }
+    void Complete() { pending_ = false; }
+private:
+    uint64_t firstRequestMs_ = 0, lastRequestMs_ = 0;
+    bool pending_ = false;
+};
+
 // One owned writer and one replaceable pending snapshot. No worker accesses
 // the live model or calls the UI; completion is consumed by the owner.
 class LibrarySaveWorker {

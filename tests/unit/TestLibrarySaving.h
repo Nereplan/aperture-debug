@@ -51,6 +51,23 @@ TEST_CASE(LibrarySaving, BackgroundWriterCoalescesPendingAndFlushesLatest) {
     TEST_ASSERT_EQ(reloaded.mediaItems[0].lastPosSec, 20.0);
 }
 
+TEST_CASE(LibrarySaving, CaptureScheduleCoalescesBurstsWithoutStarvingSaves) {
+    LibrarySaveCaptureSchedule schedule;
+    TEST_ASSERT(!schedule.IsDue(1000));
+    schedule.Request(1000);
+    TEST_ASSERT(!schedule.IsDue(1099));
+    schedule.Request(1090);
+    TEST_ASSERT(!schedule.IsDue(1189));
+    TEST_ASSERT(schedule.IsDue(1190));
+    schedule.Request(1180); schedule.Request(1270); schedule.Request(1360); schedule.Request(1450);
+    TEST_ASSERT(!schedule.IsDue(1499));
+    TEST_ASSERT(schedule.IsDue(1500));
+    schedule.Complete(); TEST_ASSERT(!schedule.IsDue(2000));
+    schedule.Request(2000); TEST_ASSERT(!schedule.IsDue(2099)); TEST_ASSERT(schedule.IsDue(2100));
+    // A replaced library starts a new batch even if its old schedule was pending.
+    schedule.Request(2500, true); TEST_ASSERT(!schedule.IsDue(2500)); TEST_ASSERT(schedule.IsDue(2600));
+}
+
 TEST_CASE(LibrarySaving, FailedBackgroundGenerationCanRetryAndReportsFailure) {
     ScopedTempDir temp;
     MediaLibrary library; TEST_ASSERT(library.LoadFromRoot(temp.GetPath()).is_ok());
@@ -212,6 +229,56 @@ TEST_CASE(LibrarySaving, UnknownFieldsAndNestedDirectChangesSurviveRoundtrip) {
     TEST_ASSERT_EQ(loaded.extraFields.get("plugin").get("name").as_string(), std::string("updated"));
 }
 
+TEST_CASE(LibrarySaving, MediaSerializationReusesCommittedBytesAcrossEditsAndReorders) {
+    ScopedTempDir temp;
+    MediaLibrary library; TEST_ASSERT(library.LoadFromRoot(temp.GetPath()).is_ok());
+    LibrarySavingFixture::AddRecords(library, temp.GetPath(), 4);
+    auto& complex = library.mediaItems[1];
+    complex.title = L"Quoted \"title\" with \\ slash \u00e9";
+    complex.preferences.emplace(); complex.preferences->audioTrackId = 2;
+    complex.bookmarks.push_back({"bookmark", 15, L"Scene", 100});
+    complex.extraFields = JsonValue::parse("{\"plugin\":{\"values\":[1,2,3]}}");
+    auto snapshot = library.CaptureSaveSnapshot(); MediaLibrarySaveState state;
+    TEST_ASSERT(WriteLibrarySaveSnapshot(*snapshot, state).is_ok());
+    TEST_ASSERT_EQ(state.serializedMediaRecordCount, 4ull);
+    TEST_ASSERT_EQ(state.reusedMediaRecordCount, 0ull);
+    library.mediaItems[0].lastPosSec = 42;
+    snapshot = library.CaptureSaveSnapshot(snapshot);
+    TEST_ASSERT(WriteLibrarySaveSnapshot(*snapshot, state).librarySaved);
+    TEST_ASSERT_EQ(state.serializedMediaRecordCount, 5ull);
+    TEST_ASSERT_EQ(state.reusedMediaRecordCount, 3ull);
+    const auto assertFreshBytes = [&]() {
+        MediaLibrarySaveState fresh;
+        TEST_ASSERT(WriteLibrarySaveSnapshot(*snapshot, fresh).is_ok());
+        TEST_ASSERT_EQ(state.lastLibraryJson, fresh.lastLibraryJson);
+        TEST_ASSERT_EQ(fresh.serializedMediaRecordCount, static_cast<uint64_t>(snapshot->mediaItems->size()));
+    };
+    assertFreshBytes();
+    std::reverse(library.mediaItems.begin(), library.mediaItems.end());
+    snapshot = library.CaptureSaveSnapshot(snapshot);
+    TEST_ASSERT(WriteLibrarySaveSnapshot(*snapshot, state).librarySaved);
+    TEST_ASSERT_EQ(state.serializedMediaRecordCount, 5ull);
+    TEST_ASSERT_EQ(state.reusedMediaRecordCount, 7ull);
+    library.mediaItems.erase(library.mediaItems.begin());
+    library.mediaItems[1].preferences->audioTrackId = 3;
+    library.mediaItems[1].extraFields["plugin"]["name"] = "updated";
+    snapshot = library.CaptureSaveSnapshot(snapshot);
+    TEST_ASSERT(WriteLibrarySaveSnapshot(*snapshot, state).librarySaved);
+    TEST_ASSERT_EQ(state.serializedMediaRecordCount, 6ull);
+    TEST_ASSERT_EQ(state.reusedMediaRecordCount, 9ull);
+    assertFreshBytes();
+    // Lost files are recreated from the same cached spans without reformatting.
+    TEST_ASSERT(DeleteFileW(temp.SubPath(L"data\\library.json").c_str()));
+    TEST_ASSERT(WriteLibrarySaveSnapshot(*snapshot, state).librarySaved);
+    TEST_ASSERT_EQ(state.serializedMediaRecordCount, 6ull);
+    TEST_ASSERT_EQ(state.reusedMediaRecordCount, 12ull);
+    TEST_ASSERT_EQ(state.lastMediaSpans.size(), size_t(3));
+    MediaLibrary reloaded; TEST_ASSERT(reloaded.LoadFromRoot(temp.GetPath()).is_ok());
+    TEST_ASSERT_EQ(reloaded.mediaItems[1].id, library.mediaItems[1].id);
+    TEST_ASSERT_EQ(*reloaded.mediaItems[1].preferences->audioTrackId, 3);
+    TEST_ASSERT_EQ(reloaded.mediaItems[1].extraFields.get("plugin").get("name").as_string(), std::string("updated"));
+}
+
 TEST_CASE(LibrarySaving, FailedStoreIsFencedWhileHealthyStoresCanSave) {
     ScopedTempDir temp; temp.CreateSubDir(L"data");
     const auto path = temp.SubPath(L"data\\library.json");
@@ -224,13 +291,43 @@ TEST_CASE(LibrarySaving, FailedStoreIsFencedWhileHealthyStoresCanSave) {
     std::string after; TEST_ASSERT(ReadTextFile(path, after).is_ok()); TEST_ASSERT_EQ(after, future);
 }
 
+TEST_CASE(LibrarySaving, EquivalentBytesAdvanceRecordIdentityAndNewSeriesDropsCache) {
+    ScopedTempDir temp;
+    MediaLibrary library; TEST_ASSERT(library.LoadFromRoot(temp.GetPath()).is_ok());
+    LibrarySavingFixture::AddRecords(library, temp.GetPath(), 2);
+    auto snapshot = library.CaptureSaveSnapshot(); MediaLibrarySaveState state;
+    TEST_ASSERT(WriteLibrarySaveSnapshot(*snapshot, state).is_ok());
+    const auto bytes = state.lastLibraryJson;
+    // Invalid bookmarks are intentionally omitted by the existing serializer.
+    library.mediaItems[0].bookmarks.push_back({"", -1, L"Ignored", 0});
+    snapshot = library.CaptureSaveSnapshot(snapshot);
+    const auto unchanged = WriteLibrarySaveSnapshot(*snapshot, state);
+    TEST_ASSERT(unchanged.is_ok() && !unchanged.librarySaved);
+    TEST_ASSERT_EQ(state.lastLibraryJson, bytes);
+    TEST_ASSERT(state.lastMediaRecords == snapshot->mediaItems);
+    TEST_ASSERT_EQ(state.libraryGeneration, snapshot->libraryGeneration);
+    TEST_ASSERT_EQ(state.serializedMediaRecordCount, 3ull);
+    library.mediaItems[1].lastPosSec = 15;
+    snapshot = library.CaptureSaveSnapshot(snapshot);
+    TEST_ASSERT(WriteLibrarySaveSnapshot(*snapshot, state).librarySaved);
+    TEST_ASSERT_EQ(state.serializedMediaRecordCount, 4ull);
+    TEST_ASSERT_EQ(state.reusedMediaRecordCount, 2ull);
+    const auto nextSeries = library.CaptureSaveSnapshot();
+    TEST_ASSERT(nextSeries->seriesId != snapshot->seriesId);
+    TEST_ASSERT(WriteLibrarySaveSnapshot(*nextSeries, state).is_ok());
+    TEST_ASSERT_EQ(state.serializedMediaRecordCount, 2ull);
+    TEST_ASSERT_EQ(state.reusedMediaRecordCount, 0ull);
+}
+
 TEST_CASE(LibrarySaving, FailedWriteIsNotAcknowledgedAndCanRetrySameSnapshot) {
     ScopedTempDir temp;
     MediaLibrary library; TEST_ASSERT(library.LoadFromRoot(temp.GetPath()).is_ok());
-    LibrarySavingFixture::AddRecords(library, temp.GetPath(), 1);
+    LibrarySavingFixture::AddRecords(library, temp.GetPath(), 3);
     auto snapshot = library.CaptureSaveSnapshot(); MediaLibrarySaveState state;
     TEST_ASSERT(WriteLibrarySaveSnapshot(*snapshot, state).is_ok());
     const auto oldGeneration = state.libraryGeneration;
+    const auto oldRecords = state.lastMediaRecords;
+    const auto oldBytes = state.lastLibraryJson;
     library.mediaItems[0].lastPosSec = 42;
     snapshot = library.CaptureSaveSnapshot(snapshot);
     const auto path = temp.SubPath(L"data\\library.json");
@@ -238,9 +335,16 @@ TEST_CASE(LibrarySaving, FailedWriteIsNotAcknowledgedAndCanRetrySameSnapshot) {
     const auto failed = WriteLibrarySaveSnapshot(*snapshot, state);
     TEST_ASSERT(!failed.libraryStatus.is_ok());
     TEST_ASSERT_EQ(state.libraryGeneration, oldGeneration);
+    TEST_ASSERT(state.lastMediaRecords == oldRecords);
+    TEST_ASSERT_EQ(state.lastLibraryJson, oldBytes);
+    TEST_ASSERT_EQ(state.serializedMediaRecordCount, 4ull);
+    TEST_ASSERT_EQ(state.reusedMediaRecordCount, 2ull);
     TEST_ASSERT(SetFileAttributesW(path.c_str(), FILE_ATTRIBUTE_NORMAL));
     TEST_ASSERT(WriteLibrarySaveSnapshot(*snapshot, state).librarySaved);
     TEST_ASSERT_EQ(state.libraryGeneration, snapshot->libraryGeneration);
+    TEST_ASSERT(state.lastMediaRecords == snapshot->mediaItems);
+    TEST_ASSERT_EQ(state.serializedMediaRecordCount, 5ull);
+    TEST_ASSERT_EQ(state.reusedMediaRecordCount, 4ull);
 }
 
 TEST_CASE(LibrarySaving, MissingPortableRootIsProtectedAndReloadStartsANewSeries) {

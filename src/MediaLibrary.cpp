@@ -1,7 +1,9 @@
 #include "MediaProbeIsolation.h"
 #include "MediaLibrary.h"
+#include "WatchReconcile.h"
 #include "LibrarySaveComparison.h"
 #include "SmartRuleParsing.h"
+#include "PreparedSmartPlaylist.h"
 #include "PlaybackTarget.h"
 #include "LibraryQuery.h"
 #include "AudioConfig.h"
@@ -161,7 +163,7 @@ void AppendJsonScalar(std::string& output, T&& value) {
     JsonValue(std::forward<T>(value)).append_to(output);
 }
 
-bool AppendSimpleMediaRecord(CompactJsonArray& output, const MediaItem& item, const std::wstring& rootDir) {
+bool AppendSimpleMediaRecord(std::string& record, const MediaItem& item, const std::wstring& rootDir) {
     if ((item.extraFields.is_object() && !item.extraFields.as_object().empty()) ||
         (item.preferences.has_value() && item.preferences->HasAnyPreference()) ||
         !item.bookmarks.empty() || (item.overrides.has_value() && item.overrides->HasAnyOverride())) {
@@ -169,7 +171,6 @@ bool AppendSimpleMediaRecord(CompactJsonArray& output, const MediaItem& item, co
     }
 
     // Append into the store buffer so each record needs no intermediate string.
-    std::string& record = output.BeginRecord();
     record.push_back('{');
     bool first = true;
     auto field = [&](const char* prefix, auto&& value) {
@@ -196,6 +197,101 @@ bool AppendSimpleMediaRecord(CompactJsonArray& output, const MediaItem& item, co
     if (item.volumeSerialNumber != 0) field("\"volumeSerialNumber\":", static_cast<uint64_t>(item.volumeSerialNumber));
     record.push_back('}');
     return true;
+}
+
+
+void AppendMediaRecord(std::string& output, const MediaItem& m, const std::wstring& rootDir) {
+    if (AppendSimpleMediaRecord(output, m, rootDir)) return;
+    JsonValue j = m.extraFields.is_object() ? m.extraFields : JsonValue::Object();
+    j["id"] = m.id;
+    j["filePath"] = Utf16ToUtf8(ToRelocatablePath(m.filePath, rootDir));
+    j["title"] = Utf16ToUtf8(m.title);
+    j["durationSec"] = m.durationSec;
+    j["lastPosSec"] = m.lastPosSec;
+    j["status"] = m.status;
+    j["fileSizeBytes"] = m.fileSizeBytes;
+    j["lastWatchedTimestamp"] = m.lastWatchedTimestamp;
+    j["addedTimestamp"] = m.addedTimestamp;
+    j["videoWidth"] = (int)m.videoWidth;
+    j["videoHeight"] = (int)m.videoHeight;
+    if (m.fileIndex != 0) j["fileIndex"] = ExactUint64String(m.fileIndex);
+    if (m.volumeSerialNumber != 0) j["volumeSerialNumber"] = (uint64_t)m.volumeSerialNumber;
+    if (m.metadataProbeFailed) {
+        j["metadataProbeFailed"] = true;
+    } else if (j.is_object()) { j.as_object().erase("metadataProbeFailed"); }
+    if (m.probeAttemptCount > 0) {
+        j["probeAttemptCount"] = (int)m.probeAttemptCount;
+    } else if (j.is_object()) { j.as_object().erase("probeAttemptCount"); }
+    if (m.lastProbeAttemptTimestamp > 0) {
+        j["lastProbeAttemptTimestamp"] = m.lastProbeAttemptTimestamp;
+    } else if (j.is_object()) { j.as_object().erase("lastProbeAttemptTimestamp"); }
+    if (m.preferences.has_value() && m.preferences->HasAnyPreference()) {
+        JsonValue prefObj = m.preferences->extraFields.is_object() ? m.preferences->extraFields : JsonValue::Object();
+        const auto& prefs = *m.preferences;
+        auto writePreference = [&](const char* key, const auto& value, bool valid = true) {
+            if (value && valid) prefObj[key] = *value;
+            else prefObj.as_object().erase(key);
+        };
+        writePreference("playbackSpeed", prefs.playbackSpeed,
+            prefs.playbackSpeed && MediaPlaybackPreferences::IsValidPlaybackSpeed(*prefs.playbackSpeed));
+        writePreference("aspectRatio", prefs.aspectRatio,
+            prefs.aspectRatio && MediaPlaybackPreferences::IsValidAspectRatio(*prefs.aspectRatio));
+        writePreference("audioTrackId", prefs.audioTrackId);
+        writePreference("audioTrackTitle", prefs.audioTrackTitle);
+        writePreference("audioTrackLang", prefs.audioTrackLang);
+        writePreference("subtitleTrackId", prefs.subtitleTrackId);
+        writePreference("subtitleTrackTitle", prefs.subtitleTrackTitle);
+        writePreference("subtitleTrackLang", prefs.subtitleTrackLang);
+        writePreference("audioDelayMs", prefs.audioDelayMs,
+            prefs.audioDelayMs && MediaPlaybackPreferences::IsValidAudioDelayMs(*prefs.audioDelayMs));
+        writePreference("subDelayMs", prefs.subDelayMs,
+            prefs.subDelayMs && MediaPlaybackPreferences::IsValidSubDelayMs(*prefs.subDelayMs));
+        writePreference("subtitlesVisible", prefs.subtitlesVisible);
+        writePreference("videoRotate", prefs.videoRotate,
+            prefs.videoRotate && MediaPlaybackPreferences::IsValidVideoRotate(*prefs.videoRotate));
+        writePreference("brightness", prefs.brightness,
+            prefs.brightness && MediaPlaybackPreferences::IsValidBrightness(*prefs.brightness));
+        writePreference("contrast", prefs.contrast, prefs.contrast && MediaPlaybackPreferences::IsValidContrast(*prefs.contrast));
+        writePreference("saturation", prefs.saturation,
+            prefs.saturation && MediaPlaybackPreferences::IsValidSaturation(*prefs.saturation));
+        writePreference("gamma", prefs.gamma, prefs.gamma && MediaPlaybackPreferences::IsValidGamma(*prefs.gamma));
+        writePreference("hue", prefs.hue, prefs.hue && MediaPlaybackPreferences::IsValidHue(*prefs.hue));
+        writePreference("audioBalance", prefs.audioBalance,
+            prefs.audioBalance && MediaPlaybackPreferences::IsValidAudioBalance(*prefs.audioBalance));
+        writePreference("audioChannelMap", prefs.audioChannelMap,
+            prefs.audioChannelMap && MediaPlaybackPreferences::IsValidAudioChannelMap(*prefs.audioChannelMap));
+        j["preferences"] = std::move(prefObj);
+    } else if (j.is_object()) { j.as_object().erase("preferences"); }
+    if (!m.bookmarks.empty()) {
+        JsonValue bArray = JsonValue::Array();
+        bArray.as_array().reserve(m.bookmarks.size());
+        for (const auto& bm : m.bookmarks) {
+            if (!bm.IsValid()) continue;
+            JsonValue bObj = bm.extraFields.is_object() ? bm.extraFields : JsonValue::Object();
+            bObj["id"] = bm.id;
+            bObj["timeSec"] = bm.timeSec;
+            bObj["label"] = Utf16ToUtf8(bm.label);
+            if (bm.createdTimestamp > 0) { bObj["createdTimestamp"] = bm.createdTimestamp; }
+            bArray.push_back(std::move(bObj));
+        }
+        if (!bArray.as_array().empty()) {
+            j["bookmarks"] = std::move(bArray);
+        } else if (j.is_object()) { j.as_object().erase("bookmarks"); }
+    } else if (j.is_object()) { j.as_object().erase("bookmarks"); }
+    if (m.overrides.has_value() && m.overrides->HasAnyOverride()) {
+        JsonValue ovObj = m.overrides->extraFields.is_object() ? m.overrides->extraFields : JsonValue::Object();
+        if (m.overrides->title.has_value() && MediaMetadataOverrides::IsValidTitle(*m.overrides->title)) {
+            ovObj["title"] = Utf16ToUtf8(*m.overrides->title);
+        } else if (ovObj.is_object()) { ovObj.as_object().erase("title"); }
+        if (m.overrides->year.has_value() && MediaMetadataOverrides::IsValidYear(*m.overrides->year)) {
+            ovObj["year"] = *m.overrides->year;
+        } else if (ovObj.is_object()) { ovObj.as_object().erase("year"); }
+        if (m.overrides->series.has_value() && MediaMetadataOverrides::IsValidSeries(*m.overrides->series)) {
+            ovObj["series"] = Utf16ToUtf8(*m.overrides->series);
+        } else if (ovObj.is_object()) { ovObj.as_object().erase("series"); }
+        j["overrides"] = std::move(ovObj);
+    } else if (j.is_object()) { j.as_object().erase("overrides"); j.as_object().erase("metadataOverrides"); }
+    j.append_to(output);
 }
 
 // Resource optimization: retain only unknown JSON fields in extraFields.
@@ -653,9 +749,9 @@ size_t MediaLibrary::RemoveFolders(const std::vector<std::wstring>& folderPaths,
     return removed;
 }
 
-void MediaLibrary::InvalidatePlaylistStatsCache() const {
+void MediaLibrary::InvalidatePlaylistStatsCache(bool clearSmartPaths) const {
     playlistStatsCache.clear();
-    smartPathsCache.clear();
+    if (clearSmartPaths) { smartPathsCache.clear(); smartAvailability.clear(); }
 }
 
 void MediaLibrary::NotifyPlaylistChanged() {
@@ -672,8 +768,10 @@ void MediaLibrary::NotifyPlaylistEdited() {
 PlaylistStats MediaLibrary::GetPlaylistStats(const std::string& playlistId) const {
     auto it = playlistStatsCache.find(playlistId);
     if (it != playlistStatsCache.end() && it->second.revisions.SamePlaylistData(revisions) &&
-        (!it->second.requiresAvailability || GetTickCount64() - it->second.availabilityCheckedMs < kSmartAvailabilityCacheTtlMs)) {
-        return it->second.stats;
+        GetTickCount64() < it->second.expiresAtTick) {
+        const auto& entry = it->second;
+        const int64_t now = entry.timeDependent ? GetCurrentTimestampSec() : 0;
+        if (!entry.timeDependent || (now >= entry.evaluatedAtSec && now < entry.expiresAtSec)) return entry.stats;
     }
     PlaylistStats stats;
     const Playlist* pl = FindPlaylist(playlistId);
@@ -696,11 +794,13 @@ PlaylistStats MediaLibrary::GetPlaylistStats(const std::string& playlistId) cons
     if (firstInProgress < paths.size()) stats.resumeIndex = firstInProgress;
     else if (firstUnfinished < paths.size()) stats.resumeIndex = firstUnfinished;
     PlaylistStatsCacheEntry entry{ revisions, stats };
-    entry.requiresAvailability = pl->IsSmart() && pl->smartCriteria.RequiresAvailability();
-    if (entry.requiresAvailability) {
-        // Share the path snapshot's deadline, not the time the stats scan
-        // finished, so statistics and resume selection expire together.
-        entry.availabilityCheckedMs = smartPathsCache.at(playlistId).availabilityCheckedMs;
+    if (pl->IsSmart()) {
+        // Membership and aggregates expire together, including relative dates.
+        const auto& pathEntry = smartPathsCache.at(playlistId);
+        entry.expiresAtTick = pathEntry.expiresAtTick;
+        entry.evaluatedAtSec = pathEntry.evaluatedAtSec;
+        entry.expiresAtSec = pathEntry.expiresAtSec;
+        entry.timeDependent = pathEntry.timeDependent;
     }
     playlistStatsCache[playlistId] = entry;
     return stats;
@@ -1281,7 +1381,7 @@ void MediaLibrary::UpdateProgress(const std::wstring& path, double pos, double d
         break;
     }
     bool newWatched = (m->durationSec > 0.0 && (m->lastPosSec / m->durationSec) >= 0.90) || (m->status == "done");
-    if (m->durationSec != oldDuration || m->status != oldStatus || newWatched != oldWatched) { InvalidatePlaylistStatsCache(); }
+    if (m->durationSec != oldDuration || m->status != oldStatus || newWatched != oldWatched) { InvalidatePlaylistStatsCache(false); }
 }
 
 bool MediaLibrary::SetWatchedCore(const std::wstring& path, bool watched) {
@@ -1296,7 +1396,7 @@ bool MediaLibrary::SetWatchedCore(const std::wstring& path, bool watched) {
         m->lastWatchedTimestamp = GetCurrentTimestampSec();
     } else { m->status = "new"; m->lastPosSec = 0.0; m->lastWatchedTimestamp = 0; }
     ++revisions.playback;
-    InvalidatePlaylistStatsCache();
+    InvalidatePlaylistStatsCache(false);
     return true;
 }
 
@@ -1366,7 +1466,7 @@ void MediaLibrary::ClearHistory() {
             changed = true;
         }
     }
-    if (changed) { libraryVersion++; ++revisions.playback; ++revisions.history; InvalidatePlaylistStatsCache(); Save(); }
+    if (changed) { libraryVersion++; ++revisions.playback; ++revisions.history; InvalidatePlaylistStatsCache(false); Save(); }
 }
 
 bool MediaLibrary::AddWatchedFolder(const std::wstring& path, bool saveChanges) {
@@ -1396,6 +1496,157 @@ bool MediaLibrary::RemoveWatchedFolder(const std::wstring& path, bool saveChange
         return true;
     }
     return false;
+}
+
+WatchReconcileResult MediaLibrary::ApplyPreparedWatchDelta(const PreparedWatchDelta& delta, bool saveChanges) {
+    WatchReconcileResult result;
+    if (delta.canceled) return result;
+    result.rescanCount = delta.rescanCount;
+    if (!delta.errors.empty()) result.status = delta.errors.front();
+    if (delta.changes.empty()) return result;
+    const size_t originalCount = mediaItems.size();
+    const auto additions = static_cast<size_t>(std::count_if(delta.changes.begin(), delta.changes.end(),
+        [](const auto& change) { return change.action == WatchAction::Added; }));
+    mediaItems.reserve(originalCount + additions);
+    std::unordered_map<std::string, size_t> liveIds;
+    std::unordered_map<std::wstring, size_t> livePaths;
+    liveIds.reserve(originalCount + delta.changes.size());
+    livePaths.reserve(originalCount + delta.changes.size());
+    for (size_t i = 0; i < originalCount; ++i) {
+        liveIds[mediaItems[i].id] = i;
+        livePaths[NormalizePathKey(mediaItems[i].filePath)] = i;
+    }
+    std::vector<std::wstring> rootKeys;
+    for (const auto& root : watchedFolders) rootKeys.push_back(NormalizePathKey(root));
+    std::unordered_set<size_t> removed;
+    std::unordered_set<std::wstring> removedPaths;
+    std::unordered_map<std::wstring, std::wstring> renamedPaths;
+    bool structuralChange = false;
+    for (const auto& change : delta.changes) {
+        const auto pathKey = NormalizePathKey(change.path.empty() ? change.baseline.path : change.path);
+        const auto baselineKey = NormalizePathKey(change.baseline.path);
+        if (!std::any_of(rootKeys.begin(), rootKeys.end(), [&](const auto& root) {
+                return WatchPathWithin(pathKey, root) || WatchPathWithin(baselineKey, root);
+            })) continue; // The user may have removed this watch during the scan.
+        size_t index = SIZE_MAX;
+        if (!change.baseline.id.empty()) {
+            const auto found = liveIds.find(change.baseline.id);
+            if (found == liveIds.end() || removed.count(found->second)) continue;
+            index = found->second;
+            const auto& item = mediaItems[index];
+            if (NormalizePathKey(item.filePath) != baselineKey || item.fileSizeBytes != change.baseline.size ||
+                item.fileIndex != change.baseline.fileIndex || item.volumeSerialNumber != change.baseline.volumeSerialNumber) {
+                result.needsRescan = true;
+                continue;
+            }
+        } else {
+            const auto found = livePaths.find(change.action != WatchAction::Added && !baselineKey.empty() ? baselineKey : pathKey);
+            if (found != livePaths.end() && !removed.count(found->second)) {
+                // A concurrent import owns this existing record. A repeated
+                // observation of a record added in this transaction is safe.
+                if (found->second < originalCount) continue;
+                index = found->second;
+            }
+        }
+        if (change.action == WatchAction::Removed) {
+            if (index == SIZE_MAX) continue;
+            removed.insert(index); removedPaths.insert(baselineKey); livePaths.erase(baselineKey);
+            ++result.removedCount; structuralChange = true;
+            continue;
+        }
+        if (index == SIZE_MAX) {
+            if (change.action != WatchAction::Added) continue;
+            MediaItem item;
+            item.filePath = change.path; item.title = GetFileNameFromPath(change.path);
+            item.addedTimestamp = GetCurrentTimestampSec(); item.fileSizeBytes = change.size;
+            // Generate against the local transaction index; GenerateId would
+            // otherwise rebuild the public index during a bulk insertion.
+            uint64_t hash = 1469598103934665603ull;
+            for (unsigned char c : Utf16ToUtf8(pathKey)) { hash ^= c; hash *= 1099511628211ull; }
+            char buffer[48]; sprintf_s(buffer, "media_%016llx", static_cast<unsigned long long>(hash));
+            const std::string baseId = buffer;
+            item.id = baseId;
+            for (size_t suffix = 1; liveIds.count(item.id); ++suffix) item.id = baseId + "_" + std::to_string(suffix);
+            if (change.identity.valid) { item.fileIndex = change.identity.fileIndex; item.volumeSerialNumber = change.identity.volumeSerialNumber; }
+            index = mediaItems.size();
+            liveIds[item.id] = index; livePaths[pathKey] = index;
+            mediaItems.push_back(std::move(item));
+            ++result.addedCount; structuralChange = true;
+            continue;
+        }
+        auto& item = mediaItems[index];
+        if (change.action == WatchAction::Renamed) {
+            const auto target = livePaths.find(pathKey);
+            if (target != livePaths.end() && target->second != index && !removed.count(target->second)) {
+                result.needsRescan = true; continue;
+            }
+            livePaths.erase(baselineKey); livePaths[pathKey] = index;
+            renamedPaths[baselineKey] = change.path;
+            item.filePath = change.path; item.title = GetFileNameFromPath(change.path);
+            ++result.renamedCount; structuralChange = true;
+        }
+        const bool sizeChanged = item.fileSizeBytes != change.size;
+        if (sizeChanged || change.metadataMayHaveChanged) {
+            item.fileSizeBytes = change.size;
+            // Retain current duration/resume information while the separate
+            // metadata worker refreshes the changed file.
+            item.metadataProbeFailed = true; item.probeAttemptCount = 0; item.lastProbeAttemptTimestamp = 0;
+        }
+        if (change.identity.valid) { item.fileIndex = change.identity.fileIndex; item.volumeSerialNumber = change.identity.volumeSerialNumber; }
+        if (change.action != WatchAction::Renamed && (sizeChanged || change.metadataMayHaveChanged)) ++result.updatedCount;
+    }
+    if (result.addedCount + result.updatedCount + result.removedCount + result.renamedCount == 0) return result;
+    if (!renamedPaths.empty() || !removedPaths.empty()) {
+        auto resolve = [&](std::wstring path) {
+            for (size_t i = 0; i < renamedPaths.size(); ++i) {
+                const auto key = NormalizePathKey(path);
+                const auto found = renamedPaths.find(key);
+                if (found == renamedPaths.end()) break;
+                path = found->second;
+                if (NormalizePathKey(path) == key) break;
+            }
+            return path;
+        };
+        // A path removed and recreated in the same drain remains a valid
+        // playlist/history reference, even though its media id changed.
+        for (const auto& pair : livePaths) if (!removed.count(pair.second)) removedPaths.erase(pair.first);
+        bool playlistsChanged = false, historyChanged = false;
+        for (auto& playlist : playlists) {
+            for (auto& path : playlist.itemPaths) {
+                auto updated = resolve(path);
+                if (updated != path) { path = std::move(updated); playlistsChanged = true; }
+            }
+            const auto end = std::remove_if(playlist.itemPaths.begin(), playlist.itemPaths.end(),
+                [&](const auto& path) { return removedPaths.count(NormalizePathKey(path)) != 0; });
+            playlistsChanged = playlistsChanged || end != playlist.itemPaths.end();
+            playlist.itemPaths.erase(end, playlist.itemPaths.end());
+        }
+        for (auto& item : history) {
+            auto updated = resolve(item.filePath);
+            if (updated != item.filePath) { item.filePath = std::move(updated); item.title = GetFileNameFromPath(item.filePath); historyChanged = true; }
+        }
+        // Removing a library record does not erase the user's watch history.
+        if (playlistsChanged) ++revisions.playlists;
+        if (historyChanged) ++revisions.history;
+    }
+    if (structuralChange) {
+        size_t write = 0, retainedOriginal = 0;
+        for (size_t read = 0; read < mediaItems.size(); ++read) {
+            if (removed.count(read)) continue;
+            if (read < originalCount) ++retainedOriginal;
+            if (write != read) mediaItems[write] = std::move(mediaItems[read]);
+            ++write;
+        }
+        mediaItems.resize(write);
+        // Match sequential front insertion, but move the existing catalog once.
+        std::reverse(mediaItems.begin() + retainedOriginal, mediaItems.end());
+        std::rotate(mediaItems.begin(), mediaItems.begin() + retainedOriginal, mediaItems.end());
+        RebuildPathIndex();
+    } else ++revisions.catalog;
+    ++libraryVersion;
+    InvalidatePlaylistStatsCache();
+    if (saveChanges) Save();
+    return result;
 }
 
 WatchReconcileResult MediaLibrary::ReconcileWatchBatch(const WatchChangeBatch& batch, bool saveChanges, bool probeMetadata) {
@@ -1733,14 +1984,21 @@ const std::vector<std::wstring>& MediaLibrary::GetPlaylistPathsRef(const Playlis
 MediaLibrary::PlaylistPathsView MediaLibrary::ResolvePlaylistPaths(const Playlist& playlist) const {
     if (!playlist.IsSmart()) return { playlist.itemPaths, revisions.playlists };
     auto it = smartPathsCache.find(playlist.id);
-    const bool requiresAvailability = playlist.smartCriteria.RequiresAvailability();
-    const ULONGLONG now = requiresAvailability ? GetTickCount64() : 0;
-    if (it != smartPathsCache.end() && it->second.revisions.SamePlaylistData(revisions) &&
-        (!requiresAvailability || now - it->second.availabilityCheckedMs < kSmartAvailabilityCacheTtlMs))
-        return { it->second.paths, it->second.generation };
+    const int64_t nowSec = GetCurrentTimestampSec();
+    if (it != smartPathsCache.end()) {
+        const auto& entry = it->second;
+        if (entry.revisions.catalog == revisions.catalog && entry.revisions.playlists == revisions.playlists &&
+            (!entry.playbackDependent || entry.revisions.playback == revisions.playback) &&
+            GetTickCount64() < entry.expiresAtTick &&
+            (!entry.timeDependent || (nowSec >= entry.evaluatedAtSec && nowSec < entry.expiresAtSec)))
+            return { entry.paths, entry.generation };
+    }
     SmartPathsCacheEntry entry;
-    entry.availabilityCheckedMs = now;
-    entry.paths = EvaluateSmartPlaylist(playlist.smartCriteria);
+    const PreparedSmartPlaylist plan(playlist.smartCriteria, nowSec);
+    entry.evaluatedAtSec = nowSec;
+    entry.timeDependent = plan.DependsOnTime();
+    entry.playbackDependent = plan.DependsOnPlayback();
+    entry.paths = EvaluatePreparedSmartPlaylist(plan, entry.expiresAtTick, entry.expiresAtSec);
     entry.revisions = revisions;
     entry.generation = ++smartPathsGeneration;
     // Availability refreshes retire aggregates and UI row indices together.
@@ -1756,29 +2014,58 @@ std::vector<std::wstring> MediaLibrary::GetPlaylistPaths(const std::string& play
 }
 
 std::vector<std::wstring> MediaLibrary::EvaluateSmartPlaylist(const SmartPlaylistCriteria& criteria) const {
-    if (!criteria.Validate()) return {};
-    const bool requiresAvailability = criteria.RequiresAvailability();
+    const PreparedSmartPlaylist plan(criteria, GetCurrentTimestampSec());
+    ULONGLONG expiresAtTick;
+    int64_t expiresAtSec;
+    return EvaluatePreparedSmartPlaylist(plan, expiresAtTick, expiresAtSec, false);
+}
+
+std::vector<std::wstring> MediaLibrary::EvaluatePreparedSmartPlaylist(const PreparedSmartPlaylist& plan,
+    ULONGLONG& expiresAtTick, int64_t& expiresAtSec, bool useAvailabilityCache) const {
+    expiresAtTick = (std::numeric_limits<ULONGLONG>::max)();
+    expiresAtSec = (std::numeric_limits<int64_t>::max)();
+    if (!plan.IsValid()) return {};
+    ++smartPlaylistEvaluationCount;
+    if (plan.RequiresAvailability() && useAvailabilityCache &&
+        (smartAvailabilityCatalog != revisions.catalog || smartAvailability.size() != mediaItems.size())) {
+        smartAvailability.assign(mediaItems.size(), SmartAvailabilityEntry{});
+        smartAvailabilityCatalog = revisions.catalog;
+    }
     std::vector<const MediaItem*> matched;
     matched.reserve(mediaItems.size());
-    for (const auto& item : mediaItems) {
+    for (size_t i = 0; i < mediaItems.size(); ++i) {
+        const auto& item = mediaItems[i];
+        expiresAtSec = (std::min)(expiresAtSec, plan.NextChangeAfter(item));
+        const auto possible = plan.MatchWithoutDisk(item);
+        if (!possible.present && !possible.missing) continue;
         // Unavailable storage has unknown state, not a confirmed missing file.
         bool exists = true;
-        if (requiresAvailability) {
-            const auto availability = QueryPathAvailability(item.filePath);
-            if (availability == PathAvailability::Unavailable) continue;
-            exists = availability == PathAvailability::Present;
+        if (plan.RequiresAvailability()) {
+            SmartAvailabilityEntry uncached;
+            auto& entry = useAvailabilityCache ? smartAvailability[i] : uncached;
+            const ULONGLONG now = GetTickCount64();
+            if (!entry.known || now - entry.checkedAtTick >= kSmartAvailabilityCacheTtlMs) {
+                ++smartPlaylistDiskProbeCount;
+                entry.value = QueryPathAvailability(item.filePath);
+                entry.checkedAtTick = now;
+                entry.known = true;
+            }
+            // Reusing another playlist's probe must not extend its deadline.
+            expiresAtTick = (std::min)(expiresAtTick, entry.checkedAtTick + kSmartAvailabilityCacheTtlMs);
+            if (entry.value == PathAvailability::Unavailable) continue;
+            exists = entry.value == PathAvailability::Present;
         }
-        if (criteria.Matches(item, exists)) { matched.push_back(&item); }
+        if (exists ? possible.present : possible.missing) matched.push_back(&item);
     }
-    auto sortField = static_cast<LibrarySortField>(criteria.sortField);
-    auto sortDir = static_cast<SortDirection>(criteria.sortDirection);
+    auto sortField = static_cast<LibrarySortField>(plan.SortField());
+    auto sortDir = static_cast<SortDirection>(plan.SortDirection());
     const auto less = [sortField, sortDir](const MediaItem* a, const MediaItem* b) {
         int cmp = LibraryQueryEngine::CompareItems(*a, *b, sortField, sortDir);
         if (cmp != 0) return cmp < 0;
         return a->filePath < b->filePath;
     };
-    if (criteria.limit > 0 && criteria.limit < matched.size() / 4) {
-        std::partial_sort(matched.begin(), matched.begin() + criteria.limit, matched.end(),
+    if (plan.Limit() > 0 && plan.Limit() < matched.size() / 4) {
+        std::partial_sort(matched.begin(), matched.begin() + plan.Limit(), matched.end(),
             [sortField, sortDir](const MediaItem* a, const MediaItem* b) {
                 const int cmp = LibraryQueryEngine::CompareItems(*a, *b, sortField, sortDir);
                 if (cmp != 0) return cmp < 0;
@@ -1790,7 +2077,7 @@ std::vector<std::wstring> MediaLibrary::EvaluateSmartPlaylist(const SmartPlaylis
     } else {
         std::stable_sort(matched.begin(), matched.end(), less);
     }
-    if (criteria.limit > 0 && matched.size() > criteria.limit) matched.resize(criteria.limit);
+    if (plan.Limit() > 0 && matched.size() > plan.Limit()) matched.resize(plan.Limit());
     std::vector<std::wstring> result;
     result.reserve(matched.size());
     for (const auto* item : matched) { result.push_back(item->filePath); }
@@ -2277,7 +2564,7 @@ std::shared_ptr<const MediaLibrarySaveSnapshot> MediaLibrary::CaptureSaveSnapsho
             const auto it = previousById.find(item.id);
             if (it != previousById.end()) old = (*media)[it->second];
         }
-        changedMedia->push_back(old && SameMedia(item, *old) ? old : std::make_shared<const MediaItem>(item));
+        changedMedia->push_back(samePosition || (old && SameMedia(item, *old)) ? old : std::make_shared<const MediaItem>(item));
     }
     if (!changedMedia && sizeChanged) {
         changedMedia = std::make_shared<MediaLibrarySaveSnapshot::MediaRecords>();
@@ -2355,105 +2642,56 @@ MediaLibrarySaveResult WriteLibrarySaveSnapshot(const MediaLibrarySaveSnapshot& 
             result.success = false;
         }
     };
+    std::vector<MediaLibrarySaveState::RecordSpan> preparedSpans;
+    bool preparedMedia = false;
     saveDocument(L"library.json", snapshot.libraryGeneration, state.libraryGeneration,
         state.lastLibraryJson, snapshot.loadResult.libraryStatus, result.libraryStatus, result.librarySaved, [&]() {
-            CompactJsonArray l(state.lastLibraryJson.size());
-            for (const auto& record : *snapshot.mediaItems) {
-                const auto& m = *record;
-                if (AppendSimpleMediaRecord(l, m, snapshot.rootDir)) continue;
-                JsonValue j = m.extraFields.is_object() ? m.extraFields : JsonValue::Object();
-                j["id"] = m.id;
-                j["filePath"] = Utf16ToUtf8(ToRelocatablePath(m.filePath, snapshot.rootDir));
-                j["title"] = Utf16ToUtf8(m.title);
-                j["durationSec"] = m.durationSec;
-                j["lastPosSec"] = m.lastPosSec;
-                j["status"] = m.status;
-                j["fileSizeBytes"] = m.fileSizeBytes;
-                j["lastWatchedTimestamp"] = m.lastWatchedTimestamp;
-                j["addedTimestamp"] = m.addedTimestamp;
-                j["videoWidth"] = (int)m.videoWidth;
-                j["videoHeight"] = (int)m.videoHeight;
-                if (m.fileIndex != 0) j["fileIndex"] = ExactUint64String(m.fileIndex);
-                if (m.volumeSerialNumber != 0) j["volumeSerialNumber"] = (uint64_t)m.volumeSerialNumber;
-                if (m.metadataProbeFailed) {
-                    j["metadataProbeFailed"] = true;
-                } else if (j.is_object()) { j.as_object().erase("metadataProbeFailed"); }
-                if (m.probeAttemptCount > 0) {
-                    j["probeAttemptCount"] = (int)m.probeAttemptCount;
-                } else if (j.is_object()) { j.as_object().erase("probeAttemptCount"); }
-                if (m.lastProbeAttemptTimestamp > 0) {
-                    j["lastProbeAttemptTimestamp"] = m.lastProbeAttemptTimestamp;
-                } else if (j.is_object()) { j.as_object().erase("lastProbeAttemptTimestamp"); }
-                if (m.preferences.has_value() && m.preferences->HasAnyPreference()) {
-                    JsonValue prefObj = m.preferences->extraFields.is_object() ? m.preferences->extraFields : JsonValue::Object();
-                    const auto& prefs = *m.preferences;
-                    auto writePreference = [&](const char* key, const auto& value, bool valid = true) {
-                        if (value && valid) prefObj[key] = *value;
-                        else prefObj.as_object().erase(key);
-                    };
-                    writePreference("playbackSpeed", prefs.playbackSpeed,
-                        prefs.playbackSpeed && MediaPlaybackPreferences::IsValidPlaybackSpeed(*prefs.playbackSpeed));
-                    writePreference("aspectRatio", prefs.aspectRatio,
-                        prefs.aspectRatio && MediaPlaybackPreferences::IsValidAspectRatio(*prefs.aspectRatio));
-                    writePreference("audioTrackId", prefs.audioTrackId);
-                    writePreference("audioTrackTitle", prefs.audioTrackTitle);
-                    writePreference("audioTrackLang", prefs.audioTrackLang);
-                    writePreference("subtitleTrackId", prefs.subtitleTrackId);
-                    writePreference("subtitleTrackTitle", prefs.subtitleTrackTitle);
-                    writePreference("subtitleTrackLang", prefs.subtitleTrackLang);
-                    writePreference("audioDelayMs", prefs.audioDelayMs,
-                        prefs.audioDelayMs && MediaPlaybackPreferences::IsValidAudioDelayMs(*prefs.audioDelayMs));
-                    writePreference("subDelayMs", prefs.subDelayMs,
-                        prefs.subDelayMs && MediaPlaybackPreferences::IsValidSubDelayMs(*prefs.subDelayMs));
-                    writePreference("subtitlesVisible", prefs.subtitlesVisible);
-                    writePreference("videoRotate", prefs.videoRotate,
-                        prefs.videoRotate && MediaPlaybackPreferences::IsValidVideoRotate(*prefs.videoRotate));
-                    writePreference("brightness", prefs.brightness,
-                        prefs.brightness && MediaPlaybackPreferences::IsValidBrightness(*prefs.brightness));
-                    writePreference("contrast", prefs.contrast, prefs.contrast && MediaPlaybackPreferences::IsValidContrast(*prefs.contrast));
-                    writePreference("saturation", prefs.saturation,
-                        prefs.saturation && MediaPlaybackPreferences::IsValidSaturation(*prefs.saturation));
-                    writePreference("gamma", prefs.gamma, prefs.gamma && MediaPlaybackPreferences::IsValidGamma(*prefs.gamma));
-                    writePreference("hue", prefs.hue, prefs.hue && MediaPlaybackPreferences::IsValidHue(*prefs.hue));
-                    writePreference("audioBalance", prefs.audioBalance,
-                        prefs.audioBalance && MediaPlaybackPreferences::IsValidAudioBalance(*prefs.audioBalance));
-                    writePreference("audioChannelMap", prefs.audioChannelMap,
-                        prefs.audioChannelMap && MediaPlaybackPreferences::IsValidAudioChannelMap(*prefs.audioChannelMap));
-                    j["preferences"] = std::move(prefObj);
-                } else if (j.is_object()) { j.as_object().erase("preferences"); }
-                if (!m.bookmarks.empty()) {
-                    JsonValue bArray = JsonValue::Array();
-                    bArray.as_array().reserve(m.bookmarks.size());
-                    for (const auto& bm : m.bookmarks) {
-                        if (!bm.IsValid()) continue;
-                        JsonValue bObj = bm.extraFields.is_object() ? bm.extraFields : JsonValue::Object();
-                        bObj["id"] = bm.id;
-                        bObj["timeSec"] = bm.timeSec;
-                        bObj["label"] = Utf16ToUtf8(bm.label);
-                        if (bm.createdTimestamp > 0) { bObj["createdTimestamp"] = bm.createdTimestamp; }
-                        bArray.push_back(std::move(bObj));
+            CompactJsonArray output(state.lastLibraryJson.size());
+            preparedSpans.reserve(snapshot.mediaItems->size());
+            const auto& previous = state.lastMediaRecords;
+            const bool canReuse = previous && previous->size() == state.lastMediaSpans.size();
+            std::unordered_map<const MediaItem*, size_t> previousByRecord;
+            bool indexedPrevious = false;
+            for (size_t i = 0; i < snapshot.mediaItems->size(); ++i) {
+                const auto& record = (*snapshot.mediaItems)[i];
+                size_t oldIndex = i;
+                bool found = canReuse && i < previous->size() && (*previous)[i] == record;
+                if (!found && canReuse) {
+                    // A changed record usually stays in place. Only membership
+                    // changes/reorders need a temporary identity lookup.
+                    const bool displaced = i >= previous->size() || (*previous)[i]->id != record->id;
+                    if (displaced) {
+                        if (!indexedPrevious) {
+                            previousByRecord.reserve(previous->size());
+                            for (size_t j = 0; j < previous->size(); ++j) previousByRecord.emplace((*previous)[j].get(), j);
+                            indexedPrevious = true;
+                        }
+                        const auto match = previousByRecord.find(record.get());
+                        if (match != previousByRecord.end()) { oldIndex = match->second; found = true; }
                     }
-                    if (!bArray.as_array().empty()) {
-                        j["bookmarks"] = std::move(bArray);
-                    } else if (j.is_object()) { j.as_object().erase("bookmarks"); }
-                } else if (j.is_object()) { j.as_object().erase("bookmarks"); }
-                if (m.overrides.has_value() && m.overrides->HasAnyOverride()) {
-                    JsonValue ovObj = m.overrides->extraFields.is_object() ? m.overrides->extraFields : JsonValue::Object();
-                    if (m.overrides->title.has_value() && MediaMetadataOverrides::IsValidTitle(*m.overrides->title)) {
-                        ovObj["title"] = Utf16ToUtf8(*m.overrides->title);
-                    } else if (ovObj.is_object()) { ovObj.as_object().erase("title"); }
-                    if (m.overrides->year.has_value() && MediaMetadataOverrides::IsValidYear(*m.overrides->year)) {
-                        ovObj["year"] = *m.overrides->year;
-                    } else if (ovObj.is_object()) { ovObj.as_object().erase("year"); }
-                    if (m.overrides->series.has_value() && MediaMetadataOverrides::IsValidSeries(*m.overrides->series)) {
-                        ovObj["series"] = Utf16ToUtf8(*m.overrides->series);
-                    } else if (ovObj.is_object()) { ovObj.as_object().erase("series"); }
-                    j["overrides"] = std::move(ovObj);
-                } else if (j.is_object()) { j.as_object().erase("overrides"); j.as_object().erase("metadataOverrides"); }
-                l.Append(j);
+                }
+                std::string& text = output.BeginRecord();
+                const size_t offset = text.size();
+                if (found) {
+                    const auto& span = state.lastMediaSpans[oldIndex];
+                    // Spans refer only to the last successfully published bytes.
+                    text.append(state.lastLibraryJson, span.offset, span.length);
+                    ++state.reusedMediaRecordCount;
+                } else {
+                    AppendMediaRecord(text, *record, snapshot.rootDir);
+                    ++state.serializedMediaRecordCount;
+                }
+                preparedSpans.push_back({offset, text.size() - offset});
             }
-            return l.Finish();
+            preparedMedia = true;
+            return output.Finish();
     });
+    // Advancing this metadata before the write succeeds would make a retry
+    // pair new record identities with stale bytes. Moves below cannot allocate.
+    if (preparedMedia && result.libraryStatus.is_ok() && state.libraryGeneration == snapshot.libraryGeneration) {
+        state.lastMediaRecords = snapshot.mediaItems;
+        state.lastMediaSpans = std::move(preparedSpans);
+    }
     saveDocument(L"playlists.json", snapshot.playlistsGeneration, state.playlistsGeneration,
         state.lastPlaylistsJson, snapshot.loadResult.playlistsStatus, result.playlistsStatus, result.playlistsSaved, [&]() {
             CompactJsonArray p(state.lastPlaylistsJson.size());

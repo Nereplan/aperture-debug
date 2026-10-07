@@ -5,6 +5,7 @@
 #include "MediaLibrary.h"
 #include "Subtitles.h"
 #include "FolderWatcher.h"
+#include "WatchReconcile.h"
 #include "MpvPlayer.h"
 #include "Renderer.h"
 #include "UIComponents.h"
@@ -130,11 +131,12 @@ private:
     Settings settings;
     MediaLibrary library;
     LibrarySaveWorker librarySaveWorker;
+    LibrarySaveCaptureSchedule librarySaveCaptureSchedule;
     std::shared_ptr<const MediaLibrarySaveSnapshot> submittedLibrarySnapshot, libraryReloadBaseline;
     uint64_t closeSaveSerial = 0;
     bool librarySaveRequested = false;
     MediaLibrarySaveResult QueueLibrarySave();
-    MediaLibrarySaveResult SubmitPendingLibrarySave();
+    MediaLibrarySaveResult SubmitPendingLibrarySave(bool force = true);
     bool PumpLibrarySaveResults();
     bool ReportLibrarySaveResult(const MediaLibrarySaveResult& result);
     OnlineSubtitleJobs onlineSubtitleJobs;
@@ -282,9 +284,10 @@ private:
     bool backfillJobActive = false;
     MetadataBackfillResult backfillResult;
     std::vector<MediaItem> stagedBackfillItems;
+    WatchReconcileWorker watchReconcileWorker;
     FolderWatcher folderWatcher;
-    std::mutex pendingWatchMutex;
-    std::vector<WatchChangeBatch> pendingWatchBatches;
+    ULONGLONG watchRetryAfterTick = 0;
+    bool watchRescanFeedbackPending = false;
     std::atomic<bool> watchEventPosted{ false };
     void HandleFolderWatchEvents();
     void AddWatchedFolderPrompt();

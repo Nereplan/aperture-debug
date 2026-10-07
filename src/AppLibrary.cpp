@@ -165,6 +165,9 @@ void App::CancelInitialLibraryLoad() {
 
 void App::InvalidateLibraryDerivedState() {
     // Replacement/undo can restore an older object with coincident counters.
+    watchReconcileWorker.Cancel();
+    watchRetryAfterTick = 0;
+    for (const auto& root : library.GetWatchedFolders()) watchReconcileWorker.Queue({true, root, {}});
     m_mediaQueryEngine.InvalidateCache();
     InvalidateMediaLayoutCache();
     m_historyProjection = {};
@@ -406,22 +409,41 @@ void App::EnqueueActiveRowAnimation(size_t index) {
 
 
 void App::HandleFolderWatchEvents() {
-    if (shutdownComplete || playerCallbacksDisabled.load(std::memory_order_acquire)) return;
-    std::vector<WatchChangeBatch> batches;
-    { std::lock_guard<std::mutex> lock(pendingWatchMutex); batches.swap(pendingWatchBatches); }
-    if (batches.empty()) return;
-    bool libraryModified = false;
-    for (const auto& batch : batches) {
-        WatchReconcileResult res = library.ReconcileWatchBatch(batch, true, false);
-        if (!res.status.is_ok()) ReportStorageFailure(res.status, L"watched folder");
-        if (res.addedCount > 0 || res.updatedCount > 0 || res.removedCount > 0 || res.renamedCount > 0 || res.rescanCount > 0)
-            libraryModified = true;
+    if (!libraryReady || deferredLibraryReadyWorkPending || shutdownComplete || playerCallbacksDisabled.load(std::memory_order_acquire)) return;
+    if (auto delta = watchReconcileWorker.TakeCompleted()) {
+        if (watchReconcileWorker.HasPending()) {
+            // New filesystem events supersede observations made during the
+            // previous scan. Preserve live records until a current scan lands.
+            for (const auto& root : delta->roots) watchReconcileWorker.Queue({true, root, {}});
+        } else {
+            const auto result = library.ApplyPreparedWatchDelta(*delta, true);
+            if (!result.status.is_ok()) ReportStorageFailure(result.status, L"watched folder");
+            if (result.needsRescan) {
+                for (const auto& root : delta->roots) watchReconcileWorker.Queue({true, root, {}});
+            }
+            if (result.addedCount || result.updatedCount || result.removedCount || result.renamedCount) {
+                InvalidateMediaLayoutCache();
+                InvalidateRect(hWnd, nullptr, FALSE);
+                ScheduleMetadataBackfill();
+                AnnounceStatus(L"Library updated from watched folder");
+            }
+            if (watchRescanFeedbackPending && !result.needsRescan) {
+                watchRescanFeedbackPending = false;
+                if (result.status.is_ok()) ShowOSD(IconType::Refresh, L"Watched Folders Rescanned");
+            }
+        }
     }
-    if (libraryModified) {
-        InvalidateMediaLayoutCache();
-        InvalidateRect(hWnd, NULL, FALSE);
-        if (!shutdownComplete && !playerCallbacksDisabled.load(std::memory_order_acquire)) { ScheduleMetadataBackfill(); }
-        AnnounceStatus(L"Library updated from watched folder");
+    if (watchReconcileWorker.IsRunning() || GetTickCount64() < watchRetryAfterTick) return;
+    auto batches = watchReconcileWorker.TakePending(library.GetWatchedFolders());
+    if (batches.empty()) return;
+    try {
+        auto baseline = WatchReconcileWorker::Capture(library, batches);
+        watchReconcileWorker.Start(std::move(batches), std::move(baseline), hWnd, kFolderWatchEventMessage);
+    } catch (...) {
+        for (const auto& root : library.GetWatchedFolders()) watchReconcileWorker.Queue({true, root, {}});
+        watchRetryAfterTick = GetTickCount64() + 1000;
+        ReportStorageFailure(StorageStatus::Error(StorageErrorCode::FileReadFailed, ERROR_NOT_ENOUGH_MEMORY,
+            L"", "Could not prepare watched-folder refresh"), L"watched folder");
     }
 }
 
@@ -459,11 +481,9 @@ void App::AddWatchedFolderPrompt() {
         // Start on demand: Initialize() leaves the watcher stopped when the profile has no watched folders so an idle hub keeps one fewer
         // thread/IOCP.
         if (!folderWatcher.IsRunning()) { folderWatcher.Start(); }
-        library.ReconcileRescan(watchedPath, true, false);
-        InvalidateMediaLayoutCache();
-        InvalidateRect(hWnd, NULL, FALSE);
+        watchReconcileWorker.Queue({true, watchedPath, {}});
+        HandleFolderWatchEvents();
         ShowOSD(IconType::FolderPlaylist, L"Added Watched Folder: " + GetFileNameFromPath(watchedPath));
-        ScheduleMetadataBackfill();
     } else { ShowOSD(IconType::Checkmark, L"Folder is already being watched"); }
     PopAndRestoreFocus(TransientSurfaceType::SystemDialog);
 }
@@ -472,15 +492,10 @@ void App::AddWatchedFolderPrompt() {
 void App::RescanAllWatchedFolders() {
     const auto& folders = library.GetWatchedFolders();
     if (folders.empty()) { ShowOSD(IconType::VolumeMuted, L"No watched folders configured"); return; }
-    bool complete = true;
-    for (const auto& f : folders) {
-        const auto result = library.ReconcileRescan(f, true, false);
-        if (!result.status.is_ok()) { complete = false; ReportStorageFailure(result.status, L"watched folder"); }
-    }
-    InvalidateMediaLayoutCache();
-    InvalidateRect(hWnd, NULL, FALSE);
-    ScheduleMetadataBackfill();
-    if (complete) ShowOSD(IconType::Refresh, L"Watched Folders Rescanned");
+    for (const auto& folder : folders) watchReconcileWorker.Queue({true, folder, {}});
+    watchRescanFeedbackPending = true;
+    HandleFolderWatchEvents();
+    ShowOSD(IconType::Refresh, L"Scanning watched folders");
 }
 
 

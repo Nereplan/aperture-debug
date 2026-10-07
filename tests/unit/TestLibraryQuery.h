@@ -1123,7 +1123,7 @@ TEST_CASE(LibraryQuery, ViewReusesOrderingAndSearchAcrossInteractionAndUnrelated
     for (int i = 0; i < 6; ++i) {
         MediaItem item;
         item.id = std::to_string(i);
-        item.filePath = L"C:\Media\Show S01E0" + std::to_wstring(i + 1) + L".mkv";
+        item.filePath = LR"(C:\Media\Show S01E0)" + std::to_wstring(i + 1) + L".mkv";
         item.title = L"Episode " + std::to_wstring(i + 1);
         item.durationSec = 100;
         library.mediaItems.push_back(item);
@@ -1174,7 +1174,7 @@ TEST_CASE(LibraryQuery, PreparedViewsMatchDirectProjectionWithFilteringGroupsAnd
     for (int i = 0; i < 12; ++i) {
         MediaItem item;
         item.id = std::to_string(i);
-        item.filePath = L"C:\Media\Folder" + std::to_wstring(i % 3) + L"\Show S01E" + std::to_wstring(i + 1) + L".mkv";
+        item.filePath = LR"(C:\Media\Folder)" + std::to_wstring(i % 3) + LR"(\Show S01E)" + std::to_wstring(i + 1) + L".mkv";
         item.title = L"Episode " + std::to_wstring(i);
         item.durationSec = 100; item.fileSizeBytes = 1024;
         item.lastPosSec = i % 3 == 0 ? 100 : (i % 3 == 1 ? 25 : 0);
@@ -1226,7 +1226,7 @@ TEST_CASE(LibraryQuery, RelevantChangesInvalidateAndUnchangedOrderRetainsLayoutG
     library.SetSaveRequestHandler([] { return MediaLibrarySaveResult{}; });
     for (int i = 0; i < 2; ++i) {
         MediaItem item; item.id = std::to_string(i); item.title = std::to_wstring(i);
-        item.filePath = L"C:\Media\" + item.title + L".mkv"; item.durationSec = 100;
+        item.filePath = LR"(C:\Media\)" + item.title + L".mkv"; item.durationSec = 100;
         library.mediaItems.push_back(item);
     }
     library.RebuildPathIndex();
@@ -1270,9 +1270,9 @@ TEST_CASE(LibraryQuery, ColdCappedViewDoesNotPrepareUnlimitedOrder) {
 
 TEST_CASE(LibraryQuery, SeriesOverrideCanShareStandaloneKeyWhenFiltering) {
     MediaLibrary library;
-    MediaItem ordinary; ordinary.id = "ordinary"; ordinary.title = L"Ordinary"; ordinary.filePath = L"C:\Media\film.mkv";
+    MediaItem ordinary; ordinary.id = "ordinary"; ordinary.title = L"Ordinary"; ordinary.filePath = LR"(C:\Media\film.mkv)";
     library.mediaItems.push_back(ordinary);
-    MediaItem custom; custom.id = "custom"; custom.title = L"Custom"; custom.filePath = L"C:\Media\Show S01E01.mkv";
+    MediaItem custom; custom.id = "custom"; custom.title = L"Custom"; custom.filePath = LR"(C:\Media\Show S01E01.mkv)";
     custom.overrides.emplace(); custom.overrides->series = L"__standalone__"; library.mediaItems.push_back(custom);
     LibraryQueryOptions options; options.groupMode = LibraryGroupMode::Series;
     LibraryQueryEngine engine; engine.QueryView(library, options);

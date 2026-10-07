@@ -87,6 +87,7 @@ struct CachedSearchEntry {
     double durationSec = 0.0, lastPosSec = 0.0;
     int64_t lastWatchedTimestamp = 0, addedTimestamp = 0;
     GlobalSearchResultSource source = GlobalSearchResultSource::Media;
+    uint64_t metadataGeneration = 0;
     std::wstring_view GetFileNameView() const;
     std::wstring_view GetNormalizedFileNameView() const;
 };
@@ -107,6 +108,10 @@ public:
     size_t GetEntryCount() const { return entries.size(); }
     uint64_t GetTextRebuildCount() const { return textRebuildCount; }
     uint64_t GetMetadataRefreshCount() const { return metadataRefreshCount; }
+    uint64_t GetMetadataEntryRefreshCount() const { return metadataEntryRefreshCount; }
+    uint64_t GetCandidateIndexBuildCount() const { return candidateIndexBuildCount; }
+    size_t GetLastCandidateCount() const { return lastCandidateCount; }
+    size_t GetCandidateIndexBytes() const { return candidatePostings.capacity() * sizeof(uint32_t) + candidateBuckets.capacity() * sizeof(CandidateBucket); }
     // Search query execution
     std::vector<GlobalSearchResultItem> Query(const MediaLibrary& library, const std::wstring& rawQuery,
                                              const GlobalSearchQueryOptions& options, size_t& outTotalMatchCount);
@@ -121,6 +126,19 @@ public:
 
 private:
     void RefreshMetadata(const MediaLibrary& library);
+    void RefreshEntryMetadata(CachedSearchEntry& entry, size_t index, const MediaLibrary& library);
+    void BuildCandidateIndex();
+    const std::pair<const uint32_t*, size_t> SelectCandidates(const std::wstring& query, const std::vector<std::wstring>& tokens);
+    struct CandidateBucket { uint32_t offset = 0, count = 0; };
+    struct HistoryMetadata { double durationSec, lastPosSec; int64_t watchedTimestamp; };
+    std::unordered_map<size_t, std::vector<HistoryMetadata>> historyMetadataByEntry;
+    // A collision only broadens candidates. An omitted bucket is never used
+    // to reject entries; exact scoring remains the final match authority.
+    std::vector<CandidateBucket> candidateBuckets;
+    std::vector<uint32_t> candidatePostings;
+    bool candidateIndexAttempted = false;
+    uint64_t candidateIndexBuildCount = 0, metadataGeneration = 0, metadataEntryRefreshCount = 0;
+    size_t lastCandidateCount = 0;
     std::vector<CachedSearchEntry> entries;
     std::unordered_map<std::wstring, size_t> historyEntryByPath; // At most the bounded history count.
     uint64_t cachedSearchContentVersion = (std::numeric_limits<uint64_t>::max)();

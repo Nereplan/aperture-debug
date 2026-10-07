@@ -270,7 +270,7 @@ TEST_CASE(GlobalSearch, PlaybackProgressRefreshesStatisticsWithoutRebuildingText
 TEST_CASE(GlobalSearch, PlaylistEditsPreserveWarmTextAndMetadata) {
     MediaLibrary library;
     library.SetSaveRequestHandler([] { return MediaLibrarySaveResult{}; });
-    MediaItem item; item.id = "media"; item.title = L"Episode"; item.filePath = L"C:\Media\episode.mkv";
+    MediaItem item; item.id = "media"; item.title = L"Episode"; item.filePath = LR"(C:\Media\episode.mkv)";
     library.mediaItems.push_back(item); library.RebuildPathIndex();
     GlobalSearchIndex index; GlobalSearchQueryOptions options; options.checkFileExists = false;
     TEST_ASSERT_EQ(index.Query(library, L"Episode", options).size(), 1ull);
@@ -961,6 +961,52 @@ TEST_CASE(GlobalSearch, EmptyQueryDefersIndexBuild) {
     TEST_ASSERT(index.IsDirty(lib));
     TEST_ASSERT_EQ(index.Query(lib, L"clip", options, total).size(), size_t(1));
     TEST_ASSERT(!index.IsDirty(lib));
+}
+
+TEST_CASE(GlobalSearch, SelectiveIndexAndLazyMetadataKeepResultsCurrent) {
+    MediaLibrary library;
+    library.SetSaveRequestHandler([] { return MediaLibrarySaveResult{}; });
+    for (int i = 0; i < 2048; ++i) {
+        MediaItem item; item.id = std::to_string(i);
+        item.title = i < 2 ? L"Quasar" : L"Routine library entry";
+        item.filePath = LR"(C:\Index\clip)" + std::to_wstring(i) + L".mkv";
+        item.durationSec = 100; item.addedTimestamp = i;
+        library.mediaItems.push_back(std::move(item));
+    }
+    library.RebuildPathIndex();
+    GlobalSearchIndex index; GlobalSearchQueryOptions options; options.checkFileExists = false;
+    size_t total = 0;
+    auto results = index.Query(library, L"quasar", options, total);
+    TEST_ASSERT_EQ(total, size_t(2));
+    TEST_ASSERT(index.GetLastCandidateCount() < library.mediaItems.size());
+    TEST_ASSERT_EQ(index.GetCandidateIndexBuildCount(), uint64_t(1));
+    TEST_ASSERT(index.GetCandidateIndexBytes() <= size_t(17 * 1024 * 1024));
+    TEST_ASSERT_EQ(results.front().filePath, library.mediaItems[1].filePath);
+    library.UpdateProgress(library.mediaItems[0].filePath, 35, 100);
+    const auto before = index.GetMetadataEntryRefreshCount();
+    results = index.Query(library, L"quasar", options, total);
+    TEST_ASSERT_EQ(results.front().filePath, library.mediaItems[0].filePath);
+    TEST_ASSERT_EQ(results.front().lastPosSec, 35.0);
+    TEST_ASSERT_EQ(index.GetMetadataEntryRefreshCount() - before, uint64_t(2));
+    TEST_ASSERT_EQ(index.GetTextRebuildCount(), uint64_t(1));
+    TEST_ASSERT_EQ(index.GetCandidateIndexBuildCount(), uint64_t(1));
+    library.UpdateProgress(library.mediaItems[900].filePath, 18, 100);
+    results = index.Query(library, L"clip900", options, total);
+    TEST_ASSERT_EQ(results.size(), size_t(1));
+    TEST_ASSERT_EQ(results.front().lastPosSec, 18.0);
+    TEST_ASSERT_EQ(index.GetMetadataEntryRefreshCount() - before, uint64_t(3));
+    options.maxResults = 0;
+    const auto refreshed = index.GetMetadataEntryRefreshCount();
+    library.UpdateProgress(library.mediaItems[0].filePath, 45, 100);
+    TEST_ASSERT(index.Query(library, L"quasar", options, total).empty());
+    TEST_ASSERT_EQ(total, size_t(2));
+    TEST_ASSERT_EQ(index.GetMetadataEntryRefreshCount(), refreshed);
+    options.maxResults = 50;
+    TEST_ASSERT_EQ(index.Query(library, L"quasar", options).front().lastPosSec, 45.0);
+    // Common buckets are intentionally omitted; exhaustive fallback still counts every match.
+    results = index.Query(library, L"routine", options, total);
+    TEST_ASSERT_EQ(total, size_t(2046));
+    TEST_ASSERT_EQ(results.size(), size_t(50));
 }
 
 } // namespace Aperture::Test

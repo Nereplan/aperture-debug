@@ -3,6 +3,7 @@
 #include "../support/TestFramework.h"
 #include "../../src/MediaLibrary.h"
 #include "../../src/Json.h"
+#include "../../src/PreparedSmartPlaylist.h"
 #include <string>
 #include <vector>
 
@@ -255,7 +256,7 @@ TEST_CASE(SmartPlaylists, LimitedEvaluationMatchesUnlimitedPrefix) {
 TEST_CASE(SmartPlaylists, PathGenerationTracksRefreshesWithoutUnrelatedEdits) {
     MediaLibrary library;
     library.SetSaveRequestHandler([] { return MediaLibrarySaveResult{}; });
-    MediaItem item; item.id = "one"; item.title = L"One"; item.filePath = L"C:\Media\one.mkv";
+    MediaItem item; item.id = "one"; item.title = L"One"; item.filePath = LR"(C:\Media\one.mkv)";
     item.durationSec = 100; library.mediaItems.push_back(item); library.RebuildPathIndex();
     Playlist playlist; playlist.id = "smart"; playlist.type = PlaylistType::Smart;
     SmartPlaylistRule rule; rule.field = SmartRuleField::Status; rule.op = SmartRuleOperator::Equals; rule.value = "new";
@@ -272,6 +273,76 @@ TEST_CASE(SmartPlaylists, PathGenerationTracksRefreshesWithoutUnrelatedEdits) {
     const auto watched = library.ResolvePlaylistPaths(library.playlists.front());
     TEST_ASSERT(watched.paths.empty());
     TEST_ASSERT(watched.generation > refreshed);
+}
+
+TEST_CASE(SmartPlaylists, PreparedRulesPreserveExistingOperatorSemantics) {
+    MediaItem item;
+    item.title = L"Mixed Film"; item.filePath = LR"(C:\Media\Mixed Film.mkv)";
+    item.status = "in_progress"; item.durationSec = 120; item.lastPosSec = 30;
+    item.fileSizeBytes = 4096; item.addedTimestamp = 100; item.lastWatchedTimestamp = 200; item.videoHeight = 1080;
+    const std::vector<std::pair<SmartRuleField, std::string>> cases = {
+        {SmartRuleField::Title, "MIXED"}, {SmartRuleField::Path, "Media"}, {SmartRuleField::Status, " watching "},
+        {SmartRuleField::Status, "missing"}, {SmartRuleField::Status, "completed"}, {SmartRuleField::Duration, "2m"},
+        {SmartRuleField::Progress, "25%"}, {SmartRuleField::FileSize, "4kb"}, {SmartRuleField::DateAdded, "100"},
+        {SmartRuleField::LastWatched, "200"}, {SmartRuleField::VideoHeight, "fhd"}
+    };
+    for (const auto& value : cases) for (int op = 0; op <= static_cast<int>(SmartRuleOperator::EndsWith); ++op) {
+        SmartPlaylistCriteria criteria;
+        SmartPlaylistRule rule; rule.field = value.first; rule.op = static_cast<SmartRuleOperator>(op); rule.value = value.second;
+        criteria.rules.push_back(rule);
+        PreparedSmartPlaylist plan(criteria, 1000);
+        TEST_ASSERT(plan.IsValid());
+        const auto result = plan.MatchWithoutDisk(item);
+        TEST_ASSERT_EQ(result.present, criteria.Matches(item, true));
+        TEST_ASSERT_EQ(result.missing, criteria.Matches(item, false));
+    }
+    for (auto mode : {SmartMatchMode::MatchAll, SmartMatchMode::MatchAny}) {
+        SmartPlaylistCriteria criteria; criteria.matchMode = mode;
+        criteria.rules = {{SmartRuleField::Title, SmartRuleOperator::Contains, "absent"},
+                          {SmartRuleField::Status, SmartRuleOperator::Equals, "missing"}};
+        const auto result = PreparedSmartPlaylist(criteria, 1000).MatchWithoutDisk(item);
+        TEST_ASSERT_EQ(result.present, criteria.Matches(item, true));
+        TEST_ASSERT_EQ(result.missing, criteria.Matches(item, false));
+    }
+}
+
+TEST_CASE(SmartPlaylists, RelativeRulesShareClockAndExposeMembershipBoundaries) {
+    const int64_t now = 200000;
+    MediaItem item; item.addedTimestamp = now - 86400 + 10;
+    SmartPlaylistCriteria criteria;
+    criteria.rules = {{SmartRuleField::DateAdded, SmartRuleOperator::GreaterThan, "1d"}};
+    const PreparedSmartPlaylist before(criteria, now);
+    TEST_ASSERT(before.DependsOnTime());
+    TEST_ASSERT(before.MatchWithoutDisk(item).present);
+    TEST_ASSERT_EQ(before.NextChangeAfter(item), now + 10);
+    const PreparedSmartPlaylist boundary(criteria, now + 10);
+    TEST_ASSERT(!boundary.MatchWithoutDisk(item).present);
+    TEST_ASSERT_EQ(boundary.NextChangeAfter(item), now + 11);
+    criteria.rules.front().op = SmartRuleOperator::Equals;
+    TEST_ASSERT(PreparedSmartPlaylist(criteria, now + 10).MatchWithoutDisk(item).present);
+    TEST_ASSERT(!PreparedSmartPlaylist(criteria, now + 11).MatchWithoutDisk(item).present);
+    TEST_ASSERT_EQ(PreparedSmartPlaylist(criteria, now + 11).NextChangeAfter(item), (std::numeric_limits<int64_t>::max)());
+}
+
+TEST_CASE(SmartPlaylists, PlaybackIndependentMembershipAndRejectedDiskCandidatesAreReused) {
+    MediaLibrary library;
+    library.SetSaveRequestHandler([] { return MediaLibrarySaveResult{}; });
+    MediaItem item; item.id = "episode"; item.title = L"Episode"; item.filePath = LR"(C:\Media\episode.mkv)";
+    item.durationSec = 100; library.mediaItems.push_back(item); library.RebuildPathIndex();
+    Playlist playlist; playlist.id = "titles"; playlist.type = PlaylistType::Smart;
+    playlist.smartCriteria.rules = {{SmartRuleField::Title, SmartRuleOperator::Contains, "episode"}};
+    library.playlists.push_back(playlist); library.NotifyPlaylistEdited();
+    const auto generation = library.ResolvePlaylistPaths(library.playlists.front()).generation;
+    const auto evaluations = library.GetSmartPlaylistEvaluationCount();
+    library.UpdateProgress(item.filePath, 25, 100);
+    TEST_ASSERT_EQ(library.ResolvePlaylistPaths(library.playlists.front()).generation, generation);
+    TEST_ASSERT_EQ(library.GetSmartPlaylistEvaluationCount(), evaluations);
+    SmartPlaylistCriteria impossible;
+    impossible.rules = {{SmartRuleField::Title, SmartRuleOperator::Equals, "absent"},
+                        {SmartRuleField::Status, SmartRuleOperator::Equals, "missing"}};
+    const auto probes = library.GetSmartPlaylistDiskProbeCount();
+    TEST_ASSERT(library.EvaluateSmartPlaylist(impossible).empty());
+    TEST_ASSERT_EQ(library.GetSmartPlaylistDiskProbeCount(), probes);
 }
 
 } // namespace Aperture::Test

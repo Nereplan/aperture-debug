@@ -149,12 +149,16 @@ bool GlobalSearchIndex::IsDirty(const MediaLibrary& library) const {
 
 void GlobalSearchIndex::Invalidate() {
     cachedSearchContentVersion = (std::numeric_limits<uint64_t>::max)();
-    entries.clear(); historyEntryByPath.clear();
+    entries.clear(); historyEntryByPath.clear(); historyMetadataByEntry.clear();
+    candidateBuckets.clear(); candidatePostings.clear(); candidateIndexAttempted = false;
 }
 
 void GlobalSearchIndex::RebuildIndex(const MediaLibrary& library) {
     entries.clear();
     historyEntryByPath.clear();
+    historyMetadataByEntry.clear();
+    candidateBuckets.clear(); candidatePostings.clear(); candidateIndexAttempted = false;
+    ++metadataGeneration;
     historyEntryByPath.reserve(library.history.size());
     ++textRebuildCount;
     std::unordered_map<std::wstring, size_t> pathToEntryIndex;
@@ -176,6 +180,7 @@ void GlobalSearchIndex::RebuildIndex(const MediaLibrary& library) {
             if (history != pathToEntryIndex.end()) history->second = entries.size();
         }
         CachedSearchEntry entry;
+        entry.metadataGeneration = metadataGeneration;
         entry.mediaId = item.id;
         entry.filePath = item.filePath;
         entry.title = item.GetDisplayTitle();
@@ -214,6 +219,7 @@ void GlobalSearchIndex::RebuildIndex(const MediaLibrary& library) {
         } else {
             // History only entry
             CachedSearchEntry entry;
+            entry.metadataGeneration = metadataGeneration;
             entry.filePath = hist.filePath;
             entry.title = hist.title.empty() ? ExtractFileName(hist.filePath) : hist.title;
             entry.normalizedTitle = NormalizeText(entry.title);
@@ -236,23 +242,34 @@ void GlobalSearchIndex::RebuildIndex(const MediaLibrary& library) {
 }
 
 void GlobalSearchIndex::RefreshMetadata(const MediaLibrary& library) {
-    // Reuse normalized text/tokens. Production records have stable IDs, so
-    // statistics refresh needs no per-media path normalization or allocation.
-    for (auto& entry : entries) {
-        if (entry.source == GlobalSearchResultSource::History) {
-            entry.durationSec = entry.lastPosSec = 0;
-            entry.lastWatchedTimestamp = entry.addedTimestamp = 0;
-            continue;
-        }
-        const auto* media = entry.mediaId.empty() ? library.FindByPath(entry.filePath) : library.FindById(entry.mediaId);
-        if (!media) continue; // Membership changes are handled by text rebuilds.
-        entry.durationSec = media->durationSec; entry.lastPosSec = media->lastPosSec;
-        entry.lastWatchedTimestamp = media->lastWatchedTimestamp; entry.addedTimestamp = media->addedTimestamp;
-    }
+    // History is bounded independently of the catalog. Prepare its overlays
+    // once per revision; media details are loaded only for scored matches.
+    historyMetadataByEntry.clear();
     for (const auto& history : library.history) {
         const auto it = historyEntryByPath.find(MediaLibrary::NormalizePathKey(history.filePath));
         if (it == historyEntryByPath.end()) continue;
-        auto& entry = entries[it->second];
+        historyMetadataByEntry[it->second].push_back({history.durationSec, history.lastPosSec, history.watchedTimestamp});
+    }
+    ++metadataGeneration;
+    cachedRevisions = library.GetRevisions();
+    cachedSearchContentVersion = library.GetSearchContentVersion();
+    ++metadataRefreshCount;
+}
+
+void GlobalSearchIndex::RefreshEntryMetadata(CachedSearchEntry& entry, size_t index, const MediaLibrary& library) {
+    if (entry.metadataGeneration == metadataGeneration) return;
+    if (entry.source == GlobalSearchResultSource::History) {
+        entry.durationSec = entry.lastPosSec = 0;
+        entry.lastWatchedTimestamp = entry.addedTimestamp = 0;
+    } else {
+        const auto* media = entry.mediaId.empty() ? library.FindByPath(entry.filePath) : library.FindById(entry.mediaId);
+        if (media) {
+            entry.durationSec = media->durationSec; entry.lastPosSec = media->lastPosSec;
+            entry.lastWatchedTimestamp = media->lastWatchedTimestamp; entry.addedTimestamp = media->addedTimestamp;
+        }
+    }
+    const auto overlays = historyMetadataByEntry.find(index);
+    if (overlays != historyMetadataByEntry.end()) for (const auto& history : overlays->second) {
         if (entry.source == GlobalSearchResultSource::History || history.watchedTimestamp > entry.lastWatchedTimestamp) {
             entry.lastPosSec = history.lastPosSec; entry.lastWatchedTimestamp = history.watchedTimestamp;
         }
@@ -260,9 +277,107 @@ void GlobalSearchIndex::RefreshMetadata(const MediaLibrary& library) {
             entry.durationSec = history.durationSec; entry.addedTimestamp = history.watchedTimestamp;
         } else if (entry.durationSec <= 0 && history.durationSec > 0) entry.durationSec = history.durationSec;
     }
-    cachedRevisions = library.GetRevisions();
-    cachedSearchContentVersion = library.GetSearchContentVersion();
-    ++metadataRefreshCount;
+    entry.metadataGeneration = metadataGeneration;
+    ++metadataEntryRefreshCount;
+}
+
+namespace {
+constexpr size_t kSearchCandidateBucketCount = 65536;
+constexpr uint32_t kIgnoredSearchBucket = (std::numeric_limits<uint32_t>::max)();
+constexpr size_t kSearchPostingBudget = 4 * 1024 * 1024;
+constexpr size_t kSearchTextBuildBudget = 16 * 1024 * 1024;
+constexpr uint32_t kSearchPostingLengthLimit = 1024;
+
+uint32_t SearchTrigramBucket(wchar_t a, wchar_t b, wchar_t c) {
+    uint32_t hash = (static_cast<uint32_t>(a) * 16777619u) ^ static_cast<uint32_t>(b);
+    hash = (hash * 16777619u) ^ static_cast<uint32_t>(c);
+    hash ^= hash >> 16;
+    return hash & (kSearchCandidateBucketCount - 1);
+}
+
+template <typename Visitor> void VisitSearchTrigrams(const CachedSearchEntry& entry, Visitor visit) {
+    const auto text = [&](const std::wstring& value) {
+        for (size_t i = 2; i < value.size(); ++i) visit(SearchTrigramBucket(value[i - 2], value[i - 1], value[i]));
+    };
+    text(entry.normalizedTitle); text(entry.normalizedPath);
+    if (entry.titleTokens.originalText) text(*entry.titleTokens.originalText);
+    if (entry.pathTokens.originalText) text(*entry.pathTokens.originalText);
+}
+}
+
+void GlobalSearchIndex::BuildCandidateIndex() {
+    candidateIndexAttempted = true;
+    if (entries.size() < 256 || entries.size() >= kIgnoredSearchBucket) return;
+    // Fixed tables and short posting lists put a hard bound on retained
+    // memory. Oversized catalogs use the existing exhaustive scorer instead.
+    size_t textSize = 0;
+    for (const auto& entry : entries) {
+        const size_t length = entry.normalizedTitle.size() + entry.normalizedPath.size() +
+            (entry.titleTokens.originalText ? entry.titleTokens.originalText->size() : 0) +
+            (entry.pathTokens.originalText ? entry.pathTokens.originalText->size() : 0);
+        if (length > kSearchTextBuildBudget - textSize) return;
+        textSize += length;
+    }
+    std::vector<uint32_t> counts(kSearchCandidateBucketCount), seen(kSearchCandidateBucketCount);
+    for (size_t i = 0; i < entries.size(); ++i) {
+        const uint32_t stamp = static_cast<uint32_t>(i + 1);
+        VisitSearchTrigrams(entries[i], [&](uint32_t bucket) {
+            if (seen[bucket] == stamp) return;
+            seen[bucket] = stamp;
+            if (counts[bucket] <= kSearchPostingLengthLimit) ++counts[bucket];
+        });
+    }
+    std::vector<uint32_t> useful;
+    useful.reserve(kSearchCandidateBucketCount);
+    for (uint32_t bucket = 0; bucket < kSearchCandidateBucketCount; ++bucket)
+        if (counts[bucket] > 0 && counts[bucket] <= kSearchPostingLengthLimit) useful.push_back(bucket);
+    std::sort(useful.begin(), useful.end(), [&](uint32_t a, uint32_t b) {
+        return counts[a] != counts[b] ? counts[a] < counts[b] : a < b;
+    });
+    candidateBuckets.resize(kSearchCandidateBucketCount);
+    for (size_t i = 0; i < counts.size(); ++i)
+        if (counts[i] > 0) candidateBuckets[i].count = kIgnoredSearchBucket;
+    size_t postingCount = 0;
+    for (const uint32_t bucket : useful) {
+        if (counts[bucket] > kSearchPostingBudget - postingCount) break;
+        candidateBuckets[bucket] = {static_cast<uint32_t>(postingCount), counts[bucket]};
+        postingCount += counts[bucket];
+    }
+    candidatePostings.resize(postingCount);
+    std::fill(counts.begin(), counts.end(), 0);
+    std::fill(seen.begin(), seen.end(), 0);
+    for (size_t i = 0; i < entries.size(); ++i) {
+        const uint32_t stamp = static_cast<uint32_t>(i + 1);
+        VisitSearchTrigrams(entries[i], [&](uint32_t bucket) {
+            if (seen[bucket] == stamp) return;
+            seen[bucket] = stamp;
+            const auto& posting = candidateBuckets[bucket];
+            if (posting.count != kIgnoredSearchBucket && posting.count > 0)
+                candidatePostings[posting.offset + counts[bucket]++] = static_cast<uint32_t>(i);
+        });
+    }
+    ++candidateIndexBuildCount;
+}
+
+const std::pair<const uint32_t*, size_t> GlobalSearchIndex::SelectCandidates(
+    const std::wstring& query, const std::vector<std::wstring>& tokens) {
+    const bool hasGram = tokens.size() > 1 ? std::any_of(tokens.begin(), tokens.end(), [](const auto& token) { return token.size() >= 3; }) : query.size() >= 3;
+    if (!hasGram) return {nullptr, entries.size()};
+    if (!candidateIndexAttempted) BuildCandidateIndex();
+    if (candidateBuckets.empty()) return {nullptr, entries.size()};
+    const CandidateBucket* best = nullptr;
+    const auto select = [&](const std::wstring& text) {
+        for (size_t i = 2; i < text.size(); ++i) {
+            const auto& posting = candidateBuckets[SearchTrigramBucket(text[i - 2], text[i - 1], text[i])];
+            if (posting.count != kIgnoredSearchBucket && (!best || posting.count < best->count)) best = &posting;
+        }
+    };
+    // Each multi-word token is required unless a title/filename phrase has
+    // already matched; that phrase also contains every token's trigrams.
+    if (tokens.size() > 1) { for (const auto& token : tokens) select(token); } else { select(query); }
+    if (!best || best->count >= entries.size()) return {nullptr, entries.size()};
+    // nullptr with zero count is an indexed, proven-empty candidate set.
+    return {best->count ? candidatePostings.data() + best->offset : nullptr, best->count};
 }
 
 int GlobalSearchIndex::CalculateRelevanceScore(const CachedSearchEntry& entry, const std::wstring& normalizedQuery,
@@ -346,18 +461,21 @@ int GlobalSearchIndex::CalculateRelevanceScore(const CachedSearchEntry& entry, c
 std::vector<GlobalSearchResultItem> GlobalSearchIndex::Query(const MediaLibrary& library, const std::wstring& rawQuery,
                                                              const GlobalSearchQueryOptions& options, size_t& outTotalMatchCount) {
     outTotalMatchCount = 0;
+    lastCandidateCount = 0;
     std::wstring normalizedQuery = NormalizeText(rawQuery);
     if (normalizedQuery.empty()) { return {}; }
     if (library.GetSearchContentVersion() != cachedSearchContentVersion) { RebuildIndex(library); }
     else if (!cachedRevisions.SameSearchData(library.GetRevisions())) { RefreshMetadata(library); }
     std::vector<std::wstring> queryTokens = Tokenize(normalizedQuery);
+    const auto candidates = SelectCandidates(normalizedQuery, queryTokens);
+    lastCandidateCount = candidates.second;
     struct ScoredMatch { int score = 0; const CachedSearchEntry* entry = nullptr; };
     std::vector<ScoredMatch> matches;
-    const size_t capacity = (std::min)(options.maxResults, entries.size());
+    const size_t capacity = (std::min)(options.maxResults, candidates.second);
     // Heap selection pays off for small result windows. Large windows keep
     // the full-sort path, avoiding heap-sort overhead for near-total results.
-    const bool bounded = capacity < entries.size() / 4;
-    matches.reserve(bounded ? capacity : entries.size());
+    const bool bounded = capacity < candidates.second / 4;
+    matches.reserve(bounded ? capacity : candidates.second);
     // Deterministic Relevance & Recency Ordering:
     // 1. Relevance Score (descending)
     // 2. Last Watched Timestamp (descending)
@@ -376,7 +494,9 @@ std::vector<GlobalSearchResultItem> GlobalSearchIndex::Query(const MediaLibrary&
     // Keep only the requested best matches. With this comparator the heap
     // root is the worst retained result, so rejected candidates cost one
     // comparison and no allocation. Count every match independently of the cap.
-    for (const auto& entry : entries) {
+    for (size_t candidateIndex = 0; candidateIndex < candidates.second; ++candidateIndex) {
+        const size_t entryIndex = candidates.first ? candidates.first[candidateIndex] : candidateIndex;
+        auto& entry = entries[entryIndex];
         if (entry.source == GlobalSearchResultSource::Media && !options.includeMedia) { continue; }
         if (entry.source == GlobalSearchResultSource::History && !options.includeHistory) { continue; }
         if (queryTokens.size() > 1 && !entry.titleTokens.originalText && !entry.pathTokens.originalText) {
@@ -393,6 +513,7 @@ std::vector<GlobalSearchResultItem> GlobalSearchIndex::Query(const MediaLibrary&
         if (score <= 0) continue;
         ++outTotalMatchCount;
         if (capacity == 0) continue;
+        RefreshEntryMetadata(entry, entryIndex, library);
         const ScoredMatch candidate{score, &entry};
         if (!bounded) { matches.push_back(candidate); continue; }
         if (matches.size() < capacity) {
@@ -427,6 +548,11 @@ std::vector<GlobalSearchResultItem> GlobalSearchIndex::Query(const MediaLibrary&
         if (options.checkFileExists) { item.existsOnDisk = CheckPathExistsOnDisk(src->filePath); } else { item.existsOnDisk = true; }
         results.push_back(std::move(item));
     }
+    // Lazy ID/path lookups can build missing lookup maps and advance revision
+    // counters. Their content is the same catalog used above; record the final
+    // stamps just as the previous eager metadata pass did.
+    cachedRevisions = library.GetRevisions();
+    cachedSearchContentVersion = library.GetSearchContentVersion();
     return results;
 }
 
