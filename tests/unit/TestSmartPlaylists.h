@@ -251,4 +251,27 @@ TEST_CASE(SmartPlaylists, LimitedEvaluationMatchesUnlimitedPrefix) {
     }
 }
 
+
+TEST_CASE(SmartPlaylists, PathGenerationTracksRefreshesWithoutUnrelatedEdits) {
+    MediaLibrary library;
+    library.SetSaveRequestHandler([] { return MediaLibrarySaveResult{}; });
+    MediaItem item; item.id = "one"; item.title = L"One"; item.filePath = L"C:\Media\one.mkv";
+    item.durationSec = 100; library.mediaItems.push_back(item); library.RebuildPathIndex();
+    Playlist playlist; playlist.id = "smart"; playlist.type = PlaylistType::Smart;
+    SmartPlaylistRule rule; rule.field = SmartRuleField::Status; rule.op = SmartRuleOperator::Equals; rule.value = "new";
+    playlist.smartCriteria.rules.push_back(rule); library.playlists.push_back(playlist); library.NotifyPlaylistEdited();
+    const auto first = library.ResolvePlaylistPaths(library.playlists.front());
+    TEST_ASSERT_EQ(first.paths.size(), size_t(1));
+    const auto generation = first.generation;
+    library.AddToHistory(item.filePath, 0, 100);
+    TEST_ASSERT_EQ(library.ResolvePlaylistPaths(library.playlists.front()).generation, generation);
+    library.InvalidatePlaylistStatsCache();
+    const auto refreshed = library.ResolvePlaylistPaths(library.playlists.front()).generation;
+    TEST_ASSERT(refreshed > generation);
+    library.SetWatched(item.filePath, true);
+    const auto watched = library.ResolvePlaylistPaths(library.playlists.front());
+    TEST_ASSERT(watched.paths.empty());
+    TEST_ASSERT(watched.generation > refreshed);
+}
+
 } // namespace Aperture::Test

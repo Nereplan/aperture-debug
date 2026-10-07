@@ -57,7 +57,7 @@ struct LibraryGroupSummary {
     std::wstring key;              // Deterministic group key (e.g. normalized directory or series stem)
     std::wstring title;            // Group header display title (e.g. folder name or series title)
     std::wstring subtitle;         // Subtitle (e.g. directory path or episode count)
-    size_t startIndex = 0;         // Starting index into LibraryQueryProjection::items
+    size_t startIndex = 0;         // Starting index into the projection rows
     size_t count = 0;              // Number of items in this group
     uint64_t totalSizeBytes = 0;
     double totalDurationSec = 0.0;
@@ -79,7 +79,12 @@ struct LibraryQueryOptions {
     // canonical snapshot and rebuild it only when the key set changes, so
     // building per-frame query options never deep-copies the set.
     std::shared_ptr<const std::unordered_set<std::wstring>> collapsedGroups;
-    std::vector<std::wstring> customFolderOrder;      // Deterministic manual ordering for folders
+    // Immutable snapshot: never mutate a shared source after submitting it.
+    std::shared_ptr<const std::vector<std::wstring>> customFolderOrder;
+    const std::vector<std::wstring>& FolderOrder() const {
+        static const std::vector<std::wstring> empty;
+        return customFolderOrder ? *customFolderOrder : empty;
+    }
     bool CollapsedGroupCount(const std::wstring& key) const {
         return collapsedGroups && collapsedGroups->count(key) > 0;
     }
@@ -95,7 +100,7 @@ struct LibraryQueryOptions {
         return sortField == other.sortField && sortDirection == other.sortDirection && statusFilter == other.statusFilter &&
                groupMode == other.groupMode && searchQuery == other.searchQuery && maxItems == other.maxItems &&
                checkFileExists == other.checkFileExists && pinLastWatched == other.pinLastWatched &&
-               CollapsedGroupsEqual(other.collapsedGroups) && customFolderOrder == other.customFolderOrder;
+               CollapsedGroupsEqual(other.collapsedGroups) && (customFolderOrder == other.customFolderOrder || FolderOrder() == other.FolderOrder());
     }
     bool operator!=(const LibraryQueryOptions& other) const { return !(*this == other); }
 };
@@ -122,6 +127,23 @@ struct LibraryQueryProjection {
     bool isCapped = false;
     bool IsEmpty() const { return items.empty(); }
     size_t Count() const { return items.size(); }
+    size_t GroupCount() const { return groups.size(); }
+};
+
+// The UI already owns the media records. Its query result stores only order,
+// membership, and group summaries; details are read for visible rows only.
+// Indices are valid for the catalog revision that produced this projection.
+struct LibraryViewProjection {
+    std::vector<size_t> indices;
+    // Empty means every projected record is assumed present (no disk probes).
+    std::vector<uint8_t> availability;
+    std::vector<LibraryGroupSummary> groups;
+    size_t totalLibraryCount = 0, filteredCount = 0;
+    LibraryQueryOptions options;
+    uint64_t libraryVersion = 0, generation = 0;
+    bool isCapped = false;
+    bool IsEmpty() const { return indices.empty(); }
+    size_t Count() const { return indices.size(); }
     size_t GroupCount() const { return groups.size(); }
 };
 
@@ -173,6 +195,15 @@ public:
     // Cache management
     void InvalidateCache();
     bool IsCacheValid(const MediaLibrary& library, const LibraryQueryOptions& options) const;
+    // Borrowed until the next Query/QueryView/InvalidateCache/transfer on this
+    // engine. Read media details from the matching live library, not this view.
+    const LibraryViewProjection& QueryView(const MediaLibrary& library, const LibraryQueryOptions& options,
+        const std::function<bool(const std::wstring&)>& fileExistsFn = nullptr);
+    uint64_t GetPlanBuildCount() const { return planBuildCount; }
+    uint64_t GetViewBuildCount() const { return viewBuildCount; }
+    uint64_t GetSearchTextBuildCount() const { return searchTextBuildCount; }
+    LibraryViewProjection ReleaseCachedView();
+    bool PrimeViewCache(const MediaLibrary& library, const LibraryQueryOptions& options, LibraryViewProjection&& projection);
     // Startup workers can transfer a fully built projection without a deep copy, then prime the UI-owned cache after the matching library
     // moves to the main thread.
     LibraryQueryProjection ReleaseCachedProjection();
@@ -192,7 +223,18 @@ public:
     static DuplicateDetectionResult DetectDuplicates(const std::vector<MediaItem>& items);
 
 private:
+    static LibraryViewProjection BuildView(const MediaLibrary& library, const LibraryQueryOptions& options,
+        const std::function<bool(const std::wstring&)>& fileExistsFn);
+    LibraryViewProjection FilterPlan(const MediaLibrary& library, const LibraryQueryOptions& options);
+    struct SearchFields { std::wstring title, originalTitle, path, series; };
+    std::vector<SearchFields> searchFields;
+    uint64_t searchCatalogRevision = (std::numeric_limits<uint64_t>::max)();
+    LibraryViewProjection cachedView, cachedPlan;
+    LibraryRevisions viewRevisions, planRevisions;
+    bool hasView = false, hasPlan = false;
+    uint64_t viewGeneration = 0, planBuildCount = 0, viewBuildCount = 0, searchTextBuildCount = 0;
     LibraryQueryProjection cachedProjection;
+    LibraryRevisions projectionRevisions;
     uint64_t cachedLibraryVersion = (std::numeric_limits<uint64_t>::max)();
 };
 

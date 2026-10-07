@@ -259,6 +259,7 @@ void App::ProcessDroppedFiles(const std::vector<std::wstring>& droppedList, POIN
             newPl.id = "pl_favorites";
             newPl.name = "Favorites";
             library.playlists.push_back(newPl);
+            library.NotifyPlaylistEdited();
             targetPlId = newPl.id;
         }
         Playlist* targetPl = library.FindPlaylist(targetPlId);

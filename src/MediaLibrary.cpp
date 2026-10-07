@@ -326,6 +326,7 @@ bool MediaLibrary::ProbeMediaMetadata(const std::wstring& path, double& d, uint3
 std::wstring MediaLibrary::NormalizePathKey(const std::wstring& path) { return Identity(path); }
 
 void MediaLibrary::RebuildPathIndex() {
+    ++revisions.catalog; ++revisions.history;
     ++searchContentVersion; // Membership/path changes also affect search text.
     pathToIndex.clear();
     idToIndex.clear();
@@ -357,7 +358,7 @@ bool MediaLibrary::PromoteMostRecentlyWatched() {
         repair(0);
         repair(bestIndex);
     }
-    ++libraryVersion;
+    ++libraryVersion; ++revisions.catalog;
     InvalidatePlaylistStatsCache();
     return true;
 }
@@ -657,11 +658,20 @@ void MediaLibrary::InvalidatePlaylistStatsCache() const {
     smartPathsCache.clear();
 }
 
-void MediaLibrary::NotifyPlaylistChanged() { libraryVersion++; ++searchContentVersion; InvalidatePlaylistStatsCache(); }
+void MediaLibrary::NotifyPlaylistChanged() {
+    ++libraryVersion; ++searchContentVersion;
+    ++revisions.catalog; ++revisions.playback; ++revisions.playlists; ++revisions.history;
+    InvalidatePlaylistStatsCache();
+}
+
+void MediaLibrary::NotifyPlaylistEdited() {
+    ++libraryVersion; ++revisions.playlists;
+    InvalidatePlaylistStatsCache();
+}
 
 PlaylistStats MediaLibrary::GetPlaylistStats(const std::string& playlistId) const {
     auto it = playlistStatsCache.find(playlistId);
-    if (it != playlistStatsCache.end() && it->second.version == libraryVersion &&
+    if (it != playlistStatsCache.end() && it->second.revisions.SamePlaylistData(revisions) &&
         (!it->second.requiresAvailability || GetTickCount64() - it->second.availabilityCheckedMs < kSmartAvailabilityCacheTtlMs)) {
         return it->second.stats;
     }
@@ -685,7 +695,7 @@ PlaylistStats MediaLibrary::GetPlaylistStats(const std::string& playlistId) cons
     // first new/missing record, and otherwise start at the first item.
     if (firstInProgress < paths.size()) stats.resumeIndex = firstInProgress;
     else if (firstUnfinished < paths.size()) stats.resumeIndex = firstUnfinished;
-    PlaylistStatsCacheEntry entry{ libraryVersion, stats };
+    PlaylistStatsCacheEntry entry{ revisions, stats };
     entry.requiresAvailability = pl->IsSmart() && pl->smartCriteria.RequiresAvailability();
     if (entry.requiresAvailability) {
         // Share the path snapshot's deadline, not the time the stats scan
@@ -796,7 +806,7 @@ bool MediaLibrary::SetMetadataOverrides(const std::wstring& path, const MediaMet
         const auto oldTitle = item->GetDisplayTitle();
         if (overrides.HasAnyOverride()) { item->overrides = overrides; } else { item->overrides.reset(); }
         if (oldTitle != item->GetDisplayTitle()) ++searchContentVersion;
-        libraryVersion++;
+        libraryVersion++; ++revisions.catalog;
         InvalidatePlaylistStatsCache();
         return true;
     }
@@ -809,7 +819,7 @@ bool MediaLibrary::ClearMetadataOverrides(const std::wstring& path) {
         const auto oldTitle = item->GetDisplayTitle();
         item->overrides.reset();
         if (oldTitle != item->GetDisplayTitle()) ++searchContentVersion;
-        libraryVersion++; InvalidatePlaylistStatsCache(); return true;
+        libraryVersion++; ++revisions.catalog; InvalidatePlaylistStatsCache(); return true;
     }
     return false;
 }
@@ -832,7 +842,7 @@ bool MediaLibrary::RefreshMediaMetadata(const std::wstring& path, bool saveChang
         item->metadataProbeFailed = false;
         item->probeAttemptCount = 0;
         item->lastProbeAttemptTimestamp = 0;
-        libraryVersion++;
+        libraryVersion++; ++revisions.catalog;
         InvalidatePlaylistStatsCache();
         if (saveChanges) Save();
         return true;
@@ -840,7 +850,7 @@ bool MediaLibrary::RefreshMediaMetadata(const std::wstring& path, bool saveChang
         item->metadataProbeFailed = true;
         item->probeAttemptCount++;
         item->lastProbeAttemptTimestamp = GetCurrentTimestampSec();
-        libraryVersion++;
+        libraryVersion++; ++revisions.catalog;
         InvalidatePlaylistStatsCache();
         if (saveChanges) Save();
         return false;
@@ -923,7 +933,7 @@ MediaItem* MediaLibrary::AddOrUpdateMediaCore(const std::wstring& path, bool& ch
             WindowsFileIdentity fid = GetWindowsFileIdentity(resolvedPath);
             if (fid.valid) { m->fileIndex = fid.fileIndex; m->volumeSerialNumber = fid.volumeSerialNumber; }
         }
-        if (changed) { libraryVersion++; InvalidatePlaylistStatsCache(); }
+        if (changed) { libraryVersion++; ++revisions.catalog; InvalidatePlaylistStatsCache(); }
         return m;
     }
     MediaItem x;
@@ -961,7 +971,7 @@ MediaItem* MediaLibrary::AddOrUpdateMediaCore(const std::wstring& path, bool& ch
         if (!frontKey.empty()) { pathToIndex[frontKey] = 0; }
         if (!mediaItems.front().id.empty()) { idToIndex[mediaItems.front().id] = 0; }
     }
-    libraryVersion++;
+    libraryVersion++; ++revisions.catalog;
     InvalidatePlaylistStatsCache();
     return &mediaItems.front();
 }
@@ -1259,10 +1269,12 @@ void MediaLibrary::UpdateProgress(const std::wstring& path, double pos, double d
     const bool visibleStateChanged = m->durationSec != oldDuration || m->status != oldStatus ||
         (std::floor(m->lastPosSec) != std::floor(oldPosSec)) ||
         m->lastWatchedTimestamp != oldWatchedTimestamp;
-    if (visibleStateChanged) { libraryVersion++; }
+    if (visibleStateChanged) { libraryVersion++; ++revisions.playback; }
+    if (m->durationSec != oldDuration) ++revisions.catalog;
     const std::wstring resolvedKey = NormalizePathKey(resolved);
     for (auto& record : history) {
         if (Identity(record.filePath) != resolvedKey) continue;
+        if (visibleStateChanged) ++revisions.history;
         record.lastPosSec = m->lastPosSec;
         if (m->durationSec > 0.0) record.durationSec = m->durationSec;
         record.watchedTimestamp = m->lastWatchedTimestamp;
@@ -1283,6 +1295,7 @@ bool MediaLibrary::SetWatchedCore(const std::wstring& path, bool watched) {
         if (m->durationSec > 0.0) m->lastPosSec = m->durationSec;
         m->lastWatchedTimestamp = GetCurrentTimestampSec();
     } else { m->status = "new"; m->lastPosSec = 0.0; m->lastWatchedTimestamp = 0; }
+    ++revisions.playback;
     InvalidatePlaylistStatsCache();
     return true;
 }
@@ -1316,7 +1329,7 @@ void MediaLibrary::AddToHistory(const std::wstring& path, double pos, double dur
             h.durationSec = std::isfinite(dur) && dur > 0 ? dur : h.durationSec;
             h.watchedTimestamp = std::max<int64_t>(GetCurrentTimestampSec(), h.watchedTimestamp);
             history.insert(history.begin(), h);
-            ++libraryVersion;
+            ++libraryVersion; ++revisions.history;
             Save();
             return;
         }
@@ -1329,14 +1342,14 @@ void MediaLibrary::AddToHistory(const std::wstring& path, double pos, double dur
     h.watchedTimestamp = GetCurrentTimestampSec();
     history.insert(history.begin(), h);
     if (history.size() > 100) history.resize(100);
-    ++libraryVersion; ++searchContentVersion;
+    ++libraryVersion; ++revisions.history; ++searchContentVersion;
     Save();
 }
 
 bool MediaLibrary::RemoveFromHistory(size_t i) {
     if (i >= history.size()) return false;
     history.erase(history.begin() + i);
-    ++libraryVersion; ++searchContentVersion;
+    ++libraryVersion; ++revisions.history; ++searchContentVersion;
     Save();
     return true;
 }
@@ -1353,7 +1366,7 @@ void MediaLibrary::ClearHistory() {
             changed = true;
         }
     }
-    if (changed) { libraryVersion++; InvalidatePlaylistStatsCache(); Save(); }
+    if (changed) { libraryVersion++; ++revisions.playback; ++revisions.history; InvalidatePlaylistStatsCache(); Save(); }
 }
 
 bool MediaLibrary::AddWatchedFolder(const std::wstring& path, bool saveChanges) {
@@ -1630,7 +1643,7 @@ Playlist* MediaLibrary::CreatePlaylist(const std::string& name) {
     p.createdTimestamp = GetCurrentTimestampSec();
     do { p.id = "pl_" + std::to_string(p.createdTimestamp) + "_" + std::to_string(++seq); } while (FindPlaylist(p.id));
     playlists.push_back(p);
-    libraryVersion++;
+    libraryVersion++; ++revisions.playlists;
     InvalidatePlaylistStatsCache();
     Save();
     return &playlists.back();
@@ -1640,7 +1653,7 @@ bool MediaLibrary::DeletePlaylist(const std::string& id) {
     auto i = std::remove_if(playlists.begin(), playlists.end(), [&](const Playlist& p) { return p.id == id; });
     if (i == playlists.end()) return false;
     playlists.erase(i, playlists.end());
-    libraryVersion++;
+    libraryVersion++; ++revisions.playlists;
     InvalidatePlaylistStatsCache();
     Save();
     return true;
@@ -1666,7 +1679,7 @@ size_t MediaLibrary::AddToPlaylist(const std::string& id, const std::vector<std:
         added++;
     }
     if (outSkipped) *outSkipped = skipped;
-    if (added > 0) { libraryVersion++; InvalidatePlaylistStatsCache(); Save(); }
+    if (added > 0) { libraryVersion++; ++revisions.playlists; InvalidatePlaylistStatsCache(); Save(); }
     return added;
 }
 
@@ -1674,7 +1687,7 @@ bool MediaLibrary::RemoveFromPlaylist(const std::string& id, size_t i) {
     Playlist* p = FindPlaylist(id);
     if (!p || p->IsSmart() || i >= p->itemPaths.size()) return false;
     p->itemPaths.erase(p->itemPaths.begin() + i);
-    libraryVersion++;
+    libraryVersion++; ++revisions.playlists;
     InvalidatePlaylistStatsCache();
     Save();
     return true;
@@ -1690,10 +1703,9 @@ Playlist* MediaLibrary::CreateSmartPlaylist(const std::string& name, const Smart
     int count = 1;
     do { p.id = "pl_smart_" + std::to_string(p.createdTimestamp) + "_" + std::to_string(count++); } while (FindPlaylist(p.id));
     playlists.push_back(std::move(p));
-    libraryVersion++;
+    libraryVersion++; ++revisions.playlists;
     InvalidatePlaylistStatsCache();
     Save();
-    NotifyPlaylistChanged();
     return &playlists.back();
 }
 
@@ -1704,10 +1716,9 @@ bool MediaLibrary::UpdateSmartPlaylist(const std::string& playlistId, const std:
     if (!name.empty()) { p->name = name; }
     p->smartCriteria = criteria;
     p->criteriaValidationError.clear();
-    libraryVersion++;
+    libraryVersion++; ++revisions.playlists;
     InvalidatePlaylistStatsCache();
     Save();
-    NotifyPlaylistChanged();
     return true;
 }
 
@@ -1716,20 +1727,26 @@ std::vector<std::wstring> MediaLibrary::GetPlaylistPaths(const Playlist& playlis
 }
 
 const std::vector<std::wstring>& MediaLibrary::GetPlaylistPathsRef(const Playlist& playlist) const {
-    if (!playlist.IsSmart()) { return playlist.itemPaths; }
+    return ResolvePlaylistPaths(playlist).paths;
+}
+
+MediaLibrary::PlaylistPathsView MediaLibrary::ResolvePlaylistPaths(const Playlist& playlist) const {
+    if (!playlist.IsSmart()) return { playlist.itemPaths, revisions.playlists };
     auto it = smartPathsCache.find(playlist.id);
     const bool requiresAvailability = playlist.smartCriteria.RequiresAvailability();
     const ULONGLONG now = requiresAvailability ? GetTickCount64() : 0;
-    if (it != smartPathsCache.end() && it->second.version == libraryVersion &&
-        (!requiresAvailability || now - it->second.availabilityCheckedMs < kSmartAvailabilityCacheTtlMs)) { return it->second.paths; }
+    if (it != smartPathsCache.end() && it->second.revisions.SamePlaylistData(revisions) &&
+        (!requiresAvailability || now - it->second.availabilityCheckedMs < kSmartAvailabilityCacheTtlMs))
+        return { it->second.paths, it->second.generation };
     SmartPathsCacheEntry entry;
-    entry.version = libraryVersion;
     entry.availabilityCheckedMs = now;
     entry.paths = EvaluateSmartPlaylist(playlist.smartCriteria);
-    // Availability refreshes can change membership without a library edit.
-    // Retire both cached aggregates and resume selection with that snapshot.
+    entry.revisions = revisions;
+    entry.generation = ++smartPathsGeneration;
+    // Availability refreshes retire aggregates and UI row indices together.
     playlistStatsCache.erase(playlist.id);
-    return smartPathsCache.insert_or_assign(playlist.id, std::move(entry)).first->second.paths;
+    const auto& cached = smartPathsCache.insert_or_assign(playlist.id, std::move(entry)).first->second;
+    return { cached.paths, cached.generation };
 }
 
 std::vector<std::wstring> MediaLibrary::GetPlaylistPaths(const std::string& playlistId) const {
@@ -2217,7 +2234,7 @@ StorageStatus MediaLibrary::LoadFromRoot(const std::wstring& requestedRootDir, c
         }
     }
     if (milestone) milestone(L"library-json-parsed");
-    libraryVersion++;
+    libraryVersion++; ++revisions.catalog; ++revisions.playback; ++revisions.playlists; ++revisions.history;
     InvalidatePlaylistStatsCache();
     lastLoadResult = loadResult;
     ++searchContentVersion;
@@ -2574,7 +2591,7 @@ MetadataBackfillResult MediaLibrary::BackfillMissingMetadata(const MetadataBackf
     }
     if (result.outcome != LongOperationOutcome::Canceled) { result.outcome = LongOperationOutcome::Completed; }
     if (anyChanged) {
-        libraryVersion++;
+        libraryVersion++; ++revisions.catalog;
         InvalidatePlaylistStatsCache();
         if (saveChanges) {
             MediaLibrarySaveResult saveRes = Save();

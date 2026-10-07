@@ -25,28 +25,39 @@ namespace Aperture {
 
 const std::vector<size_t>& App::GetVisiblePlaylistIndices() {
     std::wstring currentQuery = Text16ToWideString(playlistSearchInput.GetText());
-    uint64_t currentVersion = library.GetVersion();
-    if (cachedVisiblePlaylistId == activePlaylistId && cachedVisibleSearchQuery == currentQuery &&
-        cachedVisibleLibraryVersion == currentVersion) {
+    const auto& revisions = library.GetRevisions();
+    const bool sameRequest = cachedVisiblePlaylistId == activePlaylistId && cachedVisibleSearchQuery == currentQuery &&
+        cachedVisibleRevisions.catalog == revisions.catalog && cachedVisibleRevisions.playlists == revisions.playlists;
+    // Manual membership has no external refresh deadline. Smart playlists
+    // resolve their current path generation before reusing row indices.
+    if (sameRequest && !cachedVisiblePlaylistIsSmart) return cachedVisiblePlaylistIndices;
+    const Playlist* playlist = library.FindPlaylist(activePlaylistId);
+    if (!playlist) { cachedVisiblePlaylistId.clear(); cachedVisiblePlaylistIndices.clear(); return cachedVisiblePlaylistIndices; }
+    const auto pathView = library.ResolvePlaylistPaths(*playlist);
+    const auto currentRevisions = library.GetRevisions();
+    if (sameRequest && cachedVisiblePathsGeneration == pathView.generation &&
+        cachedVisibleRevisions.catalog == currentRevisions.catalog) {
         return cachedVisiblePlaylistIndices;
     }
     cachedVisiblePlaylistIndices.clear();
     cachedVisiblePlaylistId = activePlaylistId;
     cachedVisibleSearchQuery = currentQuery;
-    cachedVisibleLibraryVersion = currentVersion;
-    const Playlist* playlist = library.FindPlaylist(activePlaylistId);
-    if (!playlist) return cachedVisiblePlaylistIndices;
-    const auto& itemPaths = library.GetPlaylistPathsRef(*playlist);
+    cachedVisibleRevisions = currentRevisions;
+    cachedVisiblePathsGeneration = pathView.generation;
+    cachedVisiblePlaylistIsSmart = playlist->IsSmart();
+    const auto& itemPaths = pathView.paths;
     if (itemPaths.empty()) return cachedVisiblePlaylistIndices;
     if (currentQuery.empty()) {
         cachedVisiblePlaylistIndices.resize(itemPaths.size());
         std::iota(cachedVisiblePlaylistIndices.begin(), cachedVisiblePlaylistIndices.end(), 0);
         return cachedVisiblePlaylistIndices;
     }
-    if (cachedSearchKeyPlaylistId != activePlaylistId || cachedSearchKeyLibraryVersion != currentVersion ||
+    if (cachedSearchKeyPlaylistId != activePlaylistId || cachedSearchKeyRevisions.catalog != currentRevisions.catalog ||
+        cachedSearchKeyRevisions.playlists != currentRevisions.playlists || cachedSearchPathsGeneration != pathView.generation ||
         cachedPlaylistSearchKeys.size() != itemPaths.size()) {
         cachedSearchKeyPlaylistId = activePlaylistId;
-        cachedSearchKeyLibraryVersion = currentVersion;
+        cachedSearchKeyRevisions = currentRevisions;
+        cachedSearchPathsGeneration = pathView.generation;
         cachedPlaylistSearchKeys.clear();
         cachedPlaylistSearchKeys.reserve(itemPaths.size());
         for (const auto& path : itemPaths) {
@@ -3099,7 +3110,6 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                                 ++m_collapsedGroupsGeneration;
                                 hoveredMediaIndex = -1;
                                 previewPlayer.StopPreview();
-                                m_mediaQueryEngine.InvalidateCache();
                                 InvalidateMediaLayoutCache();
                                 ClampScrollOffsets();
                             }
@@ -3997,7 +4007,7 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                                 for (const auto& path : pActivePl->itemPaths) {
                                     if (path == item.filePath) { exists = true; break; }
                                 }
-                                if (!exists) { pActivePl->itemPaths.push_back(item.filePath); library.NotifyPlaylistChanged(); }
+                                if (!exists) { pActivePl->itemPaths.push_back(item.filePath); library.NotifyPlaylistEdited(); }
                                 SaveLibrary();
                                 currentTab = TabView::Playlists;
                                 ShowOSD(IconType::FolderPlaylist, L"Added to \"" + Utf8ToUtf16(pActivePl->name) + L"\"");
@@ -4017,7 +4027,6 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                             library.RebuildPathIndex();
                             settings.manualMediaOrder = true;
                             settings.Save();
-                            m_mediaQueryEngine.InvalidateCache();
                             InvalidateMediaLayoutCache();
                             selectedMediaIndices.clear();
                             selectedMediaIndices.insert(static_cast<size_t>(dragToIndex));
@@ -4035,8 +4044,8 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                         currentKeys.erase(currentKeys.begin() + dragFromIndex);
                         currentKeys.insert(currentKeys.begin() + dragToIndex, movedKey);
                         settings.customFolderOrder = currentKeys;
+                        m_folderOrderSnapshot.reset();
                         settings.Save();
-                        m_mediaQueryEngine.InvalidateCache();
                         InvalidateMediaLayoutCache();
                         SaveLibrary();
                     }
@@ -4049,7 +4058,7 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                             selectedPlaylistIndices.clear();
                             selectedPlaylistIndices.insert(static_cast<size_t>(dragToIndex));
                             keyboardFocusedIndex = dragToIndex;
-                            library.NotifyPlaylistChanged();
+                            library.NotifyPlaylistEdited();
                             SaveLibrary();
                         }
                     }
@@ -4060,7 +4069,7 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                         selectedEpisodeIndices.clear();
                         selectedEpisodeIndices.insert(static_cast<size_t>(dragToIndex));
                         keyboardFocusedIndex = dragToIndex;
-                        library.NotifyPlaylistChanged();
+                        library.NotifyPlaylistEdited();
                         SaveLibrary();
                     }
                 }

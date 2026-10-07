@@ -333,6 +333,19 @@ struct MediaLibrarySaveState {
 MediaLibrarySaveResult WriteLibrarySaveSnapshot(const MediaLibrarySaveSnapshot& snapshot,
                                                MediaLibrarySaveState& state);
 
+// Derived data depends on specific parts of the library. The broad version
+// remains the persistence/conflict token; these stamps keep unrelated edits
+// from throwing away media order, search text, or history grouping.
+struct LibraryRevisions {
+    uint64_t catalog = 0, playback = 0, playlists = 0, history = 0;
+    bool SamePlaylistData(const LibraryRevisions& other) const {
+        return catalog == other.catalog && playback == other.playback && playlists == other.playlists;
+    }
+    bool SameSearchData(const LibraryRevisions& other) const {
+        return catalog == other.catalog && playback == other.playback && history == other.history;
+    }
+};
+
 class MediaLibrary {
 public:
     static constexpr int kCurrentLibrarySchemaVersion = 2, kCurrentPlaylistsSchemaVersion = 2, kCurrentHistorySchemaVersion = 2;
@@ -386,7 +399,13 @@ public:
     bool PromoteMostRecentlyWatched();
     PlaylistStats GetPlaylistStats(const std::string& playlistId) const;
     void InvalidatePlaylistStatsCache() const;
+    // Conservative notification for legacy callers editing public records.
+    // Membership/path edits must also repair lookup maps with RebuildPathIndex.
     void NotifyPlaylistChanged();
+    // For edits known to affect only playlists. The legacy notification above
+    // remains a conservative invalidation for direct public-record mutations.
+    void NotifyPlaylistEdited();
+    const LibraryRevisions& GetRevisions() const { return revisions; }
     uint64_t GetVersion() const { return libraryVersion; }
     uint64_t GetSearchContentVersion() const { return searchContentVersion; }
     MediaRelocationResult RelocateMissingMediaToRoot(const std::wstring& searchRoot);
@@ -433,6 +452,10 @@ public:
     // reference to their stored paths; smart playlists resolve through a
     // version-keyed cache so per-frame callers don't re-scan the library.
     const std::vector<std::wstring>& GetPlaylistPathsRef(const Playlist& playlist) const;
+    struct PlaylistPathsView { const std::vector<std::wstring>& paths; uint64_t generation; };
+    // Resolve before caching row indices: disk availability can change the
+    // smart-playlist membership without changing any library revision.
+    PlaylistPathsView ResolvePlaylistPaths(const Playlist& playlist) const;
     std::vector<std::wstring> EvaluateSmartPlaylist(const SmartPlaylistCriteria& criteria) const;
     // Fast metadata extraction using Media Foundation Source Reader
     static bool ProbeMediaMetadata(const std::wstring& path, double& outDurationSec, uint32_t& outWidth, uint32_t& outHeight);
@@ -454,15 +477,17 @@ private:
     mutable std::unordered_map<std::wstring, size_t> pathToIndex;
     mutable std::unordered_map<std::string, size_t> idToIndex;
     struct PlaylistStatsCacheEntry {
-        uint64_t version = 0;
+        LibraryRevisions revisions;
         PlaylistStats stats;
         bool requiresAvailability = false;
         ULONGLONG availabilityCheckedMs = 0;
     };
     mutable std::unordered_map<std::string, PlaylistStatsCacheEntry> playlistStatsCache;
-    struct SmartPathsCacheEntry { uint64_t version = 0; ULONGLONG availabilityCheckedMs = 0; std::vector<std::wstring> paths; };
+    struct SmartPathsCacheEntry { LibraryRevisions revisions; uint64_t generation = 0; ULONGLONG availabilityCheckedMs = 0; std::vector<std::wstring> paths; };
     mutable std::unordered_map<std::string, SmartPathsCacheEntry> smartPathsCache;
+    mutable uint64_t smartPathsGeneration = 0;
     uint64_t libraryVersion = 0;
+    LibraryRevisions revisions;
     uint64_t searchContentVersion = 0;
     StorageStatus lastLoadStatus = StorageStatus::Ok();
     MediaLibraryLoadResult lastLoadResult;

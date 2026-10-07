@@ -68,19 +68,19 @@ std::shared_ptr<const std::vector<TimelineChapterMarker>> App::GetChapterMarkers
 
 const HistoryTimelineProjection& App::GetHistoryProjection() {
     // Group buckets depend on the wall-clock day; ordering and membership only
-    // change when the library changes, so the projection is stable between
+    // change when history changes, so the projection is stable between
     // those events instead of being rebuilt (and re-sorted) every frame.
     const int64_t nowSec = GetCurrentTimestampSec();
     const std::time_t ttNow = (std::time_t)nowSec;
     std::tm tmNow{};
     localtime_s(&tmNow, &ttNow);
     const int64_t day = tmNow.tm_year * 366 + tmNow.tm_yday;
-    if (m_historyProjectionVersion == library.GetVersion() && m_historyProjectionDay == day &&
+    if (m_historyProjectionVersion == library.GetRevisions().history && m_historyProjectionDay == day &&
         m_historyProjectionSize == library.history.size()) {
         return m_historyProjection;
     }
     m_historyProjection = ProjectHistoryTimeline(library.history);
-    m_historyProjectionVersion = library.GetVersion();
+    m_historyProjectionVersion = library.GetRevisions().history;
     m_historyProjectionDay = day;
     m_historyProjectionSize = library.history.size();
     return m_historyProjection;
@@ -380,10 +380,10 @@ HubRenderViewModel App::BuildHubRenderViewModel() {
             }
             vm.mediaTab.showSummary = toolbarGeometry.showSummary;
             vm.mediaTab.sortLabel = GetLibrarySortLabel();
-            static const LibraryQueryProjection kPendingProjection;
+            static const LibraryViewProjection kPendingProjection;
             static const std::vector<size_t> kPendingVisibleIndices;
             const auto& proj = libraryReady ? GetCurrentMediaProjection() : kPendingProjection;
-            const auto& visibleIndices = libraryReady ? m_cachedVisibleMediaIndices : kPendingVisibleIndices;
+            const auto& visibleIndices = libraryReady ? proj.indices : kPendingVisibleIndices;
             size_t totalCount = library.mediaItems.size();
             const bool hasSearch = !mediaSearchInput.GetText().empty();
             if (!libraryReady) {
@@ -408,7 +408,7 @@ HubRenderViewModel App::BuildHubRenderViewModel() {
                 if (proj.groups.empty()) {
                     vm.mediaTab.summaryText = L"No duplicate media detected \x2022 " + std::to_wstring(totalCount) + L" videos";
                 } else {
-                    size_t dupEntries = (proj.items.size() > proj.groups.size()) ? (proj.items.size() - proj.groups.size()) : 0;
+                    size_t dupEntries = (proj.indices.size() > proj.groups.size()) ? (proj.indices.size() - proj.groups.size()) : 0;
                     vm.mediaTab.summaryText = std::to_wstring(proj.groups.size()) + L" duplicate groups \x2022 " + std::to_wstring(dupEntries) + L" duplicates";
                 }
             } else { vm.mediaTab.summaryText = std::to_wstring(totalCount) + L" videos"; }

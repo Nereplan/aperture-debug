@@ -267,6 +267,26 @@ TEST_CASE(GlobalSearch, PlaybackProgressRefreshesStatisticsWithoutRebuildingText
     TEST_ASSERT_EQ(index.GetTextRebuildCount(), 2ull);
 }
 
+TEST_CASE(GlobalSearch, PlaylistEditsPreserveWarmTextAndMetadata) {
+    MediaLibrary library;
+    library.SetSaveRequestHandler([] { return MediaLibrarySaveResult{}; });
+    MediaItem item; item.id = "media"; item.title = L"Episode"; item.filePath = L"C:\Media\episode.mkv";
+    library.mediaItems.push_back(item); library.RebuildPathIndex();
+    GlobalSearchIndex index; GlobalSearchQueryOptions options; options.checkFileExists = false;
+    TEST_ASSERT_EQ(index.Query(library, L"Episode", options).size(), 1ull);
+    const auto before = library.GetRevisions();
+    auto* playlist = library.CreatePlaylist("One");
+    TEST_ASSERT(playlist != nullptr);
+    playlist->name = "Renamed"; library.NotifyPlaylistEdited();
+    TEST_ASSERT(!index.IsDirty(library));
+    TEST_ASSERT_EQ(index.Query(library, L"Episode", options).size(), 1ull);
+    TEST_ASSERT_EQ(index.GetTextRebuildCount(), 1ull);
+    TEST_ASSERT_EQ(index.GetMetadataRefreshCount(), 0ull);
+    TEST_ASSERT_EQ(library.GetRevisions().catalog, before.catalog);
+    TEST_ASSERT_EQ(library.GetRevisions().history, before.history);
+    TEST_ASSERT(library.GetRevisions().playlists > before.playlists);
+}
+
 TEST_CASE(GlobalSearch, HistoryMembershipInvalidatesCachedSearch) {
     MediaLibrary library; GlobalSearchIndex index; GlobalSearchQueryOptions options; options.checkFileExists = false;
     TEST_ASSERT(index.Query(library, L"history", options).empty());

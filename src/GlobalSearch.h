@@ -124,7 +124,7 @@ private:
     std::vector<CachedSearchEntry> entries;
     std::unordered_map<std::wstring, size_t> historyEntryByPath; // At most the bounded history count.
     uint64_t cachedSearchContentVersion = (std::numeric_limits<uint64_t>::max)();
-    uint64_t cachedLibraryVersion = (std::numeric_limits<uint64_t>::max)();
+    LibraryRevisions cachedRevisions;
     uint64_t textRebuildCount = 0, metadataRefreshCount = 0;
 };
 

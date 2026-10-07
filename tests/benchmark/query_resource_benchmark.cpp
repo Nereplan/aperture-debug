@@ -174,8 +174,10 @@ int main(int argc, char** argv) {
         if (workload == 4) options.sortField = LibrarySortField::Manual;
         if (workload == 7) options.maxItems = 24000;
         if (mode == LibraryGroupMode::Folder) {
+            auto order = std::make_shared<std::vector<std::wstring>>();
             for (int i = 499; i >= 0; --i)
-                options.customFolderOrder.push_back(L"c:/benchmark/series" + std::to_wstring(i) + L"/");
+                order->push_back(L"c:/benchmark/series" + std::to_wstring(i) + L"/");
+            options.customFolderOrder = order;
         }
         for (int sample = 0; sample < 8; ++sample) {
             LibraryQueryEngine engine;

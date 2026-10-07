@@ -84,7 +84,7 @@ TEST_CASE(FolderOperations, CustomFolderOrderQuery) {
     {
         LibraryQueryOptions opt;
         opt.groupMode = LibraryGroupMode::Folder;
-        opt.customFolderOrder = { L"C:\\Anime\\Folder C", L"C:\\Anime\\Folder A" };
+        opt.customFolderOrder = std::make_shared<const std::vector<std::wstring>>(std::initializer_list<std::wstring>{ L"C:\\Anime\\Folder C", L"C:\\Anime\\Folder A" });
         auto res = engine.Query(lib, opt);
         TEST_ASSERT_EQ(res.groups.size(), 3);
         TEST_ASSERT_EQ(res.groups[0].title, std::wstring(L"Folder C"));

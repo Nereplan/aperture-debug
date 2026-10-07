@@ -1023,8 +1023,10 @@ TEST_CASE(LibraryQuery, FolderOrderNormalizesOnceAndKeepsFirstDuplicate) {
     }
     LibraryQueryOptions options;
     options.groupMode = LibraryGroupMode::Folder;
-    for (int i = 499; i >= 0; --i) options.customFolderOrder.push_back(L"c:/MEDIA/Folder" + std::to_wstring(i) + L"/");
-    options.customFolderOrder.push_back(L"C:\\Media\\Folder499");
+    auto folderOrder = std::make_shared<std::vector<std::wstring>>();
+    for (int i = 499; i >= 0; --i) folderOrder->push_back(L"c:/MEDIA/Folder" + std::to_wstring(i) + L"/");
+    folderOrder->push_back(L"C:\\Media\\Folder499");
+    options.customFolderOrder = folderOrder;
     LibraryQueryEngine engine;
     const auto& projection = engine.Query(library, options);
     TEST_ASSERT_EQ(projection.groups.size(), size_t(500));
@@ -1112,6 +1114,174 @@ TEST_CASE(LibraryQuery, SharedGroupLabelsRetainFirstSpellingAndOverrides) {
     TEST_ASSERT_EQ(overridden.groups[0].key, std::wstring(L"custom show"));
     TEST_ASSERT_EQ(overridden.groups[0].subtitle, std::wstring(L"Series"));
     TEST_ASSERT_EQ(overridden.groups[0].count, size_t(2));
+}
+
+
+TEST_CASE(LibraryQuery, ViewReusesOrderingAndSearchAcrossInteractionAndUnrelatedEdits) {
+    MediaLibrary library;
+    library.SetSaveRequestHandler([] { return MediaLibrarySaveResult{}; });
+    for (int i = 0; i < 6; ++i) {
+        MediaItem item;
+        item.id = std::to_string(i);
+        item.filePath = L"C:\Media\Show S01E0" + std::to_wstring(i + 1) + L".mkv";
+        item.title = L"Episode " + std::to_wstring(i + 1);
+        item.durationSec = 100;
+        library.mediaItems.push_back(item);
+    }
+    library.RebuildPathIndex();
+    LibraryQueryEngine engine;
+    LibraryQueryOptions options;
+    options.groupMode = LibraryGroupMode::Series;
+    const auto first = engine.QueryView(library, options);
+    TEST_ASSERT_EQ(engine.GetPlanBuildCount(), 1ull);
+    auto collapsed = std::make_shared<std::unordered_set<std::wstring>>();
+    collapsed->insert(first.groups.front().key);
+    options.collapsedGroups = collapsed;
+    const auto& hidden = engine.QueryView(library, options);
+    TEST_ASSERT(hidden.indices.empty());
+    TEST_ASSERT_EQ(hidden.groups.front().count, size_t(6));
+    TEST_ASSERT_EQ(hidden.groups.front().totalDurationSec, 600.0);
+    TEST_ASSERT_EQ(engine.GetPlanBuildCount(), 1ull);
+    options.collapsedGroups.reset();
+    options.searchQuery = L"EPISODE 2";
+    TEST_ASSERT_EQ(engine.QueryView(library, options).indices.front(), size_t(1));
+    options.searchQuery = L"Episode";
+    TEST_ASSERT_EQ(engine.QueryView(library, options).indices.size(), size_t(6));
+    TEST_ASSERT_EQ(engine.GetSearchTextBuildCount(), 1ull);
+    const auto builds = engine.GetViewBuildCount();
+    const auto generation = engine.QueryView(library, options).generation;
+    library.NotifyPlaylistEdited();
+    library.AddToHistory(library.mediaItems.front().filePath, 0, 100);
+    library.UpdateProgress(library.mediaItems.front().filePath, 20, 100);
+    TEST_ASSERT_EQ(engine.QueryView(library, options).generation, generation);
+    TEST_ASSERT_EQ(engine.GetViewBuildCount(), builds);
+    // The owned API still materializes the current progress from live records.
+    TEST_ASSERT_EQ(engine.Query(library, options).items.front().lastPosSec, 20.0);
+    options.statusFilter = LibraryStatusFilter::InProgress;
+    TEST_ASSERT_EQ(engine.QueryView(library, options).indices.size(), size_t(1));
+    TEST_ASSERT_EQ(engine.GetPlanBuildCount(), 1ull);
+    TEST_ASSERT_EQ(engine.GetSearchTextBuildCount(), 1ull);
+    MediaMetadataOverrides renamed; renamed.title = L"Renamed";
+    TEST_ASSERT(library.SetMetadataOverrides(library.mediaItems.front().filePath, renamed));
+    options.searchQuery = L"Renamed";
+    TEST_ASSERT_EQ(engine.QueryView(library, options).indices.size(), size_t(1));
+    TEST_ASSERT_EQ(engine.GetPlanBuildCount(), 2ull);
+    TEST_ASSERT_EQ(engine.GetSearchTextBuildCount(), 2ull);
+}
+
+TEST_CASE(LibraryQuery, PreparedViewsMatchDirectProjectionWithFilteringGroupsAndCaps) {
+    MediaLibrary library;
+    for (int i = 0; i < 12; ++i) {
+        MediaItem item;
+        item.id = std::to_string(i);
+        item.filePath = L"C:\Media\Folder" + std::to_wstring(i % 3) + L"\Show S01E" + std::to_wstring(i + 1) + L".mkv";
+        item.title = L"Episode " + std::to_wstring(i);
+        item.durationSec = 100; item.fileSizeBytes = 1024;
+        item.lastPosSec = i % 3 == 0 ? 100 : (i % 3 == 1 ? 25 : 0);
+        item.status = i % 3 == 0 ? "done" : (i % 3 == 1 ? "in_progress" : "new");
+        item.lastWatchedTimestamp = i % 3 == 2 ? 0 : i + 1;
+        item.volumeSerialNumber = 10; item.fileIndex = i / 3 + 1;
+        if (i % 4 == 0) { item.overrides.emplace(); item.overrides->title = L"Custom title"; item.overrides->series = L"Custom Series"; }
+        library.mediaItems.push_back(item);
+    }
+    Playlist playlist; playlist.id = "manual"; playlist.itemPaths.push_back(library.mediaItems[0].filePath);
+    library.playlists.push_back(playlist);
+    library.RebuildPathIndex();
+    for (auto mode : {LibraryGroupMode::Flat, LibraryGroupMode::Folder, LibraryGroupMode::Series, LibraryGroupMode::Duplicates}) {
+        LibraryQueryEngine engine;
+        LibraryQueryOptions options; options.groupMode = mode;
+        const auto all = engine.QueryView(library, options);
+        auto collapsed = std::make_shared<std::unordered_set<std::wstring>>();
+        if (!all.groups.empty()) collapsed->insert(all.groups.front().key);
+        for (int scenario = 0; scenario < 24; ++scenario) {
+            options.sortField = static_cast<LibrarySortField>(scenario % 6);
+            options.sortDirection = scenario % 2 ? SortDirection::Descending : SortDirection::Ascending;
+            options.searchQuery = scenario % 4 == 0 ? L"episode" : (scenario % 4 == 1 ? L"custom" : L"");
+            options.statusFilter = static_cast<LibraryStatusFilter>(scenario % 4);
+            options.maxItems = scenario % 3 == 0 ? 2 : 0;
+            options.pinLastWatched = scenario % 2 != 0;
+            options.collapsedGroups = scenario % 3 == 1 ? collapsed : nullptr;
+            const auto actual = engine.QueryView(library, options);
+            // Disk-sensitive execution uses the direct builder without a plan.
+            auto directOptions = options; directOptions.checkFileExists = true;
+            LibraryQueryEngine direct;
+            const auto& expected = direct.QueryView(library, directOptions, [](const std::wstring&) { return true; });
+            TEST_ASSERT(actual.indices == expected.indices);
+            TEST_ASSERT_EQ(actual.filteredCount, expected.filteredCount);
+            TEST_ASSERT_EQ(actual.isCapped, expected.isCapped);
+            TEST_ASSERT_EQ(actual.groups.size(), expected.groups.size());
+            for (size_t i = 0; i < actual.groups.size(); ++i) {
+                const auto& a = actual.groups[i]; const auto& b = expected.groups[i];
+                TEST_ASSERT_EQ(a.key, b.key); TEST_ASSERT_EQ(a.title, b.title); TEST_ASSERT_EQ(a.subtitle, b.subtitle);
+                TEST_ASSERT_EQ(a.startIndex, b.startIndex); TEST_ASSERT_EQ(a.count, b.count);
+                TEST_ASSERT_EQ(a.isCollapsed, b.isCollapsed);
+                TEST_ASSERT_EQ(a.totalSizeBytes, b.totalSizeBytes); TEST_ASSERT_EQ(a.totalDurationSec, b.totalDurationSec);
+            }
+        }
+    }
+}
+
+TEST_CASE(LibraryQuery, RelevantChangesInvalidateAndUnchangedOrderRetainsLayoutGeneration) {
+    MediaLibrary library;
+    library.SetSaveRequestHandler([] { return MediaLibrarySaveResult{}; });
+    for (int i = 0; i < 2; ++i) {
+        MediaItem item; item.id = std::to_string(i); item.title = std::to_wstring(i);
+        item.filePath = L"C:\Media\" + item.title + L".mkv"; item.durationSec = 100;
+        library.mediaItems.push_back(item);
+    }
+    library.RebuildPathIndex();
+    LibraryQueryEngine engine; LibraryQueryOptions options; options.pinLastWatched = true;
+    const auto initial = engine.QueryView(library, options);
+    library.UpdateProgress(library.mediaItems[0].filePath, 10, 100);
+    TEST_ASSERT_EQ(engine.QueryView(library, options).generation, initial.generation);
+    TEST_ASSERT_EQ(engine.GetPlanBuildCount(), 1ull);
+    Playlist playlist; playlist.id = "manual"; playlist.itemPaths.push_back(library.mediaItems[0].filePath);
+    library.playlists.push_back(playlist); library.NotifyPlaylistEdited();
+    TEST_ASSERT((engine.QueryView(library, options).indices == std::vector<size_t>{1}));
+    TEST_ASSERT_EQ(engine.GetPlanBuildCount(), 2ull);
+    options.groupMode = LibraryGroupMode::Folder; options.sortField = LibrarySortField::Progress;
+    engine.QueryView(library, options);
+    library.UpdateProgress(library.mediaItems[1].filePath, 50, 100);
+    const auto& sorted = engine.QueryView(library, options);
+    TEST_ASSERT((sorted.indices == std::vector<size_t>{0, 1}));
+    TEST_ASSERT_EQ(engine.GetPlanBuildCount(), 4ull);
+    const auto oldGeneration = sorted.generation;
+    std::swap(library.mediaItems[0], library.mediaItems[1]); library.RebuildPathIndex();
+    const auto& reordered = engine.QueryView(library, options);
+    TEST_ASSERT((reordered.indices == std::vector<size_t>{1, 0}));
+    TEST_ASSERT(reordered.generation != oldGeneration);
+}
+
+
+TEST_CASE(LibraryQuery, ColdCappedViewDoesNotPrepareUnlimitedOrder) {
+    MediaLibrary library;
+    for (int i = 9; i >= 0; --i) {
+        MediaItem item; item.id = std::to_string(i); item.title = std::to_wstring(i);
+        library.mediaItems.push_back(item);
+    }
+    LibraryQueryEngine engine; LibraryQueryOptions options; options.maxItems = 1;
+    TEST_ASSERT_EQ(engine.QueryView(library, options).indices.front(), size_t(9));
+    TEST_ASSERT_EQ(engine.GetPlanBuildCount(), 0ull);
+    options.maxItems = 0; engine.QueryView(library, options);
+    options.maxItems = 2;
+    TEST_ASSERT_EQ(engine.QueryView(library, options).indices.size(), size_t(2));
+    TEST_ASSERT_EQ(engine.GetPlanBuildCount(), 1ull);
+}
+
+TEST_CASE(LibraryQuery, SeriesOverrideCanShareStandaloneKeyWhenFiltering) {
+    MediaLibrary library;
+    MediaItem ordinary; ordinary.id = "ordinary"; ordinary.title = L"Ordinary"; ordinary.filePath = L"C:\Media\film.mkv";
+    library.mediaItems.push_back(ordinary);
+    MediaItem custom; custom.id = "custom"; custom.title = L"Custom"; custom.filePath = L"C:\Media\Show S01E01.mkv";
+    custom.overrides.emplace(); custom.overrides->series = L"__standalone__"; library.mediaItems.push_back(custom);
+    LibraryQueryOptions options; options.groupMode = LibraryGroupMode::Series;
+    LibraryQueryEngine engine; engine.QueryView(library, options);
+    options.searchQuery = L"Custom";
+    const auto& filtered = engine.QueryView(library, options);
+    TEST_ASSERT_EQ(filtered.groups.size(), size_t(1));
+    TEST_ASSERT(!filtered.groups.front().isSpecial);
+    TEST_ASSERT_EQ(filtered.groups.front().title, std::wstring(L"__standalone__"));
+    TEST_ASSERT_EQ(filtered.indices.front(), size_t(1));
 }
 
 } // namespace Aperture::Test

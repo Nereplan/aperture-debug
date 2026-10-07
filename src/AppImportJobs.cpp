@@ -145,7 +145,7 @@ void App::FinishImportJob() {
     if (!importTargetPlaylistId.empty() && !acceptedPaths.empty()) {
         if (Playlist* playlist = library.FindPlaylist(importTargetPlaylistId)) {
             PlaylistIO::AppendUniquePathsOrdinalIgnoreCase(playlist->itemPaths, acceptedPaths);
-            library.NotifyPlaylistChanged();
+            library.NotifyPlaylistEdited();
         }
     }
     if (!acceptedPaths.empty() && !SaveLibrary()) { importResult.outcome = LongOperationOutcome::Failed; }

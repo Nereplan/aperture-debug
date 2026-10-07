@@ -470,7 +470,7 @@ void App::CommitInlinePlaylistRename() {
     if (!isInlineRenaming) return;
     Playlist* pl = library.FindPlaylist(inlineRenamePlaylistId);
     std::wstring value = Text16ToWideString(inlineRenameInput.GetText());
-    if (pl && !value.empty()) { pl->name = Utf16ToUtf8(value); SaveLibrary(); ShowOSD(IconType::FolderPlaylist, L"Playlist Renamed"); }
+    if (pl && !value.empty()) { pl->name = Utf16ToUtf8(value); library.NotifyPlaylistEdited(); SaveLibrary(); ShowOSD(IconType::FolderPlaylist, L"Playlist Renamed"); }
     isInlineRenaming = false;
     inlineRenamePlaylistId.clear();
     activeTextInputField = TextInputField::None;
@@ -744,6 +744,7 @@ void App::ImportStandardPlaylist() {
     playlist->itemPaths.clear();
     for (const auto& entry : result.entries) playlist->itemPaths.push_back(entry.location);
     activePlaylistId = playlist->id;
+    library.NotifyPlaylistEdited();
     SaveLibrary();
     ShowOSD(IconType::FolderPlaylist, L"Imported " + std::to_wstring(result.entries.size()) + L" playlist items");
     PopAndRestoreFocus(TransientSurfaceType::SystemDialog);

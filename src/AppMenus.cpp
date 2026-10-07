@@ -148,9 +148,10 @@ void App::UpdateFlyoutHitTarget(float mouseX, float mouseY, float winW, float wi
 }
 
 void App::OpenFolderContextMenu(int groupIndex, float x, float y) {
-    const auto& proj = GetCurrentMediaProjection();
+    const auto& proj = GetCurrentMediaProjection(true);
     if (groupIndex < 0 || groupIndex >= (int)proj.groups.size()) return;
-    const auto& grp = proj.groups[groupIndex];
+    const auto grp = proj.groups[groupIndex];
+    const std::wstring firstPath = grp.startIndex < proj.indices.size() ? library.mediaItems[proj.indices[grp.startIndex]].filePath : L"";
     if (selectedFolderKeys.count(grp.key) == 0) { selectedFolderKeys.clear(); selectedFolderKeys.insert(grp.key); }
     PushFocusSnapshot(TransientSurfaceType::ContextMenu);
     contextMenuItems.clear();
@@ -171,12 +172,12 @@ void App::OpenFolderContextMenu(int groupIndex, float x, float y) {
         std::wstring playLabel = isSeriesMode ? (L"Play Series (" + std::to_wstring(grp.count) + L" Episodes)")
             : (L"Play All in Folder (" + std::to_wstring(grp.count) + L" Videos)");
         contextMenuItems.push_back({ "play_all", playLabel, L"Enter", IconType::Play, false, false, false, [this, key = grp.key]() {
-            const auto& p = GetCurrentMediaProjection();
+            const auto& p = GetCurrentMediaProjection(true);
             for (const auto& g : p.groups) {
                 if (g.key == key) {
                     for (size_t i = 0; i < g.count; ++i) {
                         size_t pIdx = g.startIndex + i;
-                        if (pIdx < p.items.size()) { OpenAndPlayMedia(p.items[pIdx].filePath); break; }
+                        if (pIdx < p.indices.size()) { OpenAndPlayMedia(library.mediaItems[p.indices[pIdx]].filePath); break; }
                     }
                     break;
                 }
@@ -184,7 +185,7 @@ void App::OpenFolderContextMenu(int groupIndex, float x, float y) {
         }});
         std::wstring revealPath = grp.key;
         if (isSeriesMode) {
-            if (grp.startIndex < proj.items.size()) { revealPath = ExtractDirectory(proj.items[grp.startIndex].filePath); }
+            if (!firstPath.empty()) revealPath = ExtractDirectory(firstPath);
         }
         std::wstring revealLabel = isSeriesMode ? L"Open Series Folder in Explorer" : L"Open Folder in Explorer";
         contextMenuItems.push_back({"reveal", revealLabel, L"", IconType::FolderPlaylist, false, false, false,

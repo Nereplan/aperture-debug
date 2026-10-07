@@ -61,16 +61,19 @@ TEST_CASE(LibrarySnapshot, AsyncBuildTransfersWithoutDeepCopy) {
     TEST_ASSERT(received->library.playlists.front().extraFields.has_key("futurePlaylistField"));
     TEST_ASSERT(received->library.history.front().extraFields.has_key("futureHistoryField"));
     TEST_ASSERT_EQ(received->library.watchedFolders.size(), (size_t)1);
-    TEST_ASSERT_EQ(received->visibleIndices.size(), (size_t)2);
+    TEST_ASSERT_EQ(received->initialProjection.indices.size(), (size_t)2);
 
     MediaLibrary adopted = std::move(received->library);
     TEST_ASSERT_EQ(adopted.mediaItems.data(), workerBuffer);
     LibraryQueryEngine uiEngine;
     LibraryQueryOptions queryOptions;
     queryOptions.groupMode = LibraryGroupMode::Flat;
-    TEST_ASSERT(uiEngine.PrimeCache(adopted, queryOptions, std::move(received->initialProjection)));
-    TEST_ASSERT(uiEngine.IsCacheValid(adopted, queryOptions));
-    TEST_ASSERT_EQ(uiEngine.Query(adopted, queryOptions).items.size(), (size_t)2);
+    TEST_ASSERT(uiEngine.PrimeViewCache(adopted, queryOptions, std::move(received->initialProjection)));
+    TEST_ASSERT_EQ(uiEngine.QueryView(adopted, queryOptions).indices.size(), (size_t)2);
+    TEST_ASSERT_EQ(uiEngine.GetViewBuildCount(), 0ull);
+    queryOptions.pinLastWatched = true;
+    TEST_ASSERT_EQ(uiEngine.QueryView(adopted, queryOptions).indices.front(), size_t(0));
+    TEST_ASSERT_EQ(uiEngine.GetPlanBuildCount(), 0ull);
 }
 
 TEST_CASE(LibrarySnapshot, RejectsCorruptPrimaryWithoutOverwritingIt) {
@@ -119,7 +122,7 @@ TEST_CASE(LibrarySnapshot, MissingStoresProduceValidEmptySnapshot) {
     TEST_ASSERT(snapshot->library.mediaItems.empty());
     TEST_ASSERT_EQ(snapshot->library.playlists.size(), (size_t)1);
     TEST_ASSERT_EQ(snapshot->library.playlists.front().id, std::string("pl_favorites"));
-    TEST_ASSERT(snapshot->initialProjection.items.empty());
+    TEST_ASSERT(snapshot->initialProjection.indices.empty());
 }
 
 TEST_CASE(LibrarySnapshot, MailboxRejectsStaleAndCanceledGenerations) {
@@ -208,8 +211,7 @@ TEST_CASE(LibrarySnapshot, BuildsTwentyFiveThousandItemProjection) {
     TEST_ASSERT(snapshot != nullptr);
     TEST_ASSERT(snapshot->publishable);
     TEST_ASSERT_EQ(snapshot->library.mediaItems.size(), kCount);
-    TEST_ASSERT_EQ(snapshot->initialProjection.items.size(), kCount);
-    TEST_ASSERT_EQ(snapshot->visibleIndices.size(), kCount);
+    TEST_ASSERT_EQ(snapshot->initialProjection.indices.size(), kCount);
     TEST_ASSERT_EQ(snapshot->library.mediaItems.front().id, std::string("item_24999"));
 }
 

@@ -144,11 +144,11 @@ bool GlobalSearchIndex::CheckPathExistsOnDisk(const std::wstring& path) {
 // ============================================================================
 
 bool GlobalSearchIndex::IsDirty(const MediaLibrary& library) const {
-    return library.GetSearchContentVersion() != cachedSearchContentVersion || library.GetVersion() != cachedLibraryVersion;
+    return library.GetSearchContentVersion() != cachedSearchContentVersion || !cachedRevisions.SameSearchData(library.GetRevisions());
 }
 
 void GlobalSearchIndex::Invalidate() {
-    cachedSearchContentVersion = cachedLibraryVersion = (std::numeric_limits<uint64_t>::max)();
+    cachedSearchContentVersion = (std::numeric_limits<uint64_t>::max)();
     entries.clear(); historyEntryByPath.clear();
 }
 
@@ -231,7 +231,7 @@ void GlobalSearchIndex::RebuildIndex(const MediaLibrary& library) {
             entries.push_back(std::move(entry));
         }
     }
-    cachedLibraryVersion = library.GetVersion();
+    cachedRevisions = library.GetRevisions();
     cachedSearchContentVersion = library.GetSearchContentVersion();
 }
 
@@ -260,7 +260,7 @@ void GlobalSearchIndex::RefreshMetadata(const MediaLibrary& library) {
             entry.durationSec = history.durationSec; entry.addedTimestamp = history.watchedTimestamp;
         } else if (entry.durationSec <= 0 && history.durationSec > 0) entry.durationSec = history.durationSec;
     }
-    cachedLibraryVersion = library.GetVersion();
+    cachedRevisions = library.GetRevisions();
     cachedSearchContentVersion = library.GetSearchContentVersion();
     ++metadataRefreshCount;
 }
@@ -349,7 +349,7 @@ std::vector<GlobalSearchResultItem> GlobalSearchIndex::Query(const MediaLibrary&
     std::wstring normalizedQuery = NormalizeText(rawQuery);
     if (normalizedQuery.empty()) { return {}; }
     if (library.GetSearchContentVersion() != cachedSearchContentVersion) { RebuildIndex(library); }
-    else if (library.GetVersion() != cachedLibraryVersion) { RefreshMetadata(library); }
+    else if (!cachedRevisions.SameSearchData(library.GetRevisions())) { RefreshMetadata(library); }
     std::vector<std::wstring> queryTokens = Tokenize(normalizedQuery);
     struct ScoredMatch { int score = 0; const CachedSearchEntry* entry = nullptr; };
     std::vector<ScoredMatch> matches;

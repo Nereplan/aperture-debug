@@ -122,9 +122,7 @@ bool App::UndoLastLibraryAction() {
     selectedPlaylistIndices.clear();
     selectedEpisodeIndices.clear();
     selectedHistoryIndices.clear();
-    m_cachedMediaLibraryVersion = (std::numeric_limits<uint64_t>::max)();
-    m_mediaQueryEngine.InvalidateCache();
-    InvalidateMediaLayoutCache();
+    InvalidateLibraryDerivedState();
     SaveLibrary();
     ShowOSD(IconType::Refresh, action.empty() ? L"Change undone" : action + L" undone");
     InvalidateRect(hWnd, NULL, FALSE);
@@ -177,7 +175,6 @@ void App::ConfirmDeleteSelectedMedia() {
             lastPrefetchSig = 0;
         }
         selectedMediaIndices.clear();
-        m_cachedMediaLibraryVersion = (std::numeric_limits<uint64_t>::max)();
         m_mediaQueryEngine.InvalidateCache();
         const auto& visibleIndices = GetVisibleMediaIndices();
         if (!visibleIndices.empty()) {
@@ -283,7 +280,7 @@ void App::DeleteSelectedInCurrentPane() {
             selectedEpisodeIndices.clear();
             ClearPlaylistCardHover();
             playlistCardExpands.clear();
-            library.NotifyPlaylistChanged();
+            library.NotifyPlaylistEdited();
             SaveLibrary();
             if (!pl->itemPaths.empty()) {
                 keyboardFocusedIndex = std::min(keyboardFocusedIndex, (int)pl->itemPaths.size() - 1);
@@ -301,7 +298,7 @@ void App::DeleteSelectedInCurrentPane() {
                 activePlaylistId = library.playlists[0].id;
                 keyboardFocusedIndex = 0;
             } else { activePlaylistId = ""; keyboardFocusedIndex = -1; }
-            library.NotifyPlaylistChanged();
+            library.NotifyPlaylistEdited();
             SaveLibrary();
             ShowOSD(IconType::Trash, L"Removed " + std::to_wstring(count) + L" playlists");
             InvalidateRect(hWnd, NULL, FALSE);

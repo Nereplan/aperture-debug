@@ -428,11 +428,16 @@ int LibraryQueryEngine::CompareItems(const MediaItem& a, const MediaItem& b, Lib
 }
 
 bool LibraryQueryEngine::IsCacheValid(const MediaLibrary& library, const LibraryQueryOptions& options) const {
-    return cachedLibraryVersion == library.GetVersion() && cachedProjection.options == options &&
+    return cachedLibraryVersion == library.GetVersion() && projectionRevisions.SamePlaylistData(library.GetRevisions()) && cachedProjection.options == options &&
            cachedLibraryVersion != (std::numeric_limits<uint64_t>::max)();
 }
 
 void LibraryQueryEngine::InvalidateCache() {
+    hasView = hasPlan = false;
+    cachedPlan = LibraryViewProjection();
+    searchFields.clear();
+    searchCatalogRevision = (std::numeric_limits<uint64_t>::max)();
+    cachedView = LibraryViewProjection();
     cachedLibraryVersion = (std::numeric_limits<uint64_t>::max)();
     cachedProjection = LibraryQueryProjection();
 }
@@ -448,13 +453,257 @@ bool LibraryQueryEngine::PrimeCache(const MediaLibrary& library, const LibraryQu
     if (projection.libraryVersion != library.GetVersion() || projection.options != options) { return false; }
     cachedProjection = std::move(projection);
     cachedLibraryVersion = library.GetVersion();
+    projectionRevisions = library.GetRevisions();
     return true;
 }
 
-const LibraryQueryProjection& LibraryQueryEngine::Query( const MediaLibrary& library, const LibraryQueryOptions& options,
+namespace {
+bool UsesPlaybackOrder(const LibraryQueryOptions& options) {
+    return options.sortField == LibrarySortField::LastPlayed || options.sortField == LibrarySortField::Progress ||
+        options.groupMode == LibraryGroupMode::Duplicates;
+}
+bool SameQueryData(const LibraryRevisions& a, const LibraryRevisions& b, const LibraryQueryOptions& options, bool plan) {
+    return a.catalog == b.catalog &&
+        (options.groupMode != LibraryGroupMode::Flat || a.playlists == b.playlists) &&
+        (!(UsesPlaybackOrder(options) || (!plan && ((options.pinLastWatched && options.groupMode == LibraryGroupMode::Flat) || options.statusFilter != LibraryStatusFilter::All))) ||
+            a.playback == b.playback);
+}
+}
+
+const LibraryViewProjection& LibraryQueryEngine::QueryView(const MediaLibrary& library, const LibraryQueryOptions& options,
     const std::function<bool(const std::wstring&)>& fileExistsFn) {
-    if (IsCacheValid(library, options)) { return cachedProjection; }
+    if (hasView && SameQueryData(viewRevisions, library.GetRevisions(), options, false) && cachedView.options == options) {
+        cachedView.libraryVersion = library.GetVersion();
+        return cachedView;
+    }
+    LibraryViewProjection next;
+    // Filesystem-sensitive queries retain their explicit probe path. They must
+    // not seed the reusable, disk-independent ordering plan.
+    if (options.checkFileExists || options.statusFilter == LibraryStatusFilter::Missing) {
+        next = BuildView(library, options, fileExistsFn);
+    } else {
+        LibraryQueryOptions planOptions = options;
+        planOptions.searchQuery.clear();
+        planOptions.statusFilter = LibraryStatusFilter::All;
+        planOptions.maxItems = 0;
+        planOptions.pinLastWatched = false;
+        planOptions.collapsedGroups.reset();
+        const bool needsPlan = !hasPlan || !SameQueryData(planRevisions, library.GetRevisions(), planOptions, true) ||
+            cachedPlan.options != planOptions;
+        // A cold, bounded request can use partial sorting/early termination.
+        // Once an unlimited view prepared this order, caps can reuse it too.
+        if (needsPlan && options.maxItems) {
+            next = BuildView(library, options, nullptr);
+        } else {
+            if (needsPlan) {
+                cachedPlan = BuildView(library, planOptions, nullptr);
+                planRevisions = library.GetRevisions();
+                hasPlan = true;
+                ++planBuildCount;
+            }
+            next = FilterPlan(library, options);
+        }
+    }
+    const bool sameShape = hasView && cachedView.options.groupMode == next.options.groupMode &&
+        cachedView.indices == next.indices && cachedView.groups.size() == next.groups.size() &&
+        std::equal(cachedView.groups.begin(), cachedView.groups.end(), next.groups.begin(),
+            [](const LibraryGroupSummary& a, const LibraryGroupSummary& b) {
+                return a.key == b.key && a.startIndex == b.startIndex && a.count == b.count && a.isCollapsed == b.isCollapsed;
+            });
+    next.generation = sameShape ? cachedView.generation : ++viewGeneration;
+    cachedView = std::move(next);
+    viewRevisions = library.GetRevisions();
+    hasView = true;
+    ++viewBuildCount;
+    return cachedView;
+}
+
+LibraryViewProjection LibraryQueryEngine::FilterPlan(const MediaLibrary& library, const LibraryQueryOptions& options) {
+    LibraryViewProjection result;
+    result.options = options;
+    result.libraryVersion = library.GetVersion();
+    result.totalLibraryCount = library.mediaItems.size();
+    const std::wstring query = NormalizeSearchText(options.searchQuery);
+    if (!query.empty() && (searchCatalogRevision != library.GetRevisions().catalog || searchFields.size() != library.mediaItems.size())) {
+        searchFields.clear();
+        searchFields.reserve(library.mediaItems.size());
+        for (const auto& item : library.mediaItems) {
+            SearchFields fields;
+            fields.title = NormalizeSearchText(std::wstring(item.GetDisplayTitleView()));
+            if (item.GetDisplayTitleView() != item.title) fields.originalTitle = NormalizeSearchText(item.title);
+            fields.path = NormalizeSearchText(item.filePath);
+            if (item.overrides && item.overrides->series) fields.series = NormalizeSearchText(*item.overrides->series);
+            searchFields.push_back(std::move(fields));
+        }
+        searchCatalogRevision = library.GetRevisions().catalog;
+        ++searchTextBuildCount;
+    }
+    const auto matches = [&](size_t index) {
+        if (!MatchesStatusFilter(library.mediaItems[index], options.statusFilter, true)) return false;
+        if (query.empty()) return true;
+        const auto& fields = searchFields[index];
+        return fields.title.find(query) != std::wstring::npos || fields.originalTitle.find(query) != std::wstring::npos ||
+            fields.path.find(query) != std::wstring::npos || fields.series.find(query) != std::wstring::npos;
+    };
+    const bool filtered = !query.empty() || options.statusFilter != LibraryStatusFilter::All;
+    std::vector<uint8_t> eligible;
+    if (filtered) {
+        eligible.resize(library.mediaItems.size());
+        // Duplicate filteredCount includes matching records outside duplicate groups.
+        if (options.groupMode == LibraryGroupMode::Duplicates) {
+            for (size_t i = 0; i < eligible.size(); ++i) { eligible[i] = matches(i); result.filteredCount += eligible[i]; }
+        } else {
+            for (size_t index : cachedPlan.indices) { eligible[index] = matches(index); result.filteredCount += eligible[index]; }
+        }
+    } else { result.filteredCount = cachedPlan.filteredCount; }
+    const auto included = [&](size_t index) { return !filtered || eligible[index] != 0; };
+    size_t capacity = cachedPlan.indices.size();
+    if (options.groupMode != LibraryGroupMode::Flat && options.collapsedGroups && !options.collapsedGroups->empty()) {
+        capacity = 0;
+        for (const auto& group : cachedPlan.groups) if (!options.CollapsedGroupCount(group.key)) capacity += group.count;
+    }
+    if (filtered) capacity = (std::min)(capacity, result.filteredCount);
+    result.indices.reserve(options.maxItems ? (std::min)(options.maxItems, capacity) : capacity);
+    if (options.groupMode == LibraryGroupMode::Flat) {
+        size_t pinned = library.mediaItems.size();
+        if (options.pinLastWatched) {
+            for (size_t index : cachedPlan.indices) {
+                const auto timestamp = library.mediaItems[index].lastWatchedTimestamp;
+                if (included(index) && timestamp > 0 && (pinned == library.mediaItems.size() ||
+                    timestamp > library.mediaItems[pinned].lastWatchedTimestamp ||
+                    (timestamp == library.mediaItems[pinned].lastWatchedTimestamp && index < pinned))) pinned = index;
+            }
+        }
+        if (pinned != library.mediaItems.size()) result.indices.push_back(pinned);
+        for (size_t index : cachedPlan.indices) {
+            if (!included(index) || index == pinned) continue;
+            if (options.maxItems && result.indices.size() >= options.maxItems) break;
+            result.indices.push_back(index);
+        }
+        result.isCapped = result.indices.size() < result.filteredCount;
+        return result;
+    }
+    result.groups.reserve(cachedPlan.groups.size());
+    const bool duplicates = options.groupMode == LibraryGroupMode::Duplicates;
+    for (const auto& source : cachedPlan.groups) {
+        if (!filtered && !options.maxItems) {
+            LibraryGroupSummary group = source;
+            group.startIndex = result.indices.size();
+            group.isCollapsed = options.CollapsedGroupCount(group.key);
+            if (!group.isCollapsed) result.indices.insert(result.indices.end(), cachedPlan.indices.begin() + source.startIndex,
+                cachedPlan.indices.begin() + source.startIndex + source.count);
+            result.groups.push_back(std::move(group));
+            continue;
+        }
+        size_t count = 0, firstOriginal = library.mediaItems.size();
+        const size_t end = source.startIndex + source.count;
+        for (size_t row = source.startIndex; row < end; ++row) {
+            const size_t index = cachedPlan.indices[row];
+            if (included(index)) { ++count; firstOriginal = (std::min)(firstOriginal, index); }
+        }
+        if (!count || (duplicates && filtered && count < 2)) continue;
+        LibraryGroupSummary group = source;
+        group.startIndex = result.indices.size();
+        group.count = duplicates ? 0 : count;
+        group.totalDurationSec = 0;
+        group.totalSizeBytes = 0;
+        group.isCollapsed = options.CollapsedGroupCount(group.key);
+        // Preserve labels from the first matching source record, including casing.
+        if (filtered && options.groupMode == LibraryGroupMode::Folder) {
+            group.subtitle = ExtractDirectory(library.mediaItems[firstOriginal].filePath);
+            group.title = group.subtitle.empty() ? L"Root" : GetFileNameFromPath(group.subtitle);
+            if (group.title.empty()) group.title = group.subtitle;
+        } else if (filtered && options.groupMode == LibraryGroupMode::Series) {
+            const auto& overrides = library.mediaItems[firstOriginal].overrides;
+            if (group.key == L"__standalone__") {
+                const bool special = !(overrides && overrides->series && !overrides->series->empty());
+                // A user override can equal the reserved standalone key.
+                // Its first matching record then changes group ordering rules.
+                if (special != source.isSpecial) return BuildView(library, options, nullptr);
+            }
+            group.title = overrides && overrides->series && !overrides->series->empty() ? *overrides->series :
+                (group.isSpecial ? L"Standalone Videos" : CapitalizeWords(group.key));
+        }
+        for (size_t row = source.startIndex; row < end; ++row) {
+            const size_t index = cachedPlan.indices[row];
+            if (!included(index)) continue;
+            const auto& item = library.mediaItems[index];
+            group.totalDurationSec += item.durationSec;
+            group.totalSizeBytes += item.fileSizeBytes;
+            if (duplicates) ++group.count;
+            if (!group.isCollapsed) {
+                if (options.maxItems && result.indices.size() >= options.maxItems) { result.isCapped = true; break; }
+                result.indices.push_back(index);
+            }
+        }
+        result.groups.push_back(std::move(group));
+        if (options.maxItems && result.indices.size() >= options.maxItems) break;
+    }
+    return result;
+}
+
+LibraryViewProjection LibraryQueryEngine::ReleaseCachedView() {
+    auto result = std::move(cachedView);
+    InvalidateCache();
+    return result;
+}
+
+bool LibraryQueryEngine::PrimeViewCache(const MediaLibrary& library, const LibraryQueryOptions& options,
+    LibraryViewProjection&& projection) {
+    if (projection.libraryVersion != library.GetVersion() || projection.options != options) return false;
+    InvalidateCache();
+    cachedView = std::move(projection);
+    viewRevisions = library.GetRevisions();
+    hasView = true;
+    cachedView.generation = ++viewGeneration;
+    if (options.searchQuery.empty() && options.statusFilter == LibraryStatusFilter::All && !options.checkFileExists &&
+        !options.pinLastWatched && !options.maxItems && (!options.collapsedGroups || options.collapsedGroups->empty())) {
+        cachedPlan = cachedView;
+        planRevisions = viewRevisions;
+        hasPlan = true;
+    }
+    return true;
+}
+
+const LibraryQueryProjection& LibraryQueryEngine::Query(const MediaLibrary& library, const LibraryQueryOptions& options,
+    const std::function<bool(const std::wstring&)>& fileExistsFn) {
+    if (IsCacheValid(library, options)) return cachedProjection;
+    const auto& view = QueryView(library, options, fileExistsFn);
     LibraryQueryProjection projection;
+    projection.groups = view.groups;
+    projection.options = view.options;
+    projection.totalLibraryCount = view.totalLibraryCount;
+    projection.filteredCount = view.filteredCount;
+    projection.libraryVersion = library.GetVersion();
+    projection.isCapped = view.isCapped;
+    projection.items.reserve(view.indices.size());
+    for (size_t i = 0; i < view.indices.size(); ++i) {
+        const size_t index = view.indices[i];
+        const auto& item = library.mediaItems[index];
+        LibraryItemProjection projected;
+        projected.id = item.id;
+        projected.filePath = item.filePath;
+        projected.title = item.GetDisplayTitle();
+        projected.durationSec = item.durationSec;
+        projected.lastPosSec = item.lastPosSec;
+        projected.status = item.status;
+        projected.progressRatio = item.GetProgressRatio();
+        projected.addedTimestamp = item.addedTimestamp;
+        projected.lastWatchedTimestamp = item.lastWatchedTimestamp;
+        projected.fileSizeBytes = item.fileSizeBytes;
+        projected.existsOnDisk = view.availability.empty() || view.availability[i] != 0;
+        projected.originalLibraryIndex = index;
+        projection.items.push_back(std::move(projected));
+    }
+    cachedProjection = std::move(projection);
+    cachedLibraryVersion = library.GetVersion();
+    projectionRevisions = library.GetRevisions();
+    return cachedProjection;
+}
+
+LibraryViewProjection LibraryQueryEngine::BuildView( const MediaLibrary& library, const LibraryQueryOptions& options,
+    const std::function<bool(const std::wstring&)>& fileExistsFn) {
+    LibraryViewProjection projection;
     projection.options = options;
     projection.totalLibraryCount = library.mediaItems.size();
     projection.libraryVersion = library.GetVersion();
@@ -476,22 +725,9 @@ const LibraryQueryProjection& LibraryQueryEngine::Query( const MediaLibrary& lib
     };
     std::vector<GroupBucket> buckets;
     std::unordered_map<std::wstring, size_t> groupKeyToIndex;
-    auto projectItem = [](const ItemMatch& match) {
-        const auto& item = *match.item;
-        LibraryItemProjection projected;
-        projected.id = item.id;
-        projected.filePath = item.filePath;
-        projected.title = item.GetDisplayTitle();
-        projected.durationSec = item.durationSec;
-        projected.lastPosSec = item.lastPosSec;
-        projected.status = item.status;
-        projected.progressRatio = item.GetProgressRatio();
-        projected.addedTimestamp = item.addedTimestamp;
-        projected.lastWatchedTimestamp = item.lastWatchedTimestamp;
-        projected.fileSizeBytes = item.fileSizeBytes;
-        projected.existsOnDisk = match.existsOnDisk;
-        projected.originalLibraryIndex = match.originalIndex;
-        return projected;
+    auto projectItem = [&](const ItemMatch& match) {
+        projection.indices.push_back(match.originalIndex);
+        if (checkDisk) projection.availability.push_back(match.existsOnDisk ? 1 : 0);
     };
     std::vector<ItemMatch> matches;
     if (options.groupMode == LibraryGroupMode::Flat) matches.reserve(library.mediaItems.size());
@@ -592,7 +828,7 @@ const LibraryQueryProjection& LibraryQueryEngine::Query( const MediaLibrary& lib
             grp.title = (dgrp.matchKind == DuplicateMatchKind::LikelyContent ? L"Likely Duplicate: " : L"Exact Duplicate: ") + dgrp.title;
             grp.subtitle = dgrp.subtitle;
             grp.isSpecial = (dgrp.matchKind == DuplicateMatchKind::LikelyContent);
-            grp.startIndex = projection.items.size();
+            grp.startIndex = projection.indices.size();
             grp.count = 0;
             grp.isCollapsed = options.CollapsedGroupCount(dgrp.key);
             for (const auto& m : groupMatches) {
@@ -601,12 +837,12 @@ const LibraryQueryProjection& LibraryQueryEngine::Query( const MediaLibrary& lib
                 grp.totalDurationSec += item.durationSec;
                 grp.count++;
                 if (!grp.isCollapsed) {
-                    if (options.maxItems > 0 && projection.items.size() >= options.maxItems) { projection.isCapped = true; break; }
-                    projection.items.push_back(projectItem(m));
+                    if (options.maxItems > 0 && projection.indices.size() >= options.maxItems) { projection.isCapped = true; break; }
+                    projectItem(m);
                 }
             }
             if (grp.count > 0) { projection.groups.push_back(std::move(grp)); }
-            if (options.maxItems > 0 && projection.items.size() >= options.maxItems) { break; }
+            if (options.maxItems > 0 && projection.indices.size() >= options.maxItems) { break; }
         }
     } else if (options.groupMode == LibraryGroupMode::Flat) {
         auto sortBegin = matches.begin();
@@ -626,7 +862,8 @@ const LibraryQueryProjection& LibraryQueryEngine::Query( const MediaLibrary& lib
         } else { projection.isCapped = false; }
         if (options.sortField != LibrarySortField::Manual) {
             const auto less = [&](const ItemMatch& a, const ItemMatch& b) {
-                return CompareItems(*a.item, *b.item, options.sortField, options.sortDirection) < 0;
+                const int cmp = CompareItems(*a.item, *b.item, options.sortField, options.sortDirection);
+                return cmp != 0 ? cmp < 0 : a.originalIndex < b.originalIndex;
             };
             if (projection.isCapped && countToProject < matches.size() / 4) {
                 // Input indices preserve stable-sort ties, including after
@@ -640,16 +877,16 @@ const LibraryQueryProjection& LibraryQueryEngine::Query( const MediaLibrary& lib
                 std::stable_sort(sortBegin, matches.end(), less);
             }
         }
-        projection.items.reserve(countToProject);
-        for (size_t i = 0; i < countToProject; ++i) { const auto& m = matches[i]; projection.items.push_back(projectItem(m)); }
+        projection.indices.reserve(countToProject);
+        for (size_t i = 0; i < countToProject; ++i) { const auto& m = matches[i]; projectItem(m); }
     } else {
         // Grouped Mode (Folder or Series)
-        if (options.groupMode == LibraryGroupMode::Folder && !options.customFolderOrder.empty()) {
+        if (options.groupMode == LibraryGroupMode::Folder && !options.FolderOrder().empty()) {
             std::unordered_map<std::wstring, size_t> folderOrder;
-            folderOrder.reserve(options.customFolderOrder.size());
-            for (size_t i = 0; i < options.customFolderOrder.size(); ++i) {
+            folderOrder.reserve(options.FolderOrder().size());
+            for (size_t i = 0; i < options.FolderOrder().size(); ++i) {
                 // The first occurrence wins, matching the old linear lookup.
-                folderOrder.emplace(NormalizeDirectoryPath(options.customFolderOrder[i]), i);
+                folderOrder.emplace(NormalizeDirectoryPath(options.FolderOrder()[i]), i);
             }
             for (auto& bucket : buckets) {
                 // Folder keys are normalized when the buckets are built.
@@ -682,22 +919,24 @@ const LibraryQueryProjection& LibraryQueryEngine::Query( const MediaLibrary& lib
                             ? a.episodeNumber > b.episodeNumber
                             : a.episodeNumber < b.episodeNumber;
                     }
-                    return CompareItems(*a.item, *b.item, options.sortField, options.sortDirection) < 0;
+                    const int cmp = CompareItems(*a.item, *b.item, options.sortField, options.sortDirection);
+                    return cmp != 0 ? cmp < 0 : a.originalIndex < b.originalIndex;
                 });
             } else {
                 // Folder mode or standalone series group: sort by active sortField & sortDirection
                 std::sort(bucket.items.begin(), bucket.items.end(), [&](const ItemMatch& a, const ItemMatch& b) {
-                    return CompareItems(*a.item, *b.item, options.sortField, options.sortDirection) < 0;
+                    const int cmp = CompareItems(*a.item, *b.item, options.sortField, options.sortDirection);
+                    return cmp != 0 ? cmp < 0 : a.originalIndex < b.originalIndex;
                 });
             }
         };
-        // Flatten groups into projection.items and record groups
+        // Flatten groups into projection.indices and record groups
         projection.groups.reserve(buckets.size());
         size_t visibleCount = 0;
         for (const auto& bucket : buckets) {
             if (!options.CollapsedGroupCount(bucket.key)) visibleCount += bucket.items.size();
         }
-        projection.items.reserve(options.maxItems > 0 ? (std::min)(visibleCount, options.maxItems) : visibleCount);
+        projection.indices.reserve(options.maxItems > 0 ? (std::min)(visibleCount, options.maxItems) : visibleCount);
         for (auto& bucket : buckets) {
             if (bucket.items.empty()) continue;
             sortBucket(bucket);
@@ -706,7 +945,7 @@ const LibraryQueryProjection& LibraryQueryEngine::Query( const MediaLibrary& lib
             grp.title = bucket.title;
             grp.subtitle = bucket.subtitle;
             grp.isSpecial = bucket.isSpecial;
-            grp.startIndex = projection.items.size();
+            grp.startIndex = projection.indices.size();
             grp.count = bucket.items.size();
             grp.isCollapsed = options.CollapsedGroupCount(bucket.key);
             for (const auto& m : bucket.items) {
@@ -714,18 +953,15 @@ const LibraryQueryProjection& LibraryQueryEngine::Query( const MediaLibrary& lib
                 grp.totalSizeBytes += item.fileSizeBytes;
                 grp.totalDurationSec += item.durationSec;
                 if (!grp.isCollapsed) {
-                    if (options.maxItems > 0 && projection.items.size() >= options.maxItems) { projection.isCapped = true; break; }
-                    projection.items.push_back(projectItem(m));
+                    if (options.maxItems > 0 && projection.indices.size() >= options.maxItems) { projection.isCapped = true; break; }
+                    projectItem(m);
                 }
             }
             projection.groups.push_back(std::move(grp));
-            if (options.maxItems > 0 && projection.items.size() >= options.maxItems) { break; }
+            if (options.maxItems > 0 && projection.indices.size() >= options.maxItems) { break; }
         }
     }
-    // Cache the projection: move into the engine-owned slot and return it by reference so callers pay no copy on hit or miss.
-    cachedProjection = std::move(projection);
-    cachedLibraryVersion = library.GetVersion();
-    return cachedProjection;
+    return projection;
 }
 
 // ============================================================================

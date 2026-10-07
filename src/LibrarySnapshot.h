@@ -18,8 +18,7 @@ struct LibraryStartupSnapshot {
     uint64_t generation = 0;
     LibraryGroupMode groupMode = LibraryGroupMode::Flat;
     MediaLibrary library;
-    LibraryQueryProjection initialProjection;
-    std::vector<size_t> visibleIndices;
+    LibraryViewProjection initialProjection;
     StorageStatus loadStatus = StorageStatus::Ok();
     bool publishable = false, canceled = false, preservesExisting = false;
     uint64_t baseLibraryVersion = 0;

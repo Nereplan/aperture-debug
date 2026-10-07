@@ -403,15 +403,9 @@ private:
     D2D1_RECT_F mediaFlatBtnBounds = { 0, 0, 0, 0 };
     D2D1_RECT_F mediaSeriesBtnBounds = { 0, 0, 0, 0 };
     LibraryQueryEngine m_mediaQueryEngine;
-    // Single authoritative projection lives in m_mediaQueryEngine's cache and is returned by reference (no second copy in App). Only the
-    // compact visible-index vector is retained here.
-    std::vector<size_t> m_cachedVisibleMediaIndices;
-    uint64_t m_cachedMediaLibraryVersion = (std::numeric_limits<uint64_t>::max)();
-    LibraryGroupMode m_cachedMediaGroupMode = (LibraryGroupMode)-1;
-    LibrarySortField m_cachedMediaSortField = (LibrarySortField)-1;
-    SortDirection m_cachedMediaSortDirection = (SortDirection)-1;
-    std::wstring m_cachedMediaSearchQuery;
-    const LibraryQueryProjection& GetCurrentMediaProjection();
+    // Borrow the compact query result; visible cards read the live records.
+    const LibraryViewProjection& GetCurrentMediaProjection(bool includeCollapsed = false);
+    std::shared_ptr<const std::vector<std::wstring>> m_folderOrderSnapshot;
     const std::vector<size_t>& GetVisibleMediaIndices();
     void SetLibraryGroupMode(LibraryGroupMode mode);
     void SetLibrarySort(LibrarySortField field, SortDirection direction);
@@ -493,10 +487,13 @@ private:
     bool playlistGridView = false, isPlaylistSearchFocused = false;
     std::string cachedVisiblePlaylistId;
     std::wstring cachedVisibleSearchQuery;
-    uint64_t cachedVisibleLibraryVersion = 0;
+    LibraryRevisions cachedVisibleRevisions;
+    uint64_t cachedVisiblePathsGeneration = 0;
+    bool cachedVisiblePlaylistIsSmart = false;
     std::vector<size_t> cachedVisiblePlaylistIndices;
     std::string cachedSearchKeyPlaylistId;
-    uint64_t cachedSearchKeyLibraryVersion = 0;
+    LibraryRevisions cachedSearchKeyRevisions;
+    uint64_t cachedSearchPathsGeneration = 0;
     std::vector<std::wstring> cachedPlaylistSearchKeys;
     enum class TextInputField { None, PlaylistSearch, Modal, InlineRename, GlobalSearch, MediaSearch };
     TextInputModel modalInput;
@@ -659,8 +656,7 @@ private:
         return m_collapsedGroupsSnapshot;
     }
     std::unordered_set<std::wstring> selectedFolderKeys;
-    uint64_t m_cachedCollapsedGroupsGeneration = 0;
-    bool m_cachedLastWatchedCleared = false, isMouseTracking = false, isOverlayMouseTracking = false, isVideoMouseTracking = false;
+    bool isMouseTracking = false, isOverlayMouseTracking = false, isVideoMouseTracking = false;
     // Unified Drag & Drop State
     enum class DragType { None, MediaList, PlaylistRail, PlaylistItem, MediaFolder };
     DragType activeDragType = DragType::None;
@@ -841,10 +837,10 @@ private:
         std::vector<float> rowOffsetsDIP;
         std::vector<float> groupHeaderOffsetsDIP;
         float contentHeightDIP = 0.0f;
-        uint64_t libraryVersion = 0;
+        uint64_t projectionGeneration = 0;
         size_t itemCount = 0;
         LibraryGroupMode groupMode = LibraryGroupMode::Flat;
-        bool lastWatchedCleared = false;
+        bool lastWatchedCleared = false, hasPinned = false;
         uint64_t collapsedGroupsGeneration = 0;
         bool dirty = true;
         size_t dirtyFromIndex = 0;
@@ -880,12 +876,13 @@ private:
     mutable ChapterMarkerCache m_chapterMarkersCache;
     std::shared_ptr<const std::vector<TimelineChapterMarker>> GetChapterMarkersSnapshot() const;
     // Cached history timeline projection (group buckets + ordering). History
-    // ordering only changes when the library changes or the day rolls over.
+    // ordering only changes when history changes or the day rolls over.
     HistoryTimelineProjection m_historyProjection;
     uint64_t m_historyProjectionVersion = 0;
     int64_t m_historyProjectionDay = -1;
     size_t m_historyProjectionSize = 0;
     const HistoryTimelineProjection& GetHistoryProjection();
+    void InvalidateLibraryDerivedState();
 };
 
 } // namespace Aperture

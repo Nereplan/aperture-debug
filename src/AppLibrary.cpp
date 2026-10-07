@@ -109,26 +109,13 @@ void App::FinishInitialLibraryLoad(uint64_t generation) {
     library = std::move(snapshot->library);
     submittedLibrarySnapshot.reset(); libraryReloadBaseline.reset(); librarySaveRequested = false;
     library.SetSaveRequestHandler([this] { return QueueLibrarySave(); });
-    m_mediaQueryEngine.InvalidateCache();
+    InvalidateLibraryDerivedState();
     LibraryQueryOptions initialOptions;
     initialOptions.groupMode = snapshot->groupMode;
     initialOptions.sortField = LibrarySortField::Title;
     initialOptions.sortDirection = SortDirection::Ascending;
     const bool matchingMode = snapshot->groupMode == libraryGroupMode;
-    const bool primed = matchingMode && m_mediaQueryEngine.PrimeCache( library, initialOptions, std::move(snapshot->initialProjection));
-    if (primed) {
-        m_cachedVisibleMediaIndices = std::move(snapshot->visibleIndices);
-        m_cachedMediaLibraryVersion = library.GetVersion();
-        m_cachedMediaGroupMode = libraryGroupMode;
-        m_cachedMediaSortField = LibrarySortField::Title;
-        m_cachedMediaSortDirection = SortDirection::Ascending;
-    } else {
-        m_cachedVisibleMediaIndices.clear();
-        m_cachedMediaLibraryVersion = (std::numeric_limits<uint64_t>::max)();
-        m_cachedMediaGroupMode = (LibraryGroupMode)-1;
-        m_cachedMediaSortField = (LibrarySortField)-1;
-        m_cachedMediaSortDirection = (SortDirection)-1;
-    }
+    if (matchingMode) m_mediaQueryEngine.PrimeViewCache(library, initialOptions, std::move(snapshot->initialProjection));
     InvalidateMediaLayoutCache();
     rowAnimStates.clear();
     selectedMediaIndices.clear();
@@ -176,7 +163,22 @@ void App::CancelInitialLibraryLoad() {
 }
 
 
-const LibraryQueryProjection& App::GetCurrentMediaProjection() {
+void App::InvalidateLibraryDerivedState() {
+    // Replacement/undo can restore an older object with coincident counters.
+    m_mediaQueryEngine.InvalidateCache();
+    InvalidateMediaLayoutCache();
+    m_historyProjection = {};
+    m_historyProjectionDay = -1;
+    cachedVisiblePlaylistId.clear();
+    cachedSearchKeyPlaylistId.clear();
+    cachedVisiblePlaylistIndices.clear();
+    cachedPlaylistSearchKeys.clear();
+    m_missingFileCache.clear();
+    globalSearchModel.GetIndex().Invalidate();
+    if (globalSearchModel.IsOpen()) globalSearchModel.SetQuery(globalSearchModel.GetQuery(), library, true);
+}
+
+const LibraryViewProjection& App::GetCurrentMediaProjection(bool includeCollapsed) {
     LibraryQueryOptions opt;
     opt.groupMode = libraryGroupMode;
     opt.sortField = (librarySortField == LibrarySortField::Manual && libraryGroupMode != LibraryGroupMode::Flat)
@@ -186,34 +188,16 @@ const LibraryQueryProjection& App::GetCurrentMediaProjection() {
     opt.pinLastWatched = !isLastWatchedCleared && opt.searchQuery.empty();
     // Shared snapshots (empty set stays canonical): no per-call deep copy of
     // the collapsed-group keys on this every-frame path.
-    opt.collapsedGroups = opt.searchQuery.empty() ? CollapsedGroupsSnapshot() : EmptyCollapsedGroups();
-    // Flat, series, and duplicates queries never consume manual folder order.
-    // Copying it for every frame also makes the query cache compare every path.
-    if (libraryGroupMode == LibraryGroupMode::Folder) opt.customFolderOrder = settings.customFolderOrder;
-    // Single copy lives in the engine cache; App keeps only the compact
-    // visible-index vector. Rebuild indices when the engine produced a new projection (version/mode change).
-    const LibraryQueryProjection& proj = m_mediaQueryEngine.Query(library, opt);
-    uint64_t libVer = library.GetVersion();
-    if (m_cachedMediaLibraryVersion != libVer || m_cachedMediaGroupMode != libraryGroupMode || m_cachedMediaSortField != opt.sortField ||
-        m_cachedMediaSortDirection != opt.sortDirection || m_cachedCollapsedGroupsGeneration != m_collapsedGroupsGeneration ||
-        m_cachedLastWatchedCleared != isLastWatchedCleared || m_cachedMediaSearchQuery != opt.searchQuery ||
-        m_cachedVisibleMediaIndices.size() != proj.items.size()) {
-        m_cachedMediaLibraryVersion = libVer;
-        m_cachedMediaGroupMode = libraryGroupMode;
-        m_cachedMediaSortField = opt.sortField;
-        m_cachedMediaSortDirection = opt.sortDirection;
-        m_cachedCollapsedGroupsGeneration = m_collapsedGroupsGeneration;
-        m_cachedLastWatchedCleared = isLastWatchedCleared;
-        m_cachedMediaSearchQuery = opt.searchQuery;
-        m_cachedVisibleMediaIndices.clear();
-        m_cachedVisibleMediaIndices.reserve(proj.items.size());
-        for (const auto& item : proj.items) { m_cachedVisibleMediaIndices.push_back(item.originalLibraryIndex); }
+    opt.collapsedGroups = !includeCollapsed && opt.searchQuery.empty() ? CollapsedGroupsSnapshot() : EmptyCollapsedGroups();
+    if (libraryGroupMode == LibraryGroupMode::Folder) {
+        if (!m_folderOrderSnapshot) m_folderOrderSnapshot = std::make_shared<const std::vector<std::wstring>>(settings.customFolderOrder);
+        opt.customFolderOrder = m_folderOrderSnapshot;
     }
-    return proj;
+    return m_mediaQueryEngine.QueryView(library, opt);
 }
 
 
-const std::vector<size_t>& App::GetVisibleMediaIndices() { GetCurrentMediaProjection(); return m_cachedVisibleMediaIndices; }
+const std::vector<size_t>& App::GetVisibleMediaIndices() { return GetCurrentMediaProjection().indices; }
 
 
 void App::SetLibraryGroupMode(LibraryGroupMode mode) {
@@ -224,8 +208,6 @@ void App::SetLibraryGroupMode(LibraryGroupMode mode) {
     else if (mode == LibraryGroupMode::Series) settings.libraryGroupMode = "series";
     else if (mode == LibraryGroupMode::Duplicates) settings.libraryGroupMode = "duplicates";
     settings.Save();
-    m_cachedMediaLibraryVersion = (std::numeric_limits<uint64_t>::max)();
-    m_mediaQueryEngine.InvalidateCache();
     InvalidateMediaLayoutCache();
     mediaScrollY = 0.0f;
     ClampScrollOffsets();
@@ -245,10 +227,6 @@ void App::SetLibrarySort(LibrarySortField field, SortDirection direction) {
     settings.librarySortField = fieldSetting;
     settings.librarySortDirection = directionSetting;
     settings.Save();
-    m_cachedMediaLibraryVersion = (std::numeric_limits<uint64_t>::max)();
-    m_cachedMediaSortField = (LibrarySortField)-1;
-    m_cachedMediaSortDirection = (SortDirection)-1;
-    m_mediaQueryEngine.InvalidateCache();
     InvalidateMediaLayoutCache();
     mediaScrollY = 0.0f;
     ClampScrollOffsets();
@@ -286,18 +264,22 @@ void App::InvalidateMediaLayoutCache(size_t fromIndex) {
 
 void App::EnsureMediaLayoutCache() {
     const auto& proj = GetCurrentMediaProjection();
-    const auto& visibleIndices = m_cachedVisibleMediaIndices;
+    const auto& visibleIndices = proj.indices;
     const size_t N = visibleIndices.size();
-    const uint64_t libVer = library.GetVersion();
-    const bool shapeChanged = m_mediaLayoutCache.libraryVersion != libVer || m_mediaLayoutCache.itemCount != N ||
+    const uint64_t libVer = proj.generation;
+    const bool hasPinned = !isLastWatchedCleared && N > 0 && libraryGroupMode == LibraryGroupMode::Flat &&
+        library.mediaItems[visibleIndices[0]].lastWatchedTimestamp > 0;
+    const bool pinChanged = m_mediaLayoutCache.hasPinned != hasPinned;
+    const bool shapeChanged = pinChanged || m_mediaLayoutCache.projectionGeneration != libVer || m_mediaLayoutCache.itemCount != N ||
         m_mediaLayoutCache.groupMode != libraryGroupMode || m_mediaLayoutCache.lastWatchedCleared != isLastWatchedCleared ||
         m_mediaLayoutCache.collapsedGroupsGeneration != m_collapsedGroupsGeneration || m_mediaLayoutCache.rowOffsetsDIP.size() != N + 1;
     if (!m_mediaLayoutCache.dirty && !shapeChanged) { return; }
     const size_t firstChanged = shapeChanged || rowAnimStates.size() != N
         ? 0 : std::min(m_mediaLayoutCache.dirtyFromIndex, N);
     m_mediaLayoutCache.rowOffsetsDIP.resize(N + 1);
-    m_mediaLayoutCache.libraryVersion = libVer;
+    m_mediaLayoutCache.projectionGeneration = libVer;
     m_mediaLayoutCache.itemCount = N;
+    m_mediaLayoutCache.hasPinned = hasPinned;
     m_mediaLayoutCache.groupMode = libraryGroupMode;
     m_mediaLayoutCache.lastWatchedCleared = isLastWatchedCleared;
     m_mediaLayoutCache.collapsedGroupsGeneration = m_collapsedGroupsGeneration;
@@ -317,9 +299,8 @@ void App::EnsureMediaLayoutCache() {
             rowAnimStates[i].inActiveAnimList = false;
         }
     }
+    if (pinChanged && !rowAnimStates.empty()) rowAnimStates[0].height.SnapTo(hasPinned ? kMediaPinnedRestHeight : kMediaRestHeight);
     const float kGroupHeaderHDIP = 38.0f;
-    const bool hasPinned = !isLastWatchedCleared && N > 0 && libraryGroupMode == LibraryGroupMode::Flat &&
-        (visibleIndices[0] < library.mediaItems.size() && library.mediaItems[visibleIndices[0]].lastWatchedTimestamp > 0);
     float curYDIP = 0.0f;
     if (libraryGroupMode == LibraryGroupMode::Flat) {
         m_mediaLayoutCache.groupHeaderOffsetsDIP.clear();

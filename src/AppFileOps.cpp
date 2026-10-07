@@ -228,7 +228,7 @@ void App::PruneOrphanedHubThumbnailCache() {
 void App::RemoveSelectedFolders() {
     if (selectedFolderKeys.empty()) return;
     if (libraryGroupMode == LibraryGroupMode::Series) {
-        const auto& proj = GetCurrentMediaProjection();
+        const auto& proj = GetCurrentMediaProjection(true);
         std::vector<std::string> idsToRemove;
         size_t seriesCount = 0;
         for (const auto& g : proj.groups) {
@@ -236,7 +236,7 @@ void App::RemoveSelectedFolders() {
                 seriesCount++;
                 for (size_t i = 0; i < g.count; ++i) {
                     size_t pIdx = g.startIndex + i;
-                    if (pIdx < proj.items.size()) { idsToRemove.push_back(proj.items[pIdx].id); }
+                    if (pIdx < proj.indices.size()) { idsToRemove.push_back(library.mediaItems[proj.indices[pIdx]].id); }
                 }
             }
         }

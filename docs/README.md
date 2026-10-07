@@ -18,6 +18,7 @@ Read the most recent report relevant to the subsystem. Measurements with differe
 
 | Report | Scope |
 |---|---|
+| [Library view pipeline redesign](reports/LIBRARY_VIEW_PIPELINE.md) | 7 October: compact UI projections, reusable query plans, domain-specific refresh, stable layout generations and smart-playlist membership tracking; tests/benchmarks deferred |
 | [History and playlist optimization](reports/HISTORY_AND_PLAYLIST_OPTIMIZATION.md) | 7 October follow-up: visible history row lookup, empty-viewport handling, and cached playlist resume selection with smart-playlist expiry; compile-only validation |
 | [Scrolling and text optimization](reports/SCROLL_AND_TEXT_OPTIMIZATION.md) | 7 October: offscreen playlist work, group-header lookup, and wrapped text reuse; compile-only validation, with tests and measurements deferred |
 | [UI refresh performance](reports/UI_REFRESH_PERFORMANCE.md) | 5 October: accessibility snapshot ownership and exact chapter-boundary caching, with CPU/allocation measurements |

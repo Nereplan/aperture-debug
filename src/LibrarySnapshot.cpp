@@ -37,15 +37,12 @@ std::unique_ptr<LibraryStartupSnapshot> BuildLibraryStartupSnapshot( const Libra
     if (IsCanceled(options)) { snapshot->canceled = true; return snapshot; }
     LibraryQueryEngine queryEngine;
     const LibraryQueryOptions queryOptions = InitialQueryOptions(options.groupMode);
-    const LibraryQueryProjection& projection = queryEngine.Query(snapshot->library, queryOptions);
-    snapshot->visibleIndices.reserve(projection.items.size());
-    for (const auto& item : projection.items) { snapshot->visibleIndices.push_back(item.originalLibraryIndex); }
-    snapshot->initialProjection = queryEngine.ReleaseCachedProjection();
+    queryEngine.QueryView(snapshot->library, queryOptions);
+    snapshot->initialProjection = queryEngine.ReleaseCachedView();
     Mark(options, L"library-projection-ready");
     if (IsCanceled(options)) {
         snapshot->canceled = true;
-        snapshot->initialProjection = LibraryQueryProjection();
-        snapshot->visibleIndices.clear();
+        snapshot->initialProjection = LibraryViewProjection();
         return snapshot;
     }
     snapshot->publishable = true;
