@@ -90,7 +90,8 @@ Storage operations return `StorageStatus` containing:
 - **Backup Mechanism**: `CreateRotatingBackup(libPath, 3)` into `data\backups\library.json.bak.1..3`.
 - **Private-Mode Behavior**: Media item state modifications (e.g. progress updates) are suppressed in private mode.
 - **Partial Recovery & Fault Tolerance**: If individual media items in the `items` array contain malformed data or missing mandatory fields, only the invalid items are skipped. Valid items are retained and loaded successfully.
-- **Forward-Version Handling**: If loaded `schemaVersion >= 2`, migration loop is a no-op; unknown properties on media items (such as custom ratings or future metadata) are preserved.
+- **Forward-Version Handling**: A schema version newer than the application supports is rejected and protected from saving. Unknown properties on media items in supported schemas are preserved.
+- **Metadata fingerprint**: The optional `metadataFileWriteTime` field is an exact decimal-string Windows file timestamp. Together with `fileSizeBytes`, `fileIndex` and `volumeSerialNumber`, it allows reuse of successfully probed metadata for an unchanged file. Missing or zero timestamps disable reuse; legacy records require no eager migration or scan. A successful stable probe establishes the timestamp, and failed or changed-file observations invalidate it. This additive field does not change schema version `2`.
 
 #### Version Transition History
 

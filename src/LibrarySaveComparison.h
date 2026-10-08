@@ -38,7 +38,7 @@ inline bool SameMedia(const MediaItem& a, const MediaItem& b) {
     auto values = [](const auto& m) {
         return std::tie(m.id, m.filePath, m.title, m.durationSec, m.lastPosSec, m.status, m.fileSizeBytes,
             m.lastWatchedTimestamp, m.addedTimestamp, m.videoWidth, m.videoHeight, m.fileIndex,
-            m.volumeSerialNumber, m.metadataProbeFailed, m.probeAttemptCount, m.lastProbeAttemptTimestamp, m.extraFields);
+            m.volumeSerialNumber, m.metadataFileWriteTime, m.metadataProbeFailed, m.probeAttemptCount, m.lastProbeAttemptTimestamp, m.extraFields);
     };
     return values(a) == values(b) && SameOptional(a.preferences, b.preferences, SamePreferences) &&
            SameSequence(a.bookmarks, b.bookmarks, SameBookmark) && SameOptional(a.overrides, b.overrides, SameOverrides);

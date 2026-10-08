@@ -17,6 +17,7 @@
 namespace Aperture {
 
 class PreparedSmartPlaylist;
+class MediaImportProbeCache;
 
 struct MediaPlaybackPreferences {
     std::optional<double> playbackSpeed;       // Valid range: [0.25, 4.0]
@@ -112,6 +113,7 @@ struct MediaItem {
     uint32_t videoWidth = 0, videoHeight = 0;
     uint64_t fileIndex = 0;
     uint32_t volumeSerialNumber = 0;
+    uint64_t metadataFileWriteTime = 0; // FILETIME from the last stable, successful metadata probe.
     bool metadataProbeFailed = false;
     uint32_t probeAttemptCount = 0;
     int64_t lastProbeAttemptTimestamp = 0;
@@ -232,6 +234,7 @@ struct MediaImportResult {
     size_t inputCount = 0, discoveredFiles = 0, acceptedFiles = 0, added = 0;
     size_t updated = 0, unchanged = 0, skippedUnsupported = 0, skippedMissing = 0;
     size_t skippedDuplicate = 0, skippedReparse = 0, probeFailures = 0, conflictCount = 0;
+    size_t reusedMetadata = 0;
     size_t conflictResolvedKeep = 0, conflictResolvedOverwrite = 0, conflictResolvedSkip = 0, conflictResolvedCopy = 0;
     LongOperationOutcome outcome = LongOperationOutcome::Completed;
     StorageStatus status = StorageStatus::Ok();
@@ -273,22 +276,29 @@ struct MetadataBackfillBaseline {
     uint64_t size = 0, fileIndex = 0;
     uint32_t volume = 0, width = 0, height = 0, attempts = 0;
     int64_t lastAttempt = 0;
+    uint64_t fileWriteTime = 0;
     bool failed = false;
     static bool SameDuration(double a, double b) { return a == b || (std::isnan(a) && std::isnan(b)); }
     static MetadataBackfillBaseline Capture(const MediaItem& item) {
         return {item.id, item.filePath, item.durationSec, item.fileSizeBytes, item.fileIndex, item.volumeSerialNumber,
-            item.videoWidth, item.videoHeight, item.probeAttemptCount, item.lastProbeAttemptTimestamp, item.metadataProbeFailed};
+            item.videoWidth, item.videoHeight, item.probeAttemptCount, item.lastProbeAttemptTimestamp, item.metadataFileWriteTime, item.metadataProbeFailed};
     }
     bool Matches(const MediaItem& item) const {
         return id == item.id && NormalizePathKey(path) == NormalizePathKey(item.filePath) &&
             SameDuration(durationSec, item.durationSec) && size == item.fileSizeBytes && fileIndex == item.fileIndex &&
             volume == item.volumeSerialNumber && width == item.videoWidth && height == item.videoHeight &&
-            attempts == item.probeAttemptCount && lastAttempt == item.lastProbeAttemptTimestamp && failed == item.metadataProbeFailed;
+            attempts == item.probeAttemptCount && lastAttempt == item.lastProbeAttemptTimestamp &&
+            fileWriteTime == item.metadataFileWriteTime && failed == item.metadataProbeFailed;
     }
 };
 
 struct MetadataBackfillMergeResult {
     size_t changedCount = 0, discardedCount = 0;
+    bool viewChanged = false;
+};
+
+struct MediaImportMergeResult {
+    size_t addedCount = 0, updatedCount = 0, discardedCount = 0;
     bool viewChanged = false;
 };
 
@@ -425,7 +435,10 @@ public:
     static bool IsSupportedMediaExtension(const std::wstring& path);
     // Imports files and recursively scans directories. The library is saved at most once, after all accepted paths have been processed.
     MediaImportResult ImportPaths(const std::vector<std::wstring>& paths, const MediaImportProgressCallback& progress = {},
-                                  bool saveChanges = true, ImportConflictPolicy conflictPolicy = ImportConflictPolicy::KeepExisting);
+                                  bool saveChanges = true, ImportConflictPolicy conflictPolicy = ImportConflictPolicy::KeepExisting,
+                                  const MediaImportProbeCache* probeCache = nullptr, const MediaProbeFunction& probeFunction = {});
+    MediaImportMergeResult MergeImportedMedia(std::vector<MediaItem> items,
+        const std::vector<std::optional<MetadataBackfillBaseline>>& baseline);
     struct RemovedMediaInfo { std::wstring filePath; double durationSec = 0.0; };
     bool RemoveMedia(const std::string& id);
     // Optional owned metadata for cleanup after vector erasure invalidates pointers.

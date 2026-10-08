@@ -2,6 +2,7 @@
 #include "MediaLibrary.h"
 #include "WatchReconcile.h"
 #include "FolderRediscovery.h"
+#include "MediaImportProbeCache.h"
 #include "LibrarySaveComparison.h"
 #include "SmartRuleParsing.h"
 #include "PreparedSmartPlaylist.h"
@@ -189,6 +190,7 @@ bool AppendSimpleMediaRecord(std::string& record, const MediaItem& item, const s
     field("\"lastPosSec\":", item.lastPosSec);
     if (item.lastProbeAttemptTimestamp > 0) field("\"lastProbeAttemptTimestamp\":", item.lastProbeAttemptTimestamp);
     field("\"lastWatchedTimestamp\":", item.lastWatchedTimestamp);
+    if (item.metadataFileWriteTime) field("\"metadataFileWriteTime\":", ExactUint64String(item.metadataFileWriteTime));
     if (item.metadataProbeFailed) field("\"metadataProbeFailed\":", true);
     if (item.probeAttemptCount > 0) field("\"probeAttemptCount\":", static_cast<int>(item.probeAttemptCount));
     field("\"status\":", item.status);
@@ -217,6 +219,8 @@ void AppendMediaRecord(std::string& output, const MediaItem& m, const std::wstri
     j["videoHeight"] = (int)m.videoHeight;
     if (m.fileIndex != 0) j["fileIndex"] = ExactUint64String(m.fileIndex);
     if (m.volumeSerialNumber != 0) j["volumeSerialNumber"] = (uint64_t)m.volumeSerialNumber;
+    if (m.metadataFileWriteTime) j["metadataFileWriteTime"] = ExactUint64String(m.metadataFileWriteTime);
+    else if (j.is_object()) j.as_object().erase("metadataFileWriteTime");
     if (m.metadataProbeFailed) {
         j["metadataProbeFailed"] = true;
     } else if (j.is_object()) { j.as_object().erase("metadataProbeFailed"); }
@@ -506,6 +510,7 @@ MediaRelocationResult MediaLibrary::RelocateMissingMediaToRoot(const std::wstrin
         item.fileSizeBytes = GetFileSizeInBytes(replacement);
         const WindowsFileIdentity identity = GetWindowsFileIdentity(replacement);
         if (identity.valid) { item.fileIndex = identity.fileIndex; item.volumeSerialNumber = identity.volumeSerialNumber; }
+        item.metadataFileWriteTime = 0;
         result.relocatedPaths.emplace_back(oldPath, replacement);
         result.relocatedCount++;
     }
@@ -578,9 +583,13 @@ FolderRediscoveryResult MediaLibrary::ApplyFolderRediscovery(const PreparedFolde
             ++result.removedGhostCount;
         } else {
             const bool changedSize = source.fileSizeBytes != move.size;
+            const bool changedIdentity = move.identity.valid && (source.fileIndex != move.identity.fileIndex || source.volumeSerialNumber != move.identity.volumeSerialNumber);
             source.filePath = move.path; source.title = GetFileNameFromPath(move.path); source.fileSizeBytes = move.size;
             if (move.identity.valid) { source.fileIndex = move.identity.fileIndex; source.volumeSerialNumber = move.identity.volumeSerialNumber; }
-            if (changedSize) { source.metadataProbeFailed = true; source.probeAttemptCount = 0; source.lastProbeAttemptTimestamp = 0; }
+            if (changedSize || changedIdentity) {
+                source.metadataProbeFailed = true; source.probeAttemptCount = 0; source.lastProbeAttemptTimestamp = 0;
+                source.metadataFileWriteTime = 0;
+            }
             paths[newKey] = sourceIndex;
             references[oldKey] = {source.filePath, source.title};
             ++result.relocatedItemsCount;
@@ -881,23 +890,24 @@ bool MediaLibrary::RefreshMediaMetadata(const std::wstring& path, bool saveChang
     const auto probe = probeFn ? probeFn : ProbeMediaMetadata;
     double duration = 0.0;
     uint32_t width = 0, height = 0;
-    if (fileExists && probe(item->filePath, duration, width, height)) {
+    MediaFileFingerprint observed;
+    if (fileExists && ProbeMediaWithFingerprint(item->filePath, duration, width, height, observed, probe)) {
         item->durationSec = std::max(0.0, duration);
         item->videoWidth = width;
         item->videoHeight = height;
         item->fileSizeBytes = GetFileSizeInBytes(item->filePath);
-        const WindowsFileIdentity fid = GetWindowsFileIdentity(item->filePath);
-        if (fid.valid) { item->fileIndex = fid.fileIndex; item->volumeSerialNumber = fid.volumeSerialNumber; }
         if (item->durationSec > 0.0) { item->lastPosSec = std::min(item->lastPosSec, item->durationSec); }
         item->metadataProbeFailed = false;
         item->probeAttemptCount = 0;
         item->lastProbeAttemptTimestamp = 0;
+        StampProbedFile(*item, observed);
         libraryVersion++; ++revisions.catalog;
         InvalidatePlaylistStatsCache();
         if (saveChanges) Save();
         return true;
     } else {
         item->metadataProbeFailed = true;
+        item->metadataFileWriteTime = 0;
         item->probeAttemptCount++;
         item->lastProbeAttemptTimestamp = GetCurrentTimestampSec();
         libraryVersion++; ++revisions.catalog;
@@ -928,8 +938,9 @@ MediaItem* MediaLibrary::AddOrUpdateMediaCore(const std::wstring& path, bool& ch
     const bool exists = FileExists(resolvedPath);
     const uint64_t size = exists ? GetFileSizeInBytes(resolvedPath) : 0;
     MediaItem* m = FindByPath(resolvedPath);
+    MediaFileFingerprint observed;
     auto probe = [&](double& duration, uint32_t& w, uint32_t& h) {
-        if (!ProbeMediaMetadata(resolvedPath, duration, w, h)) { metadataProbeFailed = true; return false; }
+        if (!ProbeMediaWithFingerprint(resolvedPath, duration, w, h, observed, ProbeMediaMetadata)) { metadataProbeFailed = true; return false; }
         duration = std::max(0.0, duration);
         return true;
     };
@@ -961,8 +972,7 @@ MediaItem* MediaLibrary::AddOrUpdateMediaCore(const std::wstring& path, bool& ch
                 changed = true;
             }
             }
-            WindowsFileIdentity fid = GetWindowsFileIdentity(resolvedPath);
-            if (fid.valid) { m->fileIndex = fid.fileIndex; m->volumeSerialNumber = fid.volumeSerialNumber; }
+            StampProbedFile(*m, observed);
         } else if (exists && m->durationSec <= 0 && probeMetadata) {
             double d;
             uint32_t w, h;
@@ -980,8 +990,7 @@ MediaItem* MediaLibrary::AddOrUpdateMediaCore(const std::wstring& path, bool& ch
                 m->lastProbeAttemptTimestamp = GetCurrentTimestampSec();
                 changed = true;
             }
-            WindowsFileIdentity fid = GetWindowsFileIdentity(resolvedPath);
-            if (fid.valid) { m->fileIndex = fid.fileIndex; m->volumeSerialNumber = fid.volumeSerialNumber; }
+            StampProbedFile(*m, observed);
         }
         if (changed) { libraryVersion++; ++revisions.catalog; InvalidatePlaylistStatsCache(); }
         return m;
@@ -1003,8 +1012,7 @@ MediaItem* MediaLibrary::AddOrUpdateMediaCore(const std::wstring& path, bool& ch
             x.probeAttemptCount = 0;
             x.lastProbeAttemptTimestamp = 0;
         } else { x.metadataProbeFailed = true; x.probeAttemptCount = 1; x.lastProbeAttemptTimestamp = GetCurrentTimestampSec(); }
-        WindowsFileIdentity fid = GetWindowsFileIdentity(resolvedPath);
-        if (fid.valid) { x.fileIndex = fid.fileIndex; x.volumeSerialNumber = fid.volumeSerialNumber; }
+        StampProbedFile(x, observed);
     }
     mediaItems.insert(mediaItems.begin(), std::move(x));
     ++searchContentVersion;
@@ -1034,9 +1042,11 @@ MediaItem* MediaLibrary::AddOrUpdateMedia(const std::wstring& path, bool probeMe
 }
 
 MediaImportResult MediaLibrary::ImportPaths(const std::vector<std::wstring>& paths, const MediaImportProgressCallback& progress,
-                                            bool saveChanges, ImportConflictPolicy conflictPolicy) {
+                                            bool saveChanges, ImportConflictPolicy conflictPolicy,
+                                            const MediaImportProbeCache* probeCache, const MediaProbeFunction& probeFunction) {
     MediaImportResult result;
     result.inputCount = paths.size();
+    const MediaProbeFunction probeFn = probeFunction ? probeFunction : ProbeMediaMetadata;
     std::vector<DiscoveredFile> files;
     std::set<std::wstring> seen;
     bool canceled = false;
@@ -1095,8 +1105,16 @@ MediaImportResult MediaLibrary::ImportPaths(const std::vector<std::wstring>& pat
         result.acceptedPaths.push_back(file.path);
         const bool exists = FileExists(file.path);
         const uint64_t size = exists ? GetFileSizeInBytes(file.path) : 0;
+        MediaFileFingerprint observed;
+        const auto existingMetadata = existing ? std::optional<MetadataBackfillBaseline>(MetadataBackfillBaseline::Capture(*existing)) : std::nullopt;
+        const auto* reusable = existingMetadata ? &*existingMetadata : (probeCache ? probeCache->FindByKey(file.normalizedKey) : nullptr);
+        if (conflictPolicy != ImportConflictPolicy::KeepExisting) reusable = nullptr;
         auto probe = [&](double& duration, uint32_t& w, uint32_t& h) {
-            if (!ProbeMediaMetadata(file.path, duration, w, h)) { result.probeFailures++; return false; }
+            bool reused = false;
+            if (!ProbeMediaWithFingerprint(file.path, duration, w, h, observed, probeFn, reusable, &reused)) {
+                ++result.probeFailures; return false;
+            }
+            result.reusedMetadata += reused;
             duration = std::max(0.0, duration);
             return true;
         };
@@ -1141,8 +1159,7 @@ MediaImportResult MediaLibrary::ImportPaths(const std::vector<std::wstring>& pat
                     copyItem.probeAttemptCount = 1;
                     copyItem.lastProbeAttemptTimestamp = GetCurrentTimestampSec();
                 }
-                    WindowsFileIdentity fid = GetWindowsFileIdentity(file.path);
-                    if (fid.valid) { copyItem.fileIndex = fid.fileIndex; copyItem.volumeSerialNumber = fid.volumeSerialNumber; }
+                    StampProbedFile(copyItem, observed);
                 }
                 newItems.push_back(std::move(copyItem));
                 result.added++;
@@ -1167,53 +1184,28 @@ MediaImportResult MediaLibrary::ImportPaths(const std::vector<std::wstring>& pat
                     existing->probeAttemptCount++;
                     existing->lastProbeAttemptTimestamp = GetCurrentTimestampSec();
                 }
-                WindowsFileIdentity fid = GetWindowsFileIdentity(file.path);
-                if (fid.valid) { existing->fileIndex = fid.fileIndex; existing->volumeSerialNumber = fid.volumeSerialNumber; }
+                StampProbedFile(*existing, observed);
                 result.updated++;
                 anyChanged = true;
             } else {
                 conflictRec.resolution = "kept_existing";
                 result.conflictResolvedKeep++;
                 result.conflicts.push_back(std::move(conflictRec));
-                bool itemChanged = false;
-                if (exists && existing->fileSizeBytes != size) {
+                if (exists) {
+                    const auto& before = *existingMetadata;
                     existing->fileSizeBytes = size;
-                    itemChanged = true;
-                    double d; uint32_t w, h;
+                    double d = 0; uint32_t w = 0, h = 0;
                     if (probe(d, w, h)) {
-                        existing->durationSec = d;
-                        existing->videoWidth = w;
-                        existing->videoHeight = h;
-                        existing->metadataProbeFailed = false;
-                        existing->probeAttemptCount = 0;
-                        existing->lastProbeAttemptTimestamp = 0;
+                        existing->durationSec = d; existing->videoWidth = w; existing->videoHeight = h;
+                        existing->metadataProbeFailed = false; existing->probeAttemptCount = 0; existing->lastProbeAttemptTimestamp = 0;
                     } else {
-                        existing->metadataProbeFailed = true;
-                        existing->probeAttemptCount++;
+                        existing->metadataProbeFailed = true; ++existing->probeAttemptCount;
                         existing->lastProbeAttemptTimestamp = GetCurrentTimestampSec();
                     }
-                    WindowsFileIdentity fid = GetWindowsFileIdentity(file.path);
-                    if (fid.valid) { existing->fileIndex = fid.fileIndex; existing->volumeSerialNumber = fid.volumeSerialNumber; }
-                } else if (exists && existing->durationSec <= 0) {
-                    double d; uint32_t w, h;
-                    if (probe(d, w, h)) {
-                        existing->durationSec = d;
-                        existing->videoWidth = w;
-                        existing->videoHeight = h;
-                        existing->metadataProbeFailed = false;
-                        existing->probeAttemptCount = 0;
-                        existing->lastProbeAttemptTimestamp = 0;
-                        itemChanged = true;
-                    } else {
-                        existing->metadataProbeFailed = true;
-                        existing->probeAttemptCount++;
-                        existing->lastProbeAttemptTimestamp = GetCurrentTimestampSec();
-                        itemChanged = true;
-                    }
-                    WindowsFileIdentity fid = GetWindowsFileIdentity(file.path);
-                    if (fid.valid) { existing->fileIndex = fid.fileIndex; existing->volumeSerialNumber = fid.volumeSerialNumber; }
-                }
-                if (itemChanged) { result.updated++; anyChanged = true; } else { result.unchanged++; }
+                    StampProbedFile(*existing, observed);
+                    if (!before.Matches(*existing)) { ++result.updated; anyChanged = true; }
+                    else ++result.unchanged;
+                } else ++result.unchanged;
             }
         } else {
             MediaItem x;
@@ -1240,8 +1232,7 @@ MediaImportResult MediaLibrary::ImportPaths(const std::vector<std::wstring>& pat
                     x.probeAttemptCount = 0;
                     x.lastProbeAttemptTimestamp = 0;
                 } else { x.metadataProbeFailed = true; x.probeAttemptCount = 1; x.lastProbeAttemptTimestamp = GetCurrentTimestampSec(); }
-                WindowsFileIdentity fid = GetWindowsFileIdentity(file.path);
-                if (fid.valid) { x.fileIndex = fid.fileIndex; x.volumeSerialNumber = fid.volumeSerialNumber; }
+                StampProbedFile(x, observed);
             }
             newItems.push_back(std::move(x));
             result.added++;
@@ -1536,14 +1527,17 @@ WatchReconcileResult MediaLibrary::ApplyPreparedWatchDelta(const PreparedWatchDe
             ++result.renamedCount; structuralChange = true;
         }
         const bool sizeChanged = item.fileSizeBytes != change.size;
-        if (sizeChanged || change.metadataMayHaveChanged) {
+        const bool identityChanged = change.identity.valid && (item.fileIndex != change.identity.fileIndex || item.volumeSerialNumber != change.identity.volumeSerialNumber);
+        const bool needsProbe = sizeChanged || identityChanged || change.metadataMayHaveChanged;
+        if (needsProbe) {
             item.fileSizeBytes = change.size;
             // Retain current duration/resume information while the separate
             // metadata worker refreshes the changed file.
             item.metadataProbeFailed = true; item.probeAttemptCount = 0; item.lastProbeAttemptTimestamp = 0;
+            item.metadataFileWriteTime = 0;
         }
         if (change.identity.valid) { item.fileIndex = change.identity.fileIndex; item.volumeSerialNumber = change.identity.volumeSerialNumber; }
-        if (change.action != WatchAction::Renamed && (sizeChanged || change.metadataMayHaveChanged)) ++result.updatedCount;
+        if (change.action != WatchAction::Renamed && needsProbe) ++result.updatedCount;
     }
     if (result.addedCount + result.updatedCount + result.removedCount + result.renamedCount == 0) return result;
     if (!renamedPaths.empty() || !removedPaths.empty()) {
@@ -1692,6 +1686,7 @@ WatchReconcileResult MediaLibrary::ReconcileWatchBatch(const WatchChangeBatch& b
                     mi->fileSizeBytes = GetFileSizeInBytes(newResolved);
                     WindowsFileIdentity fid = GetWindowsFileIdentity(newResolved);
                     if (fid.valid) { mi->fileIndex = fid.fileIndex; mi->volumeSerialNumber = fid.volumeSerialNumber; }
+                    mi->metadataFileWriteTime = 0;
                     for (auto& pl : playlists) {
                         for (auto& p : pl.itemPaths) {
                             if (NormalizePathKey(p) == NormalizePathKey(oldResolved)) { p = newResolved; }
@@ -2165,6 +2160,7 @@ StorageStatus MediaLibrary::LoadFromRoot(const std::wstring& requestedRootDir, c
                 item.videoHeight = (uint32_t)std::max(0, json.get("videoHeight").as_int(0));
                 item.fileIndex = ExactUint64(json.get("fileIndex"));
                 item.volumeSerialNumber = (uint32_t)json.get("volumeSerialNumber").as_uint64(0);
+                item.metadataFileWriteTime = ExactUint64(json.get("metadataFileWriteTime"));
                 item.metadataProbeFailed = json.get("metadataProbeFailed").as_bool(false);
                 item.probeAttemptCount = (uint32_t)std::max(0, json.get("probeAttemptCount").as_int(0));
                 item.lastProbeAttemptTimestamp = SafeTime(json.get("lastProbeAttemptTimestamp"));
@@ -2334,7 +2330,7 @@ StorageStatus MediaLibrary::LoadFromRoot(const std::wstring& requestedRootDir, c
                         "id", "filePath", "title", "durationSec", "lastPosSec", "status",
                         "fileSizeBytes", "lastWatchedTimestamp", "addedTimestamp",
                         "videoWidth", "videoHeight", "fileIndex", "volumeSerialNumber",
-                        "metadataProbeFailed", "probeAttemptCount", "lastProbeAttemptTimestamp",
+                        "metadataFileWriteTime", "metadataProbeFailed", "probeAttemptCount", "lastProbeAttemptTimestamp",
                         "preferences", "bookmarks", "overrides", "metadataOverrides"
                     };
                     StripKnownKeys(json, kKnownMediaKeys, sizeof(kKnownMediaKeys) / sizeof(kKnownMediaKeys[0]));
@@ -2709,6 +2705,32 @@ MediaLibrarySaveResult MediaLibrary::Save() {
     return lastSaveResult;
 }
 
+namespace {
+bool MergeProbeFields(MediaItem& live, const MediaItem& update, bool& catalogChanged, bool& playbackChanged) {
+    const bool metadataChanged = !MetadataBackfillBaseline::SameDuration(live.durationSec, update.durationSec) ||
+        live.videoWidth != update.videoWidth || live.videoHeight != update.videoHeight ||
+        live.fileSizeBytes != update.fileSizeBytes || live.fileIndex != update.fileIndex ||
+        live.volumeSerialNumber != update.volumeSerialNumber;
+    const bool bookkeepingChanged = live.metadataProbeFailed != update.metadataProbeFailed ||
+        live.probeAttemptCount != update.probeAttemptCount || live.lastProbeAttemptTimestamp != update.lastProbeAttemptTimestamp ||
+        live.metadataFileWriteTime != update.metadataFileWriteTime;
+    if (!metadataChanged && !bookkeepingChanged) return false;
+    live.durationSec = update.durationSec;
+    live.videoWidth = update.videoWidth; live.videoHeight = update.videoHeight;
+    live.fileSizeBytes = update.fileSizeBytes;
+    live.fileIndex = update.fileIndex; live.volumeSerialNumber = update.volumeSerialNumber;
+    live.metadataFileWriteTime = update.metadataFileWriteTime;
+    live.metadataProbeFailed = update.metadataProbeFailed;
+    live.probeAttemptCount = update.probeAttemptCount; live.lastProbeAttemptTimestamp = update.lastProbeAttemptTimestamp;
+    if (std::isfinite(live.durationSec) && live.durationSec > 0 && live.lastPosSec > live.durationSec) {
+        live.lastPosSec = live.durationSec;
+        playbackChanged = true;
+    }
+    catalogChanged |= metadataChanged;
+    return true;
+}
+}
+
 MetadataBackfillMergeResult MediaLibrary::MergeMetadataBackfill(const std::vector<MetadataBackfillBaseline>& baseline,
     const std::vector<MediaItem>& updates) {
     MetadataBackfillMergeResult result;
@@ -2721,33 +2743,57 @@ MetadataBackfillMergeResult MediaLibrary::MergeMetadataBackfill(const std::vecto
         }
         auto* live = update.id.empty() ? FindByPath(update.filePath) : FindById(update.id);
         if (!live || !baseline[i].Matches(*live)) { ++result.discardedCount; continue; }
-        const bool metadataChanged = !MetadataBackfillBaseline::SameDuration(live->durationSec, update.durationSec) ||
-            live->videoWidth != update.videoWidth || live->videoHeight != update.videoHeight ||
-            live->fileSizeBytes != update.fileSizeBytes || live->fileIndex != update.fileIndex ||
-            live->volumeSerialNumber != update.volumeSerialNumber;
-        const bool retryChanged = live->metadataProbeFailed != update.metadataProbeFailed ||
-            live->probeAttemptCount != update.probeAttemptCount || live->lastProbeAttemptTimestamp != update.lastProbeAttemptTimestamp;
-        if (!metadataChanged && !retryChanged) continue;
-        live->durationSec = update.durationSec;
-        live->videoWidth = update.videoWidth; live->videoHeight = update.videoHeight;
-        live->fileSizeBytes = update.fileSizeBytes;
-        live->fileIndex = update.fileIndex; live->volumeSerialNumber = update.volumeSerialNumber;
-        live->metadataProbeFailed = update.metadataProbeFailed;
-        live->probeAttemptCount = update.probeAttemptCount; live->lastProbeAttemptTimestamp = update.lastProbeAttemptTimestamp;
-        if (std::isfinite(live->durationSec) && live->durationSec > 0 && live->lastPosSec > live->durationSec) {
-            live->lastPosSec = live->durationSec;
-            playbackChanged = true;
-        }
-        catalogChanged |= metadataChanged;
-        ++result.changedCount;
+        result.changedCount += MergeProbeFields(*live, update, catalogChanged, playbackChanged);
     }
     if (result.changedCount) ++libraryVersion;
     if (catalogChanged) ++revisions.catalog;
     if (playbackChanged) ++revisions.playback;
     result.viewChanged = catalogChanged || playbackChanged;
     if (result.viewChanged) InvalidatePlaylistStatsCache();
-    // IDs, paths and vector positions did not change. Lookup maps and search
-    // text remain valid; retry bookkeeping does not invalidate UI projections.
+    return result;
+}
+
+MediaImportMergeResult MediaLibrary::MergeImportedMedia(std::vector<MediaItem> items,
+    const std::vector<std::optional<MetadataBackfillBaseline>>& baseline) {
+    MediaImportMergeResult result;
+    bool catalogChanged = false, playbackChanged = false;
+    std::vector<MediaItem> added;
+    std::unordered_set<std::string> addedIds;
+    for (size_t i = 0; i < items.size(); ++i) {
+        auto& item = items[i];
+        if (i >= baseline.size()) { ++result.discardedCount; continue; }
+        auto* live = FindByPath(item.filePath);
+        if (baseline[i]) {
+            if (!live || !baseline[i]->Matches(*live)) { ++result.discardedCount; continue; }
+            if (item.metadataProbeFailed || !std::isfinite(item.durationSec) || item.durationSec <= 0) {
+                // Failed probes must not erase useful live duration/dimensions.
+                item.durationSec = live->durationSec;
+                item.videoWidth = live->videoWidth; item.videoHeight = live->videoHeight;
+                item.metadataFileWriteTime = 0;
+            }
+            result.updatedCount += MergeProbeFields(*live, item, catalogChanged, playbackChanged);
+        } else if (live) {
+            // A concurrent import owns this path; do not overwrite its newer
+            // metadata using a result that had no baseline for that record.
+            ++result.discardedCount;
+        } else {
+            std::string base = item.id;
+            if (base.empty() || FindById(base)) base = GenerateId(item.filePath);
+            item.id = base;
+            for (size_t suffix = 1; addedIds.count(item.id) || FindById(item.id); ++suffix) item.id = base + "_" + std::to_string(suffix);
+            addedIds.insert(item.id);
+            added.push_back(std::move(item));
+        }
+    }
+    result.addedCount = added.size();
+    if (!added.empty()) {
+        mediaItems.insert(mediaItems.begin(), std::make_move_iterator(added.begin()), std::make_move_iterator(added.end()));
+        RebuildPathIndex();
+    } else if (catalogChanged) ++revisions.catalog;
+    if (playbackChanged) ++revisions.playback;
+    if (result.addedCount || result.updatedCount) ++libraryVersion;
+    result.viewChanged = result.addedCount || catalogChanged || playbackChanged;
+    if (result.viewChanged) InvalidatePlaylistStatsCache();
     return result;
 }
 
@@ -2796,23 +2842,24 @@ MetadataBackfillResult MediaLibrary::BackfillMissingMetadata(const MetadataBackf
         const bool fileExistsOnDisk = FileExists(item.filePath);
         double duration = 0.0;
         uint32_t width = 0, height = 0;
-        const bool probed = fileExistsOnDisk && probeFn(item.filePath, duration, width, height);
+        MediaFileFingerprint observed;
+        const bool probed = fileExistsOnDisk && ProbeMediaWithFingerprint(item.filePath, duration, width, height, observed, probeFn);
         if (probed) { item.videoWidth = width; item.videoHeight = height; }
         if (probed && std::isfinite(duration) && duration > 0) {
             item.durationSec = std::max(0.0, duration);
             item.videoWidth = width;
             item.videoHeight = height;
             item.fileSizeBytes = GetFileSizeInBytes(item.filePath);
-            const WindowsFileIdentity fid = GetWindowsFileIdentity(item.filePath);
-            if (fid.valid) { item.fileIndex = fid.fileIndex; item.volumeSerialNumber = fid.volumeSerialNumber; }
             if (item.durationSec > 0.0) { item.lastPosSec = std::min(item.lastPosSec, item.durationSec); }
             item.metadataProbeFailed = false;
             item.probeAttemptCount = 0;
             item.lastProbeAttemptTimestamp = 0;
+            StampProbedFile(item, observed);
             result.completedCount++;
             anyChanged = true;
         } else {
             item.metadataProbeFailed = true;
+            item.metadataFileWriteTime = 0;
             item.probeAttemptCount++;
             item.lastProbeAttemptTimestamp = now;
             result.failedCount++;

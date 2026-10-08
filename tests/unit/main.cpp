@@ -43,6 +43,7 @@
 #include "TestLibrarySaving.h"
 #include "TestWatchReconcile.h"
 #include "TestMetadataBackfill.h"
+#include "TestImportFingerprints.h"
 #include "TestOverlayPacing.h"
 
 int main(int argc, char* argv[]) {

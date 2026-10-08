@@ -276,6 +276,7 @@ private:
     std::wstring importCreatedPlaylistName;
     MediaImportResult importResult;
     std::vector<MediaItem> stagedImportItems;
+    std::vector<std::optional<MetadataBackfillBaseline>> stagedImportBaselines;
     // Metadata backfill work runs against an isolated MediaLibrary snapshot. The UI thread joins the worker before merging updated metadata
     // into the live library, so no background thread ever touches App::library.
     std::thread backfillWorker;

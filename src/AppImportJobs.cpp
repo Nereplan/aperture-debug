@@ -5,6 +5,7 @@
 #include "IpcProtocol.h"
 #include "LibraryQuery.h"
 #include "MediaProbeIsolation.h"
+#include "MediaImportProbeCache.h"
 #include "OnlineSubtitles.h"
 #include "Reorder.h"
 #include "Updater.h"
@@ -37,17 +38,21 @@ void App::StartImportJob(const std::vector<std::wstring>& paths, const std::stri
     importTotal.store(0, std::memory_order_release);
     importResult = {};
     stagedImportItems.clear();
+    stagedImportBaselines.clear();
     importTargetPlaylistId = targetPlaylistId;
     importCreatedPlaylistName = createdPlaylistName;
     importLaunchFirst = launchFirst;
     importCancelHovered = false;
     importJobActive = true;
-    try { importWorker = std::thread([this, paths]() {
+    try {
+    auto metadataSnapshot = MediaImportProbeCache::Capture(library);
+    importWorker = std::thread([this, paths, metadataSnapshot = std::move(metadataSnapshot)]() mutable {
         struct CompletionGuard {
             std::atomic<bool>& done;
             ~CompletionGuard() { done.store(true, std::memory_order_release); }
         } completed{ importDone };
         try {
+            MediaImportProbeCache probeCache(std::move(metadataSnapshot));
             // Source readers live in a reusable helper process. Cancel interrupts
             // a stalled codec without terminating this App-owning C++ thread.
             ScopedMediaProbeIsolation probes([this]() { return importCancelRequested.load(std::memory_order_acquire); });
@@ -59,12 +64,19 @@ void App::StartImportJob(const std::vector<std::wstring>& paths, const std::stri
                 importTotal.store(total, std::memory_order_release);
                 return !importCancelRequested.load(std::memory_order_acquire);
             };
-            MediaImportResult result = staged.ImportPaths(paths, progress, false);
+            MediaImportResult result = staged.ImportPaths(paths, progress, false, ImportConflictPolicy::KeepExisting, &probeCache);
             std::vector<MediaItem> acceptedItems;
+            std::vector<std::optional<MetadataBackfillBaseline>> baselines;
             acceptedItems.reserve(result.acceptedPaths.size());
-            for (const auto& path : result.acceptedPaths) { if (MediaItem* item = staged.FindByPath(path)) acceptedItems.push_back(*item); }
+            baselines.reserve(result.acceptedPaths.size());
+            for (const auto& path : result.acceptedPaths) if (MediaItem* item = staged.FindByPath(path)) {
+                acceptedItems.push_back(std::move(*item));
+                const auto* baseline = probeCache.Find(path);
+                baselines.push_back(baseline ? std::optional<MetadataBackfillBaseline>(*baseline) : std::nullopt);
+            }
             importResult = std::move(result);
             stagedImportItems = std::move(acceptedItems);
+            stagedImportBaselines = std::move(baselines);
         } catch (...) {
             importResult = {};
             importResult.outcome = importCancelRequested.load(std::memory_order_acquire) ? LongOperationOutcome::Canceled
@@ -105,6 +117,7 @@ void App::FinishImportJob() {
     if (shutdownComplete || importCancelRequested.load(std::memory_order_acquire)) {
         if (importWorker.joinable()) importWorker.join();
         stagedImportItems.clear();
+        stagedImportBaselines.clear();
         importResult = {};
         importJobActive = false;
         importDone.store(false, std::memory_order_release);
@@ -115,40 +128,16 @@ void App::FinishImportJob() {
     }
     if (importWorker.joinable()) importWorker.join();
     const auto& acceptedPaths = importResult.acceptedPaths;
-    auto acceptedItems = std::move(stagedImportItems);
-    std::vector<MediaItem> newItems;
-    newItems.reserve(acceptedItems.size());
-    bool anyChanged = false;
-    for (auto& item : acceptedItems) {
-        MediaItem* existing = library.FindByPath(item.filePath);
-        if (existing) {
-            // Keep live progress/status and user metadata; refresh filesystem
-            // facts from the isolated import snapshot only.
-            if (existing->fileSizeBytes != item.fileSizeBytes || (item.durationSec > 0.0 && existing->durationSec != item.durationSec) ||
-                existing->videoWidth != item.videoWidth || existing->videoHeight != item.videoHeight) {
-                existing->fileSizeBytes = item.fileSizeBytes;
-                existing->durationSec = item.durationSec > 0.0 ? item.durationSec : existing->durationSec;
-                existing->videoWidth = item.videoWidth;
-                existing->videoHeight = item.videoHeight;
-                anyChanged = true;
-            }
-        } else { newItems.push_back(std::move(item)); }
-    }
-    if (!newItems.empty()) {
-        library.mediaItems.insert(library.mediaItems.begin(), std::make_move_iterator(newItems.begin()),
-                                  std::make_move_iterator(newItems.end()));
-        anyChanged = true;
-    }
-    library.RebuildPathIndex();
-    library.InvalidatePlaylistStatsCache();
-    if (anyChanged) { library.NotifyPlaylistChanged(); }
+    const auto merged = library.MergeImportedMedia(std::move(stagedImportItems), stagedImportBaselines);
+    stagedImportItems.clear(); stagedImportBaselines.clear();
+    bool playlistChanged = false;
     if (!importTargetPlaylistId.empty() && !acceptedPaths.empty()) {
         if (Playlist* playlist = library.FindPlaylist(importTargetPlaylistId)) {
-            PlaylistIO::AppendUniquePathsOrdinalIgnoreCase(playlist->itemPaths, acceptedPaths);
-            library.NotifyPlaylistEdited();
+            playlistChanged = PlaylistIO::AppendUniquePathsOrdinalIgnoreCase(playlist->itemPaths, acceptedPaths) > 0;
+            if (playlistChanged) library.NotifyPlaylistEdited();
         }
     }
-    if (!acceptedPaths.empty() && !SaveLibrary()) { importResult.outcome = LongOperationOutcome::Failed; }
+    if ((merged.addedCount || merged.updatedCount || playlistChanged) && !SaveLibrary()) { importResult.outcome = LongOperationOutcome::Failed; }
     const bool canceled = importResult.outcome == LongOperationOutcome::Canceled || importCancelRequested.load(std::memory_order_acquire);
     const bool failed = importResult.outcome == LongOperationOutcome::Failed;
     importJobActive = false;
@@ -167,7 +156,7 @@ void App::FinishImportJob() {
         if (skippedMissing > 0) { summary += L", " + std::to_wstring(skippedMissing) + L" missing"; }
         ShowOSD(imported > 0 ? IconType::FolderPlaylist : IconType::VolumeMuted, summary);
     }
-    if (!shutdownComplete) { ScheduleMetadataBackfill(); }
+    if (!shutdownComplete && (merged.addedCount || merged.updatedCount)) ScheduleMetadataBackfill();
     if (importLaunchFirst && !acceptedPaths.empty()) {
         if (acceptedPaths.size() > 1) {
             playbackSession.OpenQueue(acceptedPaths, 0);
@@ -192,6 +181,7 @@ void App::CancelImportJob() {
             importJobActive = false;
             importDone.store(false, std::memory_order_release);
             stagedImportItems.clear();
+            stagedImportBaselines.clear();
             importResult = {};
         }
     } else { importJobActive = false; }
