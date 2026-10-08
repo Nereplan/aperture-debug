@@ -336,7 +336,11 @@ struct MediaRelocationResult {
 struct FolderRediscoveryResult {
     size_t renamedFoldersCount = 0, mergedItemsCount = 0, relocatedItemsCount = 0, removedGhostCount = 0;
     std::vector<std::pair<std::wstring, std::wstring>> renamedFolders; // oldDir, newDir
+    StorageStatus status = StorageStatus::Ok();
+    bool needsRescan = false;
 };
+
+struct PreparedFolderRediscovery;
 
 using LibraryLoadMilestoneCallback = std::function<void(const wchar_t* phase)>;
 
@@ -449,6 +453,7 @@ public:
     uint64_t GetSearchContentVersion() const { return searchContentVersion; }
     MediaRelocationResult RelocateMissingMediaToRoot(const std::wstring& searchRoot);
     FolderRediscoveryResult RediscoverFolderChanges(bool saveChanges = true);
+    FolderRediscoveryResult ApplyFolderRediscovery(const PreparedFolderRediscovery& prepared, bool saveChanges = true);
     size_t RemoveFolder(const std::wstring& folderPath, bool saveChanges = true);
     size_t RemoveFolders(const std::vector<std::wstring>& folderPaths, bool saveChanges = true);
     const MediaPlaybackPreferences* GetMediaPreferences(const std::wstring& path) const;

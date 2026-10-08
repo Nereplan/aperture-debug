@@ -18,6 +18,7 @@ Read the most recent report relevant to the subsystem. Measurements with differe
 
 | Report | Scope |
 |---|---|
+| [Remaining backend opportunities](reports/BACKEND_REMAINING_WORK.md) | 8 October, in progress: background rediscovery, duplicate import fingerprints, incremental durable saving and background availability |
 | [Backend work reduction](reports/BACKEND_WORK_REDUCTION.md) | 7 October: save serialization reuse, bounded search candidates, prepared smart playlists, background watched-folder reconciliation and linear metadata backfill; compile-only validation |
 | [Library view pipeline redesign](reports/LIBRARY_VIEW_PIPELINE.md) | 7 October: compact UI projections, reusable query plans, domain-specific refresh, stable layout generations and smart-playlist membership tracking; tests/benchmarks deferred |
 | [History and playlist optimization](reports/HISTORY_AND_PLAYLIST_OPTIMIZATION.md) | 7 October follow-up: visible history row lookup, empty-viewport handling, and cached playlist resume selection with smart-playlist expiry; compile-only validation |

@@ -149,7 +149,7 @@ void App::RunDeferredLibraryReadyWork() {
     if (settings.jumpListEnabled) jumpListController.Update(library.history);
     for (const auto& folder : library.GetWatchedFolders()) { folderWatcher.AddWatch(folder); }
     if (!library.GetWatchedFolders().empty()) folderWatcher.Start();
-    library.RediscoverFolderChanges(true);
+    RunFolderRediscovery(false);
     ScheduleMetadataBackfill();
 }
 
@@ -165,6 +165,8 @@ void App::CancelInitialLibraryLoad() {
 
 void App::InvalidateLibraryDerivedState() {
     // Replacement/undo can restore an older object with coincident counters.
+    folderRediscoveryJob.Cancel();
+    folderRediscoveryActive = folderRediscoveryFeedback = folderRediscoveryAgain = false;
     backfillCursor.Reset();
     backfillBaseline.clear();
     watchReconcileWorker.Cancel();
@@ -209,7 +211,7 @@ void App::SetLibraryGroupMode(LibraryGroupMode mode) {
     if (libraryGroupMode == mode) return;
     libraryGroupMode = mode;
     if (mode == LibraryGroupMode::Flat) settings.libraryGroupMode = "flat";
-    else if (mode == LibraryGroupMode::Folder) { settings.libraryGroupMode = "folder"; library.RediscoverFolderChanges(true); }
+    else if (mode == LibraryGroupMode::Folder) { settings.libraryGroupMode = "folder"; RunFolderRediscovery(false); }
     else if (mode == LibraryGroupMode::Series) settings.libraryGroupMode = "series";
     else if (mode == LibraryGroupMode::Duplicates) settings.libraryGroupMode = "duplicates";
     settings.Save();
@@ -411,6 +413,9 @@ void App::EnqueueActiveRowAnimation(size_t index) {
 
 
 void App::HandleFolderWatchEvents() {
+    // Rediscovery gets the first chance to reconnect missing records and
+    // preserve their user data before watch scans can remove those records.
+    if (folderRediscoveryActive) return;
     if (!libraryReady || deferredLibraryReadyWorkPending || shutdownComplete || playerCallbacksDisabled.load(std::memory_order_acquire)) return;
     if (auto delta = watchReconcileWorker.TakeCompleted()) {
         if (watchReconcileWorker.HasPending()) {

@@ -873,6 +873,7 @@ void App::BeginClose() {
     deferredLibraryCommands.clear(); pendingPlaybackOpen.reset();
     CancelImportJob(); CancelBackfillJob(); CancelNetworkJobs();
     watchReconcileWorker.Cancel();
+    folderRediscoveryJob.Cancel();
     renderer.CancelThumbnailWork();
     if (hOverlayWnd) ShowWindow(hOverlayWnd, SW_HIDE);
     if (hWnd) ShowWindow(hWnd, SW_HIDE);
@@ -884,7 +885,7 @@ bool App::PollClose() {
     if (!libraryLoadWorkerDone.load(std::memory_order_acquire) ||
         (importWorker.joinable() && !importDone.load(std::memory_order_acquire)) ||
         (backfillWorker.joinable() && !backfillDone.load(std::memory_order_acquire)) ||
-        AreNetworkJobsRunning() || watchReconcileWorker.IsRunning() || renderer.AreThumbnailWorkersRunning() || renderer.AreDeviceWorkersRunning() ||
+        AreNetworkJobsRunning() || watchReconcileWorker.IsRunning() || folderRediscoveryJob.IsRunning() || renderer.AreThumbnailWorkersRunning() || renderer.AreDeviceWorkersRunning() ||
         !librarySaveWorker.IsComplete(closeSaveSerial)) return false;
     Shutdown();
     if (hWnd && IsWindow(hWnd)) DestroyWindow(hWnd);
@@ -921,6 +922,7 @@ void App::Shutdown() {
     folderWatcher.SetCallback(nullptr);
     folderWatcher.Stop();
     watchReconcileWorker.StopAndJoin();
+    folderRediscoveryJob.StopAndJoin();
     accessibilityActions.clear();
     accessibilityTree.SetWindow(nullptr);
     accessibilityTree.ClearNodes();
@@ -1244,6 +1246,7 @@ bool App::Update(float dt) {
     Diagnostics::RecordHeartbeat(L"running");
     if (closeRequested) { PollClose(); return false; }
     bool needsRedraw = PumpLibrarySaveResults();
+    if (folderRediscoveryActive) FinishFolderRediscovery();
     if (libraryReady && (watchReconcileWorker.HasCompleted() ||
         (!watchReconcileWorker.IsRunning() && watchReconcileWorker.HasPending()))) HandleFolderWatchEvents();
     needsRedraw = PumpOnlineSubtitleJobs() || needsRedraw;

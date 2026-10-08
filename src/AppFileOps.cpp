@@ -1,4 +1,5 @@
 #include "App.h"
+#include "Win32IoCancellation.h"
 #include "AppInternals.h"
 #include "AppLayout.h"
 #include "CollectionAlgorithms.h"
@@ -266,17 +267,65 @@ void App::RemoveSelectedFolders() {
 
 
 void App::RunFolderRediscovery(bool showFeedback) {
-    auto res = library.RediscoverFolderChanges(true);
+    if (!libraryReady || shutdownComplete || playerCallbacksDisabled.load(std::memory_order_acquire)) return;
+    folderRediscoveryFeedback |= showFeedback;
+    if (folderRediscoveryActive) { folderRediscoveryAgain = true; return; }
+    try {
+        auto snapshot = FolderRediscoverySnapshot::Capture(library);
+        folderRediscoveryActive = folderRediscoveryJob.Start([snapshot = std::move(snapshot)](const auto& cancellation) {
+            Win32IoCancellation interrupt(cancellation);
+            SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_BELOW_NORMAL);
+            return PrepareFolderRediscovery(snapshot, cancellation);
+        }) != 0;
+        if (folderRediscoveryActive && showFeedback) ShowOSD(IconType::Refresh, L"Looking for moved folders");
+    } catch (...) {
+        folderRediscoveryActive = false;
+        folderRediscoveryFeedback = false;
+        ReportStorageFailure(StorageStatus::Error(StorageErrorCode::FileReadFailed, ERROR_NOT_ENOUGH_MEMORY,
+            L"", "Could not prepare folder rediscovery"), L"folder rediscovery");
+    }
+}
+
+
+void App::FinishFolderRediscovery() {
+    if (!folderRediscoveryActive || shutdownComplete || playerCallbacksDisabled.load(std::memory_order_acquire)) return;
+    auto completion = folderRediscoveryJob.TakeResult();
+    if (!completion) return;
+    folderRediscoveryActive = false;
+    if (!completion->result) {
+        folderRediscoveryFeedback = folderRediscoveryAgain = false;
+        ReportStorageFailure(StorageStatus::Error(StorageErrorCode::FileReadFailed, ERROR_READ_FAULT,
+            L"", "Folder rediscovery worker failed"), L"folder rediscovery");
+        return;
+    }
+    const auto previousWatches = library.watchedFolders;
+    const auto res = library.ApplyFolderRediscovery(*completion->result, true);
+    if (!res.status.is_ok()) ReportStorageFailure(res.status, L"folder rediscovery");
     if (res.renamedFoldersCount > 0 || res.mergedItemsCount > 0 || res.relocatedItemsCount > 0 || res.removedGhostCount > 0) {
+        for (const auto& rename : res.renamedFolders) {
+            const auto oldKey = NormalizePathKey(rename.first);
+            if (std::any_of(previousWatches.begin(), previousWatches.end(), [&](const auto& root) { return NormalizePathKey(root) == oldKey; })) {
+                folderWatcher.RemoveWatch(rename.first);
+                folderWatcher.AddWatch(rename.second);
+                watchReconcileWorker.Queue({true, rename.second, {}});
+            }
+        }
         m_mediaQueryEngine.InvalidateCache();
         InvalidateMediaLayoutCache();
         ClampScrollOffsets();
         InvalidateRect(hWnd, NULL, FALSE);
+        ScheduleMetadataBackfill();
         std::wstring msg = L"Rediscovered " + std::to_wstring(res.renamedFoldersCount) + L" renamed folder(s)";
         if (res.mergedItemsCount > 0) { msg += L" (" + std::to_wstring(res.mergedItemsCount) + L" items reconciled)"; }
         ShowOSD(IconType::Checkmark, msg);
         AnnounceStatus(msg);
-    } else if (showFeedback) { ShowOSD(IconType::Checkmark, L"All folders and files are up to date"); }
+    } else if (folderRediscoveryFeedback && res.status.is_ok() && !res.needsRescan && !folderRediscoveryAgain) {
+        ShowOSD(IconType::Checkmark, L"No folder changes found");
+    }
+    const bool again = folderRediscoveryAgain || res.needsRescan;
+    folderRediscoveryAgain = false;
+    if (again) RunFolderRediscovery(false);
+    else folderRediscoveryFeedback = false;
 }
 
 } // namespace Aperture

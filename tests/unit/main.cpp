@@ -36,6 +36,7 @@
 #include "TestLibrarySnapshot.h"
 #include "TestPlaylistIO.h"
 #include "TestFolderOperations.h"
+#include "TestFolderRediscovery.h"
 #include "TestEvaluationFixes.h"
 #include "TestHttpTransportFixes.h"
 #include "TestMpvInitialization.h"

@@ -1,6 +1,7 @@
 #include "MediaProbeIsolation.h"
 #include "MediaLibrary.h"
 #include "WatchReconcile.h"
+#include "FolderRediscovery.h"
 #include "LibrarySaveComparison.h"
 #include "SmartRuleParsing.h"
 #include "PreparedSmartPlaylist.h"
@@ -521,163 +522,112 @@ MediaRelocationResult MediaLibrary::RelocateMissingMediaToRoot(const std::wstrin
 }
 
 FolderRediscoveryResult MediaLibrary::RediscoverFolderChanges(bool saveChanges) {
+    return ApplyFolderRediscovery(PrepareFolderRediscovery(FolderRediscoverySnapshot::Capture(*this)), saveChanges);
+}
+
+FolderRediscoveryResult MediaLibrary::ApplyFolderRediscovery(const PreparedFolderRediscovery& prepared, bool saveChanges) {
     FolderRediscoveryResult result;
-    struct MissingInfo {
-        size_t itemIndex = 0;
-        std::wstring filename;
-        uint64_t fileSizeBytes = 0, fileIndex = 0;
-        uint32_t volumeSerialNumber = 0;
-    };
-    std::unordered_map<std::wstring, std::vector<MissingInfo>> missingByDirKey;
-    std::unordered_map<std::wstring, std::wstring> originalDirByKey;
+    if (prepared.canceled) return result;
+    result.status = prepared.status;
+    if (prepared.moves.empty()) return result;
+    std::unordered_map<std::string, size_t> ids;
+    std::unordered_map<std::wstring, size_t> paths;
+    ids.reserve(mediaItems.size()); paths.reserve(mediaItems.size());
     for (size_t i = 0; i < mediaItems.size(); ++i) {
-        const auto& item = mediaItems[i];
-        if (!FileExists(item.filePath)) {
-            std::wstring dir = ExtractDirectory(item.filePath);
-            if (dir.empty()) continue;
-            std::wstring dirKey = NormalizePathKey(dir);
-            MissingInfo info;
-            info.itemIndex = i;
-            info.filename = GetFileNameFromPath(item.filePath);
-            info.fileSizeBytes = item.fileSizeBytes;
-            info.fileIndex = item.fileIndex;
-            info.volumeSerialNumber = item.volumeSerialNumber;
-            missingByDirKey[dirKey].push_back(info);
-            originalDirByKey[dirKey] = dir;
-        }
+        if (!mediaItems[i].id.empty()) ids[mediaItems[i].id] = i;
+        paths[NormalizePathKey(mediaItems[i].filePath)] = i;
     }
-    if (missingByDirKey.empty()) return result;
-    std::vector<std::string> ghostIdsToRemove;
-    bool modified = false;
-    for (auto& [oldDirKey, missingList] : missingByDirKey) {
-        if (missingList.empty()) continue;
-        const std::wstring& oldDir = originalDirByKey[oldDirKey];
-        std::wstring parentDir = ExtractDirectory(oldDir);
-        std::vector<std::wstring> candidateDirs;
-        // Check siblings in parent directory
-        if (!parentDir.empty()) {
-            DWORD parentAttr = GetFileAttributesW(parentDir.c_str());
-            if (parentAttr != INVALID_FILE_ATTRIBUTES && (parentAttr & FILE_ATTRIBUTE_DIRECTORY)) {
-                std::error_code ec;
-                std::filesystem::directory_iterator dit(parentDir, std::filesystem::directory_options::skip_permission_denied, ec), dend;
-                for (; dit != dend && !ec; dit.increment(ec)) {
-                    if (ec) { ec.clear(); continue; }
-                    std::error_code isDirEc;
-                    if (dit->is_directory(isDirEc)) {
-                        std::wstring cand = dit->path().wstring();
-                        if (NormalizePathKey(cand) != oldDirKey) { candidateDirs.push_back(cand); }
-                    }
-                }
-            }
+    std::vector<bool> removed(mediaItems.size(), false), acceptedFolders(prepared.folders.size(), false);
+    struct Reference { std::wstring path, title; };
+    std::unordered_map<std::wstring, Reference> references;
+    for (const auto& move : prepared.moves) {
+        if (move.folder >= prepared.folders.size()) continue;
+        const auto oldKey = NormalizePathKey(move.source.path), newKey = NormalizePathKey(move.path);
+        if (oldKey.empty() || newKey.empty() || oldKey == newKey) continue;
+        size_t sourceIndex = SIZE_MAX;
+        if (move.source.id.empty()) {
+            const auto found = paths.find(oldKey);
+            if (found != paths.end()) sourceIndex = found->second;
+        } else {
+            const auto found = ids.find(move.source.id);
+            if (found != ids.end()) sourceIndex = found->second;
         }
-        // Also check any watched folders that exist on disk
-        for (const auto& wf : watchedFolders) {
-            std::wstring resolved = ResolveAppPath(wf);
-            if (NormalizePathKey(resolved) != oldDirKey && FileExists(resolved)) { candidateDirs.push_back(resolved); }
+        if (sourceIndex == SIZE_MAX || removed[sourceIndex]) continue;
+        auto& source = mediaItems[sourceIndex];
+        if (!move.source.Matches(source)) { result.needsRescan = true; continue; }
+        auto target = paths.find(newKey);
+        const bool hasTarget = target != paths.end() && !removed[target->second];
+        // A target imported, replaced or edited while discovery ran needs a
+        // fresh baseline before any duplicate record can be removed.
+        if (hasTarget != move.destination.has_value() ||
+            (hasTarget && !move.destination->Matches(mediaItems[target->second]))) {
+            result.needsRescan = true; continue;
         }
-        std::wstring bestMatchDir;
-        size_t bestMatchScore = 0;
-        for (const auto& candDir : candidateDirs) {
-            size_t matchCount = 0;
-            for (const auto& mInfo : missingList) {
-                std::wstring testPath = candDir;
-                if (!testPath.empty() && testPath.back() != L'\\' && testPath.back() != L'/') { testPath += L'\\'; }
-                testPath += mInfo.filename;
-                if (FileExists(testPath)) {
-                    uint64_t sz = GetFileSizeInBytes(testPath);
-                    bool sizeMatch = (mInfo.fileSizeBytes == 0 || sz == mInfo.fileSizeBytes);
-                    bool fidMatch = false;
-                    if (mInfo.fileIndex != 0 && mInfo.volumeSerialNumber != 0) {
-                        WindowsFileIdentity fid = GetWindowsFileIdentity(testPath);
-                        if (fid.valid && fid.fileIndex == mInfo.fileIndex && fid.volumeSerialNumber == mInfo.volumeSerialNumber)
-                            fidMatch = true;
-                    }
-                    if (sizeMatch || fidMatch) { matchCount++; }
-                }
-            }
-            if (matchCount > 0) {
-                double ratio = static_cast<double>(matchCount) / static_cast<double>(missingList.size());
-                if (matchCount > bestMatchScore && (ratio >= 0.70 || matchCount == missingList.size())) {
-                    bestMatchScore = matchCount;
-                    bestMatchDir = candDir;
-                }
-            }
+        if (hasTarget) {
+            auto& live = mediaItems[target->second];
+            if (live.lastPosSec <= 0 && source.lastPosSec > 0) live.lastPosSec = source.lastPosSec;
+            if (live.lastWatchedTimestamp == 0 && source.lastWatchedTimestamp > 0) live.lastWatchedTimestamp = source.lastWatchedTimestamp;
+            if (live.status == "new" && source.status != "new") live.status = source.status;
+            if (live.durationSec <= 0 && source.durationSec > 0) live.durationSec = source.durationSec;
+            if (live.bookmarks.empty() && !source.bookmarks.empty()) live.bookmarks = source.bookmarks;
+            if (!live.preferences && source.preferences) live.preferences = source.preferences;
+            if (!live.overrides && source.overrides) live.overrides = source.overrides;
+            references[oldKey] = {live.filePath, live.title};
+            removed[sourceIndex] = true;
+            ++result.mergedItemsCount;
+            ++result.removedGhostCount;
+        } else {
+            const bool changedSize = source.fileSizeBytes != move.size;
+            source.filePath = move.path; source.title = GetFileNameFromPath(move.path); source.fileSizeBytes = move.size;
+            if (move.identity.valid) { source.fileIndex = move.identity.fileIndex; source.volumeSerialNumber = move.identity.volumeSerialNumber; }
+            if (changedSize) { source.metadataProbeFailed = true; source.probeAttemptCount = 0; source.lastProbeAttemptTimestamp = 0; }
+            paths[newKey] = sourceIndex;
+            references[oldKey] = {source.filePath, source.title};
+            ++result.relocatedItemsCount;
         }
-        if (bestMatchDir.empty()) continue;
-        // Confirmed rename match!
-        result.renamedFolders.emplace_back(oldDir, bestMatchDir);
-        result.renamedFoldersCount++;
-        std::wstring oldDirPrefix = oldDir;
-        if (!oldDirPrefix.empty() && oldDirPrefix.back() != L'\\' && oldDirPrefix.back() != L'/') oldDirPrefix += L'\\';
-        std::wstring newDirPrefix = bestMatchDir;
-        if (!newDirPrefix.empty() && newDirPrefix.back() != L'\\' && newDirPrefix.back() != L'/') newDirPrefix += L'\\';
-        for (const auto& mInfo : missingList) {
-            MediaItem& missingItem = mediaItems[mInfo.itemIndex];
-            std::wstring newFilePath = newDirPrefix + mInfo.filename;
-            MediaItem* existingPresentItem = FindByPath(newFilePath);
-            if (existingPresentItem != nullptr && existingPresentItem != &missingItem) {
-                // Duplicate ghost case: merge user metadata into existingPresentItem
-                if (existingPresentItem->lastPosSec <= 0.0 && missingItem.lastPosSec > 0.0)
-                    existingPresentItem->lastPosSec = missingItem.lastPosSec;
-                if (existingPresentItem->lastWatchedTimestamp == 0 && missingItem.lastWatchedTimestamp > 0)
-                    existingPresentItem->lastWatchedTimestamp = missingItem.lastWatchedTimestamp;
-                if (existingPresentItem->status == "new" && missingItem.status != "new")
-                    existingPresentItem->status = missingItem.status;
-                if (existingPresentItem->bookmarks.empty() && !missingItem.bookmarks.empty())
-                    existingPresentItem->bookmarks = missingItem.bookmarks;
-                if (!existingPresentItem->preferences.has_value() && missingItem.preferences.has_value())
-                    existingPresentItem->preferences = missingItem.preferences;
-                if (!existingPresentItem->overrides.has_value() && missingItem.overrides.has_value())
-                    existingPresentItem->overrides = missingItem.overrides;
-                for (auto& pl : playlists) {
-                    for (auto& p : pl.itemPaths) {
-                        if (NormalizePathKey(p) == NormalizePathKey(missingItem.filePath)) { p = newFilePath; }
-                    }
-                }
-                for (auto& h : history) {
-                    if (NormalizePathKey(h.filePath) == NormalizePathKey(missingItem.filePath)) {
-                        h.filePath = newFilePath;
-                        h.title = existingPresentItem->title;
-                    }
-                }
-                ghostIdsToRemove.push_back(missingItem.id);
-                result.mergedItemsCount++;
-                modified = true;
-            } else if (FileExists(newFilePath)) {
-                // Direct relocation case
-                std::wstring oldPath = missingItem.filePath;
-                missingItem.filePath = newFilePath;
-                missingItem.title = GetFileNameFromPath(newFilePath);
-                missingItem.fileSizeBytes = GetFileSizeInBytes(newFilePath);
-                WindowsFileIdentity fid = GetWindowsFileIdentity(newFilePath);
-                if (fid.valid) { missingItem.fileIndex = fid.fileIndex; missingItem.volumeSerialNumber = fid.volumeSerialNumber; }
-                for (auto& pl : playlists) {
-                    for (auto& p : pl.itemPaths) {
-                        if (NormalizePathKey(p) == NormalizePathKey(oldPath)) { p = newFilePath; }
-                    }
-                }
-                for (auto& h : history) {
-                    if (NormalizePathKey(h.filePath) == NormalizePathKey(oldPath)) {
-                        h.filePath = newFilePath;
-                        h.title = missingItem.title;
-                    }
-                }
-                result.relocatedItemsCount++;
-                modified = true;
-            }
-        }
-        // Update watched folder entry if the renamed directory was watched
-        for (auto& wf : watchedFolders) {
-            if (NormalizePathKey(wf) == oldDirKey) { wf = bestMatchDir; modified = true; }
-        }
+        paths.erase(oldKey);
+        acceptedFolders[move.folder] = true;
     }
-    if (!ghostIdsToRemove.empty()) { size_t count = RemoveMedia(ghostIdsToRemove); result.removedGhostCount = count; modified = true; }
-    if (modified) {
-        RebuildPathIndex();
-        libraryVersion++;
-        InvalidatePlaylistStatsCache();
-        if (saveChanges) { Save(); }
+    if (references.empty()) return result;
+    const auto relocate = [&](std::wstring& path, std::wstring* title = nullptr) {
+        bool changed = false;
+        for (size_t i = 0; i < references.size(); ++i) {
+            const auto found = references.find(NormalizePathKey(path));
+            if (found == references.end() || path == found->second.path) break;
+            path = found->second.path;
+            if (title) *title = found->second.title;
+            changed = true;
+        }
+        return changed;
+    };
+    bool playlistsChanged = false, historyChanged = false;
+    for (auto& playlist : playlists) for (auto& path : playlist.itemPaths) playlistsChanged |= relocate(path);
+    for (auto& item : history) historyChanged |= relocate(item.filePath, &item.title);
+    std::unordered_map<std::wstring, std::wstring> folderMoves;
+    for (size_t i = 0; i < acceptedFolders.size(); ++i) if (acceptedFolders[i]) {
+        result.renamedFolders.push_back(prepared.folders[i]);
+        folderMoves[NormalizePathKey(prepared.folders[i].first)] = prepared.folders[i].second;
     }
+    result.renamedFoldersCount = result.renamedFolders.size();
+    for (auto& root : watchedFolders) {
+        const auto found = folderMoves.find(NormalizePathKey(root));
+        if (found != folderMoves.end()) root = found->second;
+    }
+    if (result.removedGhostCount) {
+        size_t write = 0;
+        for (size_t read = 0; read < mediaItems.size(); ++read) {
+            if (removed[read]) continue;
+            if (read != write) mediaItems[write] = std::move(mediaItems[read]);
+            ++write;
+        }
+        mediaItems.resize(write);
+    }
+    if (playlistsChanged) ++revisions.playlists;
+    if (historyChanged) ++revisions.history;
+    RebuildPathIndex();
+    ++libraryVersion;
+    InvalidatePlaylistStatsCache();
+    if (saveChanges) Save();
     return result;
 }
 

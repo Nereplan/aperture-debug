@@ -6,6 +6,7 @@
 #include "Subtitles.h"
 #include "FolderWatcher.h"
 #include "WatchReconcile.h"
+#include "FolderRediscovery.h"
 #include "MpvPlayer.h"
 #include "Renderer.h"
 #include "UIComponents.h"
@@ -291,6 +292,8 @@ private:
     bool backfillPassDirty = false;
     ULONGLONG backfillLastSaveTick = 0;
     WatchReconcileWorker watchReconcileWorker;
+    AsyncOwnedJob<PreparedFolderRediscovery> folderRediscoveryJob;
+    bool folderRediscoveryActive = false, folderRediscoveryFeedback = false, folderRediscoveryAgain = false;
     FolderWatcher folderWatcher;
     ULONGLONG watchRetryAfterTick = 0;
     bool watchRescanFeedbackPending = false;
@@ -762,6 +765,7 @@ private:
     void OpenFolderContextMenu(int groupIndex, float x, float y);
     void RemoveSelectedFolders();
     void RunFolderRediscovery(bool showFeedback = true);
+    void FinishFolderRediscovery();
     void OpenPlaylistContextMenu(const Playlist& playlist, float x, float y);
     void OpenRailBackgroundContextMenu(float x, float y);
     void OpenPlaylistItemContextMenu(size_t itemIndex, float x, float y);
