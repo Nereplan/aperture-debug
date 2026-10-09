@@ -302,11 +302,10 @@ void App::FinishFolderRediscovery() {
     const auto res = library.ApplyFolderRediscovery(*completion->result, true);
     if (!res.status.is_ok()) ReportStorageFailure(res.status, L"folder rediscovery");
     if (res.renamedFoldersCount > 0 || res.mergedItemsCount > 0 || res.relocatedItemsCount > 0 || res.removedGhostCount > 0) {
+        folderWatcher.SetWatchedFoldersAsync(library.GetWatchedFolders());
         for (const auto& rename : res.renamedFolders) {
             const auto oldKey = NormalizePathKey(rename.first);
             if (std::any_of(previousWatches.begin(), previousWatches.end(), [&](const auto& root) { return NormalizePathKey(root) == oldKey; })) {
-                folderWatcher.RemoveWatch(rename.first);
-                folderWatcher.AddWatch(rename.second);
                 watchReconcileWorker.Queue({true, rename.second, {}});
             }
         }

@@ -12,41 +12,136 @@ void FolderWatcher::SetCallback(WatchChangeCallback cb) { std::lock_guard<std::m
 
 bool FolderWatcher::Start() {
     if (isRunning.load()) return true;
+    if (workerThread.joinable()) {
+        if (!workerDone.load(std::memory_order_acquire)) return false;
+        workerThread.join();
+        if (hIOCP) { CloseHandle(hIOCP); hIOCP = NULL; }
+    }
     stopRequested.store(false);
+    nextInactiveSweep = 0;
     hIOCP = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, 0, 1);
     if (!hIOCP) { return false; }
     isRunning.store(true);
-    workerThread = std::thread(&FolderWatcher::WorkerLoop, this);
-    // Arm any existing watches
-    {
-        std::lock_guard<std::mutex> lock(watchMutex);
-        for (auto& pair : watches) {
-            if (pair.second && !pair.second->active) { ArmReadDirectoryChanges(pair.second.get()); }
-        }
+    workerDone.store(false, std::memory_order_release);
+    try { workerThread = std::thread(&FolderWatcher::WorkerLoop, this); }
+    catch (...) {
+        isRunning.store(false); workerDone.store(true, std::memory_order_release);
+        CloseHandle(hIOCP); hIOCP = NULL; return false;
     }
     return true;
 }
 
-void FolderWatcher::Stop() {
-    if (!isRunning.exchange(false)) { return; }
+uint64_t FolderWatcher::SetWatchedFoldersAsync(std::vector<std::wstring> folders) {
+    uint64_t generation;
+    const bool empty = folders.empty();
+    {
+        std::lock_guard<std::mutex> lock(configurationMutex);
+        pendingConfiguration = std::move(folders);
+        generation = requestedConfiguration.fetch_add(1) + 1;
+    }
+    // Do not create a worker for an initially empty profile.
+    if (empty && !workerThread.joinable()) {
+        // With no worker, these watches cannot own pending I/O. Retire an old
+        // stopped configuration and consume the empty request immediately.
+        { std::lock_guard<std::mutex> lock(watchMutex); watches.clear(); retiredWatches.clear(); }
+        { std::lock_guard<std::mutex> lock(configurationMutex);
+          pendingConfiguration.reset(); workerConfiguration = generation;
+          appliedConfiguration.store(generation, std::memory_order_release); }
+        return generation;
+    }
+    const bool wasRunning = isRunning.load();
+    if (!Start()) return 0;
+    // Interrupt a supported synchronous directory open for a superseded list.
+    if (wasRunning && workerThread.joinable()) CancelSynchronousIo(workerThread.native_handle());
+    if (hIOCP) PostQueuedCompletionStatus(hIOCP, 0, kStopCompletionKey, nullptr);
+    return generation;
+}
+
+void FolderWatcher::RequestStop() {
+    isRunning.store(false);
     stopRequested.store(true);
+    if (workerThread.joinable()) CancelSynchronousIo(workerThread.native_handle());
+    if (hIOCP) PostQueuedCompletionStatus(hIOCP, 0, kStopCompletionKey, nullptr);
+}
+
+void FolderWatcher::CancelDirectoryReads() {
+    std::lock_guard<std::mutex> lock(watchMutex);
+    const auto cancel = [](auto& watch) {
+        if (watch && watch->hDirectory != INVALID_HANDLE_VALUE) {
+            CancelIoEx(watch->hDirectory, &watch->overlapped);
+            CloseHandle(watch->hDirectory);
+            watch->hDirectory = INVALID_HANDLE_VALUE;
+            watch->active = false; watch->retryAtTick = 0;
+        }
+    };
+    for (auto& pair : watches) cancel(pair.second);
+    for (auto& watch : retiredWatches) cancel(watch);
+}
+
+void FolderWatcher::Stop() {
+    RequestStop();
+    if (workerThread.joinable()) { workerThread.join(); }
     {
         std::lock_guard<std::mutex> lock(watchMutex);
-        for (auto& pair : watches) {
-            if (pair.second && pair.second->hDirectory != INVALID_HANDLE_VALUE) {
-                CancelIoEx(pair.second->hDirectory, &pair.second->overlapped);
-                CloseHandle(pair.second->hDirectory);
-                pair.second->hDirectory = INVALID_HANDLE_VALUE;
-                pair.second->active = false;
-            }
-        }
+        retiredWatches.clear();
     }
-    if (hIOCP) { PostQueuedCompletionStatus(hIOCP, 0, kStopCompletionKey, NULL); }
-    if (workerThread.joinable()) { workerThread.join(); }
-    { std::lock_guard<std::mutex> lock(watchMutex); retiredWatches.clear(); }
     if (hIOCP) { CloseHandle(hIOCP); hIOCP = NULL; }
     // Flush any pending coalesced events
     FlushCoalescedEvents(true);
+}
+
+void FolderWatcher::ApplyPendingConfiguration() {
+    std::optional<std::vector<std::wstring>> desired;
+    uint64_t generation;
+    {
+        std::lock_guard<std::mutex> lock(configurationMutex);
+        if (!pendingConfiguration) return;
+        desired = std::move(pendingConfiguration); pendingConfiguration.reset();
+        generation = requestedConfiguration.load();
+    }
+    std::unordered_map<std::wstring, std::wstring> roots;
+    for (const auto& path : *desired) {
+        if (stopRequested.load() || generation != requestedConfiguration.load()) return;
+        if (path.empty()) continue;
+        auto resolved = ResolveAppPath(path); auto key = NormalizePathKey(resolved);
+        if (!key.empty()) roots.emplace(std::move(key), std::move(resolved));
+    }
+    std::lock_guard<std::mutex> lock(watchMutex);
+    retiredWatches.reserve(retiredWatches.size() + watches.size());
+    for (auto it = watches.begin(); it != watches.end();) {
+        if (roots.count(it->first)) { ++it; continue; }
+        auto& watch = it->second;
+        watch->retired = true;
+        if (watch->hDirectory != INVALID_HANDLE_VALUE) {
+            CancelIoEx(watch->hDirectory, &watch->overlapped);
+            CloseHandle(watch->hDirectory); watch->hDirectory = INVALID_HANDLE_VALUE; watch->active = false;
+        }
+        if (watch->pendingRead) retiredWatches.push_back(std::move(watch));
+        it = watches.erase(it);
+    }
+    for (auto& root : roots) {
+        auto found = watches.find(root.first);
+        if (found != watches.end()) { found->second->retryAtTick = 0; continue; }
+        auto watch = std::make_unique<DirectoryWatch>();
+        watch->rootPath = std::move(root.second); watch->buffer.resize(kBufferSize);
+        watches.emplace(std::move(root.first), std::move(watch));
+    }
+    workerConfiguration = generation;
+    nextInactiveSweep = 0;
+}
+
+void FolderWatcher::ArmInactiveWatches() {
+    if (GetTickCount64() < nextInactiveSweep) return;
+    std::lock_guard<std::mutex> lock(watchMutex);
+    for (auto& pair : watches) {
+        if (stopRequested.load() || workerConfiguration != requestedConfiguration.load()) return;
+        auto& watch = *pair.second;
+        if (watch.active || watch.pendingRead || GetTickCount64() < watch.retryAtTick) continue;
+        watch.retryAtTick = GetTickCount64() + 2000;
+        if (ArmReadDirectoryChanges(&watch)) TriggerRescan(watch.rootPath);
+    }
+    nextInactiveSweep = GetTickCount64() + 2000;
+    if (!stopRequested.load()) appliedConfiguration.store(workerConfiguration, std::memory_order_release);
 }
 
 bool FolderWatcher::AddWatch(const std::wstring& folderPath) {
@@ -129,10 +224,11 @@ void FolderWatcher::ReclaimRetiredWatchLocked(DirectoryWatch* watch) {
     if (it != retiredWatches.end()) retiredWatches.erase(it);
 }
 bool FolderWatcher::ArmReadDirectoryChanges(DirectoryWatch* dirWatch) {
-    if (!dirWatch || dirWatch->retired || dirWatch->pendingRead || !hIOCP) return false;
+    if (!dirWatch || dirWatch->retired || dirWatch->pendingRead || !hIOCP || stopRequested.load()) return false;
     if (dirWatch->hDirectory == INVALID_HANDLE_VALUE) {
         // Attempt to open directory handle
         DWORD attr = GetFileAttributesW(dirWatch->rootPath.c_str());
+        if (stopRequested.load()) return false;
         if (attr == INVALID_FILE_ATTRIBUTES || !(attr & FILE_ATTRIBUTE_DIRECTORY)) {
             // Missing/unavailable root - do not block or crash startup; leave inactive
             dirWatch->active = false;
@@ -142,6 +238,9 @@ bool FolderWatcher::ArmReadDirectoryChanges(DirectoryWatch* dirWatch) {
             FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OVERLAPPED,
             NULL );
         if (dirWatch->hDirectory == INVALID_HANDLE_VALUE) { dirWatch->active = false; return false; }
+        if (stopRequested.load()) {
+            CloseHandle(dirWatch->hDirectory); dirWatch->hDirectory = INVALID_HANDLE_VALUE; return false;
+        }
         if (CreateIoCompletionPort(dirWatch->hDirectory, hIOCP, reinterpret_cast<ULONG_PTR>(dirWatch), 0) == NULL) {
             CloseHandle(dirWatch->hDirectory);
             dirWatch->hDirectory = INVALID_HANDLE_VALUE;
@@ -161,6 +260,10 @@ bool FolderWatcher::ArmReadDirectoryChanges(DirectoryWatch* dirWatch) {
             // Buffer overflow during arming
             TriggerRescan(dirWatch->rootPath);
         }
+        // No read was queued. Reopen on the next retry rather than retaining
+        // an unusable handle after a drive or network share reconnects.
+        CloseHandle(dirWatch->hDirectory);
+        dirWatch->hDirectory = INVALID_HANDLE_VALUE;
         dirWatch->active = false;
         return false;
     }
@@ -170,11 +273,18 @@ bool FolderWatcher::ArmReadDirectoryChanges(DirectoryWatch* dirWatch) {
 }
 
 void FolderWatcher::WorkerLoop() {
+    struct Completion {
+        FolderWatcher& owner;
+        ~Completion() { owner.isRunning.store(false); owner.workerDone.store(true, std::memory_order_release); }
+    } completion{*this};
+    SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_BELOW_NORMAL);
     for (;;) {
+      try {
         if (stopRequested.load()) {
+            CancelDirectoryReads();
             std::lock_guard<std::mutex> lock(watchMutex);
             if (!HasPendingReadsLocked()) break;
-        }
+        } else { ApplyPendingConfiguration(); ArmInactiveWatches(); }
         DWORD bytesTransferred = 0;
         ULONG_PTR completionKey = 0;
         LPOVERLAPPED pOverlapped = nullptr;
@@ -229,6 +339,11 @@ void FolderWatcher::WorkerLoop() {
             }
         }
         FlushCoalescedEvents(false);
+      } catch (...) {
+        // Stop accepting work but drain cancellation completions before their
+        // OVERLAPPED storage can be released by Stop/destruction.
+        isRunning.store(false); stopRequested.store(true);
+      }
     }
 }
 

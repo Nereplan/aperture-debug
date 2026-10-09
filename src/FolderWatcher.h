@@ -11,6 +11,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <chrono>
+#include <optional>
 
 namespace Aperture {
 
@@ -35,8 +36,14 @@ public:
     void SetCallback(WatchChangeCallback cb);
     // Lifecycle control
     bool Start();
+    void RequestStop();
     void Stop();
     bool IsRunning() const { return isRunning.load(); }
+    bool IsWorkerDone() const { return workerDone.load(std::memory_order_acquire); }
+    // UI entry point: publish the complete desired list without waiting on
+    // directory handles or the worker's watch mutex. Only the latest list wins.
+    uint64_t SetWatchedFoldersAsync(std::vector<std::wstring> folders);
+    uint64_t GetAppliedConfigurationGeneration() const { return appliedConfiguration.load(std::memory_order_acquire); }
     // Dynamic watch list management
     bool AddWatch(const std::wstring& folderPath);
     bool RemoveWatch(const std::wstring& folderPath);
@@ -58,10 +65,14 @@ private:
         OVERLAPPED overlapped = {};
         std::vector<BYTE> buffer;
         bool active = false, retired = false, pendingRead = false;
+        ULONGLONG retryAtTick = 0;
     };
     bool ArmReadDirectoryChanges(DirectoryWatch* dirWatch);
     void ProcessNotificationBuffer(DirectoryWatch* dirWatch, DWORD bytesTransferred);
     void WorkerLoop();
+    void ApplyPendingConfiguration();
+    void ArmInactiveWatches();
+    void CancelDirectoryReads();
     void ReclaimRetiredWatchLocked(DirectoryWatch* watch);
     bool HasPendingReadsLocked() const;
     mutable std::mutex watchMutex;
@@ -71,6 +82,12 @@ private:
     std::vector<std::unique_ptr<DirectoryWatch>> retiredWatches;
     std::atomic<bool> isRunning{ false };
     std::atomic<bool> stopRequested{ false };
+    std::atomic<bool> workerDone{ true };
+    std::mutex configurationMutex;
+    std::optional<std::vector<std::wstring>> pendingConfiguration;
+    std::atomic<uint64_t> requestedConfiguration{0}, appliedConfiguration{0};
+    uint64_t workerConfiguration = 0;
+    ULONGLONG nextInactiveSweep = 0;
     HANDLE hIOCP = NULL;
     std::thread workerThread;
     WatchChangeCallback callback;

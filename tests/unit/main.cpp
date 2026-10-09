@@ -43,6 +43,7 @@
 #include "TestLibrarySaving.h"
 #include "TestIncrementalSaving.h"
 #include "TestWatchReconcile.h"
+#include "TestFolderWatchConfiguration.h"
 #include "TestMetadataBackfill.h"
 #include "TestImportFingerprints.h"
 #include "TestOverlayPacing.h"

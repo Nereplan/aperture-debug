@@ -147,8 +147,7 @@ void App::RunDeferredLibraryReadyWork() {
     if (!librarySnapshotFrameRendered && !playbackSession.IsOpen()) return;
     deferredLibraryReadyWorkPending = false;
     if (settings.jumpListEnabled) jumpListController.Update(library.history);
-    for (const auto& folder : library.GetWatchedFolders()) { folderWatcher.AddWatch(folder); }
-    if (!library.GetWatchedFolders().empty()) folderWatcher.Start();
+    folderWatcher.SetWatchedFoldersAsync(library.GetWatchedFolders());
     RunFolderRediscovery(false);
     ScheduleMetadataBackfill();
 }
@@ -171,6 +170,7 @@ void App::InvalidateLibraryDerivedState() {
     backfillBaseline.clear();
     watchReconcileWorker.Cancel();
     watchRetryAfterTick = 0;
+    if (libraryReady) folderWatcher.SetWatchedFoldersAsync(library.GetWatchedFolders());
     for (const auto& root : library.GetWatchedFolders()) watchReconcileWorker.Queue({true, root, {}});
     m_mediaQueryEngine.InvalidateCache();
     InvalidateMediaLayoutCache();
@@ -484,10 +484,7 @@ void App::AddWatchedFolderPrompt() {
     selectedItem->Release();
     dialog->Release();
     if (library.AddWatchedFolder(watchedPath)) {
-        folderWatcher.AddWatch(watchedPath);
-        // Start on demand: Initialize() leaves the watcher stopped when the profile has no watched folders so an idle hub keeps one fewer
-        // thread/IOCP.
-        if (!folderWatcher.IsRunning()) { folderWatcher.Start(); }
+        folderWatcher.SetWatchedFoldersAsync(library.GetWatchedFolders());
         watchReconcileWorker.Queue({true, watchedPath, {}});
         HandleFolderWatchEvents();
         ShowOSD(IconType::FolderPlaylist, L"Added Watched Folder: " + GetFileNameFromPath(watchedPath));

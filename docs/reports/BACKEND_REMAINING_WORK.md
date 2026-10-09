@@ -9,7 +9,7 @@ The requested scope is the remaining opportunities in that report: background fo
 | Folder rediscovery | Discovery runs on an owned, cancellable worker; guarded application remains on the UI thread. App and regression source compile. |
 | Duplicate imports | Fingerprints persist with media records; the worker reuses matching metadata and the UI skips no-op rebuilds/saves. App and regression source compile. |
 | Durable incremental saving | Bounded atomic changes and full-checkpoint barriers implemented. App, unit-test source and persistence-test source compile. |
-| Availability and watch registration | Pending: shared background availability and the remaining synchronous watch-handle registration. |
+| Availability and watch registration | Watch registration moved to the worker; app and regression source compile. Shared background availability is still pending. |
 
 ## Folder rediscovery
 
@@ -48,3 +48,13 @@ Close and reload use an explicit checkpoint barrier, including when the writer i
 Atomic writes now check the result of [FlushFileBuffers](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-flushfilebuffers) before publishing. The SHA-256 helper checks each operation and uses the [CNG-managed hash allocation](https://learn.microsoft.com/en-us/windows/win32/api/bcrypt/nf-bcrypt-bcryptcreatehash) available on supported Windows versions. These mechanisms have not been exercised in runtime tests in this task.
 
 Validation: the native app compiled and linked with no compiler warnings in the final build. Registered unit and persistence regression sources passed MSVC syntax-only compilation. New unrun cases cover incremental progress, cumulative replacements, appends/removals, value reversion, large reorder fallback, failed writes, checksum damage, matching backup recovery, orphaned/future changes and an idle-worker checkpoint barrier. No tests, benchmarks or application launches were run.
+
+## Background watch registration
+
+The app publishes its complete desired watch list through a separate mailbox. The watcher normalizes paths, opens directory handles, registers notifications and retires removed handles on its worker. A newer list replaces a pending list without waiting on the worker's watch mutex. Startup no longer opens watched directories on the UI thread. Library reload/undo, folder relocation, adding and removing watched roots all use the same path.
+
+Inactive roots retry every two seconds and request reconciliation when registration succeeds. The watch list is not rescanned on every 50 ms notification-coalescing tick. Removed watches retain their notification storage until canceled completions arrive.
+
+Close now requests cancellation before the close pump waits for the watcher to finish; joining happens after that. Driver support still governs [Windows I/O cancellation](https://learn.microsoft.com/en-us/windows/win32/fileio/canceling-pending-i-o-operations). The existing synchronous AddWatch/RemoveWatch compatibility APIs remain available, but the app no longer uses them.
+
+Validation: the native app compiled and linked, and registered unit-test source passed syntax-only compilation. Added unrun cases cover replacement while the worker holds its watch mutex, stop requests during that same condition, empty profiles, and registering a previously missing root. No tests or benchmarks were executed.

@@ -337,7 +337,7 @@ void App::OpenBackgroundContextMenu(float x, float y) {
             if (fName.empty()) fName = folder;
             contextMenuItems.push_back({ "remove_watch_" + std::to_string(i), L"Stop Watching: " + fName, L"", IconType::Trash, false, false, false, [this, folder]() {
                 library.RemoveWatchedFolder(folder);
-                folderWatcher.RemoveWatch(folder);
+                folderWatcher.SetWatchedFoldersAsync(library.GetWatchedFolders());
                 ShowOSD(IconType::Trash, L"Removed Watched Folder");
                 InvalidateRect(hWnd, NULL, FALSE);
             }});
