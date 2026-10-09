@@ -522,6 +522,13 @@ public:
     // smart-playlist membership without changing any library revision.
     PlaylistPathsView ResolvePlaylistPaths(const Playlist& playlist) const;
     std::vector<std::wstring> EvaluateSmartPlaylist(const SmartPlaylistCriteria& criteria) const;
+    using AvailabilityProvider = std::function<PathAvailabilityObservation(const std::wstring&)>;
+    void SetAvailabilityProvider(AvailabilityProvider provider) {
+        availabilityProvider = std::move(provider);
+        availabilityProviderOwner = this; availabilityProviderThread = std::this_thread::get_id();
+        InvalidatePlaylistStatsCache();
+    }
+    void InvalidateAvailabilityViews() const;
     uint64_t GetSmartPlaylistEvaluationCount() const { return smartPlaylistEvaluationCount; }
     uint64_t GetSmartPlaylistDiskProbeCount() const { return smartPlaylistDiskProbeCount; }
     // Fast metadata extraction using Media Foundation Source Reader
@@ -540,6 +547,9 @@ private:
     const MediaLibrary* saveRequestOwner = nullptr;
     std::thread::id saveRequestThread;
     std::function<MediaLibrarySaveResult()> saveRequestHandler;
+    AvailabilityProvider availabilityProvider;
+    const MediaLibrary* availabilityProviderOwner = nullptr;
+    std::thread::id availabilityProviderThread;
     std::wstring portableRoot;
     std::shared_ptr<const MediaLibrarySaveSnapshot> lastSaveSnapshot;
     MediaLibrarySaveState saveState;
@@ -558,7 +568,7 @@ private:
         uint64_t generation = 0;
         ULONGLONG expiresAtTick = (std::numeric_limits<ULONGLONG>::max)();
         int64_t evaluatedAtSec = 0, expiresAtSec = (std::numeric_limits<int64_t>::max)();
-        bool timeDependent = false, playbackDependent = false;
+        bool timeDependent = false, playbackDependent = false, availabilityDependent = false;
         std::vector<std::wstring> paths;
     };
     mutable std::unordered_map<std::string, SmartPathsCacheEntry> smartPathsCache;

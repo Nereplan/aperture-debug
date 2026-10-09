@@ -875,6 +875,7 @@ void App::BeginClose() {
     watchReconcileWorker.Cancel();
     folderRediscoveryJob.Cancel();
     folderWatcher.RequestStop();
+    pathAvailability.Clear();
     renderer.CancelThumbnailWork();
     if (hOverlayWnd) ShowWindow(hOverlayWnd, SW_HIDE);
     if (hWnd) ShowWindow(hWnd, SW_HIDE);
@@ -889,7 +890,7 @@ bool App::PollClose() {
     if (!libraryLoadWorkerDone.load(std::memory_order_acquire) ||
         (importWorker.joinable() && !importDone.load(std::memory_order_acquire)) ||
         (backfillWorker.joinable() && !backfillDone.load(std::memory_order_acquire)) ||
-        AreNetworkJobsRunning() || watchReconcileWorker.IsRunning() || folderRediscoveryJob.IsRunning() || !folderWatcher.IsWorkerDone() || renderer.AreThumbnailWorkersRunning() || renderer.AreDeviceWorkersRunning() ||
+        AreNetworkJobsRunning() || watchReconcileWorker.IsRunning() || folderRediscoveryJob.IsRunning() || pathAvailability.IsRunning() || !folderWatcher.IsWorkerDone() || renderer.AreThumbnailWorkersRunning() || renderer.AreDeviceWorkersRunning() ||
         !librarySaveWorker.IsComplete(closeSaveSerial)) return false;
     Shutdown();
     if (hWnd && IsWindow(hWnd)) DestroyWindow(hWnd);
@@ -927,6 +928,8 @@ void App::Shutdown() {
     folderWatcher.Stop();
     watchReconcileWorker.StopAndJoin();
     folderRediscoveryJob.StopAndJoin();
+    pathAvailability.StopAndJoin();
+    library.SetAvailabilityProvider({});
     accessibilityActions.clear();
     accessibilityTree.SetWindow(nullptr);
     accessibilityTree.ClearNodes();
@@ -1250,6 +1253,11 @@ bool App::Update(float dt) {
     Diagnostics::RecordHeartbeat(L"running");
     if (closeRequested) { PollClose(); return false; }
     bool needsRedraw = PumpLibrarySaveResults();
+    pathAvailability.SetLibrarySize(library.mediaItems.size());
+    if (pathAvailability.Pump()) {
+        library.InvalidateAvailabilityViews();
+        needsRedraw = true;
+    }
     if (folderRediscoveryActive) FinishFolderRediscovery();
     if (libraryReady && (watchReconcileWorker.HasCompleted() ||
         (!watchReconcileWorker.IsRunning() && watchReconcileWorker.HasPending()))) HandleFolderWatchEvents();

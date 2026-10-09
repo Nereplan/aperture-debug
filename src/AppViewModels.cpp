@@ -7,27 +7,10 @@
 
 namespace Aperture {
 
-namespace {
-constexpr ULONGLONG kMissingFileCacheTtlMs = 4000;
-constexpr size_t kMissingFileCacheMaxEntries = 4096;
-}
-
 bool App::IsMediaFileMissing(const std::wstring& path) {
     if (path.empty()) return true;
-    const ULONGLONG now = GetTickCount64();
-    auto it = m_missingFileCache.find(path);
-    if (it != m_missingFileCache.end() && now - it->second.checkedTick < kMissingFileCacheTtlMs) {
-        return it->second.missing;
-    }
-    const bool missing = !FileExists(path);
-    if (it != m_missingFileCache.end()) {
-        it->second.missing = missing;
-        it->second.checkedTick = now;
-    } else {
-        if (m_missingFileCache.size() >= kMissingFileCacheMaxEntries) { m_missingFileCache.clear(); }
-        m_missingFileCache.emplace(path, MissingFileEntry{ missing, now });
-    }
-    return missing;
+    const auto observation = pathAvailability.Lookup(path);
+    return observation.known && (observation.value != PathAvailability::Present || observation.isDirectory);
 }
 
 const std::vector<MpvChapterInfo>& App::GetCachedChapters() const {

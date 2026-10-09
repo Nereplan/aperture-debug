@@ -30,6 +30,7 @@
 #include "MetadataBackfillCursor.h"
 #include "OnlineSubtitleJobs.h"
 #include "AsyncOwnedJob.h"
+#include "BackgroundPathAvailability.h"
 #include "IpcProtocol.h"
 #include "Updater.h"
 #include "TouchInput.h"
@@ -132,6 +133,7 @@ private:
     HINSTANCE hInstance = NULL;
     Settings settings;
     MediaLibrary library;
+    BackgroundPathAvailability pathAvailability;
     LibrarySaveWorker librarySaveWorker{WriteLibrarySaveSnapshot, true};
     LibrarySaveCaptureSchedule librarySaveCaptureSchedule;
     std::shared_ptr<const MediaLibrarySaveSnapshot> submittedLibrarySnapshot, libraryReloadBaseline;
@@ -870,12 +872,8 @@ private:
     float GetMediaRowTopDIP(size_t index);
     float GetMediaRowHeightDIP(size_t index);
     void EnqueueActiveRowAnimation(size_t index);
-    // Missing-file detection for media cards: a short-lived positive result
-    // cache keeps GetFileAttributesW off the per-frame render path while still
-    // noticing appearance/disappearance within seconds.
+    // File observations are shared with smart playlists and refreshed on workers.
     bool IsMediaFileMissing(const std::wstring& path);
-    struct MissingFileEntry { bool missing = false; ULONGLONG checkedTick = 0; };
-    std::unordered_map<std::wstring, MissingFileEntry> m_missingFileCache;
     // Borrowed-frame chapter list cache, keyed on MpvPlayer's version counter.
     mutable std::vector<MpvChapterInfo> m_cachedChapters;
     mutable uint64_t m_chaptersCacheVersion = (std::numeric_limits<uint64_t>::max)();

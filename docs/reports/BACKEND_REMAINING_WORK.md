@@ -1,6 +1,6 @@
 # Remaining backend opportunities
 
-8 October 2026. Starting source: `39e853a`. Follow-up to [Backend work reduction](BACKEND_WORK_REDUCTION.md).
+8-9 October 2026. Starting source: `39e853a`. Follow-up to [Backend work reduction](BACKEND_WORK_REDUCTION.md).
 
 The requested scope is the remaining opportunities in that report: background folder rediscovery, persisted fingerprints for duplicate imports, incremental durable saving, and the remaining synchronous availability work. Tests, benchmarks and application launches remain excluded by the user's instruction. Compilation and source review do not establish runtime speedups.
 
@@ -9,7 +9,7 @@ The requested scope is the remaining opportunities in that report: background fo
 | Folder rediscovery | Discovery runs on an owned, cancellable worker; guarded application remains on the UI thread. App and regression source compile. |
 | Duplicate imports | Fingerprints persist with media records; the worker reuses matching metadata and the UI skips no-op rebuilds/saves. App and regression source compile. |
 | Durable incremental saving | Bounded atomic changes and full-checkpoint barriers implemented. App, unit-test source and persistence-test source compile. |
-| Availability and watch registration | Watch registration moved to the worker; app and regression source compile. Shared background availability is still pending. |
+| Availability and watch registration | Watch registration and shared availability run on owned workers. The app and registered regression source compile. |
 
 ## Folder rediscovery
 
@@ -58,3 +58,29 @@ Inactive roots retry every two seconds and request reconciliation when registrat
 Close now requests cancellation before the close pump waits for the watcher to finish; joining happens after that. Driver support still governs [Windows I/O cancellation](https://learn.microsoft.com/en-us/windows/win32/fileio/canceling-pending-i-o-operations). The existing synchronous AddWatch/RemoveWatch compatibility APIs remain available, but the app no longer uses them.
 
 Validation: the native app compiled and linked, and registered unit-test source passed syntax-only compilation. Added unrun cases cover replacement while the worker holds its watch mutex, stop requests during that same condition, empty profiles, and registering a previously missing root. No tests or benchmarks were executed.
+
+## Shared background availability
+
+Smart playlists and media-card missing-file badges now read the same demand-driven availability cache. Lookups normalize/deduplicate paths and enqueue work without accessing the filesystem. Up to two lazily started workers process 32 paths per batch, so one stalled batch does not stop the other worker or block the interface. Callbacks receive owned path snapshots rather than mutable library records.
+
+Unobserved paths do not become confirmed missing items while waiting. Smart playlists exclude unknown/unavailable observations; cards retain their existing distinction between an observed file and an inaccessible or directory target. An expired observation remains visible while refreshing. Fresh observations retain their original two-second expiry across playlists; pending refreshes use a future deadline so a stalled drive cannot force full playlist reevaluation on every frame.
+
+The cache holds at most the library's current item count plus 4,096 additional paths during steady state. Pending entries cannot be evicted. Shrinking a library prunes completed entries gradually, with bounded work per update. Exception failures keep the prior observation and back off. Cache reset cancels old generations; a late completion cannot repopulate a replaced library's cache. The close pump waits for active work before joining both owned workers.
+
+Availability completions invalidate only availability-dependent smart memberships and their aggregates, then request a redraw. Independent title/rule playlists keep their cached membership. Standalone or copied library objects do not invoke the original UI provider; their explicit synchronous evaluation remains available. The app's ordinary library projection does not enable the engine's separate explicit disk-check query mode.
+
+This adds memory for demanded path keys/observations and allows temporary pending or stale display states while I/O finishes. Filesystem cancellation remains subject to driver support. No runtime latency or memory improvement has been measured.
+
+Validation: the final native app compiled and linked without compiler warnings. Registered unit and persistence regression sources passed syntax-only compilation. New unrun availability cases cover asynchronous lookup, path deduplication, stale refreshes, independent workers, cancellation/reset, cache bounds, exception backoff, view/aggregate invalidation, original observation expiry, copied models and real file/directory distinctions.
+
+## Scope and verification audit
+
+| Requested opportunity | Current source evidence | Validation boundary |
+|---|---|---|
+| Background folder rediscovery | `AppFileOps.cpp` schedules `PrepareFolderRediscovery`; startup and folder-view entry call that worker path. Application uses guarded `ApplyFolderRediscovery`. | Native build and registered regression source compile; no discovery operation executed. |
+| Duplicate import fingerprints | `MediaImportProbeCache.h` verifies size, timestamp and identity; both media serializers/loaders preserve the stamp. `AppImportJobs.cpp` uses guarded `MergeImportedMedia` and skips unchanged saves. | Native build and unrun fingerprint regression source compile. |
+| Durable incremental saving | `LibraryIncrementalStore.h` validates bounded changes and recovery; `WriteLibrarySaveSnapshot` selects delta/full publication. Close/reload call `RequestCheckpoint`. Portable manifest includes `library.changes`. | Native build plus unit and persistence syntax checks; crash recovery and disk-failure cases are unrun. |
+| Background watch registration | App callers use `SetWatchedFoldersAsync`; directory registration and retirement occur on the worker. Close requests cancellation and waits for worker completion. | Native build and unrun concurrency regression source compile. |
+| Shared background availability | `BackgroundPathAvailability.h` owns bounded batches; smart playlists and card badges use cached observations. Completion invalidates affected memberships and redraws. | Native build and unrun cache/concurrency regression source compile. |
+
+All implementation work in this follow-up is complete. Tests, benchmarks and application launches were not run, as requested. Runtime correctness, workload timings and memory measurements remain for the user's validation; compilation is not evidence of measured speedups. No release was published.

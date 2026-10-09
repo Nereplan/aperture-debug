@@ -12,10 +12,16 @@ namespace Aperture {
 
 // --- Path & File Helpers ---
 enum class PathAvailability { Present, Missing, Unavailable };
-inline PathAvailability QueryPathAvailability(const std::wstring& path, DWORD* error = nullptr) {
+struct PathAvailabilityObservation {
+    PathAvailability value = PathAvailability::Unavailable;
+    ULONGLONG checkedAtTick = 0;
+    bool known = false, isDirectory = false;
+};
+inline PathAvailability QueryPathAvailability(const std::wstring& path, DWORD* error = nullptr, DWORD* attributes = nullptr) {
     const DWORD attr = GetFileAttributesW(path.c_str());
     const DWORD err = attr == INVALID_FILE_ATTRIBUTES ? GetLastError() : ERROR_SUCCESS;
     if (error) *error = err;
+    if (attributes) *attributes = attr;
     if (attr != INVALID_FILE_ATTRIBUTES) return PathAvailability::Present;
     return err == ERROR_FILE_NOT_FOUND || err == ERROR_PATH_NOT_FOUND
         ? PathAvailability::Missing : PathAvailability::Unavailable;

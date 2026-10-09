@@ -4,6 +4,8 @@
 
 This pass reduces repeated work in saving, searching, smart playlists, watched-folder updates and metadata backfill. It does not claim measured latency or memory improvements: the user requested no tests or benchmarks. The metadata follow-up starts from `91b9ccd`.
 
+The remaining opportunities described below were subsequently implemented in the [backend optimization follow-up](BACKEND_REMAINING_WORK.md). This report records the earlier pass and its validation boundary.
+
 ## Saving
 
 Save requests now coalesce before the UI captures its immutable snapshot: 100 ms of quiet, bounded by 500 ms of continuous requests. Close and reload barriers force capture. The writer flushes an admitted snapshot without another debounce interval.

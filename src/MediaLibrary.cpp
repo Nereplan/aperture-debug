@@ -1927,6 +1927,14 @@ const std::vector<std::wstring>& MediaLibrary::GetPlaylistPathsRef(const Playlis
     return ResolvePlaylistPaths(playlist).paths;
 }
 
+void MediaLibrary::InvalidateAvailabilityViews() const {
+    for (auto it = smartPathsCache.begin(); it != smartPathsCache.end();) {
+        if (!it->second.availabilityDependent) { ++it; continue; }
+        playlistStatsCache.erase(it->first);
+        it = smartPathsCache.erase(it);
+    }
+}
+
 MediaLibrary::PlaylistPathsView MediaLibrary::ResolvePlaylistPaths(const Playlist& playlist) const {
     if (!playlist.IsSmart()) return { playlist.itemPaths, revisions.playlists };
     auto it = smartPathsCache.find(playlist.id);
@@ -1944,6 +1952,7 @@ MediaLibrary::PlaylistPathsView MediaLibrary::ResolvePlaylistPaths(const Playlis
     entry.evaluatedAtSec = nowSec;
     entry.timeDependent = plan.DependsOnTime();
     entry.playbackDependent = plan.DependsOnPlayback();
+    entry.availabilityDependent = plan.RequiresAvailability();
     entry.paths = EvaluatePreparedSmartPlaylist(plan, entry.expiresAtTick, entry.expiresAtSec);
     entry.revisions = revisions;
     entry.generation = ++smartPathsGeneration;
@@ -1972,7 +1981,9 @@ std::vector<std::wstring> MediaLibrary::EvaluatePreparedSmartPlaylist(const Prep
     expiresAtSec = (std::numeric_limits<int64_t>::max)();
     if (!plan.IsValid()) return {};
     ++smartPlaylistEvaluationCount;
-    if (plan.RequiresAvailability() && useAvailabilityCache &&
+    const bool background = availabilityProvider && availabilityProviderOwner == this &&
+        availabilityProviderThread == std::this_thread::get_id();
+    if (plan.RequiresAvailability() && !background && useAvailabilityCache &&
         (smartAvailabilityCatalog != revisions.catalog || smartAvailability.size() != mediaItems.size())) {
         smartAvailability.assign(mediaItems.size(), SmartAvailabilityEntry{});
         smartAvailabilityCatalog = revisions.catalog;
@@ -1987,6 +1998,18 @@ std::vector<std::wstring> MediaLibrary::EvaluatePreparedSmartPlaylist(const Prep
         // Unavailable storage has unknown state, not a confirmed missing file.
         bool exists = true;
         if (plan.RequiresAvailability()) {
+          if (background) {
+            const auto observation = availabilityProvider(item.filePath);
+            // Expired observations are refreshed asynchronously. Give the view
+            // a future deadline while it waits rather than re-evaluating on
+            // every frame; completed observations invalidate it explicitly.
+            const auto now = GetTickCount64();
+            const auto deadline = observation.known && now - observation.checkedAtTick < kSmartAvailabilityCacheTtlMs
+                ? observation.checkedAtTick + kSmartAvailabilityCacheTtlMs : now + kSmartAvailabilityCacheTtlMs;
+            expiresAtTick = (std::min)(expiresAtTick, deadline);
+            if (!observation.known || observation.value == PathAvailability::Unavailable) continue;
+            exists = observation.value == PathAvailability::Present;
+          } else {
             SmartAvailabilityEntry uncached;
             auto& entry = useAvailabilityCache ? smartAvailability[i] : uncached;
             const ULONGLONG now = GetTickCount64();
@@ -2000,6 +2023,7 @@ std::vector<std::wstring> MediaLibrary::EvaluatePreparedSmartPlaylist(const Prep
             expiresAtTick = (std::min)(expiresAtTick, entry.checkedAtTick + kSmartAvailabilityCacheTtlMs);
             if (entry.value == PathAvailability::Unavailable) continue;
             exists = entry.value == PathAvailability::Present;
+          }
         }
         if (exists ? possible.present : possible.missing) matched.push_back(&item);
     }

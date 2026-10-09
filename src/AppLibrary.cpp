@@ -164,6 +164,9 @@ void App::CancelInitialLibraryLoad() {
 
 void App::InvalidateLibraryDerivedState() {
     // Replacement/undo can restore an older object with coincident counters.
+    pathAvailability.Clear();
+    pathAvailability.SetLibrarySize(library.mediaItems.size());
+    library.SetAvailabilityProvider([this](const auto& path) { return pathAvailability.Lookup(path); });
     folderRediscoveryJob.Cancel();
     folderRediscoveryActive = folderRediscoveryFeedback = folderRediscoveryAgain = false;
     backfillCursor.Reset();
@@ -180,7 +183,6 @@ void App::InvalidateLibraryDerivedState() {
     cachedSearchKeyPlaylistId.clear();
     cachedVisiblePlaylistIndices.clear();
     cachedPlaylistSearchKeys.clear();
-    m_missingFileCache.clear();
     globalSearchModel.GetIndex().Invalidate();
     if (globalSearchModel.IsOpen()) globalSearchModel.SetQuery(globalSearchModel.GetQuery(), library, true);
 }
