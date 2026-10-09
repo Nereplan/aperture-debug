@@ -3568,11 +3568,11 @@ void UIComponents::DrawHistoryList(Renderer& r, const Settings& s, const History
     } else {
         static const std::vector<HistoryRecord> kEmptyHistory;
         auto proj = ProjectHistoryTimeline(vm.pHistory ? *vm.pHistory : kEmptyHistory);
-        float headerY = vm.bounds.top + kHistoryContentInset * dp - vm.scrollY;
+        float groupHeaderY = vm.bounds.top + kHistoryContentInset * dp - vm.scrollY;
         for (size_t g = 0; g < proj.groups.size(); ++g) {
             HistoryGroupSummary grp = proj.groups[g];
-            const HistoryGroupLayout layout(headerY, grp.count, dp);
-            headerY = layout.NextHeaderTop();
+            const HistoryGroupLayout layout(groupHeaderY, grp.count, dp);
+            groupHeaderY = layout.NextHeaderTop();
             grp.headerRect = D2D1::RectF(vm.bounds.left + 12.0f * dp, layout.headerTop,
                 vm.bounds.right - 24.0f * dp, layout.headerTop + layout.headerHeight);
             if (grp.headerRect.bottom >= clip.top && grp.headerRect.top <= clip.bottom) { DrawHistoryGroupHeader(r, s, grp); }

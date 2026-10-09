@@ -56,6 +56,14 @@ inline StorageStatus CreateRotatingBackup(const std::wstring& filePath, size_t m
         DWORD err = GetLastError();
         return StorageStatus::Error(StorageErrorCode::FileWriteFailed, err, bak1, "Failed to copy file to backup");
     }
+    // CopyFile inherits the source's read-only flag. Our new recovery copy
+    // must remain rotatable after the source becomes writable again.
+    const DWORD backupAttributes = GetFileAttributesW(bak1.c_str());
+    if (backupAttributes == INVALID_FILE_ATTRIBUTES)
+        return StorageStatus::Error(StorageErrorCode::FileReadFailed, GetLastError(), bak1, "Cannot inspect new recovery copy");
+    if ((backupAttributes & FILE_ATTRIBUTE_READONLY) &&
+        !SetFileAttributesW(bak1.c_str(), backupAttributes & ~FILE_ATTRIBUTE_READONLY))
+        return StorageStatus::Error(StorageErrorCode::FileWriteFailed, GetLastError(), bak1, "Cannot make new recovery copy rotatable");
     // Byte ceiling in addition to the count limit: a multi-megabyte library could otherwise make 3x backups dominate the portable folder.
     // The 32 MiB target prunes older generations. The newest recovery copy of
     // every store is protected even when those essential copies exceed it.
