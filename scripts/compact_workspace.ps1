@@ -24,7 +24,7 @@ foreach ($relative in @('vc140.pdb', 'debug/Aperture.Release.exe', 'release/Aper
     $path = Join-Path $root $relative
     if (Test-Path -LiteralPath $path -PathType Leaf) { $candidates.Add($path) }
 }
-foreach ($relative in @('scratch', 'cache', 'debug/cache')) {
+foreach ($relative in @('scratch', 'cache', 'debug/cache', 'release/cache')) {
     $dir = Join-Path $root $relative
     if (-not (Test-Path -LiteralPath $dir)) { continue }
     foreach ($file in Get-ChildItem -LiteralPath $dir -File -Recurse -Force) {
@@ -33,6 +33,9 @@ foreach ($relative in @('scratch', 'cache', 'debug/cache')) {
             $file.Name -in @('query-benchmark.exe', 'Aperture.exe')
         if ($isCache -or $isBuildOutput) { $candidates.Add($file.FullName) }
     }
+}
+foreach ($file in Get-ChildItem -LiteralPath $root -Filter '*.pyc' -Recurse -Force -ErrorAction SilentlyContinue) {
+    $candidates.Add($file.FullName)
 }
 $plan = @($candidates | Sort-Object -Unique | ForEach-Object {
     $full = Assert-LocalFile $_
@@ -47,5 +50,8 @@ if ($Apply) {
         $full = Assert-LocalFile $entry.Path
         Remove-Item -LiteralPath $full -Force
     }
+    Get-ChildItem -LiteralPath $root -Directory -Filter '__pycache__' -Recurse -Force -ErrorAction SilentlyContinue |
+        Where-Object { (Get-ChildItem -LiteralPath $_.FullName -Force).Count -eq 0 } |
+        ForEach-Object { Remove-Item -LiteralPath $_.FullName -Force -Recurse }
     Write-Host ("Removed {0:N2} MiB. Source, reports, profiles and backups retained." -f ($bytes / 1MB))
 } else { Write-Host 'Dry run. Use -Apply to remove only these files.' }

@@ -14,7 +14,7 @@ The [portable-data manifest](portable_data_manifest.json) and [threat-boundary m
 
 ## Reports
 
-Read the most recent report relevant to the subsystem. Measurements with different baselines or workloads cannot be added together into a single performance percentage.
+Read the most recent report relevant to the subsystem in the [reports index](reports/README.md). Measurements with different baselines or workloads cannot be added together into a single performance percentage.
 
 | Report | Scope |
 |---|---|
