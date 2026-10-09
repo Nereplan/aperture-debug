@@ -1,0 +1,72 @@
+[
+  {
+    "mode": "remove-500-half",
+    "samplesPerVersion": 7,
+    "beforeMedianMs": 1.412,
+    "afterMedianMs": 1.3702,
+    "timeReductionPercent": 2.9603399433427646,
+    "beforePeakCppBytes": 242725.0,
+    "afterPeakCppBytes": 242725.0,
+    "beforeAllocations": 3508.0,
+    "afterAllocations": 3508.0,
+    "items": "500",
+    "changed": "250",
+    "resultHash": "6332800545376029723"
+  },
+  {
+    "mode": "remove-25000-sparse",
+    "samplesPerVersion": 7,
+    "beforeMedianMs": 70.2866,
+    "afterMedianMs": 71.6722,
+    "timeReductionPercent": -1.971357271514053,
+    "beforePeakCppBytes": 8414768.0,
+    "afterPeakCppBytes": 8414768.0,
+    "beforeAllocations": 175007.0,
+    "afterAllocations": 175007.0,
+    "items": "25000",
+    "changed": "50",
+    "resultHash": "2932922666078682171"
+  },
+  {
+    "mode": "remove-25000-half",
+    "samplesPerVersion": 7,
+    "beforeMedianMs": 75.8328,
+    "afterMedianMs": 77.3533,
+    "timeReductionPercent": -2.0050690466394467,
+    "beforePeakCppBytes": 12024725.0,
+    "afterPeakCppBytes": 12024725.0,
+    "beforeAllocations": 175013.0,
+    "afterAllocations": 175013.0,
+    "items": "25000",
+    "changed": "12500",
+    "resultHash": "4279082087833974361"
+  },
+  {
+    "mode": "evict-25000-one",
+    "samplesPerVersion": 7,
+    "beforeMedianMs": 2.8262,
+    "afterMedianMs": 2.7763,
+    "timeReductionPercent": 1.7656216828249967,
+    "beforePeakCppBytes": 201911.0,
+    "afterPeakCppBytes": 201895.0,
+    "beforeAllocations": 10.0,
+    "afterAllocations": 10.0,
+    "items": "25000",
+    "changed": "1",
+    "resultHash": "13785246425763172489"
+  },
+  {
+    "mode": "evict-25000-100",
+    "samplesPerVersion": 7,
+    "beforeMedianMs": 7.6777,
+    "afterMedianMs": 7.1924,
+    "timeReductionPercent": 6.32090339554814,
+    "beforePeakCppBytes": 201911.0,
+    "afterPeakCppBytes": 201895.0,
+    "beforeAllocations": 802.0,
+    "afterAllocations": 802.0,
+    "items": "25000",
+    "changed": "100",
+    "resultHash": "5135172248409803668"
+  }
+]

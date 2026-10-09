@@ -1,0 +1,145 @@
+[
+  {
+    "mode": "0",
+    "items": "25000",
+    "samplesPerVersion": 21,
+    "beforeMedianMs": 14.209,
+    "afterMedianMs": 13.587,
+    "reductionPercent": 4.38,
+    "beforePeakCppBytes": 8654517.0,
+    "afterPeakCppBytes": 8654517.0,
+    "resultHash": "3887941111447873229"
+  },
+  {
+    "mode": "1",
+    "items": "25000",
+    "samplesPerVersion": 21,
+    "beforeMedianMs": 21.892,
+    "afterMedianMs": 22.422,
+    "reductionPercent": -2.42,
+    "beforePeakCppBytes": 9049674.0,
+    "afterPeakCppBytes": 9049674.0,
+    "resultHash": "14064243531747278525"
+  },
+  {
+    "mode": "10",
+    "items": "50",
+    "samplesPerVersion": 21,
+    "beforeMedianMs": 5.627,
+    "afterMedianMs": 5.787,
+    "reductionPercent": -2.84,
+    "beforePeakCppBytes": 16231.0,
+    "afterPeakCppBytes": 16231.0,
+    "resultHash": "18216606917897658675"
+  },
+  {
+    "mode": "11",
+    "items": "50",
+    "samplesPerVersion": 21,
+    "beforeMedianMs": 3.543,
+    "afterMedianMs": 3.938,
+    "reductionPercent": -11.15,
+    "beforePeakCppBytes": 16935.0,
+    "afterPeakCppBytes": 16935.0,
+    "resultHash": "17520420770283918933"
+  },
+  {
+    "mode": "12",
+    "items": "0",
+    "samplesPerVersion": 21,
+    "beforeMedianMs": 2.393,
+    "afterMedianMs": 0.001,
+    "reductionPercent": 99.96,
+    "beforePeakCppBytes": 928.0,
+    "afterPeakCppBytes": 160.0,
+    "resultHash": "14695981039346656037"
+  },
+  {
+    "mode": "2",
+    "items": "25000",
+    "samplesPerVersion": 21,
+    "beforeMedianMs": 26.896,
+    "afterMedianMs": 28.02,
+    "reductionPercent": -4.18,
+    "beforePeakCppBytes": 8952714.0,
+    "afterPeakCppBytes": 8952714.0,
+    "resultHash": "18385957098797748877"
+  },
+  {
+    "mode": "3",
+    "items": "50",
+    "samplesPerVersion": 21,
+    "beforeMedianMs": 0.747,
+    "afterMedianMs": 0.697,
+    "reductionPercent": 6.69,
+    "beforePeakCppBytes": 802719.0,
+    "afterPeakCppBytes": 802719.0,
+    "resultHash": "18252797214864490390"
+  },
+  {
+    "mode": "4",
+    "items": "25000",
+    "samplesPerVersion": 21,
+    "beforeMedianMs": 6.679,
+    "afterMedianMs": 6.611,
+    "reductionPercent": 1.02,
+    "beforePeakCppBytes": 8654517.0,
+    "afterPeakCppBytes": 8654517.0,
+    "resultHash": "16529484153980573085"
+  },
+  {
+    "mode": "5",
+    "items": "50",
+    "samplesPerVersion": 21,
+    "beforeMedianMs": 0.449,
+    "afterMedianMs": 0.574,
+    "reductionPercent": -27.84,
+    "beforePeakCppBytes": 205639.0,
+    "afterPeakCppBytes": 205639.0,
+    "resultHash": "18216606917897658675"
+  },
+  {
+    "mode": "6",
+    "items": "50",
+    "samplesPerVersion": 21,
+    "beforeMedianMs": 0.421,
+    "afterMedianMs": 0.486,
+    "reductionPercent": -15.44,
+    "beforePeakCppBytes": 16071.0,
+    "afterPeakCppBytes": 16071.0,
+    "resultHash": "1621705931885563205"
+  },
+  {
+    "mode": "7",
+    "items": "24000",
+    "samplesPerVersion": 21,
+    "beforeMedianMs": 12.946,
+    "afterMedianMs": 13.294,
+    "reductionPercent": -2.69,
+    "beforePeakCppBytes": 8127278.0,
+    "afterPeakCppBytes": 8127278.0,
+    "resultHash": "2870827262583812293"
+  },
+  {
+    "mode": "8",
+    "items": "25000",
+    "samplesPerVersion": 21,
+    "beforeMedianMs": 2.028,
+    "afterMedianMs": 2.577,
+    "reductionPercent": -27.07,
+    "beforePeakCppBytes": 0.0,
+    "afterPeakCppBytes": 0.0,
+    "resultHash": "5489961046923757933"
+  },
+  {
+    "mode": "9",
+    "items": "50",
+    "samplesPerVersion": 21,
+    "beforeMedianMs": 43.018,
+    "afterMedianMs": 43.83,
+    "reductionPercent": -1.89,
+    "beforePeakCppBytes": 16909023.0,
+    "afterPeakCppBytes": 17109023.0,
+    "resultHash": "1621705931885563205"
+  }
+]

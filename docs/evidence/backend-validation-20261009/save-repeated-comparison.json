@@ -1,0 +1,90 @@
+[
+  {
+    "mode": "0",
+    "items": "25000",
+    "samplesPerVersion": 21,
+    "beforeMedianMs": 139.644,
+    "afterMedianMs": 144.469,
+    "reductionPercent": -3.46,
+    "beforePeakCppBytes": 44148631.0,
+    "afterPeakCppBytes": 44749112.0,
+    "resultHash": "13353129619659467689"
+  },
+  {
+    "mode": "1",
+    "items": "25000",
+    "samplesPerVersion": 21,
+    "beforeMedianMs": 7.668,
+    "afterMedianMs": 7.592,
+    "reductionPercent": 0.99,
+    "beforePeakCppBytes": 1600.0,
+    "afterPeakCppBytes": 1568.0,
+    "resultHash": "13353129619659467689"
+  },
+  {
+    "mode": "2",
+    "items": "25000",
+    "samplesPerVersion": 21,
+    "beforeMedianMs": 108.119,
+    "afterMedianMs": 24.179,
+    "reductionPercent": 77.64,
+    "beforePeakCppBytes": 20138506.0,
+    "afterPeakCppBytes": 20538923.0,
+    "resultHash": "17246791759775021839"
+  },
+  {
+    "mode": "3",
+    "items": "25000",
+    "samplesPerVersion": 21,
+    "beforeMedianMs": 377.421,
+    "afterMedianMs": 365.257,
+    "reductionPercent": 3.22,
+    "beforePeakCppBytes": 68215453.0,
+    "afterPeakCppBytes": 68215509.0,
+    "resultHash": "13353129619659467689"
+  },
+  {
+    "mode": "0",
+    "items": "500",
+    "samplesPerVersion": 21,
+    "beforeMedianMs": 15.709,
+    "afterMedianMs": 15.471,
+    "reductionPercent": 1.52,
+    "beforePeakCppBytes": 993957.0,
+    "afterPeakCppBytes": 1006438.0,
+    "resultHash": "6986250780404406989"
+  },
+  {
+    "mode": "1",
+    "items": "500",
+    "samplesPerVersion": 21,
+    "beforeMedianMs": 0.36,
+    "afterMedianMs": 0.315,
+    "reductionPercent": 12.5,
+    "beforePeakCppBytes": 1600.0,
+    "afterPeakCppBytes": 1568.0,
+    "resultHash": "6986250780404406989"
+  },
+  {
+    "mode": "2",
+    "items": "500",
+    "samplesPerVersion": 21,
+    "beforeMedianMs": 5.667,
+    "afterMedianMs": 4.185,
+    "reductionPercent": 26.15,
+    "beforePeakCppBytes": 171018.0,
+    "afterPeakCppBytes": 179643.0,
+    "resultHash": "5315837825685257211"
+  },
+  {
+    "mode": "3",
+    "items": "500",
+    "samplesPerVersion": 21,
+    "beforeMedianMs": 26.856,
+    "afterMedianMs": 28.735,
+    "reductionPercent": -7.0,
+    "beforePeakCppBytes": 1731309.0,
+    "afterPeakCppBytes": 1731365.0,
+    "resultHash": "6986250780404406989"
+  }
+]

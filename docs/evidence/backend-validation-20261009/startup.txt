@@ -1,0 +1,33 @@
+================================================================================
+  Aperture Startup & Resource Benchmark Gate
+================================================================================
+Configuration: Release (x64) | Samples: 5 (Warmup: 1)
+Using pre-built binary: C:\Users\Alperen\AppData\Local\Temp\aperture-validation-20261009\Aperture.exe
+
+[2/3] Staging runtime dependencies into isolated test folder: C:\Users\Alperen\Desktop\Antigravity\Aperture Final\scratch\bench-stage\aa4d3022e2f34415a3be7a62ecd90fd2\stage
+
+[3/3] Executing benchmark passes...
+  [Warmup 1/1] Running unmeasured warmup pass...
+  Sample 1/5: GPU shell: 31.35 ms (Shown: 18.83 ms, populated: 244.07 ms) | WorkingSet: 55.33 MiB (Peak: 56.15 MiB) | Private: 59.07 MiB
+  Sample 2/5: GPU shell: 33.73 ms (Shown: 20.58 ms, populated: 259.82 ms) | WorkingSet: 55.20 MiB (Peak: 56.04 MiB) | Private: 58.58 MiB
+  Sample 3/5: GPU shell: 34.13 ms (Shown: 21.00 ms, populated: 257.25 ms) | WorkingSet: 54.75 MiB (Peak: 55.57 MiB) | Private: 58.93 MiB
+  Sample 4/5: GPU shell: 34.47 ms (Shown: 21.11 ms, populated: 251.10 ms) | WorkingSet: 55.01 MiB (Peak: 55.85 MiB) | Private: 58.93 MiB
+  Sample 5/5: GPU shell: 40.71 ms (Shown: 27.00 ms, populated: 254.67 ms) | WorkingSet: 55.04 MiB (Peak: 55.88 MiB) | Private: 59.36 MiB
+
+================================================================================
+  Aperture Benchmark Results & Regression Verification
+================================================================================
+Status: PASS
+
+Metric                       |     Median |     Target | Max Budget |     StdDev |  Verdict
+--------------------------------------------------------------------------------------
+Startup Latency              |    34.13 ms |   600.00 ms | 1,500.00 ms |     3.48 ms |     PASS
+Window Shown Latency         |    21.00 ms |   300.00 ms | 1,000.00 ms |     3.10 ms |     PASS
+Populated Library Frame      |   254.67 ms | observed   | observed   |     6.12 ms |    READY
+Working Set                  |    55.04 MB |    90.00 MB |   150.00 MB |     0.22 MB |     PASS
+Peak Working Set             |    55.88 MB |   100.00 MB |   160.00 MB |     0.22 MB |     PASS
+Private Bytes                |    58.93 MB |   120.00 MB |   180.00 MB |     0.28 MB |     PASS
+Peak Private Bytes           |    59.63 MB |   130.00 MB |   190.00 MB |     0.28 MB |     PASS
+--------------------------------------------------------------------------------------
+GDI Objects: 18 (Max: 100) | User Objects: 17 (Max: 100) | Processes: 1 (Max: 1)
+================================================================================

@@ -1,0 +1,113 @@
+================================================================================
+  Aperture Test Runner: Executing 20 suite(s)
+================================================================================
+
+>>> [Suite: local_release] Local Release Publishing (Tier: pr, Category: package)
+    Script: tests\package\test_local_release.ps1 | Cleanup: isolated_temp | Timeout: 60s
+<<< [PASS] local_release (3.62s)
+
+>>> [Suite: github_update] GitHub Release Update Workflow (Tier: pr, Category: package)
+    Script: tests\package\test_github_update.ps1 | Cleanup: isolated_temp | Timeout: 60s
+<<< [PASS] github_update (3.3s)
+
+>>> [Suite: update_retention] Release Update and Data Retention (Tier: pr, Category: package)
+    Script: tests\package\test_update_retention.ps1 | Cleanup: isolated_temp | Timeout: 60s
+<<< [PASS] update_retention (4.23s)
+
+>>> [Suite: workspace_cleanup] Workspace Cleanup Behavior (Tier: pr, Category: package)
+    Script: tests\package\test_workspace_cleanup.ps1 | Cleanup: isolated_temp | Timeout: 60s
+<<< [PASS] workspace_cleanup (1.86s)
+
+>>> [Suite: workflows] Seeded Library and Portable Profile Workflows (Tier: pr, Category: integration)
+    Script: tests\workflows\run_tests.ps1 | Cleanup: isolated_temp | Timeout: 240s
+<<< [PASS] workflows (49.03s)
+
+>>> [Suite: unit] Unit Tests (Tier: pr, Category: unit)
+    Script: tests\unit\run_tests.ps1 | Cleanup: isolated_temp | Timeout: 300s
+<<< [FAIL] unit (exit code: 1, 75.64s)
+
+>>> [Suite: corpus] Parser & Media Corpus Tests (Tier: pr, Category: corpus)
+    Script: tests\corpus\run_tests.ps1 | Cleanup: isolated_temp | Timeout: 180s
+<<< [PASS] corpus (7.05s)
+
+>>> [Suite: persistence] Persistence Tests (Tier: pr, Category: persistence)
+    Script: tests\persistence\run_tests.ps1 | Cleanup: isolated_temp | Timeout: 180s
+<<< [PASS] persistence (10.69s)
+
+>>> [Suite: ipc] IPC Tests (Tier: pr, Category: ipc)
+    Script: tests\ipc\run_tests.ps1 | Cleanup: isolated_temp | Timeout: 120s
+<<< [PASS] ipc (4.07s)
+
+>>> [Suite: loader] DLL Loader Tests (Tier: pr, Category: loader)
+    Script: tests\loader\run_tests.ps1 | Cleanup: isolated_temp | Timeout: 120s
+<<< [PASS] loader (25.86s)
+
+>>> [Suite: diagnostics] Diagnostics Tests (Tier: pr, Category: diagnostics)
+    Script: tests\diagnostics\run_tests.ps1 | Cleanup: isolated_temp | Timeout: 180s
+<<< [PASS] diagnostics (26.19s)
+
+>>> [Suite: updater] Self-Updater Deterministic Tests (Tier: pr, Category: updater)
+    Script: tests\updater\run_tests.ps1 | Cleanup: isolated_temp | Timeout: 180s
+<<< [PASS] updater (19.06s)
+
+>>> [Suite: channel_policy] Release Channel Policy & Schema Validation (Tier: pr, Category: package)
+    Script: scripts\validate_channel_policy.ps1 | Cleanup: no_artifacts | Timeout: 30s
+<<< [PASS] channel_policy (0.65s)
+
+>>> [Suite: dependencies] Dependency Inventory & Integrity Check (Tier: pr, Category: package)
+    Script: scripts\check_dependencies.ps1 | Cleanup: no_artifacts | Timeout: 60s
+<<< [PASS] dependencies (1.25s)
+
+>>> [Suite: runtime_layout] Runtime-Only Release Layout Tests (Tier: pr, Category: package)
+    Script: tests\package\test_runtime_layout.ps1 | Cleanup: isolated_temp | Timeout: 30s
+<<< [PASS] runtime_layout (1.21s)
+
+>>> [Suite: threat_boundaries] Threat Boundary & Security Invariant Validation (Tier: pr, Category: hardening)
+    Script: scripts\validate_threat_boundaries.py | Cleanup: no_artifacts | Timeout: 30s
+<<< [PASS] threat_boundaries (0.26s)
+
+>>> [Suite: static_analysis] MSVC C++17 Native Static Code Analysis Gate (Tier: pr, Category: static_analysis)
+    Script: scripts\run_static_analysis.ps1 | Cleanup: isolated_temp | Timeout: 600s
+<<< [FAIL] static_analysis (exit code: 1, 82.19s)
+
+>>> [Suite: stress] Async Shutdown Stress Suite (Tier: pr, Category: stress)
+    Script: tests\stress\run_tests.ps1 | Cleanup: isolated_temp | Timeout: 180s
+<<< [PASS] stress (105.19s)
+
+>>> [Suite: media_probe_isolation] Native Media Probe Isolation and Cancellation (Tier: pr, Category: stress)
+    Script: tests\native\run_media_probe_isolation.ps1 | Cleanup: isolated_temp | Timeout: 120s
+<<< [PASS] media_probe_isolation (12.52s)
+
+>>> [Suite: thumbnail_cache] Thumbnail Cache Workflows (Tier: pr, Category: persistence)
+    Script: tests\thumbnails\run_tests.ps1 | Cleanup: isolated_temp | Timeout: 120s
+<<< [PASS] thumbnail_cache (21.53s)
+
+================================================================================
+  Test Execution Summary
+================================================================================
+
+Suite                 Tier Category        Result Duration ExitCode
+-----                 ---- --------        ------ -------- --------
+local_release         pr   package         PASS   3.62s           0
+github_update         pr   package         PASS   3.3s            0
+update_retention      pr   package         PASS   4.23s           0
+workspace_cleanup     pr   package         PASS   1.86s           0
+workflows             pr   integration     PASS   49.03s          0
+unit                  pr   unit            FAIL   75.64s          1
+corpus                pr   corpus          PASS   7.05s           0
+persistence           pr   persistence     PASS   10.69s          0
+ipc                   pr   ipc             PASS   4.07s           0
+loader                pr   loader          PASS   25.86s          0
+diagnostics           pr   diagnostics     PASS   26.19s          0
+updater               pr   updater         PASS   19.06s          0
+channel_policy        pr   package         PASS   0.65s           0
+dependencies          pr   package         PASS   1.25s           0
+runtime_layout        pr   package         PASS   1.21s           0
+threat_boundaries     pr   hardening       PASS   0.26s           0
+static_analysis       pr   static_analysis FAIL   82.19s          1
+stress                pr   stress          PASS   105.19s         0
+media_probe_isolation pr   stress          PASS   12.52s          0
+thumbnail_cache       pr   persistence     PASS   21.53s          0
+
+
+Total Suites: 20 | Passed: 18 | Failed: 2 (Timeouts: 0) | Total Time: 455.45s

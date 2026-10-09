@@ -2,7 +2,9 @@
 
 8-9 October 2026. Starting source: `39e853a`. Follow-up to [Backend work reduction](BACKEND_WORK_REDUCTION.md).
 
-The requested scope is the remaining opportunities in that report: background folder rediscovery, persisted fingerprints for duplicate imports, incremental durable saving, and the remaining synchronous availability work. Tests, benchmarks and application launches remain excluded by the user's instruction. Compilation and source review do not establish runtime speedups.
+The requested scope is the remaining opportunities in that report: background folder rediscovery, persisted fingerprints for duplicate imports, incremental durable saving, and the remaining synchronous availability work. At implementation time, tests, benchmarks and application launches were excluded by the user's instruction. Compilation and source review do not establish runtime speedups.
+
+Follow-up: the user subsequently authorized runtime validation. See [9 October validation and benchmarks](BACKEND_VALIDATION_20261009.md) for passing regression rechecks, the save-retry fix, measured gains and remaining regressions. The validation notes below describe the original implementation-time boundary.
 
 | Workstream | Current state |
 |---|---|
