@@ -866,7 +866,7 @@ void App::BeginClose() {
     }
     if (playbackSession.IsPiP()) PersistPiPGeometry(); else PersistWindowPlacement();
     SaveAll(); ReportLibrarySaveResult(SubmitPendingLibrarySave());
-    closeSaveSerial = librarySaveWorker.RequestFlush();
+    closeSaveSerial = librarySaveWorker.RequestCheckpoint();
     libraryLoadCancelRequested.store(true, std::memory_order_release);
     librarySnapshotMailbox.Cancel();
     if (libraryLoadWorker.joinable()) CancelSynchronousIo(libraryLoadWorker.native_handle());

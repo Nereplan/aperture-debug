@@ -28,7 +28,7 @@ Durable files are updated using a two-phase commit:
 
 ### 2.2 Rotating Backups (`CreateRotatingBackup`)
 
-Before overwriting critical state files (`settings.json`, `library.json`, `playlists.json`, `history.json`, `watched_folders.json`, `session.json`, `mpv.conf`), Aperture creates rotating backups in `<rootDir>\data\backups\`:
+Before overwriting critical state files (`settings.json`, `library.json`, `library.changes`, `playlists.json`, `history.json`, `watched_folders.json`, `session.json`, `mpv.conf`), Aperture creates rotating backups in `<rootDir>\data\backups\`:
 - Backups are indexed from `.bak.1` (most recent) to `.bak.N` (oldest).
 - On each save, `.bak.N-1` is moved to `.bak.N`, and the current live file is copied to `.bak.1`.
 - The default retention window is 3 backups (up to 5 for settings restoration).
@@ -98,6 +98,18 @@ Storage operations return `StorageStatus` containing:
 | From | To | Transformation |
 |:---:|:---:|:---|
 | `v0`/`v1` | `v2` | Legacy format was a bare JSON array `[ { ...item } ]`. Migrated to root JSON object `{ "schemaVersion": 2, "items": [ ... ] }`. If root was an empty object without `"items"`, an empty array is created. |
+
+---
+
+### 3.2.1 Incremental library changes (`data\library.changes`)
+
+- **Format version**: `1` (`LibraryIncrementalStore::kFormatVersion`). This file is durable library data, not a cache. Copy it with `library.json` when copying a running or interrupted profile.
+- **Contents**: an `ApertureLibraryChanges:1` header, a SHA-256 checksum line, and a JSON payload. The payload names the exact checkpoint by SHA-256 and byte length, supplies the current item count, and replaces record slots with complete serialized records. Slot addressing also supports duplicate or empty item IDs. Unknown item properties and relative paths use the normal media serializer.
+- **Bounds**: at most 512 changed records and 1 MiB, and no more than one quarter of the checkpoint's bytes. Libraries below 16 KiB use full writes. Larger changes fall back to a full checkpoint.
+- **Commit**: replace the complete bounded changes file atomically after a successful flush, retaining up to three rotating copies. The writer keeps its prior generation on failure. Full checkpoints preserve the latest changes in backups before publishing the new `library.json`; checkpoints carry a fresh identifier so obsolete changes cannot become applicable after a value reversion.
+- **Recovery**: validate the checksum, bounds and record slots before applying anything. A corrupt changes file can recover from a valid copy for the exact checkpoint. If the library checkpoint was itself recovered, matching changes backups are considered even when no active changes file remains. Missing checkpoints with active changes, unreadable changes, invalid changes without recovery, and future format versions protect the library from saving. A valid changes file for a different checkpoint is ignored.
+- **Compatibility**: normal close and library reload request a full checkpoint, then remove the superseded changes file. Earlier builds can read the resulting schema-2 JSON. After an interrupted session, open and close with a build supporting this format before downgrading; earlier builds cannot apply pending changes. Synchronous `MediaLibrary::Save` continues to publish a full legacy-array document.
+- **Backup restoration**: retain the matching `library.changes` backup with a restored checkpoint when recovering recent changes. Matching uses content digests rather than backup-number alignment. To intentionally restore the bare checkpoint alone, move aside the active changes file before launch.
 
 ---
 

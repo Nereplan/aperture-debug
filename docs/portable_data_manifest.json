@@ -28,7 +28,21 @@
       "rotatingBackups": 3,
       "backupDir": "data/backups",
       "privateModeSuppression": false,
-      "forwardVersionPolicy": "Tolerate unknown item properties; no-op if loaded version >= target",
+      "forwardVersionPolicy": "Reject newer schemas and protect from saving; preserve unknown item properties",
+      "failureErrorCode": "StorageErrorCode::SerializationFailed"
+    },
+    {
+      "id": "library_changes",
+      "rootRelativePath": "data/library.changes",
+      "isVersioned": true,
+      "schemaVersion": 1,
+      "cppModelSymbol": "LibraryIncrementalStore::kFormatVersion",
+      "migrationFunction": "LibraryIncrementalStore::Load",
+      "atomicWrite": true,
+      "rotatingBackups": 3,
+      "backupDir": "data/backups",
+      "privateModeSuppression": false,
+      "forwardVersionPolicy": "Reject unknown format versions and protect from saving; replay only against the exact checkpoint digest",
       "failureErrorCode": "StorageErrorCode::SerializationFailed"
     },
     {

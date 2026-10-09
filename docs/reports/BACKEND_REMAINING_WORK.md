@@ -8,7 +8,7 @@ The requested scope is the remaining opportunities in that report: background fo
 |---|---|
 | Folder rediscovery | Discovery runs on an owned, cancellable worker; guarded application remains on the UI thread. App and regression source compile. |
 | Duplicate imports | Fingerprints persist with media records; the worker reuses matching metadata and the UI skips no-op rebuilds/saves. App and regression source compile. |
-| Durable incremental saving | Pending: reduce full-document writes while preserving recovery, backups, unknown fields and portability. |
+| Durable incremental saving | Bounded atomic changes and full-checkpoint barriers implemented. App, unit-test source and persistence-test source compile. |
 | Availability and watch registration | Pending: shared background availability and the remaining synchronous watch-handle registration. |
 
 ## Folder rediscovery
@@ -36,3 +36,15 @@ Import completion checks source baselines and updates only file/probe fields. It
 Fingerprints use filesystem metadata. Tools that rewrite a file in place and restore its timestamps can require an explicit metadata refresh. This approach avoids reading the entire contents of large videos just to validate the cache.
 
 Validation: the native app compiled and linked, and unit-test source passed syntax-only compilation. Added unrun regression cases cover fingerprint persistence, repeat imports, same-size edits, replacement files, active writers, changes during a probe, failed probes and stale merges. Tests and benchmarks were not executed.
+
+## Durable incremental saving
+
+The app writer now keeps a full `library.json` checkpoint and writes cumulative record replacements to `library.changes`. Repeated playback updates replace the same small record entry instead of assembling, backing up and rewriting the full library. The changes file is capped at 512 records, 1 MiB and one quarter of the checkpoint size. Small libraries and larger edits use a full checkpoint. Snapshot capture still compares the public mutable records; that compatibility cost remains linear in library size.
+
+The changes file is atomically replaced and checksummed. Replay validates the exact checkpoint digest, byte and count limits, unique sorted slots and fully populated appends before altering parsed records. Full checkpoints have a fresh identifier, so an obsolete file cannot become valid again when values revert. Unreadable, orphaned and unsupported changes protect the library from saving; corrupt changes can recover from a matching backup. Full-checkpoint backups preserve the latest associated changes.
+
+Close and reload use an explicit checkpoint barrier, including when the writer is idle. Normal save flushes continue to publish small updates. Synchronous library callers retain full-document output. The portable-data documentation and manifest now describe the additional durable file and the interrupted-session downgrade requirement.
+
+Atomic writes now check the result of [FlushFileBuffers](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-flushfilebuffers) before publishing. The SHA-256 helper checks each operation and uses the [CNG-managed hash allocation](https://learn.microsoft.com/en-us/windows/win32/api/bcrypt/nf-bcrypt-bcryptcreatehash) available on supported Windows versions. These mechanisms have not been exercised in runtime tests in this task.
+
+Validation: the native app compiled and linked with no compiler warnings in the final build. Registered unit and persistence regression sources passed MSVC syntax-only compilation. New unrun cases cover incremental progress, cumulative replacements, appends/removals, value reversion, large reorder fallback, failed writes, checksum damage, matching backup recovery, orphaned/future changes and an idle-worker checkpoint barrier. No tests, benchmarks or application launches were run.

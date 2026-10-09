@@ -32,7 +32,8 @@ private:
 class LibrarySaveWorker {
 public:
     using Writer = std::function<MediaLibrarySaveResult(const MediaLibrarySaveSnapshot&, MediaLibrarySaveState&)>;
-    explicit LibrarySaveWorker(Writer writer = WriteLibrarySaveSnapshot) : writer_(std::move(writer)) {}
+    explicit LibrarySaveWorker(Writer writer = WriteLibrarySaveSnapshot, bool incrementalLibrary = false)
+        : writer_(std::move(writer)), incrementalLibrary_(incrementalLibrary) {}
     ~LibrarySaveWorker() { StopAndFlush(); }
     LibrarySaveWorker(const LibrarySaveWorker&) = delete;
     LibrarySaveWorker& operator=(const LibrarySaveWorker&) = delete;
@@ -50,6 +51,7 @@ public:
             try { thread_ = std::thread([this] { Run(); }); }
             catch (...) { pending_.reset(); --submitted_; throw; }
         }
+        latest_ = pending_;
         wake_.notify_all();
         return serial;
     }
@@ -58,6 +60,17 @@ public:
         std::lock_guard<std::mutex> lock(mutex_);
         flushThrough_ = submitted_;
         wake_.notify_all();
+        return submitted_;
+    }
+    // A checkpoint is a separate barrier from flushing a normal delta save.
+    // It can enqueue the last snapshot even when the worker is already idle.
+    uint64_t RequestCheckpoint() {
+        std::lock_guard<std::mutex> lock(mutex_);
+        if (latest_ && !stopping_ && incrementalLibrary_) {
+            if (!pending_) { pending_ = latest_; pendingSerial_ = ++submitted_; }
+            pendingCheckpoint_ = true;
+        }
+        flushThrough_ = submitted_; wake_.notify_all();
         return submitted_;
     }
     bool WaitUntil(uint64_t serial, const std::atomic<bool>* cancel = nullptr) {
@@ -93,6 +106,7 @@ public:
         return dropped;
     }
     void StopAndFlush() {
+        RequestCheckpoint();
         {
             std::lock_guard<std::mutex> lock(mutex_);
             stopping_ = true; flushThrough_ = submitted_; wake_.notify_all();
@@ -111,6 +125,9 @@ private:
             }
             active_ = std::move(pending_); activeSerial_ = pendingSerial_;
             const auto snapshot = active_; const uint64_t serial = activeSerial_;
+            state_.incrementalLibrary = incrementalLibrary_;
+            state_.forceLibraryCheckpoint = pendingCheckpoint_;
+            pendingCheckpoint_ = false;
             lock.unlock();
             MediaLibrarySaveResult result;
             try { result = writer_(*snapshot, state_); }
@@ -153,9 +170,10 @@ private:
     mutable std::mutex mutex_;
     std::condition_variable wake_, done_;
     std::thread thread_;
-    std::shared_ptr<const MediaLibrarySaveSnapshot> pending_, active_;
+    std::shared_ptr<const MediaLibrarySaveSnapshot> pending_, active_, latest_;
     uint64_t submitted_ = 0, pendingSerial_ = 0, activeSerial_ = 0, completed_ = 0, flushThrough_ = 0;
-    bool stopping_ = false;
+    bool stopping_ = false, pendingCheckpoint_ = false;
+    const bool incrementalLibrary_;
     std::chrono::steady_clock::time_point deadline_;
     MediaLibrarySaveState state_;
     bool lastSucceeded_ = true, droppedFailure_ = false;

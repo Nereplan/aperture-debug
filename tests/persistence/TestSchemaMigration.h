@@ -5,6 +5,7 @@
 #include "../../src/Common.h"
 #include "../../src/Settings.h"
 #include "../../src/MediaLibrary.h"
+#include "../../src/LibraryIncrementalStore.h"
 #include "../../src/PlaybackSession.h"
 #include "../../src/NetworkStream.h"
 #include "../../src/ChannelPolicy.h"
@@ -23,7 +24,7 @@ inline bool ValidateManifest(const JsonValue& manifest, std::string& outError) {
     if (!manifest.has_key("nonVersionedStores") || !manifest.get("nonVersionedStores").is_array()) { outError = "Missing nonVersionedStores array"; return false; }
 
     const auto& stores = manifest.get("stores").as_array();
-    if (stores.size() != 9) { outError = "Expected exactly 9 versioned stores, found " + std::to_string(stores.size()); return false; }
+    if (stores.size() != 10) { outError = "Expected exactly 10 versioned stores, found " + std::to_string(stores.size()); return false; }
 
     std::set<std::string> storeIds;
     std::set<std::string> storePaths;
@@ -50,6 +51,10 @@ inline bool ValidateManifest(const JsonValue& manifest, std::string& outError) {
             if (path != "data/library.json") { outError = "library path mismatch"; return false; }
             if (version != MediaLibrary::kCurrentLibrarySchemaVersion) { outError = "library version mismatch"; return false; }
             if (!store.get("atomicWrite").as_bool(false)) { outError = "library must have atomicWrite: true"; return false; }
+        } else if (id == "library_changes") {
+            if (path != "data/library.changes") { outError = "library changes path mismatch"; return false; }
+            if (version != LibraryIncrementalStore::kFormatVersion) { outError = "library changes version mismatch"; return false; }
+            if (!store.get("atomicWrite").as_bool(false)) { outError = "library changes must have atomicWrite: true"; return false; }
         } else if (id == "playlists") {
             if (path != "data/playlists.json") { outError = "playlists path mismatch"; return false; }
             if (version != MediaLibrary::kCurrentPlaylistsSchemaVersion) { outError = "playlists version mismatch"; return false; }

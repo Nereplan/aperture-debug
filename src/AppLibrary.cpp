@@ -44,7 +44,7 @@ void App::StartLibraryLoad(LibraryGroupMode groupMode, bool preserveExisting) {
         return;
     }
     libraryReloadBaseline = preserveExisting ? submittedLibrarySnapshot : nullptr;
-    const uint64_t saveBarrier = librarySaveWorker.RequestFlush();
+    const uint64_t saveBarrier = librarySaveWorker.RequestCheckpoint();
     try {
     libraryLoadWorker = std::thread([this, generation, groupMode, rootDir, notifyWindow, preserveExisting, baseVersion, saveBarrier]() {
         struct Completion { std::atomic<bool>& done; ~Completion() { done.store(true, std::memory_order_release); } } completion{libraryLoadWorkerDone};

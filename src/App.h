@@ -132,7 +132,7 @@ private:
     HINSTANCE hInstance = NULL;
     Settings settings;
     MediaLibrary library;
-    LibrarySaveWorker librarySaveWorker;
+    LibrarySaveWorker librarySaveWorker{WriteLibrarySaveSnapshot, true};
     LibrarySaveCaptureSchedule librarySaveCaptureSchedule;
     std::shared_ptr<const MediaLibrarySaveSnapshot> submittedLibrarySnapshot, libraryReloadBaseline;
     uint64_t closeSaveSerial = 0;

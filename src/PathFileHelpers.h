@@ -302,7 +302,9 @@ inline StorageStatus CheckDataDirectoryWritability(const std::wstring& rootDir =
     return StorageStatus::Ok(dir);
 }
 
-inline StorageStatus AtomicWriteTextFile(const std::wstring& path, const std::string& text) {
+inline StorageStatus AtomicWriteTextFile(const std::wstring& path, const std::string& text,
+                                       BY_HANDLE_FILE_INFORMATION* committedInfo = nullptr) {
+    if (committedInfo) *committedInfo = {};
     if (text.size() > kMaxPortableStoreBytes)
         return StorageStatus::Error(StorageErrorCode::SerializationFailed, ERROR_FILE_TOO_LARGE, path, "Output exceeds the readable store size limit");
     if (path.empty()) { return StorageStatus::Error(StorageErrorCode::InvalidPath, ERROR_INVALID_PARAMETER, path, "Path is empty"); }
@@ -326,21 +328,29 @@ inline StorageStatus AtomicWriteTextFile(const std::wstring& path, const std::st
     BOOL writeOk = TRUE;
     if (!text.empty()) { writeOk = WriteFile(hFile, text.data(), (DWORD)text.size(), &written, NULL) && (written == (DWORD)text.size()); }
     DWORD writeErr = writeOk ? 0 : GetLastError();
-    if (writeOk) { FlushFileBuffers(hFile); }
+    if (writeOk && !FlushFileBuffers(hFile)) { writeOk = FALSE; writeErr = GetLastError(); }
+    BY_HANDLE_FILE_INFORMATION info{};
     CloseHandle(hFile);
     if (!writeOk) {
         DeleteFileW(tmp.c_str());
-        return StorageStatus::Error(StorageErrorCode::FileWriteFailed, writeErr, tmp, "Failed to write content to temporary file");
+        return StorageStatus::Error(StorageErrorCode::FileWriteFailed, writeErr ? writeErr : ERROR_WRITE_FAULT, tmp, "Failed to write or flush temporary file");
+    }
+    if (committedInfo) {
+        // The last-write time may not settle until the writing handle closes.
+        HANDLE metadata = CreateFileW(tmp.c_str(), FILE_READ_ATTRIBUTES, FILE_SHARE_READ | FILE_SHARE_DELETE,
+            nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+        if (metadata != INVALID_HANDLE_VALUE) { GetFileInformationByHandle(metadata, &info); CloseHandle(metadata); }
     }
     if (!MoveFileExW(tmp.c_str(), path.c_str(), MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH)) {
         DWORD moveErr = GetLastError();
         DeleteFileW(tmp.c_str());
         return StorageStatus::Error(StorageErrorCode::AtomicRenameFailed, moveErr, path, "Failed to rename temporary file to destination");
     }
+    if (committedInfo) *committedInfo = info;
     return StorageStatus::Ok(path);
 }
 
-inline StorageStatus ReadTextFile(const std::wstring& path, std::string& out) {
+inline StorageStatus ReadTextFile(const std::wstring& path, std::string& out, size_t byteLimit = kMaxPortableStoreBytes) {
     out.clear();
     HANDLE hFile = CreateFileW(path.c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
     if (hFile == INVALID_HANDLE_VALUE) {
@@ -353,7 +363,7 @@ inline StorageStatus ReadTextFile(const std::wstring& path, std::string& out) {
         CloseHandle(hFile);
         return StorageStatus::Error(StorageErrorCode::FileReadFailed, err, path, "Failed to get file size");
     }
-    if (size.QuadPart > static_cast<LONGLONG>(kMaxPortableStoreBytes)) {
+    if (size.QuadPart < 0 || size.QuadPart > static_cast<LONGLONG>((std::min)(byteLimit, kMaxPortableStoreBytes))) {
         CloseHandle(hFile);
         return StorageStatus::Error(StorageErrorCode::FileReadFailed, ERROR_FILE_TOO_LARGE, path, "File exceeds size limit");
     }

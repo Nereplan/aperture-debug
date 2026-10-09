@@ -375,9 +375,14 @@ struct MediaLibrarySaveState {
     uint64_t historyGeneration = 0, watchedFoldersGeneration = 0;
     uint64_t serializedStoreCount = 0;
     uint64_t serializedMediaRecordCount = 0, reusedMediaRecordCount = 0;
+    bool incrementalLibrary = false, forceLibraryCheckpoint = false, hasLibraryChanges = false;
+    uint64_t incrementalWriteCount = 0, libraryCheckpointCount = 0, writtenLibraryBytes = 0;
+    BY_HANDLE_FILE_INFORMATION checkpointInfo{};
+    std::string checkpointDigest;
+    std::map<size_t, std::string> mediaRecordOverrides;
     std::string lastLibraryJson, lastPlaylistsJson, lastHistoryJson, lastWatchedFoldersJson;
-    // One committed generation, with spans into lastLibraryJson rather than
-    // duplicate per-record strings. Owning records prevents pointer ABA reuse.
+    // The full checkpoint supplies unchanged record bytes; bounded overrides
+    // supply the latest changed slots. Owning records prevents pointer ABA reuse.
     struct RecordSpan { size_t offset = 0, length = 0; };
     std::shared_ptr<const MediaLibrarySaveSnapshot::MediaRecords> lastMediaRecords;
     std::vector<RecordSpan> lastMediaSpans;

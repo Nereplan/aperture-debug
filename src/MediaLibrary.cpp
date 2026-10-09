@@ -4,6 +4,7 @@
 #include "FolderRediscovery.h"
 #include "MediaImportProbeCache.h"
 #include "LibrarySaveComparison.h"
+#include "LibraryIncrementalStore.h"
 #include "SmartRuleParsing.h"
 #include "PreparedSmartPlaylist.h"
 #include "PlaybackTarget.h"
@@ -2082,7 +2083,7 @@ StorageStatus MediaLibrary::LoadFromRoot(const std::wstring& requestedRootDir, c
     MediaLibraryLoadResult loadResult;
     const std::wstring rootDir = requestedRootDir.empty() ? GetExeDir() : requestedRootDir;
     const std::wstring dataDir = rootDir + L"\\data";
-    auto loadStore = [&](const std::wstring& filePath, JsonValue& outRoot, bool& outRecovered, const char* collection, int currentVersion) -> StorageStatus {
+    auto loadStore = [&](const std::wstring& filePath, JsonValue& outRoot, bool& outRecovered, const char* collection, int currentVersion, std::string* source = nullptr) -> StorageStatus {
         outRecovered = false;
         DWORD pathError = ERROR_SUCCESS;
         const auto availability = QueryPathAvailability(filePath, &pathError);
@@ -2102,7 +2103,7 @@ StorageStatus MediaLibrary::LoadFromRoot(const std::wstring& requestedRootDir, c
         if (readRes.is_ok() && JsonValue::parse(text, outRoot)) {
             if (outRoot.is_object() && outRoot.get("schemaVersion").as_number(0) > currentVersion)
                 return StorageStatus::Error(StorageErrorCode::SerializationFailed, ERROR_REVISION_MISMATCH, filePath, "Store requires a newer application version");
-            if (valid(outRoot)) return StorageStatus::Ok(filePath);
+            if (valid(outRoot)) { if (source) *source = std::move(text); return StorageStatus::Ok(filePath); }
         }
         std::string backupText;
         StorageStatus backupRes = RestoreFromNewestValidBackup(filePath, backupText, [&](const std::string& t) {
@@ -2111,6 +2112,7 @@ StorageStatus MediaLibrary::LoadFromRoot(const std::wstring& requestedRootDir, c
         });
         if (backupRes.is_ok() && JsonValue::parse(backupText, outRoot) && valid(outRoot)) {
             outRecovered = true;
+            if (source) *source = std::move(backupText);
             return StorageStatus::Ok(filePath);
         }
         return StorageStatus::Error(StorageErrorCode::SerializationFailed, ERROR_INVALID_DATA, filePath, "Malformed JSON and no valid backup");
@@ -2125,7 +2127,11 @@ StorageStatus MediaLibrary::LoadFromRoot(const std::wstring& requestedRootDir, c
     JsonValue plRoot;
     JsonValue histRoot;
     JsonValue watchRoot;
-    loadResult.libraryStatus = loadStore(libPath, libRoot, loadResult.libraryRecoveredFromBackup, "items", kCurrentLibrarySchemaVersion);
+    std::string checkpointText;
+    loadResult.libraryStatus = loadStore(libPath, libRoot, loadResult.libraryRecoveredFromBackup, "items", kCurrentLibrarySchemaVersion, &checkpointText);
+    if (loadResult.libraryStatus.is_ok())
+        loadResult.libraryStatus = LibraryIncrementalStore::Load(dataDir + L"\\library.changes", checkpointText, libRoot, loadResult.libraryRecoveredFromBackup);
+    std::string().swap(checkpointText);
     loadResult.playlistsStatus = loadStore(plPath, plRoot, loadResult.playlistsRecoveredFromBackup, "items", kCurrentPlaylistsSchemaVersion);
     loadResult.historyStatus = loadStore(histPath, histRoot, loadResult.historyRecoveredFromBackup, "items", kCurrentHistorySchemaVersion);
     loadResult.watchedFoldersStatus = loadStore(watchPath, watchRoot, loadResult.watchedFoldersRecoveredFromBackup, "folders", kCurrentWatchedFoldersSchemaVersion);
@@ -2557,7 +2563,11 @@ MediaLibrarySaveResult WriteLibrarySaveSnapshot(const MediaLibrarySaveSnapshot& 
                                  "Incomplete library save snapshot");
         return result;
     }
-    if (state.seriesId != snapshot.seriesId) { state = {}; state.seriesId = snapshot.seriesId; }
+    if (state.seriesId != snapshot.seriesId) {
+        const bool incremental = state.incrementalLibrary, checkpoint = state.forceLibraryCheckpoint;
+        state = {}; state.seriesId = snapshot.seriesId;
+        state.incrementalLibrary = incremental; state.forceLibraryCheckpoint = checkpoint;
+    }
     const std::wstring dataDir = snapshot.rootDir + L"\\data";
     bool checkedWritability = false;
     StorageStatus writability;
@@ -2588,56 +2598,150 @@ MediaLibrarySaveResult WriteLibrarySaveSnapshot(const MediaLibrarySaveSnapshot& 
             result.success = false;
         }
     };
-    std::vector<MediaLibrarySaveState::RecordSpan> preparedSpans;
-    bool preparedMedia = false;
-    saveDocument(L"library.json", snapshot.libraryGeneration, state.libraryGeneration,
-        state.lastLibraryJson, snapshot.loadResult.libraryStatus, result.libraryStatus, result.librarySaved, [&]() {
+    auto saveLibrary = [&]() {
+        using namespace LibraryIncrementalStore;
+        const auto path = dataDir + L"\\library.json", changesPath = dataDir + L"\\library.changes";
+        auto& status = result.libraryStatus;
+        if (!snapshot.loadResult.libraryStatus.is_ok()) { status = snapshot.loadResult.libraryStatus; return; }
+        if (snapshot.libraryGeneration == state.libraryGeneration && FileExists(path) &&
+            (!state.hasLibraryChanges || (!state.forceLibraryCheckpoint && FileExists(changesPath)))) {
+            status = StorageStatus::Ok(path); return;
+        }
+        if (!checkedWritability) { writability = CheckDataDirectoryWritability(snapshot.rootDir); checkedWritability = true; }
+        if (!writability.is_ok()) { status = writability; return; }
+        try {
+            std::map<size_t, std::string> preparedText;
+            if (state.incrementalLibrary && !state.forceLibraryCheckpoint && state.lastMediaRecords &&
+                !state.checkpointDigest.empty() && state.lastLibraryJson.size() >= 16 * 1024 &&
+                (!state.hasLibraryChanges || FileExists(changesPath))) {
+                CheckpointReadLock checkpointLock(path, state.checkpointInfo);
+                if (checkpointLock.Matches()) {
+                    auto changes = state.mediaRecordOverrides;
+                    changes.erase(changes.lower_bound(snapshot.mediaItems->size()), changes.end());
+                    size_t bytes = 0;
+                    for (const auto& entry : changes) bytes += entry.second.size();
+                    bool bounded = true;
+                    for (size_t i = 0; i < snapshot.mediaItems->size(); ++i) {
+                        const auto& record = (*snapshot.mediaItems)[i];
+                        if (i < state.lastMediaRecords->size() && (*state.lastMediaRecords)[i] == record) continue;
+                        auto& text = preparedText[i];
+                        AppendMediaRecord(text, *record, snapshot.rootDir); ++state.serializedMediaRecordCount;
+                        const auto old = changes.find(i);
+                        if (old != changes.end()) { bytes -= old->second.size(); changes.erase(old); }
+                        bool equalsCheckpoint = false;
+                        if (i < state.lastMediaSpans.size()) {
+                            const auto& span = state.lastMediaSpans[i];
+                            equalsCheckpoint = text.size() == span.length && state.lastLibraryJson.compare(span.offset, span.length, text) == 0;
+                        }
+                        if (!equalsCheckpoint) { bytes += text.size(); changes.emplace(i, text); }
+                        if (changes.size() > kMaxRecords || bytes > kMaxBytes || bytes > state.lastLibraryJson.size() / 4) { bounded = false; break; }
+                    }
+                    if (bounded && changes == state.mediaRecordOverrides && snapshot.mediaItems->size() == state.lastMediaRecords->size()) {
+                        state.lastMediaRecords = snapshot.mediaItems; state.libraryGeneration = snapshot.libraryGeneration;
+                        status = StorageStatus::Ok(path); return;
+                    }
+                    if (bounded) {
+                        std::string payload = "{\"baseSha256\":\"" + state.checkpointDigest + "\",\"baseBytes\":" +
+                            std::to_string(state.lastLibraryJson.size()) + ",\"itemCount\":" + std::to_string(snapshot.mediaItems->size()) + ",\"records\":[";
+                        bool first = true;
+                        for (const auto& entry : changes) {
+                            if (!first) payload.push_back(','); first = false;
+                            payload += "[" + std::to_string(entry.first) + "," + entry.second + "]";
+                        }
+                        payload += "]}";
+                        auto encoded = Encode(payload);
+                        if (!encoded.empty() && encoded.size() <= kMaxBytes && encoded.size() <= state.lastLibraryJson.size() / 4 &&
+                            encoded.size() + state.lastLibraryJson.size() <= kMaxPortableStoreBytes) {
+                            status = CreateRotatingBackup(changesPath, 3);
+                            if (!status.is_ok()) return;
+                            status = AtomicWriteTextFile(changesPath, encoded);
+                            if (!status.is_ok()) return;
+                            state.mediaRecordOverrides = std::move(changes); state.hasLibraryChanges = true;
+                            state.lastMediaRecords = snapshot.mediaItems; state.libraryGeneration = snapshot.libraryGeneration;
+                            ++state.incrementalWriteCount; state.writtenLibraryBytes += encoded.size();
+                            result.librarySaved = true; return;
+                        }
+                    }
+                }
+            }
+            ++state.serializedStoreCount;
             CompactJsonArray output(state.lastLibraryJson.size());
-            preparedSpans.reserve(snapshot.mediaItems->size());
+            std::vector<MediaLibrarySaveState::RecordSpan> spans;
+            spans.reserve(snapshot.mediaItems->size());
             const auto& previous = state.lastMediaRecords;
-            const bool canReuse = previous && previous->size() == state.lastMediaSpans.size();
+            const bool canReuse = previous && !state.lastLibraryJson.empty();
             std::unordered_map<const MediaItem*, size_t> previousByRecord;
             bool indexedPrevious = false;
             for (size_t i = 0; i < snapshot.mediaItems->size(); ++i) {
                 const auto& record = (*snapshot.mediaItems)[i];
                 size_t oldIndex = i;
                 bool found = canReuse && i < previous->size() && (*previous)[i] == record;
-                if (!found && canReuse) {
-                    // A changed record usually stays in place. Only membership
-                    // changes/reorders need a temporary identity lookup.
-                    const bool displaced = i >= previous->size() || (*previous)[i]->id != record->id;
-                    if (displaced) {
-                        if (!indexedPrevious) {
-                            previousByRecord.reserve(previous->size());
-                            for (size_t j = 0; j < previous->size(); ++j) previousByRecord.emplace((*previous)[j].get(), j);
-                            indexedPrevious = true;
-                        }
-                        const auto match = previousByRecord.find(record.get());
-                        if (match != previousByRecord.end()) { oldIndex = match->second; found = true; }
+                if (!found && canReuse && (i >= previous->size() || (*previous)[i]->id != record->id)) {
+                    if (!indexedPrevious) {
+                        previousByRecord.reserve(previous->size());
+                        for (size_t j = 0; j < previous->size(); ++j) previousByRecord.emplace((*previous)[j].get(), j);
+                        indexedPrevious = true;
                     }
+                    const auto match = previousByRecord.find(record.get());
+                    if (match != previousByRecord.end()) { oldIndex = match->second; found = true; }
                 }
-                std::string& text = output.BeginRecord();
-                const size_t offset = text.size();
+                auto& text = output.BeginRecord(); const size_t offset = text.size();
                 if (found) {
-                    const auto& span = state.lastMediaSpans[oldIndex];
-                    // Spans refer only to the last successfully published bytes.
-                    text.append(state.lastLibraryJson, span.offset, span.length);
+                    const auto changed = state.mediaRecordOverrides.find(oldIndex);
+                    if (changed != state.mediaRecordOverrides.end()) text += changed->second;
+                    else {
+                        const auto& span = state.lastMediaSpans.at(oldIndex);
+                        text.append(state.lastLibraryJson, span.offset, span.length);
+                    }
                     ++state.reusedMediaRecordCount;
                 } else {
-                    AppendMediaRecord(text, *record, snapshot.rootDir);
-                    ++state.serializedMediaRecordCount;
+                    const auto ready = preparedText.find(i);
+                    if (ready != preparedText.end()) text += ready->second;
+                    else { AppendMediaRecord(text, *record, snapshot.rootDir); ++state.serializedMediaRecordCount; }
                 }
-                preparedSpans.push_back({offset, text.size() - offset});
+                spans.push_back({offset, text.size() - offset});
             }
-            preparedMedia = true;
-            return output.Finish();
-    });
-    // Advancing this metadata before the write succeeds would make a retry
-    // pair new record identities with stale bytes. Moves below cannot allocate.
-    if (preparedMedia && result.libraryStatus.is_ok() && state.libraryGeneration == snapshot.libraryGeneration) {
-        state.lastMediaRecords = snapshot.mediaItems;
-        state.lastMediaSpans = std::move(preparedSpans);
-    }
+            std::string json = output.Finish(), digest;
+            if (state.incrementalLibrary) {
+                GUID id{}; wchar_t token[40]{};
+                if (FAILED(CoCreateGuid(&id)) || !StringFromGUID2(id, token, 40)) throw std::runtime_error("Cannot identify checkpoint");
+                // A fresh identifier prevents an old changes file from becoming
+                // applicable again when the user reverts to earlier record values.
+                const auto prefix = "{\"schemaVersion\":" + std::to_string(MediaLibrary::kCurrentLibrarySchemaVersion) +
+                    ",\"checkpointId\":\"" + Utf16ToUtf8(token) + "\",\"items\":";
+                json.insert(0, prefix); json.push_back('}');
+                for (auto& span : spans) span.offset += prefix.size();
+                digest = Digest(json);
+                if (digest.empty()) throw std::runtime_error("Cannot hash checkpoint");
+            }
+            if (json == state.lastLibraryJson && !state.hasLibraryChanges && FileExists(path)) {
+                state.lastMediaRecords = snapshot.mediaItems; state.lastMediaSpans = std::move(spans);
+                state.libraryGeneration = snapshot.libraryGeneration; status = StorageStatus::Ok(path); return;
+            }
+            // Preserve the active changes alongside the checkpoint being backed
+            // up. Recovery selects them by digest, never by backup slot number.
+            status = CreateRotatingBackup(changesPath, 3);
+            if (!status.is_ok()) return;
+            status = CreateRotatingBackup(path, 3);
+            if (!status.is_ok()) return;
+            BY_HANDLE_FILE_INFORMATION info{};
+            status = AtomicWriteTextFile(path, json, &info);
+            if (!status.is_ok()) return;
+            state.lastLibraryJson = std::move(json); state.checkpointDigest = std::move(digest); state.checkpointInfo = info;
+            state.lastMediaRecords = snapshot.mediaItems; state.lastMediaSpans = std::move(spans);
+            state.mediaRecordOverrides.clear(); state.hasLibraryChanges = false;
+            state.libraryGeneration = snapshot.libraryGeneration;
+            ++state.libraryCheckpointCount; state.writtenLibraryBytes += state.lastLibraryJson.size();
+            result.librarySaved = true;
+            // After publication the old changes refer to a different checkpoint.
+            // Failed cleanup is harmless and cannot roll back the new document.
+            DeleteFileW(changesPath.c_str());
+        } catch (...) {
+            status = StorageStatus::Error(StorageErrorCode::SerializationFailed, 0, path, "Failed to serialize library store");
+        }
+    };
+    saveLibrary();
+    if (!result.libraryStatus.is_ok()) result.success = false;
     saveDocument(L"playlists.json", snapshot.playlistsGeneration, state.playlistsGeneration,
         state.lastPlaylistsJson, snapshot.loadResult.playlistsStatus, result.playlistsStatus, result.playlistsSaved, [&]() {
             CompactJsonArray p(state.lastPlaylistsJson.size());

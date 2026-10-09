@@ -41,6 +41,7 @@
 #include "TestHttpTransportFixes.h"
 #include "TestMpvInitialization.h"
 #include "TestLibrarySaving.h"
+#include "TestIncrementalSaving.h"
 #include "TestWatchReconcile.h"
 #include "TestMetadataBackfill.h"
 #include "TestImportFingerprints.h"
