@@ -216,17 +216,17 @@ class JsonParser {
         std::string o;
         if (!take('"')) return o;
         while (p < s.size()) {
-            unsigned char c = (unsigned char)s[p++];
+            // Copy ordinary UTF-8 in one span. Most keys/titles need one
+            // allocation, instead of growing a string one byte at a time.
+            const size_t start = p;
+            while (p < s.size() && static_cast<unsigned char>(s[p]) >= 0x20 && s[p] != '"' && s[p] != '\\') ++p;
+            const size_t length = p - start;
+            if (length > JsonValue::kMaxJsonStringBytes - o.size()) { bad = true; return {}; }
+            o.append(s, start, length);
+            if (p == s.size()) break;
+            const unsigned char c = static_cast<unsigned char>(s[p++]);
             if (c == '"') return o;
-            if (c < 0x20) {
-                bad = true;
-                return {};
-            }
-            if (o.size() >= JsonValue::kMaxJsonStringBytes) {
-                bad = true;
-                return {};
-            }
-            if (c != '\\') { o.push_back((char)c); continue; }
+            if (c < 0x20 || o.size() == JsonValue::kMaxJsonStringBytes) { bad = true; return {}; }
             if (p >= s.size()) {
                 bad = true;
                 return {};
@@ -265,6 +265,7 @@ class JsonParser {
                         return {};
                     }
                     utf8(o, codePoint);
+                    if (o.size() > JsonValue::kMaxJsonStringBytes) { bad = true; return {}; }
                     break;
                 }
                 default: bad = true; return {};
@@ -299,7 +300,11 @@ class JsonParser {
                 JsonValue v = val();
                 if (bad) break;
                 if (o.as_object().size() >= JsonValue::kMaxJsonContainerElements) { bad = true; break; }
-                o.as_object()[std::move(k)] = std::move(v);
+                // Aperture stores keys in sorted order. An end hint makes
+                // that common insertion linear, while arbitrary input and
+                // duplicate keys retain normal last-value-wins semantics.
+                auto& fields = o.as_object();
+                fields.insert_or_assign(fields.end(), std::move(k), std::move(v));
                 ws();
                 if (p < s.size() && s[p] == '}') { ++p; --depth; return o; }
                 if (!take(',')) break;
@@ -366,11 +371,19 @@ class JsonParser {
                 return {};
             }
         }
-        errno = 0;
-        char* end = nullptr;
-        std::string numStr = s.substr(st, p - st);
-        double n = std::strtod(numStr.c_str(), &end);
-        if (errno == ERANGE || !std::isfinite(n)) {
+        // Parse directly from the bounded input; no temporary substring or
+        // locale machinery on the ordinary path. Preserve the legacy CRT's
+        // range handling for rare subnormal/underflow values.
+        double n = 0.0;
+        const auto parsed = std::from_chars(s.data() + st, s.data() + p, n, std::chars_format::general);
+        if (parsed.ec == std::errc::result_out_of_range ||
+            (parsed.ec == std::errc{} && n != 0.0 && std::abs(n) < (std::numeric_limits<double>::min)())) {
+            errno = 0;
+            char* end = nullptr;
+            const std::string number = s.substr(st, p - st);
+            n = std::strtod(number.c_str(), &end);
+            if (errno == ERANGE || end != number.c_str() + number.size() || !std::isfinite(n)) { bad = true; return {}; }
+        } else if (parsed.ec != std::errc{} || parsed.ptr != s.data() + p || !std::isfinite(n)) {
             bad = true;
             return {};
         }

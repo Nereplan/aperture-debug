@@ -11,6 +11,7 @@
 #include <map>
 #include <mutex>
 #include <optional>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -130,9 +131,13 @@ inline uint64_t FileTimeToUint64(const FILETIME& ft) { return (static_cast<uint6
 inline bool CompareCacheFilesOldestFirst(const CacheFileInfo& a, const CacheFileInfo& b) {
     uint64_t accessA = FileTimeToUint64(a.lastAccessTime);
     uint64_t accessB = FileTimeToUint64(b.lastAccessTime);
-    if (accessA != accessB && accessA != 0 && accessB != 0) { return accessA < accessB; }
     uint64_t writeA = FileTimeToUint64(a.lastWriteTime);
     uint64_t writeB = FileTimeToUint64(b.lastWriteTime);
+    // Select each file's age independently so missing access timestamps still
+    // form a strict ordering (required by both sorting and heap selection).
+    if (!accessA) accessA = writeA;
+    if (!accessB) accessB = writeB;
+    if (accessA != accessB) return accessA < accessB;
     if (writeA != writeB) { return writeA < writeB; }
     uint64_t createA = FileTimeToUint64(a.creationTime);
     uint64_t createB = FileTimeToUint64(b.creationTime);
@@ -152,21 +157,23 @@ inline CacheClass ClassifyCachePath(const std::wstring& path, const std::wstring
     return CacheClass::Generic;
 }
 
-inline std::vector<CacheFileInfo> ScanCacheFiles(const std::wstring& root = GetExeDir(), std::optional<CacheClass> filterClass = std::nullopt, size_t maxScanEntries = SIZE_MAX) {
-    std::vector<CacheFileInfo> results;
+template<typename Visitor>
+inline void VisitCacheFiles(const std::wstring& root, std::optional<CacheClass> filterClass, size_t maxScanEntries, Visitor&& visit) {
+    size_t count = 0;
     std::wstring baseDir = GetFullPathDynamic(root + L"\\cache");
     if (filterClass.has_value()) { baseDir = baseDir + L"\\" + GetCacheClassSubDirName(*filterClass); }
     DWORD attr = GetFileAttributesW(baseDir.c_str());
-    if (attr == INVALID_FILE_ATTRIBUTES || !(attr & FILE_ATTRIBUTE_DIRECTORY)) { return results; }
+    if (attr == INVALID_FILE_ATTRIBUTES || !(attr & FILE_ATTRIBUTE_DIRECTORY)) { return; }
     std::vector<std::wstring> dirQueue;
     dirQueue.push_back(baseDir);
-    while (!dirQueue.empty() && results.size() < maxScanEntries) {
+    while (!dirQueue.empty() && count < maxScanEntries) {
         std::wstring curDir = std::move(dirQueue.back());
         dirQueue.pop_back();
         std::wstring searchPattern = curDir + L"\\*";
         WIN32_FIND_DATAW fd;
         HANDLE hFind = FindFirstFileW(searchPattern.c_str(), &fd);
         if (hFind == INVALID_HANDLE_VALUE) continue;
+        struct FindGuard { HANDLE value; ~FindGuard() { FindClose(value); } } guard{hFind};
         do {
             if (wcscmp(fd.cFileName, L".") == 0 || wcscmp(fd.cFileName, L"..") == 0) continue;
             std::wstring fullPath = curDir + L"\\" + fd.cFileName;
@@ -174,31 +181,35 @@ inline std::vector<CacheFileInfo> ScanCacheFiles(const std::wstring& root = GetE
             if (fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) { dirQueue.push_back(fullPath); } else {
                 if (IsCachePathSafe(fullPath, root)) {
                     CacheFileInfo info;
-                    info.path = fullPath;
+                    info.path = std::move(fullPath);
                     info.sizeBytes = (static_cast<uint64_t>(fd.nFileSizeHigh) << 32) | fd.nFileSizeLow;
                     info.lastAccessTime = fd.ftLastAccessTime;
                     info.lastWriteTime = fd.ftLastWriteTime;
                     info.creationTime = fd.ftCreationTime;
-                    info.cacheClass = ClassifyCachePath(fullPath, root);
-                    results.push_back(std::move(info));
-                    if (results.size() >= maxScanEntries) break;
+                    info.cacheClass = ClassifyCachePath(info.path, root);
+                    visit(std::move(info));
+                    ++count;
+                    if (count >= maxScanEntries) break;
                 }
             }
         } while (FindNextFileW(hFind, &fd));
-        FindClose(hFind);
     }
+}
+
+inline std::vector<CacheFileInfo> ScanCacheFiles(const std::wstring& root = GetExeDir(), std::optional<CacheClass> filterClass = std::nullopt, size_t maxScanEntries = SIZE_MAX) {
+    std::vector<CacheFileInfo> results;
+    VisitCacheFiles(root, filterClass, maxScanEntries, [&](CacheFileInfo file) { results.push_back(std::move(file)); });
     return results;
 }
 
 inline CacheStats QueryCacheStats(const std::wstring& root = GetExeDir(), size_t maxScanEntries = SIZE_MAX) {
     CacheStats stats;
-    std::vector<CacheFileInfo> files = ScanCacheFiles(root, std::nullopt, maxScanEntries);
-    for (const auto& f : files) {
+    VisitCacheFiles(root, std::nullopt, maxScanEntries, [&](const CacheFileInfo& f) {
         stats.totalBytes += f.sizeBytes;
         stats.totalFiles++;
         stats.classStats[f.cacheClass].totalBytes += f.sizeBytes;
         stats.classStats[f.cacheClass].fileCount++;
-    }
+    });
     return stats;
 }
 
@@ -215,10 +226,14 @@ namespace Detail {
     // and before eviction; direct app deletions invalidate the index immediately.
     inline std::recursive_mutex& CacheIOMutex() { static std::recursive_mutex mutex; return mutex; }
     struct CachePathLess {
-        bool operator()(const std::wstring& a, const std::wstring& b) const { return _wcsicmp(a.c_str(), b.c_str()) < 0; }
+        using is_transparent = void;
+        bool operator()(const CacheFileInfo& a, const CacheFileInfo& b) const { return (*this)(a, b.path); }
+        bool operator()(const CacheFileInfo& a, const std::wstring& b) const { return _wcsicmp(a.path.c_str(), b.c_str()) < 0; }
+        bool operator()(const std::wstring& a, const CacheFileInfo& b) const { return _wcsicmp(a.c_str(), b.path.c_str()) < 0; }
     };
     struct CacheIndex {
-        std::map<std::wstring, CacheFileInfo, CachePathLess> files;
+        // One owned path per file, also used for heterogeneous path lookup.
+        std::set<CacheFileInfo, CachePathLess> files;
         uint64_t total = 0, hub = 0, seek = 0, scannedAt = 0;
         std::map<CacheClass, uint64_t> classes;
         bool valid = false;
@@ -236,17 +251,24 @@ namespace Detail {
         if (name.size() != 26 || _wcsnicmp(name.data(), L"thumb_", 6) != 0 || _wcsicmp(name.data() + 22, L".bin") != 0) return false;
         return std::all_of(name.begin() + 6, name.begin() + 22, [](wchar_t c) { return iswxdigit(c) != 0; });
     }
-    inline void AddIndexFile(CacheIndex& index, const CacheFileInfo& file) {
-        index.files[file.path] = file;
-        index.total += file.sizeBytes; index.classes[file.cacheClass] += file.sizeBytes;
-        if (file.cacheClass == CacheClass::Thumbnails) (IsSeekThumbnail(file.path) ? index.seek : index.hub) += file.sizeBytes;
-    }
     inline void RemoveIndexFile(CacheIndex& index, const std::wstring& path) {
         auto it = index.files.find(path); if (it == index.files.end()) return;
-        const auto& f = it->second;
-        index.total -= f.sizeBytes; index.classes[f.cacheClass] -= f.sizeBytes;
-        if (f.cacheClass == CacheClass::Thumbnails) (IsSeekThumbnail(f.path) ? index.seek : index.hub) -= f.sizeBytes;
+        index.total -= it->sizeBytes; index.classes[it->cacheClass] -= it->sizeBytes;
+        if (it->cacheClass == CacheClass::Thumbnails) (IsSeekThumbnail(it->path) ? index.seek : index.hub) -= it->sizeBytes;
         index.files.erase(it);
+    }
+    inline void AddIndexFile(CacheIndex& index, CacheFileInfo file) {
+        // insert does not consume file when an equivalent path already exists.
+        // The normal scan/write path needs only one tree search; replacement
+        // is uncommon and must first retire the old accounting.
+        auto inserted = index.files.insert(std::move(file));
+        if (!inserted.second) {
+            RemoveIndexFile(index, file.path);
+            inserted = index.files.insert(std::move(file));
+        }
+        const auto& stored = *inserted.first;
+        index.total += stored.sizeBytes; index.classes[stored.cacheClass] += stored.sizeBytes;
+        if (stored.cacheClass == CacheClass::Thumbnails) (IsSeekThumbnail(stored.path) ? index.seek : index.hub) += stored.sizeBytes;
     }
     inline CacheIndex& IndexFor(const std::wstring& root, bool refresh = false) {
         auto& indexes = CacheIndexes(); const auto key = CacheRootKey(root);
@@ -255,7 +277,7 @@ namespace Detail {
         auto& index = indexes[key]; const auto now = GetTickCount64();
         if (refresh || !index.valid || now - index.scannedAt >= 30000) {
             index = CacheIndex{};
-            for (const auto& file : ScanCacheFiles(root)) AddIndexFile(index, file);
+            VisitCacheFiles(root, std::nullopt, SIZE_MAX, [&](CacheFileInfo file) { AddIndexFile(index, std::move(file)); });
             index.scannedAt = now; index.valid = true;
         }
         return index;
@@ -269,31 +291,34 @@ namespace Detail {
         EvictionResult result;
         const bool seek = IsSeekThumbnail(replacing);
         const auto existing = index.files.find(replacing);
-        const uint64_t oldSize = existing == index.files.end() ? 0 : existing->second.sizeBytes;
+        const uint64_t oldSize = existing == index.files.end() ? 0 : existing->sizeBytes;
         const auto exceeds = [&]() {
             if (index.total - oldSize + incoming > config.totalCeilingBytes) return true;
             if (target && index.classes[*target] - oldSize + incoming > config.GetBudget(*target)) return true;
             return tiered && ((seek ? index.seek : index.hub) - oldSize + incoming > ThumbnailTierBudget(config, seek));
         };
         if (!exceeds()) return result;
-        // The index owns stable records for the duration of this locked pass.
-        // Borrow candidates instead of copying every path. Clear an erased
-        // record's slot before the next phase can revisit it.
+        // Build a min-heap only for the current phase. Removing k old files
+        // takes O(n + k log n), without sorting all n paths on every write.
         std::vector<const CacheFileInfo*> candidates;
         candidates.reserve(index.files.size());
-        for (const auto& entry : index.files) if (_wcsicmp(entry.first.c_str(), replacing.c_str()) != 0) candidates.push_back(&entry.second);
-        std::sort(candidates.begin(), candidates.end(), [](const auto* a, const auto* b) { return CompareCacheFilesOldestFirst(*a, *b); });
-        // First satisfy the target tier/class. Preview churn cannot evict hub
-        // thumbnails, even when the overall budget is under pressure.
+        const auto newer = [](const auto* a, const auto* b) { return CompareCacheFilesOldestFirst(*b, *a); };
         for (int phase = 0; phase < 2 && exceeds(); ++phase) {
-            for (auto& candidate : candidates) {
-                if (!exceeds()) break;
-                if (!candidate) continue;
-                const auto& file = *candidate;
-                if (phase == 0 && (!target || file.cacheClass != *target ||
-                    (tiered && IsSeekThumbnail(file.path) != seek))) continue;
+            if (phase == 0 && !target) continue;
+            if (phase == 1 && index.total - oldSize + incoming <= config.totalCeilingBytes) break;
+            candidates.clear();
+            for (const auto& file : index.files) {
+                if (_wcsicmp(file.path.c_str(), replacing.c_str()) == 0) continue;
+                if (phase == 0 && (file.cacheClass != *target || (tiered && IsSeekThumbnail(file.path) != seek))) continue;
                 if (phase == 1 && tiered && file.cacheClass == CacheClass::Thumbnails) continue;
+                candidates.push_back(&file);
+            }
+            std::make_heap(candidates.begin(), candidates.end(), newer);
+            while (!candidates.empty() && exceeds()) {
                 if (phase == 1 && index.total - oldSize + incoming <= config.totalCeilingBytes) break;
+                std::pop_heap(candidates.begin(), candidates.end(), newer);
+                const auto& file = *candidates.back();
+                candidates.pop_back(); // No erased pointer remains in the heap.
                 ++result.filesAttempted;
                 if (!IsCachePathSafe(file.path, root)) continue;
                 DWORD attributes = GetFileAttributesW(file.path.c_str());
@@ -302,7 +327,6 @@ namespace Detail {
                 if (DeleteFileW(file.path.c_str()) || GetLastError() == ERROR_FILE_NOT_FOUND) {
                     ++result.filesEvicted; result.bytesEvicted += file.sizeBytes;
                     RemoveIndexFile(index, file.path);
-                    candidate = nullptr;
                 } else ++result.filesLocked;
             }
         }
@@ -376,13 +400,13 @@ inline StorageStatus AtomicWriteCacheFile( CacheClass cacheClass, const std::wst
         CacheFileInfo old; old.path = targetPath; old.cacheClass = cacheClass;
         old.sizeBytes = (static_cast<uint64_t>(previous.nFileSizeHigh) << 32) | previous.nFileSizeLow;
         old.lastAccessTime = previous.ftLastAccessTime; old.lastWriteTime = previous.ftLastWriteTime; old.creationTime = previous.ftCreationTime;
-        Detail::AddIndexFile(index, old);
+        Detail::AddIndexFile(index, std::move(old));
     }
     const bool tiered = cacheClass == CacheClass::Thumbnails;
     const bool seek = Detail::IsSeekThumbnail(targetPath);
     auto fits = [&]() {
         auto old = index.files.find(targetPath);
-        const auto oldBytes = old == index.files.end() ? 0 : old->second.sizeBytes;
+        const auto oldBytes = old == index.files.end() ? 0 : old->sizeBytes;
         return index.total - oldBytes + dataSize <= budgets.totalCeilingBytes &&
             index.classes[cacheClass] - oldBytes + dataSize <= budgets.GetBudget(cacheClass) &&
             (!tiered || (seek ? index.seek : index.hub) - oldBytes + dataSize <= Detail::ThumbnailTierBudget(budgets, seek));
@@ -444,7 +468,7 @@ inline StorageStatus AtomicWriteCacheFile( CacheClass cacheClass, const std::wst
     writtenFile.lastAccessTime = expectedContent ? previous.ftLastAccessTime : now;
     writtenFile.lastWriteTime = expectedContent ? previous.ftLastWriteTime : now;
     writtenFile.creationTime = expectedContent ? previous.ftCreationTime : now;
-    Detail::AddIndexFile(index, writtenFile);
+    Detail::AddIndexFile(index, std::move(writtenFile));
     return StorageStatus::Ok(targetPath);
 }
 

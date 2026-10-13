@@ -38,7 +38,7 @@ try {
     }
     $before = @(Import-Csv -LiteralPath (Join-Path $output 'before.csv'))
     $after = @(Import-Csv -LiteralPath (Join-Path $output 'after.csv'))
-    if ($before.Count -ne 40 -or $after.Count -ne 40) { throw 'Incomplete maintenance measurements.' }
+    if ($before.Count -ne 48 -or $after.Count -ne 48) { throw 'Incomplete maintenance measurements.' }
     foreach ($a in $before) {
         $b = @($after | Where-Object { $_.mode -eq $a.mode -and $_.sample -eq $a.sample })
         if ($b.Count -ne 1 -or $a.items -ne $b[0].items -or $a.changed -ne $b[0].changed -or $a.result_hash -ne $b[0].result_hash) {

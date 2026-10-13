@@ -1,0 +1,26 @@
+Suite                 Tier Category        Result Duration ExitCode
+-----                 ---- --------        ------ -------- --------
+local_release         pr   package         PASS   4.58s           0
+github_update         pr   package         PASS   3.69s           0
+update_retention      pr   package         PASS   3.48s           0
+workspace_cleanup     pr   package         PASS   1.77s           0
+workflows             pr   integration     PASS   49.65s          0
+unit                  pr   unit            PASS   77.61s          0
+corpus                pr   corpus          PASS   8.36s           0
+persistence           pr   persistence     PASS   12s             0
+ipc                   pr   ipc             PASS   4.73s           0
+loader                pr   loader          PASS   27s             0
+diagnostics           pr   diagnostics     PASS   27.47s          0
+updater               pr   updater         PASS   16.84s          0
+channel_policy        pr   package         PASS   0.5s            0
+dependencies          pr   package         PASS   1.21s           0
+runtime_layout        pr   package         PASS   1.07s           0
+threat_boundaries     pr   hardening       PASS   0.24s           0
+static_analysis       pr   static_analysis PASS   94.26s          0
+stress                pr   stress          PASS   103.55s         0
+media_probe_isolation pr   stress          PASS   13.69s          0
+thumbnail_cache       pr   persistence     PASS   29.08s          0
+
+
+
+Total Suites: 20 | Passed: 20 | Failed: 0 (Timeouts: 0) | Total Time: 480.91s

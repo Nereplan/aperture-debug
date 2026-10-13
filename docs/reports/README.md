@@ -7,6 +7,7 @@ Reports capture empirical observations on specific machines and source revisions
 ## Navigation by subsystem
 
 ### Backend, storage and persistence
+- [Backend resource optimization (13 Oct 2026)](BACKEND_RESOURCES_20261013.md) — JSON loading, streamed cache accounting, single-path index ownership, and heap eviction.
 - [Backend validation and benchmarks (9 Oct 2026)](BACKEND_VALIDATION_20261009.md) — Source `df21d93` vs `bd5db22`. Measured 77.6% faster progress saves (108 ms to 24 ms for 25k items), save-retry read-only flag fix, 20/20 PR suites passed, startup budget verification. Raw evidence: [backend-validation-20261009](../evidence/backend-validation-20261009/).
 - [Remaining backend opportunities (8–9 Oct 2026)](BACKEND_REMAINING_WORK.md) — Follow-up to backend work reduction. Background folder rediscovery on cancellable worker, persisted fingerprints (`metadataFileWriteTime`) for duplicate imports, incremental durable saving (`library.changes` log with checkpoint barriers), background watch registration mailbox, and shared background availability.
 - [Backend work reduction (7 Oct 2026)](BACKEND_WORK_REDUCTION.md) — Source `bd5db22`. Save serialization reuse, bounded candidate sets for search, prepared smart playlist queries, background watched-folder reconciliation, single-pass metadata backfill.

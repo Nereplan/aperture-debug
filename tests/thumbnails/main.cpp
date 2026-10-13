@@ -87,9 +87,37 @@ void TestEvictionPhases(const fs::path& root) {
     Check(Read(locked) == std::string(300, 'l'), "Locked payload remains intact");
 }
 
+void TestCacheIndexAndAge(const fs::path& root) {
+    Detail::CacheIndex index;
+    CacheFileInfo first;
+    first.path = GetCacheDir(CacheClass::Generic, root.wstring()) + L"\\alias.bin";
+    first.cacheClass = CacheClass::Generic; first.sizeBytes = 123;
+    Detail::AddIndexFile(index, first);
+    CacheFileInfo replacement = first;
+    replacement.path.replace(replacement.path.size() - 9, 9, L"ALIAS.BIN");
+    replacement.sizeBytes = 45;
+    Detail::AddIndexFile(index, replacement);
+    Check(index.files.size() == 1 && index.total == 45 && index.classes[CacheClass::Generic] == 45,
+        "Case-insensitive replacement updates accounting once");
+    Check(index.files.find(first.path) != index.files.end(), "Original alias still resolves");
+    Detail::RemoveIndexFile(index, first.path);
+    Check(index.files.empty() && index.total == 0, "Alias removal balances accounting");
+
+    CacheFileInfo a, b, c;
+    a.path=L"a"; b.path=L"b"; c.path=L"c";
+    a.lastAccessTime={10,0}; a.lastWriteTime={30,0};
+    b.lastWriteTime={20,0}; // No access timestamp: use this file's write time.
+    c.lastAccessTime={30,0}; c.lastWriteTime={10,0};
+    Check(CompareCacheFilesOldestFirst(a,b) && CompareCacheFilesOldestFirst(b,c) && CompareCacheFilesOldestFirst(a,c),
+        "Missing access times preserve transitive oldest-first ordering");
+    c = a; c.path = L"c";
+    Check(CompareCacheFilesOldestFirst(a,c) && !CompareCacheFilesOldestFirst(c,a), "Equal ages use stable path order");
+}
+
 void SelfTest(const fs::path& root) {
     fs::create_directories(root);
     TestEvictionPhases(root/L"eviction-phases");
+    TestCacheIndexAndAge(root/L"index");
     bool staCodecPassed = false;
     std::thread sta([&]() {
         HRESULT initialized = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);

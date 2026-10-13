@@ -100,6 +100,26 @@ static void Removal(const char* mode, int count, int stride, int sample) {
     Row(mode, sample, std::chrono::duration<double, std::milli>(end - start).count(), count, removed, orderedHash ^ cleanupHash);
 }
 
+static void IndexResources(int sample) {
+    if (stats.live) throw std::runtime_error("Leaked measured allocation");
+    stats = {};
+    measuring = true;
+    const auto start = std::chrono::steady_clock::now();
+    Detail::CacheIndex index;
+    for (size_t i = 0; i < 25000; ++i) {
+        CacheFileInfo info;
+        info.path = L"C:\\Benchmark\\cache\\generic\\" + std::wstring(100, L'x') + L"-" + std::to_wstring(i) + L".bin";
+        info.sizeBytes = 100;
+        // Production hands each enumerated record to accounting once. Include
+        // input ownership in both measurements, so moves cannot hide memory.
+        Detail::AddIndexFile(index, std::move(info));
+    }
+    const auto end = std::chrono::steady_clock::now();
+    measuring = false;
+    if (index.total != 2500000 || index.files.size() != 25000) throw std::runtime_error("Index accounting mismatch");
+    Row("index-25000", sample, std::chrono::duration<double, std::milli>(end - start).count(), 25000, 0, index.total);
+}
+
 static void Eviction(const char* mode, size_t count, size_t evict, int sample, const fs::path& root) {
     if (stats.live) throw std::runtime_error("Leaked measured allocation");
     stats = {};
@@ -147,6 +167,7 @@ int wmain(int argc, wchar_t** argv) {
         Removal("remove-500-half", 500, 2, sample);
         Removal("remove-25000-sparse", 25000, 500, sample);
         Removal("remove-25000-half", 25000, 2, sample);
+        IndexResources(sample);
         Eviction("evict-25000-one", 25000, 1, sample, root);
         Eviction("evict-25000-100", 25000, 100, sample, root);
         if (stats.live) throw std::runtime_error("Leaked measured allocation");

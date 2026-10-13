@@ -6,6 +6,8 @@
 #include "../../src/Json.h"
 #include "../../src/Settings.h"
 #include "../../src/MediaLibrary.h"
+#include <cerrno>
+#include <cstdlib>
 
 namespace Aperture::Test {
 
@@ -60,6 +62,59 @@ TEST_CASE(JsonLimits, AppendSerializationCompatibility) {
     JsonValue parsed;
     TEST_ASSERT(JsonValue::parse(expected, parsed));
     TEST_ASSERT_EQ(parsed.get("s").as_string(), escaped);
+}
+
+TEST_CASE(JsonLimits, ObjectKeyOrderAndDuplicateCompatibility) {
+    JsonValue parsed;
+    TEST_ASSERT(JsonValue::parse("{\"z\":1,\"a\":2,\"m\":3,\"z\":{\"nested\":true},\"a\":4}", parsed));
+    TEST_ASSERT_EQ(parsed.stringify(), std::string("{\"a\":4,\"m\":3,\"z\":{\"nested\":true}}"));
+    TEST_ASSERT(JsonValue::parse(parsed.stringify(), parsed));
+    TEST_ASSERT_EQ(parsed.get("z").get("nested").as_bool(), true);
+}
+
+TEST_CASE(JsonLimits, SpanStringsAndEscapeBoundaries) {
+    const std::string text = std::string(4096, 'x') + "雪" + std::string("\n\t\0", 3) + std::string(4096, 'y');
+    JsonValue parsed;
+    TEST_ASSERT(JsonValue::parse(JsonValue(text).stringify(), parsed));
+    TEST_ASSERT_EQ(parsed.as_string(), text);
+    TEST_ASSERT(JsonValue::parse("\"\\uD83D\\uDE00\\u0000end\"", parsed));
+    TEST_ASSERT_EQ(parsed.as_string(), std::string("\xF0\x9F\x98\x80\0end", 8));
+    for (const std::string input : {std::string("\"unterminated"), std::string("\"abc\\"),
+            std::string("\"a\x01" "b\""), std::string("\"\\q\""), std::string("\"\\uD800\""), std::string("\"\\uDC00\"")}) {
+        TEST_ASSERT(!JsonValue::parse(input, parsed));
+        TEST_ASSERT(parsed.is_null());
+    }
+    // Bound decoded bytes, including multi-byte escapes at the exact limit.
+    const std::string prefix(JsonValue::kMaxJsonStringBytes - 3, 'x');
+    TEST_ASSERT(JsonValue::parse("\"" + prefix + "\\u20ac\"", parsed));
+    TEST_ASSERT_EQ(parsed.as_string_ref().size(), JsonValue::kMaxJsonStringBytes);
+    TEST_ASSERT(!JsonValue::parse("\"" + prefix + "x\\u20ac\"", parsed));
+    TEST_ASSERT(!JsonValue::parse("\"" + prefix + "xxxx\"", parsed));
+}
+
+TEST_CASE(JsonLimits, DirectNumberParsingCompatibility) {
+    JsonValue parsed;
+    for (const char* text : {"0", "-0", "1.25", "-123456789.012345", "9007199254740993", "18446744073709551615",
+            "1e20", "1E+30", "-2e-30", "1.7976931348623157e308", "2.2250738585072014e-308",
+            "2.225073858507201e-308", "4.9406564584124654e-324", "1e-999", "1e999"}) {
+        errno = 0;
+        char* end = nullptr;
+        const double expected = std::strtod(text, &end);
+        const bool accepted = errno != ERANGE && std::isfinite(expected) && *end == '\0';
+        TEST_ASSERT_EQ(JsonValue::parse(text, parsed), accepted);
+        if (accepted) {
+            TEST_ASSERT_EQ(parsed.as_number(), expected);
+            TEST_ASSERT_EQ(std::signbit(parsed.as_number()), std::signbit(expected));
+        }
+    }
+    for (const char* text : {"+1", "01", "-01", ".1", "1.", "1e", "1e+", "NaN", "Infinity", "1xyz", "0x1"}) {
+        TEST_ASSERT(!JsonValue::parse(text, parsed));
+        TEST_ASSERT(parsed.is_null());
+    }
+    TEST_ASSERT(JsonValue::parse("[42,1.25,-3e2]", parsed));
+    TEST_ASSERT_EQ(parsed[0].as_int(), 42);
+    TEST_ASSERT_EQ(parsed[1].as_number(), 1.25);
+    TEST_ASSERT_EQ(parsed[2].as_number(), -300.0);
 }
 
 TEST_CASE(JsonLimits, MaxInputBytesRejection) {

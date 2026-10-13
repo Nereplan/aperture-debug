@@ -1,0 +1,11 @@
+Status:                 [PASS] ALL INVARIANTS SATISFIED
+  Seed:                   1337
+  Total test cases:       10101
+  Accepted (Valid JSON):  4102
+  Rejected (Invalid):     5999
+  Round-trips verified:   4102
+  Deep nesting cases:     1023
+  Synthesized AST cases:  3059
+  Mutated corpus cases:   3914
+  Elapsed time:           252.67 ms (39977 cases/sec)
+========================================================
