@@ -1,0 +1,273 @@
+<#
+.SYNOPSIS
+    Local portable-player resource comparison. Does not install/download/build players.
+.DESCRIPTION
+    Supply complete clean portable runtime directories (or executables in those directories).
+    Each iteration copies the runtime to a fresh harness directory and redirects only child
+    APPDATA/LOCALAPPDATA/TEMP/TMP. Existing same-name players cause a safe failure.
+    Window latency is process launch to a visible unowned top-level window, NOT first frame.
+    Window size is the outer rectangle; video viewport and decoder defaults can differ.
+    No memory trimming, cache flushing, global environment changes, or user-process cleanup.
+    JSON metadata is retained; copied runtimes/config/cache are removed after each run.
+    VLC flags are defined in official 3.0.x src/libvlc-module.c, modules/gui/qt/qt.cpp,
+    modules/control/oldrc.c: https://github.com/videolan/vlc/tree/3.0.x
+#>
+[CmdletBinding()]
+param(
+    [Parameter(Mandatory)][string]$AperturePath,
+    [Parameter(Mandatory)][string]$VlcPath,
+    [string]$MpcHcPath = '',
+    [Parameter(Mandatory)][string]$MediaPath,
+    [Parameter(Mandatory)][string]$OutputDir,
+    [string]$ApertureStatusProbe = '',
+    [ValidateSet('Aperture','VLC','MPC-HC')][string[]]$PlayerNames = @('Aperture','VLC','MPC-HC'),
+    [ValidateRange(1,30)][int]$Iterations = 3,
+    [ValidateRange(0,10)][int]$WarmupIterations = 1,
+    [ValidateRange(320,3840)][int]$WindowWidth = 1280,
+    [ValidateRange(240,2160)][int]$WindowHeight = 800
+)
+$ErrorActionPreference = 'Stop'
+if ($PSVersionTable.PSVersion.Major -lt 7) { throw 'Use PowerShell 7 (ProcessStartInfo.ArgumentList required).' }
+function Assert-NoReparseAncestors([string]$Path) {
+    $current=[IO.Path]::GetFullPath($Path)
+    while($current) {
+        if(Test-Path -LiteralPath $current) {
+            $item=Get-Item -LiteralPath $current -Force
+            if($item.Attributes -band [IO.FileAttributes]::ReparsePoint) { throw "Reparse-point path is not allowed: $current" }
+        }
+        $current=[IO.Path]::GetDirectoryName($current.TrimEnd('\','/'))
+    }
+}
+$OutputDir = [IO.Path]::GetFullPath($OutputDir).TrimEnd('\','/')
+if($OutputDir.Length -le [IO.Path]::GetPathRoot($OutputDir).Length) { throw 'OutputDir must be a specific harness directory, not a drive root.' }
+Assert-NoReparseAncestors $OutputDir
+$MediaPath = (Resolve-Path -LiteralPath $MediaPath).Path
+$mediaHash = (Get-FileHash -LiteralPath $MediaPath -Algorithm SHA256).Hash
+if ($ApertureStatusProbe) { $ApertureStatusProbe = (Resolve-Path -LiteralPath $ApertureStatusProbe).Path }
+function Runtime([string]$Name, [string]$Path, [string[]]$Names) {
+    $resolved = (Resolve-Path -LiteralPath $Path).Path
+    Assert-NoReparseAncestors $resolved
+    if (Test-Path -LiteralPath $resolved -PathType Container) {
+        $exe = $Names | ForEach-Object { Join-Path $resolved $_ } | Where-Object { Test-Path -LiteralPath $_ -PathType Leaf } | Select-Object -First 1
+        if (-not $exe) { throw "No $Name executable found in $resolved" }
+    } else { $exe = $resolved; $resolved = Split-Path -Parent $exe }
+    # Media must never be copied into or counted as the application's runtime.
+    if ($MediaPath.StartsWith($resolved.TrimEnd('\') + '\', [StringComparison]::OrdinalIgnoreCase)) { throw "Media must be outside $Name runtime." }
+    if ($OutputDir.StartsWith($resolved.TrimEnd('\') + '\', [StringComparison]::OrdinalIgnoreCase)) { throw "Output must be outside $Name runtime." }
+    $files = @(Get-ChildItem -LiteralPath $resolved -File -Recurse)
+    if (Get-ChildItem -LiteralPath $resolved -Recurse -Attributes ReparsePoint -ErrorAction SilentlyContinue) { throw "Reparse points are not allowed in runtime: $resolved" }
+    [pscustomobject]@{name=$Name;source=$resolved;exeName=[IO.Path]::GetFileName($exe);exeHash=(Get-FileHash -LiteralPath $exe).Hash;version=(Get-Item -LiteralPath $exe).VersionInfo.FileVersion;runtimeBytes=[int64](($files | Measure-Object Length -Sum).Sum);runtimeFileCount=$files.Count}
+}
+$players = @((Runtime 'Aperture' $AperturePath @('Aperture.exe')), (Runtime 'VLC' $VlcPath @('vlc.exe')))
+if ($MpcHcPath) { $players += Runtime 'MPC-HC' $MpcHcPath @('mpc-hc64.exe','mpc-hc.exe') }
+$players = @($players | Where-Object { $_.name -in $PlayerNames })
+if (-not $players.Count) { throw 'No selected runtime supplied.' }
+# Refuse singleton interference instead of controlling or terminating user players.
+foreach ($player in $players) {
+    if (Get-Process -Name ([IO.Path]::GetFileNameWithoutExtension($player.exeName)) -ErrorAction SilentlyContinue) { throw "Close existing $($player.name) instances before comparing; nothing was closed." }
+}
+Add-Type -TypeDefinition @'
+using System;
+using System.Runtime.InteropServices;
+public static class PlayerBenchmarkWindow {
+    public delegate bool EnumProc(IntPtr window, IntPtr context);
+    [DllImport("user32.dll")] static extern bool EnumWindows(EnumProc callback, IntPtr context);
+    [DllImport("user32.dll")] static extern uint GetWindowThreadProcessId(IntPtr window, out uint pid);
+    [DllImport("user32.dll")] static extern bool IsWindowVisible(IntPtr window);
+    [DllImport("user32.dll")] static extern IntPtr GetWindow(IntPtr window, uint command);
+    [DllImport("user32.dll")] static extern bool SetWindowPos(IntPtr window, IntPtr after, int x, int y, int width, int height, uint flags);
+    [DllImport("user32.dll")] static extern bool PostMessage(IntPtr window, uint message, IntPtr w, IntPtr l);
+    [DllImport("user32.dll")] static extern bool GetWindowRect(IntPtr window, out Rect rect);
+    public struct Rect { public int left, top, right, bottom; }
+    public static IntPtr Find(uint pid) {
+        IntPtr found = IntPtr.Zero;
+        EnumWindows((window, context) => { uint owner; GetWindowThreadProcessId(window, out owner);
+            if(owner == pid && IsWindowVisible(window) && GetWindow(window, 4) == IntPtr.Zero) { found = window; return false; } return true; }, IntPtr.Zero);
+        return found;
+    }
+    public static bool Resize(IntPtr window, uint pid, int width, int height) { uint owner; GetWindowThreadProcessId(window, out owner); return owner == pid && SetWindowPos(window, IntPtr.Zero, 40, 40, width, height, 0x0014); }
+    public static int[] Size(IntPtr window) { Rect rect; if(!GetWindowRect(window, out rect)) return null; return new[]{rect.right-rect.left, rect.bottom-rect.top}; }
+    public static void Close(IntPtr window, uint pid) { uint owner; GetWindowThreadProcessId(window, out owner); if(owner == pid) PostMessage(window, 0x0010, IntPtr.Zero, IntPtr.Zero); }
+}
+'@
+if ($MpcHcPath) { Add-Type -Path (Join-Path $PSScriptRoot 'MpcStatusObserver.cs') }
+function Bytes([string]$Path) { [int64]((Get-ChildItem -LiteralPath $Path -File -Recurse | Measure-Object Length -Sum).Sum) }
+function Gpu([int]$OwnedPid) {
+    try {
+        $samples = (Get-Counter -Counter @('\GPU Process Memory(*)\Dedicated Usage','\GPU Process Memory(*)\Shared Usage') -ErrorAction Stop).CounterSamples
+        $owned = @($samples | Where-Object { $_.InstanceName -like "pid_${OwnedPid}_*" })
+        if (-not $owned.Count) { throw 'No GPU Process Memory instance for owned PID.' }
+        if (@($owned | Where-Object { $_.Status -notin @(0,1) }).Count) { throw 'GPU counter returned invalid sample status.' }
+        $dedicated = @($owned | Where-Object { $_.Path -like '*\Dedicated Usage' })
+        $shared = @($owned | Where-Object { $_.Path -like '*\Shared Usage' })
+        if (-not $dedicated.Count -or -not $shared.Count) { throw 'Incomplete GPU counters.' }
+        return @{dedicatedBytes=[int64](($dedicated | Measure-Object CookedValue -Sum).Sum);sharedBytes=[int64](($shared | Measure-Object CookedValue -Sum).Sum);unavailableReason=$null}
+    } catch { return @{dedicatedBytes=$null;sharedBytes=$null;unavailableReason=$_.Exception.Message} }
+}
+function Vlc-Time([int]$Port, [int]$OwnedPid) {
+    # Verify the listener's owning PID before sending any command. Fail closed on a race.
+    $listener = @(Get-NetTCPConnection -LocalAddress '127.0.0.1' -LocalPort $Port -State Listen -ErrorAction Stop)
+    if ($listener.Count -ne 1 -or $listener[0].OwningProcess -ne $OwnedPid) { throw 'RC listener is not owned by benchmark process.' }
+    $client = [Net.Sockets.TcpClient]::new()
+    try {
+        $connect = $client.ConnectAsync('127.0.0.1',$Port)
+        if (-not $connect.Wait(1500)) { throw 'RC connect timeout.' }
+        $stream = $client.GetStream(); $stream.ReadTimeout = 1500; $stream.WriteTimeout = 1500
+        $command = [Text.Encoding]::ASCII.GetBytes("get_time`n")
+        $stream.Write($command,0,$command.Length)
+        $buffer = [byte[]]::new(4096); $reply = ''; $deadline = [DateTime]::UtcNow.AddSeconds(2)
+        do {
+            $count = $stream.Read($buffer,0,$buffer.Length)
+            if ($count -eq 0) { break }
+            $reply += [Text.Encoding]::UTF8.GetString($buffer,0,$count)
+            $matches = [regex]::Matches($reply,'(?m)^\s*(?:>\s*)?(\d+)\s*\r?$')
+            if ($matches.Count) { return [double]$matches[$matches.Count-1].Groups[1].Value }
+        } while ([DateTime]::UtcNow -lt $deadline)
+        throw 'RC returned no numeric playback time.'
+    } finally { $client.Dispose() }
+}
+function Playback([string]$Name, [int]$OwnedPid, [int]$Port, $Environment) {
+    try {
+        if ($Name -eq 'VLC') { return @{positionSec=(Vlc-Time $Port $OwnedPid);state=$null;reason=$null} }
+        if ($Name -eq 'MPC-HC' -and $mpcObserver) { return @{positionSec=$mpcObserver.Query([uint32]$OwnedPid);state=$null;reason=$null} }
+        if ($Name -eq 'Aperture' -and $ApertureStatusProbe) {
+            $psi = [Diagnostics.ProcessStartInfo]::new($ApertureStatusProbe); $psi.UseShellExecute=$false; $psi.CreateNoWindow=$true; $psi.RedirectStandardOutput=$true
+            $psi.ArgumentList.Add([string]$OwnedPid)
+            foreach($key in $Environment.Keys) { $psi.Environment[$key]=$Environment[$key] }
+            $probe = [Diagnostics.Process]::Start($psi)
+            try {
+                if (-not $probe.WaitForExit(5000)) { $probe.Kill(); throw 'Status probe timed out.' }
+                if ($probe.ExitCode -ne 0) { throw "Status probe failed ($($probe.ExitCode))." }
+                $status = $probe.StandardOutput.ReadToEnd() | ConvertFrom-Json
+                return @{positionSec=$status.positionSec;state=$status.state;reason=$null}
+            } finally { $probe.Dispose() }
+        }
+        return @{positionSec=$null;state=$null;reason='No owned-PID playback status probe supplied/available.'}
+    } catch { return @{positionSec=$null;state=$null;reason=$_.Exception.Message} }
+}
+New-Item -ItemType Directory -Path $OutputDir -Force | Out-Null
+$runRoot = [IO.Path]::GetFullPath((Join-Path $OutputDir ('runs-' + [Guid]::NewGuid().ToString('N'))))
+New-Item -ItemType Directory -Path $runRoot | Out-Null
+if (-not $ApertureStatusProbe -and 'Aperture' -in $players.name) {
+    # Compile only this observer, using child-scoped VS initialization.
+    $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
+    if (Test-Path -LiteralPath $vswhere) {
+        $vs = & $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+        if ($vs) {
+            $vcvars = Join-Path $vs 'VC\Auxiliary\Build\vcvars64.bat'
+            $probeSource = Join-Path $PSScriptRoot 'player_status_probe.cpp'
+            $probeExe = Join-Path $runRoot 'player_status_probe.exe'
+            foreach($path in @($vcvars,$probeSource,$probeExe,$runRoot)) { if ($path -match '[%"&|<>^\r\n]') { throw 'Unsupported cmd metacharacter in helper build path.' } }
+            $buildCommand = 'call "{0}" >nul && cl.exe /nologo /utf-8 /O2 /MT /EHsc /std:c++17 "{1}" /Fo"{2}\player_status_probe.obj" /Fe:"{3}" /link user32.lib shell32.lib advapi32.lib /SUBSYSTEM:CONSOLE' -f $vcvars,$probeSource,$runRoot,$probeExe
+            & cmd.exe /d /s /c $buildCommand *> (Join-Path $runRoot 'probe-build.log')
+            if ($LASTEXITCODE -eq 0 -and (Test-Path -LiteralPath $probeExe)) { $ApertureStatusProbe=$probeExe }
+            else { Write-Warning 'Status observer build failed; Aperture playback will be explicitly unverified. See probe-build.log.' }
+        }
+    }
+}
+$results = [Collections.Generic.List[object]]::new()
+for ($round=0; $round -lt ($WarmupIterations+$Iterations); $round++) {
+    # Rotate player order to avoid giving one player every cache/order advantage.
+    for($offset=0; $offset -lt $players.Count; $offset++) {
+        $player = $players[($round+$offset)%$players.Count]
+        if (Get-Process -Name ([IO.Path]::GetFileNameWithoutExtension($player.exeName)) -ErrorAction SilentlyContinue) { throw "Existing $($player.name) process detected; refusing launch." }
+        $dir = Join-Path $runRoot ("$round-$($player.name)")
+        $runtime = Join-Path $dir 'runtime'; $profile = Join-Path $dir 'profile'
+        New-Item -ItemType Directory -Path $runtime -Force | Out-Null
+        Get-ChildItem -LiteralPath $player.source -Force | Copy-Item -Destination $runtime -Recurse -Force
+        $envOverride = @{APPDATA=(Join-Path $profile 'Roaming');LOCALAPPDATA=(Join-Path $profile 'Local');TEMP=(Join-Path $profile 'Temp');TMP=(Join-Path $profile 'Temp')}
+        foreach($path in ($envOverride.Values | Select-Object -Unique)) { New-Item -ItemType Directory -Path $path -Force | Out-Null }
+        $argsList = [Collections.Generic.List[string]]::new(); $port=0; $config=$null; $mpcObserver=$null
+        if ($player.name -eq 'VLC') {
+            # Windows VLC uses native Shell folders, not APPDATA overrides. Official
+            # src/win32/dirs.c honors an executable-adjacent portable directory.
+            New-Item -ItemType Directory -Path (Join-Path $runtime 'portable') -Force | Out-Null
+            $socket = [Net.Sockets.TcpListener]::new([Net.IPAddress]::Loopback,0); $socket.Start(); $port=$socket.LocalEndpoint.Port; $socket.Stop()
+            $config=Join-Path $profile 'vlcrc'; [IO.File]::WriteAllText($config,'')
+            foreach($arg in @('--intf=qt','--ignore-config',"--config=$config",'--no-one-instance','--no-one-instance-when-started-from-file','--no-media-library','--no-metadata-network-access','--no-qt-privacy-ask','--no-qt-updates-notif','--no-qt-recentplay','--qt-continue=0','--no-qt-video-autoresize','--extraintf=rc','--rc-quiet',"--rc-host=127.0.0.1:$port")) { $argsList.Add($arg) }
+        } elseif ($player.name -eq 'MPC-HC') {
+            $config=Join-Path $runtime ([IO.Path]::GetFileNameWithoutExtension($player.exeName)+'.ini')
+            # Official 2.8.3 Profile.cpp selects portable mode by adjacent INI
+            # existence; keys are defined in src/mpc-hc/SettingsDefines.h.
+            [IO.File]::WriteAllText($config, (@('[Settings]','KeepHistory=0','RecentFilesNumber=0','HistoryInAppData=0','RememberFilePos=0','RememberDVDPos=0','RememberExternalPlaylistPos=0','RememberPlaylistItems=0','UseWin7TaskBar=0','UpdaterAutoCheck=0','EnableCrashReporter=0','AllowMultipleInstances=1','UseSeekPreview=0') -join "`r`n"), [Text.Encoding]::ASCII)
+            $mpcObserver=[MpcStatusObserver]::new()
+            foreach($arg in @('/new','/slave',[string]$mpcObserver.Handle,'/play')) { $argsList.Add($arg) }
+        } else {
+            # Aperture uses its executable-adjacent data/cache directories.
+            foreach($subdir in @('data','cache')) {
+                $path=Join-Path $runtime $subdir
+                if(Test-Path -LiteralPath $path) { throw "Supply a clean Aperture runtime without preexisting $subdir." }
+                New-Item -ItemType Directory -Path $path | Out-Null
+            }
+            $config=Join-Path $runtime 'data'
+        }
+        $argsList.Add($MediaPath)
+        $beforeRuntime=Bytes $runtime; $beforeProfile=Bytes $profile
+        $configText = if(Test-Path -LiteralPath $config -PathType Leaf) { [IO.File]::ReadAllText($config) } else { 'Fresh executable-adjacent data/ directory.' }
+        $record=[ordered]@{player=$player.name;round=$round;warmup=($round -lt $WarmupIterations);status='failed';failure=$null;runtimeSource=$player.source;runtimeBytes=$player.runtimeBytes;runtimeFileCount=$player.runtimeFileCount;executableHash=$player.exeHash;version=$player.version;runDirectory=$dir;arguments=$argsList.ToArray();childEnvironment=$envOverride;configPath=$config;initialConfig=$configText;pid=$null;processToVisibleWindowMs=$null;windowDimensions=$null;playbackVerification='playback-unverified';playbackReason=$null;samples=@();writableGrowthBytes=$null;cleanup=$null;artifactCleanup=$null}
+        $process=$null; $window=[IntPtr]::Zero
+        try {
+            $psi=[Diagnostics.ProcessStartInfo]::new((Join-Path $runtime $player.exeName)); $psi.WorkingDirectory=$runtime; $psi.UseShellExecute=$false; $psi.CreateNoWindow=$true
+            foreach($arg in $argsList) { $psi.ArgumentList.Add($arg) }
+            foreach($key in $envOverride.Keys) { $psi.Environment[$key]=$envOverride[$key] }
+            $timer=[Diagnostics.Stopwatch]::StartNew(); $process=[Diagnostics.Process]::Start($psi); $record.pid=$process.Id
+            if($mpcObserver) { $mpcObserver.SetOwnedPid([uint32]$process.Id) }
+            do {
+                if($process.HasExited) { throw "Player exited before visible window ($($process.ExitCode))." }
+                $window=[PlayerBenchmarkWindow]::Find([uint32]$process.Id)
+                if($window -eq [IntPtr]::Zero) { Start-Sleep -Milliseconds 20 }
+            } while($window -eq [IntPtr]::Zero -and $timer.ElapsedMilliseconds -lt 15000)
+            if($window -eq [IntPtr]::Zero) { throw 'Visible owned window timeout.' }
+            $record.processToVisibleWindowMs=$timer.Elapsed.TotalMilliseconds
+            if(-not [PlayerBenchmarkWindow]::Resize($window,[uint32]$process.Id,$WindowWidth,$WindowHeight)) { throw 'Owned-window resize failed.' }
+            Start-Sleep -Seconds 8
+            # Some players resize again when the decoder announces video size.
+            # Enforce the shared outer dimensions after that initial load too.
+            if(-not [PlayerBenchmarkWindow]::Resize($window,[uint32]$process.Id,$WindowWidth,$WindowHeight)) { throw 'Post-load resize failed.' }
+            Start-Sleep -Seconds 2
+            $samples=[Collections.Generic.List[object]]::new()
+            for($sample=0; $sample -lt 3; $sample++) {
+                if($sample) { Start-Sleep -Seconds 2 }
+                $process.Refresh(); if($process.HasExited) { throw 'Player exited during sampling.' }
+                $gpu=Gpu $process.Id
+                $process.Refresh()
+                $samples.Add([pscustomobject]@{elapsedSeconds=$timer.Elapsed.TotalSeconds;workingSetBytes=$process.WorkingSet64;privateBytes=$process.PrivateMemorySize64;cpuSeconds=$process.TotalProcessorTime.TotalSeconds;dedicatedGpuBytes=$gpu.dedicatedBytes;sharedGpuBytes=$gpu.sharedBytes;gpuUnavailableReason=$gpu.unavailableReason;playback=(Playback $player.name $process.Id $port $envOverride)})
+            }
+            $record.samples=$samples.ToArray(); $record.windowDimensions=[PlayerBenchmarkWindow]::Size($window)
+            if($record.windowDimensions[0] -ne $WindowWidth -or $record.windowDimensions[1] -ne $WindowHeight) { throw 'Player changed the requested comparison window size.' }
+            $positions=@($samples | ForEach-Object { $_.playback.positionSec }); $valid=@($samples | Where-Object { $null -ne $_.playback.positionSec -and -not $_.playback.reason })
+            $statesOk=($player.name -ne 'Aperture' -or @($samples | Where-Object { $_.playback.state -ne 2 }).Count -eq 0)
+            if($valid.Count -eq 3 -and $positions[1] -gt $positions[0] -and $positions[2] -gt $positions[1] -and $statesOk) { $record.playbackVerification='advancing-playback-verified' }
+            else { $record.playbackReason='Missing/nonadvancing time or nonplaying state. ' + (($samples | ForEach-Object { $_.playback.reason } | Where-Object { $_ } | Select-Object -Unique) -join '; ') }
+            $record.status='sampled'
+        } catch { $record.failure=$_.Exception.Message }
+        finally {
+            if($process) {
+                if(-not $process.HasExited) {
+                    [PlayerBenchmarkWindow]::Close($window,[uint32]$process.Id)
+                    if(-not $process.WaitForExit(5000)) { $process.Kill(); [void]$process.WaitForExit(3000); $record.cleanup='owned-process-force-terminated' }
+                    else { $record.cleanup='owned-window-closed' }
+                } else { $record.cleanup='already-exited' }
+                $process.Dispose()
+            }
+            if($mpcObserver) { $mpcObserver.Dispose() }
+            $record.writableGrowthBytes=@{runtimeDelta=(Bytes $runtime)-$beforeRuntime;profileDelta=(Bytes $profile)-$beforeProfile}
+            # Validate exact targets before deleting only this run's generated copies.
+            foreach($generated in @($runtime,$profile)) {
+                $checked = [IO.Path]::GetFullPath($generated)
+                if(-not $checked.StartsWith($runRoot + '\',[StringComparison]::OrdinalIgnoreCase) -or -not $checked.StartsWith($dir + '\',[StringComparison]::OrdinalIgnoreCase)) { throw 'Refusing cleanup outside owned run directory.' }
+                Assert-NoReparseAncestors $checked
+                if(Get-ChildItem -LiteralPath $checked -Recurse -Attributes ReparsePoint -ErrorAction Stop) { throw 'Refusing recursive cleanup containing a reparse point.' }
+                Remove-Item -LiteralPath $checked -Recurse -Force
+            }
+            $record.artifactCleanup='runtime-and-profile-copies-removed; metadata-retained'
+            $results.Add([pscustomobject]$record)
+            $record | ConvertTo-Json -Depth 12 | Set-Content -LiteralPath (Join-Path $dir 'result.json') -Encoding utf8
+            Write-Output ("{0} round {1} ({2}): {3}; {4}" -f $player.name,$round, $(if($record.warmup){'warmup'}else{'measured'}),$record.status,$record.playbackVerification)
+        }
+    }
+}
+$report=[ordered]@{schemaVersion=1;createdUtc=[DateTime]::UtcNow.ToString('o');mediaPath=$MediaPath;mediaSha256=$mediaHash;mediaBytes=(Get-Item -LiteralPath $MediaPath).Length;iterations=$Iterations;warmupIterations=$WarmupIterations;windowTarget=@($WindowWidth,$WindowHeight);startupMetric='Process launch to first visible unowned top-level window (not first frame)';sampling='8s after visible window plus 2s after post-load resize; 3 samples separated by at least 2s (counter/status overhead included)';apertureStatusProbe=$ApertureStatusProbe;limitations=@('Warm OS caches; no cold-cache claim.','Window outer rectangles match; video viewport and default decoder may differ.','Samples cover owned root process only; inspect unexpected child processes separately.','Playback status does not prove pixels are visible or decoder hardware equivalence.','Child environment redirects ordinary profile/temp writes; Windows Known Folder APIs may bypass environment variables (VLC additionally uses portable/).','VLC RC verification adds a control-interface overhead.','MPC-HC uses a hidden /slave window to verify position; no decoder equivalence claim.');players=$players;results=$results.ToArray()}
+$report | ConvertTo-Json -Depth 14 | Set-Content -LiteralPath (Join-Path $OutputDir 'comparison.json') -Encoding utf8
+Write-Output (Join-Path $OutputDir 'comparison.json')
+if(@($results | Where-Object { $_.status -ne 'sampled' }).Count) { throw 'One or more player runs failed; see retained per-run results.' }

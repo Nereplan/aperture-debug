@@ -452,8 +452,11 @@ public:
     void BindDeviceContext(ID2D1DeviceContext* context);
 
 private:
+    friend struct MpvPreviewTestAccess;
     static void OnRenderUpdate(void* ctx);
     void StopMpvLocked();
+    void DrainPreviewEventsLocked(bool acceptRestart);
+    bool IssueSeekbarSeekLocked(double time, uint64_t sequence, uint64_t mediaToken);
     void ResetSeekbarPreviewLocked();
     void EnsureBufferDimensionsLocked(int width, int height, ID2D1DeviceContext* pD2DContext);
     void BindDeviceContextLocked(ID2D1DeviceContext* context);
@@ -472,6 +475,8 @@ private:
     double requestedTime = 0.0;
     uint64_t inFlightSequenceId = 0, inFlightMediaToken = 0;
     double inFlightTime = 0.0;
+    bool seekbarCapturePending = false, seekbarRestarted = false;
+    bool seekbarRequestFailed = false;
     bool hasPendingSeek = false;
     double pendingSeekTime = 0.0;
     uint64_t pendingSeekSeq = 0, pendingSeekMediaToken = 0;

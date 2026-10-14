@@ -1,0 +1,30 @@
+<<< [PASS] local_release (3.3s)
+<<< [PASS] github_update (3s)
+<<< [PASS] update_retention (2.95s)
+<<< [PASS] workspace_cleanup (1.48s)
+<<< [PASS] workflows (46.11s)
+443 passed, 0 failed, 0 skipped in 7589.32 ms
+<<< [PASS] unit (68.75s)
+<<< [PASS] corpus (7.05s)
+108 passed, 0 failed, 0 skipped in 893.71 ms
+<<< [PASS] persistence (10.27s)
+34 passed, 0 failed, 0 skipped in 9.96 ms
+<<< [PASS] ipc (3.89s)
+5 passed, 0 failed, 0 skipped in 742.79 ms
+<<< [PASS] loader (24.29s)
+<<< [PASS] diagnostics (24.79s)
+36 passed, 0 failed, 0 skipped in 281.17 ms
+<<< [PASS] updater (14.85s)
+<<< [PASS] channel_policy (0.4s)
+<<< [PASS] dependencies (0.88s)
+<<< [PASS] runtime_layout (0.85s)
+<<< [PASS] threat_boundaries (0.29s)
+<<< [PASS] static_analysis (70.19s)
+20 passed, 0 failed, 0 skipped in 19128.41 ms
+<<< [PASS] stress (91.74s)
+<<< [PASS] media_probe_isolation (12.36s)
+PASS thumbnail codec, migration, budgets, concurrent writers, corruption and containment: 8524 assertions
+<<< [PASS] thumbnail_cache (21.26s)
+Total Suites: 20 | Passed: 20 | Failed: 0 (Timeouts: 0) | Total Time: 408.78s
+Files: 10; binary SHA-256: 21a0c8a0c0bd363bdb976651dcb13137420f2aa341e00d459a4fd6f5020f39b1
+Ready: C:\Users\Alperen\Desktop\Antigravity\Aperture Final\dist\Aperture-2.0.0.0-windows-x64.zip

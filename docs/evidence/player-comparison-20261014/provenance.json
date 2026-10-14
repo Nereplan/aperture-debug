@@ -1,0 +1,14 @@
+{
+  "backendBaseline": "cee51e3",
+  "previewFixtureSha256": "73791e614563e875e0b25761894363f9a13e331704f7e7eb655d6436bf3ecb5a",
+  "mpcAssetSha256": "b7f63edfa2bc5a68936ae126a960fca2630abeb8797d0b95a12227aafe1470c2",
+  "previewSourceHashes": {
+    "src/MpvPlayer.cpp": "bd640fab6a4536b69bf6ecdb76ed81efa8d7ca9293834f09555b267b53c81fcf",
+    "src/MpvPlayer.h": "f379e91f3c52f1813c1f4494fbc6416157c8901c2bd80f9bce47e8e323dc97f7",
+    "tests/native/preview_pipeline.cpp": "cee61dd4318cc8f21322d30f36753ab376222ff6406767efe434044473d3735a"
+  },
+  "notes": [
+    "Normal-playback comparison used the backend baseline plus preserved pre-existing frontend changes.",
+    "Preview native probe compares baseline backend with updated backend; it does not measure GPU/CPU resource deltas."
+  ]
+}

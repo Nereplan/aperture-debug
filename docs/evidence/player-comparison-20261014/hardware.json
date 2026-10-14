@@ -1,0 +1,13 @@
+{
+  "cpu": "AMD Ryzen 9 3900X 12-Core Processor            ",
+  "logicalProcessors": 24,
+  "gpu": [
+    {
+      "Name": "NVIDIA GeForce RTX 4070 SUPER",
+      "DriverVersion": "32.0.16.1088"
+    }
+  ],
+  "os": "Microsoft Windows 11 Pro",
+  "osVersion": "10.0.26200",
+  "visibleMemoryKiB": 33477452
+}

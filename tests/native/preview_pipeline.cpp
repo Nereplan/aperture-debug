@@ -2,11 +2,134 @@
 #include <iostream>
 
 using namespace Aperture;
+
+namespace Aperture {
+// Instrument the real software renderer without adding production counters.
+struct MpvPreviewTestAccess {
+    inline static decltype(&mpv_render_context_render) render = nullptr;
+    inline static decltype(&mpv_command) command = nullptr;
+    inline static unsigned renders = 0, seeks = 0;
+    static int Render(mpv_render_context* context, mpv_render_param* params) {
+        ++renders;
+        return render(context, params);
+    }
+    static int Command(mpv_handle* handle, const char** args) {
+        if (args && args[0] && std::strcmp(args[0], "seek") == 0) ++seeks;
+        return command(handle, args);
+    }
+    static void Instrument(MpvPreviewPlayer& player) {
+        render = player.fn_mpv_render_context_render;
+        command = player.fn_mpv_command;
+        player.fn_mpv_render_context_render = &Render;
+        player.fn_mpv_command = &Command;
+        renders = seeks = 0;
+    }
+    static bool Paused(MpvPreviewPlayer& player) {
+        int paused = 0;
+        return player.fn_mpv_get_property(player.mpv, "pause", MPV_FORMAT_FLAG, &paused) >= 0 && paused;
+    }
+    static double Position(MpvPreviewPlayer& player) {
+        double position = -1;
+        player.fn_mpv_get_property(player.mpv, "time-pos", MPV_FORMAT_DOUBLE, &position);
+        return position;
+    }
+    static bool CapturePending(const MpvPreviewPlayer& player) { return player.seekbarCapturePending; }
+    static bool SeekPending(const MpvPreviewPlayer& player) { return player.hasPendingSeek; }
+    static void ExpireSeek(MpvPreviewPlayer& player) { player.lastSeekTime -= std::chrono::seconds(6); }
+    inline static bool syntheticRestart = false, syntheticSeeking = false;
+    inline static double syntheticPosition = 0;
+    inline static unsigned syntheticRenders = 0;
+    static mpv_event* Event(mpv_handle*, double) {
+        static mpv_event event{};
+        event.event_id = syntheticRestart ? MPV_EVENT_PLAYBACK_RESTART : MPV_EVENT_NONE;
+        syntheticRestart = false;
+        return &event;
+    }
+    static int Property(mpv_handle*, const char* name, mpv_format, void* output) {
+        if (std::strcmp(name, "seeking") == 0) *static_cast<int*>(output) = syntheticSeeking;
+        else if (std::strcmp(name, "time-pos") == 0) *static_cast<double*>(output) = syntheticPosition;
+        else if (std::strcmp(name, "container-fps") == 0) *static_cast<double*>(output) = 10;
+        else return MPV_ERROR_PROPERTY_NOT_FOUND;
+        return 0;
+    }
+    static int SetProperty(mpv_handle*, const char*, const char*) { return 0; }
+    static int SyntheticCommand(mpv_handle*, const char**) { return 0; }
+    static uint64_t Update(mpv_render_context*) { return MPV_RENDER_UPDATE_FRAME; }
+    static int SyntheticRender(mpv_render_context*, mpv_render_param* params) {
+        ++syntheticRenders;
+        for (auto* param = params; param->type != MPV_RENDER_PARAM_INVALID; ++param) {
+            if (param->type == MPV_RENDER_PARAM_SW_POINTER)
+                std::memset(param->data, static_cast<int>(syntheticPosition), 320 * 180 * 4);
+        }
+        return 0;
+    }
+    static void MakeSynthetic(MpvPreviewPlayer& player) {
+        player.mpv = reinterpret_cast<mpv_handle*>(1);
+        player.renderCtx = reinterpret_cast<mpv_render_context*>(1);
+        player.fn_mpv_wait_event = &Event;
+        player.fn_mpv_get_property = &Property;
+        player.fn_mpv_set_property_string = &SetProperty;
+        player.fn_mpv_command = &SyntheticCommand;
+        player.fn_mpv_render_context_update = &Update;
+        player.fn_mpv_render_context_render = &SyntheticRender;
+        player.pixelBuffer.assign(320 * 180 * 4, 0);
+        player.SetPrivateMode(true);
+        syntheticRestart = syntheticSeeking = false;
+        syntheticPosition = 0;
+        syntheticRenders = 0;
+    }
+};
+}
+
 static void Check(bool ok, const char* message) { if (!ok) throw std::runtime_error(message); }
 template<class Predicate> static void Until(Predicate predicate, const char* message) {
     const auto deadline = GetTickCount64() + 10000;
     do { if (predicate()) return; Sleep(10); } while (GetTickCount64() < deadline);
     throw std::runtime_error(message);
+}
+static unsigned Hold(MpvPreviewPlayer& preview, ID2D1DeviceContext* context, DWORD durationMs, unsigned* bitmapUpdates = nullptr) {
+    const auto before = MpvPreviewTestAccess::renders;
+    const auto deadline = GetTickCount64() + durationMs;
+    do { if (preview.UpdateFrame(context) && bitmapUpdates) ++*bitmapUpdates; Sleep(10); } while (GetTickCount64() < deadline);
+    return MpvPreviewTestAccess::renders - before;
+}
+static void CheckSyntheticCapture(ID2D1DeviceContext* context) {
+    MpvPreviewPlayer preview;
+    MpvPreviewTestAccess::MakeSynthetic(preview);
+    const auto file = L"C:\\Aperture-preview-synthetic-" + std::to_wstring(GetCurrentProcessId()) + L".mp4";
+    preview.RequestSeekbarThumbnail(file, 12, 45, 9, context);
+    preview.UpdateFrame(context);
+    Check(!preview.HasSeekbarThumbnail(), "Old redraw was accepted before seek completion");
+    MpvPreviewTestAccess::syntheticRestart = true;
+    MpvPreviewTestAccess::syntheticSeeking = true;
+    preview.UpdateFrame(context);
+    Check(!preview.HasSeekbarThumbnail(), "Incomplete seek was cached");
+    MpvPreviewTestAccess::syntheticSeeking = false;
+    preview.UpdateFrame(context);
+    Check(!preview.HasSeekbarThumbnail(), "Restart at old position was cached");
+    MpvPreviewTestAccess::syntheticPosition = 12;
+    preview.UpdateFrame(context);
+    Check(preview.HasSeekbarThumbnail(), "Completed synthetic target was not captured");
+    const auto renders = MpvPreviewTestAccess::syntheticRenders;
+    for (int i = 0; i < 100; ++i) preview.UpdateFrame(context);
+    Check(MpvPreviewTestAccess::syntheticRenders == renders, "Synthetic redraws repeated the completed capture");
+    PreviewThumbnailFrame captured;
+    Check(preview.GetMemoryCache().TryGet(file, 12, captured) && captured.bgraPixels.front() == 12,
+        "Synthetic cache contains pixels from before the target seek");
+    preview.ResetSeekbarPreview();
+    Check(!MpvPreviewTestAccess::CapturePending(preview), "Reset kept synthetic capture armed");
+    preview.RequestSeekbarThumbnail(file, 33, 45, 9, context);
+    MpvPreviewTestAccess::ExpireSeek(preview);
+    preview.UpdateFrame(context);
+    Check(!MpvPreviewTestAccess::CapturePending(preview) && !preview.IsSeekbarThumbnailLoading(),
+        "Unfinished extraction did not expire");
+    Check(!preview.RequestSeekbarThumbnail(file, 33, 45, 9, context),
+        "Repeated expired request restarted extraction");
+    const auto expiredRenders = MpvPreviewTestAccess::syntheticRenders;
+    for (int i = 0; i < 100; ++i) preview.UpdateFrame(context);
+    Check(MpvPreviewTestAccess::syntheticRenders == expiredRenders, "Expired extraction kept rendering");
+    preview.ResetSeekbarPreview();
+    Check(preview.RequestSeekbarThumbnail(file, 33, 45, 9, context), "Reset did not allow a new attempt");
 }
 int wmain(int argc, wchar_t** argv) {
     const auto com = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
@@ -24,17 +147,54 @@ int wmain(int argc, wchar_t** argv) {
         Microsoft::WRL::ComPtr<ID2D1DeviceContext> first, second;
         Check(SUCCEEDED(firstDevice->CreateDeviceContext(D2D1_DEVICE_CONTEXT_OPTIONS_NONE, &first)), "First context failed");
         Check(SUCCEEDED(secondDevice->CreateDeviceContext(D2D1_DEVICE_CONTEXT_OPTIONS_NONE, &second)), "Second context failed");
+        CheckSyntheticCapture(first.Get());
         MpvPreviewPlayer preview;
         Check(preview.Initialize(first.Get(), nullptr), "Actual preview profile initialization failed");
+        MpvPreviewTestAccess::Instrument(preview);
         preview.SetPreviewOutputSize(640, 360);
         Check(!preview.IsSeekbarActive() && !preview.HasSeekbarThumbnail(), "Idle preview allocated active seekbar state");
         preview.StartPreview(argv[1], 1);
         Until([&] { preview.UpdateFrame(first.Get()); return preview.GetPreviewBitmap() != nullptr; }, "Hover pipeline produced no decoded bitmap");
         const auto size = preview.GetPreviewBitmap()->GetPixelSize();
         Check(size.width == 640 && size.height == 360, "Hover bitmap dimensions changed");
+        const auto hoverRenders = Hold(preview, first.Get(), 500);
+        Check(hoverRenders > 1, "Continuous hover stopped after its first frame");
         preview.StopPreview();
         preview.RequestSeekbarThumbnail(argv[1], 2, 45, 7, first.Get());
         Until([&] { preview.UpdateFrame(first.Get()); return preview.HasSeekbarThumbnail(); }, "Dormant seekbar extraction produced no thumbnail");
+        Check(MpvPreviewTestAccess::Paused(preview), "Completed seekbar capture kept playing");
+        PreviewThumbnailFrame original;
+        Check(preview.GetMemoryCache().TryGet(argv[1], 2, original), "Captured frame is absent from memory cache");
+        unsigned holdUpdates = 0;
+        const auto holdRenders = Hold(preview, first.Get(), 1000, &holdUpdates);
+        Check(holdRenders == 0, "Stationary seekbar thumbnail kept rendering");
+        PreviewThumbnailFrame held;
+        Check(preview.GetMemoryCache().TryGet(argv[1], 2, held) && held.bgraPixels == original.bgraPixels,
+            "Stationary thumbnail changed after capture");
+        // A paused seek must finish at its requested position, even though the
+        // renderer still has an old frame available when the command is sent.
+        preview.RequestSeekbarThumbnail(argv[1], 20, 45, 7, first.Get());
+        const auto coalescedSeeks = MpvPreviewTestAccess::seeks;
+        for (int i = 0; i < 100; ++i) preview.RequestSeekbarThumbnail(argv[1], 20.1, 45, 7, first.Get());
+        Check(MpvPreviewTestAccess::seeks == coalescedSeeks, "Repeated same-bucket requests restarted their seek");
+        Until([&] { preview.UpdateFrame(first.Get()); return preview.HasSeekbarThumbnail(); }, "Paused forward seek produced no target frame");
+        Check(std::abs(MpvPreviewTestAccess::Position(preview) - 20) < 0.15, "Forward seek captured the previous frame");
+        PreviewThumbnailFrame forward;
+        Check(preview.GetMemoryCache().TryGet(argv[1], 20, forward) && forward.bgraPixels != original.bgraPixels,
+            "Forward target reused the old pixels");
+        preview.RequestSeekbarThumbnail(argv[1], 5, 45, 7, first.Get());
+        Until([&] { preview.UpdateFrame(first.Get()); return preview.HasSeekbarThumbnail(); }, "Paused backward seek produced no target frame");
+        Check(std::abs(MpvPreviewTestAccess::Position(preview) - 5) < 0.15, "Backward seek captured the previous frame");
+        // The next request is debounced. A cached request supersedes it before
+        // it executes and must also disarm any in-flight extraction.
+        preview.RequestSeekbarThumbnail(argv[1], 30, 45, 7, first.Get());
+        preview.RequestSeekbarThumbnail(argv[1], 31, 45, 7, first.Get());
+        preview.RequestSeekbarThumbnail(argv[1], 2, 45, 7, first.Get());
+        Check(!MpvPreviewTestAccess::SeekPending(preview) && !MpvPreviewTestAccess::CapturePending(preview),
+            "Cached request left an extraction pending");
+        const auto cancelledSeeks = MpvPreviewTestAccess::seeks;
+        Check(Hold(preview, first.Get(), 200) == 0 && MpvPreviewTestAccess::seeks == cancelledSeeks,
+            "A cached request executed a superseded seek");
         preview.BindDeviceContext(second.Get());
         Check(!preview.HasSeekbarThumbnail(), "Seekbar bitmap survived a different D2D device");
         preview.RequestSeekbarThumbnail(argv[1], 2, 45, 7, second.Get());
@@ -47,7 +207,10 @@ int wmain(int argc, wchar_t** argv) {
         Check(frame.width == 320 && frame.height == 180 && frame.bgraPixels.size() == 320 * 180 * 4, "Hub frame is incomplete");
         Check(std::any_of(frame.bgraPixels.begin(), frame.bgraPixels.end(), [](uint8_t pixel) { return pixel != 0; }), "Hub frame was empty");
         extractor.Shutdown();
-        std::cout << "PASS actual_hover_decode=true dormant_seekbar_decode=true new_device_cache_upload=true actual_hub_decode=true\n";
+        std::cout << "PASS actual_hover_decode=true dormant_seekbar_decode=true new_device_cache_upload=true actual_hub_decode=true"
+            << " stationary_hold_render_calls=" << holdRenders << " continuous_hover_render_calls=" << hoverRenders
+            << " stationary_hold_bitmap_updates=" << holdUpdates
+            << " forward_backward_target_verified=true repeated_request_count=100 cached_cancellation=true expired_request_bounded=true\n";
         if (SUCCEEDED(com)) CoUninitialize();
         return 0;
     } catch (const std::exception& error) {

@@ -2057,6 +2057,13 @@ void MpvPreviewPlayer::OnRenderUpdate(void* ctx) {
 bool MpvPreviewPlayer::Initialize(ID2D1DeviceContext* pD2DContext, HMODULE hDll) {
     Shutdown();
     if (!LoadMpvApi(MpvApiProfile::SoftwareRenderer, "Hover preview", hDll)) return false;
+    // Seekbar captures must distinguish a completed seek from a redraw of
+    // the preceding frame. These exports also drain the client's event queue.
+    if (!fn_mpv_wait_event || !fn_mpv_get_property) {
+        RecordInitializationFailure("seek completion API", MPV_ERROR_UNSUPPORTED);
+        ResetMpvApi();
+        return false;
+    }
     mpv = fn_mpv_create();
     if (!mpv) { RecordInitializationFailure("mpv_create", MPV_ERROR_NOMEM); ResetMpvApi(); return false; }
     SetMpvOption(mpv, "vo", "libmpv", MpvOptionRequirement::Essential);
@@ -2126,6 +2133,9 @@ void MpvPreviewPlayer::Shutdown() {
     hasSeekbarThumbnail = false;
     isSeekbarLoading = false;
     hasPendingSeek = false;
+    seekbarCapturePending = false;
+    seekbarRestarted = false;
+    seekbarRequestFailed = false;
     activeSeekbarTime = -1.0;
     if (mpv) {
         if (fn_mpv_command_string) { fn_mpv_command_string(mpv, "stop"); } else if (fn_mpv_command) {
@@ -2211,6 +2221,11 @@ void MpvPreviewPlayer::StartPreview(const std::wstring& filePath, double startSe
     if (!mpv || filePath.empty()) return;
     if (isActive && !isSeekbarActive && currentPreviewPath == filePath && bufferIsPreviewSized) return;
     if (!std::isfinite(startSec) || startSec < 0.0) startSec = 0.0;
+    hasPendingSeek = false;
+    seekbarCapturePending = false;
+    seekbarRestarted = false;
+    seekbarRequestFailed = false;
+    DrainPreviewEventsLocked(false);
     EnsureBufferDimensionsLocked(requestedPreviewWidth, requestedPreviewHeight, nullptr);
     currentPreviewPath = filePath;
     isActive = true;
@@ -2254,7 +2269,49 @@ void MpvPreviewPlayer::StopPreview() {
     isActive = false;
     currentPreviewPath.clear();
     frameReady = false;
+    hasPendingSeek = false;
+    seekbarCapturePending = false;
+    seekbarRestarted = false;
+    seekbarRequestFailed = false;
     StopMpvLocked();
+}
+
+void MpvPreviewPlayer::DrainPreviewEventsLocked(bool acceptRestart) {
+    if (!mpv || !fn_mpv_wait_event) return;
+    while (auto* event = fn_mpv_wait_event(mpv, 0)) {
+        if (event->event_id == MPV_EVENT_NONE) break;
+        if (!acceptRestart || !seekbarCapturePending) continue;
+        if (event->event_id == MPV_EVENT_SEEK || event->event_id == MPV_EVENT_START_FILE)
+            seekbarRestarted = false;
+        else if (event->event_id == MPV_EVENT_PLAYBACK_RESTART)
+            seekbarRestarted = true;
+    }
+}
+
+bool MpvPreviewPlayer::IssueSeekbarSeekLocked(double time, uint64_t sequence, uint64_t mediaToken) {
+    DrainPreviewEventsLocked(false);
+    lastSeekTime = std::chrono::steady_clock::now();
+    inFlightSequenceId = sequence;
+    inFlightMediaToken = mediaToken;
+    inFlightTime = time;
+    hasPendingSeek = false;
+    seekbarCapturePending = true;
+    seekbarRestarted = false;
+    frameReady = false;
+    // A paused exact seek still decodes and presents its target frame. Keep
+    // extraction paused so it cannot play on or accumulate duplicate saves.
+    if (fn_mpv_set_property_string) fn_mpv_set_property_string(mpv, "pause", "yes");
+    std::ostringstream seekStr;
+    seekStr << std::fixed << std::setprecision(3) << time;
+    const std::string seekVal = seekStr.str();
+    const char* seekCmd[] = { "seek", seekVal.c_str(), "absolute+exact", nullptr };
+    int ret = fn_mpv_command ? fn_mpv_command(mpv, seekCmd) : MPV_ERROR_UNSUPPORTED;
+    if (ret < 0 && fn_mpv_command) {
+        const char* fallbackCmd[] = { "seek", seekVal.c_str(), "absolute", nullptr };
+        ret = fn_mpv_command(mpv, fallbackCmd);
+    }
+    if (ret < 0) { seekbarCapturePending = false; isSeekbarLoading = false; }
+    return ret >= 0;
 }
 
 bool MpvPreviewPlayer::RequestSeekbarThumbnail( const std::wstring& filePath, double rawTimeSec, double durationSec, uint64_t mediaToken,
@@ -2263,6 +2320,12 @@ bool MpvPreviewPlayer::RequestSeekbarThumbnail( const std::wstring& filePath, do
     BindDeviceContextLocked(pD2DContext);
     if (filePath.empty() || durationSec <= 0.0) { ResetSeekbarPreviewLocked(); return false; }
     double quantized = QuantizePreviewTime(rawTimeSec, durationSec, 1.0);
+    const bool sameRequest = isSeekbarActive && requestedFilePath == filePath && requestedMediaToken == mediaToken &&
+        std::abs(requestedTime - quantized) < 0.001;
+    if (sameRequest && seekbarRequestFailed) return false;
+    if (sameRequest && (seekbarCapturePending || hasPendingSeek ||
+        (hasSeekbarThumbnail && std::abs(activeSeekbarTime - quantized) < 0.001))) return true;
+    seekbarRequestFailed = false;
     uint64_t seq = ++currentSequenceId;
     requestedFilePath = filePath;
     requestedTime = quantized;
@@ -2271,6 +2334,11 @@ bool MpvPreviewPlayer::RequestSeekbarThumbnail( const std::wstring& filePath, do
     // 1. Check in-memory cache
     PreviewThumbnailFrame frame;
     if (memoryCache.TryGet(filePath, quantized, frame)) {
+        hasPendingSeek = false;
+        seekbarCapturePending = false;
+        seekbarRestarted = false;
+        frameReady = false;
+        if (mpv && fn_mpv_set_property_string) fn_mpv_set_property_string(mpv, "pause", "yes");
         std::lock_guard<std::mutex> lock(renderMutex);
         if (pD2DContext && !frame.bgraPixels.empty()) {
             if (!UploadBitmapLocked(seekbarBitmap, pD2DContext, frame.width, frame.height, frame.bgraPixels.data())) return false;
@@ -2282,6 +2350,11 @@ bool MpvPreviewPlayer::RequestSeekbarThumbnail( const std::wstring& filePath, do
     }
     // 2. Check disk cache
     if (LoadThumbnailFromDiskCache(filePath, quantized, frame, GetExeDir(), !isPrivateMode.load())) {
+        hasPendingSeek = false;
+        seekbarCapturePending = false;
+        seekbarRestarted = false;
+        frameReady = false;
+        if (mpv && fn_mpv_set_property_string) fn_mpv_set_property_string(mpv, "pause", "yes");
         memoryCache.Put(frame);
         std::lock_guard<std::mutex> lock(renderMutex);
         if (pD2DContext && !frame.bgraPixels.empty()) {
@@ -2309,16 +2382,24 @@ bool MpvPreviewPlayer::RequestSeekbarThumbnail( const std::wstring& filePath, do
         inFlightMediaToken = mediaToken;
         inFlightTime = quantized;
         hasPendingSeek = false;
+        seekbarCapturePending = true;
+        seekbarRestarted = false;
+        DrainPreviewEventsLocked(false);
         lastSeekTime = now;
         std::string pathUtf8 = Utf16ToUtf8(filePath);
         std::ostringstream start;
         start << "start=" << std::fixed << std::setprecision(3) << quantized;
         std::string startOption = start.str();
+        if (fn_mpv_set_property_string) fn_mpv_set_property_string(mpv, "pause", "yes");
         if (fn_mpv_command) {
             const char* loadCmd[] = { "loadfile", pathUtf8.c_str(), "replace", "-1", startOption.c_str(), nullptr };
-            fn_mpv_command(mpv, loadCmd);
+            if (fn_mpv_command(mpv, loadCmd) < 0) {
+                seekbarCapturePending = false;
+                isSeekbarLoading = false;
+                isActive = false;
+                return false;
+            }
         }
-        if (fn_mpv_set_property_string) { fn_mpv_set_property_string(mpv, "pause", "no"); }
         return true;
     }
     // Same file already loaded -> debounced seek
@@ -2329,22 +2410,7 @@ bool MpvPreviewPlayer::RequestSeekbarThumbnail( const std::wstring& filePath, do
         pendingSeekSeq = seq;
         pendingSeekMediaToken = mediaToken;
     } else {
-        lastSeekTime = now;
-        inFlightSequenceId = seq;
-        inFlightMediaToken = mediaToken;
-        inFlightTime = quantized;
-        hasPendingSeek = false;
-        std::ostringstream seekStr;
-        seekStr << std::fixed << std::setprecision(3) << quantized;
-        std::string seekVal = seekStr.str();
-        if (fn_mpv_command) {
-            const char* seekCmd[] = { "seek", seekVal.c_str(), "absolute+exact", nullptr };
-            if (fn_mpv_command(mpv, seekCmd) < 0) {
-                const char* fallbackCmd[] = { "seek", seekVal.c_str(), "absolute", nullptr };
-                fn_mpv_command(mpv, fallbackCmd);
-            }
-        }
-        if (fn_mpv_set_property_string) { fn_mpv_set_property_string(mpv, "pause", "no"); }
+        return IssueSeekbarSeekLocked(quantized, seq, mediaToken);
     }
     return true;
 }
@@ -2355,6 +2421,9 @@ void MpvPreviewPlayer::ResetSeekbarPreviewLocked() {
     isSeekbarLoading = false;
     activeSeekbarTime = -1.0;
     hasPendingSeek = false;
+    seekbarCapturePending = false;
+    seekbarRestarted = false;
+    seekbarRequestFailed = false;
     ++currentSequenceId;
     ++requestedMediaToken;
     requestedFilePath.clear();
@@ -2375,27 +2444,27 @@ bool MpvPreviewPlayer::UpdateFrame(ID2D1DeviceContext* pD2DContext) {
     if (hasPendingSeek && isSeekbarActive) {
         auto elapsedMs = std::chrono::duration_cast<std::chrono::milliseconds>(now - lastSeekTime).count();
         if (elapsedMs >= 40) {
-            lastSeekTime = now;
-            inFlightSequenceId = pendingSeekSeq;
-            inFlightMediaToken = pendingSeekMediaToken;
-            inFlightTime = pendingSeekTime;
-            hasPendingSeek = false;
-            std::ostringstream seekStr;
-            seekStr << std::fixed << std::setprecision(3) << inFlightTime;
-            std::string seekVal = seekStr.str();
-            if (fn_mpv_command) {
-                const char* seekCmd[] = { "seek", seekVal.c_str(), "absolute+exact", nullptr };
-                if (fn_mpv_command(mpv, seekCmd) < 0) {
-                    const char* fallbackCmd[] = { "seek", seekVal.c_str(), "absolute", nullptr };
-                    fn_mpv_command(mpv, fallbackCmd);
-                }
-            }
-            if (fn_mpv_set_property_string) { fn_mpv_set_property_string(mpv, "pause", "no"); }
+            IssueSeekbarSeekLocked(pendingSeekTime, pendingSeekSeq, pendingSeekMediaToken);
         }
+    }
+    DrainPreviewEventsLocked(true);
+    if (isSeekbarActive && !seekbarCapturePending) return false;
+    // Sparse/VFR media or unavailable position properties must never leave
+    // the renderer spinning forever while waiting for a matching target.
+    if (isSeekbarActive && !hasPendingSeek && now - lastSeekTime >= std::chrono::seconds(5)) {
+        seekbarCapturePending = false;
+        seekbarRestarted = false;
+        seekbarRequestFailed = true;
+        isSeekbarLoading = false;
+        frameReady = false;
+        return false;
     }
     uint64_t flags = 0;
     if (fn_mpv_render_context_update) { flags = fn_mpv_render_context_update(renderCtx); }
-    if ((flags & MPV_RENDER_UPDATE_FRAME) || frameReady) {
+    // Rendering while a seek is starting lets libmpv complete its VO restart,
+    // but that frame must not be cached yet. Once restarted, render again even
+    // if paused playback produces no further callback.
+    if ((flags & MPV_RENDER_UPDATE_FRAME) || frameReady || (seekbarCapturePending && seekbarRestarted)) {
         frameReady = false;
         std::lock_guard<std::mutex> lock(renderMutex);
         int size[2] = { bufferWidth, bufferHeight };
@@ -2412,7 +2481,17 @@ bool MpvPreviewPlayer::UpdateFrame(ID2D1DeviceContext* pD2DContext) {
                 didUpdate = UploadBitmapLocked(previewBitmap, pD2DContext, bufferWidth, bufferHeight, pixelBuffer.data());
             }
             // 2. Update Seekbar Thumbnail & Caches if seekbar is active
-            if (isSeekbarActive && !currentPreviewPath.empty()) {
+            if (isSeekbarActive && seekbarCapturePending && seekbarRestarted && !hasPendingSeek &&
+                inFlightSequenceId == currentSequenceId && inFlightMediaToken == requestedMediaToken &&
+                currentPreviewPath == requestedFilePath && !currentPreviewPath.empty()) {
+                int seeking = 1;
+                double position = -1.0, fps = 0.0;
+                if (!fn_mpv_get_property ||
+                    fn_mpv_get_property(mpv, "seeking", MPV_FORMAT_FLAG, &seeking) < 0 || seeking ||
+                    fn_mpv_get_property(mpv, "time-pos", MPV_FORMAT_DOUBLE, &position) < 0) return false;
+                fn_mpv_get_property(mpv, "container-fps", MPV_FORMAT_DOUBLE, &fps);
+                const double tolerance = std::isfinite(fps) && fps > 0 ? std::max(0.001, 1.0 / fps) + 0.001 : 0.25;
+                if (!std::isfinite(position) || std::abs(position - inFlightTime) > tolerance) return false;
                 PreviewThumbnailFrame frame;
                 frame.filePath = currentPreviewPath;
                 frame.timestampSec = inFlightTime;
@@ -2423,14 +2502,14 @@ bool MpvPreviewPlayer::UpdateFrame(ID2D1DeviceContext* pD2DContext) {
                 // Persist off the render thread: QueueDiskSave copies into a bounded background queue (skipped in private mode), so
                 // directory budget scans and file I/O never hitch scrubbing.
                 QueueDiskSave(frame);
-                // Stale check: only update live seekbar bitmap if request wasn't superseded
-                if (inFlightSequenceId == currentSequenceId && inFlightMediaToken == requestedMediaToken) {
-                    if (UploadBitmapLocked(seekbarBitmap, pD2DContext, bufferWidth, bufferHeight, pixelBuffer.data())) {
-                        hasSeekbarThumbnail = true;
-                        isSeekbarLoading = false;
-                        activeSeekbarTime = inFlightTime;
-                        didUpdate = true;
-                    }
+                seekbarCapturePending = false;
+                seekbarRestarted = false;
+                isSeekbarLoading = false;
+                if (fn_mpv_set_property_string) fn_mpv_set_property_string(mpv, "pause", "yes");
+                if (UploadBitmapLocked(seekbarBitmap, pD2DContext, bufferWidth, bufferHeight, pixelBuffer.data())) {
+                    hasSeekbarThumbnail = true;
+                    activeSeekbarTime = inFlightTime;
+                    didUpdate = true;
                 }
             }
             return didUpdate;

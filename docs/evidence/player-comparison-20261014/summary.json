@@ -1,0 +1,38 @@
+[
+  {
+    "player": "Aperture",
+    "version": "2.0.0.0",
+    "windowMs": 111.7763,
+    "runtimeMiB": 28.38866901397705,
+    "workingSetMiB": 163.9140625,
+    "privateMiB": 255.8125,
+    "dedicatedGpuMiB": 173.25,
+    "sharedGpuMiB": 15.61328125,
+    "cpuOneCorePercent": 27.57273421771415,
+    "writableRuntimeGrowthBytes": 26242
+  },
+  {
+    "player": "VLC",
+    "version": "3.0.23",
+    "windowMs": 1679.4854,
+    "runtimeMiB": 182.99101448059082,
+    "workingSetMiB": 143.03125,
+    "privateMiB": 145.04296875,
+    "dedicatedGpuMiB": 117.91015625,
+    "sharedGpuMiB": 15.234375,
+    "cpuOneCorePercent": 3.695491966516848,
+    "writableRuntimeGrowthBytes": 419
+  },
+  {
+    "player": "MPC-HC",
+    "version": "2.8.3 (7bcb74616)",
+    "windowMs": 726.0849,
+    "runtimeMiB": 72.02167510986328,
+    "workingSetMiB": 114.36328125,
+    "privateMiB": 142.3515625,
+    "dedicatedGpuMiB": 101.8671875,
+    "sharedGpuMiB": 17.359375,
+    "cpuOneCorePercent": 2.06250328763024,
+    "writableRuntimeGrowthBytes": 21160
+  }
+]

@@ -18,6 +18,7 @@ Read the most recent report relevant to the subsystem in the [reports index](rep
 
 | Report | Scope |
 |---|---|
+| [Player comparison and preview work reduction](reports/PLAYER_COMPARISON_20261014.md) | 14 October: measured VLC/MPC-HC comparison and paused one-shot thumbnail extraction |
 | [Backend resource optimization](reports/BACKEND_RESOURCES_20261013.md) | 13 October: JSON loading, cache accounting memory, and eviction selection |
 | [Backend validation and benchmarks](reports/BACKEND_VALIDATION_20261009.md) | 9 October: regression results, save-retry fix, measured gains and remaining regressions |
 | [Remaining backend opportunities](reports/BACKEND_REMAINING_WORK.md) | 8-9 October: background rediscovery and watch registration, duplicate import fingerprints, incremental saves and shared availability |
