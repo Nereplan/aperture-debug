@@ -7,6 +7,7 @@ Reports capture empirical observations on specific machines and source revisions
 ## Navigation by subsystem
 
 ### Backend, storage and persistence
+- [Library record memory (14 Oct 2026)](LIBRARY_RECORD_MEMORY_20261014.md) — On-demand playback preferences, independent snapshot ownership, and sparse/dense memory and CPU measurements.
 - [JSON array ownership during loading (14 Oct 2026)](JSON_ARRAY_GROWTH_20261014.md) — Explicit parser ownership transfer, library-load measurements and array-boundary regressions.
 - [Player comparison and preview work reduction (14 Oct 2026)](PLAYER_COMPARISON_20261014.md) — Local VLC/MPC-HC resource measurements, source review, and one-shot seekbar extraction.
 - [Backend resource optimization (13 Oct 2026)](BACKEND_RESOURCES_20261013.md) — JSON loading, streamed cache accounting, single-path index ownership, and heap eviction.
@@ -42,6 +43,7 @@ Reports capture empirical observations on specific machines and source revisions
 
 | Date | Report | Baseline | Primary focus | Raw evidence |
 |:---|:---|:---|:---|:---|
+| 2026-10-14 | [Library record memory](LIBRARY_RECORD_MEMORY_20261014.md) | `4fcf456` | On-demand preferences and record memory/CPU tradeoffs | [library-record-memory-20261014](../evidence/library-record-memory-20261014/) |
 | 2026-10-14 | [JSON array ownership during loading](JSON_ARRAY_GROWTH_20261014.md) | `fbb9eb4` | Library-load speed and allocation reductions | [json-array-growth-20261014](../evidence/json-array-growth-20261014/) |
 | 2026-10-14 | [Player comparison and preview work reduction](PLAYER_COMPARISON_20261014.md) | `cee51e3` | VLC/MPC-HC resources and one-shot seekbar extraction | [player-comparison-20261014](../evidence/player-comparison-20261014/) |
 | 2026-10-09 | [Backend validation and benchmarks](BACKEND_VALIDATION_20261009.md) | `bd5db22` | Save/load regression validation, save-retry fix, startup checks | [backend-validation-20261009](../evidence/backend-validation-20261009/) |

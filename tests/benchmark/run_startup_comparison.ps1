@@ -5,11 +5,13 @@ param(
     [Parameter(Mandatory=$true)][string]$BeforeBinary,
     [Parameter(Mandatory=$true)][string]$AfterBinary,
     [ValidateRange(1,100)][int]$Samples = 9,
-    [ValidateRange(0,100000)][int]$LibrarySize = 0
+    [ValidateRange(0,100000)][int]$LibrarySize = 0,
+    [string]$OutputRoot = ''
 )
 $ErrorActionPreference = 'Stop'
 $root = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
-$output = Join-Path $root ('scratch/startup-comparison-' + [Guid]::NewGuid().ToString('N'))
+if (-not $OutputRoot) { $OutputRoot = Join-Path $root 'scratch' }
+$output = Join-Path ([IO.Path]::GetFullPath($OutputRoot)) ('startup-comparison-' + [Guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $output | Out-Null
 $utf8 = [Text.UTF8Encoding]::new($false)
 $records = @(for ($i = 0; $i -lt $LibrarySize; $i++) {

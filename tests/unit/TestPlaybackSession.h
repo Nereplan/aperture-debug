@@ -654,6 +654,28 @@ TEST_CASE(PlaybackSession, ActivePreferencesTracking) {
     session.ClearActivePreferences();
     TEST_ASSERT(!session.GetActivePreferences().has_value());
 }
+TEST_CASE(PlaybackSession, ActivePreferencesOwnCopyOfLibraryRecord) {
+    MediaItem item;
+    item.preferences.emplace();
+    item.preferences->playbackSpeed = 1.5;
+    item.preferences->extraFields["plugin"]["setting"] = "original";
+    PlaybackSession session;
+    session.SetActivePreferences(item.preferences);
+    item.preferences->playbackSpeed = 2.0;
+    item.preferences->extraFields["plugin"]["setting"] = "changed";
+    TEST_ASSERT_EQ(*session.GetActivePreferences()->playbackSpeed, 1.5);
+    TEST_ASSERT_EQ(session.GetActivePreferences()->extraFields.get("plugin").get("setting").as_string(), std::string("original"));
+    session.SetActivePreferences(item.preferences);
+    TEST_ASSERT_EQ(*session.GetActivePreferences()->playbackSpeed, 2.0);
+    item.preferences.reset();
+    session.SetActivePreferences(item.preferences);
+    TEST_ASSERT(!session.GetActivePreferences());
+    session.SetActivePreferences(MediaPlaybackPreferences{});
+    TEST_ASSERT(session.GetActivePreferences().has_value());
+    session.SetActivePreferences(std::nullopt);
+    TEST_ASSERT(!session.GetActivePreferences());
+}
+
 TEST_CASE(PlaybackSession, PiPTransitionsAndGeometry) {
     PlaybackSession session;
     HWND testWnd = CreateWindowExW(

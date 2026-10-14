@@ -1,0 +1,33 @@
+{
+  "date": "2026-10-14",
+  "buildAndRelease": {
+    "command": "build_and_release.ps1 -FailFast",
+    "exitCode": 0,
+    "passedSuites": 20,
+    "failedSuites": 0,
+    "durationSeconds": 428.79,
+    "unitTests": 445,
+    "persistenceTests": 110,
+    "corpusFixtures": 61,
+    "thumbnailAssertions": 8524
+  },
+  "startupComparison": {
+    "libraryItems": 25000,
+    "warmupsPerVariant": 1,
+    "measuredProcessesPerVariant": 9,
+    "allReady": true,
+    "evidence": "startup-comparison.json",
+    "samples": "startup-samples.csv"
+  },
+  "emptyProfileStartupBudget": {
+    "status": "PASS",
+    "warmups": 1,
+    "measuredSamples": 5,
+    "evidence": "startup-budget.json"
+  },
+  "frontendFilesPreserved": 10,
+  "executableBytes": 3281920,
+  "executableSha256": "4090ecf8fc6dc06dbf948ad09861b218bd09ca11092e66056094c9cf1e16f443",
+  "packageBytes": 13359197,
+  "githubReleasePublished": false
+}

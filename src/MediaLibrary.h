@@ -2,6 +2,7 @@
 
 #include "Common.h"
 #include "Json.h"
+#include "HeapOptional.h"
 #include <string>
 #include <string_view>
 #include "FolderWatcher.h"
@@ -117,7 +118,7 @@ struct MediaItem {
     bool metadataProbeFailed = false;
     uint32_t probeAttemptCount = 0;
     int64_t lastProbeAttemptTimestamp = 0;
-    std::optional<MediaPlaybackPreferences> preferences;
+    HeapOptional<MediaPlaybackPreferences> preferences;
     std::vector<MediaBookmark> bookmarks;
     std::optional<MediaMetadataOverrides> overrides;
     JsonValue extraFields;

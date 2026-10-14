@@ -1,0 +1,632 @@
+[
+  {
+    "items": 500,
+    "density": 0,
+    "mode": "build",
+    "ms": {
+      "before": 0.0967,
+      "after": 0.1335,
+      "reductionPercent": -38.06
+    },
+    "allocations": {
+      "before": 1501.0,
+      "after": 1501.0,
+      "reductionPercent": 0.0
+    },
+    "allocated_bytes": {
+      "before": 514879.0,
+      "after": 314879.0,
+      "reductionPercent": 38.84
+    },
+    "peak_live_cpp_bytes": {
+      "before": 482895.0,
+      "after": 282895.0,
+      "reductionPercent": 41.42
+    },
+    "retained_cpp_bytes": {
+      "before": 482879.0,
+      "after": 282879.0,
+      "reductionPercent": 41.42
+    },
+    "record_bytes": {
+      "before": 824.0,
+      "after": 424.0,
+      "reductionPercent": 48.54
+    }
+  },
+  {
+    "items": 500,
+    "density": 0,
+    "mode": "copy",
+    "ms": {
+      "before": 0.0496,
+      "after": 0.062,
+      "reductionPercent": -25.0
+    },
+    "allocations": {
+      "before": 1001.0,
+      "after": 1001.0,
+      "reductionPercent": 0.0
+    },
+    "allocated_bytes": {
+      "before": 475879.0,
+      "after": 275879.0,
+      "reductionPercent": 42.03
+    },
+    "peak_live_cpp_bytes": {
+      "before": 475879.0,
+      "after": 275879.0,
+      "reductionPercent": 42.03
+    },
+    "retained_cpp_bytes": {
+      "before": 475879.0,
+      "after": 275879.0,
+      "reductionPercent": 42.03
+    },
+    "record_bytes": {
+      "before": 824.0,
+      "after": 424.0,
+      "reductionPercent": 48.54
+    }
+  },
+  {
+    "items": 500,
+    "density": 0,
+    "mode": "scan",
+    "ms": {
+      "before": 0.0086,
+      "after": 0.0087,
+      "reductionPercent": -1.16
+    },
+    "allocations": {
+      "before": 0.0,
+      "after": 0.0,
+      "reductionPercent": null
+    },
+    "allocated_bytes": {
+      "before": 0.0,
+      "after": 0.0,
+      "reductionPercent": null
+    },
+    "peak_live_cpp_bytes": {
+      "before": 0.0,
+      "after": 0.0,
+      "reductionPercent": null
+    },
+    "retained_cpp_bytes": {
+      "before": 0.0,
+      "after": 0.0,
+      "reductionPercent": null
+    },
+    "record_bytes": {
+      "before": 824.0,
+      "after": 424.0,
+      "reductionPercent": 48.54
+    }
+  },
+  {
+    "items": 500,
+    "density": 10,
+    "mode": "build",
+    "ms": {
+      "before": 0.1246,
+      "after": 0.1659,
+      "reductionPercent": -33.15
+    },
+    "allocations": {
+      "before": 1751.0,
+      "after": 1751.0,
+      "reductionPercent": 0.0
+    },
+    "allocated_bytes": {
+      "before": 535919.0,
+      "after": 350719.0,
+      "reductionPercent": 34.56
+    },
+    "peak_live_cpp_bytes": {
+      "before": 498735.0,
+      "after": 318735.0,
+      "reductionPercent": 36.09
+    },
+    "retained_cpp_bytes": {
+      "before": 498719.0,
+      "after": 318719.0,
+      "reductionPercent": 36.09
+    },
+    "record_bytes": {
+      "before": 824.0,
+      "after": 424.0,
+      "reductionPercent": 48.54
+    }
+  },
+  {
+    "items": 500,
+    "density": 10,
+    "mode": "copy",
+    "ms": {
+      "before": 0.0788,
+      "after": 0.0729,
+      "reductionPercent": 7.49
+    },
+    "allocations": {
+      "before": 1201.0,
+      "after": 1251.0,
+      "reductionPercent": -4.16
+    },
+    "allocated_bytes": {
+      "before": 491719.0,
+      "after": 311719.0,
+      "reductionPercent": 36.61
+    },
+    "peak_live_cpp_bytes": {
+      "before": 491719.0,
+      "after": 311719.0,
+      "reductionPercent": 36.61
+    },
+    "retained_cpp_bytes": {
+      "before": 491719.0,
+      "after": 311719.0,
+      "reductionPercent": 36.61
+    },
+    "record_bytes": {
+      "before": 824.0,
+      "after": 424.0,
+      "reductionPercent": 48.54
+    }
+  },
+  {
+    "items": 500,
+    "density": 10,
+    "mode": "scan",
+    "ms": {
+      "before": 0.0092,
+      "after": 0.009,
+      "reductionPercent": 2.17
+    },
+    "allocations": {
+      "before": 0.0,
+      "after": 0.0,
+      "reductionPercent": null
+    },
+    "allocated_bytes": {
+      "before": 0.0,
+      "after": 0.0,
+      "reductionPercent": null
+    },
+    "peak_live_cpp_bytes": {
+      "before": 0.0,
+      "after": 0.0,
+      "reductionPercent": null
+    },
+    "retained_cpp_bytes": {
+      "before": 0.0,
+      "after": 0.0,
+      "reductionPercent": null
+    },
+    "record_bytes": {
+      "before": 824.0,
+      "after": 424.0,
+      "reductionPercent": 48.54
+    }
+  },
+  {
+    "items": 500,
+    "density": 100,
+    "mode": "build",
+    "ms": {
+      "before": 0.3105,
+      "after": 0.4142,
+      "reductionPercent": -33.4
+    },
+    "allocations": {
+      "before": 4001.0,
+      "after": 4001.0,
+      "reductionPercent": 0.0
+    },
+    "allocated_bytes": {
+      "before": 725279.0,
+      "after": 673279.0,
+      "reductionPercent": 7.17
+    },
+    "peak_live_cpp_bytes": {
+      "before": 641383.0,
+      "after": 641279.0,
+      "reductionPercent": 0.02
+    },
+    "retained_cpp_bytes": {
+      "before": 641279.0,
+      "after": 641279.0,
+      "reductionPercent": 0.0
+    },
+    "record_bytes": {
+      "before": 824.0,
+      "after": 424.0,
+      "reductionPercent": 48.54
+    }
+  },
+  {
+    "items": 500,
+    "density": 100,
+    "mode": "copy",
+    "ms": {
+      "before": 0.1865,
+      "after": 0.303,
+      "reductionPercent": -62.47
+    },
+    "allocations": {
+      "before": 3001.0,
+      "after": 3501.0,
+      "reductionPercent": -16.66
+    },
+    "allocated_bytes": {
+      "before": 634279.0,
+      "after": 634279.0,
+      "reductionPercent": 0.0
+    },
+    "peak_live_cpp_bytes": {
+      "before": 634279.0,
+      "after": 634279.0,
+      "reductionPercent": 0.0
+    },
+    "retained_cpp_bytes": {
+      "before": 634279.0,
+      "after": 634279.0,
+      "reductionPercent": 0.0
+    },
+    "record_bytes": {
+      "before": 824.0,
+      "after": 424.0,
+      "reductionPercent": 48.54
+    }
+  },
+  {
+    "items": 500,
+    "density": 100,
+    "mode": "scan",
+    "ms": {
+      "before": 0.0121,
+      "after": 0.0122,
+      "reductionPercent": -0.83
+    },
+    "allocations": {
+      "before": 0.0,
+      "after": 0.0,
+      "reductionPercent": null
+    },
+    "allocated_bytes": {
+      "before": 0.0,
+      "after": 0.0,
+      "reductionPercent": null
+    },
+    "peak_live_cpp_bytes": {
+      "before": 0.0,
+      "after": 0.0,
+      "reductionPercent": null
+    },
+    "retained_cpp_bytes": {
+      "before": 0.0,
+      "after": 0.0,
+      "reductionPercent": null
+    },
+    "record_bytes": {
+      "before": 824.0,
+      "after": 424.0,
+      "reductionPercent": 48.54
+    }
+  },
+  {
+    "items": 25000,
+    "density": 0,
+    "mode": "build",
+    "ms": {
+      "before": 7.891,
+      "after": 6.3726,
+      "reductionPercent": 19.24
+    },
+    "allocations": {
+      "before": 51001.0,
+      "after": 51001.0,
+      "reductionPercent": 0.0
+    },
+    "allocated_bytes": {
+      "before": 23877879.0,
+      "after": 13877879.0,
+      "reductionPercent": 41.88
+    },
+    "peak_live_cpp_bytes": {
+      "before": 23813879.0,
+      "after": 13813879.0,
+      "reductionPercent": 41.99
+    },
+    "retained_cpp_bytes": {
+      "before": 23813879.0,
+      "after": 13813879.0,
+      "reductionPercent": 41.99
+    },
+    "record_bytes": {
+      "before": 824.0,
+      "after": 424.0,
+      "reductionPercent": 48.54
+    }
+  },
+  {
+    "items": 25000,
+    "density": 0,
+    "mode": "copy",
+    "ms": {
+      "before": 8.2192,
+      "after": 5.3339,
+      "reductionPercent": 35.1
+    },
+    "allocations": {
+      "before": 50001.0,
+      "after": 50001.0,
+      "reductionPercent": 0.0
+    },
+    "allocated_bytes": {
+      "before": 23799879.0,
+      "after": 13799879.0,
+      "reductionPercent": 42.02
+    },
+    "peak_live_cpp_bytes": {
+      "before": 23799879.0,
+      "after": 13799879.0,
+      "reductionPercent": 42.02
+    },
+    "retained_cpp_bytes": {
+      "before": 23799879.0,
+      "after": 13799879.0,
+      "reductionPercent": 42.02
+    },
+    "record_bytes": {
+      "before": 824.0,
+      "after": 424.0,
+      "reductionPercent": 48.54
+    }
+  },
+  {
+    "items": 25000,
+    "density": 0,
+    "mode": "scan",
+    "ms": {
+      "before": 0.7232,
+      "after": 0.5502,
+      "reductionPercent": 23.92
+    },
+    "allocations": {
+      "before": 0.0,
+      "after": 0.0,
+      "reductionPercent": null
+    },
+    "allocated_bytes": {
+      "before": 0.0,
+      "after": 0.0,
+      "reductionPercent": null
+    },
+    "peak_live_cpp_bytes": {
+      "before": 0.0,
+      "after": 0.0,
+      "reductionPercent": null
+    },
+    "retained_cpp_bytes": {
+      "before": 0.0,
+      "after": 0.0,
+      "reductionPercent": null
+    },
+    "record_bytes": {
+      "before": 824.0,
+      "after": 424.0,
+      "reductionPercent": 48.54
+    }
+  },
+  {
+    "items": 25000,
+    "density": 10,
+    "mode": "build",
+    "ms": {
+      "before": 8.9937,
+      "after": 7.7859,
+      "reductionPercent": 13.43
+    },
+    "allocations": {
+      "before": 63501.0,
+      "after": 63501.0,
+      "reductionPercent": 0.0
+    },
+    "allocated_bytes": {
+      "before": 24937719.0,
+      "after": 15677719.0,
+      "reductionPercent": 37.13
+    },
+    "peak_live_cpp_bytes": {
+      "before": 24613719.0,
+      "after": 15613719.0,
+      "reductionPercent": 36.56
+    },
+    "retained_cpp_bytes": {
+      "before": 24613719.0,
+      "after": 15613719.0,
+      "reductionPercent": 36.56
+    },
+    "record_bytes": {
+      "before": 824.0,
+      "after": 424.0,
+      "reductionPercent": 48.54
+    }
+  },
+  {
+    "items": 25000,
+    "density": 10,
+    "mode": "copy",
+    "ms": {
+      "before": 9.0494,
+      "after": 6.7961,
+      "reductionPercent": 24.9
+    },
+    "allocations": {
+      "before": 60001.0,
+      "after": 62501.0,
+      "reductionPercent": -4.17
+    },
+    "allocated_bytes": {
+      "before": 24599719.0,
+      "after": 15599719.0,
+      "reductionPercent": 36.59
+    },
+    "peak_live_cpp_bytes": {
+      "before": 24599719.0,
+      "after": 15599719.0,
+      "reductionPercent": 36.59
+    },
+    "retained_cpp_bytes": {
+      "before": 24599719.0,
+      "after": 15599719.0,
+      "reductionPercent": 36.59
+    },
+    "record_bytes": {
+      "before": 824.0,
+      "after": 424.0,
+      "reductionPercent": 48.54
+    }
+  },
+  {
+    "items": 25000,
+    "density": 10,
+    "mode": "scan",
+    "ms": {
+      "before": 0.6033,
+      "after": 0.5397,
+      "reductionPercent": 10.54
+    },
+    "allocations": {
+      "before": 0.0,
+      "after": 0.0,
+      "reductionPercent": null
+    },
+    "allocated_bytes": {
+      "before": 0.0,
+      "after": 0.0,
+      "reductionPercent": null
+    },
+    "peak_live_cpp_bytes": {
+      "before": 0.0,
+      "after": 0.0,
+      "reductionPercent": null
+    },
+    "retained_cpp_bytes": {
+      "before": 0.0,
+      "after": 0.0,
+      "reductionPercent": null
+    },
+    "record_bytes": {
+      "before": 824.0,
+      "after": 424.0,
+      "reductionPercent": 48.54
+    }
+  },
+  {
+    "items": 25000,
+    "density": 100,
+    "mode": "build",
+    "ms": {
+      "before": 16.4243,
+      "after": 19.7526,
+      "reductionPercent": -20.26
+    },
+    "allocations": {
+      "before": 176001.0,
+      "after": 176001.0,
+      "reductionPercent": 0.0
+    },
+    "allocated_bytes": {
+      "before": 34476279.0,
+      "after": 31876279.0,
+      "reductionPercent": 7.54
+    },
+    "peak_live_cpp_bytes": {
+      "before": 31812383.0,
+      "after": 31812279.0,
+      "reductionPercent": 0.0
+    },
+    "retained_cpp_bytes": {
+      "before": 31812279.0,
+      "after": 31812279.0,
+      "reductionPercent": 0.0
+    },
+    "record_bytes": {
+      "before": 824.0,
+      "after": 424.0,
+      "reductionPercent": 48.54
+    }
+  },
+  {
+    "items": 25000,
+    "density": 100,
+    "mode": "copy",
+    "ms": {
+      "before": 16.4451,
+      "after": 19.6112,
+      "reductionPercent": -19.25
+    },
+    "allocations": {
+      "before": 150001.0,
+      "after": 175001.0,
+      "reductionPercent": -16.67
+    },
+    "allocated_bytes": {
+      "before": 31798279.0,
+      "after": 31798279.0,
+      "reductionPercent": 0.0
+    },
+    "peak_live_cpp_bytes": {
+      "before": 31798279.0,
+      "after": 31798279.0,
+      "reductionPercent": 0.0
+    },
+    "retained_cpp_bytes": {
+      "before": 31798279.0,
+      "after": 31798279.0,
+      "reductionPercent": 0.0
+    },
+    "record_bytes": {
+      "before": 824.0,
+      "after": 424.0,
+      "reductionPercent": 48.54
+    }
+  },
+  {
+    "items": 25000,
+    "density": 100,
+    "mode": "scan",
+    "ms": {
+      "before": 0.7832,
+      "after": 0.9471,
+      "reductionPercent": -20.93
+    },
+    "allocations": {
+      "before": 0.0,
+      "after": 0.0,
+      "reductionPercent": null
+    },
+    "allocated_bytes": {
+      "before": 0.0,
+      "after": 0.0,
+      "reductionPercent": null
+    },
+    "peak_live_cpp_bytes": {
+      "before": 0.0,
+      "after": 0.0,
+      "reductionPercent": null
+    },
+    "retained_cpp_bytes": {
+      "before": 0.0,
+      "after": 0.0,
+      "reductionPercent": null
+    },
+    "record_bytes": {
+      "before": 824.0,
+      "after": 424.0,
+      "reductionPercent": 48.54
+    }
+  }
+]

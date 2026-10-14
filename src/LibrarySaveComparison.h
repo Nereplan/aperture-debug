@@ -10,8 +10,8 @@ bool SameSequence(const std::vector<T>& a, const std::vector<T>& b, Equal equal)
     return a.size() == b.size() && std::equal(a.begin(), a.end(), b.begin(), equal);
 }
 
-template <typename T, typename Equal>
-bool SameOptional(const std::optional<T>& a, const std::optional<T>& b, Equal equal) {
+template <typename Optional, typename Equal>
+bool SameOptional(const Optional& a, const Optional& b, Equal equal) {
     return a.has_value() == b.has_value() && (!a || equal(*a, *b));
 }
 

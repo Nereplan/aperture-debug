@@ -1,0 +1,42 @@
+{
+  "librarySize": 25000,
+  "samplesPerVariant": 9,
+  "method": "Alternating fresh processes, one warmup each; OS caches retained",
+  "metrics": {
+    "shownMs": {
+      "before": 22.47,
+      "after": 22.55,
+      "reductionPercent": -0.4
+    },
+    "startupMs": {
+      "before": 37.34,
+      "after": 37.85,
+      "reductionPercent": -1.4
+    },
+    "populatedMs": {
+      "before": 294.83,
+      "after": 284.2,
+      "reductionPercent": 3.6
+    },
+    "gpuSinceEntryMs": {
+      "before": 251.924,
+      "after": 252.791,
+      "reductionPercent": -0.3
+    },
+    "populatedSinceEntryMs": {
+      "before": 293.274,
+      "after": 282.616,
+      "reductionPercent": 3.6
+    },
+    "workingSetBytes": {
+      "before": 141950976,
+      "after": 132096000,
+      "reductionPercent": 6.9
+    },
+    "privateBytes": {
+      "before": 147509248,
+      "after": 138170368,
+      "reductionPercent": 6.3
+    }
+  }
+}

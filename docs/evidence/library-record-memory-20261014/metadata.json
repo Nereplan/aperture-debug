@@ -1,0 +1,15 @@
+{
+  "date": "2026-10-14",
+  "baselineCommit": "4fcf4561d600b4d6a1a4e9580615f7a5026956b7",
+  "compiler": "MSVC 14.44.35207 x64",
+  "recordBenchmark": "tests/benchmark/run_media_record_benchmark.ps1",
+  "recordSampling": "Three alternating before/after process pairs, each with one warmup and seven measured samples per workload; 21 retained samples per variant/workload",
+  "saveBenchmark": "tests/benchmark/run_save_benchmark.ps1",
+  "saveSampling": "Baseline then updated; one warmup and seven measured samples per workload",
+  "affinity": "One available logical processor",
+  "recordBytesBefore": 824,
+  "recordBytesAfter": 424,
+  "memoryMetric": "Requested C++ allocation bytes, excluding allocator overhead, indexes, process RSS and VRAM",
+  "baselineAppSha256": "81b923f57f8b1be87424eddf361f3a857675ec1650bc0e87181243070cd2068b",
+  "savedContentMatched": true
+}

@@ -104,6 +104,11 @@ public:
     // Active Media Playback Preferences Cache
     const std::optional<MediaPlaybackPreferences>& GetActivePreferences() const { return activePreferences; }
     void SetActivePreferences(const std::optional<MediaPlaybackPreferences>& prefs) { activePreferences = prefs; }
+    void SetActivePreferences(const HeapOptional<MediaPlaybackPreferences>& prefs) {
+        if (prefs) activePreferences = *prefs;
+        else activePreferences.reset();
+    }
+    void SetActivePreferences(std::nullopt_t) { activePreferences.reset(); }
     void ClearActivePreferences() { activePreferences.reset(); }
     double GetPriorUnmutedVolume() const { return priorUnmutedVolume; }
     void SetPriorUnmutedVolume(double vol) { if (vol > 0.01) priorUnmutedVolume = vol; }

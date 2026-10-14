@@ -1,0 +1,26 @@
+[
+  {
+    "items": 500,
+    "mode": "unchanged",
+    "beforeMs": 0.042,
+    "afterMs": 0.038
+  },
+  {
+    "items": 500,
+    "mode": "progress",
+    "beforeMs": 0.068,
+    "afterMs": 0.046
+  },
+  {
+    "items": 25000,
+    "mode": "unchanged",
+    "beforeMs": 8.206,
+    "afterMs": 6.694
+  },
+  {
+    "items": 25000,
+    "mode": "progress",
+    "beforeMs": 9.155,
+    "afterMs": 6.58
+  }
+]

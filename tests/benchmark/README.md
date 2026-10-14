@@ -46,3 +46,21 @@ exclusive physical VRAM. Do not add it to process RAM or treat one clip as a
 universal player ranking. Complete supplied runtime sizes include their different
 languages, plugins, update tools and other payload; they are not matched feature
 subsets or compressed download sizes.
+
+## Media record memory
+
+`run_media_record_benchmark.ps1 -OutputDirectory <scratch-directory>` measures
+record construction, independent copying and a display-title/progress scan with
+500 and 25,000 records. Optional preferences and title overrides are present on
+0%, 10% or 100% of the records. Each workload discards one warmup and records seven
+samples on one available logical processor; hashes check equivalent contents.
+`-SourceDirectory` selects a baseline source snapshot, and `-KeepBuild` retains
+the small executable for alternating before/after runs without recompilation.
+
+`results.csv` reports requested C++ allocation bytes, including the record vector
+and its owned fields. Retained bytes are measured before those records are
+destroyed. Copy costs exclude the pre-existing input. Scan costs include no
+allocation. This is an isolated record benchmark, excluding library lookup
+indexes, allocator overhead, process RSS, playback and GPU memory. Use the save
+and startup benchmarks for broader behavior, and compare dense as well as sparse
+optional-field workloads when evaluating a memory/speed tradeoff.

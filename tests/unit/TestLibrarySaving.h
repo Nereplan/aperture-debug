@@ -229,6 +229,48 @@ TEST_CASE(LibrarySaving, UnknownFieldsAndNestedDirectChangesSurviveRoundtrip) {
     TEST_ASSERT_EQ(loaded.extraFields.get("plugin").get("name").as_string(), std::string("updated"));
 }
 
+TEST_CASE(LibrarySaving, OptionalRecordFieldsStayIndependentAcrossSnapshots) {
+    ScopedTempDir temp;
+    MediaLibrary library; TEST_ASSERT(library.LoadFromRoot(temp.GetPath()).is_ok());
+    LibrarySavingFixture::AddRecords(library, temp.GetPath(), 1);
+    auto& item = library.mediaItems.front();
+    item.preferences.emplace();
+    item.preferences->audioTrackId = 2;
+    item.preferences->extraFields["plugin"]["setting"] = "original";
+    item.overrides.emplace();
+    item.overrides->title = L"Original title";
+    item.overrides->extraFields["plugin"]["tag"] = "original";
+    const auto snapshot = library.CaptureSaveSnapshot();
+    MediaLibrary copied = library;
+    MediaItem assigned;
+    assigned.preferences.emplace(); assigned.preferences->audioDelayMs = 99;
+    assigned = item;
+    item.preferences->audioTrackId = 3;
+    item.preferences->extraFields["plugin"]["setting"] = "changed";
+    item.overrides->title = L"Changed title";
+    item.overrides->extraFields["plugin"]["tag"] = "changed";
+    // Force relocation and then destroy the live record. Each independent copy
+    // must retain its original values, including nested unknown fields.
+    for (int i = 0; i < 100; ++i) library.mediaItems.emplace_back();
+    library.mediaItems.erase(library.mediaItems.begin());
+    const MediaItem* originals[] = {snapshot->mediaItems->front().get(), &copied.mediaItems.front(), &assigned};
+    for (const auto* original : originals) {
+        TEST_ASSERT(original->preferences && original->overrides);
+        TEST_ASSERT_EQ(*original->preferences->audioTrackId, 2);
+        TEST_ASSERT_EQ(original->preferences->extraFields.get("plugin").get("setting").as_string(), std::string("original"));
+        TEST_ASSERT_EQ(*original->overrides->title, std::wstring(L"Original title"));
+        TEST_ASSERT_EQ(original->overrides->extraFields.get("plugin").get("tag").as_string(), std::string("original"));
+    }
+    assigned.preferences.reset(); assigned.overrides = std::nullopt;
+    TEST_ASSERT(!assigned.preferences && !assigned.overrides);
+    TEST_ASSERT(copied.mediaItems.front().preferences && copied.mediaItems.front().overrides);
+    MediaLibrarySaveState state;
+    TEST_ASSERT(WriteLibrarySaveSnapshot(*snapshot, state).is_ok());
+    MediaLibrary reloaded; TEST_ASSERT(reloaded.LoadFromRoot(temp.GetPath()).is_ok());
+    TEST_ASSERT_EQ(*reloaded.mediaItems.front().preferences->audioTrackId, 2);
+    TEST_ASSERT_EQ(*reloaded.mediaItems.front().overrides->title, std::wstring(L"Original title"));
+}
+
 TEST_CASE(LibrarySaving, MediaSerializationReusesCommittedBytesAcrossEditsAndReorders) {
     ScopedTempDir temp;
     MediaLibrary library; TEST_ASSERT(library.LoadFromRoot(temp.GetPath()).is_ok());
