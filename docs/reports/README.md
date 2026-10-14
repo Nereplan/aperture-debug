@@ -7,6 +7,7 @@ Reports capture empirical observations on specific machines and source revisions
 ## Navigation by subsystem
 
 ### Backend, storage and persistence
+- [JSON array ownership during loading (14 Oct 2026)](JSON_ARRAY_GROWTH_20261014.md) — Explicit parser ownership transfer, library-load measurements and array-boundary regressions.
 - [Player comparison and preview work reduction (14 Oct 2026)](PLAYER_COMPARISON_20261014.md) — Local VLC/MPC-HC resource measurements, source review, and one-shot seekbar extraction.
 - [Backend resource optimization (13 Oct 2026)](BACKEND_RESOURCES_20261013.md) — JSON loading, streamed cache accounting, single-path index ownership, and heap eviction.
 - [Backend validation and benchmarks (9 Oct 2026)](BACKEND_VALIDATION_20261009.md) — Source `df21d93` vs `bd5db22`. Measured 77.6% faster progress saves (108 ms to 24 ms for 25k items), save-retry read-only flag fix, 20/20 PR suites passed, startup budget verification. Raw evidence: [backend-validation-20261009](../evidence/backend-validation-20261009/).
@@ -41,6 +42,7 @@ Reports capture empirical observations on specific machines and source revisions
 
 | Date | Report | Baseline | Primary focus | Raw evidence |
 |:---|:---|:---|:---|:---|
+| 2026-10-14 | [JSON array ownership during loading](JSON_ARRAY_GROWTH_20261014.md) | `fbb9eb4` | Library-load speed and allocation reductions | [json-array-growth-20261014](../evidence/json-array-growth-20261014/) |
 | 2026-10-14 | [Player comparison and preview work reduction](PLAYER_COMPARISON_20261014.md) | `cee51e3` | VLC/MPC-HC resources and one-shot seekbar extraction | [player-comparison-20261014](../evidence/player-comparison-20261014/) |
 | 2026-10-09 | [Backend validation and benchmarks](BACKEND_VALIDATION_20261009.md) | `bd5db22` | Save/load regression validation, save-retry fix, startup checks | [backend-validation-20261009](../evidence/backend-validation-20261009/) |
 | 2026-10-08 | [Remaining backend opportunities](BACKEND_REMAINING_WORK.md) | `39e853a` | Folder rediscovery, import fingerprints, incremental saving, availability | — |

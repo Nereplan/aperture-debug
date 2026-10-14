@@ -1,0 +1,32 @@
+{
+  "date": "2026-10-14",
+  "buildAndRelease": {
+    "command": "build_and_release.ps1 -FailFast",
+    "exitCode": 0,
+    "passedSuites": 20,
+    "failedSuites": 0,
+    "durationSeconds": 444.4,
+    "unitTests": 443,
+    "persistenceTests": 110,
+    "corpusFixtures": 61,
+    "thumbnailAssertions": 8524
+  },
+  "jsonFuzz": {
+    "command": "tests/fuzz/run_json_fuzz.ps1 -Seed 1337 -Iterations 10000",
+    "exitCode": 0,
+    "totalCases": 10101,
+    "acceptedRoundTripped": 4102,
+    "rejected": 5999
+  },
+  "startupBudget": {
+    "status": "PASS",
+    "warmups": 1,
+    "measuredSamples": 5,
+    "evidence": "startup-budget.json"
+  },
+  "initialModifiedSourceFilesPreserved": 10,
+  "executableBytes": 3280896,
+  "executableSha256": "81b923f57f8b1be87424eddf361f3a857675ec1650bc0e87181243070cd2068b",
+  "packageBytes": 13358826,
+  "githubReleasePublished": false
+}

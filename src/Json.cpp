@@ -324,8 +324,24 @@ class JsonParser {
             if (p < s.size() && s[p] == ']') { ++p; --depth; return a; }
             while (!bad) {
                 if (a.as_array().size() >= JsonValue::kMaxJsonContainerElements) { bad = true; break; }
-                a.push_back(val());
+                JsonValue item = val();
                 if (bad) break;
+                auto& elements = a.as_array();
+                if (elements.size() == elements.capacity()) {
+                    // MSVC's map move can allocate, so vector growth otherwise
+                    // deep-copies every existing JSON subtree. This unpublished
+                    // parser array can transfer ownership explicitly: if a move
+                    // throws, the entire parse is abandoned anyway. Keep the
+                    // usual 1.5x growth without exceeding the element limit.
+                    const size_t capacity = elements.capacity();
+                    const size_t next = (std::min)(JsonValue::kMaxJsonContainerElements,
+                        (std::max)(capacity + capacity / 2, elements.size() + 1));
+                    JsonValue::ArrayType grown;
+                    grown.reserve(next);
+                    for (auto& element : elements) grown.push_back(std::move(element));
+                    elements.swap(grown);
+                }
+                elements.push_back(std::move(item));
                 ws();
                 if (p < s.size() && s[p] == ']') { ++p; --depth; return a; }
                 if (!take(',')) break;

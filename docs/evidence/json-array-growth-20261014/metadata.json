@@ -1,0 +1,15 @@
+{
+  "date": "2026-10-14",
+  "baselineCommit": "fbb9eb4eb1506c58de659eaadc2cc2896c9d7061",
+  "compiler": "MSVC 14.44.35207 x64",
+  "benchmark": "tests/benchmark/run_save_benchmark.ps1",
+  "compare": "tests/benchmark/compare_save_benchmark.ps1",
+  "configuration": "O2, C++17",
+  "sampling": "One warmup plus seven measured samples per workload; baseline then updated; one logical processor; warm OS caches",
+  "baselineJsonSha256": "a46f1be2d4eb3ae5a71cb9202ea5b1ecc4d16492c22b6c7b12b7eb4ea72722df",
+  "updatedJsonSha256": "5d76b74b65a5a833e59cf94cfc625b14140d47e6c592062089c946d57361bb94",
+  "jsonValueBytes": 40,
+  "jsonValueNothrowMove": false,
+  "memoryMetric": "Requested C++ heap allocations during Load; not process RSS or VRAM",
+  "savedContentMatched": true
+}

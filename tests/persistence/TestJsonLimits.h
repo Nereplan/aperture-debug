@@ -72,6 +72,46 @@ TEST_CASE(JsonLimits, ObjectKeyOrderAndDuplicateCompatibility) {
     TEST_ASSERT_EQ(parsed.get("z").get("nested").as_bool(), true);
 }
 
+TEST_CASE(JsonLimits, NestedArrayGrowthPreservesOwnedValues) {
+    // Cross many growth boundaries with every payload type, long strings,
+    // nested containers and duplicate keys. Input lifetime must not matter.
+    JsonValue parsed;
+    {
+        std::string input = "[";
+        for (int i = 0; i < 300; ++i) {
+            if (i) input += ',';
+            input += "{\"id\":-1,\"id\":" + std::to_string(i) +
+                ",\"values\":[null,true,false,1.25,[],{},[\"" + std::string(128, 'x') +
+                "\\u96ea\",{\"plugin\":[1,2,3,4,5,6,7,8,9]}]]}";
+        }
+        input += ']';
+        TEST_ASSERT(JsonValue::parse(input, parsed));
+    }
+    TEST_ASSERT_EQ(parsed.as_array().size(), size_t(300));
+    const std::string expectedText = std::string(128, 'x') + "雪";
+    for (int i = 0; i < 300; ++i) {
+        TEST_ASSERT_EQ(parsed[i].get("id").as_int(), i);
+        const auto& values = parsed[i].get("values");
+        TEST_ASSERT(values[0].is_null());
+        TEST_ASSERT(values[1].as_bool());
+        TEST_ASSERT(!values[2].as_bool(true));
+        TEST_ASSERT_EQ(values[3].as_number(), 1.25);
+        TEST_ASSERT(values[4].is_array() && values[4].as_array().empty());
+        TEST_ASSERT(values[5].is_object() && values[5].as_object().empty());
+        TEST_ASSERT_EQ(values[6][0].as_string(), expectedText);
+        TEST_ASSERT_EQ(values[6][1].get("plugin").as_array().size(), size_t(9));
+        TEST_ASSERT_EQ(values[6][1].get("plugin")[8].as_int(), 9);
+    }
+    JsonValue copied = parsed;
+    copied[0]["values"][6][0] = "changed";
+    TEST_ASSERT_EQ(parsed[0].get("values")[6][0].as_string(), expectedText);
+    JsonValue roundTrip;
+    TEST_ASSERT(JsonValue::parse(parsed.stringify(), roundTrip));
+    TEST_ASSERT(roundTrip == parsed);
+    TEST_ASSERT(!JsonValue::parse(parsed.stringify() + " trailing", parsed));
+    TEST_ASSERT(parsed.is_null());
+}
+
 TEST_CASE(JsonLimits, SpanStringsAndEscapeBoundaries) {
     const std::string text = std::string(4096, 'x') + "雪" + std::string("\n\t\0", 3) + std::string(4096, 'y');
     JsonValue parsed;
@@ -129,6 +169,25 @@ TEST_CASE(JsonLimits, MaxInputBytesRejection) {
     TEST_ASSERT_EQ(JsonValue::kMaxJsonDepth, (size_t)128);
     TEST_ASSERT_EQ(JsonValue::kMaxJsonStringBytes, (size_t)(16 * 1024 * 1024));
     TEST_ASSERT_EQ(JsonValue::kMaxJsonContainerElements, (size_t)1000000);
+}
+
+TEST_CASE(JsonLimits, ArrayGrowthHonorsElementLimit) {
+    std::string input = "[";
+    input.reserve(2 * JsonValue::kMaxJsonContainerElements + 3);
+    for (size_t i = 0; i < JsonValue::kMaxJsonContainerElements; ++i) {
+        if (i) input += ',';
+        input += '0';
+    }
+    input += ']';
+    JsonValue parsed;
+    TEST_ASSERT(JsonValue::parse(input, parsed));
+    TEST_ASSERT_EQ(parsed.as_array().size(), JsonValue::kMaxJsonContainerElements);
+    TEST_ASSERT_EQ(parsed[JsonValue::kMaxJsonContainerElements - 1].as_int(-1), 0);
+    parsed = JsonValue();
+    input.pop_back();
+    input += ",0]";
+    TEST_ASSERT(!JsonValue::parse(input, parsed));
+    TEST_ASSERT(parsed.is_null());
 }
 
 TEST_CASE(JsonLimits, NestingDepthRejection) {
