@@ -1,0 +1,36 @@
+{
+  "localGate": {
+    "passed": 22,
+    "failed": 0,
+    "suites": {
+      "loading": "36.16s",
+      "backend": "8.44s",
+      "local_release": "5.13s",
+      "github_update": "6.89s",
+      "update_retention": "4.31s",
+      "workspace_cleanup": "4.92s",
+      "workflows": "21.16s",
+      "unit": "63.37s",
+      "corpus": "8.17s",
+      "persistence": "7.74s",
+      "ipc": "5.27s",
+      "loader": "27.2s",
+      "diagnostics": "27.97s",
+      "updater": "16.29s",
+      "channel_policy": "1.29s",
+      "dependencies": "1.99s",
+      "runtime_layout": "1.87s",
+      "threat_boundaries": "0.19s",
+      "static_analysis": "79.12s",
+      "stress": "78.38s",
+      "media_probe_isolation": "14.2s",
+      "thumbnail_cache": "31.34s"
+    }
+  },
+  "loadingCasesPassed": 8,
+  "mutationChecksPassed": 2,
+  "diskHashesMatchAcrossAllSamples": true,
+  "runtimeBinarySha256": "31698a73234944df74eb2f3039883cf5004c2132393f99b739bdc39515fa97f5",
+  "runtimeBinaryBytes": 3412992,
+  "portableArchiveBytes": 13415767
+}

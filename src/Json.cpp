@@ -120,15 +120,17 @@ void JsonValue::WriteJson(std::string& o, bool pretty, int indent) const {
             if (!std::isfinite(numberVal)) {
                 o.append("null");
             } else if (std::floor(numberVal) == numberVal && numberVal >= (double)std::numeric_limits<int64_t>::min() &&
-                       numberVal <= (double)std::numeric_limits<int64_t>::max()) {
+                       numberVal < std::ldexp(1.0, 63)) {
                 char buffer[32];
                 const auto result = std::to_chars(buffer, buffer + sizeof(buffer), (int64_t)numberVal);
                 o.append(buffer, result.ptr);
             } else {
-                // Keep the legacy ostream default precision and formatting for fractional values.
-                std::ostringstream number;
-                number << numberVal;
-                o.append(number.str());
+                // Preserve the store's six significant digits without allocating
+                // a stream (and without inheriting a non-JSON decimal separator).
+                char buffer[32];
+                const auto result = std::to_chars(buffer, buffer + sizeof(buffer), numberVal,
+                    std::chars_format::general, 6);
+                o.append(buffer, result.ptr);
             }
             break;
         }
@@ -408,6 +410,24 @@ class JsonParser {
 
 public:
     explicit JsonParser(const std::string& x) : s(x) {}
+    bool consumeArray(const std::function<void(JsonValue&)>& consume) {
+        if (s.empty() || s.size() > JsonValue::kMaxJsonInputBytes || !consume || !take('[')) return false;
+        depth = 1; // The streamed outer array counts toward the nesting limit.
+        ws();
+        if (p < s.size() && s[p] == ']') { ++p; ws(); return p == s.size(); }
+        size_t count = 0;
+        while (!bad) {
+            if (count == JsonValue::kMaxJsonContainerElements) return false;
+            JsonValue item = val();
+            if (bad) return false;
+            consume(item);
+            ++count;
+            ws();
+            if (p < s.size() && s[p] == ']') { ++p; ws(); return p == s.size(); }
+            if (!take(',')) return false;
+        }
+        return false;
+    }
     bool run(JsonValue& out) {
         if (s.size() > JsonValue::kMaxJsonInputBytes) { return false; }
         out = val();
@@ -415,6 +435,10 @@ public:
         return !bad && p == s.size();
     }
 };
+
+bool JsonValue::consume_array(const std::string& text, const std::function<void(JsonValue&)>& consume) {
+    return JsonParser(text).consumeArray(consume);
+}
 
 bool JsonValue::parse(const std::string& text, JsonValue& out) {
     if (text.empty() || text.size() > kMaxJsonInputBytes) { out = JsonValue(); return false; }

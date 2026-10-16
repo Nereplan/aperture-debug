@@ -1,0 +1,23 @@
+{
+  "date": "2026-10-16",
+  "startingCommit": "9a053d3292b66b9d6556ebea8f3138ae0d9116f9",
+  "baselineIncludesExistingWorkingTreeChanges": true,
+  "sourceFiles": {
+    "Json.cpp": {
+      "beforeSha256": "573cede6adb24a7050f22ad9d7ee2a5b12bf6b8259dd03b41185ac4d67682d7e",
+      "afterSha256": "ab3c88eee43eff4517d37f56fd697aeead97a0b92509203825f26b01e68de04b"
+    },
+    "Json.h": {
+      "beforeSha256": "c7c446bdc87d6fe38cdc24fda650f5951c300b1bf6f669e9a3a5f987e67a9fcc",
+      "afterSha256": "5cab7348ae3de4ce833b204f0a443cdb35476a2f7a68308235abf527ff93319b"
+    },
+    "MediaLibrary.cpp": {
+      "beforeSha256": "698d05910c317b2144c678f8dabf7cf563ccae24bcb8e59b0b546796dee8dff1",
+      "afterSha256": "38727034dc9c70171f45bba80c836f3cfe8eab6a046e6fd4f526d66a74c2c5d3"
+    },
+    "MediaLibrary.h": {
+      "beforeSha256": "b66b7533d535e4e4b59eb4f50d6b6a6bb158d930192287ac7e368804e1c34460",
+      "afterSha256": "8a1d6f779f468905d986a87ecc78bc079f358ed6bfddcc91620d5162b16f17aa"
+    }
+  }
+}

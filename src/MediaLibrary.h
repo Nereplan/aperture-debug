@@ -542,6 +542,7 @@ public:
     static bool NeedsMetadataBackfill(const MediaItem& item);
     static bool CanAttemptMetadataBackfill(const MediaItem& item, const MetadataBackfillOptions& options, int64_t now);
 private:
+    void LoadMediaRecord(JsonValue& json, const std::wstring& rootDir);
     std::string GenerateId(const std::wstring& path);
     MediaItem* AddOrUpdateMediaCore(const std::wstring& path, bool& changed, bool& metadataProbeFailed, bool probeMetadata = true);
     bool SetWatchedCore(const std::wstring& path, bool watched);

@@ -1,0 +1,26 @@
+Json.cpp
+Settings.cpp
+ChannelPolicy.cpp
+Localization.cpp
+AudioConfig.cpp
+MediaLibrary.cpp
+LibraryQuery.cpp
+FolderWatcher.cpp
+MediaFoundation.cpp
+MediaProbeIsolation.cpp
+Generating Code...
+main.cpp
+Native build: 10 production files compiled, 0 reused.
+Aperture portable loading pipeline (8 selected, 0 filtered)
+[       OK ] BackendLoading::StreamingJsonMatchesDomAndRejectsMalformedSuffixes (2.05 ms)
+[       OK ] BackendLoading::StreamingJsonRetainsDepthStringAndElementLimits (200.78 ms)
+[       OK ] BackendLoading::ArrayAndWrappedStoresHaveIdenticalPortableRoundtrips (181.63 ms)
+[       OK ] BackendLoading::SmallRecordsAndEscapedDelimitersSurviveCapacityGrowth (63.47 ms)
+[       OK ] BackendLoading::TruncatedStreamDiscardsRecordsAndRecoversOnlyValidBackup (44.25 ms)
+[       OK ] BackendLoading::IncrementalEditsSurviveRestartAndCheckpoint (78.96 ms)
+[       OK ] BackendLoading::FutureSchemaIsProtectedAndReloadDropsOldRecords (27.48 ms)
+  Sparse load heap: streamed=8887618, DOM=9874788 bytes
+  Dense load heap: streamed=17997628, DOM=18255588 bytes
+[       OK ] BackendLoading::StreamingLoadBoundsPeakHeapWithoutRetainingGrowthSlack (323.00 ms)
+
+8 passed, 0 failed, 0 skipped in 921.76 ms

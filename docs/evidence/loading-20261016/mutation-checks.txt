@@ -1,0 +1,2 @@
+PASS: stream-trailing-data rejected by its behavioral assertion.
+PASS: stream-memory rejected by its behavioral assertion.

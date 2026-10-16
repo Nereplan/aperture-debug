@@ -27,6 +27,38 @@
   ],
   "suites": [
     {
+      "id": "loading",
+      "name": "Portable Library Loading Pipeline",
+      "category": "persistence",
+      "tier": "pr",
+      "platform": "windows-x64",
+      "script": "tests/loading/run_tests.ps1",
+      "command": "powershell",
+      "arguments": [],
+      "prerequisites": [
+        "msvc_x64"
+      ],
+      "artifactPolicy": "isolated_temp",
+      "timeoutSeconds": 180,
+      "description": "Streaming parser bounds, actual portable restart/relocation, corruption and journal recovery, future-schema write fencing, and comparative heap budgets."
+    },
+    {
+      "id": "loading_mutations",
+      "name": "Loading Pipeline Mutation Verification",
+      "category": "hardening",
+      "tier": "manual",
+      "platform": "windows-x64",
+      "script": "tests/loading/verify_mutations.ps1",
+      "command": "powershell",
+      "arguments": [],
+      "prerequisites": [
+        "msvc_x64"
+      ],
+      "artifactPolicy": "isolated_temp",
+      "timeoutSeconds": 300,
+      "description": "Two isolated production defects must fail the exact parser or heap assertion; build failures do not count."
+    },
+    {
       "id": "local_release",
       "name": "Local Release Publishing",
       "category": "package",

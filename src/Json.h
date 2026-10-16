@@ -12,6 +12,7 @@
 #include <utility>
 #include <variant>
 #include <string_view>
+#include <functional>
 
 namespace Aperture {
 
@@ -72,6 +73,10 @@ public:
     // Strict variant: returns false for malformed/truncated JSON. The legacy
     // parse() entry point remains source-compatible and returns null on error.
     static bool parse(const std::string& jsonText, JsonValue& out);
+    // Consume a top-level array without retaining its DOM. A malformed suffix
+    // can follow delivered records: callers must discard staged state on false.
+    // The callback must not mutate the input string or retain record references.
+    static bool consume_array(const std::string& jsonText, const std::function<void(JsonValue&)>& consume);
 
 private:
     // Only the active payload exists. Scalars no longer construct empty maps

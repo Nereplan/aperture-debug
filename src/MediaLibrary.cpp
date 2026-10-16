@@ -311,6 +311,9 @@ inline void StripKnownKeys(JsonValue& obj, const char* const* keys, size_t count
         const auto found = map.find(keys[i]);
         if (found != map.end()) map.erase(found);
     }
+    // Most records have no extension fields. Do not retain (or copy into
+    // save snapshots) an allocated MSVC map sentinel for each empty object.
+    if (map.empty()) obj = JsonValue();
 }
 
 struct DiscoveredFile { std::wstring path; std::wstring normalizedKey; };
@@ -2084,6 +2087,235 @@ size_t MediaLibrary::GetPlaylistResumeIndex(const std::vector<std::wstring>& pat
 
 StorageStatus MediaLibrary::Load() { return LoadFromRoot(GetExeDir()); }
 
+// Reservation hint only, never syntax validation. Count outer object starts
+// while ignoring quoted/nested delimiters. Cap eager allocation for malformed
+// or unusually small records; the ordinary parser enforces all input limits.
+static size_t MediaRecordCapacityHint(const std::string& text) {
+    size_t depth = 0, objects = 0;
+    bool quoted = false, escaped = false;
+    for (const char c : text) {
+        if (quoted) {
+            if (escaped) escaped = false;
+            else if (c == '\\') escaped = true;
+            else if (c == '"') quoted = false;
+        } else if (c == '"') quoted = true;
+        else if (c == '[' || c == '{') {
+            if (depth == 1 && c == '{') ++objects;
+            ++depth;
+        } else if (c == ']' || c == '}') {
+            if (!depth || --depth == 0) break;
+        }
+    }
+    return (std::min)({objects, text.size() / 64, size_t(65536)});
+}
+
+void MediaLibrary::LoadMediaRecord(JsonValue& json, const std::wstring& rootDir) {
+    if (!json.is_object()) return;
+    MediaItem item;
+    item.id = json.get("id").as_string();
+    std::wstring rawPath = json.get("filePath").as_wstring();
+    if (ClassifyPlaybackTarget(rawPath) != PlaybackTargetKind::LocalFile) return;
+    item.filePath = ResolveAppPath(rawPath, rootDir);
+    if (item.filePath.empty()) return;
+    item.title = json.get("title").as_wstring();
+    if (item.title.empty()) item.title = GetFileNameFromPath(item.filePath);
+    item.durationSec = std::max(0.0, SafeNumber(json.get("durationSec")));
+    item.lastPosSec = std::max(0.0, SafeNumber(json.get("lastPosSec")));
+    item.status = json.get("status").as_string("new");
+    if (item.status != "new" && item.status != "in_progress" && item.status != "done") item.status = "new";
+    item.fileSizeBytes = json.get("fileSizeBytes").as_uint64(0);
+    item.lastWatchedTimestamp = SafeTime(json.get("lastWatchedTimestamp"));
+    item.addedTimestamp = SafeTime(json.get("addedTimestamp"));
+    item.videoWidth = (uint32_t)std::max(0, json.get("videoWidth").as_int(0));
+    item.videoHeight = (uint32_t)std::max(0, json.get("videoHeight").as_int(0));
+    item.fileIndex = ExactUint64(json.get("fileIndex"));
+    item.volumeSerialNumber = (uint32_t)json.get("volumeSerialNumber").as_uint64(0);
+    item.metadataFileWriteTime = ExactUint64(json.get("metadataFileWriteTime"));
+    item.metadataProbeFailed = json.get("metadataProbeFailed").as_bool(false);
+    item.probeAttemptCount = (uint32_t)std::max(0, json.get("probeAttemptCount").as_int(0));
+    item.lastProbeAttemptTimestamp = SafeTime(json.get("lastProbeAttemptTimestamp"));
+    if (item.durationSec > 0) item.lastPosSec = std::min(item.lastPosSec, item.durationSec);
+    if (json.has_key("preferences") && json.get("preferences").is_object()) {
+        auto& prefJson = json["preferences"];
+        MediaPlaybackPreferences prefs;
+        if (prefJson.has_key("playbackSpeed") && prefJson.get("playbackSpeed").is_number()) {
+            double spd = SafeNumber(prefJson.get("playbackSpeed"));
+            if (MediaPlaybackPreferences::IsValidPlaybackSpeed(spd)) { prefs.playbackSpeed = spd; }
+        }
+        if (prefJson.has_key("aspectRatio") && prefJson.get("aspectRatio").is_string()) {
+            std::string ar = prefJson.get("aspectRatio").as_string();
+            if (MediaPlaybackPreferences::IsValidAspectRatio(ar)) { prefs.aspectRatio = ar; }
+        }
+        if (prefJson.has_key("audioTrackId") && prefJson.get("audioTrackId").is_number()) {
+            int atId = prefJson.get("audioTrackId").as_int();
+            if (atId >= 0) prefs.audioTrackId = atId;
+        }
+        if (prefJson.has_key("audioTrackTitle") && prefJson.get("audioTrackTitle").is_string())
+            prefs.audioTrackTitle = prefJson.get("audioTrackTitle").as_wstring();
+        if (prefJson.has_key("audioTrackLang") && prefJson.get("audioTrackLang").is_string())
+            prefs.audioTrackLang = prefJson.get("audioTrackLang").as_string();
+        if (prefJson.has_key("subtitleTrackId") && prefJson.get("subtitleTrackId").is_number()) {
+            int stId = prefJson.get("subtitleTrackId").as_int();
+            if (stId >= 0) prefs.subtitleTrackId = stId;
+        }
+        if (prefJson.has_key("subtitleTrackTitle") && prefJson.get("subtitleTrackTitle").is_string())
+            prefs.subtitleTrackTitle = prefJson.get("subtitleTrackTitle").as_wstring();
+        if (prefJson.has_key("subtitleTrackLang") && prefJson.get("subtitleTrackLang").is_string())
+            prefs.subtitleTrackLang = prefJson.get("subtitleTrackLang").as_string();
+        if (prefJson.has_key("audioDelayMs") && prefJson.get("audioDelayMs").is_number()) {
+            int delay = prefJson.get("audioDelayMs").as_int();
+            if (MediaPlaybackPreferences::IsValidAudioDelayMs(delay)) { prefs.audioDelayMs = delay; }
+        }
+        if (prefJson.has_key("subDelayMs") && prefJson.get("subDelayMs").is_number()) {
+            int delay = prefJson.get("subDelayMs").as_int();
+            if (MediaPlaybackPreferences::IsValidSubDelayMs(delay)) { prefs.subDelayMs = delay; }
+        }
+        if (prefJson.has_key("subtitlesVisible") && prefJson.get("subtitlesVisible").is_bool())
+            prefs.subtitlesVisible = prefJson.get("subtitlesVisible").as_bool();
+        if (prefJson.has_key("videoRotate") && prefJson.get("videoRotate").is_number()) {
+            int r = prefJson.get("videoRotate").as_int();
+            if (MediaPlaybackPreferences::IsValidVideoRotate(r)) { prefs.videoRotate = r; }
+        }
+        if (prefJson.has_key("brightness") && prefJson.get("brightness").is_number()) {
+            double val = SafeNumber(prefJson.get("brightness"), 999.0);
+            if (std::isfinite(val) && MediaPlaybackPreferences::IsValidBrightness((int)std::round(val)))
+                prefs.brightness = (int)std::round(val);
+        }
+        if (prefJson.has_key("contrast") && prefJson.get("contrast").is_number()) {
+            double val = SafeNumber(prefJson.get("contrast"), 999.0);
+            if (std::isfinite(val) && MediaPlaybackPreferences::IsValidContrast((int)std::round(val)))
+                prefs.contrast = (int)std::round(val);
+        }
+        if (prefJson.has_key("saturation") && prefJson.get("saturation").is_number()) {
+            double val = SafeNumber(prefJson.get("saturation"), 999.0);
+            if (std::isfinite(val) && MediaPlaybackPreferences::IsValidSaturation((int)std::round(val)))
+                prefs.saturation = (int)std::round(val);
+        }
+        if (prefJson.has_key("gamma") && prefJson.get("gamma").is_number()) {
+            double val = SafeNumber(prefJson.get("gamma"), 999.0);
+            if (std::isfinite(val) && MediaPlaybackPreferences::IsValidGamma((int)std::round(val)))
+                prefs.gamma = (int)std::round(val);
+        }
+        if (prefJson.has_key("hue") && prefJson.get("hue").is_number()) {
+            double val = SafeNumber(prefJson.get("hue"), 999.0);
+            if (std::isfinite(val) && MediaPlaybackPreferences::IsValidHue((int)std::round(val)))
+                prefs.hue = (int)std::round(val);
+        }
+        if (prefJson.has_key("audioBalance") && prefJson.get("audioBalance").is_number()) {
+            double b = SafeNumber(prefJson.get("audioBalance"), 999.0);
+            if (MediaPlaybackPreferences::IsValidAudioBalance(b)) { prefs.audioBalance = b; }
+        }
+        if (prefJson.has_key("audioChannelMap") && prefJson.get("audioChannelMap").is_string()) {
+            std::string rawMap = prefJson.get("audioChannelMap").as_string();
+            std::string normMap = AudioConfig::NormalizeAudioChannelMap(rawMap);
+            if (MediaPlaybackPreferences::IsValidAudioChannelMap(normMap)) { prefs.audioChannelMap = normMap; }
+        }
+        {
+            static constexpr const char* kKnownPrefKeys[] = {
+                "playbackSpeed", "aspectRatio", "audioTrackId", "audioTrackTitle",
+                "audioTrackLang", "subtitleTrackId", "subtitleTrackTitle", "subtitleTrackLang",
+                "audioDelayMs", "subDelayMs", "subtitlesVisible", "videoRotate",
+                "brightness", "contrast", "saturation", "gamma", "hue", "audioBalance", "audioChannelMap"
+            };
+            StripKnownKeys(prefJson, kKnownPrefKeys, sizeof(kKnownPrefKeys) / sizeof(kKnownPrefKeys[0]));
+            prefs.extraFields = std::move(prefJson);
+        }
+        item.preferences = std::move(prefs);
+    }
+    if (json.has_key("bookmarks") && json.get("bookmarks").is_array()) {
+        auto& bmarks = json["bookmarks"].as_array();
+        for (auto& bJson : bmarks) {
+            if (!bJson.is_object()) continue;
+            MediaBookmark bm;
+            bm.id = bJson.get("id").as_string();
+            bm.timeSec = SafeNumber(bJson.get("timeSec"), -1.0);
+            if (!MediaBookmark::IsValidTime(bm.timeSec)) continue;
+            bm.label = bJson.get("label").as_wstring();
+            if (bm.label.length() > MediaBookmark::kMaxLabelLength)
+                bm.label = bm.label.substr(0, MediaBookmark::kMaxLabelLength);
+            bm.createdTimestamp = SafeTime(bJson.get("createdTimestamp"));
+            if (bm.id.empty())
+                bm.id = GenerateId(item.filePath + L"_" + std::to_wstring(bm.timeSec) + L"_" + std::to_wstring(bm.createdTimestamp));
+            {
+                static constexpr const char* kKnownBookmarkKeys[] = { "id", "timeSec", "label", "createdTimestamp" };
+                StripKnownKeys(bJson, kKnownBookmarkKeys, sizeof(kKnownBookmarkKeys) / sizeof(kKnownBookmarkKeys[0]));
+                bm.extraFields = std::move(bJson);
+            }
+            item.bookmarks.push_back(std::move(bm));
+        }
+        std::stable_sort(item.bookmarks.begin(), item.bookmarks.end(), MediaBookmark::Compare);
+    }
+    if (json.has_key("overrides") && json.get("overrides").is_object()) {
+        auto& ovJson = json["overrides"];
+        MediaMetadataOverrides ov;
+        if (ovJson.has_key("title") && ovJson.get("title").is_string()) {
+            std::wstring t = ovJson.get("title").as_wstring();
+            if (MediaMetadataOverrides::IsValidTitle(t)) ov.title = t;
+        }
+        if (ovJson.has_key("year") && ovJson.get("year").is_number()) {
+            int y = ovJson.get("year").as_int();
+            if (MediaMetadataOverrides::IsValidYear(y)) ov.year = y;
+        }
+        if (ovJson.has_key("series") && ovJson.get("series").is_string()) {
+            std::wstring s = ovJson.get("series").as_wstring();
+            if (MediaMetadataOverrides::IsValidSeries(s)) ov.series = s;
+        }
+        {
+            static constexpr const char* kKnownOverrideKeys[] = { "title", "year", "series" };
+            StripKnownKeys(ovJson, kKnownOverrideKeys, sizeof(kKnownOverrideKeys) / sizeof(kKnownOverrideKeys[0]));
+            ov.extraFields = std::move(ovJson);
+        }
+        if (ov.HasAnyOverride()) { item.overrides = std::move(ov); }
+    } else if (json.has_key("metadataOverrides") && json.get("metadataOverrides").is_object()) {
+        auto& ovJson = json["metadataOverrides"];
+        MediaMetadataOverrides ov;
+        if (ovJson.has_key("title") && ovJson.get("title").is_string()) {
+            std::wstring t = ovJson.get("title").as_wstring();
+            if (MediaMetadataOverrides::IsValidTitle(t)) ov.title = t;
+        }
+        if (ovJson.has_key("year") && ovJson.get("year").is_number()) {
+            int y = ovJson.get("year").as_int();
+            if (MediaMetadataOverrides::IsValidYear(y)) ov.year = y;
+        }
+        if (ovJson.has_key("series") && ovJson.get("series").is_string()) {
+            std::wstring s = ovJson.get("series").as_wstring();
+            if (MediaMetadataOverrides::IsValidSeries(s)) ov.series = s;
+        }
+        {
+            static constexpr const char* kKnownOverrideKeys[] = { "title", "year", "series" };
+            StripKnownKeys(ovJson, kKnownOverrideKeys, sizeof(kKnownOverrideKeys) / sizeof(kKnownOverrideKeys[0]));
+            ov.extraFields = std::move(ovJson);
+        }
+        if (ov.HasAnyOverride()) { item.overrides = std::move(ov); }
+    }
+    const std::wstring pathKey = NormalizePathKey(item.filePath);
+    if (pathKey.empty() || pathToIndex.find(pathKey) != pathToIndex.end()) return;
+    if (item.id.empty()) item.id = GenerateId(item.filePath);
+    {
+        static constexpr const char* kKnownMediaKeys[] = {
+            "id", "filePath", "title", "durationSec", "lastPosSec", "status",
+            "fileSizeBytes", "lastWatchedTimestamp", "addedTimestamp",
+            "videoWidth", "videoHeight", "fileIndex", "volumeSerialNumber",
+            "metadataFileWriteTime", "metadataProbeFailed", "probeAttemptCount", "lastProbeAttemptTimestamp",
+            "preferences", "bookmarks", "overrides", "metadataOverrides"
+        };
+        StripKnownKeys(json, kKnownMediaKeys, sizeof(kKnownMediaKeys) / sizeof(kKnownMediaKeys[0]));
+        item.extraFields = std::move(json);
+    }
+    const size_t index = mediaItems.size();
+    if (mediaItems.size() == mediaItems.capacity()) {
+        // Move unpublished records explicitly: MSVC's possibly-throwing map
+        // move would otherwise make vector growth deep-copy the entire catalog.
+        std::vector<MediaItem> grown;
+        grown.reserve((std::max)(size_t(16), mediaItems.size() + mediaItems.size() / 2));
+        for (auto& existing : mediaItems) grown.push_back(std::move(existing));
+        mediaItems.swap(grown);
+    }
+    mediaItems.push_back(std::move(item));
+    pathToIndex.emplace(pathKey, index);
+    idToIndex[mediaItems.back().id] = index;
+}
+
 StorageStatus MediaLibrary::LoadFromRoot(const std::wstring& requestedRootDir, const LibraryLoadMilestoneCallback& milestone) {
     lastSaveSnapshot.reset();
     saveState = {};
@@ -2141,8 +2373,7 @@ StorageStatus MediaLibrary::LoadFromRoot(const std::wstring& requestedRootDir, c
         }
         return StorageStatus::Error(StorageErrorCode::SerializationFailed, ERROR_INVALID_DATA, filePath, "Malformed JSON and no valid backup");
     };
-    // Read and syntax-validate every portable store before constructing typed state. This creates a clean measurement boundary and ensures
-    // the worker never publishes a half-read snapshot.
+    // All stores are validated before the completed snapshot is published.
     std::wstring libPath = dataDir + L"\\library.json";
     std::wstring plPath = dataDir + L"\\playlists.json";
     std::wstring histPath = dataDir + L"\\history.json";
@@ -2152,8 +2383,34 @@ StorageStatus MediaLibrary::LoadFromRoot(const std::wstring& requestedRootDir, c
     JsonValue histRoot;
     JsonValue watchRoot;
     std::string checkpointText;
-    loadResult.libraryStatus = loadStore(libPath, libRoot, loadResult.libraryRecoveredFromBackup, "items", kCurrentLibrarySchemaVersion, &checkpointText);
-    if (loadResult.libraryStatus.is_ok())
+    // Ordinary checkpoints are arrays. Decode into typed records as we parse,
+    // keeping just one JSON record alive. Wrapped schemas, journals and backup
+    // recovery continue through the fully validated compatibility path below.
+    const auto changesPath = dataDir + L"\\library.changes";
+    bool streamed = false;
+    if (QueryPathAvailability(changesPath) == PathAvailability::Missing) {
+        std::string text;
+        if (ReadTextFile(libPath, text).is_ok()) {
+            const auto first = text.find_first_not_of(" \t\r\n");
+            if (first != std::string::npos && text[first] == '[') {
+                const auto capacity = MediaRecordCapacityHint(text);
+                mediaItems.reserve(capacity);
+                pathToIndex.reserve(capacity);
+                idToIndex.reserve(capacity);
+                streamed = JsonValue::consume_array(text, [&](JsonValue& record) { LoadMediaRecord(record, rootDir); });
+                // Do not skip a journal that appeared while reading the checkpoint.
+                streamed = streamed && QueryPathAvailability(changesPath) == PathAvailability::Missing;
+                if (!streamed) {
+                    std::vector<MediaItem>().swap(mediaItems);
+                    decltype(pathToIndex)().swap(pathToIndex);
+                    decltype(idToIndex)().swap(idToIndex);
+                }
+            }
+        }
+    }
+    loadResult.libraryStatus = streamed ? StorageStatus::Ok(libPath) :
+        loadStore(libPath, libRoot, loadResult.libraryRecoveredFromBackup, "items", kCurrentLibrarySchemaVersion, &checkpointText);
+    if (!streamed && loadResult.libraryStatus.is_ok())
         loadResult.libraryStatus = LibraryIncrementalStore::Load(dataDir + L"\\library.changes", checkpointText, libRoot, loadResult.libraryRecoveredFromBackup);
     std::string().swap(checkpointText);
     loadResult.playlistsStatus = loadStore(plPath, plRoot, loadResult.playlistsRecoveredFromBackup, "items", kCurrentPlaylistsSchemaVersion);
@@ -2169,209 +2426,17 @@ StorageStatus MediaLibrary::LoadFromRoot(const std::wstring& requestedRootDir, c
             mediaItems.reserve(items->as_array().size());
             pathToIndex.reserve(items->as_array().size());
             idToIndex.reserve(items->as_array().size());
-            for (auto& json : items->as_array()) {
-                if (!json.is_object()) continue;
-                MediaItem item;
-                item.id = json.get("id").as_string();
-                std::wstring rawPath = json.get("filePath").as_wstring();
-                if (ClassifyPlaybackTarget(rawPath) != PlaybackTargetKind::LocalFile) continue;
-                item.filePath = ResolveAppPath(rawPath, rootDir);
-                if (item.filePath.empty()) continue;
-                item.title = json.get("title").as_wstring();
-                if (item.title.empty()) item.title = GetFileNameFromPath(item.filePath);
-                item.durationSec = std::max(0.0, SafeNumber(json.get("durationSec")));
-                item.lastPosSec = std::max(0.0, SafeNumber(json.get("lastPosSec")));
-                item.status = json.get("status").as_string("new");
-                if (item.status != "new" && item.status != "in_progress" && item.status != "done") item.status = "new";
-                item.fileSizeBytes = json.get("fileSizeBytes").as_uint64(0);
-                item.lastWatchedTimestamp = SafeTime(json.get("lastWatchedTimestamp"));
-                item.addedTimestamp = SafeTime(json.get("addedTimestamp"));
-                item.videoWidth = (uint32_t)std::max(0, json.get("videoWidth").as_int(0));
-                item.videoHeight = (uint32_t)std::max(0, json.get("videoHeight").as_int(0));
-                item.fileIndex = ExactUint64(json.get("fileIndex"));
-                item.volumeSerialNumber = (uint32_t)json.get("volumeSerialNumber").as_uint64(0);
-                item.metadataFileWriteTime = ExactUint64(json.get("metadataFileWriteTime"));
-                item.metadataProbeFailed = json.get("metadataProbeFailed").as_bool(false);
-                item.probeAttemptCount = (uint32_t)std::max(0, json.get("probeAttemptCount").as_int(0));
-                item.lastProbeAttemptTimestamp = SafeTime(json.get("lastProbeAttemptTimestamp"));
-                if (item.durationSec > 0) item.lastPosSec = std::min(item.lastPosSec, item.durationSec);
-                if (json.has_key("preferences") && json.get("preferences").is_object()) {
-                    const auto& prefJson = json.get("preferences");
-                    MediaPlaybackPreferences prefs;
-                    if (prefJson.has_key("playbackSpeed") && prefJson.get("playbackSpeed").is_number()) {
-                        double spd = SafeNumber(prefJson.get("playbackSpeed"));
-                        if (MediaPlaybackPreferences::IsValidPlaybackSpeed(spd)) { prefs.playbackSpeed = spd; }
-                    }
-                    if (prefJson.has_key("aspectRatio") && prefJson.get("aspectRatio").is_string()) {
-                        std::string ar = prefJson.get("aspectRatio").as_string();
-                        if (MediaPlaybackPreferences::IsValidAspectRatio(ar)) { prefs.aspectRatio = ar; }
-                    }
-                    if (prefJson.has_key("audioTrackId") && prefJson.get("audioTrackId").is_number()) {
-                        int atId = prefJson.get("audioTrackId").as_int();
-                        if (atId >= 0) prefs.audioTrackId = atId;
-                    }
-                    if (prefJson.has_key("audioTrackTitle") && prefJson.get("audioTrackTitle").is_string())
-                        prefs.audioTrackTitle = prefJson.get("audioTrackTitle").as_wstring();
-                    if (prefJson.has_key("audioTrackLang") && prefJson.get("audioTrackLang").is_string())
-                        prefs.audioTrackLang = prefJson.get("audioTrackLang").as_string();
-                    if (prefJson.has_key("subtitleTrackId") && prefJson.get("subtitleTrackId").is_number()) {
-                        int stId = prefJson.get("subtitleTrackId").as_int();
-                        if (stId >= 0) prefs.subtitleTrackId = stId;
-                    }
-                    if (prefJson.has_key("subtitleTrackTitle") && prefJson.get("subtitleTrackTitle").is_string())
-                        prefs.subtitleTrackTitle = prefJson.get("subtitleTrackTitle").as_wstring();
-                    if (prefJson.has_key("subtitleTrackLang") && prefJson.get("subtitleTrackLang").is_string())
-                        prefs.subtitleTrackLang = prefJson.get("subtitleTrackLang").as_string();
-                    if (prefJson.has_key("audioDelayMs") && prefJson.get("audioDelayMs").is_number()) {
-                        int delay = prefJson.get("audioDelayMs").as_int();
-                        if (MediaPlaybackPreferences::IsValidAudioDelayMs(delay)) { prefs.audioDelayMs = delay; }
-                    }
-                    if (prefJson.has_key("subDelayMs") && prefJson.get("subDelayMs").is_number()) {
-                        int delay = prefJson.get("subDelayMs").as_int();
-                        if (MediaPlaybackPreferences::IsValidSubDelayMs(delay)) { prefs.subDelayMs = delay; }
-                    }
-                    if (prefJson.has_key("subtitlesVisible") && prefJson.get("subtitlesVisible").is_bool())
-                        prefs.subtitlesVisible = prefJson.get("subtitlesVisible").as_bool();
-                    if (prefJson.has_key("videoRotate") && prefJson.get("videoRotate").is_number()) {
-                        int r = prefJson.get("videoRotate").as_int();
-                        if (MediaPlaybackPreferences::IsValidVideoRotate(r)) { prefs.videoRotate = r; }
-                    }
-                    if (prefJson.has_key("brightness") && prefJson.get("brightness").is_number()) {
-                        double val = SafeNumber(prefJson.get("brightness"), 999.0);
-                        if (std::isfinite(val) && MediaPlaybackPreferences::IsValidBrightness((int)std::round(val)))
-                            prefs.brightness = (int)std::round(val);
-                    }
-                    if (prefJson.has_key("contrast") && prefJson.get("contrast").is_number()) {
-                        double val = SafeNumber(prefJson.get("contrast"), 999.0);
-                        if (std::isfinite(val) && MediaPlaybackPreferences::IsValidContrast((int)std::round(val)))
-                            prefs.contrast = (int)std::round(val);
-                    }
-                    if (prefJson.has_key("saturation") && prefJson.get("saturation").is_number()) {
-                        double val = SafeNumber(prefJson.get("saturation"), 999.0);
-                        if (std::isfinite(val) && MediaPlaybackPreferences::IsValidSaturation((int)std::round(val)))
-                            prefs.saturation = (int)std::round(val);
-                    }
-                    if (prefJson.has_key("gamma") && prefJson.get("gamma").is_number()) {
-                        double val = SafeNumber(prefJson.get("gamma"), 999.0);
-                        if (std::isfinite(val) && MediaPlaybackPreferences::IsValidGamma((int)std::round(val)))
-                            prefs.gamma = (int)std::round(val);
-                    }
-                    if (prefJson.has_key("hue") && prefJson.get("hue").is_number()) {
-                        double val = SafeNumber(prefJson.get("hue"), 999.0);
-                        if (std::isfinite(val) && MediaPlaybackPreferences::IsValidHue((int)std::round(val)))
-                            prefs.hue = (int)std::round(val);
-                    }
-                    if (prefJson.has_key("audioBalance") && prefJson.get("audioBalance").is_number()) {
-                        double b = SafeNumber(prefJson.get("audioBalance"), 999.0);
-                        if (MediaPlaybackPreferences::IsValidAudioBalance(b)) { prefs.audioBalance = b; }
-                    }
-                    if (prefJson.has_key("audioChannelMap") && prefJson.get("audioChannelMap").is_string()) {
-                        std::string rawMap = prefJson.get("audioChannelMap").as_string();
-                        std::string normMap = AudioConfig::NormalizeAudioChannelMap(rawMap);
-                        if (MediaPlaybackPreferences::IsValidAudioChannelMap(normMap)) { prefs.audioChannelMap = normMap; }
-                    }
-                    {
-                        JsonValue sparse = prefJson;
-                        static constexpr const char* kKnownPrefKeys[] = {
-                            "playbackSpeed", "aspectRatio", "audioTrackId", "audioTrackTitle",
-                            "audioTrackLang", "subtitleTrackId", "subtitleTrackTitle", "subtitleTrackLang",
-                            "audioDelayMs", "subDelayMs", "subtitlesVisible", "videoRotate",
-                            "brightness", "contrast", "saturation", "gamma", "hue", "audioBalance", "audioChannelMap"
-                        };
-                        StripKnownKeys(sparse, kKnownPrefKeys, sizeof(kKnownPrefKeys) / sizeof(kKnownPrefKeys[0]));
-                        prefs.extraFields = std::move(sparse);
-                    }
-                    item.preferences = std::move(prefs);
-                }
-                if (json.has_key("bookmarks") && json.get("bookmarks").is_array()) {
-                    const auto& bmarks = json.get("bookmarks").as_array();
-                    for (const auto& bJson : bmarks) {
-                        if (!bJson.is_object()) continue;
-                        MediaBookmark bm;
-                        bm.id = bJson.get("id").as_string();
-                        bm.timeSec = SafeNumber(bJson.get("timeSec"), -1.0);
-                        if (!MediaBookmark::IsValidTime(bm.timeSec)) continue;
-                        bm.label = bJson.get("label").as_wstring();
-                        if (bm.label.length() > MediaBookmark::kMaxLabelLength)
-                            bm.label = bm.label.substr(0, MediaBookmark::kMaxLabelLength);
-                        bm.createdTimestamp = SafeTime(bJson.get("createdTimestamp"));
-                        if (bm.id.empty())
-                            bm.id = GenerateId(item.filePath + L"_" + std::to_wstring(bm.timeSec) + L"_" + std::to_wstring(bm.createdTimestamp));
-                        {
-                            JsonValue sparse = bJson;
-                            static constexpr const char* kKnownBookmarkKeys[] = { "id", "timeSec", "label", "createdTimestamp" };
-                            StripKnownKeys(sparse, kKnownBookmarkKeys, sizeof(kKnownBookmarkKeys) / sizeof(kKnownBookmarkKeys[0]));
-                            bm.extraFields = std::move(sparse);
-                        }
-                        item.bookmarks.push_back(std::move(bm));
-                    }
-                    std::stable_sort(item.bookmarks.begin(), item.bookmarks.end(), MediaBookmark::Compare);
-                }
-                if (json.has_key("overrides") && json.get("overrides").is_object()) {
-                    const auto& ovJson = json.get("overrides");
-                    MediaMetadataOverrides ov;
-                    if (ovJson.has_key("title") && ovJson.get("title").is_string()) {
-                        std::wstring t = ovJson.get("title").as_wstring();
-                        if (MediaMetadataOverrides::IsValidTitle(t)) ov.title = t;
-                    }
-                    if (ovJson.has_key("year") && ovJson.get("year").is_number()) {
-                        int y = ovJson.get("year").as_int();
-                        if (MediaMetadataOverrides::IsValidYear(y)) ov.year = y;
-                    }
-                    if (ovJson.has_key("series") && ovJson.get("series").is_string()) {
-                        std::wstring s = ovJson.get("series").as_wstring();
-                        if (MediaMetadataOverrides::IsValidSeries(s)) ov.series = s;
-                    }
-                    {
-                        JsonValue sparse = ovJson;
-                        static constexpr const char* kKnownOverrideKeys[] = { "title", "year", "series" };
-                        StripKnownKeys(sparse, kKnownOverrideKeys, sizeof(kKnownOverrideKeys) / sizeof(kKnownOverrideKeys[0]));
-                        ov.extraFields = std::move(sparse);
-                    }
-                    if (ov.HasAnyOverride()) { item.overrides = std::move(ov); }
-                } else if (json.has_key("metadataOverrides") && json.get("metadataOverrides").is_object()) {
-                    const auto& ovJson = json.get("metadataOverrides");
-                    MediaMetadataOverrides ov;
-                    if (ovJson.has_key("title") && ovJson.get("title").is_string()) {
-                        std::wstring t = ovJson.get("title").as_wstring();
-                        if (MediaMetadataOverrides::IsValidTitle(t)) ov.title = t;
-                    }
-                    if (ovJson.has_key("year") && ovJson.get("year").is_number()) {
-                        int y = ovJson.get("year").as_int();
-                        if (MediaMetadataOverrides::IsValidYear(y)) ov.year = y;
-                    }
-                    if (ovJson.has_key("series") && ovJson.get("series").is_string()) {
-                        std::wstring s = ovJson.get("series").as_wstring();
-                        if (MediaMetadataOverrides::IsValidSeries(s)) ov.series = s;
-                    }
-                    {
-                        JsonValue sparse = ovJson;
-                        static constexpr const char* kKnownOverrideKeys[] = { "title", "year", "series" };
-                        StripKnownKeys(sparse, kKnownOverrideKeys, sizeof(kKnownOverrideKeys) / sizeof(kKnownOverrideKeys[0]));
-                        ov.extraFields = std::move(sparse);
-                    }
-                    if (ov.HasAnyOverride()) { item.overrides = std::move(ov); }
-                }
-                const std::wstring pathKey = NormalizePathKey(item.filePath);
-                if (pathKey.empty() || pathToIndex.find(pathKey) != pathToIndex.end()) continue;
-                if (item.id.empty()) item.id = GenerateId(item.filePath);
-                {
-                    static constexpr const char* kKnownMediaKeys[] = {
-                        "id", "filePath", "title", "durationSec", "lastPosSec", "status",
-                        "fileSizeBytes", "lastWatchedTimestamp", "addedTimestamp",
-                        "videoWidth", "videoHeight", "fileIndex", "volumeSerialNumber",
-                        "metadataFileWriteTime", "metadataProbeFailed", "probeAttemptCount", "lastProbeAttemptTimestamp",
-                        "preferences", "bookmarks", "overrides", "metadataOverrides"
-                    };
-                    StripKnownKeys(json, kKnownMediaKeys, sizeof(kKnownMediaKeys) / sizeof(kKnownMediaKeys[0]));
-                    item.extraFields = std::move(json);
-                }
-                const size_t index = mediaItems.size();
-                mediaItems.push_back(std::move(item));
-                pathToIndex.emplace(pathKey, index);
-                idToIndex[mediaItems.back().id] = index;
-            }
+            for (auto& json : items->as_array()) LoadMediaRecord(json, rootDir);
         }
+    }
+    libRoot = JsonValue();
+    if (streamed && mediaItems.capacity() != mediaItems.size()) {
+        // Invalid/duplicate records and growth can leave unused slots. Release
+        // them after the input text is gone, preserving the steady-state budget.
+        std::vector<MediaItem> compact;
+        compact.reserve(mediaItems.size());
+        for (auto& item : mediaItems) compact.push_back(std::move(item));
+        mediaItems.swap(compact);
     }
     // 2. Playlists
     if (loadResult.playlistsStatus.is_ok()) {
@@ -2442,6 +2507,7 @@ StorageStatus MediaLibrary::LoadFromRoot(const std::wstring& requestedRootDir, c
         playlist.createdTimestamp = GetCurrentTimestampSec();
         playlists.push_back(std::move(playlist));
     }
+    plRoot = JsonValue();
     // 3. History
     if (loadResult.historyStatus.is_ok()) {
         int ver = histRoot.is_object() ? histRoot.get("schemaVersion").as_int(1) : 1;

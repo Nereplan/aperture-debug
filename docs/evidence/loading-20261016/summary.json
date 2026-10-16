@@ -1,0 +1,98 @@
+{
+  "initial-baseline.csv": {
+    "500": {
+      "ms": 29.599,
+      "allocations": 22662.0,
+      "allocated_bytes": 2600803.0,
+      "peak_live_cpp_bytes": 1201859.0,
+      "retained_cpp_bytes": 529388.0
+    },
+    "25000": {
+      "ms": 238.261,
+      "allocations": 1008775.0,
+      "allocated_bytes": 116121051.0,
+      "peak_live_cpp_bytes": 55853970.0,
+      "retained_cpp_bytes": 25588179.0
+    }
+  },
+  "verified-optimized.csv": {
+    "500": {
+      "ms": 30.214,
+      "allocations": 20714.0,
+      "allocated_bytes": 2314200.0,
+      "peak_live_cpp_bytes": 608731.0,
+      "retained_cpp_bytes": 529388.0
+    },
+    "25000": {
+      "ms": 257.123,
+      "allocations": 929115.0,
+      "allocated_bytes": 104560905.0,
+      "peak_live_cpp_bytes": 30507580.0,
+      "retained_cpp_bytes": 25588179.0
+    }
+  },
+  "baseline-reverse.csv": {
+    "500": {
+      "ms": 6.42,
+      "allocations": 22662.0,
+      "allocated_bytes": 2600931.0,
+      "peak_live_cpp_bytes": 1201923.0,
+      "retained_cpp_bytes": 529404.0
+    },
+    "25000": {
+      "ms": 224.93,
+      "allocations": 1008775.0,
+      "allocated_bytes": 116121179.0,
+      "peak_live_cpp_bytes": 55854034.0,
+      "retained_cpp_bytes": 25588195.0
+    }
+  },
+  "optimized-reverse.csv": {
+    "500": {
+      "ms": 6.428,
+      "allocations": 20714.0,
+      "allocated_bytes": 2332552.0,
+      "peak_live_cpp_bytes": 609147.0,
+      "retained_cpp_bytes": 529532.0
+    },
+    "25000": {
+      "ms": 207.247,
+      "allocations": 929115.0,
+      "allocated_bytes": 105363257.0,
+      "peak_live_cpp_bytes": 30507916.0,
+      "retained_cpp_bytes": 25588323.0
+    }
+  },
+  "baseline-forward.csv": {
+    "500": {
+      "ms": 7.228,
+      "allocations": 22662.0,
+      "allocated_bytes": 2600931.0,
+      "peak_live_cpp_bytes": 1201923.0,
+      "retained_cpp_bytes": 529404.0
+    },
+    "25000": {
+      "ms": 276.527,
+      "allocations": 1008775.0,
+      "allocated_bytes": 116121179.0,
+      "peak_live_cpp_bytes": 55854034.0,
+      "retained_cpp_bytes": 25588195.0
+    }
+  },
+  "optimized-forward.csv": {
+    "500": {
+      "ms": 6.76,
+      "allocations": 20714.0,
+      "allocated_bytes": 2332552.0,
+      "peak_live_cpp_bytes": 609147.0,
+      "retained_cpp_bytes": 529532.0
+    },
+    "25000": {
+      "ms": 227.509,
+      "allocations": 929115.0,
+      "allocated_bytes": 105363257.0,
+      "peak_live_cpp_bytes": 30507916.0,
+      "retained_cpp_bytes": 25588323.0
+    }
+  }
+}
