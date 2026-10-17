@@ -141,16 +141,18 @@ int wmain(int argc, wchar_t** argv) {
     const DWORD target = wcstoul(argv[1], nullptr, 10);
     const int seconds = _wtoi(argv[2]);
     if (!target || seconds < 1 || seconds > 300) return 2;
+    const bool stateOnly = argc == 5 && wcscmp(argv[4], L"--state-only") == 0;
+    const bool cpuOnly = argc == 5 && wcscmp(argv[4], L"--cpu-only") == 0;
+    if (argc == 5 && !stateOnly && !cpuOnly) return 2;
     Handle process{OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ | SYNCHRONIZE, FALSE, target)};
     if (!process.h) return 3;
     SymSetOptions(SYMOPT_UNDNAME | SYMOPT_DEFERRED_LOADS | SYMOPT_FAIL_CRITICAL_ERRORS | SYMOPT_NO_PROMPTS);
     if (!SymInitializeW(process.h, argc >= 4 ? argv[3] : nullptr, TRUE)) return 4;
-    const bool stateOnly = argc == 5 && wcscmp(argv[4], L"--state-only") == 0;
     AppProbe appProbe;
     const bool appFieldsAvailable = appProbe.Init(process.h);
     std::vector<std::string> snapshots;
     double nextSnapshot = 0;
-    std::map<DWORD, ThreadData> threads;
+    std::map<std::pair<DWORD, uint64_t>, ThreadData> threads;
     const auto started = std::chrono::steady_clock::now();
     while (std::chrono::steady_clock::now() - started < std::chrono::seconds(seconds)) {
         if (WaitForSingleObject(process.h, 0) == WAIT_OBJECT_0) break;
@@ -161,11 +163,12 @@ int wmain(int argc, wchar_t** argv) {
         THREADENTRY32 entry{}; entry.dwSize = sizeof(entry);
         if (Thread32First(snapshot.h, &entry)) do {
             if (entry.th32OwnerProcessID != target) continue;
-            Handle thread{OpenThread(THREAD_QUERY_INFORMATION | THREAD_GET_CONTEXT | THREAD_SUSPEND_RESUME, FALSE, entry.th32ThreadID)};
+            const DWORD access = THREAD_QUERY_INFORMATION | (cpuOnly ? 0 : THREAD_GET_CONTEXT | THREAD_SUSPEND_RESUME);
+            Handle thread{OpenThread(access, FALSE, entry.th32ThreadID)};
             if (!thread.h) continue;
             FILETIME create{}, exit{}, kernel{}, user{};
             if (!GetThreadTimes(thread.h, &create, &exit, &kernel, &user)) continue;
-            auto& record = threads[entry.th32ThreadID];
+            auto& record = threads[{entry.th32ThreadID, Ticks(create)}];
             const uint64_t ticks = Ticks(kernel) + Ticks(user);
             if (!record.seen) { record.seen = true; record.first = ticks; record.previous = ticks; }
             if (record.name.empty()) {
@@ -174,22 +177,23 @@ int wmain(int argc, wchar_t** argv) {
             }
             const uint64_t delta = ticks >= record.previous ? ticks - record.previous : 0;
             record.last = ticks;
-            if (delta) record.sampledStacks[Stack(process.h, thread.h)] += delta;
+            if (delta && !cpuOnly) record.sampledStacks[Stack(process.h, thread.h)] += delta;
             record.previous = ticks;
         } while (Thread32Next(snapshot.h, &entry));
         std::this_thread::sleep_for(std::chrono::milliseconds(30));
     }
+    const double observedSeconds = std::chrono::duration<double>(std::chrono::steady_clock::now() - started).count();
     SymCleanup(process.h);
     std::cout << "{\"pid\":" << target << ",\"durationSeconds\":"
-        << std::chrono::duration<double>(std::chrono::steady_clock::now() - started).count()
-        << ",\"method\":\"Per-thread CPU deltas; stacks sampled after active intervals, not an exact CPU sample attribution. Diagnostic suspension adds overhead. State-only mode reads PDB-located fields without suspension.\",\"stateOnly\":" << (stateOnly ? "true" : "false")
+        << observedSeconds
+        << ",\"method\":\"Per-thread CPU deltas. Stack mode suspends threads after active intervals, not exact attribution. CPU-only and state-only modes do not suspend. Diagnostic runs remain separate from rankings.\",\"stateOnly\":" << (stateOnly ? "true" : "false") << ",\"cpuOnly\":" << (cpuOnly ? "true" : "false")
         << ",\"appFieldsAvailable\":" << (appFieldsAvailable ? "true" : "false") << ",\"snapshots\":[";
     for (size_t i = 0; i < snapshots.size(); ++i) { if (i) std::cout << ','; std::cout << snapshots[i]; }
     std::cout << "],\"threads\":[";
     bool first = true;
     for (const auto& item : threads) {
         if (!first) std::cout << ','; first = false;
-        std::cout << "{\"id\":" << item.first << ",\"name\":" << Json(item.second.name)
+        std::cout << "{\"id\":" << item.first.first << ",\"createdTicks\":" << item.first.second << ",\"name\":" << Json(item.second.name)
             << ",\"cpuSeconds\":" << static_cast<double>(item.second.last - item.second.first) / 1e7 << ",\"stacks\":[";
         std::vector<std::pair<std::string, uint64_t>> stacks(item.second.sampledStacks.begin(), item.second.sampledStacks.end());
         std::sort(stacks.begin(), stacks.end(), [](const auto& a, const auto& b) { return a.second > b.second; });

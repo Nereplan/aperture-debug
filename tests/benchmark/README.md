@@ -132,3 +132,12 @@ and absence of steady frame drops must pass. A screenshot is a quality check at
 one timestamp, not verification of every presented frame. To exercise functional
 playback with a chosen hardware pool, use `tests/libmpv/run_tests.ps1
 -HardwareDecoderThreads 1`; software decoder threading remains independent.
+
+
+`run_player_profile.ps1 -CpuOnly` records per-thread CPU without suspension.
+`-Player VLC` supports the same diagnostic with a fresh VLC portable profile;
+`-StateOnly` and `-ReturnToHubWithProbe` are Aperture-only checks. Both players use
+1280×800 outer windows by default, with `-WindowWidth` and `-WindowHeight`
+overrides. These are diagnostic counters, not an output-equivalence or ranking
+protocol. The comparison and profiler share `PlayerBenchmarkWindow.cs` for
+owned-PID window discovery, resizing and cleanup.

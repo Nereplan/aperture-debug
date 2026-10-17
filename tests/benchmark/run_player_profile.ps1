@@ -7,10 +7,17 @@ param(
     [string]$Symbols = '',
     [ValidateRange(5,120)][int]$Seconds = 30,
     [switch]$StateOnly,
-    [string]$ReturnToHubWithProbe = ''
+    [string]$ReturnToHubWithProbe = '',
+    [ValidateSet('Aperture','VLC')][string]$Player = 'Aperture',
+    [switch]$CpuOnly,
+    [ValidateRange(320,3840)][int]$WindowWidth = 1280,
+    [ValidateRange(240,2160)][int]$WindowHeight = 800
 )
 $ErrorActionPreference = 'Stop'
-if (Get-Process -Name Aperture -ErrorAction SilentlyContinue) { throw 'Existing Aperture process; nothing was closed.' }
+if ($CpuOnly -and $StateOnly) { throw 'Choose one sampler mode.' }
+if ($Player -eq 'VLC' -and ($StateOnly -or $ReturnToHubWithProbe)) { throw 'App-field and return-to-hub checks require Aperture.' }
+if (Get-Process -Name $Player -ErrorAction SilentlyContinue) { throw "Existing $Player process; nothing was closed." }
+if (-not ('PlayerBenchmarkWindow' -as [type])) { Add-Type -Path (Join-Path $PSScriptRoot 'PlayerBenchmarkWindow.cs') }
 $runtimeSource = (Resolve-Path -LiteralPath $Runtime).Path
 $mediaPath = (Resolve-Path -LiteralPath $Media).Path
 $samplerPath = (Resolve-Path -LiteralPath $Sampler).Path
@@ -23,8 +30,14 @@ $stage = Join-Path $profileRoot 'runtime'
 New-Item -ItemType Directory -Path $stage | Out-Null
 Get-ChildItem -LiteralPath $runtimeSource -Force | Where-Object Name -NotIn @('data','cache','diagnostics') | Copy-Item -Destination $stage -Recurse
 foreach ($name in @('data','cache')) { New-Item -ItemType Directory -Path (Join-Path $stage $name) | Out-Null }
-$info = [Diagnostics.ProcessStartInfo]::new((Join-Path $stage 'Aperture.exe'))
+$exeName = if ($Player -eq 'VLC') { 'vlc.exe' } else { 'Aperture.exe' }
+$info = [Diagnostics.ProcessStartInfo]::new((Join-Path $stage $exeName))
 $info.WorkingDirectory = $stage; $info.UseShellExecute = $false; $info.CreateNoWindow = $true
+if ($Player -eq 'VLC') {
+    New-Item -ItemType Directory -Path (Join-Path $stage 'portable') -Force | Out-Null
+    foreach ($arg in @('--intf=qt','--ignore-config','--no-one-instance','--no-one-instance-when-started-from-file',
+        '--no-media-library','--no-metadata-network-access','--no-qt-privacy-ask','--no-qt-updates-notif','--no-qt-recentplay','--qt-continue=0','--no-qt-video-autoresize')) { $info.ArgumentList.Add($arg) }
+}
 $info.ArgumentList.Add($mediaPath)
 foreach ($name in @('TEMP','TMP','APPDATA','LOCALAPPDATA')) {
     $path = Join-Path $profileRoot $name
@@ -33,7 +46,17 @@ foreach ($name in @('TEMP','TMP','APPDATA','LOCALAPPDATA')) {
 }
 $process = [Diagnostics.Process]::Start($info)
 try {
-    Start-Sleep -Seconds 10
+    $windowDeadline = [DateTime]::UtcNow.AddSeconds(15)
+    do {
+        if ($process.HasExited) { throw "$Player exited before showing a window." }
+        $window = [PlayerBenchmarkWindow]::Find([uint32]$process.Id)
+        if ($window -ne [IntPtr]::Zero) { break }
+        Start-Sleep -Milliseconds 20
+    } while ([DateTime]::UtcNow -lt $windowDeadline)
+    if ($window -eq [IntPtr]::Zero -or -not [PlayerBenchmarkWindow]::Resize($window,[uint32]$process.Id,$WindowWidth,$WindowHeight)) { throw 'Owned-window setup failed.' }
+    Start-Sleep -Seconds 8
+    if (-not [PlayerBenchmarkWindow]::Resize($window,[uint32]$process.Id,$WindowWidth,$WindowHeight)) { throw 'Post-load resize failed.' }
+    Start-Sleep -Seconds 2
     $process.Refresh()
     if ($process.HasExited) { throw 'Aperture exited during settling.' }
     $sampleInfo = [Diagnostics.ProcessStartInfo]::new($samplerPath)
@@ -41,6 +64,7 @@ try {
     $sampleInfo.RedirectStandardOutput=$true; $sampleInfo.RedirectStandardError=$true
     foreach ($arg in @([string]$process.Id,[string]$Seconds,$Symbols)) { $sampleInfo.ArgumentList.Add($arg) }
     if ($StateOnly) { $sampleInfo.ArgumentList.Add('--state-only') }
+    if ($CpuOnly) { $sampleInfo.ArgumentList.Add('--cpu-only') }
     $samplerProcess = [Diagnostics.Process]::Start($sampleInfo)
     try {
         $stdout = $samplerProcess.StandardOutput.ReadToEndAsync(); $stderr=$samplerProcess.StandardError.ReadToEndAsync()
@@ -77,12 +101,14 @@ try {
         } finally { $hubProbe.Dispose() }
     }
     $process.Refresh()
+    if ($process.HasExited) { throw "$Player exited before the diagnostic completed." }
     [ordered]@{createdUtc=[DateTime]::UtcNow.ToString('o');pid=$process.Id;runtime=$runtimeSource;
         executableSha256=(Get-FileHash -LiteralPath $info.FileName -Algorithm SHA256).Hash;
         mediaSha256=(Get-FileHash -LiteralPath $mediaPath -Algorithm SHA256).Hash;
         privateBytes=$process.PrivateMemorySize64;workingSetBytes=$process.WorkingSet64;
-        stateOnly=[bool]$StateOnly;returnedToHub=[bool]$ReturnToHubWithProbe;
-        note='Diagnostic run; stack mode suspends threads, state-only mode reads PDB fields. Neither is a ranking run.'} |
+        player=$Player;windowDimensions=[PlayerBenchmarkWindow]::Size($window);arguments=[string[]]@($info.ArgumentList);
+        stateOnly=[bool]$StateOnly;cpuOnly=[bool]$CpuOnly;returnedToHub=[bool]$ReturnToHubWithProbe;
+        note='Diagnostic run with a fresh portable profile and equal outer window dimensions. Stack mode suspends; CPU/state modes do not. Not a ranking or output-equivalence check.'} |
         ConvertTo-Json | Set-Content -LiteralPath (Join-Path $profileRoot 'profile-identity.json') -Encoding utf8
     Write-Output "Profile saved: $profileRoot"
 } finally {
