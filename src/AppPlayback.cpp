@@ -56,7 +56,9 @@ bool App::EnsurePlayerInitialized() {
     if (playerInitialized) return true;
     if (playerInitAttempted) return false;
     playerInitAttempted = true;
+    Diagnostics::RecordStartupMilestone(L"player-initialize-start", false);
     if (!player.Initialize(hWnd, hVideoWnd)) { playerInitialized = false; return false; }
+    Diagnostics::RecordStartupMilestone(L"player-initialize-ready", false);
     // All callbacks and persisted mpv properties are installed exactly once,
     // immediately after the first successful main-player initialization.
     player.SetVolume(settings.volume);
@@ -638,6 +640,7 @@ void App::ShowPlaybackRecovery(const std::wstring& path, const std::wstring& exp
 
 
 void App::OpenAndPlayMedia(const std::wstring& filePath, double startPosSec, bool preserveQueue) {
+    ++playbackRequestGeneration;
     if (closeRequested) return;
     if (renderer.AreDeviceWorkersRunning()) {
         pendingPlaybackOpen = PendingPlaybackOpen{filePath, startPosSec, preserveQueue};
@@ -666,6 +669,7 @@ void App::OpenAndPlayMedia(const std::wstring& filePath, double startPosSec, boo
         ShowPlaybackRecovery(resolvedPath, Loc::Tr("ux.playback_engine"), retryQueue, retryIndex, startPosSec);
         return;
     }
+    startupPlayerPrepared = false;
     abLoopA = -1.0;
     abLoopB = -1.0;
     player.ClearABLoop();
@@ -678,7 +682,9 @@ void App::OpenAndPlayMedia(const std::wstring& filePath, double startPosSec, boo
         // Metadata uses the owned isolated worker even when a batch is already
         // active; its completion chains any newly eligible records.
         item = library.AddOrUpdateMedia(resolvedPath, false);
-        if (item) ScheduleMetadataBackfill();
+        // The active import already owns this probe. Starting backfill here
+        // would open a second source reader while the first video warms up.
+        if (item && !(importJobActive && importEarlyPlaybackPath == resolvedPath)) ScheduleMetadataBackfill();
     }
     if (playbackSession.CanPersistLocalTarget(resolvedPath)) {
         PromoteLastWatchedMedia();
@@ -817,6 +823,7 @@ void App::OpenAndPlayMedia(const std::wstring& filePath, double startPosSec, boo
 
 
 void App::ClosePlayer() {
+    ++playbackRequestGeneration;
     StopAutoscroll(true);
     playerKeyboardFocusId = 0;
     isKeyboardNavActive = false;

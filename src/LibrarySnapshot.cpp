@@ -9,11 +9,13 @@ bool IsCanceled(const LibrarySnapshotBuildOptions& options) {
 
 void Mark(const LibrarySnapshotBuildOptions& options, const wchar_t* phase) { if (options.milestone) options.milestone(phase); }
 
-LibraryQueryOptions InitialQueryOptions(LibraryGroupMode groupMode) {
+LibraryQueryOptions InitialQueryOptions(const LibrarySnapshotBuildOptions& input) {
     LibraryQueryOptions options;
-    options.groupMode = groupMode;
-    options.sortField = LibrarySortField::Title;
-    options.sortDirection = SortDirection::Ascending;
+    options.groupMode = input.groupMode;
+    options.sortField = input.sortField == LibrarySortField::Manual && input.groupMode != LibraryGroupMode::Flat
+        ? LibrarySortField::Title : input.sortField;
+    options.sortDirection = input.sortDirection;
+    if (input.groupMode == LibraryGroupMode::Folder) options.customFolderOrder = input.customFolderOrder;
     return options;
 }
 
@@ -36,8 +38,8 @@ std::unique_ptr<LibraryStartupSnapshot> BuildLibraryStartupSnapshot( const Libra
     Mark(options, L"library-indexes-ready");
     if (IsCanceled(options)) { snapshot->canceled = true; return snapshot; }
     LibraryQueryEngine queryEngine;
-    const LibraryQueryOptions queryOptions = InitialQueryOptions(options.groupMode);
-    queryEngine.QueryView(snapshot->library, queryOptions);
+    snapshot->initialQuery = InitialQueryOptions(options);
+    queryEngine.QueryView(snapshot->library, snapshot->initialQuery);
     snapshot->initialProjection = queryEngine.ReleaseCachedView();
     Mark(options, L"library-projection-ready");
     if (IsCanceled(options)) {

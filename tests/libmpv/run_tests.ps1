@@ -6,9 +6,11 @@
 param(
     [string]$DllPath = '',
     [string]$MediaDir = '',
-    [ValidateSet('all','functional','version','basics','controls','subs','screenshot','swrender','audio','hdr','bench','network','startup','url')]
+    [ValidateSet('all','functional','version','basics','controls','subs','screenshot','swrender','audio','hdr','bench','network','startup','url','resources')]
     [string]$Scenario = 'functional',
     [string]$Url = '',
+    [ValidateSet('gpu','gpu-next')][string]$Renderer = 'gpu',
+    [string]$ResourceFile = '',
     [ValidateSet('yes','no')][string]$TlsVerify = 'yes',
     [string]$Python = 'python',
     [int]$TimeoutSeconds = 300
@@ -62,6 +64,11 @@ try {
     $arguments = '--dll "{0}" --media "{1}" --scenario {2} --port {3}' -f $stagedDll,$MediaDir,$Scenario,$port
     if ($Url) { $arguments += ' --url "' + $Url + '"' }
     $arguments += ' --tls-verify ' + $TlsVerify
+    $arguments += ' --renderer ' + $Renderer
+    if ($ResourceFile) {
+        if ($ResourceFile -match '["\r\n/\\]' -or $ResourceFile -eq '..') { throw 'ResourceFile must be a filename.' }
+        $arguments += ' --resource-file "' + $ResourceFile + '"'
+    }
     $out = Join-Path $run 'playback.txt'
     $err = Join-Path $run 'playback-error.txt'
     $process = Start-Process -FilePath $exe -ArgumentList $arguments -WorkingDirectory $run -WindowStyle Hidden -PassThru -RedirectStandardOutput $out -RedirectStandardError $err

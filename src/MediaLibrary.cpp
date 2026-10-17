@@ -2589,11 +2589,11 @@ std::shared_ptr<const MediaLibrarySaveSnapshot> MediaLibrary::CaptureSaveSnapsho
         std::shared_ptr<const MediaItem> old;
         if (media && i < media->size()) old = (*media)[i];
         const bool samePosition = old && SameMedia(item, *old);
-        if (samePosition && !sizeChanged && !changedMedia) continue;
+        if (samePosition) continue;
         if (!changedMedia) {
-            changedMedia = std::make_shared<MediaLibrarySaveSnapshot::MediaRecords>();
+            changedMedia = media ? std::make_shared<MediaLibrarySaveSnapshot::MediaRecords>(*media)
+                                : std::make_shared<MediaLibrarySaveSnapshot::MediaRecords>();
             changedMedia->reserve(mediaItems.size());
-            if (media) changedMedia->insert(changedMedia->end(), media->begin(), media->begin() + i);
         }
         // Only membership/reordering needs the temporary ID lookup. Ordinary
         // progress updates share every unaffected record without normalization.
@@ -2606,13 +2606,15 @@ std::shared_ptr<const MediaLibrarySaveSnapshot> MediaLibrary::CaptureSaveSnapsho
             const auto it = previousById.find(item.id);
             if (it != previousById.end()) old = (*media)[it->second];
         }
-        changedMedia->push_back(samePosition || (old && SameMedia(item, *old)) ? old : std::make_shared<const MediaItem>(item));
+        auto record = old && SameMedia(item, *old) ? old : std::make_shared<const MediaItem>(item);
+        if (i < changedMedia->size()) changedMedia->Replace(i, std::move(record));
+        else changedMedia->push_back(std::move(record));
     }
     if (!changedMedia && sizeChanged) {
-        changedMedia = std::make_shared<MediaLibrarySaveSnapshot::MediaRecords>();
-        if (media) changedMedia->assign(media->begin(), media->begin() + mediaItems.size());
+        changedMedia = media ? std::make_shared<MediaLibrarySaveSnapshot::MediaRecords>(*media)
+                            : std::make_shared<MediaLibrarySaveSnapshot::MediaRecords>();
     }
-    if (changedMedia) media = changedMedia;
+    if (changedMedia) { changedMedia->Truncate(mediaItems.size()); media = changedMedia; }
     const auto capturedPlaylists = CaptureSequence(playlists, previous ? previous->playlists : nullptr, SamePlaylist);
     const auto capturedHistory = CaptureSequence(history, previous ? previous->history : nullptr, SameHistory);
     const auto capturedFolders = CaptureSequence(watchedFolders, previous ? previous->watchedFolders : nullptr,
@@ -2630,6 +2632,8 @@ std::shared_ptr<const MediaLibrarySaveSnapshot> MediaLibrary::CaptureSaveSnapsho
     static std::atomic<uint64_t> nextSeriesId{0};
     auto snapshot = std::make_shared<MediaLibrarySaveSnapshot>();
     snapshot->rootDir = portableRoot;
+    snapshot->capturedCatalogRevision = revisions.catalog;
+    snapshot->capturedPlaylistRevision = revisions.playlists;
     snapshot->seriesId = previous ? previous->seriesId : nextSeriesId.fetch_add(1) + 1;
     snapshot->libraryGeneration = previous ? previous->libraryGeneration + (media != previous->mediaItems) : 1;
     snapshot->playlistsGeneration = previous ? previous->playlistsGeneration + (capturedPlaylists != previous->playlists) : 1;
@@ -2640,6 +2644,33 @@ std::shared_ptr<const MediaLibrarySaveSnapshot> MediaLibrary::CaptureSaveSnapsho
     snapshot->history = capturedHistory;
     snapshot->watchedFolders = capturedFolders;
     snapshot->loadResult = lastLoadResult;
+    return snapshot;
+}
+
+std::shared_ptr<const MediaLibrarySaveSnapshot> MediaLibrary::CapturePlaybackSnapshot(
+    const std::shared_ptr<const MediaLibrarySaveSnapshot>& previous, const std::wstring& path) const {
+    using namespace LibrarySaveComparison;
+    if (!previous || previous->rootDir != portableRoot || !previous->mediaItems ||
+        previous->mediaItems->size() != mediaItems.size() || previous->capturedCatalogRevision != revisions.catalog ||
+        previous->capturedPlaylistRevision != revisions.playlists || !previous->watchedFolders ||
+        *previous->watchedFolders != watchedFolders) return CaptureSaveSnapshot(previous);
+    const auto* item = FindByPath(path);
+    if (!item) return CaptureSaveSnapshot(previous);
+    const auto index = static_cast<size_t>(item - mediaItems.data());
+    const auto& old = (*previous->mediaItems)[index];
+    if (!old || old->id != item->id || old->filePath != item->filePath) return CaptureSaveSnapshot(previous);
+    const bool changed = !SameMedia(*item, *old);
+    const auto capturedHistory = CaptureSequence(history, previous->history, SameHistory);
+    if (!changed && capturedHistory == previous->history) return previous;
+    auto snapshot = std::make_shared<MediaLibrarySaveSnapshot>(*previous);
+    if (changed) {
+        auto records = std::make_shared<MediaLibrarySaveSnapshot::MediaRecords>(*previous->mediaItems);
+        records->Replace(index, std::make_shared<const MediaItem>(*item));
+        snapshot->mediaItems = std::move(records);
+        ++snapshot->libraryGeneration;
+    }
+    snapshot->history = capturedHistory;
+    snapshot->historyGeneration += capturedHistory != previous->history;
     return snapshot;
 }
 

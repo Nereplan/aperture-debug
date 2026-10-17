@@ -17,6 +17,7 @@ namespace Aperture {
 struct LibraryStartupSnapshot {
     uint64_t generation = 0;
     LibraryGroupMode groupMode = LibraryGroupMode::Flat;
+    LibraryQueryOptions initialQuery;
     MediaLibrary library;
     LibraryViewProjection initialProjection;
     StorageStatus loadStatus = StorageStatus::Ok();
@@ -27,6 +28,9 @@ struct LibraryStartupSnapshot {
 struct LibrarySnapshotBuildOptions {
     uint64_t generation = 0;
     LibraryGroupMode groupMode = LibraryGroupMode::Flat;
+    LibrarySortField sortField = LibrarySortField::Title;
+    SortDirection sortDirection = SortDirection::Ascending;
+    std::shared_ptr<const std::vector<std::wstring>> customFolderOrder;
     std::wstring rootDir;
     bool preservesExisting = false;
     uint64_t baseLibraryVersion = 0;

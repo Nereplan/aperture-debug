@@ -3,6 +3,7 @@
 #include "Common.h"
 #include "Settings.h"
 #include "MediaLibrary.h"
+#include "ImportPlaybackIntent.h"
 #include "Subtitles.h"
 #include "FolderWatcher.h"
 #include "WatchReconcile.h"
@@ -139,7 +140,9 @@ private:
     std::shared_ptr<const MediaLibrarySaveSnapshot> submittedLibrarySnapshot, libraryReloadBaseline;
     uint64_t closeSaveSerial = 0;
     bool librarySaveRequested = false;
+    std::wstring playbackSavePath;
     MediaLibrarySaveResult QueueLibrarySave();
+    void QueuePlaybackProgressSave();
     MediaLibrarySaveResult SubmitPendingLibrarySave(bool force = true);
     bool PumpLibrarySaveResults();
     bool ReportLibrarySaveResult(const MediaLibrarySaveResult& result);
@@ -180,6 +183,7 @@ private:
     bool oleInitialized = false, appInitialized = false;
     // libmpv is intentionally lazy: the hub can render and respond without loading the main playback handle or the preview render context.
     bool playerInitAttempted = false, playerInitialized = false, previewInitAttempted = false, previewInitialized = false;
+    bool startupPlayerPrepared = false;
     // Preview initialization is driven by hover intent; there is no idle
     // prewarm state to maintain alongside the lazy initialization flags.
     // Dedicated mpv instances that extract hub thumbnails for files the Windows shell cannot thumbnail. Run parallel to hover/seekbar work.
@@ -274,6 +278,9 @@ private:
     std::atomic<size_t> importProcessed{ 0 };
     std::atomic<size_t> importTotal{ 0 };
     bool importJobActive = false, importLaunchFirst = false, importCancelHovered = false;
+    ImportPlaybackIntent importFirstPlayback;
+    std::wstring importEarlyPlaybackPath;
+    uint64_t playbackRequestGeneration = 0, importPlaybackGeneration = 0, importStartPlaybackGeneration = 0;
     std::string importTargetPlaylistId;
     std::wstring importCreatedPlaylistName;
     MediaImportResult importResult;
@@ -312,6 +319,7 @@ private:
     std::deque<PendingDropImport> pendingDropImports;
     void PumpPendingDropImports();
     void FinishImportJob();
+    void PumpImportFirstPlayback();
     void CancelImportJob();
     void ScheduleMetadataBackfill(const MetadataBackfillOptions& options = {});
     void StartNextMetadataBackfillBatch();
@@ -346,6 +354,8 @@ private:
     // Progress-push throttle: library progress is only updated when the
     // player's position, duration, or file actually changed meaningfully.
     float progressSaveTimerSec = 0.0f;
+    uint64_t hiddenLibrarySinceMs = 0;
+    bool hiddenLibraryCachesTrimmed = false;
     bool isCursorHidden = false, isScrubbing = false;
     double scrubTargetTime = -1.0, lastMpvSeekTime = -1.0;
     std::chrono::steady_clock::time_point lastMpvSeekTimestamp{};

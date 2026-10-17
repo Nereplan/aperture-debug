@@ -187,6 +187,33 @@ bool Renderer::TrimThumbnailCache(uint64_t incomingBytes) {
     return thumbnailCacheBytes + incomingBytes <= kThumbnailCacheByteLimit;
 }
 
+void Renderer::TrimHiddenLibraryCaches(uint64_t retainedThumbnailBytes) {
+    deferredThumbnailUploads = false;
+    thumbnailNotificationPosted.store(false, std::memory_order_release);
+    // The hub is hidden. Keep its most recently used images for a quick return,
+    // but do not protect the old viewport indefinitely while a movie plays.
+    while (!thumbnailLru.empty() && thumbnailCacheBytes > retainedThumbnailBytes) {
+        auto entry = thumbnailCache.find(thumbnailLru.back());
+        if (entry != thumbnailCache.end()) {
+            thumbnailCacheBytes -= std::min(thumbnailCacheBytes, entry->second.approximateBytes);
+            thumbnailByBitmap.erase(entry->second.bitmap.Get());
+            thumbnailCache.erase(entry);
+        }
+        thumbnailLru.pop_back();
+    }
+    ClearShadowCache();
+    // Completed software thumbnails can otherwise remain queued for the whole
+    // movie. In-flight results become stale; workers and disk entries survive.
+    {
+        std::lock_guard<std::mutex> lock(thumbnailMutex);
+        ++thumbnailGeneration;
+        pendingThumbnailRequests.clear();
+        inFlightThumbnailKeys.clear();
+        completedThumbnailResults.clear();
+        completedThumbnailBytes = 0;
+    }
+}
+
 void Renderer::ReleaseDeviceResources() {
     if (d2dContext) { d2dContext->SetTarget(nullptr); }
     d2dTargetBitmap.Reset();

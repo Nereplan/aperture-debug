@@ -189,9 +189,10 @@ bool MpvPlayer::Initialize(HWND hParentWnd, HWND hChildVideoWnd) {
     // Avoid keeping an extra frame ahead of the display clock. This is a local-file player and the lower latency is preferable to
     // another full-resolution frame in the presentation pipeline.
     SetMpvOption(mpv, "video-latency-hacks", "yes");
-    // Keep the presentation queue bounded. Display timing is sufficient for a local file and avoids retaining extra full-resolution
-    // frames solely to let the audio clock lead video.
-    SetMpvOption(mpv, "video-sync", "display-vdrop", MpvOptionRequirement::Optional, "audio");
+    // Audio-clock pacing submits at the video's cadence instead of refreshing
+    // the renderer at every display tick. Keep decoder/cache limits independent
+    // of pacing; display-vdrop was substantially more expensive on high-Hz displays.
+    SetMpvOption(mpv, "video-sync", "audio");
     SetMpvOption(mpv, "framedrop", "vo");
     SetMpvOption(mpv, "video-timing-offset", "0");
     SetMpvOption(mpv, "vd-lavc-dr", "yes");

@@ -42,11 +42,14 @@ void App::StartImportJob(const std::vector<std::wstring>& paths, const std::stri
     importTargetPlaylistId = targetPlaylistId;
     importCreatedPlaylistName = createdPlaylistName;
     importLaunchFirst = launchFirst;
+    importStartPlaybackGeneration = playbackRequestGeneration;
+    importFirstPlayback.Reset(importStartPlaybackGeneration, launchFirst);
+    importEarlyPlaybackPath.clear();
     importCancelHovered = false;
     importJobActive = true;
     try {
     auto metadataSnapshot = MediaImportProbeCache::Capture(library);
-    importWorker = std::thread([this, paths, metadataSnapshot = std::move(metadataSnapshot)]() mutable {
+    importWorker = std::thread([this, paths, launchFirst, metadataSnapshot = std::move(metadataSnapshot)]() mutable {
         struct CompletionGuard {
             std::atomic<bool>& done;
             ~CompletionGuard() { done.store(true, std::memory_order_release); }
@@ -59,9 +62,15 @@ void App::StartImportJob(const std::vector<std::wstring>& paths, const std::stri
             // The worker owns this snapshot exclusively. It never reads or writes App::library, and persistence is deferred to the UI
             // thread after the worker has joined.
             MediaLibrary staged;
-            auto progress = [this](size_t processed, size_t total, const std::wstring&) {
+            bool firstPublished = false;
+            auto progress = [this, launchFirst, &firstPublished](size_t processed, size_t total, const std::wstring& path) {
                 importProcessed.store(processed, std::memory_order_release);
                 importTotal.store(total, std::memory_order_release);
+                // A nonempty path with a known total is from the sorted,
+                // accepted probe pass, not unordered directory discovery.
+                if (launchFirst && !firstPublished && total && !path.empty()) {
+                    firstPublished = importFirstPlayback.Offer(processed, total, path);
+                }
                 return !importCancelRequested.load(std::memory_order_acquire);
             };
             MediaImportResult result = staged.ImportPaths(paths, progress, false, ImportConflictPolicy::KeepExisting, &probeCache);
@@ -107,6 +116,17 @@ void App::PumpPendingDropImports() {
     PendingDropImport next = std::move(pendingDropImports.front());
     pendingDropImports.pop_front();
     StartImportJob(next.paths, next.targetPlaylistId, false, next.createdPlaylistName);
+}
+
+void App::PumpImportFirstPlayback() {
+    if (!importJobActive || !importLaunchFirst || !libraryReady || closeRequested ||
+        importDone.load(std::memory_order_acquire) || importCancelRequested.load(std::memory_order_acquire)) return;
+    std::wstring path = importFirstPlayback.Take(playbackRequestGeneration);
+    if (path.empty()) return;
+    importEarlyPlaybackPath = path;
+    importLaunchFirst = false;
+    OpenAndPlayMedia(path, 0.0, false);
+    importPlaybackGeneration = playbackRequestGeneration;
 }
 
 
@@ -157,11 +177,23 @@ void App::FinishImportJob() {
         ShowOSD(imported > 0 ? IconType::FolderPlaylist : IconType::VolumeMuted, summary);
     }
     if (!shutdownComplete && (merged.addedCount || merged.updatedCount)) ScheduleMetadataBackfill();
-    if (importLaunchFirst && !acceptedPaths.empty()) {
+    if (importLaunchFirst && importStartPlaybackGeneration == playbackRequestGeneration && !acceptedPaths.empty()) {
         if (acceptedPaths.size() > 1) {
             playbackSession.OpenQueue(acceptedPaths, 0);
         } else { playbackSession.OpenDirect(acceptedPaths.front(), 0.0); }
         OpenAndPlayMedia(acceptedPaths.front(), 0.0, acceptedPaths.size() > 1);
+    } else if (!canceled && !failed && !importEarlyPlaybackPath.empty() && acceptedPaths.size() > 1 &&
+               importPlaybackGeneration == playbackRequestGeneration &&
+               playbackSession.IsOpen() && !playbackSession.HasQueue() && player.GetCurrentFilePath() == importEarlyPlaybackPath &&
+               acceptedPaths.front() == importEarlyPlaybackPath) {
+        // Extend the queue without seeking/reopening the first movie. A user
+        // who changed or closed playback while importing keeps that choice.
+        playbackSession.SetQueue(acceptedPaths, 0);
+    }
+    importEarlyPlaybackPath.clear();
+    if (startupPlayerPrepared && !pendingPlaybackOpen) {
+        // A failed/canceled import may never consume the startup engine.
+        player.Shutdown(); playerInitialized = false; playerInitAttempted = false; startupPlayerPrepared = false;
     }
     // Chained folder drops (one playlist per folder) start their next import only after the previous merge lands.
     PumpPendingDropImports();
@@ -170,6 +202,7 @@ void App::FinishImportJob() {
 
 
 void App::CancelImportJob() {
+    importFirstPlayback.Cancel();
     if (!importJobActive && !importWorker.joinable()) return;
     importCancelRequested.store(true, std::memory_order_release);
     if (importWorker.joinable()) {

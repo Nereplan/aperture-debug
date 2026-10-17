@@ -157,4 +157,35 @@ TEST_CASE(RendererCache, BitmapIndexTracksInjectionEvictionAndClear) {
     RendererCacheTestAccess::Clear(r);
     TEST_ASSERT_EQ(RendererCacheTestAccess::IndexedCount(r), size_t(0));
 }
+TEST_CASE(RendererCache, HiddenLibraryRetainsRecentBitmapsAndDropsQueuedPixels) {
+    struct Window {
+        HWND handle = CreateWindowExW(0, L"STATIC", L"Hidden cache test", WS_POPUP,
+            0, 0, 320, 240, nullptr, nullptr, GetModuleHandleW(nullptr), nullptr);
+        ~Window() { if (handle) DestroyWindow(handle); }
+    } window;
+    TEST_ASSERT(window.handle != nullptr);
+    Renderer renderer; TEST_ASSERT(renderer.Initialize(window.handle));
+    renderer.BeginDraw(); TEST_ASSERT(renderer.GetD2DContext() != nullptr);
+    std::vector<uint8_t> pixels(320 * 180 * 4, 255);
+    for (int i = 0; i < 8; ++i)
+        TEST_ASSERT(renderer.InjectThumbnail(std::to_wstring(i), 320, 180, pixels));
+    // Touch an old bitmap to make it part of the set retained for return.
+    auto recent = renderer.GetOrCreateVideoThumbnail(L"0"); TEST_ASSERT(recent != nullptr);
+    TEST_ASSERT(renderer.EndDraw(false));
+    RendererCacheTestAccess::Complete(renderer, 100, 1024 * 1024);
+    renderer.TrimHiddenLibraryCaches(2 * pixels.size());
+    TEST_ASSERT_EQ(RendererCacheTestAccess::Bytes(renderer), 2 * pixels.size());
+    TEST_ASSERT_EQ(RendererCacheTestAccess::IndexedCount(renderer), size_t(2));
+    TEST_ASSERT(RendererCacheTestAccess::Indexed(renderer, recent.Get()));
+    TEST_ASSERT_EQ(RendererCacheTestAccess::CompletedBytes(renderer), uint64_t(0));
+    TEST_ASSERT(!RendererCacheTestAccess::InFlight(renderer, 100));
+    // Returning to the hub can admit images again without resetting the device.
+    TEST_ASSERT(renderer.InjectThumbnail(L"1", 320, 180, pixels));
+    TEST_ASSERT_EQ(RendererCacheTestAccess::IndexedCount(renderer), size_t(3));
+    renderer.TrimHiddenLibraryCaches(0);
+    TEST_ASSERT_EQ(RendererCacheTestAccess::Bytes(renderer), uint64_t(0));
+    TEST_ASSERT_EQ(RendererCacheTestAccess::IndexedCount(renderer), size_t(0));
+}
+
+
 }

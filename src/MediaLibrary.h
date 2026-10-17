@@ -3,6 +3,7 @@
 #include "Common.h"
 #include "Json.h"
 #include "HeapOptional.h"
+#include "SnapshotRecords.h"
 #include <string>
 #include <string_view>
 #include "FolderWatcher.h"
@@ -357,12 +358,13 @@ using LibraryLoadMilestoneCallback = std::function<void(const wchar_t* phase)>;
 
 // Published values never refer to mutable library data. Unchanged media records
 // are shared across generations; a progress update copies one record and the
-// small pointer vector, rather than every owning title/path/preferences value.
+// affected pointer block and block directory, rather than every owning value.
 struct MediaLibrarySaveSnapshot {
-    using MediaRecords = std::vector<std::shared_ptr<const MediaItem>>;
+    using MediaRecords = SnapshotRecords<MediaItem>;
     std::wstring rootDir;
     uint64_t seriesId = 0, libraryGeneration = 0, playlistsGeneration = 0;
     uint64_t historyGeneration = 0, watchedFoldersGeneration = 0;
+    uint64_t capturedCatalogRevision = 0, capturedPlaylistRevision = 0;
     std::shared_ptr<const MediaRecords> mediaItems;
     std::shared_ptr<const std::vector<Playlist>> playlists;
     std::shared_ptr<const std::vector<HistoryRecord>> history;
@@ -433,6 +435,10 @@ public:
     // edits too; dirty detection must not depend on callers remembering Notify.
     std::shared_ptr<const MediaLibrarySaveSnapshot> CaptureSaveSnapshot(
         const std::shared_ptr<const MediaLibrarySaveSnapshot>& previous = {}) const;
+    // Specialized autosave: the caller guarantees only this playback record
+    // and history changed. General edits and close/reload still use full capture.
+    std::shared_ptr<const MediaLibrarySaveSnapshot> CapturePlaybackSnapshot(
+        const std::shared_ptr<const MediaLibrarySaveSnapshot>& previous, const std::wstring& path) const;
     MediaLibraryLoadResult GetLastLoadResult() const { return lastLoadResult; }
     // Playback can defer probing a new record to the existing metadata worker.
     MediaItem* AddOrUpdateMedia(const std::wstring& path, bool probeMetadata = true);

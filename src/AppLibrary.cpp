@@ -45,13 +45,21 @@ void App::StartLibraryLoad(LibraryGroupMode groupMode, bool preserveExisting) {
     }
     libraryReloadBaseline = preserveExisting ? submittedLibrarySnapshot : nullptr;
     const uint64_t saveBarrier = librarySaveWorker.RequestCheckpoint();
+    const auto initialSort = librarySortField;
+    const auto initialDirection = librarySortDirection;
+    const auto initialFolderOrder = groupMode == LibraryGroupMode::Folder
+        ? std::make_shared<const std::vector<std::wstring>>(settings.customFolderOrder) : nullptr;
     try {
-    libraryLoadWorker = std::thread([this, generation, groupMode, rootDir, notifyWindow, preserveExisting, baseVersion, saveBarrier]() {
+    libraryLoadWorker = std::thread([this, generation, groupMode, rootDir, notifyWindow, preserveExisting, baseVersion, saveBarrier,
+                                   initialSort, initialDirection, initialFolderOrder]() {
         struct Completion { std::atomic<bool>& done; ~Completion() { done.store(true, std::memory_order_release); } } completion{libraryLoadWorkerDone};
         if (!librarySaveWorker.WaitUntil(saveBarrier, &libraryLoadCancelRequested)) return;
         LibrarySnapshotBuildOptions options;
         options.generation = generation;
         options.groupMode = groupMode;
+        options.sortField = initialSort;
+        options.sortDirection = initialDirection;
+        options.customFolderOrder = initialFolderOrder;
         options.rootDir = rootDir;
         options.preservesExisting = preserveExisting;
         options.baseLibraryVersion = baseVersion;
@@ -97,6 +105,9 @@ void App::FinishInitialLibraryLoad(uint64_t generation) {
         libraryLoadFailed = !snapshot->preservesExisting;
         libraryReady = snapshot->preservesExisting && libraryReady;
         deferredLibraryCommands.clear();
+        if (startupPlayerPrepared) {
+            player.Shutdown(); playerInitialized = false; playerInitAttempted = false; startupPlayerPrepared = false;
+        }
         ReportStorageFailure(snapshot->loadStatus, L"media library startup");
         InvalidateRect(hWnd, nullptr, FALSE);
         return;
@@ -110,12 +121,8 @@ void App::FinishInitialLibraryLoad(uint64_t generation) {
     submittedLibrarySnapshot.reset(); libraryReloadBaseline.reset(); librarySaveRequested = false;
     library.SetSaveRequestHandler([this] { return QueueLibrarySave(); });
     InvalidateLibraryDerivedState();
-    LibraryQueryOptions initialOptions;
-    initialOptions.groupMode = snapshot->groupMode;
-    initialOptions.sortField = LibrarySortField::Title;
-    initialOptions.sortDirection = SortDirection::Ascending;
     const bool matchingMode = snapshot->groupMode == libraryGroupMode;
-    if (matchingMode) m_mediaQueryEngine.PrimeViewCache(library, initialOptions, std::move(snapshot->initialProjection));
+    if (matchingMode) m_mediaQueryEngine.PrimeViewCache(library, snapshot->initialQuery, std::move(snapshot->initialProjection));
     InvalidateMediaLayoutCache();
     rowAnimStates.clear();
     selectedMediaIndices.clear();
@@ -137,6 +144,11 @@ void App::FinishInitialLibraryLoad(uint64_t generation) {
     std::deque<PlaybackCommandLineOptions> commands;
     commands.swap(deferredLibraryCommands);
     for (const auto& command : commands) ExecuteCommandLineOptions(command);
+    if (startupPlayerPrepared && !pendingPlaybackOpen && !importJobActive && deferredLibraryCommands.empty()) {
+        // Every explicit target was rejected before opening. Return the hub to
+        // its lazy footprint instead of retaining an unused prepared engine.
+        player.Shutdown(); playerInitialized = false; playerInitAttempted = false; startupPlayerPrepared = false;
+    }
     MarkAccessibilityDirty();
     InvalidateRect(hWnd, nullptr, FALSE);
 }

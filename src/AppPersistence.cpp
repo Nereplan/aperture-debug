@@ -33,6 +33,7 @@ bool App::SaveSettings() {
 
 
 MediaLibrarySaveResult App::QueueLibrarySave() {
+    playbackSavePath.clear(); // A general edit always supersedes a progress hint.
     // Coalesce edit bursts before deep comparison/capture, not just before
     // disk writes. Close and refresh barriers force the current state through.
     if (libraryReady) {
@@ -42,17 +43,31 @@ MediaLibrarySaveResult App::QueueLibrarySave() {
     return {};
 }
 
+void App::QueuePlaybackProgressSave() {
+    if (!libraryReady) return;
+    const auto path = player.GetCurrentFilePath();
+    if (librarySaveRequested) {
+        if (playbackSavePath != path) playbackSavePath.clear();
+        return;
+    }
+    QueueLibrarySave();
+    playbackSavePath = path;
+}
+
 MediaLibrarySaveResult App::SubmitPendingLibrarySave(bool force) {
     MediaLibrarySaveResult result;
     if (!libraryReady || !librarySaveRequested) return result;
     if (!force && !librarySaveCaptureSchedule.IsDue(GetTickCount64())) return result;
     try {
-        submittedLibrarySnapshot = library.CaptureSaveSnapshot(submittedLibrarySnapshot);
+        submittedLibrarySnapshot = !force && !playbackSavePath.empty()
+            ? library.CapturePlaybackSnapshot(submittedLibrarySnapshot, playbackSavePath)
+            : library.CaptureSaveSnapshot(submittedLibrarySnapshot);
         if (!librarySaveWorker.Submit(submittedLibrarySnapshot)) throw std::runtime_error("Save worker is stopped");
         // Capture has already debounced this batch. Do not stack a second
         // worker delay, particularly at shutdown/reload synchronization points.
         librarySaveWorker.RequestFlush();
         librarySaveRequested = false;
+        playbackSavePath.clear();
         librarySaveCaptureSchedule.Complete();
     } catch (...) {
         librarySaveCaptureSchedule.Request(GetTickCount64(), true);

@@ -1266,6 +1266,27 @@ bool App::Update(float dt) {
     // A graphics driver can hold the process loader lock while it initializes.
     // Avoid UI-thread joins or mpv export binding until that worker has finished.
     if (renderer.AreDeviceWorkersRunning()) return needsRedraw;
+    const bool libraryHidden = playbackSession.IsOpen() || IsIconic(hWnd);
+    if (libraryHidden) {
+        const auto nowMs = GetTickCount64();
+        if (!hiddenLibrarySinceMs) hiddenLibrarySinceMs = nowMs;
+        if (!hiddenLibraryCachesTrimmed && nowMs - hiddenLibrarySinceMs >= 15000) {
+            renderer.TrimHiddenLibraryCaches();
+            hiddenLibraryCachesTrimmed = true;
+        }
+    } else {
+        hiddenLibrarySinceMs = 0;
+        hiddenLibraryCachesTrimmed = false;
+    }
+    // An explicit open is already committed to allocating the player. Once
+    // the shell has painted, overlap its cold initialization with the catalog
+    // worker; ordinary hub launches remain lazy. Preferences/queue publication
+    // still wait for the authoritative library and stay on the owning thread.
+    if (firstGpuShellRecorded && !libraryReady && !playerInitAttempted &&
+        std::any_of(deferredLibraryCommands.begin(), deferredLibraryCommands.end(),
+            [](const auto& command) { return !command.mediaTargets.empty(); })) {
+        startupPlayerPrepared = EnsurePlayerInitialized();
+    }
     if (libraryReady && !deferredLibraryCommands.empty()) {
         std::deque<PlaybackCommandLineOptions> commands; commands.swap(deferredLibraryCommands);
         for (const auto& command : commands) ExecuteCommandLineOptions(command);
@@ -1301,6 +1322,7 @@ bool App::Update(float dt) {
     if (IsAutoscrolling()) { UpdateAutoscroll(dt); needsRedraw = true; }
     if (UpdateTouchGestures(dt, NowSeconds())) { needsRedraw = true; }
     if (importJobActive) {
+        PumpImportFirstPlayback();
         if (importDone.load(std::memory_order_acquire)) { FinishImportJob(); }
         needsRedraw = true;
     }
@@ -1354,7 +1376,7 @@ bool App::Update(float dt) {
                 isSettingsFlyoutOpen || isContextMenuOpen, subtitles.GetActiveTrack() ?
                 subtitles.GetCurrentSubtitleText(player.GetCurrentTime(), settings.subDelayMs) : std::wstring{})) needsRedraw = true;
             progressSaveTimerSec += dt;
-            if (progressSaveTimerSec >= 5.0f) { progressSaveTimerSec = 0.0f; SaveLibrary(); SaveSession(); }
+            if (progressSaveTimerSec >= 5.0f) { progressSaveTimerSec = 0.0f; QueuePlaybackProgressSave(); SaveSession(); }
         }
         // Jump ahead chapter detection
         if (player.IsLoaded()) {

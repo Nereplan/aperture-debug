@@ -3,7 +3,9 @@ param(
     [string]$SourceDirectory = "",
     [string]$OutputDirectory = "",
     [switch]$KeepBuild,
-    [switch]$CaptureOnly
+    [switch]$CompileOnly,
+    [switch]$CaptureOnly,
+    [switch]$PlaybackCapture
 )
 $ErrorActionPreference = "Stop"
 if (-not $SourceDirectory) { $SourceDirectory = Join-Path $PSScriptRoot "..\..\src" }
@@ -31,8 +33,13 @@ $argsList += @('mfreadwrite.lib', 'oleaut32.lib', 'propsys.lib')
 Set-Content -LiteralPath $response -Value $argsList -Encoding UTF8
 & cmd.exe /d /c "`"$vcvars`" && cl.exe @`"$response`""
 if ($LASTEXITCODE -ne 0) { throw "Save benchmark compilation failed." }
+if ($CompileOnly) {
+    Copy-Item -LiteralPath $exe -Destination (Join-Path $output 'save-benchmark.exe') -Force
+    return
+}
 $benchmarkArgs = @()
 if ($CaptureOnly) { $benchmarkArgs += "--capture-only" }
+if ($PlaybackCapture) { $benchmarkArgs += "--playback-capture" }
 $rows = & $exe @benchmarkArgs
 if ($LASTEXITCODE -ne 0) { throw "Save benchmark failed." }
 $rows | Set-Content -LiteralPath (Join-Path $output 'results.csv') -Encoding UTF8

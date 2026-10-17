@@ -11,6 +11,16 @@ static void Check(bool condition) {
     if (!condition) throw std::runtime_error("Save benchmark verification failed");
 }
 
+template<class Library, class Snapshot>
+auto PlaybackCapture(Library& library, const Snapshot& previous, int)
+    -> decltype(library.CapturePlaybackSnapshot(previous, library.mediaItems.front().filePath)) {
+    return library.CapturePlaybackSnapshot(previous, library.mediaItems.front().filePath);
+}
+template<class Library, class Snapshot>
+auto PlaybackCapture(Library& library, const Snapshot& previous, long) {
+    return library.CaptureSaveSnapshot(previous); // Same harness builds against the baseline.
+}
+
 int main(int argc, char** argv) {
     using namespace Aperture;
     // The runner places this executable in a unique temporary directory.
@@ -19,7 +29,11 @@ int main(int argc, char** argv) {
     if (GetProcessAffinityMask(GetCurrentProcess(), &processMask, &systemMask))
         SetProcessAffinityMask(GetCurrentProcess(), processMask & (~processMask + 1));
     std::puts("items,mode,sample,ms,allocations,allocated_bytes,peak_live_cpp_bytes,json_bytes,content_hash");
-    const bool captureOnly = argc > 1 && std::string(argv[1]) == "--capture-only";
+    bool captureOnly = false, playbackCapture = false;
+    for (int i = 1; i < argc; ++i) {
+        captureOnly |= std::string(argv[i]) == "--capture-only";
+        playbackCapture |= std::string(argv[i]) == "--playback-capture";
+    }
     const std::vector<int> modes = captureOnly ? std::vector<int>{4, 5} : std::vector<int>{0, 1, 2, 3};
     for (int count : {500, 25000}) for (int mode : modes) {
         for (int sample = 0; sample < 8; ++sample) {
@@ -65,6 +79,9 @@ int main(int argc, char** argv) {
             library.watchedFolders.push_back(L"C:\\Benchmark\\Series");
             // 0 first save; 1 unchanged save; 2 periodic progress; 3 load.
             if (mode != 0) Check(library.Save().is_ok());
+            // Production loads publish a built path index. Preparing it outside
+            // the capture isolates capture cost equally in both versions.
+            if (playbackCapture) library.RebuildPathIndex();
             auto baseline = mode >= 4 ? library.CaptureSaveSnapshot() : std::shared_ptr<const MediaLibrarySaveSnapshot>{};
             if (mode == 2 || mode == 5) library.mediaItems.front().lastPosSec = 42.125;
             stats = {};
@@ -72,7 +89,7 @@ int main(int argc, char** argv) {
             const auto start = std::chrono::steady_clock::now();
             MediaLibrarySaveResult saved;
             std::shared_ptr<const MediaLibrarySaveSnapshot> captured;
-            if (mode >= 4) captured = library.CaptureSaveSnapshot(baseline);
+            if (mode >= 4) captured = playbackCapture ? PlaybackCapture(library, baseline, 0) : library.CaptureSaveSnapshot(baseline);
             else saved = library.Save();
             const auto end = std::chrono::steady_clock::now();
             measuring = false;

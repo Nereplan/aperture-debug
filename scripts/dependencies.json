@@ -99,8 +99,8 @@
       "abiVersion": "2.0.0.0",
       "clientApiVersion": "2.5",
       "architecture": "x64",
-      "size": 25240576,
-      "sha256": "0fc93966f7e0ff741a60f356152ccb5080e0c538b3d5dcffe001f344222d2efe",
+      "size": 24531456,
+      "sha256": "11b37889e5103a1370509dcf5e5a9c389325c497552f522f45049dfba19f5c52",
       "license": "GPL-2.0-or-later / LGPL-2.1-or-later",
       "source": "https://github.com/mpv-player/mpv/tree/v0.41.0",
       "description": "Size-optimized D3D11/WASAPI playback engine; hash-pinned rebuild recipe: scripts/build_lean_libmpv.ps1."

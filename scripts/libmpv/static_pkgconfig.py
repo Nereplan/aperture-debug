@@ -6,7 +6,9 @@ prefix = sys.argv[1]
 pcdir = pathlib.Path(prefix) / "lib/pkgconfig"
 pcdir.mkdir(parents=True, exist_ok=True)
 shader_libs = "-lshaderc_combined -lglslang -lglslang-default-resource-limits -lSPIRV-Tools-opt -lSPIRV-Tools"
-cross_libs = "-lspirv-cross-c -lspirv-cross-hlsl -lspirv-cross-glsl -lspirv-cross-msl -lspirv-cross-cpp -lspirv-cross-reflect -lspirv-cross-core -lspirv-cross-util"
+# D3D11 translates SPIR-V to HLSL. GLSL is the HLSL compiler's base class;
+# Metal, C++, reflection and CLI utilities are not runtime dependencies.
+cross_libs = "-lspirv-cross-c -lspirv-cross-hlsl -lspirv-cross-glsl -lspirv-cross-core"
 for name, version, libs, include in [
     ("shaderc", "2026.3.1", shader_libs, "include"),
     ("shaderc_combined", "2026.3.1", shader_libs, "include"),

@@ -153,6 +153,8 @@ public:
     // Inserts freshly extracted pixels (mpv fallback) directly into the memory cache. UI thread only (creates a device bitmap).
     bool InjectThumbnail(const std::wstring& filePath, UINT width, UINT height, const std::vector<uint8_t>& pixels);
     size_t ClearThumbnailCache();
+    // Reclaim hidden hub resources without deleting the portable disk cache.
+    void TrimHiddenLibraryCaches(uint64_t retainedThumbnailBytes = 8ull * 1024 * 1024);
     static constexpr UINT kThumbnailReadyMessage = WM_APP + 0x50;
     void AcknowledgeThumbnailNotification() { thumbnailNotificationPosted.store(false, std::memory_order_release); }
     bool HasDeferredThumbnailUploads() const { return deferredThumbnailUploads; }

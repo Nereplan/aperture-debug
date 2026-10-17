@@ -21,6 +21,10 @@
 #include <chrono>
 #include <algorithm>
 #include <functional>
+#include <psapi.h>
+#include <dxgi1_4.h>
+#pragma comment(lib, "psapi.lib")
+#pragma comment(lib, "dxgi.lib")
 
 extern "C" {
 #include "mpv/client.h"
@@ -67,6 +71,9 @@ static int g_failures = 0;
 static int g_startupIters = 8;
 static int g_passes = 0;
 static std::string g_tlsVerify = "yes";
+static std::string g_renderer = "gpu";
+static std::string g_videoSync = "display-vdrop", g_decoderThreads = "0";
+static bool g_resourceAudio = false;
 static std::vector<std::string> g_failDetails;
 
 static void Report(const char* name, bool pass, const std::string& detail = "") {
@@ -153,7 +160,14 @@ static mpv_handle* NewPlayer(const std::vector<std::pair<std::string, std::strin
     fn_set_property_string(mpv, "osd-level", "0");
     fn_set_property_string(mpv, "ytdl", "no");
     fn_set_property_string(mpv, "tls-verify", g_tlsVerify.c_str());
-    for (auto& kv : opts) fn_set_property_string(mpv, kv.first.c_str(), kv.second.c_str());
+    for (auto& kv : opts) {
+        const auto& value = kv.first == "vo" && kv.second == "gpu" ? g_renderer : kv.second;
+        const int result = fn_set_property_string(mpv, kv.first.c_str(), value.c_str());
+        if (result < 0) {
+            Report(("option " + kv.first + "=" + value).c_str(), false, fn_error_string(result));
+            fn_terminate_destroy(mpv); return nullptr;
+        }
+    }
     if (attachHwnd) {
         char widBuf[32];
         snprintf(widBuf, sizeof(widBuf), "%llu", (unsigned long long)(uintptr_t)attachHwnd);
@@ -665,7 +679,7 @@ static void Scenario_MpvVersion() {
 }
 
 static void Scenario_Startup(const std::string& media, int iters) {
-    const char* testName = "startup latency (loadfile -> first frame)";
+    const char* testName = "startup latency (loadfile -> playback restart)";
     HWND hwnd = CreateTestWindow(320, 180);
     std::vector<std::pair<std::string, std::string>> opts = {
         {"vo", "gpu"}, {"gpu-api", "d3d11"}, {"gpu-context", "d3d11"},
@@ -681,8 +695,8 @@ static void Scenario_Startup(const std::string& media, int iters) {
         auto t0 = std::chrono::steady_clock::now();
         fn_command(mpv, cmd);
         std::string log;
-        // paused playback: wait for the playback-restart event (fires when the
-        // first video frame is presented), not for time-pos progress
+        // Paused playback: measure engine readiness via playback-restart.
+        // This event does not measure compositor presentation or first light.
         bool sawRestart = false;
         auto start = std::chrono::steady_clock::now();
         while (true) {
@@ -712,10 +726,12 @@ static void Scenario_Startup(const std::string& media, int iters) {
     DestroyWindow(hwnd);
 }
 
+#include "playback_resource_probe.h"
+
 int main(int argc, char** argv) {
     std::string dll, media, scenario = "all";
     int benchPort = 8765;
-    std::string url;
+    std::string url, resourceFile;
     for (int i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "--dll") && i + 1 < argc) dll = argv[++i];
         else if (!strcmp(argv[i], "--media") && i + 1 < argc) media = argv[++i];
@@ -724,6 +740,11 @@ int main(int argc, char** argv) {
         else if (!strcmp(argv[i], "--url") && i + 1 < argc) url = argv[++i];
         else if (!strcmp(argv[i], "--tls-verify") && i + 1 < argc) g_tlsVerify = argv[++i];
         else if (!strcmp(argv[i], "--iters") && i + 1 < argc) g_startupIters = atoi(argv[++i]);
+        else if (!strcmp(argv[i], "--renderer") && i + 1 < argc) g_renderer = argv[++i];
+        else if (!strcmp(argv[i], "--resource-file") && i + 1 < argc) resourceFile = argv[++i];
+        else if (!strcmp(argv[i], "--video-sync") && i + 1 < argc) g_videoSync = argv[++i];
+        else if (!strcmp(argv[i], "--decoder-threads") && i + 1 < argc) g_decoderThreads = argv[++i];
+        else if (!strcmp(argv[i], "--with-audio")) g_resourceAudio = true;
     }
     if (dll.empty()) { printf("usage: --dll <path> [--media dir] [--scenario name]\n"); return 2; }
 
@@ -797,6 +818,7 @@ int main(int argc, char** argv) {
         if (all || scenario == "network") Scenario_Network(media, benchPort);
         if (scenario == "url") Scenario_PlaybackBasics("", {url.c_str(), "", "", "network URL"}, false);
         if (scenario == "startup") Scenario_Startup(media, g_startupIters);
+        if (scenario == "resources") Scenario_Resources(media, resourceFile);
 
         if (all || scenario == "bench") {
             FILE* f = fopen("bench_result.txt", "w");
