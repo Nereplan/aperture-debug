@@ -9,7 +9,7 @@ const root = path.resolve(__dirname, '../..');
 const html = fs.readFileSync(path.join(root, 'docs/checkpoints.html'), 'utf8');
 const DATA = JSON.parse(html.match(/<script id="checkpoint-data" type="application\/json">([\s\S]*?)<\/script>/)[1]);
 const script = html.match(/<script id="dashboard-code">([\s\S]*?)<\/script>/)[1];
-const logic = script.slice(script.indexOf('function seriesKey('), script.indexOf('function renderLedger('));
+const logic = script.slice(script.indexOf('function machineCpu('), script.indexOf('function renderLedger('));
 const ordered = [...DATA.checkpoints].sort((a, b) => Date.parse(a.measuredAt) - Date.parse(b.measuredAt));
 const context = {
   DATA, ordered, visible: new Set(ordered.map(c => c.id)),
@@ -51,6 +51,15 @@ test('an old Aperture checkpoint uses the latest recorded VLC reference', () => 
   assert.equal(b.value, 1952.0802);
   assert.equal(b.measuredAt, '2026-10-17');
   assert.equal(b.label, 'VLC 3.0.23');
+});
+
+test('recorded one-processor CPU agrees with roughly one percent total capacity', () => {
+  const r = DATA.checkpoints.find(c => c.id === 'backend-balance-20261017-after').results.find(r => r.metric === 'cpu-core');
+  const b = context.baseline(r);
+  assert(Math.abs(context.machineCpu(r) - 0.9224665486604366) < 1e-9);
+  assert(Math.abs(context.machineCpu(b) - 0.1534810471996232) < 1e-9);
+  assert.equal(context.machineCpu({...r, environment: 'unknown-machine'}), null);
+  assert.equal(context.machineCpu({...r, metric: 'private-mib'}), null);
 });
 
 test('an older VLC version cannot displace the newest version', () => {

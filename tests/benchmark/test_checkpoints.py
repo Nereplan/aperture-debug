@@ -113,6 +113,21 @@ class CheckpointsTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 api.append_bundle(self.data, bundle)
 
+    def test_invalid_cpu_capacity_denominators_rejected(self):
+        for count in [0, -1, True, 24.5]:
+            data = copy.deepcopy(self.data)
+            data["environments"]["ryzen3900x-4070super"]["logicalProcessors"] = count
+            with self.assertRaisesRegex(ValueError, "Invalid logical processor count"):
+                api.validate(data)
+
+    def test_reversed_run_ranges_rejected(self):
+        bundle = self.bundle()
+        r = copy.deepcopy(self.data["checkpoints"][-1]["results"][0])
+        r["runRange"] = {"min": 200, "max": 100, "runs": 3, "scope": "Measured launches"}
+        bundle["checkpoints"][0]["results"] = [r]
+        with self.assertRaisesRegex(ValueError, "Invalid run range"):
+            api.append_bundle(self.data, bundle)
+
     def test_historical_definitions_cannot_be_redefined(self):
         bundle = self.bundle()
         bundle["metrics"] = {"visible-ms": {"label": "Seconds", "unit": "ms", "direction": "higher"}}

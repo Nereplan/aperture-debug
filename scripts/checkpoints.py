@@ -54,6 +54,9 @@ def validate(data):
     for key, env in data["environments"].items():
         require(isinstance(env, dict), f"Environment must be an object: {key}")
         require(bool(env.get("label")) and bool(env.get("details")), f"Missing environment: {key}")
+        if "logicalProcessors" in env:
+            count = env["logicalProcessors"]
+            require(isinstance(count, int) and not isinstance(count, bool) and count > 0, f"Invalid logical processor count: {key}")
     history = data.get("historySeries", {})
     require(isinstance(history, dict), "historySeries must be an object")
     for key, series in history.items():
@@ -76,6 +79,11 @@ def validate(data):
         n = r.get("samples")
         require(n is None or (isinstance(n, int) and not isinstance(n, bool) and n > 0), f"Invalid sample count in {context}")
         require(n is not None or bool(r.get("samplingNote")), f"Unknown samples need samplingNote in {context}")
+        if "runRange" in r:
+            interval = r["runRange"]
+            require(isinstance(interval, dict) and finite(interval.get("min")) and finite(interval.get("max")) and interval["min"] <= interval["max"], f"Invalid run range in {context}")
+            runs = interval.get("runs")
+            require(isinstance(runs, int) and not isinstance(runs, bool) and runs > 0 and bool(interval.get("scope")), f"Incomplete run range in {context}")
         if "measuredAt" in r:
             timestamp(r["measuredAt"])
         if r.get("historySeries"):

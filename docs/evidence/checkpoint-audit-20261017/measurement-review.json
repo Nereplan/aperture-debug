@@ -1,0 +1,479 @@
+{
+  "logicalProcessors": 24,
+  "sources": {
+    "docs/evidence/player-comparison-20261014/comparison.json": "06b48bd89445d45eb4ad30b1ad84df12f82da2feeeee1401027c055b2bcfa755",
+    "docs/evidence/backend-balance-20261017/app-before.json": "2b727b19ce17f08752b8982f11a52f11086410faf3562ba855136c97ebc42ae8",
+    "docs/evidence/backend-balance-20261017/app-after.json": "211693196c27791d7f9aeb6c5731059735d3a4635d984fceb8804b38fe6e29ba"
+  },
+  "sessions": {
+    "oct14": {
+      "Aperture": {
+        "runs": 3,
+        "windowMs": {
+          "median": 111.7763,
+          "min": 105.6631,
+          "max": 119.4509
+        },
+        "cpuOneCorePercent": {
+          "median": 27.57273421771415,
+          "min": 23.244787809479377,
+          "max": 28.05469381511158
+        },
+        "cpuMachineCapacityPercent": {
+          "median": 1.1488639257380895,
+          "min": 0.968532825394974,
+          "max": 1.1689455756296492
+        },
+        "cpuObservationSeconds": {
+          "median": 6.1201764999999995,
+          "min": 6.116962699999998,
+          "max": 6.1264258
+        },
+        "firstSamplePlaybackSeconds": {
+          "median": 10.5,
+          "min": 10.5,
+          "max": 10.5333333333
+        },
+        "lastSamplePlaybackSeconds": {
+          "median": 16.6333333333,
+          "min": 16.6,
+          "max": 16.6333333333
+        },
+        "runtimeMiB": 28.38866901397705,
+        "privateMiB": {
+          "median": 255.8125,
+          "min": 253.72265625,
+          "max": 257.5234375
+        },
+        "workingSetMiB": {
+          "median": 163.9140625,
+          "min": 163.69921875,
+          "max": 166.72265625
+        },
+        "dedicatedGpuMiB": {
+          "median": 173.25,
+          "min": 173.24609375,
+          "max": 173.28515625
+        },
+        "sharedGpuMiB": {
+          "median": 15.61328125,
+          "min": 15.61328125,
+          "max": 15.64453125
+        }
+      },
+      "MPC-HC": {
+        "runs": 3,
+        "windowMs": {
+          "median": 726.0849,
+          "min": 714.6028,
+          "max": 735.1319
+        },
+        "cpuOneCorePercent": {
+          "median": 2.06250328763024,
+          "min": 1.0339358593174925,
+          "max": 2.3290506625534255
+        },
+        "cpuMachineCapacityPercent": {
+          "median": 0.08593763698459334,
+          "min": 0.043080660804895525,
+          "max": 0.09704377760639273
+        },
+        "cpuObservationSeconds": {
+          "median": 6.0448623999999995,
+          "min": 6.037867800000003,
+          "max": 6.060596400000001
+        },
+        "firstSamplePlaybackSeconds": {
+          "median": 9.843,
+          "min": 9.818,
+          "max": 9.854
+        },
+        "lastSamplePlaybackSeconds": {
+          "median": 15.888,
+          "min": 15.878,
+          "max": 15.892
+        },
+        "runtimeMiB": 72.02167510986328,
+        "privateMiB": {
+          "median": 142.3515625,
+          "min": 142.15234375,
+          "max": 142.72265625
+        },
+        "workingSetMiB": {
+          "median": 114.36328125,
+          "min": 114.17578125,
+          "max": 114.54296875
+        },
+        "dedicatedGpuMiB": {
+          "median": 101.8671875,
+          "min": 101.8671875,
+          "max": 101.8671875
+        },
+        "sharedGpuMiB": {
+          "median": 17.359375,
+          "min": 17.359375,
+          "max": 17.359375
+        }
+      },
+      "VLC": {
+        "runs": 3,
+        "windowMs": {
+          "median": 1679.4854,
+          "min": 1676.7616,
+          "max": 1684.0743
+        },
+        "cpuOneCorePercent": {
+          "median": 3.695491966516848,
+          "min": 2.946371420241223,
+          "max": 6.136394426336308
+        },
+        "cpuMachineCapacityPercent": {
+          "median": 0.153978831938202,
+          "min": 0.12276547584338428,
+          "max": 0.25568310109734615
+        },
+        "cpuObservationSeconds": {
+          "median": 6.3637598,
+          "min": 6.342186700000001,
+          "max": 6.365708800000002
+        },
+        "firstSamplePlaybackSeconds": {
+          "median": 7.0,
+          "min": 7.0,
+          "max": 7.0
+        },
+        "lastSamplePlaybackSeconds": {
+          "median": 14.0,
+          "min": 13.0,
+          "max": 14.0
+        },
+        "runtimeMiB": 182.99101448059082,
+        "privateMiB": {
+          "median": 145.04296875,
+          "min": 144.56640625,
+          "max": 146.109375
+        },
+        "workingSetMiB": {
+          "median": 143.03125,
+          "min": 142.80078125,
+          "max": 143.19921875
+        },
+        "dedicatedGpuMiB": {
+          "median": 117.91015625,
+          "min": 117.91015625,
+          "max": 117.91015625
+        },
+        "sharedGpuMiB": {
+          "median": 15.234375,
+          "min": 15.21875,
+          "max": 15.234375
+        }
+      }
+    },
+    "oct17-before": {
+      "Aperture": {
+        "runs": 3,
+        "windowMs": {
+          "median": 123.8871,
+          "min": 116.5397,
+          "max": 138.6047
+        },
+        "cpuOneCorePercent": {
+          "median": 38.58491709254802,
+          "min": 29.93931125018396,
+          "max": 51.28394026004683
+        },
+        "cpuMachineCapacityPercent": {
+          "median": 1.6077048788561674,
+          "min": 1.2474713020909982,
+          "max": 2.136830844168618
+        },
+        "cpuObservationSeconds": {
+          "median": 6.155254900000001,
+          "min": 6.154460799999999,
+          "max": 6.1582913
+        },
+        "firstSamplePlaybackSeconds": {
+          "median": 10.4333333333,
+          "min": 10.4333333333,
+          "max": 10.4666666667
+        },
+        "lastSamplePlaybackSeconds": {
+          "median": 16.6,
+          "min": 16.5666666667,
+          "max": 16.6
+        },
+        "runtimeMiB": 28.51562213897705,
+        "privateMiB": {
+          "median": 256.58203125,
+          "min": 254.32421875,
+          "max": 256.95703125
+        },
+        "workingSetMiB": {
+          "median": 165.16796875,
+          "min": 161.90234375,
+          "max": 165.26953125
+        },
+        "dedicatedGpuMiB": {
+          "median": 173.26171875,
+          "min": 173.25390625,
+          "max": 173.28515625
+        },
+        "sharedGpuMiB": {
+          "median": 15.92578125,
+          "min": 15.61328125,
+          "max": 15.98828125
+        }
+      }
+    },
+    "oct17-after": {
+      "Aperture": {
+        "runs": 3,
+        "windowMs": {
+          "median": 141.5932,
+          "min": 134.4844,
+          "max": 191.0518
+        },
+        "cpuOneCorePercent": {
+          "median": 22.13919716785048,
+          "min": 13.486836839102043,
+          "max": 24.039511101569715
+        },
+        "cpuMachineCapacityPercent": {
+          "median": 0.9224665486604366,
+          "min": 0.5619515349625851,
+          "max": 1.0016462958987382
+        },
+        "cpuObservationSeconds": {
+          "median": 6.140246299999999,
+          "min": 6.1401278,
+          "max": 6.1747304
+        },
+        "firstSamplePlaybackSeconds": {
+          "median": 10.6,
+          "min": 10.4333333333,
+          "max": 10.6333333333
+        },
+        "lastSamplePlaybackSeconds": {
+          "median": 16.7666666667,
+          "min": 16.5666666667,
+          "max": 16.7666666667
+        },
+        "runtimeMiB": 27.84765338897705,
+        "privateMiB": {
+          "median": 251.3125,
+          "min": 250.62109375,
+          "max": 254.49609375
+        },
+        "workingSetMiB": {
+          "median": 163.296875,
+          "min": 160.91015625,
+          "max": 163.9140625
+        },
+        "dedicatedGpuMiB": {
+          "median": 169.4921875,
+          "min": 169.4921875,
+          "max": 169.4921875
+        },
+        "sharedGpuMiB": {
+          "median": 15.67578125,
+          "min": 15.55078125,
+          "max": 15.80078125
+        }
+      },
+      "MPC-HC": {
+        "runs": 3,
+        "windowMs": {
+          "median": 792.922,
+          "min": 773.1582,
+          "max": 810.3888
+        },
+        "cpuOneCorePercent": {
+          "median": 3.3537352156826135,
+          "min": 1.032322257644181,
+          "max": 7.227194789204122
+        },
+        "cpuMachineCapacityPercent": {
+          "median": 0.1397389673201089,
+          "min": 0.04301342740184088,
+          "max": 0.3011331162168384
+        },
+        "cpuObservationSeconds": {
+          "median": 6.054311,
+          "min": 6.053524399999999,
+          "max": 6.056679699999998
+        },
+        "firstSamplePlaybackSeconds": {
+          "median": 9.941,
+          "min": 9.892,
+          "max": 9.948
+        },
+        "lastSamplePlaybackSeconds": {
+          "median": 15.999,
+          "min": 15.938,
+          "max": 16.002
+        },
+        "runtimeMiB": 72.02167510986328,
+        "privateMiB": {
+          "median": 141.8125,
+          "min": 141.61328125,
+          "max": 142.62109375
+        },
+        "workingSetMiB": {
+          "median": 111.87890625,
+          "min": 111.3359375,
+          "max": 113.75390625
+        },
+        "dedicatedGpuMiB": {
+          "median": 101.8671875,
+          "min": 101.8671875,
+          "max": 101.8671875
+        },
+        "sharedGpuMiB": {
+          "median": 17.359375,
+          "min": 17.359375,
+          "max": 17.359375
+        }
+      },
+      "VLC": {
+        "runs": 3,
+        "windowMs": {
+          "median": 1952.0802,
+          "min": 1829.8139,
+          "max": 2019.6779
+        },
+        "cpuOneCorePercent": {
+          "median": 3.6835451327909565,
+          "min": 2.4239252420190454,
+          "max": 5.997285887490074
+        },
+        "cpuMachineCapacityPercent": {
+          "median": 0.1534810471996232,
+          "min": 0.1009968850841269,
+          "max": 0.2498869119787531
+        },
+        "cpuObservationSeconds": {
+          "median": 6.446155900000001,
+          "min": 6.362756300000001,
+          "max": 6.513362999999998
+        },
+        "firstSamplePlaybackSeconds": {
+          "median": 7.0,
+          "min": 7.0,
+          "max": 7.0
+        },
+        "lastSamplePlaybackSeconds": {
+          "median": 13.0,
+          "min": 13.0,
+          "max": 13.0
+        },
+        "runtimeMiB": 182.99101448059082,
+        "privateMiB": {
+          "median": 144.7265625,
+          "min": 144.19921875,
+          "max": 147.59375
+        },
+        "workingSetMiB": {
+          "median": 143.35546875,
+          "min": 140.8359375,
+          "max": 143.72265625
+        },
+        "dedicatedGpuMiB": {
+          "median": 117.90234375,
+          "min": 117.8984375,
+          "max": 117.91015625
+        },
+        "sharedGpuMiB": {
+          "median": 15.328125,
+          "min": 15.171875,
+          "max": 18.28125
+        }
+      }
+    }
+  },
+  "currentCpuComparison": {
+    "ratio": 6.010296160285134,
+    "relativeIncreasePercent": 501.0296160285134,
+    "machineCapacityPercentagePointDifference": 0.7689855014608135
+  },
+  "startupReplay": {
+    "method": "Saved EXE/DLL runtimes; full runtime copied to a fresh path with fresh executable-local data/cache and child temp/profile per launch, matching the original copy policy; one warmup each; rotated/reversed order; warm OS caches. Normal launch with the same no-audio video. C# owned-window predicate matches the legacy harness; local high-resolution waitable timer requests 1 ms, with actual observation bounds recorded. No first-frame, playback-resource, or code-cause claim.",
+    "createdUtc": "2026-10-17T16:17:54.3341892Z",
+    "variants": {
+      "oct14": {
+        "runs": 15,
+        "windowMs": {
+          "median": 110.957,
+          "min": 89.361,
+          "max": 120.6003
+        },
+        "observationIntervalMs": {
+          "median": 2.9950000000000045,
+          "min": 1.9407999999999959,
+          "max": 3.367500000000007
+        }
+      },
+      "oct17-after": {
+        "runs": 15,
+        "windowMs": {
+          "median": 115.1833,
+          "min": 89.7224,
+          "max": 120.9249
+        },
+        "observationIntervalMs": {
+          "median": 2.7169000000000096,
+          "min": 1.7997000000000014,
+          "max": 10.66709999999999
+        }
+      },
+      "oct17-before": {
+        "runs": 15,
+        "windowMs": {
+          "median": 114.2366,
+          "min": 89.2708,
+          "max": 122.2409
+        },
+        "observationIntervalMs": {
+          "median": 3.03070000000001,
+          "min": 1.9887999999999977,
+          "max": 3.852400000000003
+        }
+      }
+    },
+    "pairedComparisons": [
+      {
+        "before": "oct14",
+        "after": "oct17-after",
+        "pairedMedianDifferenceMs": -0.5150000000000006,
+        "bootstrap95PercentileMs": [
+          -3.8541000000000025,
+          0.8571000000000026
+        ],
+        "interpretation": "Within-round resampling, descriptive only; not a code-level causal attribution or hard latency bound."
+      },
+      {
+        "before": "oct17-before",
+        "after": "oct17-after",
+        "pairedMedianDifferenceMs": 0.3686000000000007,
+        "bootstrap95PercentileMs": [
+          -4.317300000000003,
+          1.8088999999999942
+        ],
+        "interpretation": "Within-round resampling, descriptive only; not a code-level causal attribution or hard latency bound."
+      }
+    ]
+  },
+  "findings": [
+    "Legacy first-visible-window observations use requested 20 ms polling and only three measured launches per build. They are not first-frame measurements or proof of a code regression.",
+    "Aperture shows its bootstrap shell before app.Initialize in src/main.cpp. A visible top-level window does not establish equivalent completed playback initialization across players; the large VLC window-opening delta is not a first-video speedup.",
+    "Fresh-copy replay of all three saved EXEs used 15 measured launches each, rotated/reversed order and tighter recorded observation intervals. The historical ~30 ms slowdown did not reproduce consistently. Original EXE hashes match; Oct14 DLL identity has the retained-runtime limitation recorded in replay inputs.",
+    "CPU is cumulative root-process CPU-time delta divided by wall time, percent of one logical processor. Dividing by 24 gives total machine capacity, approximately comparable with a whole-machine utilization display, not an exact promise about every Task Manager counter.",
+    "The +501% ratio is arithmetically correct but corresponds to approximately 0.92% versus 0.15% of total CPU capacity, a difference of approximately 0.77 percentage points.",
+    "Playback comparisons share a generated 60-second 1080p30 H.264/yuv420p clip without audio/subtitles, 1280x800 outer windows, warm OS caches, fresh portable profiles and verified advancing positions. They do not establish equal decoders, video viewport, picture quality or presentation cadence. Root counters exclude harness, DWM, drivers and unexpected child-process work.",
+    "CPU rates span only about six seconds per run after about ten seconds of settling, with three measured runs and control-interface overhead. Short runs and substantial ranges limit precise sustained-use claims. The Oct17 baseline block was not interleaved with the candidate block.",
+    "The same file was not sampled at aligned media positions: final Aperture starts near 10.6 s and ends near 16.77 s, while VLC starts near 7 s and ends near 13 s. Different startup readiness and control overhead produce different observed segments. Advancing positions do not verify equal presented frames, quality or frame drops.",
+    "The display-vdrop to audio-clock change is supported directionally by controlled engine-only tests. Those are separate from the VLC full-app comparison. The no-audio engine series contains a 0.000% CPU sample without saved endpoint CPU ticks; it must remain flagged, not presented as verified zero-cost playback.",
+    "Private bytes, working set and GPU counters are distinct overlapping accounting categories. Recorded private-memory/GPU gaps are local configuration results; no stack/allocation trace identifies the remaining component-level cause. Do not sum them or label them exclusive physical memory.",
+    "Runtime size compares complete supplied distributions, including VLC plugins/languages/tools, against Aperture's supplied payload. It is not feature-matched efficiency, download size or memory usage."
+  ]
+}

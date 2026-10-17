@@ -1,0 +1,522 @@
+{
+  "startedUtc": "2026-10-17T16:16:57.3900304Z",
+  "createdUtc": "2026-10-17T16:17:54.3341892Z",
+  "method": "Saved EXE/DLL runtimes; full runtime copied to a fresh path with fresh executable-local data/cache and child temp/profile per launch, matching the original copy policy; one warmup each; rotated/reversed order; warm OS caches. Normal launch with the same no-audio video. C# owned-window predicate matches the legacy harness; local high-resolution waitable timer requests 1 ms, with actual observation bounds recorded. No first-frame, playback-resource, or code-cause claim.",
+  "inputs": {
+    "media": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-comparison-20261013\\media\\h264-1080p30.mp4",
+    "mediaSha256": "7E171361FA8611A504A439D4452D63FCD2C5DA6DC4307853F9C114FFA1E37DC3",
+    "variants": [
+      {
+        "id": "oct14",
+        "runtime": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-comparison-20261013\\aperture-before",
+        "historicalEvidence": "docs/evidence/player-comparison-20261014/comparison.json",
+        "hashes": {
+          "Aperture.exe": "90f29347f36ead98f8f71980f69fd71c58e5003c24e6c21fdcb5618105616670",
+          "libmpv-2.dll": "0fc93966f7e0ff741a60f356152ccb5080e0c538b3d5dcffe001f344222d2efe"
+        }
+      },
+      {
+        "id": "oct17-before",
+        "runtime": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-balanced-20261016\\baseline-runtime",
+        "historicalEvidence": "docs/evidence/backend-balance-20261017/app-before.json",
+        "hashes": {
+          "Aperture.exe": "31698a73234944df74eb2f3039883cf5004c2132393f99b739bdc39515fa97f5",
+          "libmpv-2.dll": "0fc93966f7e0ff741a60f356152ccb5080e0c538b3d5dcffe001f344222d2efe"
+        }
+      },
+      {
+        "id": "oct17-after",
+        "runtime": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-balanced-20261016\\candidate-runtime",
+        "historicalEvidence": "docs/evidence/backend-balance-20261017/app-after.json",
+        "hashes": {
+          "Aperture.exe": "d1f726360194f31a508a3a891efdda7129cc9ee17fa29086a825c66e0a673e66",
+          "libmpv-2.dll": "11b37889e5103a1370509dcf5e5a9c389325c497552f522f45049dfba19f5c52"
+        }
+      }
+    ],
+    "identityNote": "All EXE hashes verified against original comparison JSON. Oct17 DLLs also match source-identity.json; Oct14 DLL hash is captured from the retained runtime, with no independent DLL hash in the original comparison JSON."
+  },
+  "samplesPerVariant": 15,
+  "results": [
+    {
+      "variant": "oct14",
+      "round": 0,
+      "warmup": true,
+      "lastNotVisibleMs": 141.4762,
+      "firstVisibleMs": 145.137,
+      "observationIntervalMs": 3.6607999999999947,
+      "checks": 33,
+      "exitCode": 0
+    },
+    {
+      "variant": "oct17-after",
+      "round": 0,
+      "warmup": true,
+      "lastNotVisibleMs": 111.9474,
+      "firstVisibleMs": 115.0149,
+      "observationIntervalMs": 3.0674999999999955,
+      "checks": 35,
+      "exitCode": 0
+    },
+    {
+      "variant": "oct17-before",
+      "round": 0,
+      "warmup": true,
+      "lastNotVisibleMs": 120.1234,
+      "firstVisibleMs": 123.4873,
+      "observationIntervalMs": 3.363900000000001,
+      "checks": 35,
+      "exitCode": 0
+    },
+    {
+      "variant": "oct17-after",
+      "round": 1,
+      "warmup": false,
+      "lastNotVisibleMs": 116.4869,
+      "firstVisibleMs": 119.0672,
+      "observationIntervalMs": 2.580299999999994,
+      "checks": 35,
+      "exitCode": 0
+    },
+    {
+      "variant": "oct14",
+      "round": 1,
+      "warmup": false,
+      "lastNotVisibleMs": 116.2721,
+      "firstVisibleMs": 119.5822,
+      "observationIntervalMs": 3.3101000000000056,
+      "checks": 36,
+      "exitCode": 0
+    },
+    {
+      "variant": "oct17-before",
+      "round": 1,
+      "warmup": false,
+      "lastNotVisibleMs": 115.6882,
+      "firstVisibleMs": 118.7189,
+      "observationIntervalMs": 3.03070000000001,
+      "checks": 34,
+      "exitCode": 0
+    },
+    {
+      "variant": "oct17-before",
+      "round": 2,
+      "warmup": false,
+      "lastNotVisibleMs": 113.9547,
+      "firstVisibleMs": 117.241,
+      "observationIntervalMs": 3.286299999999997,
+      "checks": 34,
+      "exitCode": 0
+    },
+    {
+      "variant": "oct14",
+      "round": 2,
+      "warmup": false,
+      "lastNotVisibleMs": 116.0021,
+      "firstVisibleMs": 119.0462,
+      "observationIntervalMs": 3.0441000000000003,
+      "checks": 35,
+      "exitCode": 0
+    },
+    {
+      "variant": "oct17-after",
+      "round": 2,
+      "warmup": false,
+      "lastNotVisibleMs": 114.911,
+      "firstVisibleMs": 117.9474,
+      "observationIntervalMs": 3.0364000000000004,
+      "checks": 36,
+      "exitCode": 0
+    },
+    {
+      "variant": "oct17-before",
+      "round": 3,
+      "warmup": false,
+      "lastNotVisibleMs": 116.2073,
+      "firstVisibleMs": 120.0597,
+      "observationIntervalMs": 3.852400000000003,
+      "checks": 37,
+      "exitCode": 0
+    },
+    {
+      "variant": "oct17-after",
+      "round": 3,
+      "warmup": false,
+      "lastNotVisibleMs": 113.0255,
+      "firstVisibleMs": 115.7424,
+      "observationIntervalMs": 2.7169000000000096,
+      "checks": 36,
+      "exitCode": 0
+    },
+    {
+      "variant": "oct14",
+      "round": 3,
+      "warmup": false,
+      "lastNotVisibleMs": 112.9305,
+      "firstVisibleMs": 115.7723,
+      "observationIntervalMs": 2.8418000000000063,
+      "checks": 35,
+      "exitCode": 0
+    },
+    {
+      "variant": "oct17-after",
+      "round": 4,
+      "warmup": false,
+      "lastNotVisibleMs": 111.3632,
+      "firstVisibleMs": 115.1833,
+      "observationIntervalMs": 3.8200999999999965,
+      "checks": 36,
+      "exitCode": 0
+    },
+    {
+      "variant": "oct17-before",
+      "round": 4,
+      "warmup": false,
+      "lastNotVisibleMs": 111.3028,
+      "firstVisibleMs": 114.8147,
+      "observationIntervalMs": 3.511899999999997,
+      "checks": 35,
+      "exitCode": 0
+    },
+    {
+      "variant": "oct14",
+      "round": 4,
+      "warmup": false,
+      "lastNotVisibleMs": 117.6262,
+      "firstVisibleMs": 120.6003,
+      "observationIntervalMs": 2.974100000000007,
+      "checks": 36,
+      "exitCode": 0
+    },
+    {
+      "variant": "oct14",
+      "round": 5,
+      "warmup": false,
+      "lastNotVisibleMs": 116.1679,
+      "firstVisibleMs": 119.1679,
+      "observationIntervalMs": 3.0,
+      "checks": 35,
+      "exitCode": 0
+    },
+    {
+      "variant": "oct17-before",
+      "round": 5,
+      "warmup": false,
+      "lastNotVisibleMs": 110.8571,
+      "firstVisibleMs": 114.2366,
+      "observationIntervalMs": 3.379499999999993,
+      "checks": 34,
+      "exitCode": 0
+    },
+    {
+      "variant": "oct17-after",
+      "round": 5,
+      "warmup": false,
+      "lastNotVisibleMs": 111.8338,
+      "firstVisibleMs": 115.3138,
+      "observationIntervalMs": 3.480000000000004,
+      "checks": 36,
+      "exitCode": 0
+    },
+    {
+      "variant": "oct14",
+      "round": 6,
+      "warmup": false,
+      "lastNotVisibleMs": 115.3441,
+      "firstVisibleMs": 118.5837,
+      "observationIntervalMs": 3.239599999999996,
+      "checks": 35,
+      "exitCode": 0
+    },
+    {
+      "variant": "oct17-after",
+      "round": 6,
+      "warmup": false,
+      "lastNotVisibleMs": 114.9193,
+      "firstVisibleMs": 119.4408,
+      "observationIntervalMs": 4.521499999999989,
+      "checks": 35,
+      "exitCode": 0
+    },
+    {
+      "variant": "oct17-before",
+      "round": 6,
+      "warmup": false,
+      "lastNotVisibleMs": 117.0233,
+      "firstVisibleMs": 120.5365,
+      "observationIntervalMs": 3.5131999999999977,
+      "checks": 36,
+      "exitCode": 0
+    },
+    {
+      "variant": "oct17-after",
+      "round": 7,
+      "warmup": false,
+      "lastNotVisibleMs": 117.9691,
+      "firstVisibleMs": 120.9249,
+      "observationIntervalMs": 2.9557999999999964,
+      "checks": 36,
+      "exitCode": 0
+    },
+    {
+      "variant": "oct14",
+      "round": 7,
+      "warmup": false,
+      "lastNotVisibleMs": 115.7593,
+      "firstVisibleMs": 118.7543,
+      "observationIntervalMs": 2.9950000000000045,
+      "checks": 34,
+      "exitCode": 0
+    },
+    {
+      "variant": "oct17-before",
+      "round": 7,
+      "warmup": false,
+      "lastNotVisibleMs": 118.7862,
+      "firstVisibleMs": 122.2409,
+      "observationIntervalMs": 3.4547000000000025,
+      "checks": 35,
+      "exitCode": 0
+    },
+    {
+      "variant": "oct17-before",
+      "round": 8,
+      "warmup": false,
+      "lastNotVisibleMs": 112.3668,
+      "firstVisibleMs": 116.0679,
+      "observationIntervalMs": 3.7010999999999967,
+      "checks": 37,
+      "exitCode": 0
+    },
+    {
+      "variant": "oct14",
+      "round": 8,
+      "warmup": false,
+      "lastNotVisibleMs": 106.3487,
+      "firstVisibleMs": 109.5278,
+      "observationIntervalMs": 3.1791000000000054,
+      "checks": 31,
+      "exitCode": 0
+    },
+    {
+      "variant": "oct17-after",
+      "round": 8,
+      "warmup": false,
+      "lastNotVisibleMs": 102.2276,
+      "firstVisibleMs": 104.0273,
+      "observationIntervalMs": 1.7997000000000014,
+      "checks": 30,
+      "exitCode": 0
+    },
+    {
+      "variant": "oct17-before",
+      "round": 9,
+      "warmup": false,
+      "lastNotVisibleMs": 104.995,
+      "firstVisibleMs": 107.3768,
+      "observationIntervalMs": 2.3817999999999984,
+      "checks": 31,
+      "exitCode": 0
+    },
+    {
+      "variant": "oct17-after",
+      "round": 9,
+      "warmup": false,
+      "lastNotVisibleMs": 105.6828,
+      "firstVisibleMs": 107.999,
+      "observationIntervalMs": 2.316199999999995,
+      "checks": 31,
+      "exitCode": 0
+    },
+    {
+      "variant": "oct14",
+      "round": 9,
+      "warmup": false,
+      "lastNotVisibleMs": 108.5053,
+      "firstVisibleMs": 110.957,
+      "observationIntervalMs": 2.451699999999988,
+      "checks": 29,
+      "exitCode": 0
+    },
+    {
+      "variant": "oct17-after",
+      "round": 10,
+      "warmup": false,
+      "lastNotVisibleMs": 113.1303,
+      "firstVisibleMs": 115.204,
+      "observationIntervalMs": 2.073699999999988,
+      "checks": 31,
+      "exitCode": 0
+    },
+    {
+      "variant": "oct17-before",
+      "round": 10,
+      "warmup": false,
+      "lastNotVisibleMs": 100.1343,
+      "firstVisibleMs": 102.1231,
+      "observationIntervalMs": 1.9887999999999977,
+      "checks": 31,
+      "exitCode": 0
+    },
+    {
+      "variant": "oct14",
+      "round": 10,
+      "warmup": false,
+      "lastNotVisibleMs": 99.2842,
+      "firstVisibleMs": 101.7383,
+      "observationIntervalMs": 2.454099999999997,
+      "checks": 29,
+      "exitCode": 0
+    },
+    {
+      "variant": "oct14",
+      "round": 11,
+      "warmup": false,
+      "lastNotVisibleMs": 101.5585,
+      "firstVisibleMs": 104.926,
+      "observationIntervalMs": 3.367500000000007,
+      "checks": 31,
+      "exitCode": 0
+    },
+    {
+      "variant": "oct17-before",
+      "round": 11,
+      "warmup": false,
+      "lastNotVisibleMs": 97.0072,
+      "firstVisibleMs": 99.8844,
+      "observationIntervalMs": 2.877200000000002,
+      "checks": 30,
+      "exitCode": 0
+    },
+    {
+      "variant": "oct17-after",
+      "round": 11,
+      "warmup": false,
+      "lastNotVisibleMs": 98.8691,
+      "firstVisibleMs": 109.5362,
+      "observationIntervalMs": 10.66709999999999,
+      "checks": 29,
+      "exitCode": 0
+    },
+    {
+      "variant": "oct14",
+      "round": 12,
+      "warmup": false,
+      "lastNotVisibleMs": 89.9507,
+      "firstVisibleMs": 93.0454,
+      "observationIntervalMs": 3.094700000000003,
+      "checks": 24,
+      "exitCode": 0
+    },
+    {
+      "variant": "oct17-after",
+      "round": 12,
+      "warmup": false,
+      "lastNotVisibleMs": 89.3173,
+      "firstVisibleMs": 92.2568,
+      "observationIntervalMs": 2.9394999999999953,
+      "checks": 25,
+      "exitCode": 0
+    },
+    {
+      "variant": "oct17-before",
+      "round": 12,
+      "warmup": false,
+      "lastNotVisibleMs": 86.3393,
+      "firstVisibleMs": 89.2708,
+      "observationIntervalMs": 2.9314999999999998,
+      "checks": 24,
+      "exitCode": 0
+    },
+    {
+      "variant": "oct17-after",
+      "round": 13,
+      "warmup": false,
+      "lastNotVisibleMs": 87.6487,
+      "firstVisibleMs": 89.776,
+      "observationIntervalMs": 2.127299999999991,
+      "checks": 25,
+      "exitCode": 0
+    },
+    {
+      "variant": "oct14",
+      "round": 13,
+      "warmup": false,
+      "lastNotVisibleMs": 92.6237,
+      "firstVisibleMs": 95.1135,
+      "observationIntervalMs": 2.4898000000000025,
+      "checks": 24,
+      "exitCode": 0
+    },
+    {
+      "variant": "oct17-before",
+      "round": 13,
+      "warmup": false,
+      "lastNotVisibleMs": 92.9373,
+      "firstVisibleMs": 95.42,
+      "observationIntervalMs": 2.4827000000000083,
+      "checks": 25,
+      "exitCode": 0
+    },
+    {
+      "variant": "oct17-before",
+      "round": 14,
+      "warmup": false,
+      "lastNotVisibleMs": 88.5392,
+      "firstVisibleMs": 90.7089,
+      "observationIntervalMs": 2.169700000000006,
+      "checks": 25,
+      "exitCode": 0
+    },
+    {
+      "variant": "oct14",
+      "round": 14,
+      "warmup": false,
+      "lastNotVisibleMs": 87.9158,
+      "firstVisibleMs": 89.8566,
+      "observationIntervalMs": 1.9407999999999959,
+      "checks": 25,
+      "exitCode": 0
+    },
+    {
+      "variant": "oct17-after",
+      "round": 14,
+      "warmup": false,
+      "lastNotVisibleMs": 90.2385,
+      "firstVisibleMs": 92.5178,
+      "observationIntervalMs": 2.279299999999992,
+      "checks": 25,
+      "exitCode": 0
+    },
+    {
+      "variant": "oct17-before",
+      "round": 15,
+      "warmup": false,
+      "lastNotVisibleMs": 92.747,
+      "firstVisibleMs": 95.4689,
+      "observationIntervalMs": 2.721900000000005,
+      "checks": 25,
+      "exitCode": 0
+    },
+    {
+      "variant": "oct17-after",
+      "round": 15,
+      "warmup": false,
+      "lastNotVisibleMs": 87.1346,
+      "firstVisibleMs": 89.7224,
+      "observationIntervalMs": 2.587799999999987,
+      "checks": 24,
+      "exitCode": 0
+    },
+    {
+      "variant": "oct14",
+      "round": 15,
+      "warmup": false,
+      "lastNotVisibleMs": 87.1145,
+      "firstVisibleMs": 89.361,
+      "observationIntervalMs": 2.2464999999999975,
+      "checks": 25,
+      "exitCode": 0
+    }
+  ]
+}

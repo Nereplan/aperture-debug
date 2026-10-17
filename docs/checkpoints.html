@@ -53,6 +53,7 @@ aside{border-left:1px solid var(--line);background:var(--bg);position:sticky;top
   <section id="page-evidence" hidden>
     <div class="evidence-grid"><div class="box"><h2>Source</h2><div id="identity"></div></div><div class="box"><h2>Validation</h2><div id="tests"></div></div></div>
     <div class="box" style="margin-top:17px"><h2>Notes</h2><p id="checkpoint-notes"></p></div>
+    <div class="box" id="measurement-review" hidden style="margin-top:17px"><h2>Measurement review</h2><p id="measurement-review-text" style="white-space:pre-line"></p></div>
     <div class="section-head"><h2>Protocols & evidence</h2></div><div class="box" id="protocols"></div>
     <div class="section-head"><h2>Reports</h2></div><input id="report-search" class="ledger-search" type="search" aria-label="Search historical reports" placeholder="Search reports…"><div class="report-list" id="reports"></div>
   </section>
@@ -75,7 +76,7 @@ git diff --check</pre>
     <h2>One current VLC reference</h2>
     <p>The timeline connects dated Aperture observations; VLC is a single fixed benchmark from the latest recorded version. Its newest available matching metric/workload/environment measurement is used across the history, with the actual reference date preserved. Older VLC runs stay in the evidence and never become a second timeline. Add new <code>references</code> entries with player, version, measuredAt and results. Optional result <code>reference</code> links preserve original same-session provenance and must still match all conditions. Never present an old run as newly measured. Internal benchmarks without a VLC equivalent remain empty.</p>
     <h2>Units & comparison rules</h2>
-    <ul><li>All graph values use the metric definition's unit. <strong>MiB = 1,048,576 bytes.</strong> CPU is percent of one logical core, so values may exceed 100. Counters for requested C++ heap bytes are separate from process private bytes and working set.</li><li>Delta is <code>(current − baseline) / baseline × 100</code>. Lower-is-better decreases are green; regressions are red. A zero baseline produces no percentage; a missing value is never converted to zero.</li><li>Visible-window latency, GPU-shell latency, engine readiness and first video frame are different endpoints. Do not merge them. Runtime files are logical supplied bytes, not compressed download size.</li><li>Use <code>value: null</code> with <code>missingReason</code> for unavailable counters. Unknown sample counts need <code>samplingNote</code>. Keep failed verification out of successful playback measurements and record it in tests/notes.</li><li>Timeline stops follow measurement-date order with categorical checkpoint spacing, not invented elapsed times. The resource-map arrows follow the same chronological order. <strong>Cuts</strong> compresses empty numeric ranges and marks each omitted interval with an axis break; units remain linear within retained bands. Cuts apply to both resource axes and the timeline value axis. Linear and log modes remain available.</li><li>Reuse strict metric/protocol/workload/environment identities for a continuing series. A declared <code>historySeries</code> may join documented historical protocols only: define its label, method, exact workload and allowed protocols; assign its ID to each result. Metrics remain separate. Preserve differences in sampling or machine identity in provenance. The empty-profile startup group includes seven recordings; its first is a single sample and later gates use five-run medians. Per-result <code>measuredAt</code> can preserve an exact capture time.</li></ul>
+    <ul><li>All graph values use the metric definition's unit. <strong>MiB = 1,048,576 bytes.</strong> Recorded CPU values and history graphs use percent of one logical processor, so values may exceed 100. When the environment records its logical-processor count, the CPU summary card divides by that count and labels the result total capacity; its difference from VLC is in percentage points (pp). The original per-processor values remain in Measurements and the history. A +501% relative ratio is approximately 0.92% vs 0.15% of a 24-processor machine, not 501% total CPU. Counters for requested C++ heap bytes are separate from process private bytes and working set.</li><li>Delta is <code>(current − baseline) / baseline × 100</code>. Lower-is-better decreases are green; increases are red. These colors describe measured differences, not proof of a causal regression. Read run ranges and measurement reviews before attributing changes to code. A zero baseline produces no percentage; a missing value is never converted to zero.</li><li>Visible-window latency, GPU-shell latency, engine readiness and first video frame are different endpoints. Do not merge them. Runtime files are logical supplied bytes, not compressed download size.</li><li>Use <code>value: null</code> with <code>missingReason</code> for unavailable counters. Unknown sample counts need <code>samplingNote</code>. Keep failed verification out of successful playback measurements and record it in tests/notes.</li><li>Timeline stops follow measurement-date order with categorical checkpoint spacing, not invented elapsed times. The resource-map arrows follow the same chronological order. <strong>Cuts</strong> compresses empty numeric ranges and marks each omitted interval with an axis break; units remain linear within retained bands. Cuts apply to both resource axes and the timeline value axis. Linear and log modes remain available.</li><li>Reuse strict metric/protocol/workload/environment identities for a continuing series. A declared <code>historySeries</code> may join documented historical protocols only: define its label, method, exact workload and allowed protocols; assign its ID to each result. Metrics remain separate. Preserve differences in sampling or machine identity in provenance. The empty-profile startup group includes seven recordings; its first is a single sample and later gates use five-run medians. Per-result <code>measuredAt</code> can preserve an exact capture time.</li></ul>
     <h2>Reproduce the measurements</h2>
     <p>Use the existing local runners in <code>tests/benchmark/README.md</code>, <code>tests/backend/README.md</code>, <code>tests/loading/README.md</code> and <code>docs/TESTING.md</code>. Player resource runs use <code>compare_players.ps1</code>; engine experiments use <code>compare_playback_resources.ps1</code>; capture probes use <code>run_save_benchmark.ps1</code>. Keep builds out of timed runs. Follow the local build/release policy; this dashboard does not run benchmarks itself.</p>
     <div class="box"><h3>Finish the update</h3><p>Open the HTML, select the new checkpoint, inspect its comparisons and evidence, run the helper check and focused tests, then commit only the intended dashboard/evidence changes. The report library is a historical snapshot; future checkpoints belong in this record. Export buttons download copies without changing the source HTML.</p></div>
@@ -351,7 +352,8 @@ git diff --check</pre>
   "environments": {
     "ryzen3900x-4070super": {
       "label": "Ryzen 9 3900X / RTX 4070 SUPER",
-      "details": "Windows 11 Pro 10.0.26200; Ryzen 9 3900X, 12 cores / 24 logical processors; ~32 GiB RAM; RTX 4070 SUPER, driver 32.0.16.1088. Playback windows: 1280×800. Driver counters are process accounting, not exclusive physical VRAM."
+      "details": "Windows 11 Pro 10.0.26200; Ryzen 9 3900X, 12 cores / 24 logical processors; ~32 GiB RAM; RTX 4070 SUPER, driver 32.0.16.1088. Playback windows: 1280×800. Driver counters are process accounting, not exclusive physical VRAM.",
+      "logicalProcessors": 24
     },
     "duplicate-detection-evidence-machine": {
       "label": "Historical Windows x64 benchmark machine",
@@ -412,7 +414,13 @@ git diff --check</pre>
           "session": "players-20261014",
           "environment": "ryzen3900x-4070super",
           "evidence": "docs/evidence/player-comparison-20261014/summary.json",
-          "samples": 3
+          "samples": 3,
+          "runRange": {
+            "min": 1676.7616,
+            "max": 1684.0743,
+            "runs": 3,
+            "scope": "Across measured launches; memory uses each launch’s median sample."
+          }
         },
         {
           "metric": "runtime-mib",
@@ -432,7 +440,13 @@ git diff --check</pre>
           "session": "players-20261014",
           "environment": "ryzen3900x-4070super",
           "evidence": "docs/evidence/player-comparison-20261014/summary.json",
-          "samples": 3
+          "samples": 3,
+          "runRange": {
+            "min": 142.80078125,
+            "max": 143.19921875,
+            "runs": 3,
+            "scope": "Across measured launches; each value is a per-launch median sample."
+          }
         },
         {
           "metric": "private-mib",
@@ -442,7 +456,13 @@ git diff --check</pre>
           "session": "players-20261014",
           "environment": "ryzen3900x-4070super",
           "evidence": "docs/evidence/player-comparison-20261014/summary.json",
-          "samples": 3
+          "samples": 3,
+          "runRange": {
+            "min": 144.56640625,
+            "max": 146.109375,
+            "runs": 3,
+            "scope": "Across measured launches; memory uses each launch’s median sample."
+          }
         },
         {
           "metric": "gpu-mib",
@@ -452,7 +472,13 @@ git diff --check</pre>
           "session": "players-20261014",
           "environment": "ryzen3900x-4070super",
           "evidence": "docs/evidence/player-comparison-20261014/summary.json",
-          "samples": 3
+          "samples": 3,
+          "runRange": {
+            "min": 117.91015625,
+            "max": 117.91015625,
+            "runs": 3,
+            "scope": "Across measured launches; memory uses each launch’s median sample."
+          }
         },
         {
           "metric": "shared-gpu-mib",
@@ -462,7 +488,13 @@ git diff --check</pre>
           "session": "players-20261014",
           "environment": "ryzen3900x-4070super",
           "evidence": "docs/evidence/player-comparison-20261014/summary.json",
-          "samples": 3
+          "samples": 3,
+          "runRange": {
+            "min": 15.21875,
+            "max": 15.234375,
+            "runs": 3,
+            "scope": "Across measured launches; memory uses each launch’s median sample."
+          }
         },
         {
           "metric": "cpu-core",
@@ -472,7 +504,13 @@ git diff --check</pre>
           "session": "players-20261014",
           "environment": "ryzen3900x-4070super",
           "evidence": "docs/evidence/player-comparison-20261014/summary.json",
-          "samples": 3
+          "samples": 3,
+          "runRange": {
+            "min": 2.946371420241223,
+            "max": 6.136394426336308,
+            "runs": 3,
+            "scope": "Across measured launches; memory uses each launch’s median sample."
+          }
         },
         {
           "metric": "runtime-growth",
@@ -586,7 +624,13 @@ git diff --check</pre>
           "session": "players-20261017",
           "environment": "ryzen3900x-4070super",
           "evidence": "docs/evidence/backend-balance-20261017/application-summary.json",
-          "samples": 3
+          "samples": 3,
+          "runRange": {
+            "min": 1829.8139,
+            "max": 2019.6779,
+            "runs": 3,
+            "scope": "Across measured launches; memory uses each launch’s median sample."
+          }
         },
         {
           "metric": "private-mib",
@@ -596,7 +640,13 @@ git diff --check</pre>
           "session": "players-20261017",
           "environment": "ryzen3900x-4070super",
           "evidence": "docs/evidence/backend-balance-20261017/application-summary.json",
-          "samples": 3
+          "samples": 3,
+          "runRange": {
+            "min": 144.19921875,
+            "max": 147.59375,
+            "runs": 3,
+            "scope": "Across measured launches; memory uses each launch’s median sample."
+          }
         },
         {
           "metric": "gpu-mib",
@@ -606,7 +656,13 @@ git diff --check</pre>
           "session": "players-20261017",
           "environment": "ryzen3900x-4070super",
           "evidence": "docs/evidence/backend-balance-20261017/application-summary.json",
-          "samples": 3
+          "samples": 3,
+          "runRange": {
+            "min": 117.8984375,
+            "max": 117.91015625,
+            "runs": 3,
+            "scope": "Across measured launches; memory uses each launch’s median sample."
+          }
         },
         {
           "metric": "working-set-mib",
@@ -616,7 +672,13 @@ git diff --check</pre>
           "session": "players-20261017",
           "environment": "ryzen3900x-4070super",
           "evidence": "docs/evidence/backend-balance-20261017/application-summary.json",
-          "samples": 3
+          "samples": 3,
+          "runRange": {
+            "min": 140.8359375,
+            "max": 143.72265625,
+            "runs": 3,
+            "scope": "Across measured launches; each value is a per-launch median sample."
+          }
         },
         {
           "metric": "cpu-core",
@@ -626,7 +688,13 @@ git diff --check</pre>
           "session": "players-20261017",
           "environment": "ryzen3900x-4070super",
           "evidence": "docs/evidence/backend-balance-20261017/application-summary.json",
-          "samples": 3
+          "samples": 3,
+          "runRange": {
+            "min": 2.4239252420190454,
+            "max": 5.997285887490074,
+            "runs": 3,
+            "scope": "Across measured launches; memory uses each launch’s median sample."
+          }
         },
         {
           "metric": "runtime-mib",
@@ -6319,7 +6387,13 @@ git diff --check</pre>
           "environment": "ryzen3900x-4070super",
           "evidence": "docs/evidence/player-comparison-20261014/summary.json",
           "samples": 3,
-          "reference": "vlc-20261014"
+          "reference": "vlc-20261014",
+          "runRange": {
+            "min": 105.6631,
+            "max": 119.4509,
+            "runs": 3,
+            "scope": "Across measured launches; memory uses each launch’s median sample."
+          }
         },
         {
           "metric": "runtime-mib",
@@ -6341,7 +6415,13 @@ git diff --check</pre>
           "environment": "ryzen3900x-4070super",
           "evidence": "docs/evidence/player-comparison-20261014/summary.json",
           "samples": 3,
-          "reference": "vlc-20261014"
+          "reference": "vlc-20261014",
+          "runRange": {
+            "min": 163.69921875,
+            "max": 166.72265625,
+            "runs": 3,
+            "scope": "Across measured launches; each value is a per-launch median sample."
+          }
         },
         {
           "metric": "private-mib",
@@ -6352,7 +6432,13 @@ git diff --check</pre>
           "environment": "ryzen3900x-4070super",
           "evidence": "docs/evidence/player-comparison-20261014/summary.json",
           "samples": 3,
-          "reference": "vlc-20261014"
+          "reference": "vlc-20261014",
+          "runRange": {
+            "min": 253.72265625,
+            "max": 257.5234375,
+            "runs": 3,
+            "scope": "Across measured launches; memory uses each launch’s median sample."
+          }
         },
         {
           "metric": "gpu-mib",
@@ -6363,7 +6449,13 @@ git diff --check</pre>
           "environment": "ryzen3900x-4070super",
           "evidence": "docs/evidence/player-comparison-20261014/summary.json",
           "samples": 3,
-          "reference": "vlc-20261014"
+          "reference": "vlc-20261014",
+          "runRange": {
+            "min": 173.24609375,
+            "max": 173.28515625,
+            "runs": 3,
+            "scope": "Across measured launches; memory uses each launch’s median sample."
+          }
         },
         {
           "metric": "shared-gpu-mib",
@@ -6374,7 +6466,13 @@ git diff --check</pre>
           "environment": "ryzen3900x-4070super",
           "evidence": "docs/evidence/player-comparison-20261014/summary.json",
           "samples": 3,
-          "reference": "vlc-20261014"
+          "reference": "vlc-20261014",
+          "runRange": {
+            "min": 15.61328125,
+            "max": 15.64453125,
+            "runs": 3,
+            "scope": "Across measured launches; memory uses each launch’s median sample."
+          }
         },
         {
           "metric": "cpu-core",
@@ -6385,7 +6483,13 @@ git diff --check</pre>
           "environment": "ryzen3900x-4070super",
           "evidence": "docs/evidence/player-comparison-20261014/summary.json",
           "samples": 3,
-          "reference": "vlc-20261014"
+          "reference": "vlc-20261014",
+          "runRange": {
+            "min": 23.244787809479377,
+            "max": 28.05469381511158,
+            "runs": 3,
+            "scope": "Across measured launches; memory uses each launch’s median sample."
+          }
         },
         {
           "metric": "runtime-growth",
@@ -6400,7 +6504,8 @@ git diff --check</pre>
         }
       ],
       "tests": [],
-      "report": "player_comparison_20261014"
+      "report": "player_comparison_20261014",
+      "measurementReview": "17 October measurement review: the historical first-visible-window medians are 111.78, 123.89 and 141.59 ms. The external runner requested 20 ms sleeps and had only three measured launches per build. This is window detection, not first video pixels. A fresh-copy replay of the three retained runtimes, with 15 measured launches each, rotated order and a high-resolution observer, found medians of 110.96, 114.24 and 115.18 ms; all three spanned about 89–122 ms. The paired final-minus-14-Oct median was −0.52 ms (descriptive bootstrap 95% interval −3.85 to +0.86 ms). The original ~30 ms slowdown did not reproduce consistently; no code-level cause is established. Original EXE hashes match; the Oct14 DLL is from the retained runtime without an independently recorded historical DLL hash. These replay values use a different observer and are kept out of the original chart series.\n\nCPU normalization: the final Aperture/VLC medians are 22.1392/3.6835% of ONE logical processor. With 24 logical processors, these are 0.9225/0.1535% of total machine capacity: +0.7690 percentage points, or 6.01× (+501%) relative. This agrees with roughly 1% total CPU; it does not mean 501% total CPU. The individual final Aperture runs span 0.562–1.002% total capacity; VLC spans 0.101–0.250%. CPU-time capacity is not a promise of exact equality with every Task Manager utilization counter.\n\nComparability: all players used the same synthetic 1080p30 H.264/yuv420p clip WITHOUT audio/subtitles, warm OS caches, isolated fresh profiles, 1280×800 outer windows, and verified advancing playback. CPU spans about six seconds after ten seconds settling, with three launches; decoder mode, picture quality, viewport and presentation cadence were not verified equal. The Oct17 baseline block ran before the candidate block. These are local default-configuration measurements, not a general VLC ranking or an audio-enabled comparison. CPU remaining component costs are unprofiled.\n\nOther large differences: final private bytes are about 251.31 vs 144.73 MiB (+73.6%), dedicated GPU accounting 169.49 vs 117.90 MiB (+43.8%), and runtime payload 27.85 vs 182.99 MiB (−84.8%). Memory categories overlap and are not additive; no allocation trace establishes which buffers explain the gap. Runtime size compares complete supplied distributions with different plugins/languages/features, not equal-feature efficiency or downloads. Engine-only pacing tests support less CPU with the audio clock, but contain one unverified 0.000% CPU reading without saved endpoint ticks; do not treat it as zero-cost playback.\n\nEvidence: docs/evidence/checkpoint-audit-20261017/measurement-review.json and startup-replay.json. Recompute with tests/benchmark/audit_player_measurements.py; the replay harness is tests/benchmark/audit_saved_startup.ps1.\n\nFurther endpoint check: src/main.cpp shows Aperture’s bootstrap shell before app.Initialize; window detection does not establish equivalent initialized video output across players. The recorded CPU windows also cover different media positions: final Aperture approximately 10.6–16.77 seconds, VLC approximately 7–13 seconds. Equal frame delivery, frame drops, playback segments and picture quality were not established. A stronger player comparison needs aligned media segments, longer repeated samples, verified decoder/output settings, matching audio/subtitle work and a separately verified first-video-frame endpoint."
     },
     {
       "id": "json-array-growth-20261014-before",
@@ -11769,7 +11874,13 @@ git diff --check</pre>
           "environment": "ryzen3900x-4070super",
           "evidence": "docs/evidence/backend-balance-20261017/application-summary.json",
           "samples": 3,
-          "reference": "vlc-20261017"
+          "reference": "vlc-20261017",
+          "runRange": {
+            "min": 116.5397,
+            "max": 138.6047,
+            "runs": 3,
+            "scope": "Across measured launches; memory uses each launch’s median sample."
+          }
         },
         {
           "metric": "private-mib",
@@ -11780,7 +11891,13 @@ git diff --check</pre>
           "environment": "ryzen3900x-4070super",
           "evidence": "docs/evidence/backend-balance-20261017/application-summary.json",
           "samples": 3,
-          "reference": "vlc-20261017"
+          "reference": "vlc-20261017",
+          "runRange": {
+            "min": 254.32421875,
+            "max": 256.95703125,
+            "runs": 3,
+            "scope": "Across measured launches; memory uses each launch’s median sample."
+          }
         },
         {
           "metric": "gpu-mib",
@@ -11791,7 +11908,13 @@ git diff --check</pre>
           "environment": "ryzen3900x-4070super",
           "evidence": "docs/evidence/backend-balance-20261017/application-summary.json",
           "samples": 3,
-          "reference": "vlc-20261017"
+          "reference": "vlc-20261017",
+          "runRange": {
+            "min": 173.25390625,
+            "max": 173.28515625,
+            "runs": 3,
+            "scope": "Across measured launches; memory uses each launch’s median sample."
+          }
         },
         {
           "metric": "working-set-mib",
@@ -11802,7 +11925,13 @@ git diff --check</pre>
           "environment": "ryzen3900x-4070super",
           "evidence": "docs/evidence/backend-balance-20261017/application-summary.json",
           "samples": 3,
-          "reference": "vlc-20261017"
+          "reference": "vlc-20261017",
+          "runRange": {
+            "min": 161.90234375,
+            "max": 165.26953125,
+            "runs": 3,
+            "scope": "Across measured launches; each value is a per-launch median sample."
+          }
         },
         {
           "metric": "cpu-core",
@@ -11813,7 +11942,13 @@ git diff --check</pre>
           "environment": "ryzen3900x-4070super",
           "evidence": "docs/evidence/backend-balance-20261017/application-summary.json",
           "samples": 3,
-          "reference": "vlc-20261017"
+          "reference": "vlc-20261017",
+          "runRange": {
+            "min": 29.93931125018396,
+            "max": 51.28394026004683,
+            "runs": 3,
+            "scope": "Across measured launches; memory uses each launch’s median sample."
+          }
         },
         {
           "metric": "runtime-mib",
@@ -12098,7 +12233,8 @@ git diff --check</pre>
           "notes": "All recorded startup budgets passed; five measured samples."
         }
       ],
-      "report": "backend_balance_20261017"
+      "report": "backend_balance_20261017",
+      "measurementReview": "17 October measurement review: the historical first-visible-window medians are 111.78, 123.89 and 141.59 ms. The external runner requested 20 ms sleeps and had only three measured launches per build. This is window detection, not first video pixels. A fresh-copy replay of the three retained runtimes, with 15 measured launches each, rotated order and a high-resolution observer, found medians of 110.96, 114.24 and 115.18 ms; all three spanned about 89–122 ms. The paired final-minus-14-Oct median was −0.52 ms (descriptive bootstrap 95% interval −3.85 to +0.86 ms). The original ~30 ms slowdown did not reproduce consistently; no code-level cause is established. Original EXE hashes match; the Oct14 DLL is from the retained runtime without an independently recorded historical DLL hash. These replay values use a different observer and are kept out of the original chart series.\n\nCPU normalization: the final Aperture/VLC medians are 22.1392/3.6835% of ONE logical processor. With 24 logical processors, these are 0.9225/0.1535% of total machine capacity: +0.7690 percentage points, or 6.01× (+501%) relative. This agrees with roughly 1% total CPU; it does not mean 501% total CPU. The individual final Aperture runs span 0.562–1.002% total capacity; VLC spans 0.101–0.250%. CPU-time capacity is not a promise of exact equality with every Task Manager utilization counter.\n\nComparability: all players used the same synthetic 1080p30 H.264/yuv420p clip WITHOUT audio/subtitles, warm OS caches, isolated fresh profiles, 1280×800 outer windows, and verified advancing playback. CPU spans about six seconds after ten seconds settling, with three launches; decoder mode, picture quality, viewport and presentation cadence were not verified equal. The Oct17 baseline block ran before the candidate block. These are local default-configuration measurements, not a general VLC ranking or an audio-enabled comparison. CPU remaining component costs are unprofiled.\n\nOther large differences: final private bytes are about 251.31 vs 144.73 MiB (+73.6%), dedicated GPU accounting 169.49 vs 117.90 MiB (+43.8%), and runtime payload 27.85 vs 182.99 MiB (−84.8%). Memory categories overlap and are not additive; no allocation trace establishes which buffers explain the gap. Runtime size compares complete supplied distributions with different plugins/languages/features, not equal-feature efficiency or downloads. Engine-only pacing tests support less CPU with the audio clock, but contain one unverified 0.000% CPU reading without saved endpoint ticks; do not treat it as zero-cost playback.\n\nEvidence: docs/evidence/checkpoint-audit-20261017/measurement-review.json and startup-replay.json. Recompute with tests/benchmark/audit_player_measurements.py; the replay harness is tests/benchmark/audit_saved_startup.ps1.\n\nFurther endpoint check: src/main.cpp shows Aperture’s bootstrap shell before app.Initialize; window detection does not establish equivalent initialized video output across players. The recorded CPU windows also cover different media positions: final Aperture approximately 10.6–16.77 seconds, VLC approximately 7–13 seconds. Equal frame delivery, frame drops, playback segments and picture quality were not established. A stronger player comparison needs aligned media segments, longer repeated samples, verified decoder/output settings, matching audio/subtitle work and a separately verified first-video-frame endpoint."
     },
     {
       "id": "backend-balance-20261017-after",
@@ -12118,7 +12254,13 @@ git diff --check</pre>
           "environment": "ryzen3900x-4070super",
           "evidence": "docs/evidence/backend-balance-20261017/application-summary.json",
           "samples": 3,
-          "reference": "vlc-20261017"
+          "reference": "vlc-20261017",
+          "runRange": {
+            "min": 134.4844,
+            "max": 191.0518,
+            "runs": 3,
+            "scope": "Across measured launches; memory uses each launch’s median sample."
+          }
         },
         {
           "metric": "private-mib",
@@ -12129,7 +12271,13 @@ git diff --check</pre>
           "environment": "ryzen3900x-4070super",
           "evidence": "docs/evidence/backend-balance-20261017/application-summary.json",
           "samples": 3,
-          "reference": "vlc-20261017"
+          "reference": "vlc-20261017",
+          "runRange": {
+            "min": 250.62109375,
+            "max": 254.49609375,
+            "runs": 3,
+            "scope": "Across measured launches; memory uses each launch’s median sample."
+          }
         },
         {
           "metric": "gpu-mib",
@@ -12140,7 +12288,13 @@ git diff --check</pre>
           "environment": "ryzen3900x-4070super",
           "evidence": "docs/evidence/backend-balance-20261017/application-summary.json",
           "samples": 3,
-          "reference": "vlc-20261017"
+          "reference": "vlc-20261017",
+          "runRange": {
+            "min": 169.4921875,
+            "max": 169.4921875,
+            "runs": 3,
+            "scope": "Across measured launches; memory uses each launch’s median sample."
+          }
         },
         {
           "metric": "working-set-mib",
@@ -12151,7 +12305,13 @@ git diff --check</pre>
           "environment": "ryzen3900x-4070super",
           "evidence": "docs/evidence/backend-balance-20261017/application-summary.json",
           "samples": 3,
-          "reference": "vlc-20261017"
+          "reference": "vlc-20261017",
+          "runRange": {
+            "min": 160.91015625,
+            "max": 163.9140625,
+            "runs": 3,
+            "scope": "Across measured launches; each value is a per-launch median sample."
+          }
         },
         {
           "metric": "cpu-core",
@@ -12162,7 +12322,13 @@ git diff --check</pre>
           "environment": "ryzen3900x-4070super",
           "evidence": "docs/evidence/backend-balance-20261017/application-summary.json",
           "samples": 3,
-          "reference": "vlc-20261017"
+          "reference": "vlc-20261017",
+          "runRange": {
+            "min": 13.486836839102043,
+            "max": 24.039511101569715,
+            "runs": 3,
+            "scope": "Across measured launches; memory uses each launch’s median sample."
+          }
         },
         {
           "metric": "runtime-mib",
@@ -12484,7 +12650,8 @@ git diff --check</pre>
         }
       ],
       "report": "backend_balance_20261017",
-      "pairedWith": "backend-balance-20261017-before"
+      "pairedWith": "backend-balance-20261017-before",
+      "measurementReview": "17 October measurement review: the historical first-visible-window medians are 111.78, 123.89 and 141.59 ms. The external runner requested 20 ms sleeps and had only three measured launches per build. This is window detection, not first video pixels. A fresh-copy replay of the three retained runtimes, with 15 measured launches each, rotated order and a high-resolution observer, found medians of 110.96, 114.24 and 115.18 ms; all three spanned about 89–122 ms. The paired final-minus-14-Oct median was −0.52 ms (descriptive bootstrap 95% interval −3.85 to +0.86 ms). The original ~30 ms slowdown did not reproduce consistently; no code-level cause is established. Original EXE hashes match; the Oct14 DLL is from the retained runtime without an independently recorded historical DLL hash. These replay values use a different observer and are kept out of the original chart series.\n\nCPU normalization: the final Aperture/VLC medians are 22.1392/3.6835% of ONE logical processor. With 24 logical processors, these are 0.9225/0.1535% of total machine capacity: +0.7690 percentage points, or 6.01× (+501%) relative. This agrees with roughly 1% total CPU; it does not mean 501% total CPU. The individual final Aperture runs span 0.562–1.002% total capacity; VLC spans 0.101–0.250%. CPU-time capacity is not a promise of exact equality with every Task Manager utilization counter.\n\nComparability: all players used the same synthetic 1080p30 H.264/yuv420p clip WITHOUT audio/subtitles, warm OS caches, isolated fresh profiles, 1280×800 outer windows, and verified advancing playback. CPU spans about six seconds after ten seconds settling, with three launches; decoder mode, picture quality, viewport and presentation cadence were not verified equal. The Oct17 baseline block ran before the candidate block. These are local default-configuration measurements, not a general VLC ranking or an audio-enabled comparison. CPU remaining component costs are unprofiled.\n\nOther large differences: final private bytes are about 251.31 vs 144.73 MiB (+73.6%), dedicated GPU accounting 169.49 vs 117.90 MiB (+43.8%), and runtime payload 27.85 vs 182.99 MiB (−84.8%). Memory categories overlap and are not additive; no allocation trace establishes which buffers explain the gap. Runtime size compares complete supplied distributions with different plugins/languages/features, not equal-feature efficiency or downloads. Engine-only pacing tests support less CPU with the audio clock, but contain one unverified 0.000% CPU reading without saved endpoint ticks; do not treat it as zero-cost playback.\n\nEvidence: docs/evidence/checkpoint-audit-20261017/measurement-review.json and startup-replay.json. Recompute with tests/benchmark/audit_player_measurements.py; the replay harness is tests/benchmark/audit_saved_startup.ps1.\n\nFurther endpoint check: src/main.cpp shows Aperture’s bootstrap shell before app.Initialize; window detection does not establish equivalent initialized video output across players. The recorded CPU windows also cover different media positions: final Aperture approximately 10.6–16.77 seconds, VLC approximately 7–13 seconds. Equal frame delivery, frame drops, playback segments and picture quality were not established. A stronger player comparison needs aligned media segments, longer repeated samples, verified decoder/output settings, matching audio/subtitle work and a separately verified first-video-frame endpoint."
     }
   ],
   "reports": [
@@ -12720,10 +12887,25 @@ function resultTable(results,cp,withGraph=true){
  }).join('');
  return `<table><thead><tr><th>Metric</th><th class="num">Checkpoint</th><th class="num">Latest VLC</th><th class="num">Change</th>${withGraph?'<th></th>':''}</tr></thead><tbody>${rows||'<tr><td colspan="5" class="empty">No observations recorded</td></tr>'}</tbody></table>`
 }
-function renderStats(){const c=getCP();const player=c.results.some(r=>r.protocol==='playback-1080p30');const primaries=player?['visible-ms','private-mib','cpu-core','runtime-mib'].map(id=>c.results.find(x=>x.metric===id&&x.protocol==='playback-1080p30')):c.results.filter(r=>r.workload===c.results[0]?.workload).slice(0,4);$('stats').hidden=!primaries.length;$('stats').style.setProperty('--stat-count',Math.max(1,primaries.length));$('stats').innerHTML=primaries.map(r=>{const b=r?baseline(r):null,d=r?delta(r,b):{text:'Not measured here',cls:'muted'};return `<div class="stat"><div class="stat-label">${esc(r?metric(r).label:'No observation')}</div><div class="stat-value">${splitval(r)}</div><div class="stat-delta ${d.cls}" title="${esc(b?b.label+' · '+val(b):'No matched reference')}">${esc(b?d.text:'—')}</div></div>`}).join('')}
+function renderStats(){
+ const c=getCP(),player=c.results.some(r=>r.protocol==='playback-1080p30');
+ const primaries=player?['visible-ms','private-mib','cpu-core','runtime-mib'].map(id=>c.results.find(x=>x.metric===id&&x.protocol==='playback-1080p30')):c.results.filter(r=>r.workload===c.results[0]?.workload).slice(0,4);
+ $('stats').hidden=!primaries.length;$('stats').style.setProperty('--stat-count',Math.max(1,primaries.length));
+ $('stats').innerHTML=primaries.map(r=>{
+  const b=r?baseline(r):null,d=r?delta(r,b):{text:'Not measured here',cls:'muted'},cpu=machineCpu(r),referenceCpu=machineCpu(b);
+  let label=r?metric(r).label:'No observation',value=splitval(r),change=b?d.text:'—',title=b?b.label+' · '+val(b):'No matched reference';
+  if(cpu!==null){label='CPU / total capacity';value=number(cpu)+' <small>%</small>';title=val(r)+' of one logical processor / '+DATA.environments[r.environment].logicalProcessors+' logical processors';
+   if(referenceCpu!==null){const pp=cpu-referenceCpu;change=(pp<0?'−':'+')+number(Math.abs(pp))+' pp vs VLC';title+='; VLC '+number(referenceCpu,4)+'% total capacity; '+d.text+' relative'}
+  }
+  if(r?.runRange)title+='; '+runRangeText(r);
+  return `<div class="stat" title="${esc(title)}"><div class="stat-label">${esc(label)}</div><div class="stat-value">${value}</div><div class="stat-delta ${d.cls}">${esc(change)}</div></div>`
+ }).join('')
+}
 function renderOverview(){renderStats();$('map-tab').setAttribute('aria-pressed',String(mode==='map'));$('trend-tab').setAttribute('aria-pressed',String(mode==='history'));$('trend-options').hidden=mode==='map';for(const id of ['cuts','linear','log'])$(id).setAttribute('aria-pressed',String(axisMode===id));const ref=latestVlcReferences()[0];$('current-vlc').textContent=ref?'VLC '+ref.version:'VLC not measured';$('current-vlc').title=ref?'Latest recorded VLC version · '+when(ref.measuredAt):'';$('overview-table').innerHTML=resultTable(getCP().results,getCP());renderChart()}
 
 function svgText(x,y,text,extra=''){return `<text x="${x}" y="${y}" ${extra}>${esc(text)}</text>`}
+function machineCpu(r){const n=DATA.environments[r?.environment]?.logicalProcessors;return r?.metric==='cpu-core'&&Number.isInteger(n)&&n>0&&r.value!=null?r.value/n:null}
+function runRangeText(r){const q=r?.runRange;return q?'Run range: '+val({...r,value:q.min})+'–'+val({...r,value:q.max})+' (n = '+q.runs+')':''}
 function seriesKey(r){return r.historySeries?JSON.stringify(['history',r.historySeries,r.metric,r.workload]):key(r)}
 function checkpointLabel(c){return c.label.replace(/\s*·\s*(before|after|optimized)$/i,'')}
 function latestVlcReferences(){
@@ -12854,13 +13036,13 @@ function labelPositions(positions,g){
 }
 function plotPoint(p,pos,index,label,g){
  const active=p.id===selected,color=p.reference?'var(--vlc)':'var(--accent)';
- const title=p.label+' / '+when(p.date)+' / '+(p.revision?p.revision+' / ':'')+(p.xr?val(p.xr)+' / ':'')+val(p.yr);
+ const title=p.label+' / '+when(p.date)+' / '+(p.revision?p.revision+' / ':'')+(p.xr?val(p.xr)+' / ':'')+val(p.yr)+(runRangeText(p.yr)?' / '+runRangeText(p.yr):'');
  return `<g class="chart-point map-point ${active?'map-selected':''}" data-point="${index}" ${p.reference?'data-reference="vlc" role="img"':`data-select="${esc(p.id)}" role="button"`} tabindex="0" aria-label="${esc(title)}"><title>${esc(title)}</title>${label?`<path d="M ${pos.x+8} ${pos.y} L ${g.R+8} ${pos.y} L ${g.labelX-8} ${label.y}" stroke="${color}" stroke-width=".8" fill="none" opacity=".24" pointer-events="none"/>${svgText(g.labelX,label.y+4,label.text,`fill="${color}" class="map-label"`)}<rect x="${g.labelX-4}" y="${label.y-12}" width="${g.W-g.labelX}" height="25" fill="transparent" stroke="none"/>`:''}<circle cx="${pos.x}" cy="${pos.y}" r="12" fill="transparent" stroke="none"/>${active?`<circle cx="${pos.x}" cy="${pos.y}" r="10" fill="none" stroke="${color}" stroke-width="1" opacity=".4"/>`:''}<circle class="point-dot" cx="${pos.x}" cy="${pos.y}" r="${active?5.5:4.7}" fill="${color}" stroke="var(--bg)" stroke-width="1.5"/></g>`
 }
 function bindPlot(points){
  $('chart').querySelectorAll('[data-point]').forEach(el=>{
   const p=points[Number(el.dataset.point)];
-  const show=event=>{const tip=$('tooltip'),rect=el.querySelector('.point-dot').getBoundingClientRect();tip.innerHTML=`<strong>${esc(p.label)}</strong>${esc(when(p.date))}${p.revision?' · '+esc(p.revision):''}<br>${p.xr?esc(val(p.xr))+' · ':''}${esc(val(p.yr))}<br><span class="muted">${esc(p.yr.samples===null?'Sample count unknown':'n = '+p.yr.samples)} · ${esc(protocol(p.yr).label)}</span>`;tip.hidden=false;tip.style.left=Math.max(8,Math.min((event.clientX||rect.x)+14,window.innerWidth-285))+'px';tip.style.top=Math.max(8,Math.min((event.clientY||rect.y)+12,window.innerHeight-145))+'px'};
+  const show=event=>{const tip=$('tooltip'),rect=el.querySelector('.point-dot').getBoundingClientRect();tip.innerHTML=`<strong>${esc(p.label)}</strong>${esc(when(p.date))}${p.revision?' · '+esc(p.revision):''}<br>${p.xr?esc(val(p.xr))+' · ':''}${esc(val(p.yr))}${runRangeText(p.yr)?'<br>'+esc(runRangeText(p.yr)):''}<br><span class="muted">${esc(p.yr.samples===null?'Sample count unknown':'n = '+p.yr.samples)} · ${esc(protocol(p.yr).label)}</span>`;tip.hidden=false;tip.style.left=Math.max(8,Math.min((event.clientX||rect.x)+14,window.innerWidth-285))+'px';tip.style.top=Math.max(8,Math.min((event.clientY||rect.y)+12,window.innerHeight-145))+'px'};
   el.addEventListener('pointerenter',show);el.addEventListener('focus',show);el.addEventListener('pointerleave',()=>$('tooltip').hidden=true);el.addEventListener('blur',()=>$('tooltip').hidden=true);
   el.addEventListener('keydown',event=>{if((event.key==='Enter'||event.key===' ')&&p.id){event.preventDefault();pick(p.id)}})
  })
@@ -12933,7 +13115,7 @@ function renderResourceMap(){
 function renderChart(){renderTrendOptions();$('tooltip').hidden=true;if(mode==='map')renderResourceMap();else renderHistory()}
 
 function renderLedger(){const q=$('ledger-search').value.toLowerCase();const cats=['All',...new Set(Object.values(DATA.protocols).map(p=>p.category))];$('categories').innerHTML=cats.map(x=>`<button data-category="${esc(x)}" aria-pressed="${x===category}">${esc(x)}</button>`).join('');ledgerRows=[];for(const cp of [...ordered].reverse())for(const r of cp.results){if(category!=='All'&&protocol(r).category!==category)continue;if(!(cp.label+' '+(cp.commit||'')+' '+metric(r).label+' '+r.workload+' '+protocol(r).label).toLowerCase().includes(q))continue;ledgerRows.push({cp,r,b:baseline(r)})}ledgerPage=Math.max(0,Math.min(ledgerPage,Math.ceil(ledgerRows.length/50)-1));$('ledger-range').textContent=ledgerRows.length?number(ledgerPage*50+1,0)+'–'+number(Math.min((ledgerPage+1)*50,ledgerRows.length),0)+' of '+number(ledgerRows.length,0):'0 observations';$('ledger-prev').disabled=ledgerPage===0;$('ledger-next').disabled=(ledgerPage+1)*50>=ledgerRows.length;$('ledger-title').textContent=number(ledgerRows.length,0)+' observations';$('ledger').innerHTML=`<table><thead><tr><th>Checkpoint</th><th>Metric / workload</th><th class="num">Value</th><th class="num">Latest VLC</th><th class="num">Change</th><th></th></tr></thead><tbody>${ledgerRows.slice(ledgerPage*50,(ledgerPage+1)*50).map(({cp,r,b})=>{const d=delta(r,b);return `<tr><td><button class="trend-button" data-select="${esc(cp.id)}">${esc(checkpointLabel(cp))}</button><small>${esc(cp.commit||'unrecorded revision')} · ${esc(date(cp.measuredAt))}</small></td><td>${esc(metric(r).label)}<small>${esc(r.workload)} · ${esc(protocol(r).label)}</small></td><td class="num">${esc(val(r))}</td><td class="num">${esc(val(b))}</td><td class="num ${d.cls}">${esc(d.text)}</td><td><button class="trend-button" data-graph-cp="${esc(cp.id)}" data-trend="${esc(seriesKey(r))}">Graph ↗</button></td></tr>`}).join('')||'<tr><td colspan="6" class="empty">No matching observations</td></tr>'}</tbody></table>`}
-function renderEvidence(){const c=getCP();const facts=[['Source commit',c.commit||'Not recorded'],['Measured',when(c.measuredAt)],['Working tree',c.dirty===true?'Included local changes':c.dirty===false?'Clean':'Not fully recorded'],['Paired baseline',cpById.get(c.pairedWith)?.label||'None recorded']];$('identity').innerHTML=facts.map(([a,b])=>`<div class="fact"><span>${esc(a)}</span><span>${esc(b)}</span></div>`).join('')+`<p style="margin-top:13px">${esc(c.sourceNote)}</p>`;$('checkpoint-notes').textContent=c.notes;$('tests').innerHTML=(c.tests||[]).map(t=>`<div class="test-row"><span class="tag ${t.status==='pass'?'good':t.status==='fail'?'bad':''}">${esc(t.status)}</span><div>${esc(t.name)}${t.total!=null?' · '+t.passed+'/'+t.total:''}<small>${t.durationSeconds!=null?number(t.durationSeconds)+' s · ':''}${esc(t.evidence)}</small>${t.notes?`<small>${esc(t.notes)}</small>`:''}</div></div>`).join('')||'<p>No validation record migrated for this source state. Consult the embedded historical report; this is not a failed or passing run.</p>';
+function renderEvidence(){const c=getCP();const facts=[['Source commit',c.commit||'Not recorded'],['Measured',when(c.measuredAt)],['Working tree',c.dirty===true?'Included local changes':c.dirty===false?'Clean':'Not fully recorded'],['Paired baseline',cpById.get(c.pairedWith)?.label||'None recorded']];$('identity').innerHTML=facts.map(([a,b])=>`<div class="fact"><span>${esc(a)}</span><span>${esc(b)}</span></div>`).join('')+`<p style="margin-top:13px">${esc(c.sourceNote)}</p>`;$('checkpoint-notes').textContent=c.notes;$('measurement-review').hidden=!c.measurementReview;$('measurement-review-text').textContent=c.measurementReview||'';$('tests').innerHTML=(c.tests||[]).map(t=>`<div class="test-row"><span class="tag ${t.status==='pass'?'good':t.status==='fail'?'bad':''}">${esc(t.status)}</span><div>${esc(t.name)}${t.total!=null?' · '+t.passed+'/'+t.total:''}<small>${t.durationSeconds!=null?number(t.durationSeconds)+' s · ':''}${esc(t.evidence)}</small>${t.notes?`<small>${esc(t.notes)}</small>`:''}</div></div>`).join('')||'<p>No validation record migrated for this source state. Consult the embedded historical report; this is not a failed or passing run.</p>';
  const protocols=[...new Set(c.results.map(r=>r.protocol))];$('protocols').innerHTML=protocols.map(id=>{const p=DATA.protocols[id],rs=c.results.filter(r=>r.protocol===id),files=[...new Set(rs.map(r=>r.evidence))],env=[...new Set(rs.map(r=>r.environment))];return `<div style="margin-bottom:18px"><h3>${esc(p.label)}</h3><p class="muted" style="font-size:12px;margin-top:7px;line-height:1.8">${esc(p.method)}</p>${env.map(e=>`<p class="muted" style="font-size:11px;margin-top:7px">${esc(DATA.environments[e].details)}</p>`).join('')}<div class="evidence-files">${files.map(f=>`<div><span class="mono">${esc(f)}</span></div>`).join('')}</div></div>`}).join('')+(c.report?`<button data-report="${esc(c.report)}">Read this checkpoint’s report ↗</button>`:'');renderReports()}
 function renderReports(){const q=$('report-search').value.toLowerCase();const reports=DATA.reports.filter(r=>(r.title+' '+r.text).toLowerCase().includes(q));$('reports').innerHTML=reports.map(r=>`<button class="report-button" data-report="${esc(r.id)}" title="${esc(r.source)}"><span>${esc(r.title)}</span><span class="accent">↗</span></button>`).join('')||'<div class="empty">No matching reports</div>'}
 function renderPage(){if(page==='overview')renderOverview();else if(page==='benchmarks')renderLedger();else if(page==='evidence')renderEvidence()}
