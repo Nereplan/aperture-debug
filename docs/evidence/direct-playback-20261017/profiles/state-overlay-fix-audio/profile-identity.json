@@ -1,0 +1,10 @@
+{
+  "createdUtc": "2026-10-17T16:45:47.7002416Z",
+  "pid": 24672,
+  "runtime": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\overlay-fix-runtime",
+  "executableSha256": "3EE3F92B12F974C66B11D60F51314D3F9FE4816E075FB69D0F4081221F1A3FAF",
+  "mediaSha256": "86C249A196158CA2479BB9DD6E0045F24CBCBD2E04A80A41E37C2F6B78F70E68",
+  "privateBytes": 269967360,
+  "workingSetBytes": 178749440,
+  "note": "Diagnostic run with intrusive sampling; not a ranking or an uninstrumented performance result."
+}

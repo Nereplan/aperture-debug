@@ -1,0 +1,10 @@
+{
+  "createdUtc": "2026-10-17T17:06:34.4802560Z",
+  "pid": 3388,
+  "runtime": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\lazy-hub-runtime",
+  "executableSha256": "7A5800000595A3D64D3059C2BD8A43ACE3349AE442A12B86DD36307425B02BF3",
+  "mediaSha256": "86C249A196158CA2479BB9DD6E0045F24CBCBD2E04A80A41E37C2F6B78F70E68",
+  "privateBytes": 251613184,
+  "workingSetBytes": 171622400,
+  "note": "Diagnostic run with intrusive sampling; not a ranking or an uninstrumented performance result."
+}

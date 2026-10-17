@@ -1,0 +1,10 @@
+{
+  "createdUtc": "2026-10-17T16:42:08.2024096Z",
+  "pid": 34508,
+  "runtime": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\baseline-runtime",
+  "executableSha256": "D1F726360194F31A508A3A891EFDDA7129CC9EE17FA29086A825C66E0A673E66",
+  "mediaSha256": "86C249A196158CA2479BB9DD6E0045F24CBCBD2E04A80A41E37C2F6B78F70E68",
+  "privateBytes": 265211904,
+  "workingSetBytes": 172130304,
+  "note": "Diagnostic run with intrusive sampling; not a ranking or an uninstrumented performance result."
+}

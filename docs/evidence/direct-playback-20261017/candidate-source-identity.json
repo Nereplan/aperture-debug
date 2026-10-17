@@ -1,0 +1,590 @@
+{
+  "headBeforeOptimization": "79037414766815e6c65cbf94628e9d36e7270788",
+  "dirty": true,
+  "sourceFiles": [
+    {
+      "path": "src/Accessibility.cpp",
+      "sha256": "1c713f867f4cb8c2804d928cd431c0235ca92ddc261da0e58c9a88bfbcfb6402"
+    },
+    {
+      "path": "src/Accessibility.h",
+      "sha256": "fa7cd4b69a89c8b56801f9675b2d876964eb7546d7dda443440e9e2d9b6ed6f1"
+    },
+    {
+      "path": "src/AnimationCurves.h",
+      "sha256": "1e8449b30910da903187b607046c87a5bbb9ab760387bdef28fa43db5571ee22"
+    },
+    {
+      "path": "src/App.cpp",
+      "sha256": "42e16b8cb51358363e371ac41f8770fce220f052e231a2d0c35e1589638b7e4c"
+    },
+    {
+      "path": "src/App.h",
+      "sha256": "6b164d92031c665a5bdef97864d4dc77b30f186697e785fb1e3ee94cbfdf4b28"
+    },
+    {
+      "path": "src/AppAccessibility.cpp",
+      "sha256": "daa920797ff31128d1694275da406af912f26f0e8856a44d37f8511531295526"
+    },
+    {
+      "path": "src/AppDragDrop.cpp",
+      "sha256": "eb6004f76e15e59a5d35dc13005e6799c0330df75d47146a8d23f32db978b917"
+    },
+    {
+      "path": "src/AppFileOps.cpp",
+      "sha256": "dc45c657967d3cf3a7e43cbf107e38622ccd65f61f567f0f75273251b21bdb14"
+    },
+    {
+      "path": "src/AppHover.cpp",
+      "sha256": "119d77df2320143f60213a8afca571f148e47022dd18965462f178bad9768397"
+    },
+    {
+      "path": "src/AppImportJobs.cpp",
+      "sha256": "431e3dd8386dd8e75687ac95fbde9b9516698fc2b1a732e8c7c3bc6628fc7d48"
+    },
+    {
+      "path": "src/AppIncludes.h",
+      "sha256": "15c017ee8a5dc65e8ab43cb8961c5df0014a6e2d81a49f862dc880155ea3c5d3"
+    },
+    {
+      "path": "src/AppInternals.h",
+      "sha256": "d95ef80bc8b81296b71764917db858508e19dcb06bfebc9a0f52a46731d2bfdb"
+    },
+    {
+      "path": "src/AppKeyboard.cpp",
+      "sha256": "f9eb74a131cd830f84ee17c68b17ebd310d5aad9a3f24010f5c4e6e2029f5ab9"
+    },
+    {
+      "path": "src/AppLayout.h",
+      "sha256": "a762e05d4178b7c77c0b853a6671b0cbb1339ea38538ac71d7b02d25217f8f54"
+    },
+    {
+      "path": "src/AppLibrary.cpp",
+      "sha256": "ef0e4132e1a87c9d5a3b7d14902f8f7b882eadb5f1effe2363ab7b4c57f249c5"
+    },
+    {
+      "path": "src/AppMenus.cpp",
+      "sha256": "bcfb32d165689ff890edb04c50ffe5284ffb4893cac66b87d2f2d46a831bbbe0"
+    },
+    {
+      "path": "src/AppModals.cpp",
+      "sha256": "d0e087c7517ca49f007b2eeac780c7f13f00432d16798a95b6b7e17724671281"
+    },
+    {
+      "path": "src/AppPersistence.cpp",
+      "sha256": "0336c78e3a5faccf57c8f2d43933bcff79706c42f7efd12c517d0a66e0e22ddd"
+    },
+    {
+      "path": "src/AppPlayback.cpp",
+      "sha256": "2ed9a9dbeb0827568897e9165a27db60f15419de4901b7e6dfd367863baa802d"
+    },
+    {
+      "path": "src/AppSelection.cpp",
+      "sha256": "27dfadecca19140c0b6755b21de414d6c5fab8e1ef97da4e7b3f8d1686e02e77"
+    },
+    {
+      "path": "src/AppTooltips.cpp",
+      "sha256": "d73464fc7f15c9d41070c3c407c5cdc12c8c34940c0d89b05f5bbd4c4b64a7d6"
+    },
+    {
+      "path": "src/AppTouch.cpp",
+      "sha256": "cf31bd12bf06ca9cc446ed85ab904afd66ce0b634f450e726f0cd4adb135fa2e"
+    },
+    {
+      "path": "src/AppViewModels.cpp",
+      "sha256": "737c622a0b7e075195a3263fd8f2a85b2d9ee38746d8bf648447b1691dc9f79d"
+    },
+    {
+      "path": "src/AsyncOwnedJob.h",
+      "sha256": "9ea84eafb2ef3d42e538b656d4b0c439206ca6633cb765ebad097d01c2f856f5"
+    },
+    {
+      "path": "src/AudioConfig.cpp",
+      "sha256": "a7693e40db68baa315d39a2899b6fa90fcf44feeaa2096a9f5f7ded2ab255e9c"
+    },
+    {
+      "path": "src/AudioConfig.h",
+      "sha256": "701e84ff3280a80d0fe357e093c8870a884f04c4cee41a792ecf00750f572f9c"
+    },
+    {
+      "path": "src/BackgroundPathAvailability.h",
+      "sha256": "1ee4970e3d62e396c0a3132b0214e91499302b06aae8b2ec43a2a451d7e7be0b"
+    },
+    {
+      "path": "src/BackupFiles.h",
+      "sha256": "580f1cdc995e422ef944308ff24a6e2c822b6770302823574e1bb3c5e36924ec"
+    },
+    {
+      "path": "src/BuildInfo.cpp",
+      "sha256": "534c73c50863eca50d136c91cfa74e808708b3c87723c32fad09328d52e433a1"
+    },
+    {
+      "path": "src/BuildInfo.h",
+      "sha256": "27cc23788324755b4ec281c4d50b7d13d8005fd88400008a6de7b15dbb9de0ba"
+    },
+    {
+      "path": "src/CacheStorage.h",
+      "sha256": "8f98a632f4574d4e616d63ee90e71e130aa01042dc328a10a091937b36349171"
+    },
+    {
+      "path": "src/ChannelPolicy.cpp",
+      "sha256": "81a8669253a0e67b9f2157fd3b6a307092eb6a2a7c3a071ce863553feb5216c3"
+    },
+    {
+      "path": "src/ChannelPolicy.h",
+      "sha256": "6fe60c3453db94398294770f5bc08d0b197af762e8417be5cf45e8dc14765a4c"
+    },
+    {
+      "path": "src/ChapterMarkerCache.h",
+      "sha256": "6ec3e34b3c156d0abac2fa3909d6a7cae871f6ef555d6749c38b24b16f75c25f"
+    },
+    {
+      "path": "src/CollectionAlgorithms.h",
+      "sha256": "45a81c1dcf4c4c5134abb81ea28159bc2cbe95d20ac748fd433075b1ac485016"
+    },
+    {
+      "path": "src/ColorHelpers.h",
+      "sha256": "322692933ada4edc0527ea0d4228be0da35909ab340f864d2bc2fb5a774996ca"
+    },
+    {
+      "path": "src/CommandDispatcher.cpp",
+      "sha256": "406a2e44b70a96f4545a6880711f87ee57ba2454af9ee3e71f4c4eca9a6f5298"
+    },
+    {
+      "path": "src/CommandDispatcher.h",
+      "sha256": "6d1dcc4a1b9c19487cb797130977c991ce85c03a7d28d977bf876282a92907a4"
+    },
+    {
+      "path": "src/Common.h",
+      "sha256": "fdd8d2168e0e33b7201894aaff6ee67c0ae058aaf50bb084cd15a9e87cb26705"
+    },
+    {
+      "path": "src/CommonStrings.h",
+      "sha256": "70e40ccc2628072875d0352032d9eb16da1f3b922a38a13c04f8963d0d564085"
+    },
+    {
+      "path": "src/Diagnostics.cpp",
+      "sha256": "0b993c1730ee24c490ad4f842b412895528b72b87e5ac038c503693f5e6f83c5"
+    },
+    {
+      "path": "src/Diagnostics.h",
+      "sha256": "e45c03ea8cd9411e229e5d20dca101375a89f47a12c24b1d76ac52edbc1a601d"
+    },
+    {
+      "path": "src/DllLoader.h",
+      "sha256": "da3f74140662411959a364b6cbc2ff6c99491c4a5a10c4d680448704917fbeb8"
+    },
+    {
+      "path": "src/DrawingPrimitives.h",
+      "sha256": "d712a46dc094fbbb0558582df8c2c2a5065a46c9e4ff3e0bd3e11be9143b9ff9"
+    },
+    {
+      "path": "src/Error.h",
+      "sha256": "368bf16a131db839ff012c1a6ff6d0f33b8cc22b515c6e142e8cdf8ff2d3e0f3"
+    },
+    {
+      "path": "src/FolderRediscovery.h",
+      "sha256": "3b3a7d382cb11a7ed807aa38ec9543325e160d83fa9f4d5bd1a488a82f1d36e4"
+    },
+    {
+      "path": "src/FolderWatcher.cpp",
+      "sha256": "acad559cb44471e85494ebe28cd4c4fb397fa0dd88541c50641436277e70d9f9"
+    },
+    {
+      "path": "src/FolderWatcher.h",
+      "sha256": "7a4cf4e57204ac2fdfa36164a21a86a54c7638136460356fa2fd10a0390dad5d"
+    },
+    {
+      "path": "src/FontResources.h",
+      "sha256": "9e627204d0f656c34045eb9b6f61f861fa8945cf37e341a9b34a1040d23a148a"
+    },
+    {
+      "path": "src/Formatters.h",
+      "sha256": "0b9faeaf41a99839d1313cb8bb698427690c50d6592fed707bb9dbff63f9400d"
+    },
+    {
+      "path": "src/GeometryHelpers.h",
+      "sha256": "0e5ec34d2f6a69806e390b73571733c142ec9c91afc6f0f4cc51a4ee49fbf50a"
+    },
+    {
+      "path": "src/GlobalSearch.cpp",
+      "sha256": "442aba47b96a1819bf08b672539f3a2f7681659d3e936b46a9bd86896b68ff00"
+    },
+    {
+      "path": "src/GlobalSearch.h",
+      "sha256": "d7a59d70244606c2ffe6f54559d56149e1faac639885e31bfe933432de40ea27"
+    },
+    {
+      "path": "src/HeapOptional.h",
+      "sha256": "0dde0b4470724b82dd69a38f18e1d51fb80f6039959535357d4a1e8403008238"
+    },
+    {
+      "path": "src/HttpBodyReader.h",
+      "sha256": "1d6d878a86a681ffa088c2679c4fb95ba28264f16e364860cce2520a1efc6dcd"
+    },
+    {
+      "path": "src/HttpTransport.cpp",
+      "sha256": "e835853191494b52afc2242108809a8e9e35af9374c676f2e372588caac955a1"
+    },
+    {
+      "path": "src/HttpTransport.h",
+      "sha256": "5825769fc75de98939d061ac6f6ed4ddc538711afbb86cf0227408046d2acc3a"
+    },
+    {
+      "path": "src/IconPaths.h",
+      "sha256": "820d7602184a541fc619aa5e1425f3df66837c5d4743b403a67551be12dfa76f"
+    },
+    {
+      "path": "src/ImportPlaybackIntent.h",
+      "sha256": "ef08c4213b749d110870bb014dca6877fa64a573d0892c8aa6bcb95c81b3d3bc"
+    },
+    {
+      "path": "src/IpcProtocol.h",
+      "sha256": "ad8bb99a0ee4a84ff0ed3466cb991e7ebcc7f574106ca73cee4c12400855c0ca"
+    },
+    {
+      "path": "src/Json.cpp",
+      "sha256": "ab3c88eee43eff4517d37f56fd697aeead97a0b92509203825f26b01e68de04b"
+    },
+    {
+      "path": "src/Json.h",
+      "sha256": "5cab7348ae3de4ce833b204f0a443cdb35476a2f7a68308235abf527ff93319b"
+    },
+    {
+      "path": "src/JsonStoreValidation.h",
+      "sha256": "1be3b1fe6a475dc8ee90e9e9e0355513841dbbf2f0b9c99f2af8654edab2ffbd"
+    },
+    {
+      "path": "src/JumpList.cpp",
+      "sha256": "0374db718930364a2b2877d6724ccabb7f20217e3dd3eb7003a58cfa06c116dc"
+    },
+    {
+      "path": "src/JumpList.h",
+      "sha256": "89ffcd9c195e3ea6f29a0a99207799a45cdae66d892a76aeb55f350f4498f4d5"
+    },
+    {
+      "path": "src/LibraryIncrementalStore.h",
+      "sha256": "c6e89570c1d9dd03ad8f780a4bf5895b0c68f2c59fcb041d461f0af870936732"
+    },
+    {
+      "path": "src/LibraryQuery.cpp",
+      "sha256": "846260f02c207dc3ff42ad91c065983c7d219df65d0315e41a9f04a7f6239313"
+    },
+    {
+      "path": "src/LibraryQuery.h",
+      "sha256": "5b8236b04fb2dff5d4775c4612b73024f458b04db1477de849a117799e0b2b78"
+    },
+    {
+      "path": "src/LibrarySaveComparison.h",
+      "sha256": "a6aa06032c937633ae2f2e7b8435b0af832e8ced4c544b31dfccfb5e496c4b72"
+    },
+    {
+      "path": "src/LibrarySaveWorker.h",
+      "sha256": "e6b105660f27f9f6c7b721f39bf8a4740f298afbbb92132ba2a5b1f5cf2aba8e"
+    },
+    {
+      "path": "src/LibrarySnapshot.cpp",
+      "sha256": "63563d5136bb261e2375fa55b531803741a31db16923e49399296ed4c62301e4"
+    },
+    {
+      "path": "src/LibrarySnapshot.h",
+      "sha256": "42c42fd85677f66f70d9899c29b2a95d3e6bd2f94040fe4a16a4bba297949e7c"
+    },
+    {
+      "path": "src/Localization.cpp",
+      "sha256": "1f438a0c77b1eddb255716d0b75417f9abe2c1eeb65bd31b0a4804e5df27ad49"
+    },
+    {
+      "path": "src/Localization.h",
+      "sha256": "4e80c9bc09dc55d7f8fe77d03243fcb07ce592bab1de267562b2e44ac7333b38"
+    },
+    {
+      "path": "src/main.cpp",
+      "sha256": "a597b9e3001f73541134bf841966be23a972d7804870bc6c53971f0d64dc8a49"
+    },
+    {
+      "path": "src/MediaFoundation.cpp",
+      "sha256": "1afeb3d59bef23f4abac32d6e545ef814964b616b2b3baaf769e3a643d2e1eb1"
+    },
+    {
+      "path": "src/MediaFoundation.h",
+      "sha256": "b9b70d639351bbdb309faa577205e6d417735ad6bce8115b5f71763dcdbca094"
+    },
+    {
+      "path": "src/MediaImportProbeCache.h",
+      "sha256": "90b768aa2cac842019ff27a75a43658e55886dde38cf04e26e064f039b6d9fa9"
+    },
+    {
+      "path": "src/MediaLibrary.cpp",
+      "sha256": "2e16dfd57d0e1dc0b3802b0603d78730ed8dfd8d45618b606bc98782f6c57bfa"
+    },
+    {
+      "path": "src/MediaLibrary.h",
+      "sha256": "8c6aaa40e0c1badc3ac54aa3f9510d15bc4169db16a107073890756572c4a727"
+    },
+    {
+      "path": "src/MediaProbeIsolation.cpp",
+      "sha256": "2aa4a2a47d3d9f7f9868e2a84af164c54f62b529f3bec324b8d27d28522cdfbf"
+    },
+    {
+      "path": "src/MediaProbeIsolation.h",
+      "sha256": "9ed5ccc6bd0de4ee94c5d6780fecc88004bee09e9c60a8e020db60d8cac89160"
+    },
+    {
+      "path": "src/MediaTransport.cpp",
+      "sha256": "3a9878abfaa865a70957d5eb517c644d8b78e3d880cbca311903a2d0738d9dac"
+    },
+    {
+      "path": "src/MediaTransport.h",
+      "sha256": "ec41313ae4a8d5e433ebaad031208b6a50d3228ced090d8a82eb03413476fc6c"
+    },
+    {
+      "path": "src/MetadataBackfillCursor.h",
+      "sha256": "399da0978152ba58a77f880f2a3c3294f4abeece25fc45a7d8b4ef1bd8ee05c0"
+    },
+    {
+      "path": "src/MpvApi.h",
+      "sha256": "a85a2f8c6959f7bb1f4266b6d906a6b7f3b3dd71e81e3d0e5ca77f46b7c425d1"
+    },
+    {
+      "path": "src/MpvPlayer.cpp",
+      "sha256": "f2b86d6a3f58db944cf514f8e6be31f88006f841e4630d0a064172b38468a374"
+    },
+    {
+      "path": "src/MpvPlayer.h",
+      "sha256": "64d1d3fce9934740e02adebd0eb743c5e33a18e9204df34e17142a57a25edd87"
+    },
+    {
+      "path": "src/NetworkStream.cpp",
+      "sha256": "e1f8d4c8671c67de50493aa8169ca0412ecb3a7f91d0e7ca2da699370530f9a3"
+    },
+    {
+      "path": "src/NetworkStream.h",
+      "sha256": "f3325173a60e487c484c4fb018d99e8c9bfe2288ac21c1588ed06690267ae01b"
+    },
+    {
+      "path": "src/OnlineSubtitleJobs.h",
+      "sha256": "8977d10fb2f97a57c1fb859efe2d50bb38c8a260f2ff59abb8d93db0a74775d9"
+    },
+    {
+      "path": "src/OnlineSubtitles.cpp",
+      "sha256": "bed718c5e6163db8c1bf72d52b565683dbdfca2a34c15c2bb1e8d6aa39801b06"
+    },
+    {
+      "path": "src/OnlineSubtitles.h",
+      "sha256": "2d4bfe996d530010a86434d93ef6cddd3599316d76c89722807096680bf715e1"
+    },
+    {
+      "path": "src/OperationCancellation.h",
+      "sha256": "7f96042ed1d8e602ba42bad091e362794f3b3ae9f76988b6a61172b687e30cac"
+    },
+    {
+      "path": "src/OverlayFramePacer.h",
+      "sha256": "4753e51ae1a2b7004d0af0001d5a47353bf44770be67d3fbd4c7226504cf8849"
+    },
+    {
+      "path": "src/OverlayRenderer.cpp",
+      "sha256": "209b424048b1928f25a4bb7f4a24c1c04bb7ea89aa8aa66b07e1c8a96cc2ed13"
+    },
+    {
+      "path": "src/OverlayRenderer.h",
+      "sha256": "6396ed7da429725f7df56143152aec53b1ce694676d32a2be88e3f4e292bca23"
+    },
+    {
+      "path": "src/PathFileHelpers.h",
+      "sha256": "cdbe61a42c67c52e75dfeac552cd920d947a03eaf432b8e762796532ba202374"
+    },
+    {
+      "path": "src/PlaybackSession.cpp",
+      "sha256": "5fc867c45c893e6894bb8e74004b19a75746fedd553ac2e3c527e0ddbb09a284"
+    },
+    {
+      "path": "src/PlaybackSession.h",
+      "sha256": "b69bdabfc23de5f6a75ee5a65bfd2feda75853a328dca70b6d7d82cff81c755d"
+    },
+    {
+      "path": "src/PlaybackTarget.h",
+      "sha256": "d996ea685aab61925e72c47704facb1949f0185be4ce1621530c1566c4a11eae"
+    },
+    {
+      "path": "src/PlaylistIO.cpp",
+      "sha256": "c26d3189f2e54612a2adad41b718d1e4f6925db5a536c0ca21bde2637d3f199c"
+    },
+    {
+      "path": "src/PlaylistIO.h",
+      "sha256": "649a4069e5b50709160a6d0f027c8bf0e81bdd4b73ef0a4316dc8ebdd2cb0ab2"
+    },
+    {
+      "path": "src/PreparedSmartPlaylist.h",
+      "sha256": "8084453510ba358caaa92ed6bf3964eeeb3ebf2d7c1ef50da7ff793978bf866f"
+    },
+    {
+      "path": "src/Presentation.h",
+      "sha256": "0c802cdb48e59e30a55d2d1e50dbec26b0ea94e24bc7ee9316c874cbe32b8142"
+    },
+    {
+      "path": "src/Renderer.cpp",
+      "sha256": "1edf592f98d511a59e306c84cd5f1705b8e1a6761d489a4bbbd8a9524c86b445"
+    },
+    {
+      "path": "src/Renderer.h",
+      "sha256": "12055f016137ad23135b1e7a8b1750c37818bfc9e212954f7e7b6de90dcc7671"
+    },
+    {
+      "path": "src/RenderViewModel.h",
+      "sha256": "c2e6b94fedc732110d325c43ae99a2c72637a007699a383b5795c8e11c729a95"
+    },
+    {
+      "path": "src/Reorder.h",
+      "sha256": "e00b192f3453d5f488efc869b9c73efbf94d1d0970ddf52a59839d81b21491e5"
+    },
+    {
+      "path": "src/resource.h",
+      "sha256": "621f5504a7b21255dd2c728e9135f75ee6cbcf109b232b299af660482aaf6cf8"
+    },
+    {
+      "path": "src/ScreenshotPaths.h",
+      "sha256": "003fa03c71cd11fa4945cef8816424c722ddf8bb49231f8f676c721084dbe9a8"
+    },
+    {
+      "path": "src/Settings.cpp",
+      "sha256": "09cc42469c7d16c89da63d68f81b1658b13812ab291b8cab413899d0c2c9f930"
+    },
+    {
+      "path": "src/Settings.h",
+      "sha256": "01f794e60755420f2ca4ea5f13ea1e76f5d3c1b40906b40b2922747a5d0c3c88"
+    },
+    {
+      "path": "src/SettingsLayout.h",
+      "sha256": "0a5eaf36e0821a728d6e46ea77fae16b5fa125037658a0389ce180d10ea57fed"
+    },
+    {
+      "path": "src/SmartRuleParsing.h",
+      "sha256": "301b713dae4401298170aabf9156a733801b2ad7f9d6fd4ec1f250acf8d879f3"
+    },
+    {
+      "path": "src/SnapshotRecords.h",
+      "sha256": "617ee08fcd38b21ff3eb9c2df8a14904f0d1f0949856ccd01fae3863f3d1fd08"
+    },
+    {
+      "path": "src/StorageLimits.h",
+      "sha256": "209f657d69f2f7096563aa6be16f977dfd83765ce4ba276429208ea7d9831e7e"
+    },
+    {
+      "path": "src/StorageStatus.h",
+      "sha256": "955a7bde83bb413940327d6c72ff6b67ec4552d38e8bc39c37386f6a1f62088e"
+    },
+    {
+      "path": "src/SubtitleDiscovery.cpp",
+      "sha256": "fdf7cd8f1a449c6043fcca1c4b35279c1b715cd70ad7a7ce688031f2d9ebfc19"
+    },
+    {
+      "path": "src/SubtitleDiscovery.h",
+      "sha256": "a007b5f91dab2895603523f23775d5e3ec2caed3160fac02cc76915572abf3e4"
+    },
+    {
+      "path": "src/Subtitles.cpp",
+      "sha256": "111434d75adbe3f9c569aaf5604577145d75417a84f8eac39c86c1311c41e593"
+    },
+    {
+      "path": "src/Subtitles.h",
+      "sha256": "9c411a7b2c5ce549f85f91041ffa1b6de280332d913216dca7a14724ed4f6ea2"
+    },
+    {
+      "path": "src/SvgGeometry.h",
+      "sha256": "8ce01bd4b5e4f56edffef2b8094169138f79519acb129b15546432b50f88a437"
+    },
+    {
+      "path": "src/SystemVisualPreferences.cpp",
+      "sha256": "9746933d4b5d0eca2ca089ce4a01af83b30e6f7d605b054fa3c89ebdc24d57b1"
+    },
+    {
+      "path": "src/SystemVisualPreferences.h",
+      "sha256": "e42b44615c00806c214e403b67f9f7b15eba80b527efe10465068650087acaca"
+    },
+    {
+      "path": "src/TaskbarController.cpp",
+      "sha256": "31bc5c153b2ce56d8af6c6f681191d5d2620b20b462c5aa7243cdf174b73dc61"
+    },
+    {
+      "path": "src/TaskbarController.h",
+      "sha256": "f0f7537672d819500bb3198151943261935a899a3fe13246c1ea0cbe93173fcd"
+    },
+    {
+      "path": "src/TextInputModel.cpp",
+      "sha256": "7c5ec9f1fab48291c674dfea3b9f8317ad4234ff2e564efecd171d3f77dd9053"
+    },
+    {
+      "path": "src/TextInputModel.h",
+      "sha256": "45a8ee3d477d75f841378277fb332ae26111cbef2681c35bbcd926842688130d"
+    },
+    {
+      "path": "src/ThumbnailCodec.h",
+      "sha256": "58e5798d4c521dca17ed2ad755c673c10fe8ec49eee2e967e65930b3f1949432"
+    },
+    {
+      "path": "src/ThumbnailMigration.h",
+      "sha256": "62632ec0e6aae9191e72b6d507b98b5f2aeb8753a785ce4d15dd6f0372b2cdd6"
+    },
+    {
+      "path": "src/TooltipManager.cpp",
+      "sha256": "d788bf147f288010bc4605a0fda755bb2e5fde381feed734dfaa2c8c47bc2f1b"
+    },
+    {
+      "path": "src/TooltipManager.h",
+      "sha256": "9ce8fd73b1fa109436eca0e7b8e56b9a0ffbf814490277b38e0a3a860aed7222"
+    },
+    {
+      "path": "src/TouchInput.h",
+      "sha256": "96262726a6e46a6111576b5116cc99025eed7ce24c0baaccad1476a699fd6523"
+    },
+    {
+      "path": "src/UIComponents.cpp",
+      "sha256": "3610499da4732942053488c2a8db1b1bbc7e98dcd0722132a8d9fcc37db5abad"
+    },
+    {
+      "path": "src/UIComponents.h",
+      "sha256": "1fed73243eff3dbca96c2db6ae07b92d64c2fe84ba601e71d886188e1db0ab2a"
+    },
+    {
+      "path": "src/Updater.cpp",
+      "sha256": "842037f4afe1a36043b1aa36f28b85d1fd883850e3885923a2ecc832bca334da"
+    },
+    {
+      "path": "src/Updater.h",
+      "sha256": "ddb40e6275c6914ef7ff1b9e59e88852f03ddcbe2decd80e4b171f48aaedff12"
+    },
+    {
+      "path": "src/WatchReconcile.h",
+      "sha256": "06a00ba2d10f8781ddd66df602721671f2487e9516c0ef90e465f34ff1739fa3"
+    },
+    {
+      "path": "src/Win32IoCancellation.h",
+      "sha256": "ca87f73888d4804cd4885e34b9c57dc7ca7daa4090ed3a4ab67310b37f442ef2"
+    },
+    {
+      "path": "src/WindowGeometry.h",
+      "sha256": "68886df7f4416026b934c8df1b8008b58c5a173903c059a64b7c38b3d6509e8e"
+    },
+    {
+      "path": "src/WinHttpAsyncRequest.h",
+      "sha256": "414ab475fbe929265a8c81ce46eac40580c85fd69b8832f6f7eed5757310e113"
+    },
+    {
+      "path": "CMakeLists.txt",
+      "sha256": "1be0fe9758affe3e791a5403d77270feb9d28556a78528ca627e4a305bdc2cb3"
+    },
+    {
+      "path": "version.json",
+      "sha256": "2981b60b0178d70226916bfed6c257a107cd8b5b638854f59bd7c1d5e283482d"
+    },
+    {
+      "path": "build.ps1",
+      "sha256": "59ee0406a3f24fb6f196a5072723dccac62a71816f814da3ddcbc1af6c21569e"
+    },
+    {
+      "path": "libmpv-2.dll",
+      "sha256": "11b37889e5103a1370509dcf5e5a9c389325c497552f522f45049dfba19f5c52"
+    }
+  ]
+}

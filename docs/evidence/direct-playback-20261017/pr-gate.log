@@ -1,0 +1,123 @@
+================================================================================
+  Aperture Test Runner: Executing 22 suite(s)
+================================================================================
+
+>>> [Suite: loading] Portable Library Loading Pipeline (Tier: pr, Category: persistence)
+    Script: tests\loading\run_tests.ps1 | Cleanup: isolated_temp | Timeout: 180s
+<<< [PASS] loading (44.7s)
+
+>>> [Suite: backend] Backend Behavior and Resource Contracts (Tier: pr, Category: persistence)
+    Script: tests\backend\run_tests.ps1 | Cleanup: isolated_temp | Timeout: 180s
+<<< [PASS] backend (8.06s)
+
+>>> [Suite: local_release] Local Release Publishing (Tier: pr, Category: package)
+    Script: tests\package\test_local_release.ps1 | Cleanup: isolated_temp | Timeout: 60s
+<<< [PASS] local_release (4.59s)
+
+>>> [Suite: github_update] GitHub Release Update Workflow (Tier: pr, Category: package)
+    Script: tests\package\test_github_update.ps1 | Cleanup: isolated_temp | Timeout: 60s
+<<< [PASS] github_update (3.57s)
+
+>>> [Suite: update_retention] Release Update and Data Retention (Tier: pr, Category: package)
+    Script: tests\package\test_update_retention.ps1 | Cleanup: isolated_temp | Timeout: 60s
+<<< [PASS] update_retention (4.26s)
+
+>>> [Suite: workspace_cleanup] Workspace Cleanup Behavior (Tier: pr, Category: package)
+    Script: tests\package\test_workspace_cleanup.ps1 | Cleanup: isolated_temp | Timeout: 60s
+<<< [PASS] workspace_cleanup (1.99s)
+
+>>> [Suite: workflows] Seeded Library and Portable Profile Workflows (Tier: pr, Category: integration)
+    Script: tests\workflows\run_tests.ps1 | Cleanup: isolated_temp | Timeout: 240s
+<<< [PASS] workflows (22.37s)
+
+>>> [Suite: unit] Unit Tests (Tier: pr, Category: unit)
+    Script: tests\unit\run_tests.ps1 | Cleanup: isolated_temp | Timeout: 300s
+<<< [PASS] unit (64.84s)
+
+>>> [Suite: corpus] Parser & Media Corpus Tests (Tier: pr, Category: corpus)
+    Script: tests\corpus\run_tests.ps1 | Cleanup: isolated_temp | Timeout: 180s
+<<< [PASS] corpus (7.8s)
+
+>>> [Suite: persistence] Persistence Tests (Tier: pr, Category: persistence)
+    Script: tests\persistence\run_tests.ps1 | Cleanup: isolated_temp | Timeout: 180s
+<<< [PASS] persistence (7.28s)
+
+>>> [Suite: ipc] IPC Tests (Tier: pr, Category: ipc)
+    Script: tests\ipc\run_tests.ps1 | Cleanup: isolated_temp | Timeout: 120s
+<<< [PASS] ipc (4.43s)
+
+>>> [Suite: loader] DLL Loader Tests (Tier: pr, Category: loader)
+    Script: tests\loader\run_tests.ps1 | Cleanup: isolated_temp | Timeout: 120s
+<<< [PASS] loader (26.96s)
+
+>>> [Suite: diagnostics] Diagnostics Tests (Tier: pr, Category: diagnostics)
+    Script: tests\diagnostics\run_tests.ps1 | Cleanup: isolated_temp | Timeout: 180s
+<<< [PASS] diagnostics (27.23s)
+
+>>> [Suite: updater] Self-Updater Deterministic Tests (Tier: pr, Category: updater)
+    Script: tests\updater\run_tests.ps1 | Cleanup: isolated_temp | Timeout: 180s
+<<< [PASS] updater (15.98s)
+
+>>> [Suite: channel_policy] Release Channel Policy & Schema Validation (Tier: pr, Category: package)
+    Script: scripts\validate_channel_policy.ps1 | Cleanup: no_artifacts | Timeout: 30s
+<<< [PASS] channel_policy (0.5s)
+
+>>> [Suite: dependencies] Dependency Inventory & Integrity Check (Tier: pr, Category: package)
+    Script: scripts\check_dependencies.ps1 | Cleanup: no_artifacts | Timeout: 60s
+<<< [PASS] dependencies (1.14s)
+
+>>> [Suite: runtime_layout] Runtime-Only Release Layout Tests (Tier: pr, Category: package)
+    Script: tests\package\test_runtime_layout.ps1 | Cleanup: isolated_temp | Timeout: 30s
+<<< [PASS] runtime_layout (1.21s)
+
+>>> [Suite: threat_boundaries] Threat Boundary & Security Invariant Validation (Tier: pr, Category: hardening)
+    Script: scripts\validate_threat_boundaries.py | Cleanup: no_artifacts | Timeout: 30s
+<<< [PASS] threat_boundaries (0.24s)
+
+>>> [Suite: static_analysis] MSVC C++17 Native Static Code Analysis Gate (Tier: pr, Category: static_analysis)
+    Script: scripts\run_static_analysis.ps1 | Cleanup: isolated_temp | Timeout: 600s
+<<< [PASS] static_analysis (83.18s)
+
+>>> [Suite: stress] Async Shutdown Stress Suite (Tier: pr, Category: stress)
+    Script: tests\stress\run_tests.ps1 | Cleanup: isolated_temp | Timeout: 180s
+<<< [PASS] stress (78.57s)
+
+>>> [Suite: media_probe_isolation] Native Media Probe Isolation and Cancellation (Tier: pr, Category: stress)
+    Script: tests\native\run_media_probe_isolation.ps1 | Cleanup: isolated_temp | Timeout: 120s
+<<< [PASS] media_probe_isolation (13.59s)
+
+>>> [Suite: thumbnail_cache] Thumbnail Cache Workflows (Tier: pr, Category: persistence)
+    Script: tests\thumbnails\run_tests.ps1 | Cleanup: isolated_temp | Timeout: 120s
+<<< [PASS] thumbnail_cache (30.36s)
+
+================================================================================
+  Test Execution Summary
+================================================================================
+
+Suite                 Tier Category        Result Duration ExitCode
+-----                 ---- --------        ------ -------- --------
+loading               pr   persistence     PASS   44.7s           0
+backend               pr   persistence     PASS   8.06s           0
+local_release         pr   package         PASS   4.59s           0
+github_update         pr   package         PASS   3.57s           0
+update_retention      pr   package         PASS   4.26s           0
+workspace_cleanup     pr   package         PASS   1.99s           0
+workflows             pr   integration     PASS   22.37s          0
+unit                  pr   unit            PASS   64.84s          0
+corpus                pr   corpus          PASS   7.8s            0
+persistence           pr   persistence     PASS   7.28s           0
+ipc                   pr   ipc             PASS   4.43s           0
+loader                pr   loader          PASS   26.96s          0
+diagnostics           pr   diagnostics     PASS   27.23s          0
+updater               pr   updater         PASS   15.98s          0
+channel_policy        pr   package         PASS   0.5s            0
+dependencies          pr   package         PASS   1.14s           0
+runtime_layout        pr   package         PASS   1.21s           0
+threat_boundaries     pr   hardening       PASS   0.24s           0
+static_analysis       pr   static_analysis PASS   83.18s          0
+stress                pr   stress          PASS   78.57s          0
+media_probe_isolation pr   stress          PASS   13.59s          0
+thumbnail_cache       pr   persistence     PASS   30.36s          0
+
+
+Total Suites: 22 | Passed: 22 | Failed: 0 (Timeouts: 0) | Total Time: 452.95s

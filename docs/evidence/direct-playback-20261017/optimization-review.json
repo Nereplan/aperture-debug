@@ -1,0 +1,170 @@
+{
+  "sourceCommit": "b0ea976de47be68f7a1682414e003b2b15a355dd",
+  "dirty": true,
+  "scope": "One synthetic H.264 clip with AAC stereo on this 24-LP Ryzen/RTX machine. Fresh portable profiles, warm OS caches; no equal-output-quality or general player superiority claim. Actual CPU timestamps precede status/GPU queries. VLC positions are integer-quantized; outer windows match but viewports can differ. Root-process counters exclude shared system services. Memory accounts overlap and are not summed.",
+  "summary": {
+    "Aperture-before": {
+      "runs": 3,
+      "metrics": {
+        "visible-ms": {
+          "median": 118.4283,
+          "min": 111.0965,
+          "max": 138.5092
+        },
+        "private-mib": {
+          "median": 256.40625,
+          "min": 252.5859375,
+          "max": 256.921875
+        },
+        "cpu-core": {
+          "median": 22.07774589740162,
+          "min": 21.66024772445435,
+          "max": 22.124068789303255
+        },
+        "runtime-mib": {
+          "median": 27.82579517364502,
+          "min": 27.82579517364502,
+          "max": 27.82579517364502
+        },
+        "working-set-mib": {
+          "median": 168.62109375,
+          "min": 167.6484375,
+          "max": 170.8046875
+        },
+        "gpu-mib": {
+          "median": 169.49609375,
+          "min": 169.49609375,
+          "max": 169.49609375
+        }
+      },
+      "cpuTotalCapacityPercent": 0.9199060790584008,
+      "executableSha256": "D1F726360194F31A508A3A891EFDDA7129CC9EE17FA29086A825C66E0A673E66"
+    },
+    "Aperture-optimized": {
+      "runs": 3,
+      "metrics": {
+        "visible-ms": {
+          "median": 132.7196,
+          "min": 114.4507,
+          "max": 134.1441
+        },
+        "private-mib": {
+          "median": 219.35546875,
+          "min": 219.14453125,
+          "max": 221.64453125
+        },
+        "cpu-core": {
+          "median": 8.070122117879281,
+          "min": 7.446841764703543,
+          "max": 8.799506280592311
+        },
+        "runtime-mib": {
+          "median": 27.82628345489502,
+          "min": 27.82628345489502,
+          "max": 27.82628345489502
+        },
+        "working-set-mib": {
+          "median": 143.15625,
+          "min": 142.9765625,
+          "max": 144.24609375
+        },
+        "gpu-mib": {
+          "median": 148.03515625,
+          "min": 148.03125,
+          "max": 148.04296875
+        }
+      },
+      "cpuTotalCapacityPercent": 0.33625508824497,
+      "executableSha256": "90895BAEE09C9899B85A55A057F94558D8D67079A032C022876184553CE3332E"
+    },
+    "VLC": {
+      "runs": 3,
+      "metrics": {
+        "visible-ms": {
+          "median": 1854.4517,
+          "min": 1838.8057,
+          "max": 1927.9498
+        },
+        "private-mib": {
+          "median": 150.53125,
+          "min": 150.27734375,
+          "max": 150.8125
+        },
+        "cpu-core": {
+          "median": 5.3104637557774845,
+          "min": 4.060912508082341,
+          "max": 6.974315123837072
+        },
+        "runtime-mib": {
+          "median": 182.99101448059082,
+          "min": 182.99101448059082,
+          "max": 182.99101448059082
+        },
+        "working-set-mib": {
+          "median": 146.1875,
+          "min": 145.6484375,
+          "max": 147.83984375
+        },
+        "gpu-mib": {
+          "median": 117.96484375,
+          "min": 117.953125,
+          "max": 117.96875
+        }
+      },
+      "cpuTotalCapacityPercent": 0.2212693231573952,
+      "executableSha256": "BFA5740F028A8F310CA01C779BBC5F2F1B435C41539C54DE592F715BB0C10389"
+    }
+  },
+  "changes": "Fixed a direct-launch bootstrap flag that continuously redrew an invisible overlay; defer the unused hub GPU device until hub/preview intent; reduce hardware decoder threads from four to one while preserving software threading. Corrected presentation-drop diagnostics to mpv frame-drop-count. H.2641080p30+audio and HEVC Main10 4K60+audio resource screens verified direct D3D11VA, no steady decoder/presentation drops, and equivalent fixed-frame captures (4K at most one pixel/channel level difference). All tests use this one GPU; this is not validation of every GPU, codec or workload. One synthetic H.264 clip with AAC stereo on this 24-LP Ryzen/RTX machine. Fresh portable profiles, warm OS caches; no equal-output-quality or general player superiority claim. Actual CPU timestamps precede status/GPU queries. VLC positions are integer-quantized; outer windows match but viewports can differ. Root-process counters exclude shared system services. Memory accounts overlap and are not summed.",
+  "discardedExperiments": [
+    "D3D11 zero-copy, swapchain depth and latency screens did not establish an additional overall gain; not deployed.",
+    "Releasing free LFH caches saved only ~2.3MiB in one screen; not deployed."
+  ],
+  "failedEvidence": "Initial hardware-thread screen failed because the diagnostic used unavailable vo-drop-frame-count; retained as a failed run. Subsequent screens require available decoder-frame-drop-count and frame-drop-count and reject steady drops.",
+  "limitations": [
+    "Single-sample engine option screens identify candidates, not final player rankings.",
+    "59 functional checks cover behavior, not universal visual equivalence.",
+    "Intrusive stack traces are diagnostics; nearest exported libmpv symbols can be misleading. Uninstrumented comparison is kept separate."
+  ],
+  "goal": "Aperture has improved, but a general performance win over VLC is not established.",
+  "measuredChange": {
+    "cpu-core": {
+      "before": 22.07774589740162,
+      "optimized": 8.070122117879281,
+      "relativePercent": -63.44680224429491
+    },
+    "private-mib": {
+      "before": 256.40625,
+      "optimized": 219.35546875,
+      "relativePercent": -14.450030469226082
+    },
+    "working-set-mib": {
+      "before": 168.62109375,
+      "optimized": 143.15625,
+      "relativePercent": -15.101813885607063
+    },
+    "gpu-mib": {
+      "before": 169.49609375,
+      "optimized": 148.03515625,
+      "relativePercent": -12.661611854992971
+    },
+    "visible-ms": {
+      "before": 118.4283,
+      "optimized": 132.7196,
+      "relativePercent": 12.067470359702902,
+      "note": "20ms launch observer and overlapping three-run ranges; visible shell is not video readiness. Do not attribute a ~14ms median difference to a causal startup regression."
+    }
+  },
+  "sourcePatches": {
+    "candidate-working-tree.patch": {
+      "file": "candidate-working-tree.patch.gz",
+      "uncompressedSha256": "13a1277cd978eb778fa808e01c1b7c936c4aedb24f7e28bd9af523db0fc7c033",
+      "encoding": "gzip of the original patch bytes; whitespace preserved"
+    },
+    "preexisting-source.patch": {
+      "file": "preexisting-source.patch.gz",
+      "uncompressedSha256": "237c53005eb5e898c304b2de258269a79c1dc2be55a8b0086bd83f3e44638da8",
+      "encoding": "gzip of the original patch bytes; whitespace preserved"
+    }
+  }
+}

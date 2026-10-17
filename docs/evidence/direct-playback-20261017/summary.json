@@ -1,0 +1,113 @@
+{
+  "Aperture-before": {
+    "runs": 3,
+    "metrics": {
+      "visible-ms": {
+        "median": 118.4283,
+        "min": 111.0965,
+        "max": 138.5092
+      },
+      "private-mib": {
+        "median": 256.40625,
+        "min": 252.5859375,
+        "max": 256.921875
+      },
+      "cpu-core": {
+        "median": 22.07774589740162,
+        "min": 21.66024772445435,
+        "max": 22.124068789303255
+      },
+      "runtime-mib": {
+        "median": 27.82579517364502,
+        "min": 27.82579517364502,
+        "max": 27.82579517364502
+      },
+      "working-set-mib": {
+        "median": 168.62109375,
+        "min": 167.6484375,
+        "max": 170.8046875
+      },
+      "gpu-mib": {
+        "median": 169.49609375,
+        "min": 169.49609375,
+        "max": 169.49609375
+      }
+    },
+    "cpuTotalCapacityPercent": 0.9199060790584008,
+    "executableSha256": "D1F726360194F31A508A3A891EFDDA7129CC9EE17FA29086A825C66E0A673E66"
+  },
+  "Aperture-optimized": {
+    "runs": 3,
+    "metrics": {
+      "visible-ms": {
+        "median": 132.7196,
+        "min": 114.4507,
+        "max": 134.1441
+      },
+      "private-mib": {
+        "median": 219.35546875,
+        "min": 219.14453125,
+        "max": 221.64453125
+      },
+      "cpu-core": {
+        "median": 8.070122117879281,
+        "min": 7.446841764703543,
+        "max": 8.799506280592311
+      },
+      "runtime-mib": {
+        "median": 27.82628345489502,
+        "min": 27.82628345489502,
+        "max": 27.82628345489502
+      },
+      "working-set-mib": {
+        "median": 143.15625,
+        "min": 142.9765625,
+        "max": 144.24609375
+      },
+      "gpu-mib": {
+        "median": 148.03515625,
+        "min": 148.03125,
+        "max": 148.04296875
+      }
+    },
+    "cpuTotalCapacityPercent": 0.33625508824497,
+    "executableSha256": "90895BAEE09C9899B85A55A057F94558D8D67079A032C022876184553CE3332E"
+  },
+  "VLC": {
+    "runs": 3,
+    "metrics": {
+      "visible-ms": {
+        "median": 1854.4517,
+        "min": 1838.8057,
+        "max": 1927.9498
+      },
+      "private-mib": {
+        "median": 150.53125,
+        "min": 150.27734375,
+        "max": 150.8125
+      },
+      "cpu-core": {
+        "median": 5.3104637557774845,
+        "min": 4.060912508082341,
+        "max": 6.974315123837072
+      },
+      "runtime-mib": {
+        "median": 182.99101448059082,
+        "min": 182.99101448059082,
+        "max": 182.99101448059082
+      },
+      "working-set-mib": {
+        "median": 146.1875,
+        "min": 145.6484375,
+        "max": 147.83984375
+      },
+      "gpu-mib": {
+        "median": 117.96484375,
+        "min": 117.953125,
+        "max": 117.96875
+      }
+    },
+    "cpuTotalCapacityPercent": 0.2212693231573952,
+    "executableSha256": "BFA5740F028A8F310CA01C779BBC5F2F1B435C41539C54DE592F715BB0C10389"
+  }
+}

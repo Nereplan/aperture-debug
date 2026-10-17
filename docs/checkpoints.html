@@ -94,7 +94,7 @@ git diff --check</pre>
 <script id="checkpoint-data" type="application/json">
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-10-17T12:16:28+00:00",
+  "updatedAt": "2026-10-17T17:33:51+00:00",
   "metrics": {
     "visible-ms": {
       "label": "Visible window",
@@ -347,6 +347,11 @@ git diff --check</pre>
       "label": "Empty-profile startup readings",
       "category": "Startup",
       "method": "Historical native startup probe using an isolated empty profile with warm OS caches. Recorded application-timer GPU-shell, shown-window and populated-library milestones. Repeated gates use one warmup plus five measured fresh processes, taking the median. The 3 October native capture is one sample and is identified as such. These are observed readings over time, not a controlled causal comparison or video-first-frame latency. Source identity, sample count and evidence remain attached to each observation."
+    },
+    "playback-h264-audio-30s-v1": {
+      "label": "Matched playback / AAC audio / 30s CPU",
+      "category": "Playback",
+      "method": "Baseline and optimized Aperture plus VLC rotate across one discarded warmup and three measured rounds. 180s file SHA256 86C249A196158CA2479BB9DD6E0045F24CBCBD2E04A80A41E37C2F6B78F70E68. Set 1280×800 outer windows, settle ten seconds and wait for media \u003e=10s; sample seven times across ~30s. CPU is 100×delta process CPU seconds/delta wall seconds (one logical processor); memory median within each run then median across runs; report run ranges. Playback must advance in every interval and Aperture must stay Playing. Common checkpoint timestamp is completion of this interleaved validation batch, not an individual build or launch time; exact per-run timestamps are retained. One synthetic H.264 clip with AAC stereo on this 24-LP Ryzen/RTX machine. Fresh portable profiles, warm OS caches; no equal-output-quality or general player superiority claim. Actual CPU timestamps precede status/GPU queries. VLC positions are integer-quantized; outer windows match but viewports can differ. Root-process counters exclude shared system services. Memory accounts overlap and are not summed."
     }
   },
   "environments": {
@@ -772,6 +777,115 @@ git diff --check</pre>
           "environment": "ryzen3900x-4070super",
           "evidence": "docs/evidence/backend-balance-20261017/application-summary.json",
           "samples": 3
+        }
+      ]
+    },
+    "vlc-20261017-audio-30s": {
+      "player": "VLC",
+      "version": "3.0.23",
+      "measuredAt": "2026-10-17T17:33:36.3359740Z",
+      "results": [
+        {
+          "metric": "visible-ms",
+          "value": 1854.4517,
+          "protocol": "playback-h264-audio-30s-v1",
+          "workload": "1080p30 H.264 / AAC stereo / 1280×800",
+          "environment": "ryzen3900x-4070super",
+          "session": "direct-playback-20261017-audio",
+          "evidence": "docs/evidence/direct-playback-20261017/summary.json",
+          "samples": 3,
+          "samplingNote": "One discarded warmup; three rotated measured runs. CPU from each full ~30s counter delta; memory median of seven samples per run, then median across runs.",
+          "runRange": {
+            "min": 1838.8057,
+            "max": 1927.9498,
+            "runs": 3,
+            "scope": "Range of per-run full-window CPU averages or per-run medians; visible window is one observer reading per launch."
+          }
+        },
+        {
+          "metric": "private-mib",
+          "value": 150.53125,
+          "protocol": "playback-h264-audio-30s-v1",
+          "workload": "1080p30 H.264 / AAC stereo / 1280×800",
+          "environment": "ryzen3900x-4070super",
+          "session": "direct-playback-20261017-audio",
+          "evidence": "docs/evidence/direct-playback-20261017/summary.json",
+          "samples": 3,
+          "samplingNote": "One discarded warmup; three rotated measured runs. CPU from each full ~30s counter delta; memory median of seven samples per run, then median across runs.",
+          "runRange": {
+            "min": 150.27734375,
+            "max": 150.8125,
+            "runs": 3,
+            "scope": "Range of per-run full-window CPU averages or per-run medians; visible window is one observer reading per launch."
+          }
+        },
+        {
+          "metric": "cpu-core",
+          "value": 5.3104637557774845,
+          "protocol": "playback-h264-audio-30s-v1",
+          "workload": "1080p30 H.264 / AAC stereo / 1280×800",
+          "environment": "ryzen3900x-4070super",
+          "session": "direct-playback-20261017-audio",
+          "evidence": "docs/evidence/direct-playback-20261017/summary.json",
+          "samples": 3,
+          "samplingNote": "One discarded warmup; three rotated measured runs. CPU from each full ~30s counter delta; memory median of seven samples per run, then median across runs.",
+          "runRange": {
+            "min": 4.060912508082341,
+            "max": 6.974315123837072,
+            "runs": 3,
+            "scope": "Range of per-run full-window CPU averages or per-run medians; visible window is one observer reading per launch."
+          }
+        },
+        {
+          "metric": "runtime-mib",
+          "value": 182.99101448059082,
+          "protocol": "playback-h264-audio-30s-v1",
+          "workload": "1080p30 H.264 / AAC stereo / 1280×800",
+          "environment": "ryzen3900x-4070super",
+          "session": "direct-playback-20261017-audio",
+          "evidence": "docs/evidence/direct-playback-20261017/summary.json",
+          "samples": 3,
+          "samplingNote": "One discarded warmup; three rotated measured runs. CPU from each full ~30s counter delta; memory median of seven samples per run, then median across runs.",
+          "runRange": {
+            "min": 182.99101448059082,
+            "max": 182.99101448059082,
+            "runs": 3,
+            "scope": "Range of per-run full-window CPU averages or per-run medians; visible window is one observer reading per launch."
+          }
+        },
+        {
+          "metric": "working-set-mib",
+          "value": 146.1875,
+          "protocol": "playback-h264-audio-30s-v1",
+          "workload": "1080p30 H.264 / AAC stereo / 1280×800",
+          "environment": "ryzen3900x-4070super",
+          "session": "direct-playback-20261017-audio",
+          "evidence": "docs/evidence/direct-playback-20261017/summary.json",
+          "samples": 3,
+          "samplingNote": "One discarded warmup; three rotated measured runs. CPU from each full ~30s counter delta; memory median of seven samples per run, then median across runs.",
+          "runRange": {
+            "min": 145.6484375,
+            "max": 147.83984375,
+            "runs": 3,
+            "scope": "Range of per-run full-window CPU averages or per-run medians; visible window is one observer reading per launch."
+          }
+        },
+        {
+          "metric": "gpu-mib",
+          "value": 117.96484375,
+          "protocol": "playback-h264-audio-30s-v1",
+          "workload": "1080p30 H.264 / AAC stereo / 1280×800",
+          "environment": "ryzen3900x-4070super",
+          "session": "direct-playback-20261017-audio",
+          "evidence": "docs/evidence/direct-playback-20261017/summary.json",
+          "samples": 3,
+          "samplingNote": "One discarded warmup; three rotated measured runs. CPU from each full ~30s counter delta; memory median of seven samples per run, then median across runs.",
+          "runRange": {
+            "min": 117.953125,
+            "max": 117.96875,
+            "runs": 3,
+            "scope": "Range of per-run full-window CPU averages or per-run medians; visible window is one observer reading per launch."
+          }
         }
       ]
     }
@@ -12652,6 +12766,274 @@ git diff --check</pre>
       "report": "backend_balance_20261017",
       "pairedWith": "backend-balance-20261017-before",
       "measurementReview": "17 October measurement review: the historical first-visible-window medians are 111.78, 123.89 and 141.59 ms. The external runner requested 20 ms sleeps and had only three measured launches per build. This is window detection, not first video pixels. A fresh-copy replay of the three retained runtimes, with 15 measured launches each, rotated order and a high-resolution observer, found medians of 110.96, 114.24 and 115.18 ms; all three spanned about 89–122 ms. The paired final-minus-14-Oct median was −0.52 ms (descriptive bootstrap 95% interval −3.85 to +0.86 ms). The original ~30 ms slowdown did not reproduce consistently; no code-level cause is established. Original EXE hashes match; the Oct14 DLL is from the retained runtime without an independently recorded historical DLL hash. These replay values use a different observer and are kept out of the original chart series.\n\nCPU normalization: the final Aperture/VLC medians are 22.1392/3.6835% of ONE logical processor. With 24 logical processors, these are 0.9225/0.1535% of total machine capacity: +0.7690 percentage points, or 6.01× (+501%) relative. This agrees with roughly 1% total CPU; it does not mean 501% total CPU. The individual final Aperture runs span 0.562–1.002% total capacity; VLC spans 0.101–0.250%. CPU-time capacity is not a promise of exact equality with every Task Manager utilization counter.\n\nComparability: all players used the same synthetic 1080p30 H.264/yuv420p clip WITHOUT audio/subtitles, warm OS caches, isolated fresh profiles, 1280×800 outer windows, and verified advancing playback. CPU spans about six seconds after ten seconds settling, with three launches; decoder mode, picture quality, viewport and presentation cadence were not verified equal. The Oct17 baseline block ran before the candidate block. These are local default-configuration measurements, not a general VLC ranking or an audio-enabled comparison. CPU remaining component costs are unprofiled.\n\nOther large differences: final private bytes are about 251.31 vs 144.73 MiB (+73.6%), dedicated GPU accounting 169.49 vs 117.90 MiB (+43.8%), and runtime payload 27.85 vs 182.99 MiB (−84.8%). Memory categories overlap and are not additive; no allocation trace establishes which buffers explain the gap. Runtime size compares complete supplied distributions with different plugins/languages/features, not equal-feature efficiency or downloads. Engine-only pacing tests support less CPU with the audio clock, but contain one unverified 0.000% CPU reading without saved endpoint ticks; do not treat it as zero-cost playback.\n\nEvidence: docs/evidence/checkpoint-audit-20261017/measurement-review.json and startup-replay.json. Recompute with tests/benchmark/audit_player_measurements.py; the replay harness is tests/benchmark/audit_saved_startup.ps1.\n\nFurther endpoint check: src/main.cpp shows Aperture’s bootstrap shell before app.Initialize; window detection does not establish equivalent initialized video output across players. The recorded CPU windows also cover different media positions: final Aperture approximately 10.6–16.77 seconds, VLC approximately 7–13 seconds. Equal frame delivery, frame drops, playback segments and picture quality were not established. A stronger player comparison needs aligned media segments, longer repeated samples, verified decoder/output settings, matching audio/subtitle work and a separately verified first-video-frame endpoint."
+    },
+    {
+      "id": "direct-playback-20261017-before",
+      "label": "Pre-fix playback replay",
+      "measuredAt": "2026-10-17T17:33:36.3359740Z",
+      "commit": "7903741",
+      "dirty": true,
+      "sourceNote": "Original source snapshot before this optimization, including existing local edits. EXE SHA256 D1F726360194F31A508A3A891EFDDA7129CC9EE17FA29086A825C66E0A673E66. DLL SHA256 11b37889e5103a1370509dcf5e5a9c389325c497552f522f45049dfba19f5c52. Exact source identity/evidence retained.",
+      "notes": "Replayed preserved pre-fix runtime in the same rotated batch. ",
+      "results": [
+        {
+          "metric": "visible-ms",
+          "value": 118.4283,
+          "protocol": "playback-h264-audio-30s-v1",
+          "workload": "1080p30 H.264 / AAC stereo / 1280×800",
+          "environment": "ryzen3900x-4070super",
+          "session": "direct-playback-20261017-audio",
+          "evidence": "docs/evidence/direct-playback-20261017/summary.json",
+          "samples": 3,
+          "samplingNote": "One discarded warmup; three rotated measured runs. CPU from each full ~30s counter delta; memory median of seven samples per run, then median across runs.",
+          "runRange": {
+            "min": 111.0965,
+            "max": 138.5092,
+            "runs": 3,
+            "scope": "Range of per-run full-window CPU averages or per-run medians; visible window is one observer reading per launch."
+          },
+          "reference": "vlc-20261017-audio-30s"
+        },
+        {
+          "metric": "private-mib",
+          "value": 256.40625,
+          "protocol": "playback-h264-audio-30s-v1",
+          "workload": "1080p30 H.264 / AAC stereo / 1280×800",
+          "environment": "ryzen3900x-4070super",
+          "session": "direct-playback-20261017-audio",
+          "evidence": "docs/evidence/direct-playback-20261017/summary.json",
+          "samples": 3,
+          "samplingNote": "One discarded warmup; three rotated measured runs. CPU from each full ~30s counter delta; memory median of seven samples per run, then median across runs.",
+          "runRange": {
+            "min": 252.5859375,
+            "max": 256.921875,
+            "runs": 3,
+            "scope": "Range of per-run full-window CPU averages or per-run medians; visible window is one observer reading per launch."
+          },
+          "reference": "vlc-20261017-audio-30s"
+        },
+        {
+          "metric": "cpu-core",
+          "value": 22.07774589740162,
+          "protocol": "playback-h264-audio-30s-v1",
+          "workload": "1080p30 H.264 / AAC stereo / 1280×800",
+          "environment": "ryzen3900x-4070super",
+          "session": "direct-playback-20261017-audio",
+          "evidence": "docs/evidence/direct-playback-20261017/summary.json",
+          "samples": 3,
+          "samplingNote": "One discarded warmup; three rotated measured runs. CPU from each full ~30s counter delta; memory median of seven samples per run, then median across runs.",
+          "runRange": {
+            "min": 21.66024772445435,
+            "max": 22.124068789303255,
+            "runs": 3,
+            "scope": "Range of per-run full-window CPU averages or per-run medians; visible window is one observer reading per launch."
+          },
+          "reference": "vlc-20261017-audio-30s"
+        },
+        {
+          "metric": "runtime-mib",
+          "value": 27.82579517364502,
+          "protocol": "playback-h264-audio-30s-v1",
+          "workload": "1080p30 H.264 / AAC stereo / 1280×800",
+          "environment": "ryzen3900x-4070super",
+          "session": "direct-playback-20261017-audio",
+          "evidence": "docs/evidence/direct-playback-20261017/summary.json",
+          "samples": 3,
+          "samplingNote": "One discarded warmup; three rotated measured runs. CPU from each full ~30s counter delta; memory median of seven samples per run, then median across runs.",
+          "runRange": {
+            "min": 27.82579517364502,
+            "max": 27.82579517364502,
+            "runs": 3,
+            "scope": "Range of per-run full-window CPU averages or per-run medians; visible window is one observer reading per launch."
+          },
+          "reference": "vlc-20261017-audio-30s"
+        },
+        {
+          "metric": "working-set-mib",
+          "value": 168.62109375,
+          "protocol": "playback-h264-audio-30s-v1",
+          "workload": "1080p30 H.264 / AAC stereo / 1280×800",
+          "environment": "ryzen3900x-4070super",
+          "session": "direct-playback-20261017-audio",
+          "evidence": "docs/evidence/direct-playback-20261017/summary.json",
+          "samples": 3,
+          "samplingNote": "One discarded warmup; three rotated measured runs. CPU from each full ~30s counter delta; memory median of seven samples per run, then median across runs.",
+          "runRange": {
+            "min": 167.6484375,
+            "max": 170.8046875,
+            "runs": 3,
+            "scope": "Range of per-run full-window CPU averages or per-run medians; visible window is one observer reading per launch."
+          },
+          "reference": "vlc-20261017-audio-30s"
+        },
+        {
+          "metric": "gpu-mib",
+          "value": 169.49609375,
+          "protocol": "playback-h264-audio-30s-v1",
+          "workload": "1080p30 H.264 / AAC stereo / 1280×800",
+          "environment": "ryzen3900x-4070super",
+          "session": "direct-playback-20261017-audio",
+          "evidence": "docs/evidence/direct-playback-20261017/summary.json",
+          "samples": 3,
+          "samplingNote": "One discarded warmup; three rotated measured runs. CPU from each full ~30s counter delta; memory median of seven samples per run, then median across runs.",
+          "runRange": {
+            "min": 169.49609375,
+            "max": 169.49609375,
+            "runs": 3,
+            "scope": "Range of per-run full-window CPU averages or per-run medians; visible window is one observer reading per launch."
+          },
+          "reference": "vlc-20261017-audio-30s"
+        }
+      ],
+      "tests": []
+    },
+    {
+      "id": "direct-playback-20261017-optimized",
+      "label": "Idle playback and decoder surfaces",
+      "measuredAt": "2026-10-17T17:33:36.3359740Z",
+      "commit": "b0ea976de47be68f7a1682414e003b2b15a355dd",
+      "dirty": true,
+      "sourceNote": "Measured build includes the committed optimization and pre-existing uncommitted source edits; see candidate source hashes and working-tree patch. EXE SHA256 90895BAEE09C9899B85A55A057F94558D8D67079A032C022876184553CE3332E. DLL SHA256 11b37889e5103a1370509dcf5e5a9c389325c497552f522f45049dfba19f5c52. Exact source identity/evidence retained.",
+      "notes": "Fixed a direct-launch bootstrap flag that continuously redrew an invisible overlay; defer the unused hub GPU device until hub/preview intent; reduce hardware decoder threads from four to one while preserving software threading. Corrected presentation-drop diagnostics to mpv frame-drop-count. H.2641080p30+audio and HEVC Main10 4K60+audio resource screens verified direct D3D11VA, no steady decoder/presentation drops, and equivalent fixed-frame captures (4K at most one pixel/channel level difference). All tests use this one GPU; this is not validation of every GPU, codec or workload. One synthetic H.264 clip with AAC stereo on this 24-LP Ryzen/RTX machine. Fresh portable profiles, warm OS caches; no equal-output-quality or general player superiority claim. Actual CPU timestamps precede status/GPU queries. VLC positions are integer-quantized; outer windows match but viewports can differ. Root-process counters exclude shared system services. Memory accounts overlap and are not summed.",
+      "results": [
+        {
+          "metric": "visible-ms",
+          "value": 132.7196,
+          "protocol": "playback-h264-audio-30s-v1",
+          "workload": "1080p30 H.264 / AAC stereo / 1280×800",
+          "environment": "ryzen3900x-4070super",
+          "session": "direct-playback-20261017-audio",
+          "evidence": "docs/evidence/direct-playback-20261017/summary.json",
+          "samples": 3,
+          "samplingNote": "One discarded warmup; three rotated measured runs. CPU from each full ~30s counter delta; memory median of seven samples per run, then median across runs.",
+          "runRange": {
+            "min": 114.4507,
+            "max": 134.1441,
+            "runs": 3,
+            "scope": "Range of per-run full-window CPU averages or per-run medians; visible window is one observer reading per launch."
+          },
+          "reference": "vlc-20261017-audio-30s"
+        },
+        {
+          "metric": "private-mib",
+          "value": 219.35546875,
+          "protocol": "playback-h264-audio-30s-v1",
+          "workload": "1080p30 H.264 / AAC stereo / 1280×800",
+          "environment": "ryzen3900x-4070super",
+          "session": "direct-playback-20261017-audio",
+          "evidence": "docs/evidence/direct-playback-20261017/summary.json",
+          "samples": 3,
+          "samplingNote": "One discarded warmup; three rotated measured runs. CPU from each full ~30s counter delta; memory median of seven samples per run, then median across runs.",
+          "runRange": {
+            "min": 219.14453125,
+            "max": 221.64453125,
+            "runs": 3,
+            "scope": "Range of per-run full-window CPU averages or per-run medians; visible window is one observer reading per launch."
+          },
+          "reference": "vlc-20261017-audio-30s"
+        },
+        {
+          "metric": "cpu-core",
+          "value": 8.070122117879281,
+          "protocol": "playback-h264-audio-30s-v1",
+          "workload": "1080p30 H.264 / AAC stereo / 1280×800",
+          "environment": "ryzen3900x-4070super",
+          "session": "direct-playback-20261017-audio",
+          "evidence": "docs/evidence/direct-playback-20261017/summary.json",
+          "samples": 3,
+          "samplingNote": "One discarded warmup; three rotated measured runs. CPU from each full ~30s counter delta; memory median of seven samples per run, then median across runs.",
+          "runRange": {
+            "min": 7.446841764703543,
+            "max": 8.799506280592311,
+            "runs": 3,
+            "scope": "Range of per-run full-window CPU averages or per-run medians; visible window is one observer reading per launch."
+          },
+          "reference": "vlc-20261017-audio-30s"
+        },
+        {
+          "metric": "runtime-mib",
+          "value": 27.82628345489502,
+          "protocol": "playback-h264-audio-30s-v1",
+          "workload": "1080p30 H.264 / AAC stereo / 1280×800",
+          "environment": "ryzen3900x-4070super",
+          "session": "direct-playback-20261017-audio",
+          "evidence": "docs/evidence/direct-playback-20261017/summary.json",
+          "samples": 3,
+          "samplingNote": "One discarded warmup; three rotated measured runs. CPU from each full ~30s counter delta; memory median of seven samples per run, then median across runs.",
+          "runRange": {
+            "min": 27.82628345489502,
+            "max": 27.82628345489502,
+            "runs": 3,
+            "scope": "Range of per-run full-window CPU averages or per-run medians; visible window is one observer reading per launch."
+          },
+          "reference": "vlc-20261017-audio-30s"
+        },
+        {
+          "metric": "working-set-mib",
+          "value": 143.15625,
+          "protocol": "playback-h264-audio-30s-v1",
+          "workload": "1080p30 H.264 / AAC stereo / 1280×800",
+          "environment": "ryzen3900x-4070super",
+          "session": "direct-playback-20261017-audio",
+          "evidence": "docs/evidence/direct-playback-20261017/summary.json",
+          "samples": 3,
+          "samplingNote": "One discarded warmup; three rotated measured runs. CPU from each full ~30s counter delta; memory median of seven samples per run, then median across runs.",
+          "runRange": {
+            "min": 142.9765625,
+            "max": 144.24609375,
+            "runs": 3,
+            "scope": "Range of per-run full-window CPU averages or per-run medians; visible window is one observer reading per launch."
+          },
+          "reference": "vlc-20261017-audio-30s"
+        },
+        {
+          "metric": "gpu-mib",
+          "value": 148.03515625,
+          "protocol": "playback-h264-audio-30s-v1",
+          "workload": "1080p30 H.264 / AAC stereo / 1280×800",
+          "environment": "ryzen3900x-4070super",
+          "session": "direct-playback-20261017-audio",
+          "evidence": "docs/evidence/direct-playback-20261017/summary.json",
+          "samples": 3,
+          "samplingNote": "One discarded warmup; three rotated measured runs. CPU from each full ~30s counter delta; memory median of seven samples per run, then median across runs.",
+          "runRange": {
+            "min": 148.03125,
+            "max": 148.04296875,
+            "runs": 3,
+            "scope": "Range of per-run full-window CPU averages or per-run medians; visible window is one observer reading per launch."
+          },
+          "reference": "vlc-20261017-audio-30s"
+        }
+      ],
+      "tests": [
+        {
+          "name": "Local PR regression gate",
+          "status": "pass",
+          "passed": 22,
+          "total": 22,
+          "durationSeconds": 452.95,
+          "evidence": "docs/evidence/direct-playback-20261017/pr-gate.log",
+          "notes": "Suite count; includes 52 unit cases and static analysis. Do not add overlapping counts."
+        },
+        {
+          "name": "Hardware thread pool: functional libmpv checks",
+          "status": "pass",
+          "passed": 59,
+          "total": 59,
+          "durationSeconds": null,
+          "evidence": "docs/evidence/direct-playback-20261017/functional/playback.txt",
+          "notes": "One hardware decoder thread; controls, formats, HDR, subtitle, screenshot, audio-filter and HTTP checks. Original diagnostic print used an unavailable legacy VO counter; separate resource screens require the correct frame-drop-count counter."
+        },
+        {
+          "name": "Direct launch: overlay idle and return to hub",
+          "status": "pass",
+          "passed": null,
+          "total": null,
+          "durationSeconds": null,
+          "evidence": "docs/evidence/direct-playback-20261017/profiles/navigation-decoder-one-audio/hub-state.json",
+          "notes": "Baseline 58.1 transparent draws/s; optimized zero during \u003e5s state-only PDB capture, followed by an actually presented library frame after owned-PID Stop."
+        }
+      ]
     }
   ],
   "reports": [
@@ -12873,8 +13255,8 @@ function report(id){const r=DATA.reports.find(x=>x.id===id);if(!r)return;$('repo
 function showSeries(k){for(const cp of CP)if(cp.results.some(r=>seriesKey(r)===k))visible.add(cp.id)}
 function pick(id){selected=id;visible.add(id);const cp=getCP();if(!cp.results.some(r=>seriesKey(r)===trendKey)){const candidate=cp.results.find(r=>r.historySeries)||cp.results[0];if(candidate)trendKey=seriesKey(candidate)}render();if(page==='overview')window.scrollTo(0,0);$('sidebar').classList.remove('open')}
 function navigate(name){page=name;for(const p of ['overview','benchmarks','evidence','guide'])$('page-'+p).hidden=p!==page;document.querySelectorAll('[data-page]').forEach(b=>b.setAttribute('aria-current',b.dataset.page===page?'page':'false'));$('page-title').textContent=({overview:'Performance history',benchmarks:'Benchmark ledger',evidence:'Evidence',guide:'Agent guide'})[page];$('compare-control').hidden=page!=='overview';renderPage();location.hash=page;window.scrollTo(0,0)}
-function renderSidebar(){const q=$('checkpoint-search').value.toLowerCase();let last='';$('checkpoint-list').innerHTML=ordered.filter(c=>(checkpointLabel(c)+' '+c.id+' '+(c.commit||'')).toLowerCase().includes(q)).map(c=>{let heading='';const d=c.measuredAt.slice(0,10);if(d!==last){last=d;heading=`<div class="date-label">${esc(date(c.measuredAt))}</div>`}return heading+`<div class="checkpoint ${c.id===selected?'selected':''}"><input type="checkbox" data-visible="${esc(c.id)}" ${visible.has(c.id)?'checked':''} aria-label="Plot ${esc(checkpointLabel(c)+' / '+(c.commit||c.id))}"><button data-select="${esc(c.id)}" aria-pressed="${c.id===selected}"><span class="cp-name">${esc(checkpointLabel(c))}</span><span class="cp-meta"><code>${esc(c.commit||'commit unknown')}</code>${c.dirty===true?' · modified':''}</span></button></div>`}).join('')||'<div class="empty">No matching checkpoints</div>';$('checkpoint-count').textContent=CP.length;const current=$('checkpoint-list').querySelector('.selected');if(current&&!q)$('checkpoint-list').scrollTop=Math.max(0,current.offsetTop-$('checkpoint-list').offsetTop-$('checkpoint-list').clientHeight+current.offsetHeight+12)}
-function renderMeta(){const c=getCP();$('selection-meta').innerHTML=`<span class="tag">${esc(checkpointLabel(c))}</span><code>${esc(c.commit||'commit unknown')}</code><span title="${esc(when(c.measuredAt))}">${esc(date(c.measuredAt))}</span>${c.dirty===true?'<span class="tag" title="Includes working-tree changes">Modified</span>':''}`}
+function renderSidebar(){const q=$('checkpoint-search').value.toLowerCase();let last='';$('checkpoint-list').innerHTML=ordered.filter(c=>(checkpointLabel(c)+' '+c.id+' '+(c.commit||'')).toLowerCase().includes(q)).map(c=>{let heading='';const d=c.measuredAt.slice(0,10);if(d!==last){last=d;heading=`<div class="date-label">${esc(date(c.measuredAt))}</div>`}return heading+`<div class="checkpoint ${c.id===selected?'selected':''}"><input type="checkbox" data-visible="${esc(c.id)}" ${visible.has(c.id)?'checked':''} aria-label="Plot ${esc(checkpointLabel(c)+' / '+(c.commit||c.id))}"><button data-select="${esc(c.id)}" aria-pressed="${c.id===selected}"><span class="cp-name">${esc(checkpointLabel(c))}</span><span class="cp-meta"><code>${esc(shortRevision(c.commit))}</code>${c.dirty===true?' · modified':''}</span></button></div>`}).join('')||'<div class="empty">No matching checkpoints</div>';$('checkpoint-count').textContent=CP.length;const current=$('checkpoint-list').querySelector('.selected');if(current&&!q)$('checkpoint-list').scrollTop=Math.max(0,current.offsetTop-$('checkpoint-list').offsetTop-$('checkpoint-list').clientHeight+current.offsetHeight+12)}
+function renderMeta(){const c=getCP();$('selection-meta').innerHTML=`<span class="tag">${esc(checkpointLabel(c))}</span><code>${esc(shortRevision(c.commit))}</code><span title="${esc(when(c.measuredAt))}">${esc(date(c.measuredAt))}</span>${c.dirty===true?'<span class="tag" title="Includes working-tree changes">Modified</span>':''}`}
 function resultTable(results,cp,withGraph=true){
  let previousGroup='';
  const rows=results.map(r=>{
@@ -12888,8 +13270,8 @@ function resultTable(results,cp,withGraph=true){
  return `<table><thead><tr><th>Metric</th><th class="num">Checkpoint</th><th class="num">Latest VLC</th><th class="num">Change</th>${withGraph?'<th></th>':''}</tr></thead><tbody>${rows||'<tr><td colspan="5" class="empty">No observations recorded</td></tr>'}</tbody></table>`
 }
 function renderStats(){
- const c=getCP(),player=c.results.some(r=>r.protocol==='playback-1080p30');
- const primaries=player?['visible-ms','private-mib','cpu-core','runtime-mib'].map(id=>c.results.find(x=>x.metric===id&&x.protocol==='playback-1080p30')):c.results.filter(r=>r.workload===c.results[0]?.workload).slice(0,4);
+ const c=getCP(),player=playerOrigin(c);
+ const primaries=player?['visible-ms','private-mib','cpu-core','runtime-mib'].map(id=>c.results.find(x=>x.metric===id&&sameWorkload(x,player))):c.results.filter(r=>r.workload===c.results[0]?.workload).slice(0,4);
  $('stats').hidden=!primaries.length;$('stats').style.setProperty('--stat-count',Math.max(1,primaries.length));
  $('stats').innerHTML=primaries.map(r=>{
   const b=r?baseline(r):null,d=r?delta(r,b):{text:'Not measured here',cls:'muted'},cpu=machineCpu(r),referenceCpu=machineCpu(b);
@@ -12905,6 +13287,10 @@ function renderOverview(){renderStats();$('map-tab').setAttribute('aria-pressed'
 
 function svgText(x,y,text,extra=''){return `<text x="${x}" y="${y}" ${extra}>${esc(text)}</text>`}
 function machineCpu(r){const n=DATA.environments[r?.environment]?.logicalProcessors;return r?.metric==='cpu-core'&&Number.isInteger(n)&&n>0&&r.value!=null?r.value/n:null}
+function shortRevision(value){return value?value.slice(0,7):'commit unknown'}
+function sameWorkload(a,b){return a.protocol===b.protocol&&a.environment===b.environment&&a.workload===b.workload}
+function playerOrigin(c){return c.results.find(r=>r.metric==='visible-ms'&&DATA.protocols[r.protocol]?.category==='Playback'&&c.results.some(s=>s.metric==='private-mib'&&sameWorkload(s,r)))}
+function resourceHistory(origin){return ordered.filter(c=>c.results.some(r=>r.metric==='visible-ms'&&sameWorkload(r,origin)))}
 function runRangeText(r){const q=r?.runRange;return q?'Run range: '+val({...r,value:q.min})+'–'+val({...r,value:q.max})+' (n = '+q.runs+')':''}
 function seriesKey(r){return r.historySeries?JSON.stringify(['history',r.historySeries,r.metric,r.workload]):key(r)}
 function checkpointLabel(c){return c.label.replace(/\s*·\s*(before|after|optimized)$/i,'')}
@@ -12958,7 +13344,9 @@ function numericAxis(values,start,end,mode='cuts',integer=false){
   return {segments:[{lo,hi,start,end}],breaks:[],ticks:candidates.filter(v=>v>=lo&&v<=hi),scale,mode}
  }
  const gaps=unique.slice(1).map((v,i)=>v-unique[i]);
- const smallGaps=[...gaps].sort((a,b)=>a-b).slice(0,Math.max(1,Math.ceil(gaps.length*.75)));
+ // With three observations, including the outlier gap in this median would
+ // reserve hundreds of empty units around the isolated reference again.
+ const smallGaps=[...gaps].sort((a,b)=>a-b).slice(0,Math.max(1,Math.ceil(gaps.length*.5)));
  const positive=unique.filter(v=>v>0),context=gaps.length>1?median(smallGaps):Math.max((positive[0]||1)*.2,1e-6);
  const clusters=[[min]];
  for(let i=1;i<unique.length;i++){
@@ -13042,7 +13430,7 @@ function plotPoint(p,pos,index,label,g){
 function bindPlot(points){
  $('chart').querySelectorAll('[data-point]').forEach(el=>{
   const p=points[Number(el.dataset.point)];
-  const show=event=>{const tip=$('tooltip'),rect=el.querySelector('.point-dot').getBoundingClientRect();tip.innerHTML=`<strong>${esc(p.label)}</strong>${esc(when(p.date))}${p.revision?' · '+esc(p.revision):''}<br>${p.xr?esc(val(p.xr))+' · ':''}${esc(val(p.yr))}${runRangeText(p.yr)?'<br>'+esc(runRangeText(p.yr)):''}<br><span class="muted">${esc(p.yr.samples===null?'Sample count unknown':'n = '+p.yr.samples)} · ${esc(protocol(p.yr).label)}</span>`;tip.hidden=false;tip.style.left=Math.max(8,Math.min((event.clientX||rect.x)+14,window.innerWidth-285))+'px';tip.style.top=Math.max(8,Math.min((event.clientY||rect.y)+12,window.innerHeight-145))+'px'};
+  const show=event=>{const tip=$('tooltip'),rect=el.querySelector('.point-dot').getBoundingClientRect();tip.innerHTML=`<strong>${esc(p.label)}</strong>${esc(when(p.date))}${p.revision?' · '+esc(shortRevision(p.revision)):''}<br>${p.xr?esc(val(p.xr))+' · ':''}${esc(val(p.yr))}${runRangeText(p.yr)?'<br>'+esc(runRangeText(p.yr)):''}<br><span class="muted">${esc(p.yr.samples===null?'Sample count unknown':'n = '+p.yr.samples)} · ${esc(protocol(p.yr).label)}</span>`;tip.hidden=false;tip.style.left=Math.max(8,Math.min((event.clientX||rect.x)+14,window.innerWidth-285))+'px';tip.style.top=Math.max(8,Math.min((event.clientY||rect.y)+12,window.innerHeight-145))+'px'};
   el.addEventListener('pointerenter',show);el.addEventListener('focus',show);el.addEventListener('pointerleave',()=>$('tooltip').hidden=true);el.addEventListener('blur',()=>$('tooltip').hidden=true);
   el.addEventListener('keydown',event=>{if((event.key==='Enter'||event.key===' ')&&p.id){event.preventDefault();pick(p.id)}})
  })
@@ -13071,7 +13459,7 @@ function renderHistory(){
  for(let i=0;i<points.length;i++){
   svg+=plotPoint(points[i],positions[i],i,i===points.length-1?{y:endLabels.get(0).labelY,text:'Aperture'}:null,g);
   if(tickIndices.has(i)){svg+=svgText(positions[i].x,g.bottom+25,sameYear?shortDate(points[i].date):date(points[i].date),'text-anchor="middle" class="map-tick"');
-  if(points[i].revision)svg+=svgText(positions[i].x,g.bottom+41,points[i].revision,'text-anchor="middle" class="revision-tick"')}
+  if(points[i].revision)svg+=svgText(positions[i].x,g.bottom+41,shortRevision(points[i].revision),'text-anchor="middle" class="revision-tick"')}
  }
  if(plottedRef){
   const y=ya.scale(plottedRef.y);svg+=`<line class="vlc-reference-line" x1="${g.L}" x2="${g.R}" y1="${y}" y2="${y}"/>`;
@@ -13081,9 +13469,9 @@ function renderHistory(){
  $('chart').innerHTML=svg+'</svg>';bindPlot(plottedRef?[...points,plottedRef]:points)
 }
 function renderResourceMap(){
- const candidates=ordered.filter(c=>c.results.some(r=>r.metric==='visible-ms'&&r.protocol==='playback-1080p30'));
- const origin=(getCP().results.find(r=>r.metric==='visible-ms'&&r.protocol==='playback-1080p30')||candidates.at(-1)?.results.find(r=>r.metric==='visible-ms'));
+ const origin=playerOrigin(getCP())||ordered.map(playerOrigin).filter(Boolean).at(-1);
  if(!origin){$('chart').innerHTML='<div class="empty">No player resource measurements recorded.</div>';return}
+ const candidates=resourceHistory(origin);
  let points=[];
  for(const c of candidates){
   if(!visible.has(c.id))continue;
@@ -13106,7 +13494,7 @@ function renderResourceMap(){
  let svg=svgFrame(g,title,'Aperture snapshots connected in measurement-date order. One fixed latest-version VLC reference. Marked breaks remove empty intervals on both numeric axes.')+numericAxes(xa,ya,g)+temporalPath(points,positions.slice(0,points.length));
  for(let i=0;i<all.length;i++){
   const p=all[i],label=labels.get(i);
-  const text=p.reference?p.label:shortDate(p.date)+(p.revision?' · '+p.revision:'');
+  const text=p.reference?p.label:shortDate(p.date)+(p.revision?' · '+shortRevision(p.revision):'');
   svg+=plotPoint(p,positions[i],i,{y:label.labelY,text},g)
  }
  svg+=svgText(g.L,g.T-22,'Private RAM (MiB)','class="map-axis-title"')+svgText((g.L+g.R)/2,g.H-10,'Visible window (ms)','text-anchor="middle" class="map-axis-title"');
@@ -13114,7 +13502,7 @@ function renderResourceMap(){
 }
 function renderChart(){renderTrendOptions();$('tooltip').hidden=true;if(mode==='map')renderResourceMap();else renderHistory()}
 
-function renderLedger(){const q=$('ledger-search').value.toLowerCase();const cats=['All',...new Set(Object.values(DATA.protocols).map(p=>p.category))];$('categories').innerHTML=cats.map(x=>`<button data-category="${esc(x)}" aria-pressed="${x===category}">${esc(x)}</button>`).join('');ledgerRows=[];for(const cp of [...ordered].reverse())for(const r of cp.results){if(category!=='All'&&protocol(r).category!==category)continue;if(!(cp.label+' '+(cp.commit||'')+' '+metric(r).label+' '+r.workload+' '+protocol(r).label).toLowerCase().includes(q))continue;ledgerRows.push({cp,r,b:baseline(r)})}ledgerPage=Math.max(0,Math.min(ledgerPage,Math.ceil(ledgerRows.length/50)-1));$('ledger-range').textContent=ledgerRows.length?number(ledgerPage*50+1,0)+'–'+number(Math.min((ledgerPage+1)*50,ledgerRows.length),0)+' of '+number(ledgerRows.length,0):'0 observations';$('ledger-prev').disabled=ledgerPage===0;$('ledger-next').disabled=(ledgerPage+1)*50>=ledgerRows.length;$('ledger-title').textContent=number(ledgerRows.length,0)+' observations';$('ledger').innerHTML=`<table><thead><tr><th>Checkpoint</th><th>Metric / workload</th><th class="num">Value</th><th class="num">Latest VLC</th><th class="num">Change</th><th></th></tr></thead><tbody>${ledgerRows.slice(ledgerPage*50,(ledgerPage+1)*50).map(({cp,r,b})=>{const d=delta(r,b);return `<tr><td><button class="trend-button" data-select="${esc(cp.id)}">${esc(checkpointLabel(cp))}</button><small>${esc(cp.commit||'unrecorded revision')} · ${esc(date(cp.measuredAt))}</small></td><td>${esc(metric(r).label)}<small>${esc(r.workload)} · ${esc(protocol(r).label)}</small></td><td class="num">${esc(val(r))}</td><td class="num">${esc(val(b))}</td><td class="num ${d.cls}">${esc(d.text)}</td><td><button class="trend-button" data-graph-cp="${esc(cp.id)}" data-trend="${esc(seriesKey(r))}">Graph ↗</button></td></tr>`}).join('')||'<tr><td colspan="6" class="empty">No matching observations</td></tr>'}</tbody></table>`}
+function renderLedger(){const q=$('ledger-search').value.toLowerCase();const cats=['All',...new Set(Object.values(DATA.protocols).map(p=>p.category))];$('categories').innerHTML=cats.map(x=>`<button data-category="${esc(x)}" aria-pressed="${x===category}">${esc(x)}</button>`).join('');ledgerRows=[];for(const cp of [...ordered].reverse())for(const r of cp.results){if(category!=='All'&&protocol(r).category!==category)continue;if(!(cp.label+' '+(cp.commit||'')+' '+metric(r).label+' '+r.workload+' '+protocol(r).label).toLowerCase().includes(q))continue;ledgerRows.push({cp,r,b:baseline(r)})}ledgerPage=Math.max(0,Math.min(ledgerPage,Math.ceil(ledgerRows.length/50)-1));$('ledger-range').textContent=ledgerRows.length?number(ledgerPage*50+1,0)+'–'+number(Math.min((ledgerPage+1)*50,ledgerRows.length),0)+' of '+number(ledgerRows.length,0):'0 observations';$('ledger-prev').disabled=ledgerPage===0;$('ledger-next').disabled=(ledgerPage+1)*50>=ledgerRows.length;$('ledger-title').textContent=number(ledgerRows.length,0)+' observations';$('ledger').innerHTML=`<table><thead><tr><th>Checkpoint</th><th>Metric / workload</th><th class="num">Value</th><th class="num">Latest VLC</th><th class="num">Change</th><th></th></tr></thead><tbody>${ledgerRows.slice(ledgerPage*50,(ledgerPage+1)*50).map(({cp,r,b})=>{const d=delta(r,b);return `<tr><td><button class="trend-button" data-select="${esc(cp.id)}">${esc(checkpointLabel(cp))}</button><small>${esc(shortRevision(cp.commit))} · ${esc(date(cp.measuredAt))}</small></td><td>${esc(metric(r).label)}<small>${esc(r.workload)} · ${esc(protocol(r).label)}</small></td><td class="num">${esc(val(r))}</td><td class="num">${esc(val(b))}</td><td class="num ${d.cls}">${esc(d.text)}</td><td><button class="trend-button" data-graph-cp="${esc(cp.id)}" data-trend="${esc(seriesKey(r))}">Graph ↗</button></td></tr>`}).join('')||'<tr><td colspan="6" class="empty">No matching observations</td></tr>'}</tbody></table>`}
 function renderEvidence(){const c=getCP();const facts=[['Source commit',c.commit||'Not recorded'],['Measured',when(c.measuredAt)],['Working tree',c.dirty===true?'Included local changes':c.dirty===false?'Clean':'Not fully recorded'],['Paired baseline',cpById.get(c.pairedWith)?.label||'None recorded']];$('identity').innerHTML=facts.map(([a,b])=>`<div class="fact"><span>${esc(a)}</span><span>${esc(b)}</span></div>`).join('')+`<p style="margin-top:13px">${esc(c.sourceNote)}</p>`;$('checkpoint-notes').textContent=c.notes;$('measurement-review').hidden=!c.measurementReview;$('measurement-review-text').textContent=c.measurementReview||'';$('tests').innerHTML=(c.tests||[]).map(t=>`<div class="test-row"><span class="tag ${t.status==='pass'?'good':t.status==='fail'?'bad':''}">${esc(t.status)}</span><div>${esc(t.name)}${t.total!=null?' · '+t.passed+'/'+t.total:''}<small>${t.durationSeconds!=null?number(t.durationSeconds)+' s · ':''}${esc(t.evidence)}</small>${t.notes?`<small>${esc(t.notes)}</small>`:''}</div></div>`).join('')||'<p>No validation record migrated for this source state. Consult the embedded historical report; this is not a failed or passing run.</p>';
  const protocols=[...new Set(c.results.map(r=>r.protocol))];$('protocols').innerHTML=protocols.map(id=>{const p=DATA.protocols[id],rs=c.results.filter(r=>r.protocol===id),files=[...new Set(rs.map(r=>r.evidence))],env=[...new Set(rs.map(r=>r.environment))];return `<div style="margin-bottom:18px"><h3>${esc(p.label)}</h3><p class="muted" style="font-size:12px;margin-top:7px;line-height:1.8">${esc(p.method)}</p>${env.map(e=>`<p class="muted" style="font-size:11px;margin-top:7px">${esc(DATA.environments[e].details)}</p>`).join('')}<div class="evidence-files">${files.map(f=>`<div><span class="mono">${esc(f)}</span></div>`).join('')}</div></div>`}).join('')+(c.report?`<button data-report="${esc(c.report)}">Read this checkpoint’s report ↗</button>`:'');renderReports()}
 function renderReports(){const q=$('report-search').value.toLowerCase();const reports=DATA.reports.filter(r=>(r.title+' '+r.text).toLowerCase().includes(q));$('reports').innerHTML=reports.map(r=>`<button class="report-button" data-report="${esc(r.id)}" title="${esc(r.source)}"><span>${esc(r.title)}</span><span class="accent">↗</span></button>`).join('')||'<div class="empty">No matching reports</div>'}

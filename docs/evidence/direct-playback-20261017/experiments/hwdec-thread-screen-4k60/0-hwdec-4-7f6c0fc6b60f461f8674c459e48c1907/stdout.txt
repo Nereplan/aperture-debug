@@ -1,0 +1,16 @@
+Loaded module: C:\Users\Alperen\AppData\Local\Codex\tools\scratch\aperture-vlc-performance-20261017\hwdec-thread-screen-4k60\0-hwdec-4-7f6c0fc6b60f461f8674c459e48c1907\libmpv-2.dll
+Loaded module path matches requested: YES
+[PASS] loaded DLL is the requested absolute path
+    mpv_client_api_version=0x20005 (2.5)
+[PASS] client api version >= 2.5
+[PASS] resource playback restart
+[PASS] resource CPU counter interval
+[PASS] resource process counters
+[PASS] resource playback advances
+[PASS] resource direct hardware decoder
+[PASS] resource frame-drop counters available
+[PASS] resource no steady decoding or presentation drops
+RESOURCE {"renderer":"gpu","file":"hevc-2160p60-audio.mp4","sync":"audio","decoder_threads":"0","audio_enabled":true,"init_ms":11.416,"restart_ms":594.053,"cpu_one_core_percent":15.496,"working_set":208683008,"private_bytes":486207488,"gpu_local_bytes":772030464,"gpu_shared_bytes":16064512,"dropped_frames":0,"steady_drops":0,"hwdec":"d3d11va","cpu_start_seconds":1.60937500,"cpu_end_seconds":3.93750000,"sample_elapsed_seconds":15.02372620,"position_start":4.96666667,"position_end":19.98333333,"vo_steady_drops":0,"zero_cpu_interval":false,"zero_copy":"default","swapchain_depth":"default","latency_hacks":"yes","hwdec_threads":"4","drop_property":"decoder-frame-drop-count","vo_drop_property":"frame-drop-count","heap_cleanup":false,"heap_cleanup_ms":0.000,"heap_before_private":0,"heap_after_private":0}
+[PASS] resource fixed-frame rendered window capture
+
+==== SUMMARY: 10 passed, 0 failed ====

@@ -1,0 +1,14 @@
+Loaded module: C:\Users\Alperen\AppData\Local\Codex\tools\scratch\aperture-vlc-performance-20261017\transfer-screen-h264\0-zero-one-inflight-d662b94a2b914a5bba381eef08e889a5\libmpv-2.dll
+Loaded module path matches requested: YES
+[PASS] loaded DLL is the requested absolute path
+    mpv_client_api_version=0x20005 (2.5)
+[PASS] client api version >= 2.5
+[PASS] resource playback restart
+[PASS] resource CPU counter interval
+[PASS] resource process counters
+[PASS] resource playback advances
+[PASS] resource direct hardware decoder
+RESOURCE {"renderer":"gpu","file":"h264-1080p30.mp4","sync":"audio","decoder_threads":"0","audio_enabled":false,"init_ms":14.467,"restart_ms":370.644,"cpu_one_core_percent":8.009,"working_set":130367488,"private_bytes":220155904,"gpu_local_bytes":138113024,"gpu_shared_bytes":13328384,"dropped_frames":6,"steady_drops":0,"hwdec":"d3d11va","cpu_start_seconds":1.09375000,"cpu_end_seconds":2.29687500,"sample_elapsed_seconds":15.02221930,"position_start":5.00000000,"position_end":20.00000000,"vo_steady_drops":0,"zero_cpu_interval":false,"zero_copy":"yes","swapchain_depth":"1","latency_hacks":"yes"}
+[PASS] resource fixed-frame rendered window capture
+
+==== SUMMARY: 8 passed, 0 failed ====

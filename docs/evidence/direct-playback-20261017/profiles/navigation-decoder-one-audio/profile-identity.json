@@ -1,0 +1,12 @@
+{
+  "createdUtc": "2026-10-17T17:22:18.2850319Z",
+  "pid": 39912,
+  "runtime": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\decoder-one-runtime",
+  "executableSha256": "90895BAEE09C9899B85A55A057F94558D8D67079A032C022876184553CE3332E",
+  "mediaSha256": "86C249A196158CA2479BB9DD6E0045F24CBCBD2E04A80A41E37C2F6B78F70E68",
+  "privateBytes": 86523904,
+  "workingSetBytes": 97468416,
+  "stateOnly": true,
+  "returnedToHub": true,
+  "note": "Diagnostic run; stack mode suspends threads, state-only mode reads PDB fields. Neither is a ranking run."
+}

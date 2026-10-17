@@ -32,7 +32,7 @@ test('Aperture playback is a dated history, not just the latest pair', () => {
 });
 
 test('empty-profile startup spans seven actual recordings', () => {
-  const r = DATA.checkpoints.at(-1).results.find(r => r.metric === 'shell-ms');
+  const r = DATA.checkpoints.find(c => c.id === 'backend-balance-20261017-after').results.find(r => r.metric === 'shell-ms');
   const points = context.historyPoints(context.seriesKey(r));
   assert.equal(points.length, 7);
   assert.equal(points[0].date, '2026-10-03');
@@ -41,7 +41,7 @@ test('empty-profile startup spans seven actual recordings', () => {
 });
 
 test('startup and playback endpoints are not merged', () => {
-  const r = DATA.checkpoints.at(-1).results;
+  const r = DATA.checkpoints.find(c => c.id === 'backend-balance-20261017-after').results;
   assert.notEqual(context.seriesKey(r.find(r => r.metric === 'visible-ms')), context.seriesKey(r.find(r => r.metric === 'shell-ms')));
 });
 
@@ -60,6 +60,25 @@ test('recorded one-processor CPU agrees with roughly one percent total capacity'
   assert(Math.abs(context.machineCpu(b) - 0.1534810471996232) < 1e-9);
   assert.equal(context.machineCpu({...r, environment: 'unknown-machine'}), null);
   assert.equal(context.machineCpu({...r, metric: 'private-mib'}), null);
+});
+
+test('new playback protocols get their own map history and CPU summary source', () => {
+  const legacy = DATA.checkpoints.find(c => c.id === 'backend-balance-20261017-after');
+  const cp = {id: 'test-audio-checkpoint', results: legacy.results
+    .filter(r => r.protocol === 'playback-1080p30')
+    .map(r => ({...r, protocol: 'test-audio-protocol', workload: 'audio fixture'}))};
+  DATA.protocols['test-audio-protocol'] = {category: 'Playback'};
+  ordered.push(cp);
+  try {
+    const origin = context.playerOrigin(cp);
+    assert.equal(origin.protocol, 'test-audio-protocol');
+    assert.equal(context.resourceHistory(origin).map(c => c.id).join(','), cp.id);
+    assert(!context.resourceHistory(context.playerOrigin(legacy)).some(c => c.id === cp.id));
+    const cpu = cp.results.find(r => r.metric === 'cpu-core' && context.sameWorkload(r, origin));
+    assert.equal(context.machineCpu(cpu), cpu.value / 24);
+  } finally {
+    ordered.pop(); delete DATA.protocols['test-audio-protocol'];
+  }
 });
 
 test('an older VLC version cannot displace the newest version', () => {
@@ -90,6 +109,15 @@ test('VLC cannot compress Aperture on either resource axis', () => {
   assert.equal(x.breaks.length, 1); assert.equal(y.breaks.length, 1);
   assert(x.scale(141.5932) - x.scale(111.7763) > 100);
   assert(Math.abs(y.scale(256.58) - y.scale(251.31)) > 100);
+});
+
+test('two Aperture readings and one distant VLC point keep local detail', () => {
+  const values = [118.4283, 132.7196, 1854.4517];
+  const axis = context.numericAxis(values, 0, 650, 'cuts');
+  assert.equal(axis.breaks.length, 1);
+  assert(axis.scale(values[1]) - axis.scale(values[0]) > 100);
+  assert(axis.segments.at(-1).hi - axis.segments.at(-1).lo < 50);
+  assert.equal(values.map(v => Number.isFinite(axis.scale(v))).every(Boolean), true);
 });
 
 test('linear axes do not imply breaks and log axes reject zero', () => {

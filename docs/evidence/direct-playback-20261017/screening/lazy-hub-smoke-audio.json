@@ -1,0 +1,409 @@
+{
+  "schemaVersion": 1,
+  "createdUtc": "2026-10-17T17:08:56.7557920Z",
+  "mediaPath": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\h264-1080p30-audio.mp4",
+  "mediaSha256": "86C249A196158CA2479BB9DD6E0045F24CBCBD2E04A80A41E37C2F6B78F70E68",
+  "mediaBytes": 137055793,
+  "iterations": 1,
+  "warmupIterations": 0,
+  "windowTarget": [
+    1280,
+    800
+  ],
+  "startupMetric": "Process launch to first visible unowned top-level window (not first frame)",
+  "sampling": "CPU window requested 20s with counter samples every ~5s; actual CPU/wall deltas retained; launch media position 0s, sampling begins after at least 10s media time and ten seconds settling. VLC media times are integer-quantized. Ordered variants rotate each round.",
+  "apertureStatusProbe": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-balanced-20261016\\app-after\\runs-16438d877e364c0aab1eb4a73a202e5f\\player_status_probe.exe",
+  "limitations": [
+    "Warm OS caches; no cold-cache claim.",
+    "Window outer rectangles match; video viewport and default decoder may differ.",
+    "Samples cover owned root process only; inspect unexpected child processes separately.",
+    "Playback status does not prove pixels are visible or decoder hardware equivalence.",
+    "Child environment redirects ordinary profile/temp writes; Windows Known Folder APIs may bypass environment variables (VLC additionally uses portable/).",
+    "VLC RC verification adds a control-interface overhead.",
+    "MPC-HC uses a hidden /slave window to verify position; no decoder equivalence claim."
+  ],
+  "players": [
+    {
+      "name": "Aperture",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\overlay-fix-runtime",
+      "exeName": "Aperture.exe",
+      "exeHash": "3EE3F92B12F974C66B11D60F51314D3F9FE4816E075FB69D0F4081221F1A3FAF",
+      "version": "2.0.0.0",
+      "runtimeBytes": 29177461,
+      "runtimeFileCount": 6,
+      "variant": "Aperture-overlay-fix"
+    },
+    {
+      "name": "Aperture",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\lazy-hub-runtime",
+      "exeName": "Aperture.exe",
+      "exeHash": "7A5800000595A3D64D3059C2BD8A43ACE3349AE442A12B86DD36307425B02BF3",
+      "version": "2.0.0.0",
+      "runtimeBytes": 29177461,
+      "runtimeFileCount": 6,
+      "variant": "Aperture-lazy-hub"
+    },
+    {
+      "name": "VLC",
+      "source": "C:\\Program Files\\VideoLAN\\VLC",
+      "exeName": "vlc.exe",
+      "exeHash": "BFA5740F028A8F310CA01C779BBC5F2F1B435C41539C54DE592F715BB0C10389",
+      "version": "3.0.23",
+      "runtimeBytes": 191879986,
+      "runtimeFileCount": 587
+    }
+  ],
+  "results": [
+    {
+      "player": "Aperture",
+      "round": 0,
+      "warmup": false,
+      "status": "sampled",
+      "failure": null,
+      "runtimeSource": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\overlay-fix-runtime",
+      "runtimeBytes": 29177461,
+      "runtimeFileCount": 6,
+      "executableHash": "3EE3F92B12F974C66B11D60F51314D3F9FE4816E075FB69D0F4081221F1A3FAF",
+      "version": "2.0.0.0",
+      "runDirectory": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\lazy-hub-smoke-audio\\runs-922f5fdc57d94b7bb7e22281aa199bd8\\0-Aperture-overlay-fix",
+      "arguments": [
+        "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\h264-1080p30-audio.mp4"
+      ],
+      "childEnvironment": {
+        "LOCALAPPDATA": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\lazy-hub-smoke-audio\\runs-922f5fdc57d94b7bb7e22281aa199bd8\\0-Aperture-overlay-fix\\profile\\Local",
+        "TEMP": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\lazy-hub-smoke-audio\\runs-922f5fdc57d94b7bb7e22281aa199bd8\\0-Aperture-overlay-fix\\profile\\Temp",
+        "APPDATA": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\lazy-hub-smoke-audio\\runs-922f5fdc57d94b7bb7e22281aa199bd8\\0-Aperture-overlay-fix\\profile\\Roaming",
+        "TMP": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\lazy-hub-smoke-audio\\runs-922f5fdc57d94b7bb7e22281aa199bd8\\0-Aperture-overlay-fix\\profile\\Temp"
+      },
+      "configPath": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\lazy-hub-smoke-audio\\runs-922f5fdc57d94b7bb7e22281aa199bd8\\0-Aperture-overlay-fix\\runtime\\data",
+      "initialConfig": "Fresh executable-adjacent data/ directory.",
+      "pid": 27552,
+      "processToVisibleWindowMs": 142.9759,
+      "windowDimensions": [
+        1280,
+        800
+      ],
+      "playbackVerification": "advancing-playback-verified",
+      "playbackReason": null,
+      "samples": [
+        {
+          "elapsedSeconds": 14.1117392,
+          "workingSetBytes": 176644096,
+          "privateBytes": 274300928,
+          "cpuSeconds": 2.6875,
+          "dedicatedGpuBytes": 189931520,
+          "sharedGpuBytes": 16289792,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "state": 2,
+            "reason": null,
+            "positionSec": 10.3
+          }
+        },
+        {
+          "elapsedSeconds": 19.118174,
+          "workingSetBytes": 180453376,
+          "privateBytes": 278085632,
+          "cpuSeconds": 3.859375,
+          "dedicatedGpuBytes": 189935616,
+          "sharedGpuBytes": 16224256,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "state": 2,
+            "reason": null,
+            "positionSec": 15.3
+          }
+        },
+        {
+          "elapsedSeconds": 24.1160463,
+          "workingSetBytes": 177922048,
+          "privateBytes": 275410944,
+          "cpuSeconds": 4.5,
+          "dedicatedGpuBytes": 189935616,
+          "sharedGpuBytes": 16355328,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "state": 2,
+            "reason": null,
+            "positionSec": 20.3
+          }
+        },
+        {
+          "elapsedSeconds": 29.1079758,
+          "workingSetBytes": 178081792,
+          "privateBytes": 275558400,
+          "cpuSeconds": 5.125,
+          "dedicatedGpuBytes": 189935616,
+          "sharedGpuBytes": 16355328,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "state": 2,
+            "reason": null,
+            "positionSec": 25.3
+          }
+        },
+        {
+          "elapsedSeconds": 34.1136242,
+          "workingSetBytes": 177999872,
+          "privateBytes": 275447808,
+          "cpuSeconds": 5.625,
+          "dedicatedGpuBytes": 189935616,
+          "sharedGpuBytes": 16355328,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "state": 2,
+            "reason": null,
+            "positionSec": 30.3
+          }
+        }
+      ],
+      "writableGrowthBytes": {
+        "runtimeDelta": 30707,
+        "profileDelta": 0
+      },
+      "cleanup": "owned-window-closed",
+      "artifactCleanup": "runtime-and-profile-copies-removed; metadata-retained",
+      "variant": "Aperture-overlay-fix",
+      "alignedPlaybackPosition": 10.2333333333
+    },
+    {
+      "player": "Aperture",
+      "round": 0,
+      "warmup": false,
+      "status": "sampled",
+      "failure": null,
+      "runtimeSource": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\lazy-hub-runtime",
+      "runtimeBytes": 29177461,
+      "runtimeFileCount": 6,
+      "executableHash": "7A5800000595A3D64D3059C2BD8A43ACE3349AE442A12B86DD36307425B02BF3",
+      "version": "2.0.0.0",
+      "runDirectory": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\lazy-hub-smoke-audio\\runs-922f5fdc57d94b7bb7e22281aa199bd8\\0-Aperture-lazy-hub",
+      "arguments": [
+        "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\h264-1080p30-audio.mp4"
+      ],
+      "childEnvironment": {
+        "LOCALAPPDATA": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\lazy-hub-smoke-audio\\runs-922f5fdc57d94b7bb7e22281aa199bd8\\0-Aperture-lazy-hub\\profile\\Local",
+        "TEMP": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\lazy-hub-smoke-audio\\runs-922f5fdc57d94b7bb7e22281aa199bd8\\0-Aperture-lazy-hub\\profile\\Temp",
+        "APPDATA": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\lazy-hub-smoke-audio\\runs-922f5fdc57d94b7bb7e22281aa199bd8\\0-Aperture-lazy-hub\\profile\\Roaming",
+        "TMP": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\lazy-hub-smoke-audio\\runs-922f5fdc57d94b7bb7e22281aa199bd8\\0-Aperture-lazy-hub\\profile\\Temp"
+      },
+      "configPath": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\lazy-hub-smoke-audio\\runs-922f5fdc57d94b7bb7e22281aa199bd8\\0-Aperture-lazy-hub\\runtime\\data",
+      "initialConfig": "Fresh executable-adjacent data/ directory.",
+      "pid": 10500,
+      "processToVisibleWindowMs": 127.757,
+      "windowDimensions": [
+        1280,
+        800
+      ],
+      "playbackVerification": "advancing-playback-verified",
+      "playbackReason": null,
+      "samples": [
+        {
+          "elapsedSeconds": 10.9757241,
+          "workingSetBytes": 170401792,
+          "privateBytes": 251445248,
+          "cpuSeconds": 2.4375,
+          "dedicatedGpuBytes": 171753472,
+          "sharedGpuBytes": 18808832,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "state": 2,
+            "reason": null,
+            "positionSec": 10.1333333333
+          }
+        },
+        {
+          "elapsedSeconds": 15.9841726,
+          "workingSetBytes": 174080000,
+          "privateBytes": 255115264,
+          "cpuSeconds": 2.859375,
+          "dedicatedGpuBytes": 171749376,
+          "sharedGpuBytes": 15663104,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "state": 2,
+            "reason": null,
+            "positionSec": 15.1333333333
+          }
+        },
+        {
+          "elapsedSeconds": 20.9831069,
+          "workingSetBytes": 171565056,
+          "privateBytes": 252645376,
+          "cpuSeconds": 3.296875,
+          "dedicatedGpuBytes": 171749376,
+          "sharedGpuBytes": 15663104,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "state": 2,
+            "reason": null,
+            "positionSec": 20.1333333333
+          }
+        },
+        {
+          "elapsedSeconds": 25.986217,
+          "workingSetBytes": 171106304,
+          "privateBytes": 252645376,
+          "cpuSeconds": 3.703125,
+          "dedicatedGpuBytes": 171745280,
+          "sharedGpuBytes": 15093760,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "state": 2,
+            "reason": null,
+            "positionSec": 25.1333333333
+          }
+        },
+        {
+          "elapsedSeconds": 30.9807392,
+          "workingSetBytes": 171069440,
+          "privateBytes": 252538880,
+          "cpuSeconds": 4.234375,
+          "dedicatedGpuBytes": 171745280,
+          "sharedGpuBytes": 15093760,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "state": 2,
+            "reason": null,
+            "positionSec": 30.1333333333
+          }
+        }
+      ],
+      "writableGrowthBytes": {
+        "runtimeDelta": 25891,
+        "profileDelta": 0
+      },
+      "cleanup": "owned-window-closed",
+      "artifactCleanup": "runtime-and-profile-copies-removed; metadata-retained",
+      "variant": "Aperture-lazy-hub",
+      "alignedPlaybackPosition": 10.0666666667
+    },
+    {
+      "player": "VLC",
+      "round": 0,
+      "warmup": false,
+      "status": "sampled",
+      "failure": null,
+      "runtimeSource": "C:\\Program Files\\VideoLAN\\VLC",
+      "runtimeBytes": 191879986,
+      "runtimeFileCount": 587,
+      "executableHash": "BFA5740F028A8F310CA01C779BBC5F2F1B435C41539C54DE592F715BB0C10389",
+      "version": "3.0.23",
+      "runDirectory": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\lazy-hub-smoke-audio\\runs-922f5fdc57d94b7bb7e22281aa199bd8\\0-VLC",
+      "arguments": [
+        "--intf=qt",
+        "--ignore-config",
+        "--config=C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\lazy-hub-smoke-audio\\runs-922f5fdc57d94b7bb7e22281aa199bd8\\0-VLC\\profile\\vlcrc",
+        "--no-one-instance",
+        "--no-one-instance-when-started-from-file",
+        "--no-media-library",
+        "--no-metadata-network-access",
+        "--no-qt-privacy-ask",
+        "--no-qt-updates-notif",
+        "--no-qt-recentplay",
+        "--qt-continue=0",
+        "--no-qt-video-autoresize",
+        "--extraintf=rc",
+        "--rc-quiet",
+        "--rc-host=127.0.0.1:57697",
+        "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\h264-1080p30-audio.mp4"
+      ],
+      "childEnvironment": {
+        "LOCALAPPDATA": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\lazy-hub-smoke-audio\\runs-922f5fdc57d94b7bb7e22281aa199bd8\\0-VLC\\profile\\Local",
+        "TEMP": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\lazy-hub-smoke-audio\\runs-922f5fdc57d94b7bb7e22281aa199bd8\\0-VLC\\profile\\Temp",
+        "APPDATA": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\lazy-hub-smoke-audio\\runs-922f5fdc57d94b7bb7e22281aa199bd8\\0-VLC\\profile\\Roaming",
+        "TMP": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\lazy-hub-smoke-audio\\runs-922f5fdc57d94b7bb7e22281aa199bd8\\0-VLC\\profile\\Temp"
+      },
+      "configPath": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\lazy-hub-smoke-audio\\runs-922f5fdc57d94b7bb7e22281aa199bd8\\0-VLC\\profile\\vlcrc",
+      "initialConfig": "",
+      "pid": 31952,
+      "processToVisibleWindowMs": 1830.777,
+      "windowDimensions": [
+        1280,
+        800
+      ],
+      "playbackVerification": "advancing-playback-verified",
+      "playbackReason": null,
+      "samples": [
+        {
+          "elapsedSeconds": 16.2607734,
+          "workingSetBytes": 155791360,
+          "privateBytes": 160030720,
+          "cpuSeconds": 1.921875,
+          "dedicatedGpuBytes": 123682816,
+          "sharedGpuBytes": 15769600,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "state": null,
+            "reason": null,
+            "positionSec": 10.0
+          }
+        },
+        {
+          "elapsedSeconds": 21.2636883,
+          "workingSetBytes": 152489984,
+          "privateBytes": 156684288,
+          "cpuSeconds": 2.15625,
+          "dedicatedGpuBytes": 123682816,
+          "sharedGpuBytes": 15769600,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "state": null,
+            "reason": null,
+            "positionSec": 15.0
+          }
+        },
+        {
+          "elapsedSeconds": 26.272328,
+          "workingSetBytes": 153026560,
+          "privateBytes": 157278208,
+          "cpuSeconds": 2.375,
+          "dedicatedGpuBytes": 123682816,
+          "sharedGpuBytes": 15769600,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "state": null,
+            "reason": null,
+            "positionSec": 20.0
+          }
+        },
+        {
+          "elapsedSeconds": 31.2646514,
+          "workingSetBytes": 153096192,
+          "privateBytes": 157278208,
+          "cpuSeconds": 2.671875,
+          "dedicatedGpuBytes": 123682816,
+          "sharedGpuBytes": 15769600,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "state": null,
+            "reason": null,
+            "positionSec": 25.0
+          }
+        },
+        {
+          "elapsedSeconds": 36.2725925,
+          "workingSetBytes": 153169920,
+          "privateBytes": 157343744,
+          "cpuSeconds": 2.796875,
+          "dedicatedGpuBytes": 123682816,
+          "sharedGpuBytes": 15769600,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "state": null,
+            "reason": null,
+            "positionSec": 30.0
+          }
+        }
+      ],
+      "writableGrowthBytes": {
+        "runtimeDelta": 419,
+        "profileDelta": 0
+      },
+      "cleanup": "owned-window-closed",
+      "artifactCleanup": "runtime-and-profile-copies-removed; metadata-retained",
+      "variant": "VLC",
+      "alignedPlaybackPosition": 10.0
+    }
+  ]
+}
