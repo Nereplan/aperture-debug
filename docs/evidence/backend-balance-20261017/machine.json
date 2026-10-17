@@ -1,0 +1,21 @@
+{
+  "os": {
+    "Caption": "Microsoft Windows 11 Pro",
+    "Version": "10.0.26200",
+    "BuildNumber": "26200"
+  },
+  "gpu": [
+    {
+      "Name": "NVIDIA GeForce RTX 4070 SUPER",
+      "DriverVersion": "32.0.16.1088",
+      "CurrentRefreshRate": 164
+    }
+  ],
+  "cpu": [
+    {
+      "Name": "AMD Ryzen 9 3900X 12-Core Processor            ",
+      "NumberOfCores": 12,
+      "NumberOfLogicalProcessors": 24
+    }
+  ]
+}

@@ -1,0 +1,110 @@
+{
+  "before": [
+    {
+      "items": 500,
+      "mode": 4,
+      "samples": 14,
+      "ms": 0.0495,
+      "allocations": 2.0,
+      "allocated_bytes": 168.0,
+      "peak_live_cpp_bytes": 168.0,
+      "retained_cpp_bytes": 0.0,
+      "hashes": [
+        "6986250780404406989"
+      ]
+    },
+    {
+      "items": 500,
+      "mode": 5,
+      "samples": 14,
+      "ms": 0.047,
+      "allocations": 18.0,
+      "allocated_bytes": 10599.0,
+      "peak_live_cpp_bytes": 10599.0,
+      "retained_cpp_bytes": 10431.0,
+      "hashes": [
+        "5315837825685257211"
+      ]
+    },
+    {
+      "items": 25000,
+      "mode": 4,
+      "samples": 14,
+      "ms": 7.583,
+      "allocations": 2.0,
+      "allocated_bytes": 168.0,
+      "peak_live_cpp_bytes": 168.0,
+      "retained_cpp_bytes": 0.0,
+      "hashes": [
+        "13353129619659467689"
+      ]
+    },
+    {
+      "items": 25000,
+      "mode": 5,
+      "samples": 14,
+      "ms": 8.8555,
+      "allocations": 18.0,
+      "allocated_bytes": 402599.0,
+      "peak_live_cpp_bytes": 402599.0,
+      "retained_cpp_bytes": 402431.0,
+      "hashes": [
+        "17246791759775021839"
+      ]
+    }
+  ],
+  "after": [
+    {
+      "items": 500,
+      "mode": 4,
+      "samples": 14,
+      "ms": 0.006,
+      "allocations": 2.0,
+      "allocated_bytes": 288.0,
+      "peak_live_cpp_bytes": 288.0,
+      "retained_cpp_bytes": 0.0,
+      "hashes": [
+        "6986250780404406989"
+      ]
+    },
+    {
+      "items": 500,
+      "mode": 5,
+      "samples": 14,
+      "ms": 0.0085,
+      "allocations": 19.0,
+      "allocated_bytes": 4832.0,
+      "peak_live_cpp_bytes": 4544.0,
+      "retained_cpp_bytes": 4544.0,
+      "hashes": [
+        "5315837825685257211"
+      ]
+    },
+    {
+      "items": 25000,
+      "mode": 4,
+      "samples": 14,
+      "ms": 0.0095,
+      "allocations": 2.0,
+      "allocated_bytes": 288.0,
+      "peak_live_cpp_bytes": 288.0,
+      "retained_cpp_bytes": 0.0,
+      "hashes": [
+        "13353129619659467689"
+      ]
+    },
+    {
+      "items": 25000,
+      "mode": 5,
+      "samples": 14,
+      "ms": 0.0215,
+      "allocations": 19.0,
+      "allocated_bytes": 7904.0,
+      "peak_live_cpp_bytes": 7616.0,
+      "retained_cpp_bytes": 7616.0,
+      "hashes": [
+        "17246791759775021839"
+      ]
+    }
+  ]
+}

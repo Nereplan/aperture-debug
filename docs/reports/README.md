@@ -7,6 +7,7 @@ Reports capture empirical observations on specific machines and source revisions
 ## Navigation by subsystem
 
 ### Backend, storage and persistence
+- [Backend performance balance (17 Oct 2026)](BACKEND_BALANCE_20261017.md) — Speed/resource/size measurements, all eight research dispositions, local build and regression evidence.
 - [Library record memory (14 Oct 2026)](LIBRARY_RECORD_MEMORY_20261014.md) — On-demand playback preferences, independent snapshot ownership, and sparse/dense memory and CPU measurements.
 - [JSON array ownership during loading (14 Oct 2026)](JSON_ARRAY_GROWTH_20261014.md) — Explicit parser ownership transfer, library-load measurements and array-boundary regressions.
 - [Player comparison and preview work reduction (14 Oct 2026)](PLAYER_COMPARISON_20261014.md) — Local VLC/MPC-HC resource measurements, source review, and one-shot seekbar extraction.

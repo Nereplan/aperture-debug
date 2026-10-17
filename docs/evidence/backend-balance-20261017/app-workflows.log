@@ -1,0 +1,73 @@
+Workflow suite: app | seeds=
+Json.cpp
+app_workflows.cpp
+Native build: 1 production files compiled, 0 reused.
+PASS load real media paused elapsed_ms=453 position=0 duration=45
+PASS native_negative_x_restore=true
+PASS actual_app_custom_uia_root=true
+PASS per-media speed starts playback elapsed_ms=250 position=0.115081 duration=45
+PASS promoted_media_preference_speed=0.487784 expected=0.5 other_media=2
+PASS playback enters fullscreen elapsed_ms=0 position=0.51 duration=45
+PASS Escape exits fullscreen elapsed_ms=78 position=0.52099 duration=45
+PASS playback enters fullscreen elapsed_ms=0 position=0.51 duration=45
+PASS chevron exits fullscreen elapsed_ms=63 position=0.52099 duration=45
+PASS playback enters fullscreen elapsed_ms=0 position=0.51 duration=45
+PASS Escape exits fullscreen elapsed_ms=78 position=0.50999 duration=45
+PASS playback enters fullscreen elapsed_ms=0 position=0.51 duration=45
+PASS chevron exits fullscreen elapsed_ms=63 position=0.50999 duration=45
+PASS seek reaches requested position elapsed_ms=16 position=4 duration=45
+PASS playback clock advances elapsed_ms=563 position=4.26945 duration=45
+PASS pause acknowledged elapsed_ms=16 position=4.26945 duration=45
+PASS next queue item loads elapsed_ms=15 position=0 duration=60
+PASS previous queue item returns elapsed_ms=0 position=4.269 duration=45
+PASS position restored before close elapsed_ms=16 position=4 duration=45
+PASS stop returns to library elapsed_ms=15 position=0 duration=0
+PASS actual_app_uia_value=true selection=true selection_count=0 scroll=1
+PASS hub reopens media elapsed_ms=0 position=4 duration=45
+PASS hub_to_video_ms=94
+PASS reopen returns to library elapsed_ms=0 position=0 duration=0
+PASS restart_cycle=0 persisted_resume=true
+PASS load real media paused elapsed_ms=391 position=4 duration=45
+PASS seek reaches requested position elapsed_ms=16 position=5 duration=45
+PASS playback clock advances elapsed_ms=578 position=5.26004 duration=45
+PASS pause acknowledged elapsed_ms=16 position=5.28762 duration=45
+PASS next queue item loads elapsed_ms=15 position=0 duration=60
+PASS previous queue item returns elapsed_ms=47 position=5.29091 duration=45
+PASS position restored before close elapsed_ms=16 position=5 duration=45
+PASS stop returns to library elapsed_ms=0 position=0 duration=0
+PASS hub reopens media elapsed_ms=0 position=5 duration=45
+PASS hub_to_video_ms=125
+PASS reopen returns to library elapsed_ms=0 position=0 duration=0
+PASS restart_cycle=1 persisted_resume=true
+PASS load real media paused elapsed_ms=390 position=4.99999 duration=45
+PASS seek reaches requested position elapsed_ms=16 position=6 duration=45
+PASS playback clock advances elapsed_ms=578 position=6.26801 duration=45
+PASS pause acknowledged elapsed_ms=16 position=6.26801 duration=45
+PASS next queue item loads elapsed_ms=16 position=0 duration=60
+PASS previous queue item returns elapsed_ms=47 position=6.27142 duration=45
+PASS position restored before close elapsed_ms=15 position=6 duration=45
+PASS stop returns to library elapsed_ms=0 position=0 duration=0
+PASS hub reopens media elapsed_ms=0 position=6 duration=45
+PASS hub_to_video_ms=125
+PASS reopen returns to library elapsed_ms=16 position=0 duration=0
+PASS restart_cycle=2 persisted_resume=true
+PASS CLI volume uses percent and missing subtitle is recoverable elapsed_ms=438 position=5.99999 duration=45
+PASS UIA RangeValue changes actual player volume elapsed_ms=0 position=6.03099 duration=45
+PASS UIA RangeValue restores prior volume elapsed_ms=0 position=6.03099 duration=45
+PASS actual_app_uia_range_value=true
+PASS second-instance CLI volume reaches the primary elapsed_ms=0 position=6.03099 duration=45
+PASS second_instance_cli_forwarding=true secondary_exit=0 primary_volume=35
+PASS playback continues after invalid external subtitle elapsed_ms=484 position=6.25011 duration=45
+PASS automation volume uses percent elapsed_ms=15 position=6.25011 duration=45
+PASS volume survives a restart without CLI override elapsed_ms=406 position=6.25 duration=45
+PASS volume_cli_automation_save_reload=true bad_subtitle_recoverable=true
+PASS private fixture starts with paused existing media elapsed_ms=375 position=6.24999 duration=45
+PASS private media opens elapsed_ms=16 position=6.25 duration=45
+PASS private seek changes only live playback elapsed_ms=15 position=23 duration=45
+PASS private playback advances elapsed_ms=609 position=23.2687 duration=45
+PASS private close returns to hub elapsed_ms=0 position=0 duration=0
+PASS private media opens elapsed_ms=62 position=0 duration=30
+PASS private seek changes only live playback elapsed_ms=16 position=7 duration=30
+PASS private playback advances elapsed_ms=328 position=7.2895 duration=30
+PASS private_play_close_shutdown_persistence=true new_private_target_absent=true
+PASS command_count=226 command_p95_ms=38.3649

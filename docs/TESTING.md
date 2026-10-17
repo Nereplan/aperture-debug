@@ -23,6 +23,11 @@ Select suites by inventory ID when working on a specific boundary:
 
 The native unit/persistence/IPC/loader/updater/stress harnesses reject an unknown selection, an empty selection, and a test that executes no assertions. Explicit skips are reported separately. The central invocation shares production objects across the workflow, unit, corpus, and persistence suites in a temporary content-keyed pool; harness sources compile fresh. Running these scripts independently does not share that pool.
 
+`BackendBalance` checks immutable snapshot blocks, persisted progress capture,
+saved startup ordering, and cancellation/new-intent fencing for imports.
+`RendererCache` also checks real bitmap eviction and pending pixel cleanup when
+the library is hidden, followed by re-admission on return.
+
 ## Choose the appropriate scope
 
 | Tier or suite | Purpose and prerequisites |

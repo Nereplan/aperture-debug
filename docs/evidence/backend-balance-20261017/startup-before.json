@@ -1,0 +1,160 @@
+{
+  "status": "PASS",
+  "timestamp": "2026-10-17T10:47:05Z",
+  "samplesCount": 5,
+  "metrics": {
+    "startupMs": {
+      "median": 58.2,
+      "min": 54.28,
+      "mean": 58.64,
+      "stdDev": 4.58,
+      "max": 65.83
+    },
+    "windowShownMs": {
+      "median": 40.69,
+      "min": 36.5,
+      "mean": 40.63,
+      "stdDev": 4.33,
+      "max": 47.31
+    },
+    "populatedMs": {
+      "median": 297.46,
+      "min": 283.19,
+      "mean": 296.45,
+      "stdDev": 13.2,
+      "max": 312.77
+    },
+    "workingSetBytes": {
+      "median": 60145664.0,
+      "min": 59895808.0,
+      "mean": 60171059.2,
+      "stdDev": 203472.69,
+      "max": 60399616.0
+    },
+    "peakWorkingSetBytes": {
+      "median": 61059072.0,
+      "min": 60788736.0,
+      "mean": 61077913.6,
+      "stdDev": 210268.87,
+      "max": 61308928.0
+    },
+    "privateBytes": {
+      "median": 61952000.0,
+      "min": 61640704.0,
+      "mean": 62133043.2,
+      "stdDev": 604977.95,
+      "max": 63115264.0
+    },
+    "peakPrivateBytes": {
+      "median": 62730240.0,
+      "min": 62410752.0,
+      "mean": 62908825.6,
+      "stdDev": 606412.77,
+      "max": 63893504.0
+    },
+    "gdiObjects": {
+      "median": 18.0,
+      "min": 18.0,
+      "mean": 18.0,
+      "stdDev": 0.0,
+      "max": 18.0
+    },
+    "userObjects": {
+      "median": 19.0,
+      "min": 19.0,
+      "mean": 19.0,
+      "stdDev": 0.0,
+      "max": 19.0
+    }
+  },
+  "budgets": {
+    "startupMaxMs": 1500.0,
+    "startupTargetMs": 600.0,
+    "windowShownMaxMs": 1000.0,
+    "windowShownTargetMs": 300.0,
+    "workingSetMaxBytes": 157286400,
+    "workingSetTargetBytes": 94371840,
+    "peakWorkingSetMaxBytes": 167772160,
+    "peakWorkingSetTargetBytes": 104857600,
+    "privateBytesMaxBytes": 188743680,
+    "privateBytesTargetBytes": 125829120,
+    "peakPrivateBytesMaxBytes": 199229440,
+    "peakPrivateBytesTargetBytes": 136314880,
+    "gdiObjectsMax": 100,
+    "userObjectsMax": 100,
+    "maxProcesses": 1
+  },
+  "regressions": [],
+  "samples": [
+    {
+      "sample": 1,
+      "startupMs": 54.28,
+      "shownMs": 36.5,
+      "populatedMs": 283.33,
+      "libraryReady": true,
+      "workingSetBytes": 60076032,
+      "peakWorkingSetBytes": 60981248,
+      "privateBytes": 61640704,
+      "peakPrivateBytes": 62410752,
+      "gdiObjects": 18,
+      "userObjects": 19,
+      "processCount": 1
+    },
+    {
+      "sample": 2,
+      "startupMs": 55.17,
+      "shownMs": 37.08,
+      "populatedMs": 283.19,
+      "libraryReady": true,
+      "workingSetBytes": 60338176,
+      "peakWorkingSetBytes": 61251584,
+      "privateBytes": 63115264,
+      "peakPrivateBytes": 63893504,
+      "gdiObjects": 18,
+      "userObjects": 19,
+      "processCount": 1
+    },
+    {
+      "sample": 3,
+      "startupMs": 59.71,
+      "shownMs": 41.55,
+      "populatedMs": 312.77,
+      "libraryReady": true,
+      "workingSetBytes": 59895808,
+      "peakWorkingSetBytes": 60788736,
+      "privateBytes": 62275584,
+      "peakPrivateBytes": 63049728,
+      "gdiObjects": 18,
+      "userObjects": 19,
+      "processCount": 1
+    },
+    {
+      "sample": 4,
+      "startupMs": 65.83,
+      "shownMs": 47.31,
+      "populatedMs": 305.49,
+      "libraryReady": true,
+      "workingSetBytes": 60145664,
+      "peakWorkingSetBytes": 61059072,
+      "privateBytes": 61952000,
+      "peakPrivateBytes": 62730240,
+      "gdiObjects": 18,
+      "userObjects": 19,
+      "processCount": 1
+    },
+    {
+      "sample": 5,
+      "startupMs": 58.2,
+      "shownMs": 40.69,
+      "populatedMs": 297.46,
+      "libraryReady": true,
+      "workingSetBytes": 60399616,
+      "peakWorkingSetBytes": 61308928,
+      "privateBytes": 61681664,
+      "peakPrivateBytes": 62459904,
+      "gdiObjects": 18,
+      "userObjects": 19,
+      "processCount": 1
+    }
+  ]
+}

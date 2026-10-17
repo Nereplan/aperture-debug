@@ -1,0 +1,64 @@
+{
+  "app-before": {
+    "Aperture": {
+      "samples": 3,
+      "visible_ms": 123.8871,
+      "private_bytes": 269045760,
+      "gpu_dedicated_bytes": 181678080,
+      "working_set_bytes": 173191168,
+      "cpu_one_core_percent": 38.58491709254802,
+      "runtime_bytes": 29900797
+    }
+  },
+  "app-after": {
+    "VLC": {
+      "samples": 3,
+      "visible_ms": 1952.0802,
+      "private_bytes": 151756800,
+      "gpu_dedicated_bytes": 123629568,
+      "working_set_bytes": 150319104,
+      "cpu_one_core_percent": 3.6835451327909565,
+      "runtime_bytes": 191879986
+    },
+    "MPC-HC": {
+      "samples": 3,
+      "visible_ms": 792.922,
+      "private_bytes": 148701184,
+      "gpu_dedicated_bytes": 106815488,
+      "working_set_bytes": 117313536,
+      "cpu_one_core_percent": 3.3537352156826135,
+      "runtime_bytes": 75520200
+    },
+    "Aperture": {
+      "samples": 3,
+      "visible_ms": 141.5932,
+      "private_bytes": 263520256,
+      "gpu_dedicated_bytes": 177725440,
+      "working_set_bytes": 171229184,
+      "cpu_one_core_percent": 22.13919716785048,
+      "runtime_bytes": 29200381
+    }
+  },
+  "startup-before": {
+    "startupMs": 58.2,
+    "windowShownMs": 40.69,
+    "populatedMs": 297.46,
+    "workingSetBytes": 60145664.0,
+    "peakWorkingSetBytes": 61059072.0,
+    "privateBytes": 61952000.0,
+    "peakPrivateBytes": 62730240.0,
+    "gdiObjects": 18.0,
+    "userObjects": 19.0
+  },
+  "startup-after": {
+    "startupMs": 57.15,
+    "windowShownMs": 39.97,
+    "populatedMs": 295.0,
+    "workingSetBytes": 60387328.0,
+    "peakWorkingSetBytes": 61308928.0,
+    "privateBytes": 62316544.0,
+    "peakPrivateBytes": 63094784.0,
+    "gdiObjects": 18.0,
+    "userObjects": 19.0
+  }
+}

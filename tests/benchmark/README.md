@@ -64,3 +64,33 @@ allocation. This is an isolated record benchmark, excluding library lookup
 indexes, allocator overhead, process RSS, playback and GPU memory. Use the save
 and startup benchmarks for broader behavior, and compare dense as well as sparse
 optional-field workloads when evaluating a memory/speed tradeoff.
+
+## Playback balance and progress capture
+
+`compare_playback_resources.ps1 -Probe <compiled-mpv_playback_test.exe>
+-BaselineDll <old-dll> -CandidateDll <new-dll> -MediaDir <fixtures>
+-OutputDir <external-scratch>` rotates `gpu` and `gpu-next` across fresh engines.
+`-Experiment Pacing` compares display-vdrop/audio clocks and a one-thread decoder
+control; `-WithAudio` enables silent audio processing. `-MediaFile` selects one
+fixture. Build the probe with `tests/libmpv/run_tests.ps1 -Scenario version`.
+One warmup and three measured rounds are the defaults. Initialization and
+PLAYBACK_RESTART are engine milestones, not compositor presentation. CPU is
+percent of one logical core; DXGI local/nonlocal memory is process accounting.
+Playback advancement and direct D3D11VA decoding must pass. Counters are sampled
+after settling; steady frame drops exclude startup. Child profiles stay inside
+each isolated run. The driver retains its copies and raw output for review.
+
+`run_save_benchmark.ps1 -CompileOnly -SourceDirectory <src> -OutputDirectory
+<scratch>` builds a reusable capture probe. Compile both versions first, then
+alternate the executables with `--capture-only --playback-capture`. The path
+index is prepared before timing, matching startup publication in the app. The
+baseline falls back to full capture if the specialized API is absent. Mode 4 is
+unchanged progress; mode 5 changes one record. Compare hashes, allocation bytes
+and timing together. These measurements exclude disk I/O and index construction.
+
+`python tests/benchmark/paged_store_experiment.py --source <generated-array.json>
+--output <fresh-scratch-directory>` evaluates full hydration and a first sorted
+50-record page in JSON/SQLite. It uses an isolated fixture, preserves the source,
+and verifies equal hashes. Python timings and Python heap measurements are not
+native-app performance; SQLite's native allocations are excluded. The experiment
+is not a production database format or migration tool.

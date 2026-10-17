@@ -1,0 +1,76 @@
+{
+  "base_commit": "8fabe56",
+  "baseline": "Pre-existing working-tree state copied before this pass; not clean HEAD",
+  "sources": {
+    "App.cpp": {
+      "before": "df309da98845a88626193dd762c2af5db23379a444548ae8293823f50dae0bca",
+      "after": "d99d246f29e0a7de0a69f54b5e43399f98df160171ef31aa35326d3b84b73ba0"
+    },
+    "App.h": {
+      "before": "3d28244379edc46d4dc179d68971da5b2d138f907a924127ac01c0d952556511",
+      "after": "6b164d92031c665a5bdef97864d4dc77b30f186697e785fb1e3ee94cbfdf4b28"
+    },
+    "AppLibrary.cpp": {
+      "before": "4aec4cb8ebe2e501cf1ed0ad1e81fdaae02c2ee29addabfecf81f77e2738d763",
+      "after": "ef0e4132e1a87c9d5a3b7d14902f8f7b882eadb5f1effe2363ab7b4c57f249c5"
+    },
+    "AppPlayback.cpp": {
+      "before": "81036a34ab25f1ef71badade1658c6df3938e320c55caa0144dbe2a55f5a948b",
+      "after": "4e48a97c42facf1a5d759c06aaa37ddef973166d0fcf4fed8af6087ba953ba6b"
+    },
+    "AppImportJobs.cpp": {
+      "before": "d60835ee1e4d4801ff67de07e4f14cbb2cb0c2698179136cf227b149a9ec518c",
+      "after": "431e3dd8386dd8e75687ac95fbde9b9516698fc2b1a732e8c7c3bc6628fc7d48"
+    },
+    "AppPersistence.cpp": {
+      "before": "99c3b7caceca5c4249e7ef0ff2615d7107581a0d8308a86b15f3a5ee59f5146c",
+      "after": "0336c78e3a5faccf57c8f2d43933bcff79706c42f7efd12c517d0a66e0e22ddd"
+    },
+    "MediaLibrary.cpp": {
+      "before": "38727034dc9c70171f45bba80c836f3cfe8eab6a046e6fd4f526d66a74c2c5d3",
+      "after": "2e16dfd57d0e1dc0b3802b0603d78730ed8dfd8d45618b606bc98782f6c57bfa"
+    },
+    "MediaLibrary.h": {
+      "before": "8a1d6f779f468905d986a87ecc78bc079f358ed6bfddcc91620d5162b16f17aa",
+      "after": "8c6aaa40e0c1badc3ac54aa3f9510d15bc4169db16a107073890756572c4a727"
+    },
+    "Renderer.cpp": {
+      "before": "c2e3697f2330643da5fda15a1191dbe0224c4f2f49308beda994d3b9a097f837",
+      "after": "d17855335b8c7bae32e15820464eb3931ebf305771907c4b951523fd266278c6"
+    },
+    "Renderer.h": {
+      "before": "865035fa921f141dab8a48850d6edbf85afaf4218ddbcbe5b9b52d57b1704bbf",
+      "after": "4fa1f11448a2bb7b31c01d39c107aa8df335edeb80fa222397e15a517db6e0ae"
+    },
+    "MpvPlayer.cpp": {
+      "before": "f57b4cf2a1863dc40e79d9946424db32ba56978e8416e8e95b9b3f1f21fafd96",
+      "after": "490cde8857da54e86fb374bd4f0f0f669da492209a823b4a43e18d9950493330"
+    },
+    "LibrarySnapshot.cpp": {
+      "before": "3003b2a0e2f3e2eb1ce11fc3cfc4933dc2e2b81535737343b28664702112751d",
+      "after": "63563d5136bb261e2375fa55b531803741a31db16923e49399296ed4c62301e4"
+    },
+    "LibrarySnapshot.h": {
+      "before": "9d1225720f442977e45741d52c920b9ada097a34812739af75aa43feb729fba1",
+      "after": "42c42fd85677f66f70d9899c29b2a95d3e6bd2f94040fe4a16a4bba297949e7c"
+    }
+  },
+  "Aperture.exe": "31698a73234944df74eb2f3039883cf5004c2132393f99b739bdc39515fa97f5",
+  "libmpv-2.dll": "0fc93966f7e0ff741a60f356152ccb5080e0c538b3d5dcffe001f344222d2efe",
+  "resource-probe.exe": "e38bd0fe9d625f7148c874b81551651d65f87dc5f55faf0fcba7ea2a599e51d5",
+  "resource-probe-v2.exe": "853b4a44b2066e7d6c6710e10cd82b8d0962a5fd962200e2cc0695fbbd9b9fd4",
+  "resource-probe-v3.exe": "154726a98ed2337f54ec481af56cf1596186b42ed86e070fac9d5d7538f1aec1",
+  "candidate_exe_sha256": "d1f726360194f31a508a3a891efdda7129cc9ee17fa29086a825c66e0a673e66",
+  "candidate_dll_sha256": "11b37889e5103a1370509dcf5e5a9c389325c497552f522f45049dfba19f5c52",
+  "new_sources": {
+    "src/ImportPlaybackIntent.h": "ef08c4213b749d110870bb014dca6877fa64a573d0892c8aa6bcb95c81b3d3bc",
+    "src/SnapshotRecords.h": "617ee08fcd38b21ff3eb9c2df8a14904f0d1f0949856ccd01fae3863f3d1fd08",
+    "tests/unit/TestBackendBalance.h": "a8ea3888697c525e04bbda03ecaedd490bd02368699b84f247ff62ea269f9e3d",
+    "tests/libmpv/playback_resource_probe.h": "eae16750841646874c70d0c63328a2cb7e64daa08dbf729a6e16e0cb1c73b127",
+    "tests/benchmark/compare_playback_resources.ps1": "237fbee0adf6798a543f98a3c8fd1c13d96570b66dd3bd4e77a7d5488e69af76",
+    "tests/benchmark/paged_store_experiment.py": "2816a47f9368b2a82af44f0682d9ff8fe13e3c6e6ff4f77ed7716c00bdfaaa76",
+    "tests/workflows/app_workflows.cpp": "6597c085be3e1d73e6a2469f167c4c20f55c0e0c25da1980692dff4b750593b9"
+  },
+  "implementation_commit": "1f50dda",
+  "workflow_test_fix_commit": "9fb06e4"
+}

@@ -1,0 +1,30 @@
+Workflow suite: app | seeds=
+Json.cpp
+app_workflows.cpp
+Native build: 1 production files compiled, 0 reused.
+PASS load real media paused elapsed_ms=469 position=0 duration=45
+PASS native_negative_x_restore=true
+PASS actual_app_custom_uia_root=true
+PASS per-media speed starts playback elapsed_ms=250 position=0.12504 duration=45
+PASS promoted_media_preference_speed=0.519234 expected=0.5 other_media=2
+PASS playback enters fullscreen elapsed_ms=0 position=0.520604 duration=45
+PASS Escape exits fullscreen elapsed_ms=62 position=0.52599 duration=45
+PASS playback enters fullscreen elapsed_ms=0 position=0.521 duration=45
+PASS chevron exits fullscreen elapsed_ms=62 position=0.52099 duration=45
+PASS playback enters fullscreen elapsed_ms=0 position=0.521 duration=45
+PASS Escape exits fullscreen elapsed_ms=16 position=0.53199 duration=45
+PASS playback enters fullscreen elapsed_ms=0 position=0.530186 duration=45
+PASS chevron exits fullscreen elapsed_ms=94 position=0.53199 duration=45
+PASS seek reaches requested position elapsed_ms=31 position=4 duration=45
+PASS playback clock advances elapsed_ms=578 position=4.26516 duration=45
+PASS pause acknowledged elapsed_ms=16 position=4.29015 duration=45
+PASS next queue item loads elapsed_ms=47 position=0.046937 duration=60
+PASS previous queue item returns elapsed_ms=63 position=4.31295 duration=45
+PASS position restored before close elapsed_ms=15 position=4.00002 duration=45
+PASS stop returns to library elapsed_ms=0 position=0 duration=0
+PASS actual_app_uia_value=true selection=true selection_count=0 scroll=1
+PASS hub reopens media elapsed_ms=0 position=4 duration=45
+PASS hub_to_video_ms=78
+PASS reopen returns to library elapsed_ms=16 position=0 duration=0
+FAIL App did not persist a readable library
+Workflow assertions failed; see C:\Users\Alperen\Desktop\Antigravity\Aperture Final\diagnostics\workflows\latest-app.log

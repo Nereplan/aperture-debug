@@ -1,0 +1,1116 @@
+{
+  "schemaVersion": 1,
+  "createdUtc": "2026-10-17T10:47:01.1167005Z",
+  "mediaPath": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-comparison-20261013\\media\\h264-1080p30.mp4",
+  "mediaSha256": "7E171361FA8611A504A439D4452D63FCD2C5DA6DC4307853F9C114FFA1E37DC3",
+  "mediaBytes": 44681659,
+  "iterations": 3,
+  "warmupIterations": 1,
+  "windowTarget": [
+    1280,
+    800
+  ],
+  "startupMetric": "Process launch to first visible unowned top-level window (not first frame)",
+  "sampling": "8s after visible window plus 2s after post-load resize; 3 samples separated by at least 2s (counter/status overhead included)",
+  "apertureStatusProbe": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-balanced-20261016\\app-after\\runs-16438d877e364c0aab1eb4a73a202e5f\\player_status_probe.exe",
+  "limitations": [
+    "Warm OS caches; no cold-cache claim.",
+    "Window outer rectangles match; video viewport and default decoder may differ.",
+    "Samples cover owned root process only; inspect unexpected child processes separately.",
+    "Playback status does not prove pixels are visible or decoder hardware equivalence.",
+    "Child environment redirects ordinary profile/temp writes; Windows Known Folder APIs may bypass environment variables (VLC additionally uses portable/).",
+    "VLC RC verification adds a control-interface overhead.",
+    "MPC-HC uses a hidden /slave window to verify position; no decoder equivalence claim."
+  ],
+  "players": [
+    {
+      "name": "Aperture",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-balanced-20261016\\candidate-runtime",
+      "exeName": "Aperture.exe",
+      "exeHash": "D1F726360194F31A508A3A891EFDDA7129CC9EE17FA29086A825C66E0A673E66",
+      "version": "2.0.0.0",
+      "runtimeBytes": 29200381,
+      "runtimeFileCount": 11
+    },
+    {
+      "name": "VLC",
+      "source": "C:\\Program Files\\VideoLAN\\VLC",
+      "exeName": "vlc.exe",
+      "exeHash": "BFA5740F028A8F310CA01C779BBC5F2F1B435C41539C54DE592F715BB0C10389",
+      "version": "3.0.23",
+      "runtimeBytes": 191879986,
+      "runtimeFileCount": 587
+    },
+    {
+      "name": "MPC-HC",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-comparison-20261013\\mpc-hc",
+      "exeName": "mpc-hc64.exe",
+      "exeHash": "0BBF9CB8723A4C14E6CDF2158FBD539E340DB0CCBC8E7D928D195059ED71A787",
+      "version": "2.8.3 (7bcb74616)",
+      "runtimeBytes": 75520200,
+      "runtimeFileCount": 140
+    }
+  ],
+  "results": [
+    {
+      "player": "Aperture",
+      "round": 0,
+      "warmup": true,
+      "status": "sampled",
+      "failure": null,
+      "runtimeSource": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-balanced-20261016\\candidate-runtime",
+      "runtimeBytes": 29200381,
+      "runtimeFileCount": 11,
+      "executableHash": "D1F726360194F31A508A3A891EFDDA7129CC9EE17FA29086A825C66E0A673E66",
+      "version": "2.0.0.0",
+      "runDirectory": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-balanced-20261016\\app-after\\runs-16438d877e364c0aab1eb4a73a202e5f\\0-Aperture",
+      "arguments": [
+        "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-comparison-20261013\\media\\h264-1080p30.mp4"
+      ],
+      "childEnvironment": {
+        "TEMP": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-balanced-20261016\\app-after\\runs-16438d877e364c0aab1eb4a73a202e5f\\0-Aperture\\profile\\Temp",
+        "TMP": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-balanced-20261016\\app-after\\runs-16438d877e364c0aab1eb4a73a202e5f\\0-Aperture\\profile\\Temp",
+        "APPDATA": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-balanced-20261016\\app-after\\runs-16438d877e364c0aab1eb4a73a202e5f\\0-Aperture\\profile\\Roaming",
+        "LOCALAPPDATA": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-balanced-20261016\\app-after\\runs-16438d877e364c0aab1eb4a73a202e5f\\0-Aperture\\profile\\Local"
+      },
+      "configPath": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-balanced-20261016\\app-after\\runs-16438d877e364c0aab1eb4a73a202e5f\\0-Aperture\\runtime\\data",
+      "initialConfig": "Fresh executable-adjacent data/ directory.",
+      "pid": 11176,
+      "processToVisibleWindowMs": 133.3105,
+      "windowDimensions": [
+        1280,
+        800
+      ],
+      "playbackVerification": "advancing-playback-verified",
+      "playbackReason": null,
+      "samples": [
+        {
+          "elapsedSeconds": 11.9351456,
+          "workingSetBytes": 168402944,
+          "privateBytes": 263237632,
+          "cpuSeconds": 3.453125,
+          "dedicatedGpuBytes": 177725440,
+          "sharedGpuBytes": 16420864,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "reason": null,
+            "positionSec": 11.2,
+            "state": 2
+          }
+        },
+        {
+          "elapsedSeconds": 15.1137338,
+          "workingSetBytes": 171941888,
+          "privateBytes": 266952704,
+          "cpuSeconds": 4.53125,
+          "dedicatedGpuBytes": 177725440,
+          "sharedGpuBytes": 16355328,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "reason": null,
+            "positionSec": 14.3,
+            "state": 2
+          }
+        },
+        {
+          "elapsedSeconds": 18.1965644,
+          "workingSetBytes": 172310528,
+          "privateBytes": 267259904,
+          "cpuSeconds": 4.9375,
+          "dedicatedGpuBytes": 177729536,
+          "sharedGpuBytes": 19501056,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "reason": null,
+            "positionSec": 17.4,
+            "state": 2
+          }
+        }
+      ],
+      "writableGrowthBytes": {
+        "runtimeDelta": 26243,
+        "profileDelta": 0
+      },
+      "cleanup": "owned-window-closed",
+      "artifactCleanup": "runtime-and-profile-copies-removed; metadata-retained"
+    },
+    {
+      "player": "VLC",
+      "round": 0,
+      "warmup": true,
+      "status": "sampled",
+      "failure": null,
+      "runtimeSource": "C:\\Program Files\\VideoLAN\\VLC",
+      "runtimeBytes": 191879986,
+      "runtimeFileCount": 587,
+      "executableHash": "BFA5740F028A8F310CA01C779BBC5F2F1B435C41539C54DE592F715BB0C10389",
+      "version": "3.0.23",
+      "runDirectory": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-balanced-20261016\\app-after\\runs-16438d877e364c0aab1eb4a73a202e5f\\0-VLC",
+      "arguments": [
+        "--intf=qt",
+        "--ignore-config",
+        "--config=C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-balanced-20261016\\app-after\\runs-16438d877e364c0aab1eb4a73a202e5f\\0-VLC\\profile\\vlcrc",
+        "--no-one-instance",
+        "--no-one-instance-when-started-from-file",
+        "--no-media-library",
+        "--no-metadata-network-access",
+        "--no-qt-privacy-ask",
+        "--no-qt-updates-notif",
+        "--no-qt-recentplay",
+        "--qt-continue=0",
+        "--no-qt-video-autoresize",
+        "--extraintf=rc",
+        "--rc-quiet",
+        "--rc-host=127.0.0.1:57524",
+        "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-comparison-20261013\\media\\h264-1080p30.mp4"
+      ],
+      "childEnvironment": {
+        "TEMP": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-balanced-20261016\\app-after\\runs-16438d877e364c0aab1eb4a73a202e5f\\0-VLC\\profile\\Temp",
+        "TMP": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-balanced-20261016\\app-after\\runs-16438d877e364c0aab1eb4a73a202e5f\\0-VLC\\profile\\Temp",
+        "APPDATA": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-balanced-20261016\\app-after\\runs-16438d877e364c0aab1eb4a73a202e5f\\0-VLC\\profile\\Roaming",
+        "LOCALAPPDATA": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-balanced-20261016\\app-after\\runs-16438d877e364c0aab1eb4a73a202e5f\\0-VLC\\profile\\Local"
+      },
+      "configPath": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-balanced-20261016\\app-after\\runs-16438d877e364c0aab1eb4a73a202e5f\\0-VLC\\profile\\vlcrc",
+      "initialConfig": "",
+      "pid": 37056,
+      "processToVisibleWindowMs": 2180.6216,
+      "windowDimensions": [
+        1280,
+        800
+      ],
+      "playbackVerification": "advancing-playback-verified",
+      "playbackReason": null,
+      "samples": [
+        {
+          "elapsedSeconds": 13.2247413,
+          "workingSetBytes": 155365376,
+          "privateBytes": 160067584,
+          "cpuSeconds": 1.46875,
+          "dedicatedGpuBytes": 123629568,
+          "sharedGpuBytes": 19136512,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "reason": null,
+            "positionSec": 8.0,
+            "state": null
+          }
+        },
+        {
+          "elapsedSeconds": 17.7040382,
+          "workingSetBytes": 150634496,
+          "privateBytes": 155246592,
+          "cpuSeconds": 1.578125,
+          "dedicatedGpuBytes": 123629568,
+          "sharedGpuBytes": 19136512,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "reason": null,
+            "positionSec": 11.0,
+            "state": null
+          }
+        },
+        {
+          "elapsedSeconds": 20.9023486,
+          "workingSetBytes": 150687744,
+          "privateBytes": 155283456,
+          "cpuSeconds": 1.671875,
+          "dedicatedGpuBytes": 123629568,
+          "sharedGpuBytes": 19136512,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "reason": null,
+            "positionSec": 14.0,
+            "state": null
+          }
+        }
+      ],
+      "writableGrowthBytes": {
+        "runtimeDelta": 419,
+        "profileDelta": 0
+      },
+      "cleanup": "owned-window-closed",
+      "artifactCleanup": "runtime-and-profile-copies-removed; metadata-retained"
+    },
+    {
+      "player": "MPC-HC",
+      "round": 0,
+      "warmup": true,
+      "status": "sampled",
+      "failure": null,
+      "runtimeSource": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-comparison-20261013\\mpc-hc",
+      "runtimeBytes": 75520200,
+      "runtimeFileCount": 140,
+      "executableHash": "0BBF9CB8723A4C14E6CDF2158FBD539E340DB0CCBC8E7D928D195059ED71A787",
+      "version": "2.8.3 (7bcb74616)",
+      "runDirectory": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-balanced-20261016\\app-after\\runs-16438d877e364c0aab1eb4a73a202e5f\\0-MPC-HC",
+      "arguments": [
+        "/new",
+        "/slave",
+        "723526",
+        "/play",
+        "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-comparison-20261013\\media\\h264-1080p30.mp4"
+      ],
+      "childEnvironment": {
+        "TEMP": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-balanced-20261016\\app-after\\runs-16438d877e364c0aab1eb4a73a202e5f\\0-MPC-HC\\profile\\Temp",
+        "TMP": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-balanced-20261016\\app-after\\runs-16438d877e364c0aab1eb4a73a202e5f\\0-MPC-HC\\profile\\Temp",
+        "APPDATA": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-balanced-20261016\\app-after\\runs-16438d877e364c0aab1eb4a73a202e5f\\0-MPC-HC\\profile\\Roaming",
+        "LOCALAPPDATA": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-balanced-20261016\\app-after\\runs-16438d877e364c0aab1eb4a73a202e5f\\0-MPC-HC\\profile\\Local"
+      },
+      "configPath": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-balanced-20261016\\app-after\\runs-16438d877e364c0aab1eb4a73a202e5f\\0-MPC-HC\\runtime\\mpc-hc64.ini",
+      "initialConfig": "[Settings]\r\nKeepHistory=0\r\nRecentFilesNumber=0\r\nHistoryInAppData=0\r\nRememberFilePos=0\r\nRememberDVDPos=0\r\nRememberExternalPlaylistPos=0\r\nRememberPlaylistItems=0\r\nUseWin7TaskBar=0\r\nUpdaterAutoCheck=0\r\nEnableCrashReporter=0\r\nAllowMultipleInstances=1\r\nUseSeekPreview=0",
+      "pid": 18480,
+      "processToVisibleWindowMs": 824.4582,
+      "windowDimensions": [
+        1280,
+        800
+      ],
+      "playbackVerification": "advancing-playback-verified",
+      "playbackReason": null,
+      "samples": [
+        {
+          "elapsedSeconds": 11.9247809,
+          "workingSetBytes": 117063680,
+          "privateBytes": 155762688,
+          "cpuSeconds": 1.546875,
+          "dedicatedGpuBytes": 106815488,
+          "sharedGpuBytes": 18202624,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "reason": null,
+            "positionSec": 9.978,
+            "state": null
+          }
+        },
+        {
+          "elapsedSeconds": 14.9682286,
+          "workingSetBytes": 117174272,
+          "privateBytes": 148430848,
+          "cpuSeconds": 1.734375,
+          "dedicatedGpuBytes": 106815488,
+          "sharedGpuBytes": 18202624,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "reason": null,
+            "positionSec": 13.018,
+            "state": null
+          }
+        },
+        {
+          "elapsedSeconds": 17.9935451,
+          "workingSetBytes": 117174272,
+          "privateBytes": 148430848,
+          "cpuSeconds": 1.734375,
+          "dedicatedGpuBytes": 106815488,
+          "sharedGpuBytes": 18202624,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "reason": null,
+            "positionSec": 16.045,
+            "state": null
+          }
+        }
+      ],
+      "writableGrowthBytes": {
+        "runtimeDelta": 21160,
+        "profileDelta": 0
+      },
+      "cleanup": "owned-window-closed",
+      "artifactCleanup": "runtime-and-profile-copies-removed; metadata-retained"
+    },
+    {
+      "player": "VLC",
+      "round": 1,
+      "warmup": false,
+      "status": "sampled",
+      "failure": null,
+      "runtimeSource": "C:\\Program Files\\VideoLAN\\VLC",
+      "runtimeBytes": 191879986,
+      "runtimeFileCount": 587,
+      "executableHash": "BFA5740F028A8F310CA01C779BBC5F2F1B435C41539C54DE592F715BB0C10389",
+      "version": "3.0.23",
+      "runDirectory": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-balanced-20261016\\app-after\\runs-16438d877e364c0aab1eb4a73a202e5f\\1-VLC",
+      "arguments": [
+        "--intf=qt",
+        "--ignore-config",
+        "--config=C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-balanced-20261016\\app-after\\runs-16438d877e364c0aab1eb4a73a202e5f\\1-VLC\\profile\\vlcrc",
+        "--no-one-instance",
+        "--no-one-instance-when-started-from-file",
+        "--no-media-library",
+        "--no-metadata-network-access",
+        "--no-qt-privacy-ask",
+        "--no-qt-updates-notif",
+        "--no-qt-recentplay",
+        "--qt-continue=0",
+        "--no-qt-video-autoresize",
+        "--extraintf=rc",
+        "--rc-quiet",
+        "--rc-host=127.0.0.1:57566",
+        "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-comparison-20261013\\media\\h264-1080p30.mp4"
+      ],
+      "childEnvironment": {
+        "TEMP": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-balanced-20261016\\app-after\\runs-16438d877e364c0aab1eb4a73a202e5f\\1-VLC\\profile\\Temp",
+        "TMP": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-balanced-20261016\\app-after\\runs-16438d877e364c0aab1eb4a73a202e5f\\1-VLC\\profile\\Temp",
+        "APPDATA": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-balanced-20261016\\app-after\\runs-16438d877e364c0aab1eb4a73a202e5f\\1-VLC\\profile\\Roaming",
+        "LOCALAPPDATA": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-balanced-20261016\\app-after\\runs-16438d877e364c0aab1eb4a73a202e5f\\1-VLC\\profile\\Local"
+      },
+      "configPath": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-balanced-20261016\\app-after\\runs-16438d877e364c0aab1eb4a73a202e5f\\1-VLC\\profile\\vlcrc",
+      "initialConfig": "",
+      "pid": 36784,
+      "processToVisibleWindowMs": 2019.6779,
+      "windowDimensions": [
+        1280,
+        800
+      ],
+      "playbackVerification": "advancing-playback-verified",
+      "playbackReason": null,
+      "samples": [
+        {
+          "elapsedSeconds": 13.068264,
+          "workingSetBytes": 146124800,
+          "privateBytes": 149774336,
+          "cpuSeconds": 1.3125,
+          "dedicatedGpuBytes": 123629568,
+          "sharedGpuBytes": 15908864,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "reason": null,
+            "positionSec": 7.0,
+            "state": null
+          }
+        },
+        {
+          "elapsedSeconds": 16.2957782,
+          "workingSetBytes": 147677184,
+          "privateBytes": 151203840,
+          "cpuSeconds": 1.40625,
+          "dedicatedGpuBytes": 123629568,
+          "sharedGpuBytes": 15908864,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "reason": null,
+            "positionSec": 10.0,
+            "state": null
+          }
+        },
+        {
+          "elapsedSeconds": 19.5144199,
+          "workingSetBytes": 147718144,
+          "privateBytes": 151203840,
+          "cpuSeconds": 1.46875,
+          "dedicatedGpuBytes": 123629568,
+          "sharedGpuBytes": 15908864,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "reason": null,
+            "positionSec": 13.0,
+            "state": null
+          }
+        }
+      ],
+      "writableGrowthBytes": {
+        "runtimeDelta": 419,
+        "profileDelta": 0
+      },
+      "cleanup": "owned-window-closed",
+      "artifactCleanup": "runtime-and-profile-copies-removed; metadata-retained"
+    },
+    {
+      "player": "MPC-HC",
+      "round": 1,
+      "warmup": false,
+      "status": "sampled",
+      "failure": null,
+      "runtimeSource": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-comparison-20261013\\mpc-hc",
+      "runtimeBytes": 75520200,
+      "runtimeFileCount": 140,
+      "executableHash": "0BBF9CB8723A4C14E6CDF2158FBD539E340DB0CCBC8E7D928D195059ED71A787",
+      "version": "2.8.3 (7bcb74616)",
+      "runDirectory": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-balanced-20261016\\app-after\\runs-16438d877e364c0aab1eb4a73a202e5f\\1-MPC-HC",
+      "arguments": [
+        "/new",
+        "/slave",
+        "985670",
+        "/play",
+        "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-comparison-20261013\\media\\h264-1080p30.mp4"
+      ],
+      "childEnvironment": {
+        "TEMP": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-balanced-20261016\\app-after\\runs-16438d877e364c0aab1eb4a73a202e5f\\1-MPC-HC\\profile\\Temp",
+        "TMP": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-balanced-20261016\\app-after\\runs-16438d877e364c0aab1eb4a73a202e5f\\1-MPC-HC\\profile\\Temp",
+        "APPDATA": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-balanced-20261016\\app-after\\runs-16438d877e364c0aab1eb4a73a202e5f\\1-MPC-HC\\profile\\Roaming",
+        "LOCALAPPDATA": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-balanced-20261016\\app-after\\runs-16438d877e364c0aab1eb4a73a202e5f\\1-MPC-HC\\profile\\Local"
+      },
+      "configPath": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-balanced-20261016\\app-after\\runs-16438d877e364c0aab1eb4a73a202e5f\\1-MPC-HC\\runtime\\mpc-hc64.ini",
+      "initialConfig": "[Settings]\r\nKeepHistory=0\r\nRecentFilesNumber=0\r\nHistoryInAppData=0\r\nRememberFilePos=0\r\nRememberDVDPos=0\r\nRememberExternalPlaylistPos=0\r\nRememberPlaylistItems=0\r\nUseWin7TaskBar=0\r\nUpdaterAutoCheck=0\r\nEnableCrashReporter=0\r\nAllowMultipleInstances=1\r\nUseSeekPreview=0",
+      "pid": 37876,
+      "processToVisibleWindowMs": 810.3888,
+      "windowDimensions": [
+        1280,
+        800
+      ],
+      "playbackVerification": "advancing-playback-verified",
+      "playbackReason": null,
+      "samples": [
+        {
+          "elapsedSeconds": 11.8639621,
+          "workingSetBytes": 117223424,
+          "privateBytes": 163057664,
+          "cpuSeconds": 1.453125,
+          "dedicatedGpuBytes": 106815488,
+          "sharedGpuBytes": 18202624,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "reason": null,
+            "positionSec": 9.892,
+            "state": null
+          }
+        },
+        {
+          "elapsedSeconds": 14.8929661,
+          "workingSetBytes": 117313536,
+          "privateBytes": 148701184,
+          "cpuSeconds": 1.65625,
+          "dedicatedGpuBytes": 106815488,
+          "sharedGpuBytes": 18202624,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "reason": null,
+            "positionSec": 12.914,
+            "state": null
+          }
+        },
+        {
+          "elapsedSeconds": 17.9174865,
+          "workingSetBytes": 117313536,
+          "privateBytes": 148701184,
+          "cpuSeconds": 1.890625,
+          "dedicatedGpuBytes": 106815488,
+          "sharedGpuBytes": 18202624,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "reason": null,
+            "positionSec": 15.938,
+            "state": null
+          }
+        }
+      ],
+      "writableGrowthBytes": {
+        "runtimeDelta": 21160,
+        "profileDelta": 0
+      },
+      "cleanup": "owned-window-closed",
+      "artifactCleanup": "runtime-and-profile-copies-removed; metadata-retained"
+    },
+    {
+      "player": "Aperture",
+      "round": 1,
+      "warmup": false,
+      "status": "sampled",
+      "failure": null,
+      "runtimeSource": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-balanced-20261016\\candidate-runtime",
+      "runtimeBytes": 29200381,
+      "runtimeFileCount": 11,
+      "executableHash": "D1F726360194F31A508A3A891EFDDA7129CC9EE17FA29086A825C66E0A673E66",
+      "version": "2.0.0.0",
+      "runDirectory": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-balanced-20261016\\app-after\\runs-16438d877e364c0aab1eb4a73a202e5f\\1-Aperture",
+      "arguments": [
+        "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-comparison-20261013\\media\\h264-1080p30.mp4"
+      ],
+      "childEnvironment": {
+        "TEMP": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-balanced-20261016\\app-after\\runs-16438d877e364c0aab1eb4a73a202e5f\\1-Aperture\\profile\\Temp",
+        "TMP": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-balanced-20261016\\app-after\\runs-16438d877e364c0aab1eb4a73a202e5f\\1-Aperture\\profile\\Temp",
+        "APPDATA": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-balanced-20261016\\app-after\\runs-16438d877e364c0aab1eb4a73a202e5f\\1-Aperture\\profile\\Roaming",
+        "LOCALAPPDATA": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-balanced-20261016\\app-after\\runs-16438d877e364c0aab1eb4a73a202e5f\\1-Aperture\\profile\\Local"
+      },
+      "configPath": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-balanced-20261016\\app-after\\runs-16438d877e364c0aab1eb4a73a202e5f\\1-Aperture\\runtime\\data",
+      "initialConfig": "Fresh executable-adjacent data/ directory.",
+      "pid": 32832,
+      "processToVisibleWindowMs": 134.4844,
+      "windowDimensions": [
+        1280,
+        800
+      ],
+      "playbackVerification": "advancing-playback-verified",
+      "playbackReason": null,
+      "samples": [
+        {
+          "elapsedSeconds": 11.2037007,
+          "workingSetBytes": 168230912,
+          "privateBytes": 263286784,
+          "cpuSeconds": 3.25,
+          "dedicatedGpuBytes": 177725440,
+          "sharedGpuBytes": 16633856,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "reason": null,
+            "positionSec": 10.6333333333,
+            "state": 2
+          }
+        },
+        {
+          "elapsedSeconds": 14.2818171,
+          "workingSetBytes": 171876352,
+          "privateBytes": 266858496,
+          "cpuSeconds": 3.9375,
+          "dedicatedGpuBytes": 173789184,
+          "sharedGpuBytes": 16568320,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "reason": null,
+            "positionSec": 13.7,
+            "state": 2
+          }
+        },
+        {
+          "elapsedSeconds": 17.3438285,
+          "workingSetBytes": 172285952,
+          "privateBytes": 267173888,
+          "cpuSeconds": 4.609375,
+          "dedicatedGpuBytes": 177725440,
+          "sharedGpuBytes": 16568320,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "reason": null,
+            "positionSec": 16.7666666667,
+            "state": 2
+          }
+        }
+      ],
+      "writableGrowthBytes": {
+        "runtimeDelta": 26242,
+        "profileDelta": 0
+      },
+      "cleanup": "owned-window-closed",
+      "artifactCleanup": "runtime-and-profile-copies-removed; metadata-retained"
+    },
+    {
+      "player": "MPC-HC",
+      "round": 2,
+      "warmup": false,
+      "status": "sampled",
+      "failure": null,
+      "runtimeSource": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-comparison-20261013\\mpc-hc",
+      "runtimeBytes": 75520200,
+      "runtimeFileCount": 140,
+      "executableHash": "0BBF9CB8723A4C14E6CDF2158FBD539E340DB0CCBC8E7D928D195059ED71A787",
+      "version": "2.8.3 (7bcb74616)",
+      "runDirectory": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-balanced-20261016\\app-after\\runs-16438d877e364c0aab1eb4a73a202e5f\\2-MPC-HC",
+      "arguments": [
+        "/new",
+        "/slave",
+        "3017104",
+        "/play",
+        "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-comparison-20261013\\media\\h264-1080p30.mp4"
+      ],
+      "childEnvironment": {
+        "TEMP": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-balanced-20261016\\app-after\\runs-16438d877e364c0aab1eb4a73a202e5f\\2-MPC-HC\\profile\\Temp",
+        "TMP": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-balanced-20261016\\app-after\\runs-16438d877e364c0aab1eb4a73a202e5f\\2-MPC-HC\\profile\\Temp",
+        "APPDATA": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-balanced-20261016\\app-after\\runs-16438d877e364c0aab1eb4a73a202e5f\\2-MPC-HC\\profile\\Roaming",
+        "LOCALAPPDATA": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-balanced-20261016\\app-after\\runs-16438d877e364c0aab1eb4a73a202e5f\\2-MPC-HC\\profile\\Local"
+      },
+      "configPath": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-balanced-20261016\\app-after\\runs-16438d877e364c0aab1eb4a73a202e5f\\2-MPC-HC\\runtime\\mpc-hc64.ini",
+      "initialConfig": "[Settings]\r\nKeepHistory=0\r\nRecentFilesNumber=0\r\nHistoryInAppData=0\r\nRememberFilePos=0\r\nRememberDVDPos=0\r\nRememberExternalPlaylistPos=0\r\nRememberPlaylistItems=0\r\nUseWin7TaskBar=0\r\nUpdaterAutoCheck=0\r\nEnableCrashReporter=0\r\nAllowMultipleInstances=1\r\nUseSeekPreview=0",
+      "pid": 17404,
+      "processToVisibleWindowMs": 773.1582,
+      "windowDimensions": [
+        1280,
+        800
+      ],
+      "playbackVerification": "advancing-playback-verified",
+      "playbackReason": null,
+      "samples": [
+        {
+          "elapsedSeconds": 11.8252823,
+          "workingSetBytes": 116633600,
+          "privateBytes": 161611776,
+          "cpuSeconds": 2.375,
+          "dedicatedGpuBytes": 106815488,
+          "sharedGpuBytes": 18202624,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "reason": null,
+            "positionSec": 9.948,
+            "state": null
+          }
+        },
+        {
+          "elapsedSeconds": 14.8610264,
+          "workingSetBytes": 116744192,
+          "privateBytes": 148451328,
+          "cpuSeconds": 2.390625,
+          "dedicatedGpuBytes": 106815488,
+          "sharedGpuBytes": 18202624,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "reason": null,
+            "positionSec": 12.983,
+            "state": null
+          }
+        },
+        {
+          "elapsedSeconds": 17.8795933,
+          "workingSetBytes": 116838400,
+          "privateBytes": 148492288,
+          "cpuSeconds": 2.4375,
+          "dedicatedGpuBytes": 106815488,
+          "sharedGpuBytes": 18202624,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "reason": null,
+            "positionSec": 16.002,
+            "state": null
+          }
+        }
+      ],
+      "writableGrowthBytes": {
+        "runtimeDelta": 21160,
+        "profileDelta": 0
+      },
+      "cleanup": "owned-window-closed",
+      "artifactCleanup": "runtime-and-profile-copies-removed; metadata-retained"
+    },
+    {
+      "player": "Aperture",
+      "round": 2,
+      "warmup": false,
+      "status": "sampled",
+      "failure": null,
+      "runtimeSource": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-balanced-20261016\\candidate-runtime",
+      "runtimeBytes": 29200381,
+      "runtimeFileCount": 11,
+      "executableHash": "D1F726360194F31A508A3A891EFDDA7129CC9EE17FA29086A825C66E0A673E66",
+      "version": "2.0.0.0",
+      "runDirectory": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-balanced-20261016\\app-after\\runs-16438d877e364c0aab1eb4a73a202e5f\\2-Aperture",
+      "arguments": [
+        "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-comparison-20261013\\media\\h264-1080p30.mp4"
+      ],
+      "childEnvironment": {
+        "TEMP": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-balanced-20261016\\app-after\\runs-16438d877e364c0aab1eb4a73a202e5f\\2-Aperture\\profile\\Temp",
+        "TMP": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-balanced-20261016\\app-after\\runs-16438d877e364c0aab1eb4a73a202e5f\\2-Aperture\\profile\\Temp",
+        "APPDATA": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-balanced-20261016\\app-after\\runs-16438d877e364c0aab1eb4a73a202e5f\\2-Aperture\\profile\\Roaming",
+        "LOCALAPPDATA": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-balanced-20261016\\app-after\\runs-16438d877e364c0aab1eb4a73a202e5f\\2-Aperture\\profile\\Local"
+      },
+      "configPath": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-balanced-20261016\\app-after\\runs-16438d877e364c0aab1eb4a73a202e5f\\2-Aperture\\runtime\\data",
+      "initialConfig": "Fresh executable-adjacent data/ directory.",
+      "pid": 17312,
+      "processToVisibleWindowMs": 141.5932,
+      "windowDimensions": [
+        1280,
+        800
+      ],
+      "playbackVerification": "advancing-playback-verified",
+      "playbackReason": null,
+      "samples": [
+        {
+          "elapsedSeconds": 11.1838615,
+          "workingSetBytes": 168312832,
+          "privateBytes": 263213056,
+          "cpuSeconds": 3.265625,
+          "dedicatedGpuBytes": 177725440,
+          "sharedGpuBytes": 16437248,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "reason": null,
+            "positionSec": 10.6,
+            "state": 2
+          }
+        },
+        {
+          "elapsedSeconds": 14.2676555,
+          "workingSetBytes": 168726528,
+          "privateBytes": 263520256,
+          "cpuSeconds": 4.03125,
+          "dedicatedGpuBytes": 177725440,
+          "sharedGpuBytes": 16437248,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "reason": null,
+            "positionSec": 13.7,
+            "state": 2
+          }
+        },
+        {
+          "elapsedSeconds": 17.3585919,
+          "workingSetBytes": 172290048,
+          "privateBytes": 266977280,
+          "cpuSeconds": 4.75,
+          "dedicatedGpuBytes": 177725440,
+          "sharedGpuBytes": 16371712,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "reason": null,
+            "positionSec": 16.7666666667,
+            "state": 2
+          }
+        }
+      ],
+      "writableGrowthBytes": {
+        "runtimeDelta": 26243,
+        "profileDelta": 0
+      },
+      "cleanup": "owned-window-closed",
+      "artifactCleanup": "runtime-and-profile-copies-removed; metadata-retained"
+    },
+    {
+      "player": "VLC",
+      "round": 2,
+      "warmup": false,
+      "status": "sampled",
+      "failure": null,
+      "runtimeSource": "C:\\Program Files\\VideoLAN\\VLC",
+      "runtimeBytes": 191879986,
+      "runtimeFileCount": 587,
+      "executableHash": "BFA5740F028A8F310CA01C779BBC5F2F1B435C41539C54DE592F715BB0C10389",
+      "version": "3.0.23",
+      "runDirectory": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-balanced-20261016\\app-after\\runs-16438d877e364c0aab1eb4a73a202e5f\\2-VLC",
+      "arguments": [
+        "--intf=qt",
+        "--ignore-config",
+        "--config=C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-balanced-20261016\\app-after\\runs-16438d877e364c0aab1eb4a73a202e5f\\2-VLC\\profile\\vlcrc",
+        "--no-one-instance",
+        "--no-one-instance-when-started-from-file",
+        "--no-media-library",
+        "--no-metadata-network-access",
+        "--no-qt-privacy-ask",
+        "--no-qt-updates-notif",
+        "--no-qt-recentplay",
+        "--qt-continue=0",
+        "--no-qt-video-autoresize",
+        "--extraintf=rc",
+        "--rc-quiet",
+        "--rc-host=127.0.0.1:49840",
+        "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-comparison-20261013\\media\\h264-1080p30.mp4"
+      ],
+      "childEnvironment": {
+        "TEMP": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-balanced-20261016\\app-after\\runs-16438d877e364c0aab1eb4a73a202e5f\\2-VLC\\profile\\Temp",
+        "TMP": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-balanced-20261016\\app-after\\runs-16438d877e364c0aab1eb4a73a202e5f\\2-VLC\\profile\\Temp",
+        "APPDATA": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-balanced-20261016\\app-after\\runs-16438d877e364c0aab1eb4a73a202e5f\\2-VLC\\profile\\Roaming",
+        "LOCALAPPDATA": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-balanced-20261016\\app-after\\runs-16438d877e364c0aab1eb4a73a202e5f\\2-VLC\\profile\\Local"
+      },
+      "configPath": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-balanced-20261016\\app-after\\runs-16438d877e364c0aab1eb4a73a202e5f\\2-VLC\\profile\\vlcrc",
+      "initialConfig": "",
+      "pid": 36336,
+      "processToVisibleWindowMs": 1829.8139,
+      "windowDimensions": [
+        1280,
+        800
+      ],
+      "playbackVerification": "advancing-playback-verified",
+      "playbackReason": null,
+      "samples": [
+        {
+          "elapsedSeconds": 12.8583417,
+          "workingSetBytes": 155074560,
+          "privateBytes": 159391744,
+          "cpuSeconds": 1.25,
+          "dedicatedGpuBytes": 123637760,
+          "sharedGpuBytes": 19169280,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "reason": null,
+            "positionSec": 7.0,
+            "state": null
+          }
+        },
+        {
+          "elapsedSeconds": 16.1681803,
+          "workingSetBytes": 150482944,
+          "privateBytes": 154726400,
+          "cpuSeconds": 1.25,
+          "dedicatedGpuBytes": 123637760,
+          "sharedGpuBytes": 19169280,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "reason": null,
+            "positionSec": 10.0,
+            "state": null
+          }
+        },
+        {
+          "elapsedSeconds": 19.3717047,
+          "workingSetBytes": 150704128,
+          "privateBytes": 154763264,
+          "cpuSeconds": 1.640625,
+          "dedicatedGpuBytes": 123637760,
+          "sharedGpuBytes": 19169280,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "reason": null,
+            "positionSec": 13.0,
+            "state": null
+          }
+        }
+      ],
+      "writableGrowthBytes": {
+        "runtimeDelta": 419,
+        "profileDelta": 0
+      },
+      "cleanup": "owned-window-closed",
+      "artifactCleanup": "runtime-and-profile-copies-removed; metadata-retained"
+    },
+    {
+      "player": "Aperture",
+      "round": 3,
+      "warmup": false,
+      "status": "sampled",
+      "failure": null,
+      "runtimeSource": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-balanced-20261016\\candidate-runtime",
+      "runtimeBytes": 29200381,
+      "runtimeFileCount": 11,
+      "executableHash": "D1F726360194F31A508A3A891EFDDA7129CC9EE17FA29086A825C66E0A673E66",
+      "version": "2.0.0.0",
+      "runDirectory": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-balanced-20261016\\app-after\\runs-16438d877e364c0aab1eb4a73a202e5f\\3-Aperture",
+      "arguments": [
+        "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-comparison-20261013\\media\\h264-1080p30.mp4"
+      ],
+      "childEnvironment": {
+        "TEMP": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-balanced-20261016\\app-after\\runs-16438d877e364c0aab1eb4a73a202e5f\\3-Aperture\\profile\\Temp",
+        "TMP": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-balanced-20261016\\app-after\\runs-16438d877e364c0aab1eb4a73a202e5f\\3-Aperture\\profile\\Temp",
+        "APPDATA": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-balanced-20261016\\app-after\\runs-16438d877e364c0aab1eb4a73a202e5f\\3-Aperture\\profile\\Roaming",
+        "LOCALAPPDATA": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-balanced-20261016\\app-after\\runs-16438d877e364c0aab1eb4a73a202e5f\\3-Aperture\\profile\\Local"
+      },
+      "configPath": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-balanced-20261016\\app-after\\runs-16438d877e364c0aab1eb4a73a202e5f\\3-Aperture\\runtime\\data",
+      "initialConfig": "Fresh executable-adjacent data/ directory.",
+      "pid": 24388,
+      "processToVisibleWindowMs": 191.0518,
+      "windowDimensions": [
+        1280,
+        800
+      ],
+      "playbackVerification": "advancing-playback-verified",
+      "playbackReason": null,
+      "samples": [
+        {
+          "elapsedSeconds": 11.2841629,
+          "workingSetBytes": 170446848,
+          "privateBytes": 262184960,
+          "cpuSeconds": 3.515625,
+          "dedicatedGpuBytes": 177725440,
+          "sharedGpuBytes": 16306176,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "reason": null,
+            "positionSec": 10.4333333333,
+            "state": 2
+          }
+        },
+        {
+          "elapsedSeconds": 14.3571627,
+          "workingSetBytes": 171229184,
+          "privateBytes": 262795264,
+          "cpuSeconds": 3.6875,
+          "dedicatedGpuBytes": 177725440,
+          "sharedGpuBytes": 16240640,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "reason": null,
+            "positionSec": 13.5,
+            "state": 2
+          }
+        },
+        {
+          "elapsedSeconds": 17.4244092,
+          "workingSetBytes": 171892736,
+          "privateBytes": 263495680,
+          "cpuSeconds": 4.34375,
+          "dedicatedGpuBytes": 177733632,
+          "sharedGpuBytes": 16371712,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "reason": null,
+            "positionSec": 16.5666666667,
+            "state": 2
+          }
+        }
+      ],
+      "writableGrowthBytes": {
+        "runtimeDelta": 26235,
+        "profileDelta": 0
+      },
+      "cleanup": "owned-window-closed",
+      "artifactCleanup": "runtime-and-profile-copies-removed; metadata-retained"
+    },
+    {
+      "player": "VLC",
+      "round": 3,
+      "warmup": false,
+      "status": "sampled",
+      "failure": null,
+      "runtimeSource": "C:\\Program Files\\VideoLAN\\VLC",
+      "runtimeBytes": 191879986,
+      "runtimeFileCount": 587,
+      "executableHash": "BFA5740F028A8F310CA01C779BBC5F2F1B435C41539C54DE592F715BB0C10389",
+      "version": "3.0.23",
+      "runDirectory": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-balanced-20261016\\app-after\\runs-16438d877e364c0aab1eb4a73a202e5f\\3-VLC",
+      "arguments": [
+        "--intf=qt",
+        "--ignore-config",
+        "--config=C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-balanced-20261016\\app-after\\runs-16438d877e364c0aab1eb4a73a202e5f\\3-VLC\\profile\\vlcrc",
+        "--no-one-instance",
+        "--no-one-instance-when-started-from-file",
+        "--no-media-library",
+        "--no-metadata-network-access",
+        "--no-qt-privacy-ask",
+        "--no-qt-updates-notif",
+        "--no-qt-recentplay",
+        "--qt-continue=0",
+        "--no-qt-video-autoresize",
+        "--extraintf=rc",
+        "--rc-quiet",
+        "--rc-host=127.0.0.1:58289",
+        "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-comparison-20261013\\media\\h264-1080p30.mp4"
+      ],
+      "childEnvironment": {
+        "TEMP": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-balanced-20261016\\app-after\\runs-16438d877e364c0aab1eb4a73a202e5f\\3-VLC\\profile\\Temp",
+        "TMP": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-balanced-20261016\\app-after\\runs-16438d877e364c0aab1eb4a73a202e5f\\3-VLC\\profile\\Temp",
+        "APPDATA": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-balanced-20261016\\app-after\\runs-16438d877e364c0aab1eb4a73a202e5f\\3-VLC\\profile\\Roaming",
+        "LOCALAPPDATA": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-balanced-20261016\\app-after\\runs-16438d877e364c0aab1eb4a73a202e5f\\3-VLC\\profile\\Local"
+      },
+      "configPath": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-balanced-20261016\\app-after\\runs-16438d877e364c0aab1eb4a73a202e5f\\3-VLC\\profile\\vlcrc",
+      "initialConfig": "",
+      "pid": 5708,
+      "processToVisibleWindowMs": 1952.0802,
+      "windowDimensions": [
+        1280,
+        800
+      ],
+      "playbackVerification": "advancing-playback-verified",
+      "playbackReason": null,
+      "samples": [
+        {
+          "elapsedSeconds": 13.0077766,
+          "workingSetBytes": 167563264,
+          "privateBytes": 169099264,
+          "cpuSeconds": 1.421875,
+          "dedicatedGpuBytes": 123625472,
+          "sharedGpuBytes": 16072704,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "reason": null,
+            "positionSec": 7.0,
+            "state": null
+          }
+        },
+        {
+          "elapsedSeconds": 16.188257,
+          "workingSetBytes": 150216704,
+          "privateBytes": 151719936,
+          "cpuSeconds": 1.53125,
+          "dedicatedGpuBytes": 123625472,
+          "sharedGpuBytes": 16072704,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "reason": null,
+            "positionSec": 10.0,
+            "state": null
+          }
+        },
+        {
+          "elapsedSeconds": 19.3705329,
+          "workingSetBytes": 150319104,
+          "privateBytes": 151756800,
+          "cpuSeconds": 1.65625,
+          "dedicatedGpuBytes": 123625472,
+          "sharedGpuBytes": 16072704,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "reason": null,
+            "positionSec": 13.0,
+            "state": null
+          }
+        }
+      ],
+      "writableGrowthBytes": {
+        "runtimeDelta": 419,
+        "profileDelta": 0
+      },
+      "cleanup": "owned-window-closed",
+      "artifactCleanup": "runtime-and-profile-copies-removed; metadata-retained"
+    },
+    {
+      "player": "MPC-HC",
+      "round": 3,
+      "warmup": false,
+      "status": "sampled",
+      "failure": null,
+      "runtimeSource": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-comparison-20261013\\mpc-hc",
+      "runtimeBytes": 75520200,
+      "runtimeFileCount": 140,
+      "executableHash": "0BBF9CB8723A4C14E6CDF2158FBD539E340DB0CCBC8E7D928D195059ED71A787",
+      "version": "2.8.3 (7bcb74616)",
+      "runDirectory": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-balanced-20261016\\app-after\\runs-16438d877e364c0aab1eb4a73a202e5f\\3-MPC-HC",
+      "arguments": [
+        "/new",
+        "/slave",
+        "2558382",
+        "/play",
+        "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-comparison-20261013\\media\\h264-1080p30.mp4"
+      ],
+      "childEnvironment": {
+        "TEMP": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-balanced-20261016\\app-after\\runs-16438d877e364c0aab1eb4a73a202e5f\\3-MPC-HC\\profile\\Temp",
+        "TMP": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-balanced-20261016\\app-after\\runs-16438d877e364c0aab1eb4a73a202e5f\\3-MPC-HC\\profile\\Temp",
+        "APPDATA": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-balanced-20261016\\app-after\\runs-16438d877e364c0aab1eb4a73a202e5f\\3-MPC-HC\\profile\\Roaming",
+        "LOCALAPPDATA": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-balanced-20261016\\app-after\\runs-16438d877e364c0aab1eb4a73a202e5f\\3-MPC-HC\\profile\\Local"
+      },
+      "configPath": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-balanced-20261016\\app-after\\runs-16438d877e364c0aab1eb4a73a202e5f\\3-MPC-HC\\runtime\\mpc-hc64.ini",
+      "initialConfig": "[Settings]\r\nKeepHistory=0\r\nRecentFilesNumber=0\r\nHistoryInAppData=0\r\nRememberFilePos=0\r\nRememberDVDPos=0\r\nRememberExternalPlaylistPos=0\r\nRememberPlaylistItems=0\r\nUseWin7TaskBar=0\r\nUpdaterAutoCheck=0\r\nEnableCrashReporter=0\r\nAllowMultipleInstances=1\r\nUseSeekPreview=0",
+      "pid": 18196,
+      "processToVisibleWindowMs": 792.922,
+      "windowDimensions": [
+        1280,
+        800
+      ],
+      "playbackVerification": "advancing-playback-verified",
+      "playbackReason": null,
+      "samples": [
+        {
+          "elapsedSeconds": 11.8669265,
+          "workingSetBytes": 119259136,
+          "privateBytes": 163573760,
+          "cpuSeconds": 1.546875,
+          "dedicatedGpuBytes": 106815488,
+          "sharedGpuBytes": 18202624,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "reason": null,
+            "positionSec": 9.941,
+            "state": null
+          }
+        },
+        {
+          "elapsedSeconds": 14.8972093,
+          "workingSetBytes": 119279616,
+          "privateBytes": 149471232,
+          "cpuSeconds": 1.625,
+          "dedicatedGpuBytes": 106815488,
+          "sharedGpuBytes": 18202624,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "reason": null,
+            "positionSec": 12.973,
+            "state": null
+          }
+        },
+        {
+          "elapsedSeconds": 17.9236062,
+          "workingSetBytes": 119357440,
+          "privateBytes": 149549056,
+          "cpuSeconds": 1.75,
+          "dedicatedGpuBytes": 106815488,
+          "sharedGpuBytes": 18202624,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "reason": null,
+            "positionSec": 15.999,
+            "state": null
+          }
+        }
+      ],
+      "writableGrowthBytes": {
+        "runtimeDelta": 21160,
+        "profileDelta": 0
+      },
+      "cleanup": "owned-window-closed",
+      "artifactCleanup": "runtime-and-profile-copies-removed; metadata-retained"
+    }
+  ]
+}
