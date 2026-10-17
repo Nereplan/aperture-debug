@@ -1,6 +1,7 @@
 // Build in an MSVC developer shell:
 // cl /nologo /std:c++17 /EHsc player_status_probe.cpp /Fe:player_status_probe.exe user32.lib shell32.lib advapi32.lib
-// Queries only the explicitly supplied PID. Never activates or controls playback.
+// Queries only the explicitly supplied PID. --stop explicitly closes that PID's
+// playback before querying, for the direct-launch/return-to-library regression.
 #include "../../src/IpcProtocol.h"
 #include <iostream>
 #include <iomanip>
@@ -29,7 +30,7 @@ static LRESULT CALLBACK Reply(HWND window, UINT message, WPARAM sender, LPARAM p
     return DefWindowProcW(window, message, sender, payload);
 }
 int main(int argc, char** argv) {
-    if (argc != 2) return 2;
+    if (argc != 2 && (argc != 3 || strcmp(argv[2], "--stop") != 0)) return 2;
     char* end = nullptr; const auto parsed = strtoul(argv[1], &end, 10);
     if (!parsed || *end) return 2;
     targetPid = static_cast<DWORD>(parsed);
@@ -40,6 +41,10 @@ int main(int argc, char** argv) {
     if (!RegisterClassW(&cls)) return 4;
     HWND reply = CreateWindowW(cls.lpszClassName, L"", 0, 0, 0, 0, 0, HWND_MESSAGE, nullptr, cls.hInstance, nullptr);
     if (!reply) return 4;
+    if (argc == 3) {
+        Ipc::AutomationCommand stop; stop.op = Ipc::AutomationOp::Stop;
+        if (!Ipc::SendAutomationCommand(target, stop)) { DestroyWindow(reply); return 5; }
+    }
     Ipc::AutomationCommand command; command.op = Ipc::AutomationOp::QueryStatus;
     auto envelope = Ipc::SerializeAutomationEnvelope(command);
     COPYDATASTRUCT data{Ipc::IPC_MAGIC_V2, static_cast<DWORD>(envelope.size()), envelope.data()};

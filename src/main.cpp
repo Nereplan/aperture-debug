@@ -189,7 +189,9 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
     }
     // Prewarm Direct3D 11 device asynchronously on worker thread immediately
     // so driver initialization overlaps window setup, fonts, and library loading.
-    Renderer::PrewarmD3DDeviceAsync();
+    // A direct video launch uses mpv's device. Avoid retaining a second device
+    // solely for a hub that has not been shown; fonts/overlay stay available.
+    if (initialOptions.mediaTargets.empty()) Renderer::PrewarmD3DDeviceAsync();
     // Private fonts are loaded through DirectWrite custom collections in
     // Renderer/OverlayRenderer; GDI FR_PRIVATE loads were never visible to
     // DirectWrite text or mpv's font provider, so they are skipped here.

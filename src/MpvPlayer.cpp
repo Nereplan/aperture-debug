@@ -186,6 +186,10 @@ bool MpvPlayer::Initialize(HWND hParentWnd, HWND hChildVideoWnd) {
     // HEVC Main 10 frames are large (P010 is ~4 MiB at 1080p). mpv's default extra-surface cushion is unnecessary for this local player
     // and directly inflates both D3D11 video memory and mapped pages.
     SetMpvOption(mpv, "hwdec-extra-frames", "0");
+    // Hardware submission needs no slice-worker pool on our direct D3D11 path.
+    // Keep software-decoder threading independent. Extra hardware threads retain
+    // additional full-resolution decoder surfaces, especially costly at 4K.
+    SetMpvOption(mpv, "hwdec-threads", "1");
     // Avoid keeping an extra frame ahead of the display clock. This is a local-file player and the lower latency is preferable to
     // another full-resolution frame in the presentation pipeline.
     SetMpvOption(mpv, "video-latency-hacks", "yes");
@@ -1847,7 +1851,7 @@ PlayerDiagnostics MpvPlayer::GetDiagnostics() const {
     readDouble(d.videoFps, {"container-fps", "estimated-vf-fps", "fps"}, true);
     readDouble(d.displayFps, {"display-fps", "estimated-display-fps"}, true);
     readInteger(d.droppedFrames, {"drop-frame-count", "decoder-frame-drop-count"});
-    readInteger(d.voDroppedFrames, {"vo-drop-frame-count"});
+    readInteger(d.voDroppedFrames, {"frame-drop-count", "vo-drop-frame-count"});
     readInteger(d.mistimedFrames, {"mistimed-frame-count"});
     readDouble(d.videoBitrate, {"video-bitrate"}, true, 1000.0);
     readDouble(d.audioBitrate, {"audio-bitrate"}, true, 1000.0);

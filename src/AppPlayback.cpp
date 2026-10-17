@@ -104,6 +104,9 @@ bool App::EnsurePreviewInitialized() {
     if (renderer.AreDeviceWorkersRunning()) return false;
     if (previewInitialized) return true;
     if (previewInitAttempted) return false;
+    // A direct launch can keep the hub GPU device unallocated. Real preview
+    // intent still needs its D2D bitmap context; do not trade the feature away.
+    if (!renderer.EnsureGraphicsContext()) return false;
     previewInitAttempted = true;
     // The preview owns an independent mpv handle and loads the package-local DLL on its own when needed (see MpvPreviewPlayer::Initialize
     // nullptr path). It must NOT force main-player initialization: an idle hub with hover previews enabled must stay free of the 45 MiB DLL

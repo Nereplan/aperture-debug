@@ -62,7 +62,10 @@ public:
     ~Renderer();
     static void PrewarmD3DDeviceAsync();
     static void ShutdownPrewarm();
-    bool Initialize(HWND hWnd, const std::string& initialFont = "");
+    bool Initialize(HWND hWnd, const std::string& initialFont = "", bool prewarmDevice = true);
+    // Playback overlays need the factories/fonts, but not a second GPU device.
+    // Hub painting and thumbnail intent can create that device on demand.
+    bool EnsureGraphicsContext();
     void Shutdown();
     // Close first requests cancellation, keeps the message loop responsive,
     // and joins only after these App-owned workers have finished.

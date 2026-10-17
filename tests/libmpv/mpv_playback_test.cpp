@@ -19,6 +19,7 @@
 #include <cstdio>
 #include <cstring>
 #include <chrono>
+#include <cmath>
 #include <algorithm>
 #include <functional>
 #include <psapi.h>
@@ -74,6 +75,10 @@ static std::string g_tlsVerify = "yes";
 static std::string g_renderer = "gpu";
 static std::string g_videoSync = "display-vdrop", g_decoderThreads = "0";
 static bool g_resourceAudio = false;
+static std::string g_resourceZeroCopy, g_resourceSwapchain, g_resourceCapture, g_resourceHwdecThreads;
+static std::string g_resourceLatencyHacks = "yes";
+static int g_resourceSampleSeconds = 3;
+static bool g_resourceHeapCleanup = false;
 static std::vector<std::string> g_failDetails;
 
 static void Report(const char* name, bool pass, const std::string& detail = "") {
@@ -167,6 +172,10 @@ static mpv_handle* NewPlayer(const std::vector<std::pair<std::string, std::strin
             Report(("option " + kv.first + "=" + value).c_str(), false, fn_error_string(result));
             fn_terminate_destroy(mpv); return nullptr;
         }
+    }
+    if (!g_resourceHwdecThreads.empty() && fn_set_property_string(mpv, "hwdec-threads", g_resourceHwdecThreads.c_str()) < 0) {
+        Report("hardware decoder thread setting", false);
+        fn_terminate_destroy(mpv); return nullptr;
     }
     if (attachHwnd) {
         char widBuf[32];
@@ -264,7 +273,7 @@ static void Scenario_PlaybackBasics(const std::string& media, const FileCheck& f
         }
 
         // drops / errors during 2s playback window
-        int64_t voDrops = GetInt(mpv, "frame-drop-count-total");
+        int64_t voDrops = GetInt(mpv, "frame-drop-count");
         int64_t decDrops = GetInt(mpv, "decoder-frame-drop-count");
         printf("    drops: vo=%lld dec=%lld\n", (long long)voDrops, (long long)decDrops);
     }
@@ -640,7 +649,7 @@ static void Scenario_DecodeBench(const std::string& media, double& swWall, doubl
         hwWall = std::chrono::duration<double>(w1 - w0).count();
         auto toSec = [](const FILETIME& f) { return (double)((*(uint64_t*)&f)) / 1e7; };
         hwCpu = (toSec(k1) - toSec(k0)) + (toSec(u1) - toSec(u0));
-        drops = GetInt(mpv, "frame-drop-count-total") + GetInt(mpv, "decoder-frame-drop-count");
+        drops = GetInt(mpv, "frame-drop-count") + GetInt(mpv, "decoder-frame-drop-count");
         Report("decode bench hw completed", done, log);
         printf("    [bench] hw(%s) decode: wall=%.2fs cpu=%.2fs drops=%lld\n", hw.c_str(), hwWall, hwCpu, (long long)drops);
         DestroyPlayer(mpv);
@@ -745,7 +754,19 @@ int main(int argc, char** argv) {
         else if (!strcmp(argv[i], "--video-sync") && i + 1 < argc) g_videoSync = argv[++i];
         else if (!strcmp(argv[i], "--decoder-threads") && i + 1 < argc) g_decoderThreads = argv[++i];
         else if (!strcmp(argv[i], "--with-audio")) g_resourceAudio = true;
+        else if (!strcmp(argv[i], "--heap-cleanup")) g_resourceHeapCleanup = true;
+        else if (!strcmp(argv[i], "--zero-copy") && i + 1 < argc) g_resourceZeroCopy = argv[++i];
+        else if (!strcmp(argv[i], "--swapchain-depth") && i + 1 < argc) g_resourceSwapchain = argv[++i];
+        else if (!strcmp(argv[i], "--latency-hacks") && i + 1 < argc) g_resourceLatencyHacks = argv[++i];
+        else if (!strcmp(argv[i], "--sample-seconds") && i + 1 < argc) g_resourceSampleSeconds = atoi(argv[++i]);
+        else if (!strcmp(argv[i], "--hwdec-threads") && i + 1 < argc) g_resourceHwdecThreads = argv[++i];
+        else if (!strcmp(argv[i], "--capture-window") && i + 1 < argc) g_resourceCapture = argv[++i];
     }
+    if (g_resourceSampleSeconds < 1 || g_resourceSampleSeconds > 120 ||
+        (!g_resourceHwdecThreads.empty() && g_resourceHwdecThreads != "1" && g_resourceHwdecThreads != "2" && g_resourceHwdecThreads != "4") ||
+        (!g_resourceZeroCopy.empty() && g_resourceZeroCopy != "yes" && g_resourceZeroCopy != "no") ||
+        (g_resourceLatencyHacks != "yes" && g_resourceLatencyHacks != "no") ||
+        (!g_resourceSwapchain.empty() && (atoi(g_resourceSwapchain.c_str()) < 1 || atoi(g_resourceSwapchain.c_str()) > 8))) return 2;
     if (dll.empty()) { printf("usage: --dll <path> [--media dir] [--scenario name]\n"); return 2; }
 
     // Resolve to absolute path and load like Aperture's DllLoader

@@ -34,6 +34,7 @@
 #include "TestLocalization.h"
 #include "TestRtlComplexScripts.h"
 #include "TestDeferredServices.h"
+#include "TestPlaybackRenderer.h"
 #include "TestLibrarySnapshot.h"
 #include "TestPlaylistIO.h"
 #include "TestFolderOperations.h"

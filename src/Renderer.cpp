@@ -289,11 +289,11 @@ void Renderer::CreateTextRenderingParams() {
         DWRITE_RENDERING_MODE1_NATURAL_SYMMETRIC, DWRITE_GRID_FIT_MODE_DISABLED, &textRenderingParams );
 }
 
-bool Renderer::Initialize(HWND hwnd, const std::string& initialFont) {
+bool Renderer::Initialize(HWND hwnd, const std::string& initialFont, bool prewarmDevice) {
     if (!hwnd || !IsWindow(hwnd)) return false;
     // Standalone renderers still overlap device creation with font setup. In the
     // app, this reuses the prewarm already started before window creation.
-    BeginCreateDeviceAsync();
+    if (prewarmDevice) BeginCreateDeviceAsync();
     if (!d2dFactory) {
         D2D1_FACTORY_OPTIONS options = {};
         if (FAILED(D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED,
@@ -452,6 +452,11 @@ bool Renderer::RecreateDeviceResources() {
     bool ok = CreateDeviceResources();
     recoveringDevice = false;
     return ok;
+}
+
+bool Renderer::EnsureGraphicsContext() {
+    if (d2dContext && d2dTargetBitmap) return true;
+    return RecreateDeviceResources();
 }
 
 void Renderer::SetDpi(float newDpi) {

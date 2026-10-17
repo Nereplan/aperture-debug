@@ -94,3 +94,41 @@ and timing together. These measurements exclude disk I/O and index construction.
 and verifies equal hashes. Python timings and Python heap measurements are not
 native-app performance; SQLite's native allocations are excluded. The experiment
 is not a production database format or migration tool.
+
+
+## Extended playback measurements and diagnostics
+
+Use `compare_players.ps1 -SamplingSeconds 40 -SamplingStartMediaSeconds 10`
+for longer CPU windows over corresponding media positions. The actual start/end
+CPU counters and wall times are retained. VLC reports whole-second media times;
+this is approximate segment alignment, not frame synchronization. Legacy defaults
+remain unchanged. Record extended/audio workloads under a separate checkpoint
+protocol. `-ApertureVariantsFile <json>` accepts an array of `{ "id": "name",
+"runtime": "C:/bench/variant" }` entries and rotates them alongside VLC. Build all
+variants before measuring. Run warmups and repeated measured rounds without
+profilers, encoders, builds or other benchmark suites running.
+
+`profile_player.cpp` builds with MSVC and `dbghelp.lib`. It uses matching Release
+PDBs for symbols and live overlay fields. `run_player_profile.ps1 -Runtime <dir>
+-Media <file> -Sampler <exe> -Symbols <pdb-dir> -OutputDir <new-dir>` stages an
+owned runtime and profiles it after settling. Stack mode suspends threads briefly;
+its stack totals describe CPU preceding a sample, not exact attribution or player
+rankings. `-StateOnly` reads PDB-located fields without suspension. Check saved
+state with `python tests/benchmark/check_playback_idle.py <candidate-json>
+--baseline <before-json>` to verify the direct-launch hidden-overlay regression.
+`-ReturnToHubWithProbe <player_status_probe.exe>` explicitly stops only the owned
+player and verifies that the previously unused library renderer presents. This
+requires the observer built with `--stop` support. The default observer only
+queries status.
+
+Resource-engine experiments accept `-SampleSeconds`, `-WarmupIterations` and
+`-CaptureFrames`. `-Experiment Transfers` screens copy, queue and latency options;
+`HardwareThreads` compares one, two and four hardware-decoder threads;
+`FreeHeapCaches` measures a one-time release of free LFH caches inside the test
+engine. The latter is experimental and does not change app behavior. Rendered
+captures occur after timing, paused at two seconds. Capture hashes, decoder and
+presentation drop counters, and raw CPU deltas are retained. Counter availability
+and absence of steady frame drops must pass. A screenshot is a quality check at
+one timestamp, not verification of every presented frame. To exercise functional
+playback with a chosen hardware pool, use `tests/libmpv/run_tests.ps1
+-HardwareDecoderThreads 1`; software decoder threading remains independent.

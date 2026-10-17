@@ -11,6 +11,7 @@ param(
     [string]$Url = '',
     [ValidateSet('gpu','gpu-next')][string]$Renderer = 'gpu',
     [string]$ResourceFile = '',
+    [ValidateSet('','1','2','4')][string]$HardwareDecoderThreads = '',
     [ValidateSet('yes','no')][string]$TlsVerify = 'yes',
     [string]$Python = 'python',
     [int]$TimeoutSeconds = 300
@@ -65,6 +66,7 @@ try {
     if ($Url) { $arguments += ' --url "' + $Url + '"' }
     $arguments += ' --tls-verify ' + $TlsVerify
     $arguments += ' --renderer ' + $Renderer
+    if ($HardwareDecoderThreads) { $arguments += ' --hwdec-threads ' + $HardwareDecoderThreads }
     if ($ResourceFile) {
         if ($ResourceFile -match '["\r\n/\\]' -or $ResourceFile -eq '..') { throw 'ResourceFile must be a filename.' }
         $arguments += ' --resource-file "' + $ResourceFile + '"'

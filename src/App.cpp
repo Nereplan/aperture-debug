@@ -1129,7 +1129,7 @@ bool App::Initialize(HWND hwnd, HWND hVideoChild, HINSTANCE hinst, const Playbac
     customMpvConfigToggleAnim.SnapTo(settings.customMpvConfigEnabled ? 1.0f : 0.0f);
     player.SetCustomMpvConfigEnabled(settings.customMpvConfigEnabled);
     player.SetCustomMpvConfigPath(settings.customMpvConfigPath);
-    if (!renderer.Initialize(hWnd, settings.uiFontFamily)) { return false; }
+    if (!renderer.Initialize(hWnd, settings.uiFontFamily, startupOptions.mediaTargets.empty())) { return false; }
     // The D3D worker is joined on first paint; only fonts/factories are ready here.
     Diagnostics::RecordStartupMilestone(L"renderer-initialized");
     renderer.SetTextScale(systemVisualPreferences.Get().textScaleFactor);
@@ -1318,7 +1318,11 @@ bool App::Update(float dt) {
         }
         needsRedraw = true;
     }
-    if (!renderer.HasPresentedFrame()) { needsRedraw = true; }
+    // A direct media launch can enter playback before the hub swap chain ever
+    // presents. Only the hub needs this bootstrap retry; mpv and the layered
+    // overlay own playback presentation. Otherwise an untouched hub flag keeps
+    // repainting a fully transparent overlay at 60 Hz for the entire video.
+    if (!playbackSession.IsOpen() && !renderer.HasPresentedFrame()) { needsRedraw = true; }
     if (IsAutoscrolling()) { UpdateAutoscroll(dt); needsRedraw = true; }
     if (UpdateTouchGestures(dt, NowSeconds())) { needsRedraw = true; }
     if (importJobActive) {
@@ -1997,10 +2001,13 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
         case WM_PAINT: {
             PAINTSTRUCT ps;
             HDC hdc = BeginPaint(hWnd, &ps);
-            // Bootstrap shell: only before Initialize, when the window is visible but subsystems (library, D3D) are not ready. GDI first
-            // pixels without blocking. After Initialize, always take the GPU path (which joins the D3D worker synchronously, as before), so
-            // the first post-init UpdateWindow is the real GPU frame.
-            if ((!appInitialized || renderer.AreDeviceWorkersRunning()) && !renderer.HasPresentedFrame()) {
+            // Keep the GDI shell while initialization or an explicit startup
+            // open is pending. Playback can then use mpv without allocating the
+            // library device; a normal hub paint creates its own context later.
+            const bool awaitingStartupMedia = !playbackSession.IsOpen() &&
+                std::any_of(deferredLibraryCommands.begin(), deferredLibraryCommands.end(),
+                    [](const auto& command) { return !command.mediaTargets.empty(); });
+            if ((!appInitialized || renderer.AreDeviceWorkersRunning() || awaitingStartupMedia) && !renderer.HasPresentedFrame()) {
                 PaintBootstrapShell(hdc, ps.rcPaint);
                 EndPaint(hWnd, &ps);
                 if (!bootstrapShellPainted) { bootstrapShellPainted = true; Diagnostics::RecordStartupMilestone(L"bootstrap-shell"); }
