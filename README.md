@@ -36,4 +36,6 @@ Use `./scripts/publish_release.ps1 -PrepareOnly` to build and write release note
 
 For an existing source checkout, **Update Source.cmd** fast-forwards from its configured upstream, builds, tests, and updates your local apps. It stops if source changes are uncommitted or the branches have diverged.
 
+Open the [performance checkpoint dashboard](docs/checkpoints.html) to compare Aperture revisions with measured VLC baselines, inspect benchmark graphs and validation, or read historical reports. The single HTML works offline; [checkpoint instructions](docs/CHECKPOINTS.md) explain how agents add new measurements.
+
 See the [documentation index](docs/README.md) for build, testing, portable-data, engine-build, and measured optimization references.

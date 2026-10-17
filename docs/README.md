@@ -1,5 +1,7 @@
 # Documentation
 
+Start performance work in the [checkpoint dashboard](checkpoints.html), the single-file offline record for measured revisions, VLC baselines, graphs, validation and historical reports. Follow the [checkpoint instructions](CHECKPOINTS.md) or its embedded Agent guide to add measurements. Future optimization findings belong in checkpoint notes; the report documents below remain historical source material.
+
 Use the guides below for the current workflow. Reports describe a particular source revision and machine; their timings, test counts, source line numbers, and remaining-work lists are historical observations. Follow-up reports can supersede earlier findings.
 
 ## Guides and contracts

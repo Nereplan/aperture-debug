@@ -1,5 +1,7 @@
 # Performance and Evaluation Reports
 
+Use the [checkpoint dashboard](../checkpoints.html) for current comparison and recording. It embeds these historical reports, measured checkpoint values, VLC baselines and validation. Add future performance work through [the checkpoint workflow](../CHECKPOINTS.md), keeping raw evidence in `docs/evidence/`.
+
 Historical engineering reports for Aperture, recording measured optimizations, architectural evaluations, regression validation, and subsystem benchmarks.
 
 Reports capture empirical observations on specific machines and source revisions. Timings, allocation counts, and line numbers are historical records; refer to the most recent report for current subsystem status.
@@ -67,9 +69,8 @@ Reports capture empirical observations on specific machines and source revisions
 
 ---
 
-## Guidelines for new reports
+## Historical report convention (superseded by checkpoints)
 
-1. Place the report file in this directory with a descriptive uppercase name (e.g., `SUBSYSTEM_TOPIC_DATE.md` or `SUBSYSTEM_TOPIC.md`).
-2. Record the evaluated source revision, baseline commit, toolchain, workload, and measurement bounds in the report header.
-3. Keep raw CSV samples, JSON summaries, and probe logs in `../evidence/<topic-evidence>/`.
-4. Add the report and its evidence link to both this index and [docs/README.md](../README.md).
+For future measurements, follow [the checkpoint workflow](../CHECKPOINTS.md) instead. The convention below describes the preserved historical reports.
+
+Historical reports use descriptive uppercase filenames, record evaluated source/baseline revisions and measurement bounds, and retain raw CSV samples, JSON summaries and logs in `../evidence/<topic-evidence>/`. The indexes above preserve their original navigation; new checkpoint data is maintained in the dashboard.
