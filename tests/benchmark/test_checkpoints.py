@@ -46,6 +46,22 @@ class CheckpointsTests(unittest.TestCase):
             if report["source"].startswith("docs/reports/"):
                 self.assertEqual(report["text"], (ROOT / report["source"]).read_text(encoding="utf-8-sig"))
 
+    def test_startup_history_values_match_original_capture_files(self):
+        fields = {"shell-ms": "startupMs", "populated-ms": "populatedMs",
+                  "startup-private-bytes": "privateBytes", "startup-ws-bytes": "workingSetBytes",
+                  "startup-window-ms": "windowShownMs"}
+        count = 0
+        for cp in self.data["checkpoints"]:
+            for r in cp["results"]:
+                if r.get("historySeries") != "empty-profile-startup":
+                    continue
+                raw = json.loads((ROOT / r["evidence"]).read_text(encoding="utf-8-sig"))
+                field = fields[r["metric"]]
+                expected = raw["metrics"][field]["median"] if "metrics" in raw else raw["shownMs" if field == "windowShownMs" else field]
+                self.assertEqual(r["value"], expected)
+                count += 1
+        self.assertEqual(count, 35)
+
     def test_append_preserves_historical_data(self):
         original = copy.deepcopy(self.data)
         result = api.append_bundle(self.data, self.bundle())
@@ -101,6 +117,27 @@ class CheckpointsTests(unittest.TestCase):
         bundle = self.bundle()
         bundle["metrics"] = {"visible-ms": {"label": "Seconds", "unit": "ms", "direction": "higher"}}
         with self.assertRaisesRegex(ValueError, "Cannot redefine"):
+            api.append_bundle(self.data, bundle)
+
+    def test_history_group_requires_declared_protocol_and_workload(self):
+        r = copy.deepcopy(self.data["checkpoints"][-1]["results"][0])
+        bundle = self.bundle()
+        bundle["historySeries"] = {"test-history": {
+            "label": "Same endpoint history", "method": "Recorded readings of the same workload",
+            "workload": r["workload"], "protocols": [r["protocol"]]}}
+        r["historySeries"] = "test-history"
+        bundle["checkpoints"][0]["results"] = [r]
+        api.append_bundle(self.data, bundle)
+        r["workload"] = "Different workload"
+        with self.assertRaisesRegex(ValueError, "Incompatible history series"):
+            api.append_bundle(self.data, bundle)
+
+    def test_unknown_history_group_rejected(self):
+        bundle = self.bundle()
+        r = copy.deepcopy(self.data["checkpoints"][-1]["results"][0])
+        r["historySeries"] = "not-a-declared-history"
+        bundle["checkpoints"][0]["results"] = [r]
+        with self.assertRaisesRegex(ValueError, "Unknown history series"):
             api.append_bundle(self.data, bundle)
 
     def test_unsafe_payload_roundtrips_without_breaking_script(self):

@@ -5,16 +5,17 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="description" content="Aperture performance checkpoints, measured VLC baselines, regression evidence and benchmark history. Works entirely offline.">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:; connect-src 'none'; font-src 'none'; base-uri 'none'; form-action 'none'">
-<title>Aperture / Checkpoints</title>
+<title>Aperture / Performance history</title>
 <style>
 :root{color-scheme:dark;--bg:#0b0c0d;--panel:#101113;--hover:#191b1e;--line:#27292d;--grid:#222429;--text:#ededea;--muted:#979aa2;--dim:#696d76;--accent:#f1b998;--green:#9ec9ac;--red:#e09b98;--vlc:#b4b8d3;--shadow:#0008}
 [data-theme=light]{color-scheme:light;--bg:#f7f7f3;--panel:#fff;--hover:#ecece7;--line:#d8d9d3;--grid:#e2e3dd;--text:#202221;--muted:#616762;--dim:#707773;--accent:#965331;--green:#34654a;--red:#a1403e;--vlc:#626b95;--shadow:#0002}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:13px/1.5 "Segoe UI",system-ui,sans-serif}button,input,select{font:inherit}button,select{cursor:pointer}button,a,input,select,summary{outline-offset:4px}button{color:inherit}button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accent)}button{border:1px solid var(--line);border-radius:5px;background:transparent;padding:7px 11px}button:hover{background:var(--hover)}a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}h1,h2,h3,p{margin:0}h1{font-size:26px;font-weight:500;letter-spacing:-.8px}h2{font-size:15px;font-weight:500}h3{font-size:13px;font-weight:600}small,.muted{color:var(--muted)}.mono,code,pre,.number{font-family:Consolas,"Cascadia Code",monospace}.eyebrow{font-size:10px;letter-spacing:1.7px;text-transform:uppercase;color:var(--muted)}.tag{display:inline-flex;gap:5px;align-items:center;font-size:10px;border:1px solid var(--line);border-radius:4px;padding:2px 6px;color:var(--muted);white-space:nowrap}.tag.live{color:var(--green)}.dot{width:6px;height:6px;border-radius:50%;display:inline-block;background:currentColor}.good{color:var(--green)}.bad{color:var(--red)}.accent{color:var(--accent)}.row{display:flex;align-items:center;gap:10px}.spread{justify-content:space-between}.wrap{flex-wrap:wrap}.grow{flex:1}.empty{padding:50px 22px;text-align:center;color:var(--muted)}.subtle{border:0;color:var(--muted)}[hidden]{display:none!important}
 .topbar{height:66px;border-bottom:1px solid var(--line);display:flex;align-items:center;padding:0 25px;gap:24px;background:var(--bg);position:sticky;top:0;z-index:5}.brand{display:flex;align-items:center;gap:10px;font-size:22px;letter-spacing:-1px;white-space:nowrap;color:var(--text)}.brand svg{width:24px;height:24px;color:var(--accent)}.brand span{font-weight:300;color:var(--muted);font-size:13px;letter-spacing:0;margin-left:6px}.nav{display:flex;align-self:stretch;gap:22px}.nav button{position:relative;border:0;border-radius:0;padding:0;color:var(--muted);font-size:12px;background:none}.nav button[aria-current=page]{color:var(--text)}.nav button[aria-current=page]:after{content:"";position:absolute;bottom:-1px;height:2px;left:0;right:0;background:var(--accent)}.top-actions{margin-left:auto;display:flex;align-items:center;gap:9px}.top-actions button{font-size:12px}.icon{font-size:17px;min-width:34px;padding:4px 8px}
-.layout{display:grid;grid-template-columns:minmax(0,1fr) 282px;min-height:calc(100vh - 66px)}main{min-width:0;padding:29px 28px 24px}.intro{display:flex;justify-content:space-between;align-items:center;gap:20px}.compare-control{display:flex;align-items:center;gap:9px}.compare-control label{font-size:11px;color:var(--muted);white-space:nowrap}select{background:var(--panel);border:1px solid var(--line);color:var(--text);padding:7px 29px 7px 10px;border-radius:4px;max-width:260px}.selection-meta{display:flex;gap:9px;align-items:center;margin:14px 0 20px;flex-wrap:wrap;font-size:11px;color:var(--muted)}.selection-meta code{color:var(--text)}.stats{display:grid;grid-template-columns:repeat(var(--stat-count,4),minmax(0,1fr));border:1px solid var(--line);border-radius:6px;margin:22px 0 0;background:var(--panel)}.stat{padding:17px 18px;min-width:0}.stat+.stat{border-left:1px solid var(--line)}.stat-label{font-size:11px;color:var(--muted);margin-bottom:9px}.stat-value{font-size:27px;line-height:1.2;letter-spacing:-.8px;font-weight:400;font-variant-numeric:tabular-nums}.stat-value small{font-size:12px;letter-spacing:0}.stat-delta{font-size:11px;margin-top:8px}.plot-panel{border:0;border-radius:0;overflow:visible}.plot-tabs{display:flex;border-bottom:1px solid var(--line);padding:0;gap:20px;align-items:center}.plot-tabs>button{padding:12px 0;border:0;border-radius:0;color:var(--muted);background:none}.plot-tabs>button[aria-pressed=true]{color:var(--text);box-shadow:inset 0 -2px var(--accent)}.plot-tabs .tag{margin-left:auto}.chart-head{display:flex;align-items:center;justify-content:space-between;gap:15px;padding:18px 0 0}.segmented{display:flex;gap:9px}.segmented button{border:0;border-bottom:1px solid transparent;font-size:11px;border-radius:0;padding:4px 0;color:var(--muted);background:none}.segmented button[aria-pressed=true]{color:var(--text);border-color:var(--accent)}#chart{padding:0;position:relative;min-height:340px}#chart svg{width:100%;height:auto;display:block;overflow:visible}.chart-grid{stroke:var(--grid);stroke-dasharray:2 5;stroke-width:1}.chart-label{fill:var(--muted);font-size:11px}.chart-axis-title{fill:var(--muted);font-size:11px}.chart-point{cursor:pointer;outline:none}.chart-point:focus{stroke:var(--text);stroke-width:3}.chart-legend{display:flex;gap:19px;padding:0 22px 15px;font-size:11px;color:var(--muted);flex-wrap:wrap}.chart-legend .dot{width:7px;height:7px;margin-right:5px}.tooltip{position:fixed;background:var(--panel);border:1px solid var(--line);box-shadow:0 4px 20px var(--shadow);padding:10px 13px;border-radius:4px;z-index:20;pointer-events:none;font-size:11px;max-width:270px}.tooltip strong{display:block;margin-bottom:4px}.trend-options{padding:13px 20px 0}.trend-options select{max-width:100%;width:100%}.section-head{margin:27px 0 14px;display:flex;align-items:center;justify-content:space-between;gap:16px}.section-head p{font-size:11px;color:var(--muted);margin-top:4px}.table-wrap{overflow:auto;border:1px solid var(--line);border-radius:5px}table{border-collapse:collapse;width:100%;text-align:left;font-size:12px}th{font-size:10px;font-weight:400;color:var(--muted);background:var(--panel);white-space:nowrap}th,td{padding:12px 15px;border-bottom:1px solid var(--line)}tr:last-child td{border-bottom:0}td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}td small{display:block;font-size:10px;margin-top:2px}tbody tr:hover{background:var(--hover)}.workload-row th{font-size:12px;font-weight:500;color:var(--text);padding:10px 15px}.workload-row:not(:first-child) th{border-top:1px solid var(--line)}.trend-button{border:0;padding:0;color:var(--accent);font-size:11px}
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 282px;min-height:calc(100vh - 66px)}main{min-width:0;padding:29px 28px 24px}.intro{display:flex;justify-content:space-between;align-items:center;gap:20px}.compare-control{display:flex;align-items:center;gap:9px}.compare-control label{font-size:11px;color:var(--muted);white-space:nowrap}select{background:var(--panel);border:1px solid var(--line);color:var(--text);padding:7px 29px 7px 10px;border-radius:4px;max-width:260px}.selection-meta{display:flex;gap:9px;align-items:center;margin:14px 0 20px;flex-wrap:wrap;font-size:11px;color:var(--muted)}.selection-meta code{color:var(--text)}.stats{display:grid;grid-template-columns:repeat(var(--stat-count,4),minmax(0,1fr));border:1px solid var(--line);border-radius:6px;margin:22px 0 0;background:var(--panel)}.stat{padding:17px 18px;min-width:0}.stat+.stat{border-left:1px solid var(--line)}.stat-label{font-size:11px;color:var(--muted);margin-bottom:9px}.stat-value{font-size:27px;line-height:1.2;letter-spacing:-.8px;font-weight:400;font-variant-numeric:tabular-nums}.stat-value small{font-size:12px;letter-spacing:0}.stat-delta{font-size:11px;margin-top:8px}.plot-panel{border:0;border-radius:0;overflow:visible}.plot-tabs{display:flex;border-bottom:1px solid var(--line);padding:0;gap:20px;align-items:center}.plot-tabs>button{padding:12px 0;border:0;border-radius:0;color:var(--muted);background:none}.plot-tabs>button[aria-pressed=true]{color:var(--text);box-shadow:inset 0 -2px var(--accent)}.plot-tabs .tag{margin-left:auto}.chart-head{display:flex;align-items:center;justify-content:space-between;gap:15px;padding:18px 0 0}.segmented{display:flex;gap:9px}.segmented button{border:0;border-bottom:1px solid transparent;font-size:11px;border-radius:0;padding:4px 0;color:var(--muted);background:none}.segmented button[aria-pressed=true]{color:var(--text);border-color:var(--accent)}#chart{padding:0;position:relative;min-height:340px}#chart svg{width:100%;height:auto;display:block;overflow:visible}.chart-grid{stroke:var(--grid);stroke-dasharray:2 5;stroke-width:1}.chart-label{fill:var(--muted);font-size:11px}.chart-axis-title{fill:var(--muted);font-size:11px}.chart-point{cursor:pointer;outline:none}.chart-point:focus{stroke:var(--text);stroke-width:3}.chart-legend{display:flex;gap:19px;padding:0 22px 15px;font-size:11px;color:var(--muted);flex-wrap:wrap}.chart-legend .dot{width:7px;height:7px;margin-right:5px}.tooltip{position:fixed;background:var(--panel);border:1px solid var(--line);box-shadow:0 4px 20px var(--shadow);padding:10px 13px;border-radius:4px;z-index:20;pointer-events:none;font-size:11px;max-width:270px}.tooltip strong{display:block;margin-bottom:4px}.trend-options{padding:12px 0 0}.trend-options select{max-width:100%;width:100%}.section-head{margin:27px 0 14px;display:flex;align-items:center;justify-content:space-between;gap:16px}.section-head p{font-size:11px;color:var(--muted);margin-top:4px}.table-wrap{overflow:auto;border:1px solid var(--line);border-radius:5px}table{border-collapse:collapse;width:100%;text-align:left;font-size:12px}th{font-size:10px;font-weight:400;color:var(--muted);background:var(--panel);white-space:nowrap}th,td{padding:12px 15px;border-bottom:1px solid var(--line)}tr:last-child td{border-bottom:0}td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}td small{display:block;font-size:10px;margin-top:2px}tbody tr:hover{background:var(--hover)}.workload-row th{font-size:12px;font-weight:500;color:var(--text);padding:10px 15px}.workload-row:not(:first-child) th{border-top:1px solid var(--line)}.trend-button{border:0;padding:0;color:var(--accent);font-size:11px}
 aside{border-left:1px solid var(--line);background:var(--bg);position:sticky;top:66px;height:calc(100vh - 66px);display:flex;flex-direction:column;min-height:0}.sidebar-head{padding:23px 19px 14px}.sidebar-head h2{font-size:13px}.sidebar-head h2 small{font-size:10px;margin-left:7px}.search{width:100%;border:0;border-bottom:1px solid var(--line);padding:10px 0 9px;background:none;color:var(--text);font-size:12px;margin-top:6px;border-radius:0}.checkpoint-list{overflow:auto;padding:0 10px 15px;flex:1}.date-label{font-size:10px;color:var(--dim);padding:13px 9px 7px;letter-spacing:.4px}.checkpoint{display:flex;align-items:flex-start;border:1px solid transparent;border-radius:5px;margin-bottom:3px;gap:7px;padding:10px 7px}.checkpoint.selected{background:var(--panel);border-color:var(--line)}.checkpoint input{accent-color:var(--accent);width:13px;height:13px;margin:4px 0 0;flex-shrink:0;cursor:pointer}.checkpoint button{text-align:left;border:0;border-radius:0;background:none;padding:0;flex:1;min-width:0}.cp-name{display:block;font-size:12px;color:var(--text);line-height:1.4}.checkpoint.selected .cp-name{color:var(--accent)}.cp-meta{display:block;font-size:10px;color:var(--dim);margin-top:4px}.cp-meta code{color:var(--muted)}
 .filters{display:flex;gap:7px;flex-wrap:wrap;margin:19px 0 15px}.filters button{font-size:11px;padding:5px 9px;color:var(--muted)}.filters button[aria-pressed=true]{color:var(--accent);border-color:var(--accent)}.ledger-search{border:1px solid var(--line);border-radius:4px;padding:9px 12px;background:var(--panel);color:var(--text);width:100%;margin:17px 0 0}.evidence-grid{display:grid;grid-template-columns:1fr 1fr;gap:17px;margin-top:22px}.box{border:1px solid var(--line);border-radius:5px;padding:19px}.box h2{margin-bottom:12px}.box p{font-size:12px;line-height:1.8;color:var(--muted)}.box ul{padding-left:17px;color:var(--muted);font-size:12px}.fact{display:flex;gap:15px;justify-content:space-between;padding:8px 0;font-size:11px;border-bottom:1px solid var(--line)}.fact:last-child{border:0}.fact span:first-child{color:var(--muted)}.fact span:last-child{text-align:right;overflow-wrap:anywhere}.test-row{display:flex;align-items:flex-start;gap:9px;padding:12px 0;border-bottom:1px solid var(--line);font-size:12px}.test-row:last-child{border:0}.test-row small{display:block;font-size:10px;margin-top:3px}.evidence-files{font-size:11px;line-height:1.8;overflow-wrap:anywhere}.evidence-files div{padding:8px 0;border-bottom:1px solid var(--line)}.evidence-files small{font-size:10px}.report-list{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:17px}.report-button{padding:14px;text-align:left;display:flex;gap:12px;align-items:flex-start;justify-content:space-between;background:var(--panel);line-height:1.6}.report-button span:first-child{font-size:12px}.report-button small{font-size:10px;display:block}.guide{max-width:810px}.guide h2{font-size:17px;margin:26px 0 10px}.guide p,.guide li{color:var(--muted);line-height:1.9;font-size:13px}.guide code{color:var(--text);font-size:11px}.guide pre{background:var(--panel);border:1px solid var(--line);padding:17px;border-radius:5px;font-size:11px;line-height:1.8;overflow:auto}.guide ol,.guide ul{padding-left:21px}.guide strong{color:var(--text);font-weight:500}.guide .box{margin-top:23px}.guide-table td{font-size:11px}.guide-table code{white-space:nowrap}dialog{background:var(--bg);border:1px solid var(--line);border-radius:8px;color:var(--text);padding:0;width:min(900px,94vw);max-height:90vh;box-shadow:0 15px 80px var(--shadow)}dialog::backdrop{background:#000b}.dialog-head{display:flex;justify-content:space-between;gap:20px;padding:19px 24px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--bg)}.dialog-head h2{font-size:15px}.dialog-body{padding:25px;font:12px/1.9 Consolas,monospace;white-space:pre-wrap;overflow-wrap:anywhere}.mobile-checkpoints{display:none}#status{font-size:11px;color:var(--green)}
 .resource-map{--map-history:#b2a69c}.map-grid{stroke:var(--grid);stroke-width:1;stroke-dasharray:2 5;opacity:.65}.map-axis{stroke:var(--line);stroke-width:1}.map-tick{font-size:12px;fill:var(--muted)}.map-axis-title{font-size:12px;fill:var(--muted)}.map-label{font-size:12px;font-weight:500}.map-selected .map-label{font-weight:600}.map-point:focus{stroke:none}.map-point[role=img]{cursor:help}.map-point:focus .point-dot{stroke:var(--text);stroke-width:2.5}.map-point:hover .map-label,.map-point:focus .map-label{fill:var(--text)}[data-theme=light] .resource-map{--map-history:#766658}
+.axis-break path{fill:none;stroke:var(--muted);stroke-width:1.7}.history-path{fill:none;stroke:var(--accent);stroke-width:1.8}.time-arrow{fill:none;stroke:var(--accent);stroke-width:1.7}.vlc-reference-line{stroke:var(--vlc);stroke-width:1.3;stroke-dasharray:5 5;opacity:.8}.revision-tick{fill:var(--dim);font-size:10px;font-family:Consolas,monospace}
 @media(min-width:1600px){main{padding:35px 48px}.layout{grid-template-columns:minmax(0,1fr) 320px}#chart{max-width:1250px;margin:auto}}
 @media(max-width:1100px){.layout{grid-template-columns:minmax(0,1fr) 244px}main{padding:24px 19px}.topbar{padding:0 20px;gap:20px}.nav{gap:17px}.brand span{display:none}.stat{padding:15px 12px}.stat-value{font-size:24px}.intro{flex-wrap:wrap;gap:6px}.compare-control{padding-top:7px}.selection-meta{margin-top:15px}.evidence-grid{grid-template-columns:1fr}.stats{margin-top:22px}}
 @media(max-width:760px){.topbar{height:auto;min-height:61px;flex-wrap:wrap;gap:8px 18px;padding:12px 16px 0}.brand{font-size:21px}.top-actions{order:1}.top-actions .export-data{display:none}.nav{order:2;width:100%;height:42px;gap:24px}.layout{display:block}main{padding:22px 16px}.topbar{position:static}.brand span{display:inline}.mobile-checkpoints{display:block;font-size:11px;margin-left:auto}aside{display:none;position:fixed;inset:0 0 0 auto;width:min(330px,92vw);height:100dvh;z-index:30;box-shadow:-10px 0 50px var(--shadow)}aside.open{display:flex}.sidebar-head{padding-top:20px}.stats{grid-template-columns:repeat(2,1fr)}.stat:nth-child(3){border-left:0;border-top:1px solid var(--line)}.stat:nth-child(4){border-top:1px solid var(--line)}.stat-value{font-size:25px}.chart-head{padding:15px 14px 0;align-items:flex-start}.chart-head h2{font-size:13px}.plot-tabs{padding:0 14px}.plot-tabs .tag{font-size:9px}#chart{padding:0;min-height:230px}.chart-label{font-size:13px}.chart-axis-title{font-size:12px}.chart-legend{gap:10px;padding:0 14px 12px;font-size:10px}.report-list{grid-template-columns:1fr}.section-head{align-items:flex-start}.compare-control select{max-width:230px}th,td{padding:10px}.intro h1{font-size:24px}.chart-head select{max-width:180px}.sidebar-close{display:block!important}}
@@ -25,20 +26,19 @@ aside{border-left:1px solid var(--line);background:var(--bg);position:sticky;top
 <body>
 <header class="topbar">
   <a class="brand" href="#overview" aria-label="Aperture checkpoints home"><svg viewBox="0 0 32 32" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M16 2 28.1 9v14L16 30 3.9 23V9Z M16 2l8 14-8 14M3.9 9h16l8.2 14M3.9 23l8-14H28"/></svg>aperture <span>/ checkpoints</span></a>
-  <nav class="nav" aria-label="Dashboard"><button data-page="overview" aria-current="page">Overview</button><button data-page="benchmarks">Benchmarks</button><button data-page="evidence">Evidence</button><button data-page="guide">Agent guide</button></nav>
+  <nav class="nav" aria-label="Dashboard"><button data-page="overview" aria-current="page">History</button><button data-page="benchmarks">Benchmarks</button><button data-page="evidence">Evidence</button><button data-page="guide">Agent guide</button></nav>
   <div class="top-actions"><button class="export-data" id="export-data" title="Download all embedded checkpoint data as JSON">Export data ↗</button><button id="theme" class="icon" aria-label="Switch to light mode" title="Switch theme">☼</button></div>
 </header>
 <div class="layout">
 <main>
-  <div class="intro"><h1 id="page-title">Checkpoint comparison</h1><button class="mobile-checkpoints" id="open-checkpoints">Checkpoints ☰</button><div class="compare-control" id="compare-control"><label for="baseline">Compare with</label><select id="baseline" aria-label="Comparison baseline"><option value="vlc">VLC · matched session</option><option value="paired">Paired Aperture baseline</option></select></div></div>
+  <div class="intro"><h1 id="page-title">Performance history</h1><button class="mobile-checkpoints" id="open-checkpoints">Checkpoints ☰</button><div class="compare-control" id="compare-control"><span class="tag" id="current-vlc"></span></div></div>
   <div class="selection-meta" id="selection-meta"></div>
   <section id="page-overview">
     <section class="plot-panel" aria-label="Performance charts">
-      <div class="plot-tabs"><button id="map-tab" aria-pressed="true">Resource map</button><button id="trend-tab" aria-pressed="false">Checkpoint trend</button></div>
-      <div class="chart-head"><div><h2 id="chart-title">Opening speed × playback memory</h2></div><div class="segmented" aria-label="Horizontal axis scale"><button id="linear" aria-pressed="false">Linear</button><button id="log" aria-pressed="true">Log</button></div></div>
-      <div class="trend-options" id="trend-options" hidden><label for="trend-metric" class="eyebrow">Metric / workload</label><select id="trend-metric"></select></div>
+      <div class="plot-tabs"><button id="trend-tab" aria-pressed="true">Timeline</button><button id="map-tab" aria-pressed="false">Resource map</button></div>
+      <div class="chart-head"><div><h2 id="chart-title">Visible window</h2></div><div class="segmented" aria-label="Horizontal axis scale"><button id="cuts" aria-pressed="true" title="Compress empty numeric intervals">Cuts</button><button id="linear" aria-pressed="false">Linear</button><button id="log" aria-pressed="false">Log</button></div></div>
+      <div class="trend-options" id="trend-options"><select id="trend-metric" aria-label="History metric"></select></div>
       <div id="chart"></div>
-      <div class="chart-legend" id="chart-legend" hidden><span><i class="dot accent"></i>Selected checkpoint</span><span><i class="dot" style="color:var(--muted)"></i>Other checkpoints</span><span id="vlc-legend"><i class="dot" style="color:var(--vlc)"></i>VLC</span></div>
     </section>
     <div class="stats" id="stats"></div>
     <div class="section-head"><h2>Measurements</h2><button class="subtle" data-go="evidence">View evidence ↗</button></div>
@@ -65,15 +65,17 @@ aside{border-left:1px solid var(--line);background:var(--bg);position:sticky;top
 python scripts/checkpoints.py --append "$env:LOCALAPPDATA/Codex/tools/scratch/checkpoint.json"
 python scripts/checkpoints.py --check
 python tests/benchmark/test_checkpoints.py
+# For chart changes, also run (requires Node.js):
+node tests/benchmark/test_checkpoint_charts.cjs
 git diff --check</pre>
     <p>Commands run from the repository root in PowerShell. Create the scratch parent directory if needed. Use <code>--list</code> to find checkpoint IDs and <code>--export &lt;new-file.json&gt;</code> to inspect existing metrics, references, protocols and environments. <code>--html &lt;path&gt;</code> selects a different copy of the dashboard.</p>
     <h2>Bundle shape</h2>
-    <p>The top level contains <code>checkpoints</code> and optionally new <code>metrics</code>, <code>protocols</code>, <code>environments</code>, <code>references</code> and <code>reports</code>. Existing definitions cannot be redefined by the append command. Each checkpoint records:</p>
-    <div class="table-wrap guide-table"><table><thead><tr><th>Field</th><th>Meaning</th></tr></thead><tbody><tr><td><code>id / label</code></td><td>Unique stable ID and human-readable change.</td></tr><tr><td><code>measuredAt</code></td><td>ISO 8601 timestamp with offset, or date only if the exact time is unknown.</td></tr><tr><td><code>commit / dirty / sourceNote</code></td><td>Measured revision, dirty flag and source/build identity. Unknowns use null with an explicit explanation.</td></tr><tr><td><code>pairedWith</code></td><td>ID of the matched “before” checkpoint, when one exists.</td></tr><tr><td><code>results[]</code></td><td>Metric, protocol, environment, workload, session, value, sample count and raw evidence path.</td></tr><tr><td><code>tests[]</code></td><td>Name, pass/fail/partial/not-run, passed/total, durationSeconds and evidence. Counts are the original run's scope.</td></tr><tr><td><code>notes</code></td><td>Changes, test bounds, caveats and tradeoffs. Keep this useful without a separate report.</td></tr></tbody></table></div>
-    <h2>VLC is a measured baseline</h2>
-    <p>Add a new <code>references</code> entry for each VLC session, with player, version, measuredAt and results. A checkpoint result can set <code>reference</code> to that entry's ID. The helper requires matching metric, protocol, environment, workload and session. Never reuse an old VLC number as if it had just been measured. Internal Aperture benchmarks have no VLC equivalent and show <strong>no matched reference</strong>.</p>
+    <p>The top level contains <code>checkpoints</code> and optionally new <code>metrics</code>, <code>protocols</code>, <code>environments</code>, <code>references</code>, <code>historySeries</code> and <code>reports</code>. Existing definitions cannot be redefined by the append command. Each checkpoint records:</p>
+    <div class="table-wrap guide-table"><table><thead><tr><th>Field</th><th>Meaning</th></tr></thead><tbody><tr><td><code>id / label</code></td><td>Unique stable ID and human-readable change.</td></tr><tr><td><code>measuredAt</code></td><td>ISO 8601 timestamp with offset, or date only if the exact time is unknown.</td></tr><tr><td><code>commit / dirty / sourceNote</code></td><td>Measured revision, dirty flag and source/build identity. Unknowns use null with an explicit explanation.</td></tr><tr><td><code>pairedWith</code></td><td>Optional provenance for an original controlled source comparison; the dashboard displays history.</td></tr><tr><td><code>results[]</code></td><td>Metric, protocol, environment, workload, session, value, sample count and raw evidence path.</td></tr><tr><td><code>tests[]</code></td><td>Name, pass/fail/partial/not-run, passed/total, durationSeconds and evidence. Counts are the original run's scope.</td></tr><tr><td><code>notes</code></td><td>Changes, test bounds, caveats and tradeoffs. Keep this useful without a separate report.</td></tr></tbody></table></div>
+    <h2>One current VLC reference</h2>
+    <p>The timeline connects dated Aperture observations; VLC is a single fixed benchmark from the latest recorded version. Its newest available matching metric/workload/environment measurement is used across the history, with the actual reference date preserved. Older VLC runs stay in the evidence and never become a second timeline. Add new <code>references</code> entries with player, version, measuredAt and results. Optional result <code>reference</code> links preserve original same-session provenance and must still match all conditions. Never present an old run as newly measured. Internal benchmarks without a VLC equivalent remain empty.</p>
     <h2>Units & comparison rules</h2>
-    <ul><li>All graph values use the metric definition's unit. <strong>MiB = 1,048,576 bytes.</strong> CPU is percent of one logical core, so values may exceed 100. Counters for requested C++ heap bytes are separate from process private bytes and working set.</li><li>Delta is <code>(current − baseline) / baseline × 100</code>. Lower-is-better decreases are green; regressions are red. A zero baseline produces no percentage; a missing value is never converted to zero.</li><li>Visible-window latency, GPU-shell latency, engine readiness and first video frame are different endpoints. Do not merge them. Runtime files are logical supplied bytes, not compressed download size.</li><li>Use <code>value: null</code> with <code>missingReason</code> for unavailable counters. Unknown sample counts need <code>samplingNote</code>. Keep failed verification out of successful playback measurements and record it in tests/notes.</li><li>Trend points are categorical measurement checkpoints; connecting lines show order, not continuous sampling. A log axis excludes zero values and says so. Different sessions are explicitly labelled when comparing checkpoints.</li></ul>
+    <ul><li>All graph values use the metric definition's unit. <strong>MiB = 1,048,576 bytes.</strong> CPU is percent of one logical core, so values may exceed 100. Counters for requested C++ heap bytes are separate from process private bytes and working set.</li><li>Delta is <code>(current − baseline) / baseline × 100</code>. Lower-is-better decreases are green; regressions are red. A zero baseline produces no percentage; a missing value is never converted to zero.</li><li>Visible-window latency, GPU-shell latency, engine readiness and first video frame are different endpoints. Do not merge them. Runtime files are logical supplied bytes, not compressed download size.</li><li>Use <code>value: null</code> with <code>missingReason</code> for unavailable counters. Unknown sample counts need <code>samplingNote</code>. Keep failed verification out of successful playback measurements and record it in tests/notes.</li><li>Timeline stops follow measurement-date order with categorical checkpoint spacing, not invented elapsed times. The resource-map arrows follow the same chronological order. <strong>Cuts</strong> compresses empty numeric ranges and marks each omitted interval with an axis break; units remain linear within retained bands. Cuts apply to both resource axes and the timeline value axis. Linear and log modes remain available.</li><li>Reuse strict metric/protocol/workload/environment identities for a continuing series. A declared <code>historySeries</code> may join documented historical protocols only: define its label, method, exact workload and allowed protocols; assign its ID to each result. Metrics remain separate. Preserve differences in sampling or machine identity in provenance. The empty-profile startup group includes seven recordings; its first is a single sample and later gates use five-run medians. Per-result <code>measuredAt</code> can preserve an exact capture time.</li></ul>
     <h2>Reproduce the measurements</h2>
     <p>Use the existing local runners in <code>tests/benchmark/README.md</code>, <code>tests/backend/README.md</code>, <code>tests/loading/README.md</code> and <code>docs/TESTING.md</code>. Player resource runs use <code>compare_players.ps1</code>; engine experiments use <code>compare_playback_resources.ps1</code>; capture probes use <code>run_save_benchmark.ps1</code>. Keep builds out of timed runs. Follow the local build/release policy; this dashboard does not run benchmarks itself.</p>
     <div class="box"><h3>Finish the update</h3><p>Open the HTML, select the new checkpoint, inspect its comparisons and evidence, run the helper check and focused tests, then commit only the intended dashboard/evidence changes. The report library is a historical snapshot; future checkpoints belong in this record. Export buttons download copies without changing the source HTML.</p></div>
@@ -91,7 +93,7 @@ git diff --check</pre>
 <script id="checkpoint-data" type="application/json">
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-10-17",
+  "updatedAt": "2026-10-17T12:16:28+00:00",
   "metrics": {
     "visible-ms": {
       "label": "Visible window",
@@ -212,6 +214,11 @@ git diff --check</pre>
       "label": "Removed cache targets",
       "unit": "count",
       "direction": "neutral"
+    },
+    "startup-window-ms": {
+      "label": "Startup window shown",
+      "unit": "ms",
+      "direction": "lower"
     }
   },
   "protocols": {
@@ -334,6 +341,11 @@ git diff --check</pre>
       "label": "Playback progress capture",
       "category": "Storage",
       "method": "Both source versions compiled first; before/after/after/before order, one warmup and seven measured samples per workload per process (14 pooled per version). Path index prepared outside timing. Modes 4/5 are unchanged/one changed record. This is UI-thread snapshot capture, excluding disk I/O, serialization and hash verification. Output hashes match. Heap counters are requested C++ bytes, not RSS."
+    },
+    "startup-budget-history": {
+      "label": "Empty-profile startup readings",
+      "category": "Startup",
+      "method": "Historical native startup probe using an isolated empty profile with warm OS caches. Recorded application-timer GPU-shell, shown-window and populated-library milestones. Repeated gates use one warmup plus five measured fresh processes, taking the median. The 3 October native capture is one sample and is identified as such. These are observed readings over time, not a controlled causal comparison or video-first-frame latency. Source identity, sample count and evidence remain attached to each observation."
     }
   },
   "environments": {
@@ -380,6 +392,10 @@ git diff --check</pre>
     "backend-20261015-machine": {
       "label": "Historical Windows x64 benchmark machine",
       "details": "Paired versions use the same recorded machine and harness. Full machine identity was not normalized from this historical summary; consult the embedded report. This environment ID is deliberately scoped to this study, preventing cross-study comparisons."
+    },
+    "historical-startup-machine": {
+      "label": "Recorded Windows x64 startup machine",
+      "details": "Windows x64 startup captures from the repository evidence. Full hardware identity was not included in these gate JSON files. Compare these as historical observations of the recorded native endpoints, not as a feature-matched playback ranking. See individual reports and later machine record."
     }
   },
   "references": {
@@ -693,6 +709,89 @@ git diff --check</pre>
     }
   },
   "checkpoints": [
+    {
+      "id": "evaluation-startup-20261003",
+      "label": "Evaluation implementation",
+      "measuredAt": "2026-10-03",
+      "commit": null,
+      "dirty": null,
+      "sourceNote": "Saved native startup capture from the evaluation implementation evidence. The report identifies its evaluated baseline; this standalone capture does not establish the exact candidate commit, clean/dirty state or clock time. These remain unknown.",
+      "notes": "One saved native empty-profile startup reading. It is a historical observation, not a five-run budget median or a playback resource measurement. Readiness and library readiness were true in the captured JSON.",
+      "report": "evaluation_implementation",
+      "results": [
+        {
+          "metric": "shell-ms",
+          "value": 44.08,
+          "protocol": "startup-budget-history",
+          "workload": "Empty portable profile",
+          "environment": "historical-startup-machine",
+          "session": "evaluation-startup-20261003",
+          "samples": 1,
+          "samplingNote": "Single captured native reading, not a multi-run median.",
+          "evidence": "docs/evidence/evaluation-implementation-evidence/startup-native.json",
+          "historySeries": "empty-profile-startup"
+        },
+        {
+          "metric": "populated-ms",
+          "value": 284.99,
+          "protocol": "startup-budget-history",
+          "workload": "Empty portable profile",
+          "environment": "historical-startup-machine",
+          "session": "evaluation-startup-20261003",
+          "samples": 1,
+          "samplingNote": "Single captured native reading, not a multi-run median.",
+          "evidence": "docs/evidence/evaluation-implementation-evidence/startup-native.json",
+          "historySeries": "empty-profile-startup"
+        },
+        {
+          "metric": "startup-private-bytes",
+          "value": 61796352,
+          "protocol": "startup-budget-history",
+          "workload": "Empty portable profile",
+          "environment": "historical-startup-machine",
+          "session": "evaluation-startup-20261003",
+          "samples": 1,
+          "samplingNote": "Single captured native reading, not a multi-run median.",
+          "evidence": "docs/evidence/evaluation-implementation-evidence/startup-native.json",
+          "historySeries": "empty-profile-startup"
+        },
+        {
+          "metric": "startup-ws-bytes",
+          "value": 57753600,
+          "protocol": "startup-budget-history",
+          "workload": "Empty portable profile",
+          "environment": "historical-startup-machine",
+          "session": "evaluation-startup-20261003",
+          "samples": 1,
+          "samplingNote": "Single captured native reading, not a multi-run median.",
+          "evidence": "docs/evidence/evaluation-implementation-evidence/startup-native.json",
+          "historySeries": "empty-profile-startup"
+        },
+        {
+          "metric": "startup-window-ms",
+          "value": 27.05,
+          "protocol": "startup-budget-history",
+          "workload": "Empty portable profile",
+          "environment": "historical-startup-machine",
+          "session": "evaluation-startup-20261003",
+          "samples": 1,
+          "samplingNote": "Single captured native reading, not a multi-run median.",
+          "evidence": "docs/evidence/evaluation-implementation-evidence/startup-native.json",
+          "historySeries": "empty-profile-startup"
+        }
+      ],
+      "tests": [
+        {
+          "name": "Native startup readiness capture",
+          "status": "pass",
+          "passed": null,
+          "total": null,
+          "durationSeconds": null,
+          "evidence": "docs/evidence/evaluation-implementation-evidence/startup-native.json",
+          "notes": "One captured sample; ready and libraryReady were true. No multi-run startup-budget claim."
+        }
+      ]
+    },
     {
       "id": "duplicate-detection-evidence-before",
       "label": "Duplicate detection · before",
@@ -6126,6 +6225,66 @@ git diff --check</pre>
           "environment": "backend-resources-20261013-machine",
           "evidence": "docs/evidence/backend-resources-20261013/save-comparison.json",
           "samples": 7
+        },
+        {
+          "metric": "shell-ms",
+          "value": 45.05,
+          "protocol": "startup-budget-history",
+          "workload": "Empty portable profile",
+          "environment": "historical-startup-machine",
+          "session": "backend-resources-20261013-after-startup",
+          "samples": 5,
+          "evidence": "docs/evidence/backend-resources-20261013/startup.json",
+          "historySeries": "empty-profile-startup",
+          "measuredAt": "2026-10-13T19:50:41Z"
+        },
+        {
+          "metric": "populated-ms",
+          "value": 296.4,
+          "protocol": "startup-budget-history",
+          "workload": "Empty portable profile",
+          "environment": "historical-startup-machine",
+          "session": "backend-resources-20261013-after-startup",
+          "samples": 5,
+          "evidence": "docs/evidence/backend-resources-20261013/startup.json",
+          "historySeries": "empty-profile-startup",
+          "measuredAt": "2026-10-13T19:50:41Z"
+        },
+        {
+          "metric": "startup-private-bytes",
+          "value": 61575168.0,
+          "protocol": "startup-budget-history",
+          "workload": "Empty portable profile",
+          "environment": "historical-startup-machine",
+          "session": "backend-resources-20261013-after-startup",
+          "samples": 5,
+          "evidence": "docs/evidence/backend-resources-20261013/startup.json",
+          "historySeries": "empty-profile-startup",
+          "measuredAt": "2026-10-13T19:50:41Z"
+        },
+        {
+          "metric": "startup-ws-bytes",
+          "value": 57589760.0,
+          "protocol": "startup-budget-history",
+          "workload": "Empty portable profile",
+          "environment": "historical-startup-machine",
+          "session": "backend-resources-20261013-after-startup",
+          "samples": 5,
+          "evidence": "docs/evidence/backend-resources-20261013/startup.json",
+          "historySeries": "empty-profile-startup",
+          "measuredAt": "2026-10-13T19:50:41Z"
+        },
+        {
+          "metric": "startup-window-ms",
+          "value": 27.73,
+          "protocol": "startup-budget-history",
+          "workload": "Empty portable profile",
+          "environment": "historical-startup-machine",
+          "session": "backend-resources-20261013-after-startup",
+          "samples": 5,
+          "evidence": "docs/evidence/backend-resources-20261013/startup.json",
+          "historySeries": "empty-profile-startup",
+          "measuredAt": "2026-10-13T19:50:41Z"
         }
       ],
       "tests": [
@@ -6584,6 +6743,66 @@ git diff --check</pre>
           "environment": "json-array-growth-20261014-machine",
           "evidence": "docs/evidence/json-array-growth-20261014/comparison.json",
           "samples": 7
+        },
+        {
+          "metric": "shell-ms",
+          "value": 36.98,
+          "protocol": "startup-budget-history",
+          "workload": "Empty portable profile",
+          "environment": "historical-startup-machine",
+          "session": "json-array-growth-20261014-after-startup",
+          "samples": 5,
+          "evidence": "docs/evidence/json-array-growth-20261014/startup-budget.json",
+          "historySeries": "empty-profile-startup",
+          "measuredAt": "2026-10-14T06:18:34Z"
+        },
+        {
+          "metric": "populated-ms",
+          "value": 254.1,
+          "protocol": "startup-budget-history",
+          "workload": "Empty portable profile",
+          "environment": "historical-startup-machine",
+          "session": "json-array-growth-20261014-after-startup",
+          "samples": 5,
+          "evidence": "docs/evidence/json-array-growth-20261014/startup-budget.json",
+          "historySeries": "empty-profile-startup",
+          "measuredAt": "2026-10-14T06:18:34Z"
+        },
+        {
+          "metric": "startup-private-bytes",
+          "value": 61739008.0,
+          "protocol": "startup-budget-history",
+          "workload": "Empty portable profile",
+          "environment": "historical-startup-machine",
+          "session": "json-array-growth-20261014-after-startup",
+          "samples": 5,
+          "evidence": "docs/evidence/json-array-growth-20261014/startup-budget.json",
+          "historySeries": "empty-profile-startup",
+          "measuredAt": "2026-10-14T06:18:34Z"
+        },
+        {
+          "metric": "startup-ws-bytes",
+          "value": 58105856.0,
+          "protocol": "startup-budget-history",
+          "workload": "Empty portable profile",
+          "environment": "historical-startup-machine",
+          "session": "json-array-growth-20261014-after-startup",
+          "samples": 5,
+          "evidence": "docs/evidence/json-array-growth-20261014/startup-budget.json",
+          "historySeries": "empty-profile-startup",
+          "measuredAt": "2026-10-14T06:18:34Z"
+        },
+        {
+          "metric": "startup-window-ms",
+          "value": 22.39,
+          "protocol": "startup-budget-history",
+          "workload": "Empty portable profile",
+          "environment": "historical-startup-machine",
+          "session": "json-array-growth-20261014-after-startup",
+          "samples": 5,
+          "evidence": "docs/evidence/json-array-growth-20261014/startup-budget.json",
+          "historySeries": "empty-profile-startup",
+          "measuredAt": "2026-10-14T06:18:34Z"
         }
       ],
       "tests": [],
@@ -9395,6 +9614,66 @@ git diff --check</pre>
           "environment": "library-record-memory-20261014-machine",
           "evidence": "docs/evidence/library-record-memory-20261014/save-comparison.json",
           "samples": 7
+        },
+        {
+          "metric": "shell-ms",
+          "value": 44.73,
+          "protocol": "startup-budget-history",
+          "workload": "Empty portable profile",
+          "environment": "historical-startup-machine",
+          "session": "library-record-memory-20261014-after-startup",
+          "samples": 5,
+          "evidence": "docs/evidence/library-record-memory-20261014/startup-budget.json",
+          "historySeries": "empty-profile-startup",
+          "measuredAt": "2026-10-14T06:40:17Z"
+        },
+        {
+          "metric": "populated-ms",
+          "value": 254.71,
+          "protocol": "startup-budget-history",
+          "workload": "Empty portable profile",
+          "environment": "historical-startup-machine",
+          "session": "library-record-memory-20261014-after-startup",
+          "samples": 5,
+          "evidence": "docs/evidence/library-record-memory-20261014/startup-budget.json",
+          "historySeries": "empty-profile-startup",
+          "measuredAt": "2026-10-14T06:40:17Z"
+        },
+        {
+          "metric": "startup-private-bytes",
+          "value": 61526016.0,
+          "protocol": "startup-budget-history",
+          "workload": "Empty portable profile",
+          "environment": "historical-startup-machine",
+          "session": "library-record-memory-20261014-after-startup",
+          "samples": 5,
+          "evidence": "docs/evidence/library-record-memory-20261014/startup-budget.json",
+          "historySeries": "empty-profile-startup",
+          "measuredAt": "2026-10-14T06:40:17Z"
+        },
+        {
+          "metric": "startup-ws-bytes",
+          "value": 58380288.0,
+          "protocol": "startup-budget-history",
+          "workload": "Empty portable profile",
+          "environment": "historical-startup-machine",
+          "session": "library-record-memory-20261014-after-startup",
+          "samples": 5,
+          "evidence": "docs/evidence/library-record-memory-20261014/startup-budget.json",
+          "historySeries": "empty-profile-startup",
+          "measuredAt": "2026-10-14T06:40:17Z"
+        },
+        {
+          "metric": "startup-window-ms",
+          "value": 27.36,
+          "protocol": "startup-budget-history",
+          "workload": "Empty portable profile",
+          "environment": "historical-startup-machine",
+          "session": "library-record-memory-20261014-after-startup",
+          "samples": 5,
+          "evidence": "docs/evidence/library-record-memory-20261014/startup-budget.json",
+          "historySeries": "empty-profile-startup",
+          "measuredAt": "2026-10-14T06:40:17Z"
         }
       ],
       "tests": [
@@ -11406,6 +11685,66 @@ git diff --check</pre>
           "evidence": "docs/evidence/loading-20261016/summary.json",
           "samples": null,
           "samplingNote": "Sample count not normalized from historical summary; see evidence and report."
+        },
+        {
+          "metric": "shell-ms",
+          "value": 38.46,
+          "protocol": "startup-budget-history",
+          "workload": "Empty portable profile",
+          "environment": "historical-startup-machine",
+          "session": "loading-20261016-after-startup",
+          "samples": 5,
+          "evidence": "docs/evidence/loading-20261016/startup.json",
+          "historySeries": "empty-profile-startup",
+          "measuredAt": "2026-10-16T08:23:08Z"
+        },
+        {
+          "metric": "populated-ms",
+          "value": 290.72,
+          "protocol": "startup-budget-history",
+          "workload": "Empty portable profile",
+          "environment": "historical-startup-machine",
+          "session": "loading-20261016-after-startup",
+          "samples": 5,
+          "evidence": "docs/evidence/loading-20261016/startup.json",
+          "historySeries": "empty-profile-startup",
+          "measuredAt": "2026-10-16T08:23:08Z"
+        },
+        {
+          "metric": "startup-private-bytes",
+          "value": 60989440.0,
+          "protocol": "startup-budget-history",
+          "workload": "Empty portable profile",
+          "environment": "historical-startup-machine",
+          "session": "loading-20261016-after-startup",
+          "samples": 5,
+          "evidence": "docs/evidence/loading-20261016/startup.json",
+          "historySeries": "empty-profile-startup",
+          "measuredAt": "2026-10-16T08:23:08Z"
+        },
+        {
+          "metric": "startup-ws-bytes",
+          "value": 57790464.0,
+          "protocol": "startup-budget-history",
+          "workload": "Empty portable profile",
+          "environment": "historical-startup-machine",
+          "session": "loading-20261016-after-startup",
+          "samples": 5,
+          "evidence": "docs/evidence/loading-20261016/startup.json",
+          "historySeries": "empty-profile-startup",
+          "measuredAt": "2026-10-16T08:23:08Z"
+        },
+        {
+          "metric": "startup-window-ms",
+          "value": 21.86,
+          "protocol": "startup-budget-history",
+          "workload": "Empty portable profile",
+          "environment": "historical-startup-machine",
+          "session": "loading-20261016-after-startup",
+          "samples": 5,
+          "evidence": "docs/evidence/loading-20261016/startup.json",
+          "historySeries": "empty-profile-startup",
+          "measuredAt": "2026-10-16T08:23:08Z"
         }
       ],
       "tests": [],
@@ -11495,7 +11834,9 @@ git diff --check</pre>
           "session": "backend-balance-20261017",
           "environment": "ryzen3900x-4070super",
           "evidence": "docs/evidence/backend-balance-20261017/startup-before.json",
-          "samples": 5
+          "samples": 5,
+          "historySeries": "empty-profile-startup",
+          "measuredAt": "2026-10-17T10:47:05Z"
         },
         {
           "metric": "populated-ms",
@@ -11505,7 +11846,9 @@ git diff --check</pre>
           "session": "backend-balance-20261017",
           "environment": "ryzen3900x-4070super",
           "evidence": "docs/evidence/backend-balance-20261017/startup-before.json",
-          "samples": 5
+          "samples": 5,
+          "historySeries": "empty-profile-startup",
+          "measuredAt": "2026-10-17T10:47:05Z"
         },
         {
           "metric": "startup-private-bytes",
@@ -11515,7 +11858,9 @@ git diff --check</pre>
           "session": "backend-balance-20261017",
           "environment": "ryzen3900x-4070super",
           "evidence": "docs/evidence/backend-balance-20261017/startup-before.json",
-          "samples": 5
+          "samples": 5,
+          "historySeries": "empty-profile-startup",
+          "measuredAt": "2026-10-17T10:47:05Z"
         },
         {
           "metric": "startup-ws-bytes",
@@ -11525,7 +11870,9 @@ git diff --check</pre>
           "session": "backend-balance-20261017",
           "environment": "ryzen3900x-4070super",
           "evidence": "docs/evidence/backend-balance-20261017/startup-before.json",
-          "samples": 5
+          "samples": 5,
+          "historySeries": "empty-profile-startup",
+          "measuredAt": "2026-10-17T10:47:05Z"
         },
         {
           "metric": "elapsed-ms",
@@ -11726,6 +12073,18 @@ git diff --check</pre>
           "environment": "ryzen3900x-4070super",
           "evidence": "docs/evidence/backend-balance-20261017/capture-summary.json",
           "samples": 14
+        },
+        {
+          "metric": "startup-window-ms",
+          "value": 40.69,
+          "protocol": "startup-empty-20261017",
+          "workload": "Empty portable profile",
+          "environment": "ryzen3900x-4070super",
+          "session": "backend-balance-20261017-before-startup",
+          "samples": 5,
+          "evidence": "docs/evidence/backend-balance-20261017/startup-before.json",
+          "historySeries": "empty-profile-startup",
+          "measuredAt": "2026-10-17T10:47:05Z"
         }
       ],
       "tests": [
@@ -11824,7 +12183,9 @@ git diff --check</pre>
           "session": "backend-balance-20261017",
           "environment": "ryzen3900x-4070super",
           "evidence": "docs/evidence/backend-balance-20261017/startup-after.json",
-          "samples": 5
+          "samples": 5,
+          "historySeries": "empty-profile-startup",
+          "measuredAt": "2026-10-17T10:47:09Z"
         },
         {
           "metric": "populated-ms",
@@ -11834,7 +12195,9 @@ git diff --check</pre>
           "session": "backend-balance-20261017",
           "environment": "ryzen3900x-4070super",
           "evidence": "docs/evidence/backend-balance-20261017/startup-after.json",
-          "samples": 5
+          "samples": 5,
+          "historySeries": "empty-profile-startup",
+          "measuredAt": "2026-10-17T10:47:09Z"
         },
         {
           "metric": "startup-private-bytes",
@@ -11844,7 +12207,9 @@ git diff --check</pre>
           "session": "backend-balance-20261017",
           "environment": "ryzen3900x-4070super",
           "evidence": "docs/evidence/backend-balance-20261017/startup-after.json",
-          "samples": 5
+          "samples": 5,
+          "historySeries": "empty-profile-startup",
+          "measuredAt": "2026-10-17T10:47:09Z"
         },
         {
           "metric": "startup-ws-bytes",
@@ -11854,7 +12219,9 @@ git diff --check</pre>
           "session": "backend-balance-20261017",
           "environment": "ryzen3900x-4070super",
           "evidence": "docs/evidence/backend-balance-20261017/startup-after.json",
-          "samples": 5
+          "samples": 5,
+          "historySeries": "empty-profile-startup",
+          "measuredAt": "2026-10-17T10:47:09Z"
         },
         {
           "metric": "elapsed-ms",
@@ -12055,6 +12422,18 @@ git diff --check</pre>
           "environment": "ryzen3900x-4070super",
           "evidence": "docs/evidence/backend-balance-20261017/capture-summary.json",
           "samples": 14
+        },
+        {
+          "metric": "startup-window-ms",
+          "value": 39.97,
+          "protocol": "startup-empty-20261017",
+          "workload": "Empty portable profile",
+          "environment": "ryzen3900x-4070super",
+          "session": "backend-balance-20261017-after-startup",
+          "samples": 5,
+          "evidence": "docs/evidence/backend-balance-20261017/startup-after.json",
+          "historySeries": "empty-profile-startup",
+          "measuredAt": "2026-10-17T10:47:09Z"
         }
       ],
       "tests": [
@@ -12289,7 +12668,18 @@ git diff --check</pre>
       "source": "tests/loading/README.md",
       "text": "# Portable library loading regression suite\n\nRun `./tests/run_tests.ps1 -Id loading` or `./tests/loading/run_tests.ps1`.\nThe suite is in the local PR gate and runs eight individually selectable cases\nagainst production code. `-Test \u003cname\u003e` selects a case; unknown selections fail.\n\n- Streaming JSON matches the DOM parser, rejects truncated/trailing data, and\n  preserves nesting, decoded-string and element-count limits.\n- Actual array and versioned stores produce identical portable serializations,\n  including Unicode, bookmarks, preferences and unknown extensions. Reload and\n  directory relocation retain their data and repair lookups.\n- A malformed suffix discards all partially decoded records. A real backup can\n  recover the library; unrecoverable and future-version stores remain write-protected.\n- Incremental saves leave the checkpoint unchanged, replay after restart, reject\n  corrupt journals, and survive explicit checkpoint publication.\n- Heap probes compare streaming and compatibility loads of 6,000 records. Sparse\n  records require at least 5% less peak tracked C++ heap; metadata-heavy records\n  may not regress more than 5%. Retained allocation slack is checked separately.\n  These are resource contracts, not wall-clock timing or whole-process RAM tests.\n\nThe runner creates an isolated executable directory and all tested writes stay\ninside it, including stores and backups. Cleanup removes that installation.\n`-KeepArtifacts` retains it for investigation. No installed user data is used.\n\nRun `./tests/loading/verify_mutations.ps1` to introduce two defects in disposable\nsource copies: accepting trailing JSON and disabling streaming. Each must fail\nits specific behavioral/resource assertion. Compilation failures do not count.\n\nUse `tests/benchmark/run_save_benchmark.ps1` for before/after performance samples.\nIts source-directory option allows the same harness to exercise a saved baseline;\ncompare output hashes and repeat in reversed order before interpreting timings.\n"
     }
-  ]
+  ],
+  "historySeries": {
+    "empty-profile-startup": {
+      "label": "Empty-profile startup",
+      "workload": "Empty portable profile",
+      "protocols": [
+        "startup-budget-history",
+        "startup-empty-20261017"
+      ],
+      "method": "Historical observations of the same empty-profile native startup endpoints. Each metric remains a separate series, preserving its unit and endpoint. Protocol, machine, sample count, timestamp and source revision remain per observation. This joins dated readings for history, not a matched-session before/after claim; the earliest native capture is a single sample."
+    }
+  }
 }
 </script>
 <script id="dashboard-code">
@@ -12297,9 +12687,9 @@ git diff --check</pre>
 const DATA=JSON.parse(document.getElementById('checkpoint-data').textContent);
 const $=id=>document.getElementById(id), esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const CP=DATA.checkpoints, cpById=new Map(CP.map(c=>[c.id,c]));
-const ordered=[...CP].sort((a,b)=>a.measuredAt.localeCompare(b.measuredAt)||CP.indexOf(a)-CP.indexOf(b));
+const ordered=[...CP].sort((a,b)=>Date.parse(a.measuredAt)-Date.parse(b.measuredAt)||CP.indexOf(a)-CP.indexOf(b));
 const latest=ordered.at(-1), visible=new Set();
-let selected=latest.id, page='overview', mode='map', logarithmic=true, trendKey='', category='All', ledgerRows=[], ledgerPage=0;
+let selected=latest.id, page='overview', mode='history', axisMode='cuts', trendKey='', category='All', ledgerRows=[], ledgerPage=0;
 const key=r=>JSON.stringify([r.metric,r.protocol,r.workload,r.environment]);
 const getCP=()=>cpById.get(selected), metric=r=>DATA.metrics[r.metric], protocol=r=>DATA.protocols[r.protocol];
 const number=(n,d=2)=>Number(n).toLocaleString('en-US',{maximumFractionDigits:d});
@@ -12307,17 +12697,17 @@ function val(r){if(!r||r.value===null||r.value===undefined)return '—';const u=
 function splitval(r){if(!r||r.value===null)return '—';const u=metric(r).unit,n=r.value;return `${number(n,u==='count'||u==='bytes'?0:u==='ms'&&n<10?4:2)} <small>${u==='count'?'':esc(u)}</small>`}
 function date(s){return new Date(s.length===10?s+'T12:00:00Z':s).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric',timeZone:'Europe/Istanbul'})}
 function when(s){return s.length===10?date(s)+' · time not recorded':new Date(s).toLocaleString('en-GB',{timeZone:'Europe/Istanbul',hour12:false})+' TRT'}
-function baseline(r,cp=getCP(),choice=$('baseline').value){if(choice==='vlc'){const b=DATA.references[r.reference];const result=b?.results.find(x=>key(x)===key(r)&&x.session===r.session);return result?{...result,label:b.player+' '+b.version,measuredAt:b.measuredAt}:null}const target=cpById.get(choice==='paired'?cp.pairedWith:choice);const result=target?.results.find(x=>key(x)===key(r));return result?{...result,label:target.label,measuredAt:target.measuredAt}:null}
+
 function delta(r,b){if(!b||r.value===null||b.value===null)return {text:'No matched reference',cls:'muted'};if(b.value===0)return {text:r.value===0?'Unchanged':'From zero · no %',cls:'muted'};const pct=(r.value-b.value)/b.value*100;const dir=metric(r).direction;return {text:(Math.abs(pct)<.005?'':pct>0?'+':'−')+number(Math.abs(pct),1)+'%',cls:Math.abs(pct)<.005||dir==='neutral'?'muted':(pct<0)===(dir==='lower')?'good':'bad'}}
-function defaults(){visible.clear();for(const c of CP)if(c.results.some(r=>r.metric==='visible-ms'&&r.protocol==='playback-1080p30'))visible.add(c.id);visible.add(latest.id)}
+function defaults(){visible.clear();for(const c of CP)visible.add(c.id)}
 function announce(s){$('status').textContent=s}
 function download(name,text,type){const a=document.createElement('a');const url=URL.createObjectURL(new Blob([text],{type}));a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);announce('Downloaded '+name)}
 function report(id){const r=DATA.reports.find(x=>x.id===id);if(!r)return;$('report-title').textContent=r.title;$('report-source').textContent='Embedded historical snapshot · '+r.source;$('report-text').textContent=r.text;$('report-dialog').showModal()}
-function showSeries(k){for(const cp of CP)if(cp.results.some(r=>key(r)===k))visible.add(cp.id)}
-function pick(id){selected=id;visible.add(id);const cp=getCP();if(!cp.results.some(r=>r.metric==='visible-ms')){mode='trend';trendKey=cp.results[0]?key(cp.results[0]):'';showSeries(trendKey);if($('baseline').value==='vlc'&&cp.pairedWith)$('baseline').value='paired'}render();if(page==='overview')window.scrollTo(0,0);$('sidebar').classList.remove('open')}
-function navigate(name){page=name;for(const p of ['overview','benchmarks','evidence','guide'])$('page-'+p).hidden=p!==page;document.querySelectorAll('[data-page]').forEach(b=>b.setAttribute('aria-current',b.dataset.page===page?'page':'false'));$('page-title').textContent=({overview:'Checkpoint comparison',benchmarks:'Benchmark ledger',evidence:'Evidence',guide:'Agent guide'})[page];$('compare-control').hidden=page!=='overview';renderPage();location.hash=page;window.scrollTo(0,0)}
-function renderSidebar(){const q=$('checkpoint-search').value.toLowerCase();let last='';$('checkpoint-list').innerHTML=[...ordered].reverse().filter(c=>(c.label+' '+c.id+' '+(c.commit||'')).toLowerCase().includes(q)).map(c=>{let heading='';const d=c.measuredAt.slice(0,10);if(d!==last){last=d;heading=`<div class="date-label">${esc(date(c.measuredAt))}</div>`}return heading+`<div class="checkpoint ${c.id===selected?'selected':''}"><input type="checkbox" data-visible="${esc(c.id)}" ${visible.has(c.id)?'checked':''} aria-label="Plot ${esc(c.label)}" title="Plot ${esc(c.label)}"><button data-select="${esc(c.id)}" aria-pressed="${c.id===selected}"><span class="cp-name">${esc(c.label)}</span><span class="cp-meta"><code>${esc(c.commit||'commit unknown')}</code>${c.dirty===true?' · modified':''}</span></button></div>`}).join('')||'<div class="empty">No matching checkpoints</div>';$('checkpoint-count').textContent=CP.length}
-function renderMeta(){const c=getCP();$('selection-meta').innerHTML=`<span class="tag">${esc(c.label)}</span><code>${esc(c.commit||'commit unknown')}</code><span title="${esc(when(c.measuredAt))}">${esc(date(c.measuredAt))}</span>${c.dirty===true?'<span class="tag" title="Includes working-tree changes">Modified</span>':''}`}
+function showSeries(k){for(const cp of CP)if(cp.results.some(r=>seriesKey(r)===k))visible.add(cp.id)}
+function pick(id){selected=id;visible.add(id);const cp=getCP();if(!cp.results.some(r=>seriesKey(r)===trendKey)){const candidate=cp.results.find(r=>r.historySeries)||cp.results[0];if(candidate)trendKey=seriesKey(candidate)}render();if(page==='overview')window.scrollTo(0,0);$('sidebar').classList.remove('open')}
+function navigate(name){page=name;for(const p of ['overview','benchmarks','evidence','guide'])$('page-'+p).hidden=p!==page;document.querySelectorAll('[data-page]').forEach(b=>b.setAttribute('aria-current',b.dataset.page===page?'page':'false'));$('page-title').textContent=({overview:'Performance history',benchmarks:'Benchmark ledger',evidence:'Evidence',guide:'Agent guide'})[page];$('compare-control').hidden=page!=='overview';renderPage();location.hash=page;window.scrollTo(0,0)}
+function renderSidebar(){const q=$('checkpoint-search').value.toLowerCase();let last='';$('checkpoint-list').innerHTML=ordered.filter(c=>(checkpointLabel(c)+' '+c.id+' '+(c.commit||'')).toLowerCase().includes(q)).map(c=>{let heading='';const d=c.measuredAt.slice(0,10);if(d!==last){last=d;heading=`<div class="date-label">${esc(date(c.measuredAt))}</div>`}return heading+`<div class="checkpoint ${c.id===selected?'selected':''}"><input type="checkbox" data-visible="${esc(c.id)}" ${visible.has(c.id)?'checked':''} aria-label="Plot ${esc(checkpointLabel(c)+' / '+(c.commit||c.id))}"><button data-select="${esc(c.id)}" aria-pressed="${c.id===selected}"><span class="cp-name">${esc(checkpointLabel(c))}</span><span class="cp-meta"><code>${esc(c.commit||'commit unknown')}</code>${c.dirty===true?' · modified':''}</span></button></div>`}).join('')||'<div class="empty">No matching checkpoints</div>';$('checkpoint-count').textContent=CP.length;const current=$('checkpoint-list').querySelector('.selected');if(current&&!q)$('checkpoint-list').scrollTop=Math.max(0,current.offsetTop-$('checkpoint-list').offsetTop-$('checkpoint-list').clientHeight+current.offsetHeight+12)}
+function renderMeta(){const c=getCP();$('selection-meta').innerHTML=`<span class="tag">${esc(checkpointLabel(c))}</span><code>${esc(c.commit||'commit unknown')}</code><span title="${esc(when(c.measuredAt))}">${esc(date(c.measuredAt))}</span>${c.dirty===true?'<span class="tag" title="Includes working-tree changes">Modified</span>':''}`}
 function resultTable(results,cp,withGraph=true){
  let previousGroup='';
  const rows=results.map(r=>{
@@ -12326,135 +12716,238 @@ function resultTable(results,cp,withGraph=true){
   let heading='';
   if(group!==previousGroup){previousGroup=group;heading=`<tr class="workload-row"><th colspan="${withGraph?5:4}" title="${esc(context)}">${esc(r.workload)}</th></tr>`}
   const reference=b?b.label+(b.session!==r.session?' · different session':''):'No matched reference';
-  return heading+`<tr><td title="${esc(context)}">${esc(metric(r).label)}</td><td class="num" title="${esc(r.value===null?r.missingReason:context)}">${esc(val(r))}</td><td class="num" title="${esc(reference)}">${esc(val(b))}</td><td class="num ${d.cls}" title="${esc(reference)}">${esc(b?d.text:'—')}</td>${withGraph?`<td class="num"><button class="trend-button" data-trend="${esc(key(r))}" aria-label="Graph ${esc(metric(r).label+' / '+r.workload)}">Graph ↗</button></td>`:''}</tr>`
+  return heading+`<tr><td title="${esc(context)}">${esc(metric(r).label)}</td><td class="num" title="${esc(r.value===null?r.missingReason:context)}">${esc(val(r))}</td><td class="num" title="${esc(reference)}">${esc(val(b))}</td><td class="num ${d.cls}" title="${esc(reference)}">${esc(b?d.text:'—')}</td>${withGraph?`<td class="num"><button class="trend-button" data-trend="${esc(seriesKey(r))}" aria-label="Graph ${esc(metric(r).label+' / '+r.workload)}">Graph ↗</button></td>`:''}</tr>`
  }).join('');
- return `<table><thead><tr><th>Metric</th><th class="num">Checkpoint</th><th class="num">Reference</th><th class="num">Change</th>${withGraph?'<th></th>':''}</tr></thead><tbody>${rows||'<tr><td colspan="5" class="empty">No observations recorded</td></tr>'}</tbody></table>`
+ return `<table><thead><tr><th>Metric</th><th class="num">Checkpoint</th><th class="num">Latest VLC</th><th class="num">Change</th>${withGraph?'<th></th>':''}</tr></thead><tbody>${rows||'<tr><td colspan="5" class="empty">No observations recorded</td></tr>'}</tbody></table>`
 }
 function renderStats(){const c=getCP();const player=c.results.some(r=>r.protocol==='playback-1080p30');const primaries=player?['visible-ms','private-mib','cpu-core','runtime-mib'].map(id=>c.results.find(x=>x.metric===id&&x.protocol==='playback-1080p30')):c.results.filter(r=>r.workload===c.results[0]?.workload).slice(0,4);$('stats').hidden=!primaries.length;$('stats').style.setProperty('--stat-count',Math.max(1,primaries.length));$('stats').innerHTML=primaries.map(r=>{const b=r?baseline(r):null,d=r?delta(r,b):{text:'Not measured here',cls:'muted'};return `<div class="stat"><div class="stat-label">${esc(r?metric(r).label:'No observation')}</div><div class="stat-value">${splitval(r)}</div><div class="stat-delta ${d.cls}" title="${esc(b?b.label+' · '+val(b):'No matched reference')}">${esc(b?d.text:'—')}</div></div>`}).join('')}
-function renderOverview(){$('chart-legend').hidden=mode==='map';renderStats();$('map-tab').setAttribute('aria-pressed',String(mode==='map'));$('trend-tab').setAttribute('aria-pressed',String(mode==='trend'));$('trend-options').hidden=mode!=='trend';$('linear').setAttribute('aria-pressed',String(!logarithmic));$('log').setAttribute('aria-pressed',String(logarithmic));$('log').disabled=mode==='trend';$('log').title=mode==='trend'?'Trend uses a categorical horizontal axis':'Logarithmic horizontal axis';$('overview-table').innerHTML=resultTable(getCP().results,getCP());renderChart()}
-function renderTrendOptions(){const all=new Map();for(const c of CP)for(const r of c.results)if(!all.has(key(r)))all.set(key(r),r);if(!all.has(trendKey))trendKey=getCP().results[0]?key(getCP().results[0]):all.keys().next().value;$('trend-metric').innerHTML=[...all].map(([k,r])=>`<option value="${esc(k)}">${esc(metric(r).label+' / '+r.workload+' / '+protocol(r).label)}</option>`).join('');$('trend-metric').value=trendKey}
+function renderOverview(){renderStats();$('map-tab').setAttribute('aria-pressed',String(mode==='map'));$('trend-tab').setAttribute('aria-pressed',String(mode==='history'));$('trend-options').hidden=mode==='map';for(const id of ['cuts','linear','log'])$(id).setAttribute('aria-pressed',String(axisMode===id));const ref=latestVlcReferences()[0];$('current-vlc').textContent=ref?'VLC '+ref.version:'VLC not measured';$('current-vlc').title=ref?'Latest recorded VLC version · '+when(ref.measuredAt):'';$('overview-table').innerHTML=resultTable(getCP().results,getCP());renderChart()}
+
 function svgText(x,y,text,extra=''){return `<text x="${x}" y="${y}" ${extra}>${esc(text)}</text>`}
-function mapStep(raw){
- const power=10**Math.floor(Math.log10(Math.max(raw,1e-12))),n=raw/power;
- return (n<=1.5?1:n<=2.25?2:n<=3.5?2.5:n<=7.5?5:10)*power
+function seriesKey(r){return r.historySeries?JSON.stringify(['history',r.historySeries,r.metric,r.workload]):key(r)}
+function checkpointLabel(c){return c.label.replace(/\s*·\s*(before|after|optimized)$/i,'')}
+function latestVlcReferences(){
+ const refs=Object.values(DATA.references).filter(r=>r.player==='VLC').sort((a,b)=>b.version.localeCompare(a.version,'en',{numeric:true})||Date.parse(b.measuredAt)-Date.parse(a.measuredAt));
+ return refs.length?refs.filter(r=>r.version===refs[0].version):[]
 }
-function mapRange(min,max,zero=false){
- const span=Math.max(max-min,max*.08,1),padding=span*.12,step=mapStep((span+padding*2)/5);
- const low=zero?0:Math.max(0,Math.floor((min-padding)/step)*step);
- const high=Math.max(low+step,Math.ceil((max+padding)/step)*step);
- const ticks=[];for(let value=low;value<=high+step*.001;value+=step)ticks.push(Number(value.toPrecision(12)));
- return {low,high,ticks}
+function baseline(r){
+ for(const ref of latestVlcReferences()){
+  const result=ref.results.find(b=>key(b)===key(r));
+  if(result)return {...result,label:'VLC '+ref.version,measuredAt:ref.measuredAt}
+ }
+ return null
 }
-function mapGeometry(points,width,height,log){
- const compact=width<620,L=compact?54:66,gutter=compact?158:225,R=width-gutter,T=45,B=56;
- const H=Math.max(height,points.length*26+T+B+18),bottom=H-B;
- const xmin=Math.min(...points.map(p=>p.x)),xmax=Math.max(...points.map(p=>p.x));
- const yrange=mapRange(Math.min(...points.map(p=>p.y)),Math.max(...points.map(p=>p.y)));
- let xrange;
- if(log){
-  const low=xmin/1.22,high=Math.max(xmax*1.15,low*1.8),ticks=[];
-  const candidates=[];for(let e=Math.floor(Math.log10(low))-1;e<=Math.ceil(Math.log10(high))+1;e++)for(const m of [1,2,5])candidates.push(m*10**e);
-  let domainLow=low,domainHigh=high;
-  if(candidates.filter(v=>v>=low&&v<=high).length<2){domainLow=candidates.filter(v=>v<=low).at(-1)||low;domainHigh=candidates.find(v=>v>=high)||high}
-  for(const v of candidates)if(v>=domainLow&&v<=domainHigh)ticks.push(v);
-  xrange={low:domainLow,high:domainHigh,ticks}
- }else xrange=mapRange(0,xmax,true);
- const x=v=>L+(log?(Math.log(v)-Math.log(xrange.low))/(Math.log(xrange.high)-Math.log(xrange.low)):(v-xrange.low)/(xrange.high-xrange.low))*(R-L);
- const y=v=>T+(yrange.high-v)/(yrange.high-yrange.low)*(bottom-T);
- const positions=points.map((p,i)=>({index:i,x:x(p.x),y:y(p.y)}));
- const labels=positions.map(p=>({...p,labelY:p.y})).sort((a,b)=>a.y-b.y||a.x-b.x);
- let next=T+8;for(const p of labels){p.labelY=Math.max(p.y,next);next=p.labelY+26}
- let last=bottom-8;for(let i=labels.length-1;i>=0;i--){labels[i].labelY=Math.min(labels[i].labelY,last);last=labels[i].labelY-26}
- return {W:width,H,L,R,T,bottom,compact,x,y,xrange,yrange,positions,labels,labelX:R+25}
+function historyCatalog(){
+ const all=new Map();for(const c of ordered)for(const r of c.results)if(!all.has(seriesKey(r)))all.set(seriesKey(r),r);
+ return all
 }
-function mapTick(value){return value>=1000?number(value/1000,2)+'k':number(value,value<1?3:2)}
-function renderResourceMap(){
- const cp=getCP(),eligible=cp.results.find(r=>r.protocol==='playback-1080p30'&&r.metric==='visible-ms');
- if(!eligible){$('chart').innerHTML='<div class="empty">No player resource measurement at this checkpoint.</div>';return}
- let points=[];const refPoints=new Map();
- for(const c of ordered.filter(c=>visible.has(c.id))){
-  const matches=r=>r.protocol===eligible.protocol&&r.environment===eligible.environment&&r.workload===eligible.workload;
-  const xr=c.results.find(r=>r.metric==='visible-ms'&&matches(r)),yr=c.results.find(r=>r.metric==='private-mib'&&matches(r));
-  if(xr?.value==null||yr?.value==null)continue;
-  points.push({id:c.id,x:xr.value,y:yr.value,xr,yr,date:c.measuredAt,label:c.label,mapLabel:'Aperture · '+(c.commit||date(c.measuredAt)),series:'aperture'});
-  const ref=DATA.references[xr.reference];
-  if(ref?.player==='VLC'&&!refPoints.has(xr.reference)){
-   const rx=baseline(xr,c,'vlc'),ry=baseline(yr,c,'vlc');
-   if(rx?.value!=null&&ry?.value!=null)refPoints.set(xr.reference,{x:rx.value,y:ry.value,xr:rx,yr:ry,date:ref.measuredAt,reference:true,label:ref.player+' '+ref.version+' · '+date(ref.measuredAt),mapLabel:'VLC · '+date(ref.measuredAt).replace(/ \d{4}$/,''),series:'vlc'})
-  }
+function renderTrendOptions(){
+ const all=historyCatalog();
+ if(!all.has(trendKey))trendKey=seriesKey(latest.results.find(r=>r.metric==='visible-ms')||latest.results[0]);
+ const categories=['Playback','Startup','Storage','Library','Rendering','Subtitles','Maintenance'];
+ $('trend-metric').innerHTML=categories.map(category=>{
+  const rows=[...all].filter(([k,r])=>protocol(r).category===category&&(category==='Playback'||category==='Startup'||k===trendKey)).sort((a,b)=>metric(a[1]).label.localeCompare(metric(b[1]).label));
+  return rows.length?`<optgroup label="${esc(category)}">${rows.map(([k,r])=>`<option value="${esc(k)}">${esc(metric(r).label+' / '+r.workload+' / '+(r.historySeries?DATA.historySeries[r.historySeries].label:protocol(r).label))}</option>`).join('')}</optgroup>`:''
+ }).join('');$('trend-metric').value=trendKey
+}
+function recordedTime(c,r){return r.measuredAt||c.measuredAt}
+function shortDate(value){return date(value).replace(/ \d{4}$/,'')}
+function historyPoints(k){
+ return ordered.flatMap((c,index)=>{
+  const r=c.results.find(r=>seriesKey(r)===k);
+  return r&&r.value!==null&&visible.has(c.id)?[{id:c.id,date:recordedTime(c,r),label:checkpointLabel(c),revision:c.commit,yr:r,y:r.value,order:index}]:[]
+ }).sort((a,b)=>Date.parse(a.date)-Date.parse(b.date)||a.order-b.order)
+}
+
+// Numeric axes retain a linear unit scale inside each band. Empty intervals
+// are removed explicitly and receive a visible break; recorded values never move.
+function axisStep(raw){const power=10**Math.floor(Math.log10(Math.max(raw,1e-12))),n=raw/power;return (n<=1.5?1:n<=2.25?2:n<=3.5?2.5:n<=7.5?5:10)*power}
+function median(values){const v=[...values].sort((a,b)=>a-b),i=Math.floor(v.length/2);return v.length%2?v[i]:(v[i-1]+v[i])/2}
+function numericAxis(values,start,end,mode='cuts',integer=false){
+ const unique=[...new Set(values.filter(Number.isFinite))].sort((a,b)=>a-b);
+ if(!unique.length)throw new Error('No numeric axis values');
+ const min=unique[0],max=unique.at(-1),span=max-min;
+ if(mode==='log'){
+  if(min<=0)throw new Error('Log axes require positive values');
+  let lo=min/1.15,hi=Math.max(max*1.15,lo*1.7),candidates=[];
+  for(let e=Math.floor(Math.log10(lo))-1;e<=Math.ceil(Math.log10(hi))+1;e++)for(const m of [1,2,5])candidates.push(m*10**e);
+  if(candidates.filter(v=>v>=lo&&v<=hi).length<2){lo=candidates.filter(v=>v<=lo).at(-1)||lo;hi=candidates.find(v=>v>=hi)||hi}
+  const scale=v=>start+(Math.log(v)-Math.log(lo))/(Math.log(hi)-Math.log(lo))*(end-start);
+  return {segments:[{lo,hi,start,end}],breaks:[],ticks:candidates.filter(v=>v>=lo&&v<=hi),scale,mode}
  }
- points.push(...refPoints.values());
- if(new Set(points.map(p=>p.date.slice(0,4))).size>1)for(const p of points)if(p.reference)p.mapLabel='VLC · '+date(p.date);
- const omitted=points.filter(p=>logarithmic&&p.x<=0).length;
- points=points.filter(p=>!logarithmic||p.x>0);
- if(!points.length){$('chart').innerHTML='<div class="empty">No checked checkpoints to plot.</div>';return}
- $('chart-title').textContent='Opening speed × playback memory';
- const scope='1080p30 H.264 · 1280×800 · warm OS cache · fresh profiles'+(omitted?' · '+omitted+' zero values excluded on log axis':'');
- $('chart-title').title=scope;
- const width=Math.max(280,$('chart').clientWidth),pageTop=$('chart').getBoundingClientRect().top+window.scrollY;
- const height=Math.max(340,Math.min(560,window.innerHeight-pageTop-18));
- const g=mapGeometry(points,width,height,logarithmic),labels=new Map(g.labels.map(p=>[p.index,p]));
- let svg=`<svg viewBox="0 0 ${g.W} ${g.H}" class="resource-map" role="group" aria-labelledby="plot-title plot-desc"><title id="plot-title">Opening speed × playback memory</title><desc id="plot-desc">${esc(scope)}. ${points.map(p=>esc(p.label)+': '+esc(val(p.xr))+', '+esc(val(p.yr))).join('; ')}</desc>`;
- for(const tick of g.yrange.ticks){const y=g.y(tick);svg+=`<line x1="${g.L}" x2="${g.R}" y1="${y}" y2="${y}" class="map-grid"/>`+svgText(g.L-15,y+4,number(tick,2),'text-anchor="end" class="map-tick"')}
- for(const tick of g.xrange.ticks)svg+=svgText(g.x(tick),g.bottom+26,mapTick(tick),'text-anchor="middle" class="map-tick"');
- svg+=`<line x1="${g.L}" x2="${g.R}" y1="${g.bottom}" y2="${g.bottom}" class="map-axis"/>`;
- svg+=svgText(g.L,20,'Private RAM (MiB)','class="map-axis-title"')+svgText((g.L+g.R)/2,g.H-10,'Visible window (ms'+(logarithmic?', log':'')+')','text-anchor="middle" class="map-axis-title"');
- for(const series of ['aperture','vlc']){
-  const line=g.positions.filter(p=>points[p.index].series===series);
-  if(line.length>1)svg+=`<polyline points="${line.map(p=>p.x+','+p.y).join(' ')}" fill="none" stroke="${series==='vlc'?'var(--vlc)':'var(--accent)'}" stroke-width="1.6" opacity=".6"/>`
+ const gaps=unique.slice(1).map((v,i)=>v-unique[i]);
+ const smallGaps=[...gaps].sort((a,b)=>a-b).slice(0,Math.max(1,Math.ceil(gaps.length*.75)));
+ const positive=unique.filter(v=>v>0),context=gaps.length>1?median(smallGaps):Math.max((positive[0]||1)*.2,1e-6);
+ const clusters=[[min]];
+ for(let i=1;i<unique.length;i++){
+  const gap=unique[i]-unique[i-1],ratio=unique[i]/Math.max(unique[i-1],1e-12);
+  const cut=mode==='cuts'&&((gaps.length>1&&gap>Math.max(context*6,span*.12))||(ratio>=8&&gap>span*.35));
+  if(cut)clusters.push([]);clusters.at(-1).push(unique[i])
  }
- for(const pos of g.positions){
-  const p=points[pos.index],label=labels.get(pos.index),active=p.id===selected,color=p.reference?'var(--vlc)':active?'var(--accent)':'var(--map-history)';
-  const title=p.label+' / '+when(p.date)+' / '+val(p.xr)+' / '+val(p.yr);
-  svg+=`<g class="chart-point map-point ${active?'map-selected':''}" data-point="${pos.index}" ${p.id?`data-select="${esc(p.id)}" role="button"`:'role="img"'} tabindex="0" aria-label="${esc(title)}"><title>${esc(title)}</title><path d="M ${pos.x+8} ${pos.y} L ${g.R+9} ${pos.y} L ${g.labelX-9} ${label.labelY}" stroke="${color}" stroke-width=".8" fill="none" opacity=".24" pointer-events="none"/><circle cx="${pos.x}" cy="${pos.y}" r="12" fill="transparent" stroke="none"/>${active?`<circle cx="${pos.x}" cy="${pos.y}" r="10" fill="none" stroke="${color}" stroke-width="1" opacity=".4"/>`:''}<circle class="point-dot" cx="${pos.x}" cy="${pos.y}" r="${active?5.5:4.7}" fill="${color}" stroke="var(--bg)" stroke-width="1.5"/><rect x="${g.labelX-5}" y="${label.labelY-12}" width="${g.W-g.labelX+2}" height="25" fill="transparent" stroke="none"/>${svgText(g.labelX,label.labelY+4,p.mapLabel,`fill="${color}" class="map-label"`)}</g>`
+ const bands=clusters.map(cluster=>{
+  const a=cluster[0],b=cluster.at(-1),range=b-a,precision=Math.max(integer?1:0,10**(Math.floor(Math.log10(Math.max(b,1e-6)))-2));
+  const pad=Math.max((range||context)*.18,precision);
+  const step=Math.max(axisStep((range+pad*2)/4),precision);
+  const lo=Math.max(0,Math.floor((a-pad)/step)*step),hi=Math.max(lo+step,Math.ceil((b+pad)/step)*step);
+  return {lo,hi,step}
+ });
+ // Adjacent rounded bands can touch; merge those instead of drawing a false cut.
+ for(let i=1;i<bands.length;i++)if(bands[i].lo<=bands[i-1].hi){bands[i-1].hi=bands[i].hi;bands.splice(i--,1)}
+ const distance=Math.abs(end-start),direction=Math.sign(end-start)||1;
+ const gapSize=Math.min(20,distance*.1/Math.max(1,bands.length-1));
+ const retained=bands.reduce((n,b)=>n+b.hi-b.lo,0),unit=(distance-gapSize*(bands.length-1))/retained;
+ let cursor=start;const breaks=[],ticks=[];
+ bands.forEach((band,i)=>{
+  band.start=cursor;band.end=cursor+direction*(band.hi-band.lo)*unit;cursor=band.end;
+  for(let tick=band.lo;tick<=band.hi+band.step*.001;tick+=band.step)ticks.push(Number(tick.toPrecision(12)));
+  if(i<bands.length-1){breaks.push({from:band.hi,to:bands[i+1].lo,start:cursor,end:cursor+direction*gapSize});cursor+=direction*gapSize}
+ });
+ const scale=value=>{
+  const band=bands.find(b=>value>=b.lo-1e-9&&value<=b.hi+1e-9);
+  if(!band)throw new Error('Value falls inside an omitted interval');
+  return band.start+(value-band.lo)/(band.hi-band.lo)*(band.end-band.start)
+ };
+ return {segments:bands,breaks,ticks:[...new Set(ticks)],scale,mode}
+}
+function axisNumber(value){return number(value,value!==0&&Math.abs(value)<.01?5:Math.abs(value)<1?4:2)}
+function spacedTicks(axis,minPixels){
+ const orderedTicks=axis.ticks.map(value=>({value,p:axis.scale(value)})).sort((a,b)=>a.p-b.p),kept=[];
+ for(const tick of orderedTicks)if(!kept.length||tick.p-kept.at(-1).p>=minPixels)kept.push(tick);
+ return kept
+}
+function numericAxes(xAxis,yAxis,g){
+ let svg='';
+ for(const tick of spacedTicks(yAxis,25)){
+  for(const band of xAxis?xAxis.segments:[{start:g.L,end:g.R}])svg+=`<line x1="${band.start}" x2="${band.end}" y1="${tick.p}" y2="${tick.p}" class="map-grid"/>`;
+  svg+=svgText(g.L-13,tick.p+4,axisNumber(tick.value),'text-anchor="end" class="map-tick"')
  }
- $('chart').innerHTML=svg+'</svg>';
+ for(const band of yAxis.segments)svg+=`<line x1="${g.L}" x2="${g.L}" y1="${band.start}" y2="${band.end}" class="map-axis"/>`;
+ for(const cut of yAxis.breaks){const mid=(cut.start+cut.end)/2;svg+=`<g class="axis-break" data-axis="y"><title>Omitted ${esc(axisNumber(cut.from))}–${esc(axisNumber(cut.to))}</title><path d="M ${g.L-5} ${mid-5} l 10 4 m -10 2 l 10 4"/></g>`}
+ if(xAxis){
+  for(const tick of spacedTicks(xAxis,44))svg+=svgText(tick.p,g.bottom+26,axisNumber(tick.value),'text-anchor="middle" class="map-tick"');
+  for(const band of xAxis.segments)svg+=`<line x1="${band.start}" x2="${band.end}" y1="${g.bottom}" y2="${g.bottom}" class="map-axis"/>`;
+  for(const cut of xAxis.breaks){const mid=(cut.start+cut.end)/2;svg+=`<g class="axis-break" data-axis="x"><title>Omitted ${esc(axisNumber(cut.from))}–${esc(axisNumber(cut.to))}</title><path d="M ${mid-5} ${g.bottom-5} l 4 10 m 2 -10 l 4 10"/></g>`}
+ }else svg+=`<line x1="${g.L}" x2="${g.R}" y1="${g.bottom}" y2="${g.bottom}" class="map-axis"/>`;
+ return svg
+}
+function temporalPath(points,positions){
+ if(points.length<2)return '';
+ let svg=`<polyline class="history-path" data-checkpoints="${esc(points.map(p=>p.id).join(','))}" points="${positions.map(p=>p.x+','+p.y).join(' ')}"/>`;
+ for(let i=1;i<positions.length;i++){
+  const a=positions[i-1],b=positions[i],length=Math.hypot(b.x-a.x,b.y-a.y);
+  if(length<24)continue;
+  const x=a.x+(b.x-a.x)*.56,y=a.y+(b.y-a.y)*.56,angle=Math.atan2(b.y-a.y,b.x-a.x)*180/Math.PI;
+  svg+=`<path d="M -4 -3 L 3 0 L -4 3" class="time-arrow" transform="translate(${x} ${y}) rotate(${angle})"/>`
+ }
+ return svg
+}
+function plotFrame(){
+ const W=Math.max(280,$('chart').clientWidth),compact=W<620,L=compact?72:88,R=W-(compact?145:210),T=45,B=mode==='history'?76:56;
+ const pageTop=$('chart').getBoundingClientRect().top+window.scrollY,H=Math.max(350,Math.min(560,window.innerHeight-pageTop-18));
+ return {W,H,L,R,T,B,bottom:H-B,compact,labelX:R+22}
+}
+function labelPositions(positions,g){
+ const labels=positions.map((p,index)=>({...p,index,labelY:p.y})).sort((a,b)=>a.y-b.y||a.x-b.x);
+ let next=g.T+10;for(const p of labels){p.labelY=Math.max(p.y,next);next=p.labelY+26}
+ let last=g.bottom-8;for(let i=labels.length-1;i>=0;i--){labels[i].labelY=Math.min(labels[i].labelY,last);last=labels[i].labelY-26}
+ return new Map(labels.map(p=>[p.index,p]))
+}
+function plotPoint(p,pos,index,label,g){
+ const active=p.id===selected,color=p.reference?'var(--vlc)':'var(--accent)';
+ const title=p.label+' / '+when(p.date)+' / '+(p.revision?p.revision+' / ':'')+(p.xr?val(p.xr)+' / ':'')+val(p.yr);
+ return `<g class="chart-point map-point ${active?'map-selected':''}" data-point="${index}" ${p.reference?'data-reference="vlc" role="img"':`data-select="${esc(p.id)}" role="button"`} tabindex="0" aria-label="${esc(title)}"><title>${esc(title)}</title>${label?`<path d="M ${pos.x+8} ${pos.y} L ${g.R+8} ${pos.y} L ${g.labelX-8} ${label.y}" stroke="${color}" stroke-width=".8" fill="none" opacity=".24" pointer-events="none"/>${svgText(g.labelX,label.y+4,label.text,`fill="${color}" class="map-label"`)}<rect x="${g.labelX-4}" y="${label.y-12}" width="${g.W-g.labelX}" height="25" fill="transparent" stroke="none"/>`:''}<circle cx="${pos.x}" cy="${pos.y}" r="12" fill="transparent" stroke="none"/>${active?`<circle cx="${pos.x}" cy="${pos.y}" r="10" fill="none" stroke="${color}" stroke-width="1" opacity=".4"/>`:''}<circle class="point-dot" cx="${pos.x}" cy="${pos.y}" r="${active?5.5:4.7}" fill="${color}" stroke="var(--bg)" stroke-width="1.5"/></g>`
+}
+function bindPlot(points){
  $('chart').querySelectorAll('[data-point]').forEach(el=>{
   const p=points[Number(el.dataset.point)];
-  const show=event=>{const tip=$('tooltip'),rect=el.querySelector('.point-dot').getBoundingClientRect();tip.innerHTML=`<strong>${esc(p.label)}</strong>${esc(when(p.date))}<br>${esc(val(p.xr))} · ${esc(val(p.yr))}`;tip.hidden=false;tip.style.left=Math.max(8,Math.min((event.clientX||rect.x)+14,window.innerWidth-285))+'px';tip.style.top=Math.max(8,Math.min((event.clientY||rect.y)+12,window.innerHeight-130))+'px'};
+  const show=event=>{const tip=$('tooltip'),rect=el.querySelector('.point-dot').getBoundingClientRect();tip.innerHTML=`<strong>${esc(p.label)}</strong>${esc(when(p.date))}${p.revision?' · '+esc(p.revision):''}<br>${p.xr?esc(val(p.xr))+' · ':''}${esc(val(p.yr))}<br><span class="muted">${esc(p.yr.samples===null?'Sample count unknown':'n = '+p.yr.samples)} · ${esc(protocol(p.yr).label)}</span>`;tip.hidden=false;tip.style.left=Math.max(8,Math.min((event.clientX||rect.x)+14,window.innerWidth-285))+'px';tip.style.top=Math.max(8,Math.min((event.clientY||rect.y)+12,window.innerHeight-145))+'px'};
   el.addEventListener('pointerenter',show);el.addEventListener('focus',show);el.addEventListener('pointerleave',()=>$('tooltip').hidden=true);el.addEventListener('blur',()=>$('tooltip').hidden=true);
   el.addEventListener('keydown',event=>{if((event.key==='Enter'||event.key===' ')&&p.id){event.preventDefault();pick(p.id)}})
  })
 }
-function renderChart(){
- renderTrendOptions();$('tooltip').hidden=true;
- if(mode==='map'){renderResourceMap();return}
- const c=getCP(),W=Math.max(340,$('chart').clientWidth-24),compact=W<600,H=compact?330:410,L=compact?58:78,R=compact?28:44,T=49,B=65,iw=W-L-R,ih=H-T-B;
- let points=[],xLabel='',yLabel='',scope='',useLog=false;
-  const exemplar=CP.flatMap(cp=>cp.results).find(r=>key(r)===trendKey);if(!exemplar){$('chart').innerHTML='<div class="empty">No metric recorded here.</div>';return}
-  $('chart-title').textContent=metric(exemplar).label;
-  const series=ordered.filter(cp=>cp.results.some(r=>key(r)===trendKey));for(let i=0;i<series.length;i++){const cp=series[i],r=cp.results.find(r=>key(r)===trendKey);if(visible.has(cp.id)&&r.value!==null)points.push({x:i,y:r.value,label:cp.label,id:cp.id,date:cp.measuredAt,yr:r,xr:null})}
-  const aperturePoints=[...points];for(const point of aperturePoints){const cp=cpById.get(point.id),r=cp.results.find(r=>key(r)===trendKey),ref=baseline(r,cp,'vlc');if(ref?.value!=null)points.push({x:point.x,y:ref.value,label:ref.label+' · '+date(ref.measuredAt),date:ref.measuredAt,reference:true,yr:ref,xr:null})}
-  points.sort((a,b)=>a.x-b.x);xLabel=compact?'Measurement checkpoints (ordered)':'Measurement checkpoints · ordered, not continuous sampling';yLabel=metric(exemplar).label+' ('+metric(exemplar).unit+')';scope=protocol(exemplar).label+' · '+DATA.environments[exemplar.environment].label;
- $('vlc-legend').hidden=!points.some(p=>p.reference);const omitted=points.filter(p=>useLog&&p.x<=0).length;points=points.filter(p=>!useLog||p.x>0);if(!points.length){$('chart').innerHTML='<div class="empty">No checked checkpoint has values for this series.<br>Check compatible checkpoints in the sidebar.</div>';$('chart-title').title=scope;return}
- const maxX=Math.max(...points.map(p=>p.x)),minX=Math.min(...points.map(p=>p.x)),maxY=Math.max(...points.map(p=>p.y));let xmax=Math.max(maxX,.5),xmin=Math.min(minX,0),ymax=maxY*1.19||1;
- const sx=x=>L+(useLog?(Math.log10(x)-Math.log10(xmin))/(Math.log10(xmax)-Math.log10(xmin)):(x-xmin)/(xmax-xmin))*iw,sy=y=>T+ih-y/ymax*ih;
- let svg=`<svg viewBox="0 0 ${W} ${H}" role="group" aria-labelledby="plot-title plot-desc"><title id="plot-title">${esc($('chart-title').textContent)}</title><desc id="plot-desc">${esc(scope)}. ${points.map(p=>esc(p.label)+': '+esc(val(p.yr))).join('; ')}</desc>`;
- for(let i=0;i<=4;i++){const y=ymax*i/4;svg+=`<line x1="${L}" x2="${W-R}" y1="${sy(y)}" y2="${sy(y)}" class="chart-grid"/>`+svgText(L-14,sy(y)+4,number(y,ymax<1?3:1),'text-anchor="end" class="chart-label"')}
- for(const p of points.filter(p=>!p.reference))svg+=svgText(sx(p.x),H-B+23,date(p.date),'text-anchor="middle" class="chart-label"');for(const isRef of [false,true]){const line=points.filter(p=>!!p.reference===isRef);if(line.length>1)svg+=`<polyline points="${line.map(p=>sx(p.x)+','+sy(p.y)).join(' ')}" fill="none" stroke="${isRef?'var(--vlc)':'var(--dim)'}" stroke-width="1.5" ${isRef?'stroke-dasharray="4 6"':''}/>`}
- svg+=`<line x1="${L}" x2="${W-R}" y1="${H-B}" y2="${H-B}" stroke="var(--line)"/>`+svgText(L,T-21,yLabel,'class="chart-axis-title"')+svgText(L+iw/2,H-13,xLabel+(useLog?' · logarithmic':''),'class="chart-axis-title" text-anchor="middle"');
- const occupied=[];for(let i=0;i<points.length;i++){const p=points[i],x=sx(p.x),y=sy(p.y),active=p.id===selected,color=p.reference?'var(--vlc)':active?'var(--accent)':'var(--muted)';const offsets=[-14,27,-40,52,-66,77,102];let ly=y-14;for(const offset of offsets){const candidate=y+offset;if(candidate>=T+8&&candidate<=H-B-8&&!occupied.some(v=>Math.abs(v.x-x)<210&&Math.abs(v.y-candidate)<20)){ly=candidate;break}}occupied.push({x,y:ly});const label=p.reference?(compact?'VLC · '+date(p.date):p.label):active?'Aperture · selected':p.label.length>30?p.label.slice(0,27)+'…':p.label;const left=x>W-250;const tx=x+(left?-13:13);const title=p.label+' / '+when(p.date)+' / '+(p.xr?val(p.xr)+' / ':'')+val(p.yr);
- svg+=`<g><line x1="${x}" y1="${y}" x2="${tx}" y2="${ly-3}" stroke="${color}" opacity=".35"/>${active?`<circle cx="${x}" cy="${y}" r="11" fill="none" stroke="${color}" opacity=".2"/>`:''}<circle class="chart-point" data-point="${i}" ${p.id?`data-select="${esc(p.id)}" role="button"`:''} tabindex="0" aria-label="${esc(title)}" cx="${x}" cy="${y}" r="${active?5.5:4.5}" fill="${color}" stroke="var(--bg)" stroke-width="1.5"><title>${esc(title)}</title></circle>${(!compact||active||p.reference)?svgText(tx,ly,label,`fill="${color}" font-size="11" text-anchor="${left?'end':'start'}"`):''}</g>`}
- svg+='</svg>';$('chart').innerHTML=svg;$('chart-title').title=scope+(omitted?' · '+omitted+' zero values excluded on log axis':'');
- $('chart').querySelectorAll('[data-point]').forEach(el=>{const p=points[Number(el.dataset.point)];const show=event=>{const tip=$('tooltip');tip.innerHTML=`<strong>${esc(p.label)}</strong>${esc(when(p.date))}<br>${p.xr?esc(metric(p.xr).label+': '+val(p.xr))+'<br>':''}${esc(metric(p.yr).label+': '+val(p.yr))}<br><span class="muted">${esc(p.yr.samples===null?'Sample count not recorded':'n = '+p.yr.samples)}</span>`;tip.hidden=false;const rect=el.getBoundingClientRect();tip.style.left=Math.max(8,Math.min((event.clientX||rect.x)+14,window.innerWidth-285))+'px';tip.style.top=Math.max(8,Math.min((event.clientY||rect.y)+12,window.innerHeight-160))+'px'};el.addEventListener('pointerenter',show);el.addEventListener('focus',show);el.addEventListener('pointerleave',()=>$('tooltip').hidden=true);el.addEventListener('blur',()=>$('tooltip').hidden=true);el.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&p.id){e.preventDefault();pick(p.id)}})})
+function svgFrame(g,title,description){return `<svg viewBox="0 0 ${g.W} ${g.H}" class="resource-map" role="group" aria-labelledby="plot-title plot-desc"><title id="plot-title">${esc(title)}</title><desc id="plot-desc">${esc(description)}</desc>`}
+function renderHistory(){
+ let points=historyPoints(trendKey);
+ const exemplar=historyCatalog().get(trendKey);
+ if(!exemplar)return;
+ const reference=baseline(exemplar),ref=reference?.value!=null?{reference:true,date:reference.measuredAt,label:reference.label,yr:reference,y:reference.value}:null;
+ if(axisMode==='log')points=points.filter(p=>p.y>0);
+ const plottedRef=ref&&(axisMode!=='log'||ref.y>0)?ref:null;
+ if(!points.length){$('chart').innerHTML='<div class="empty">No recorded values selected.</div>';return}
+ const title=metric(exemplar).label;$('chart-title').textContent=title;
+ const scope=(exemplar.historySeries?DATA.historySeries[exemplar.historySeries].method:protocol(exemplar).method);
+ $('chart-title').title=scope;
+ const g=plotFrame(),values=points.map(p=>p.y);if(plottedRef)values.push(plottedRef.y);
+ const ya=numericAxis(values,g.bottom,g.T,axisMode,['count','bytes'].includes(metric(exemplar).unit));
+ const positions=points.map((p,i)=>({x:points.length===1?(g.L+g.R)/2:g.L+12+i*(g.R-g.L-24)/(points.length-1),y:ya.scale(p.y)}));
+ let svg=svgFrame(g,title,'Aperture checkpoints connected in measurement-date order. VLC is the latest recorded version, held constant, not a historical series. Axis breaks omit empty numeric intervals. '+scope)+numericAxes(null,ya,g)+temporalPath(points,positions);
+ const sameYear=new Set(points.map(p=>p.date.slice(0,4))).size===1;
+ const endLabels=labelPositions([positions.at(-1),...(plottedRef?[{x:g.R,y:ya.scale(plottedRef.y)}]:[])],g);
+ const tickIndices=new Set([0,points.length-1]);
+ const chosen=points.findIndex(p=>p.id===selected);if(chosen>0&&chosen<points.length-1&&Math.abs(positions[chosen].x-positions[0].x)>=65&&Math.abs(positions[chosen].x-positions.at(-1).x)>=65)tickIndices.add(chosen);
+ for(let i=1;i<points.length-1;i++)if([...tickIndices].every(j=>Math.abs(positions[i].x-positions[j].x)>=75))tickIndices.add(i);
+ for(let i=0;i<points.length;i++){
+  svg+=plotPoint(points[i],positions[i],i,i===points.length-1?{y:endLabels.get(0).labelY,text:'Aperture'}:null,g);
+  if(tickIndices.has(i)){svg+=svgText(positions[i].x,g.bottom+25,sameYear?shortDate(points[i].date):date(points[i].date),'text-anchor="middle" class="map-tick"');
+  if(points[i].revision)svg+=svgText(positions[i].x,g.bottom+41,points[i].revision,'text-anchor="middle" class="revision-tick"')}
+ }
+ if(plottedRef){
+  const y=ya.scale(plottedRef.y);svg+=`<line class="vlc-reference-line" x1="${g.L}" x2="${g.R}" y1="${y}" y2="${y}"/>`;
+  svg+=plotPoint(plottedRef,{x:g.R,y},points.length,{y:endLabels.get(1).labelY,text:plottedRef.label},g)
+ }
+ svg+=svgText(g.L,g.T-22,title+' ('+metric(exemplar).unit+')','class="map-axis-title"')+svgText((g.L+g.R)/2,g.H-9,'Checkpoints · date order','text-anchor="middle" class="map-axis-title"');
+ $('chart').innerHTML=svg+'</svg>';bindPlot(plottedRef?[...points,plottedRef]:points)
 }
-function renderLedger(){const q=$('ledger-search').value.toLowerCase();const cats=['All',...new Set(Object.values(DATA.protocols).map(p=>p.category))];$('categories').innerHTML=cats.map(x=>`<button data-category="${esc(x)}" aria-pressed="${x===category}">${esc(x)}</button>`).join('');ledgerRows=[];for(const cp of [...ordered].reverse())for(const r of cp.results){if(category!=='All'&&protocol(r).category!==category)continue;if(!(cp.label+' '+(cp.commit||'')+' '+metric(r).label+' '+r.workload+' '+protocol(r).label).toLowerCase().includes(q))continue;ledgerRows.push({cp,r,b:baseline(r,cp,'paired')})}ledgerPage=Math.max(0,Math.min(ledgerPage,Math.ceil(ledgerRows.length/50)-1));$('ledger-range').textContent=ledgerRows.length?number(ledgerPage*50+1,0)+'–'+number(Math.min((ledgerPage+1)*50,ledgerRows.length),0)+' of '+number(ledgerRows.length,0):'0 observations';$('ledger-prev').disabled=ledgerPage===0;$('ledger-next').disabled=(ledgerPage+1)*50>=ledgerRows.length;$('ledger-title').textContent=number(ledgerRows.length,0)+' observations';$('ledger').innerHTML=`<table><thead><tr><th>Checkpoint</th><th>Metric / workload</th><th class="num">Value</th><th class="num">Paired before</th><th class="num">Change</th><th></th></tr></thead><tbody>${ledgerRows.slice(ledgerPage*50,(ledgerPage+1)*50).map(({cp,r,b})=>{const d=delta(r,b);return `<tr><td><button class="trend-button" data-select="${esc(cp.id)}">${esc(cp.label)}</button><small>${esc(cp.commit||'unrecorded revision')} · ${esc(date(cp.measuredAt))}</small></td><td>${esc(metric(r).label)}<small>${esc(r.workload)} · ${esc(protocol(r).label)}</small></td><td class="num">${esc(val(r))}</td><td class="num">${esc(val(b))}</td><td class="num ${d.cls}">${esc(d.text)}</td><td><button class="trend-button" data-graph-cp="${esc(cp.id)}" data-trend="${esc(key(r))}">Graph ↗</button></td></tr>`}).join('')||'<tr><td colspan="6" class="empty">No matching observations</td></tr>'}</tbody></table>`}
+function renderResourceMap(){
+ const candidates=ordered.filter(c=>c.results.some(r=>r.metric==='visible-ms'&&r.protocol==='playback-1080p30'));
+ const origin=(getCP().results.find(r=>r.metric==='visible-ms'&&r.protocol==='playback-1080p30')||candidates.at(-1)?.results.find(r=>r.metric==='visible-ms'));
+ if(!origin){$('chart').innerHTML='<div class="empty">No player resource measurements recorded.</div>';return}
+ let points=[];
+ for(const c of candidates){
+  if(!visible.has(c.id))continue;
+  const match=r=>r.protocol===origin.protocol&&r.environment===origin.environment&&r.workload===origin.workload;
+  const xr=c.results.find(r=>r.metric==='visible-ms'&&match(r)),yr=c.results.find(r=>r.metric==='private-mib'&&match(r));
+  if(xr?.value==null||yr?.value==null)continue;
+  points.push({id:c.id,date:recordedTime(c,xr),label:checkpointLabel(c),revision:c.commit,x:xr.value,y:yr.value,xr,yr})
+ }
+ points.sort((a,b)=>Date.parse(a.date)-Date.parse(b.date)||ordered.findIndex(c=>c.id===a.id)-ordered.findIndex(c=>c.id===b.id));
+ const yOrigin=candidates.flatMap(c=>c.results).find(r=>r.metric==='private-mib'&&r.protocol===origin.protocol&&r.workload===origin.workload&&r.environment===origin.environment);
+ const rx=baseline(origin),ry=yOrigin?baseline(yOrigin):null;
+ const ref=rx?.value!=null&&ry?.value!=null?{reference:true,date:rx.measuredAt,label:rx.label,x:rx.value,y:ry.value,xr:rx,yr:ry}:null;
+ if(axisMode==='log')points=points.filter(p=>p.x>0&&p.y>0);
+ const plottedRef=ref&&(axisMode!=='log'||ref.x>0&&ref.y>0)?ref:null;
+ if(!points.length){$('chart').innerHTML='<div class="empty">No recorded player checkpoints selected.</div>';return}
+ const all=plottedRef?[...points,plottedRef]:points,g=plotFrame();g.H=Math.max(g.H,all.length*26+g.T+g.B+20);g.bottom=g.H-g.B;
+ const xa=numericAxis(all.map(p=>p.x),g.L,g.R,axisMode),ya=numericAxis(all.map(p=>p.y),g.bottom,g.T,axisMode);
+ const positions=all.map(p=>({x:xa.scale(p.x),y:ya.scale(p.y)})),labels=labelPositions(positions,g);
+ const title='Opening speed × playback memory';$('chart-title').textContent=title;$('chart-title').title=protocol(origin).method;
+ let svg=svgFrame(g,title,'Aperture snapshots connected in measurement-date order. One fixed latest-version VLC reference. Marked breaks remove empty intervals on both numeric axes.')+numericAxes(xa,ya,g)+temporalPath(points,positions.slice(0,points.length));
+ for(let i=0;i<all.length;i++){
+  const p=all[i],label=labels.get(i);
+  const text=p.reference?p.label:shortDate(p.date)+(p.revision?' · '+p.revision:'');
+  svg+=plotPoint(p,positions[i],i,{y:label.labelY,text},g)
+ }
+ svg+=svgText(g.L,g.T-22,'Private RAM (MiB)','class="map-axis-title"')+svgText((g.L+g.R)/2,g.H-10,'Visible window (ms)','text-anchor="middle" class="map-axis-title"');
+ $('chart').innerHTML=svg+'</svg>';bindPlot(all)
+}
+function renderChart(){renderTrendOptions();$('tooltip').hidden=true;if(mode==='map')renderResourceMap();else renderHistory()}
+
+function renderLedger(){const q=$('ledger-search').value.toLowerCase();const cats=['All',...new Set(Object.values(DATA.protocols).map(p=>p.category))];$('categories').innerHTML=cats.map(x=>`<button data-category="${esc(x)}" aria-pressed="${x===category}">${esc(x)}</button>`).join('');ledgerRows=[];for(const cp of [...ordered].reverse())for(const r of cp.results){if(category!=='All'&&protocol(r).category!==category)continue;if(!(cp.label+' '+(cp.commit||'')+' '+metric(r).label+' '+r.workload+' '+protocol(r).label).toLowerCase().includes(q))continue;ledgerRows.push({cp,r,b:baseline(r)})}ledgerPage=Math.max(0,Math.min(ledgerPage,Math.ceil(ledgerRows.length/50)-1));$('ledger-range').textContent=ledgerRows.length?number(ledgerPage*50+1,0)+'–'+number(Math.min((ledgerPage+1)*50,ledgerRows.length),0)+' of '+number(ledgerRows.length,0):'0 observations';$('ledger-prev').disabled=ledgerPage===0;$('ledger-next').disabled=(ledgerPage+1)*50>=ledgerRows.length;$('ledger-title').textContent=number(ledgerRows.length,0)+' observations';$('ledger').innerHTML=`<table><thead><tr><th>Checkpoint</th><th>Metric / workload</th><th class="num">Value</th><th class="num">Latest VLC</th><th class="num">Change</th><th></th></tr></thead><tbody>${ledgerRows.slice(ledgerPage*50,(ledgerPage+1)*50).map(({cp,r,b})=>{const d=delta(r,b);return `<tr><td><button class="trend-button" data-select="${esc(cp.id)}">${esc(checkpointLabel(cp))}</button><small>${esc(cp.commit||'unrecorded revision')} · ${esc(date(cp.measuredAt))}</small></td><td>${esc(metric(r).label)}<small>${esc(r.workload)} · ${esc(protocol(r).label)}</small></td><td class="num">${esc(val(r))}</td><td class="num">${esc(val(b))}</td><td class="num ${d.cls}">${esc(d.text)}</td><td><button class="trend-button" data-graph-cp="${esc(cp.id)}" data-trend="${esc(seriesKey(r))}">Graph ↗</button></td></tr>`}).join('')||'<tr><td colspan="6" class="empty">No matching observations</td></tr>'}</tbody></table>`}
 function renderEvidence(){const c=getCP();const facts=[['Source commit',c.commit||'Not recorded'],['Measured',when(c.measuredAt)],['Working tree',c.dirty===true?'Included local changes':c.dirty===false?'Clean':'Not fully recorded'],['Paired baseline',cpById.get(c.pairedWith)?.label||'None recorded']];$('identity').innerHTML=facts.map(([a,b])=>`<div class="fact"><span>${esc(a)}</span><span>${esc(b)}</span></div>`).join('')+`<p style="margin-top:13px">${esc(c.sourceNote)}</p>`;$('checkpoint-notes').textContent=c.notes;$('tests').innerHTML=(c.tests||[]).map(t=>`<div class="test-row"><span class="tag ${t.status==='pass'?'good':t.status==='fail'?'bad':''}">${esc(t.status)}</span><div>${esc(t.name)}${t.total!=null?' · '+t.passed+'/'+t.total:''}<small>${t.durationSeconds!=null?number(t.durationSeconds)+' s · ':''}${esc(t.evidence)}</small>${t.notes?`<small>${esc(t.notes)}</small>`:''}</div></div>`).join('')||'<p>No validation record migrated for this source state. Consult the embedded historical report; this is not a failed or passing run.</p>';
  const protocols=[...new Set(c.results.map(r=>r.protocol))];$('protocols').innerHTML=protocols.map(id=>{const p=DATA.protocols[id],rs=c.results.filter(r=>r.protocol===id),files=[...new Set(rs.map(r=>r.evidence))],env=[...new Set(rs.map(r=>r.environment))];return `<div style="margin-bottom:18px"><h3>${esc(p.label)}</h3><p class="muted" style="font-size:12px;margin-top:7px;line-height:1.8">${esc(p.method)}</p>${env.map(e=>`<p class="muted" style="font-size:11px;margin-top:7px">${esc(DATA.environments[e].details)}</p>`).join('')}<div class="evidence-files">${files.map(f=>`<div><span class="mono">${esc(f)}</span></div>`).join('')}</div></div>`}).join('')+(c.report?`<button data-report="${esc(c.report)}">Read this checkpoint’s report ↗</button>`:'');renderReports()}
 function renderReports(){const q=$('report-search').value.toLowerCase();const reports=DATA.reports.filter(r=>(r.title+' '+r.text).toLowerCase().includes(q));$('reports').innerHTML=reports.map(r=>`<button class="report-button" data-report="${esc(r.id)}" title="${esc(r.source)}"><span>${esc(r.title)}</span><span class="accent">↗</span></button>`).join('')||'<div class="empty">No matching reports</div>'}
 function renderPage(){if(page==='overview')renderOverview();else if(page==='benchmarks')renderLedger();else if(page==='evidence')renderEvidence()}
 function render(){renderMeta();renderSidebar();renderPage()}
-document.addEventListener('click',e=>{const t=e.target.closest('button,[data-select]');if(!t)return;if(t.dataset.page)navigate(t.dataset.page);else if(t.dataset.go)navigate(t.dataset.go);else if(t.dataset.report)report(t.dataset.report);else if(t.dataset.trend){if(t.dataset.graphCp){selected=t.dataset.graphCp;visible.add(selected)}mode='trend';trendKey=t.dataset.trend;showSeries(trendKey);navigate('overview');render()}else if(t.dataset.select)pick(t.dataset.select);else if(t.dataset.category){category=t.dataset.category;ledgerPage=0;renderLedger()}});
+document.addEventListener('click',e=>{const t=e.target.closest('button,[data-select]');if(!t)return;if(t.dataset.page)navigate(t.dataset.page);else if(t.dataset.go)navigate(t.dataset.go);else if(t.dataset.report)report(t.dataset.report);else if(t.dataset.trend){if(t.dataset.graphCp){selected=t.dataset.graphCp;visible.add(selected)}mode='history';trendKey=t.dataset.trend;showSeries(trendKey);navigate('overview');render()}else if(t.dataset.select)pick(t.dataset.select);else if(t.dataset.category){category=t.dataset.category;ledgerPage=0;renderLedger()}});
 $('checkpoint-list').addEventListener('change',e=>{const id=e.target.dataset.visible;if(!id)return;if(e.target.checked)visible.add(id);else visible.delete(id);renderPage()});
 $('checkpoint-search').addEventListener('input',renderSidebar);$('ledger-search').addEventListener('input',()=>{ledgerPage=0;renderLedger()});$('report-search').addEventListener('input',renderReports);
-$('baseline').addEventListener('change',renderOverview);$('trend-metric').addEventListener('change',e=>{trendKey=e.target.value;showSeries(trendKey);renderSidebar();renderChart()});$('map-tab').onclick=()=>{mode='map';renderOverview()};$('trend-tab').onclick=()=>{mode='trend';renderOverview()};$('linear').onclick=()=>{logarithmic=false;renderOverview()};$('log').onclick=()=>{logarithmic=true;renderOverview()};
-$('reset').onclick=()=>{selected=latest.id;defaults();mode='map';logarithmic=true;trendKey='';$('checkpoint-search').value='';$('baseline').value='vlc';render()};
+$('trend-metric').addEventListener('change',e=>{trendKey=e.target.value;showSeries(trendKey);renderSidebar();renderChart()});$('map-tab').onclick=()=>{mode='map';renderOverview()};$('trend-tab').onclick=()=>{mode='history';renderOverview()};$('cuts').onclick=()=>{axisMode='cuts';renderOverview()};$('linear').onclick=()=>{axisMode='linear';renderOverview()};$('log').onclick=()=>{axisMode='log';renderOverview()};
+$('reset').onclick=()=>{selected=latest.id;defaults();mode='history';axisMode='cuts';trendKey='';$('checkpoint-search').value='';render()};
 $('theme').onclick=()=>{const light=document.documentElement.dataset.theme!=='light';document.documentElement.dataset.theme=light?'light':'dark';$('theme').setAttribute('aria-label','Switch to '+(light?'dark':'light')+' mode');$('theme').textContent=light?'☾':'☼'};
 $('export-data').onclick=()=>download('aperture-checkpoints.json',JSON.stringify(DATA,null,2),'application/json');
-$('export-csv').onclick=()=>{const rows=[['checkpoint','measuredAt','commit','dirty','metric','unit','value','pairedValue','protocol','workload','environment','session','samples','evidence'],...ledgerRows.map(({cp,r,b})=>[cp.id,cp.measuredAt,cp.commit,cp.dirty,r.metric,metric(r).unit,r.value,b?.value,r.protocol,r.workload,r.environment,r.session,r.samples,r.evidence])];const cell=v=>{let s=String(v??'');if(/^[=+@\-\t\r]/.test(s))s="'"+s;return '"'+s.replace(/"/g,'""')+'"'};download('aperture-benchmarks.csv',rows.map(row=>row.map(cell).join(',')).join('\r\n'),'text/csv;charset=utf-8')};
+$('export-csv').onclick=()=>{const rows=[['checkpoint','measuredAt','commit','dirty','metric','unit','value','vlcValue','protocol','workload','environment','session','samples','evidence'],...ledgerRows.map(({cp,r,b})=>[cp.id,recordedTime(cp,r),cp.commit,cp.dirty,r.metric,metric(r).unit,r.value,b?.value,r.protocol,r.workload,r.environment,r.session,r.samples,r.evidence])];const cell=v=>{let s=String(v??'');if(/^[=+@\-\t\r]/.test(s))s="'"+s;return '"'+s.replace(/"/g,'""')+'"'};download('aperture-benchmarks.csv',rows.map(row=>row.map(cell).join(',')).join('\r\n'),'text/csv;charset=utf-8')};
 $('ledger-prev').onclick=()=>{ledgerPage--;renderLedger()};$('ledger-next').onclick=()=>{ledgerPage++;renderLedger()};
 $('close-report').onclick=()=>$('report-dialog').close();$('open-checkpoints').onclick=()=>{$('sidebar').classList.add('open');$('checkpoint-search').focus()};$('close-checkpoints').onclick=()=>{$('sidebar').classList.remove('open');$('open-checkpoints').focus()};document.addEventListener('keydown',e=>{if(e.key==='Escape'){$('sidebar').classList.remove('open');$('tooltip').hidden=true}});
-for(const c of [...ordered].reverse())$('baseline').insertAdjacentHTML('beforeend',`<option value="${esc(c.id)}">${esc(c.label)}</option>`);
 window.addEventListener('resize',()=>{if(page==='overview')renderChart()});
 window.addEventListener('hashchange',()=>{const target=location.hash.slice(1);if(['overview','benchmarks','evidence','guide'].includes(target)&&target!==page)navigate(target)});
 defaults();

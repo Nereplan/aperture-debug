@@ -54,6 +54,13 @@ def validate(data):
     for key, env in data["environments"].items():
         require(isinstance(env, dict), f"Environment must be an object: {key}")
         require(bool(env.get("label")) and bool(env.get("details")), f"Missing environment: {key}")
+    history = data.get("historySeries", {})
+    require(isinstance(history, dict), "historySeries must be an object")
+    for key, series in history.items():
+        require(isinstance(series, dict), f"History series must be an object: {key}")
+        require(all(isinstance(series.get(k), str) and series[k] for k in ("label", "method", "workload")), f"Incomplete history series: {key}")
+        require(isinstance(series.get("protocols"), list) and bool(series["protocols"]), f"History series needs protocols: {key}")
+        require(all(p in data["protocols"] for p in series["protocols"]), f"Unknown history protocol: {key}")
 
     def check_result(r, context):
         require(isinstance(r, dict), f"Result must be an object: {context}")
@@ -69,6 +76,12 @@ def validate(data):
         n = r.get("samples")
         require(n is None or (isinstance(n, int) and not isinstance(n, bool) and n > 0), f"Invalid sample count in {context}")
         require(n is not None or bool(r.get("samplingNote")), f"Unknown samples need samplingNote in {context}")
+        if "measuredAt" in r:
+            timestamp(r["measuredAt"])
+        if r.get("historySeries"):
+            require(r["historySeries"] in history, f"Unknown history series in {context}")
+            series = history[r["historySeries"]]
+            require(r["protocol"] in series["protocols"] and r["workload"] == series["workload"], f"Incompatible history series in {context}")
 
     for key, ref in data["references"].items():
         require(isinstance(ref, dict), f"Reference must be an object: {key}")
@@ -151,7 +164,8 @@ def append_bundle(data, bundle):
     require(isinstance(bundle, dict), "Bundle must be an object")
     result = json.loads(json.dumps(data))
     require(isinstance(bundle.get("checkpoints"), list) and bundle["checkpoints"], "Bundle needs a checkpoints list")
-    for name in ("metrics", "protocols", "environments", "references"):
+    for name in ("metrics", "protocols", "environments", "references", "historySeries"):
+        result.setdefault(name, {})
         for key, value in bundle.get(name, {}).items():
             require(key not in result[name] or result[name][key] == value, f"Cannot redefine historical {name}: {key}")
             result[name][key] = value
@@ -168,7 +182,6 @@ def template(data):
         "commit": None, "dirty": None,
         "sourceNote": "REPLACE: measured commit, dirty state, executable and source hashes",
         "notes": "REPLACE: change, measurement conditions, tradeoffs and limitations",
-        "pairedWith": None,
         "results": [{"metric": "visible-ms", "protocol": "playback-1080p30",
                      "environment": "ryzen3900x-4070super", "workload": "1080p30 H.264 / no audio / 1280×800",
                      "session": "REPLACE-with-new-session-id", "value": None, "missingReason": "Not measured yet",
