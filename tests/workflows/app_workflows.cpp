@@ -3,6 +3,7 @@
 #include "IpcProtocol.h"
 #include "Json.h"
 #include "Settings.h"
+#include "MediaLibrary.h"
 #include "TestMedia.h"
 #include <iostream>
 #include <functional>
@@ -70,6 +71,13 @@ static JsonValue ReadStore(const fs::path& path) {
     JsonValue result;
     Require(JsonValue::parse(text, result), "Portable store is not valid JSON");
     return result;
+}
+static JsonValue ReadLibraryRecords(const fs::path& path) {
+    const auto document = ReadStore(path);
+    Require(document.is_object() && document.get("items").is_array() &&
+        document.get("schemaVersion").as_number(-1) == MediaLibrary::kCurrentLibrarySchemaVersion,
+        "App did not persist the current library document");
+    return document.get("items");
 }
 static void WriteStore(const fs::path& path, const JsonValue& value) {
     fs::create_directories(path.parent_path());
@@ -544,10 +552,7 @@ int wmain(int argc, wchar_t** argv) {
             app.Command(Ipc::AutomationOp::Stop);
             app.Until("reopen returns to library", [](const auto& state) { return state.state == Ipc::AutomationPlaybackState::Closed; });
             app.Close();
-            std::ifstream input(exe.parent_path() / L"data" / L"library.json", std::ios::binary);
-            const std::string text((std::istreambuf_iterator<char>(input)), std::istreambuf_iterator<char>());
-            JsonValue saved;
-            Require(JsonValue::parse(text, saved) && saved.is_array(), "App did not persist a readable library");
+            const auto saved = ReadLibraryRecords(data / L"library.json");
             bool found = false;
             for (const auto& item : saved.as_array()) {
                 if (item.get("filePath").as_wstring().find(first.filename().wstring()) == std::wstring::npos) continue;
@@ -612,7 +617,7 @@ int wmain(int argc, wchar_t** argv) {
                 return state.state == Ipc::AutomationPlaybackState::Paused && state.currentFilePath == first.wstring() && state.durationSec > 0;
             });
             Sleep(300); app.Status();
-            const auto baselineLibrary = ReadStore(data / L"library.json");
+            const auto baselineLibrary = ReadLibraryRecords(data / L"library.json");
             const auto baselineHistory = ReadStore(data / L"history.json");
             const auto baselineSession = ReadStore(data / L"session.json");
             UiaRoot(app.window, app.process.dwProcessId);
@@ -639,7 +644,7 @@ int wmain(int argc, wchar_t** argv) {
             // Exit while the second private target remains open to exercise
             // Shutdown independently of ClosePlayer's progress guards.
             app.Close();
-            const auto afterLibrary = ReadStore(data / L"library.json");
+            const auto afterLibrary = ReadLibraryRecords(data / L"library.json");
             auto findFirst = [&](const JsonValue& library) -> const JsonValue& {
                 for (const auto& item : library.as_array()) if (item.get("id").as_string() == "workflow-first") return item;
                 throw std::runtime_error("Private fixture lost its existing library item");
