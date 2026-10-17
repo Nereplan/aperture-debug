@@ -11,3 +11,4 @@
 - Use `docs/checkpoints.html` as the primary performance comparison and checkpoint record. Read its Agent guide or `docs/CHECKPOINTS.md` before recording measurements.
 - Append measured values, dates/times, commit/dirty identity, protocols, evidence and validation with `scripts/checkpoints.py`; run its `--check` and `tests/benchmark/test_checkpoints.py` after updates.
 - Keep raw evidence under `docs/evidence/`. Record future optimization findings in checkpoint notes rather than creating another performance report. Preserve the historical reports/evidence; never invent missing values or reuse an older VLC session as a fresh measurement.
+- Keep the dashboard interface compact: omit slogans, repeated captions and instructional filler. Put measurement details in Evidence and maintenance instructions in Agent guide.
