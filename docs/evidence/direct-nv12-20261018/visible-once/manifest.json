@@ -1,0 +1,22 @@
+{
+  "comparison.json": {
+    "sha256": "301fc92dab52ae573390e742f582e1609d3e5bb99cc4a18d27b8e7000d6ef644",
+    "bytes": 8953
+  },
+  "cpu-calibration.json": {
+    "sha256": "8e7145d07f2164a88676fdc269086384c636fb9bfd4ca79df75a7fe3add346ad",
+    "bytes": 814
+  },
+  "review.json": {
+    "sha256": "e044630927b0f70649917a061672c745191c5abb74fc688bc0838e3ea37f4a28",
+    "bytes": 5455
+  },
+  "source-identity.json": {
+    "sha256": "fc485872d7968f15d77c4fa5760d8c3d2709154511feb1253660648e88f88a27",
+    "bytes": 1127
+  },
+  "validation.json": {
+    "sha256": "a1cd31012a168481c9d082bd04a595f81f870c9fdc2fc2075445bf87c38b2f45",
+    "bytes": 1128
+  }
+}

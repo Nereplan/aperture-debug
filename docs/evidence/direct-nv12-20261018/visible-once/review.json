@@ -1,0 +1,91 @@
+{
+  "recordedUtc": "2026-10-18T20:57:20.841507+00:00",
+  "batchCompletedUtc": "2026-10-18T20:54:28.1925961Z",
+  "status": "Single-run Aperture replay has lower private RAM and calibrated CPU than saved VLC; broad stable performance ranking remains unproven.",
+  "method": "One explicitly authorized visible Aperture launch; no VLC launch and no discarded warmup. Same SHA256-verified 180s 1080p30 H264/AAC stereo fixture, fresh owned portable profile, actual 1280x720 video canvas at 96 DPI. Seven raw process/cycle/memory snapshots span 30.0146089 seconds after >=10s media time and settling; media advances from 10.0667 to 40.0667s. No other builds, profilers or tests ran during timing. CPU = cycle delta / actual elapsed / independently validated same-CPU invariant-TSC rate *100, percent of one logical processor; whole-machine capacity divides by 24. Raw sampled CPU time is retained separately. Private RAM and working set are median snapshots; GPU value is dedicated allocation, not GPU time. The saved VLC reference retains its original 2026-10-18T18:57:51.4393218Z batch date/session and original calibration; it requests D3D11/D3D11VA/linear scaling. Aperture retains balanced Lanczos-up/Hermite-down/correct-downscaling, bilinear chroma, no linear-light/sigmoid passes, with guarded direct NV12 optimization. Filters differ between players. Memory categories overlap and are not summed.",
+  "sourceIdentity": "docs/evidence/direct-nv12-20261018/visible-once/source-identity.json",
+  "aperture": {
+    "values": {
+      "cpu-core": 4.949772590381909,
+      "visible-ms": 109.8057,
+      "runtime-mib": 27.88720417022705,
+      "private-mib": 148.01171875,
+      "working-set-mib": 141.5390625,
+      "gpu-mib": 98.27734375
+    },
+    "sampledCpuOneLogicalPercent": 4.945508385418275,
+    "cpuTotalCapacityPercent": 0.20624052459924622,
+    "cycleDelta": 5645490140,
+    "sampledCpuSecondsDelta": 1.484375,
+    "actualElapsedSeconds": 30.0146089,
+    "privateMiBSnapshotRange": [
+      147.3984375,
+      148.1171875
+    ],
+    "sharedGpuMiB": 13.59765625,
+    "snapshotCount": 7,
+    "mediaIntervalSeconds": [
+      10.0666666667,
+      40.0666666667
+    ]
+  },
+  "savedVlc": {
+    "referenceId": "vlc-20261018-balanced-overlay-screen-h264",
+    "version": "3.0.23",
+    "originalBatchMeasuredAt": "2026-10-18T18:57:51.4393218Z",
+    "originalStartedUtc": "2026-10-18T18:57:02.2838411Z",
+    "originalSamplingEndedUtc": "2026-10-18T18:57:50.1329986Z",
+    "originalSession": "balanced-overlay-screen-h264-20261018",
+    "rawEvidence": "docs/evidence/balanced-memory-20261018/app/comparison.json",
+    "values": {
+      "cpu-core": 5.091447168676399,
+      "visible-ms": 1639.955,
+      "runtime-mib": 182.99101448059082,
+      "private-mib": 150.8515625,
+      "working-set-mib": 146.0859375,
+      "gpu-mib": 118.4609375
+    },
+    "sampledCpuOneLogicalPercent": 4.529518017998671,
+    "cpuTotalCapacityPercent": 0.2121436320281833,
+    "cycleDelta": 5806467640,
+    "sampledCpuSecondsDelta": 1.359375,
+    "actualElapsedSeconds": 30.011471299999997,
+    "privateMiBSnapshotRange": [
+      150.58203125,
+      151.05859375
+    ],
+    "sharedGpuMiB": 15.28515625,
+    "snapshotCount": 7,
+    "mediaIntervalSeconds": [
+      11.0,
+      41.0
+    ]
+  },
+  "versusSavedVlc": {
+    "privateMiBDifference": -2.83984375,
+    "privateRelativePercent": -1.8825418198767374,
+    "calibratedCpuRelativePercent": -2.7825993985776787,
+    "calibratedCpuMachinePercentagePointDifference": -0.005903107428937071,
+    "sampledCpuOneLogicalPercentagePointDifference": 0.41599036741960393,
+    "dedicatedGpuMiBDifference": -20.18359375
+  },
+  "versusPreviousAperture": {
+    "previousEvidence": "docs/evidence/balanced-memory-20261018/review.json",
+    "privateMiBDifference": -26.50390625,
+    "note": "Separate historical sessions; not a controlled attribution of the entire difference to one code change."
+  },
+  "limits": [
+    "One measured Aperture launch. Snapshot ranges are not repeat-run variability; no stable overall ranking or all-format win follows.",
+    "Saved baselines are reused with their original dates, protocols, sessions and raw counters. No same-session reference link is fabricated.",
+    "Sampled process CPU-time accounting reports Aperture 4.9455 versus VLC 4.5295 percent of one processor; that counter does not show a CPU win. The small calibrated-cycle lead is counter- and session-dependent.",
+    "Advancing media and canvas were verified. This visible trial did not capture presented frames, dropped-frame counts, actual decoder/filter path or audio sink activity.",
+    "Previously recorded 14 paired frame cases and 79 hidden native checks remain separate validation, not fresh visible frame-quality/cadence verification.",
+    "Process-to-visible-window measures a shell, not time to visible video. Supplied runtime sizes are not feature-matched distributions.",
+    "Candidate is a prebuilt dirty-worktree portable runtime. No installation, release or restart was performed."
+  ],
+  "preflight": {
+    "initialFailure": "Optional VLC path was still resolved unconditionally; failure occurred before output creation or player launch.",
+    "fix": "Resolve VLC runtime only when VLC is selected.",
+    "validation": "PowerShell parse and selected/unselected VLC initialization branch checks passed without launching a player."
+  }
+}

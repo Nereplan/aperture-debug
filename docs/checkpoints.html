@@ -96,7 +96,7 @@ git diff --check</pre>
 <script id="checkpoint-data" type="application/json">
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-10-18T20:44:10+00:00",
+  "updatedAt": "2026-10-18T20:57:28+00:00",
   "metrics": {
     "visible-ms": {
       "label": "Visible window",
@@ -374,6 +374,11 @@ git diff --check</pre>
       "label": "Overlay memory / single-run screen / calibrated CPU",
       "category": "Playback",
       "method": "Saved initial screen, measured before the user requested baseline reuse. Fresh owned portable profiles; same H2641080p30 AAC stereo fixture and actual 1280x720 video canvas at 96 DPI. One measured launch per variant, no discarded warmups, ~30-second windows after at least ten seconds media time. Both Aperture builds use retained-resource production-form native DLL 0e7eec06 and balanced Lanczos-up/Hermite-down/correct-downscaling, bilinear chroma, no linear-light/sigmoid passes. VLC requests D3D11 output, D3D11VA and linear scaling. Different profiles and non-identical output pixels are explicit. Advancing playback/canvas verified for all three saved screen runs. This single-run screen does not establish stable player rankings. No concurrent builders, profilers or other tests. CPU estimate uses raw process cycles divided by actual elapsed time and a validated invariant-TSC calibration on this same CPU/boot, as percent of one logical processor; sampled process CPU times retained separately. RAM is median private commit of seven snapshots per run. Memory categories overlap and cannot be summed."
+    },
+    "playback-balanced-saved-vlc-replay-30s-v1": {
+      "label": "Aperture replay / saved VLC / single launch",
+      "category": "Playback",
+      "method": "One explicitly authorized visible Aperture launch; no VLC launch and no discarded warmup. Same SHA256-verified 180s 1080p30 H264/AAC stereo fixture, fresh owned portable profile, actual 1280x720 video canvas at 96 DPI. Seven raw process/cycle/memory snapshots span 30.0146089 seconds after \u003e=10s media time and settling; media advances from 10.0667 to 40.0667s. No other builds, profilers or tests ran during timing. CPU = cycle delta / actual elapsed / independently validated same-CPU invariant-TSC rate *100, percent of one logical processor; whole-machine capacity divides by 24. Raw sampled CPU time is retained separately. Private RAM and working set are median snapshots; GPU value is dedicated allocation, not GPU time. The saved VLC reference retains its original 2026-10-18T18:57:51.4393218Z batch date/session and original calibration; it requests D3D11/D3D11VA/linear scaling. Aperture retains balanced Lanczos-up/Hermite-down/correct-downscaling, bilinear chroma, no linear-light/sigmoid passes, with guarded direct NV12 optimization. Filters differ between players. Memory categories overlap and are not summed."
     }
   },
   "environments": {
@@ -15944,6 +15949,131 @@ git diff --check</pre>
       ],
       "report": "direct-nv12-20261018",
       "notes": "Enabled the guarded direct NV12 filter with the existing LUTs. 79 hidden native checks and 14 paired frame cases passed. Background units passed52 with one desktop case deferred. A portable candidate was built/verified. Fresh visible playback comparison is deferred; saved VLC baseline is unchanged and an overall win is not claimed. Details, raw output and limits are in Evidence."
+    },
+    {
+      "id": "direct-nv12-20261018-visible-once",
+      "label": "Direct NV12 / H.264 playback",
+      "measuredAt": "2026-10-18T20:54:27.7124677Z",
+      "commit": "7d07cc10136301b2b32d8e2bdd04b24358d66b04",
+      "dirty": true,
+      "sourceNote": "Previously built dirty-worktree candidate, recorded at 7d07cc10136301b2b32d8e2bdd04b24358d66b04; build identity was recorded under 156e146e5c29d9e088ecf92f8f74fbee2106f7f2. EXE 3f63a5577e6c56b17441c88c28d8cbed2734a71738be165a44443243a04ae8b0; DLL 8dd14629f574a04a1d6904104be8748e73954d9ac5aef07cc36f1a34ee752daa. No rebuild. Actual artifacts and runner hashes are in docs/evidence/direct-nv12-20261018/visible-once/source-identity.json. Includes pre-existing user source edits.",
+      "notes": "One authorized Aperture launch; VLC was not rerun. Private RAM 148.01 versus saved VLC 150.85 MiB; calibrated CPU 4.9498 versus 5.0914% of one processor (0.2062 versus 0.2121% whole-machine capacity). The small calibrated CPU lead is not reproduced by sampled CPU-time accounting. Balanced filters retained; earlier paired frame checks are separate evidence. Snapshot range 147.40–148.12 MiB, not a repeated-run distribution. Saved VLC keeps its original date/session. Broader stable performance superiority remains unproven.",
+      "results": [
+        {
+          "metric": "cpu-core",
+          "protocol": "playback-balanced-saved-vlc-replay-30s-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "1080p30 H.264 + AAC stereo / 1280x720 canvas / Aperture balanced, VLC linear / D3D11",
+          "session": "direct-nv12-visible-once-h264-20261018",
+          "historySeries": "balanced-h264-canvas-observations",
+          "value": 4.949772590381909,
+          "samples": 1,
+          "evidence": "docs/evidence/direct-nv12-20261018/visible-once/review.json",
+          "runRange": {
+            "min": 4.949772590381909,
+            "max": 4.949772590381909,
+            "runs": 1,
+            "scope": "One authorized launch; min=max is not repeat-run variability. RAM is the median of seven snapshots; CPU uses the full calibrated-cycle delta over 30.0146089 seconds. Saved VLC is a separate historical session."
+          }
+        },
+        {
+          "metric": "visible-ms",
+          "protocol": "playback-balanced-saved-vlc-replay-30s-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "1080p30 H.264 + AAC stereo / 1280x720 canvas / Aperture balanced, VLC linear / D3D11",
+          "session": "direct-nv12-visible-once-h264-20261018",
+          "historySeries": "balanced-h264-canvas-observations",
+          "value": 109.8057,
+          "samples": 1,
+          "evidence": "docs/evidence/direct-nv12-20261018/visible-once/review.json",
+          "runRange": {
+            "min": 109.8057,
+            "max": 109.8057,
+            "runs": 1,
+            "scope": "One authorized launch; min=max is not repeat-run variability. RAM is the median of seven snapshots; CPU uses the full calibrated-cycle delta over 30.0146089 seconds. Saved VLC is a separate historical session."
+          }
+        },
+        {
+          "metric": "runtime-mib",
+          "protocol": "playback-balanced-saved-vlc-replay-30s-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "1080p30 H.264 + AAC stereo / 1280x720 canvas / Aperture balanced, VLC linear / D3D11",
+          "session": "direct-nv12-visible-once-h264-20261018",
+          "historySeries": "balanced-h264-canvas-observations",
+          "value": 27.88720417022705,
+          "samples": 1,
+          "evidence": "docs/evidence/direct-nv12-20261018/visible-once/review.json",
+          "runRange": {
+            "min": 27.88720417022705,
+            "max": 27.88720417022705,
+            "runs": 1,
+            "scope": "One authorized launch; min=max is not repeat-run variability. RAM is the median of seven snapshots; CPU uses the full calibrated-cycle delta over 30.0146089 seconds. Saved VLC is a separate historical session."
+          }
+        },
+        {
+          "metric": "private-mib",
+          "protocol": "playback-balanced-saved-vlc-replay-30s-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "1080p30 H.264 + AAC stereo / 1280x720 canvas / Aperture balanced, VLC linear / D3D11",
+          "session": "direct-nv12-visible-once-h264-20261018",
+          "historySeries": "balanced-h264-canvas-observations",
+          "value": 148.01171875,
+          "samples": 1,
+          "evidence": "docs/evidence/direct-nv12-20261018/visible-once/review.json",
+          "runRange": {
+            "min": 148.01171875,
+            "max": 148.01171875,
+            "runs": 1,
+            "scope": "One authorized launch; min=max is not repeat-run variability. RAM is the median of seven snapshots; CPU uses the full calibrated-cycle delta over 30.0146089 seconds. Saved VLC is a separate historical session."
+          }
+        },
+        {
+          "metric": "working-set-mib",
+          "protocol": "playback-balanced-saved-vlc-replay-30s-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "1080p30 H.264 + AAC stereo / 1280x720 canvas / Aperture balanced, VLC linear / D3D11",
+          "session": "direct-nv12-visible-once-h264-20261018",
+          "historySeries": "balanced-h264-canvas-observations",
+          "value": 141.5390625,
+          "samples": 1,
+          "evidence": "docs/evidence/direct-nv12-20261018/visible-once/review.json",
+          "runRange": {
+            "min": 141.5390625,
+            "max": 141.5390625,
+            "runs": 1,
+            "scope": "One authorized launch; min=max is not repeat-run variability. RAM is the median of seven snapshots; CPU uses the full calibrated-cycle delta over 30.0146089 seconds. Saved VLC is a separate historical session."
+          }
+        },
+        {
+          "metric": "gpu-mib",
+          "protocol": "playback-balanced-saved-vlc-replay-30s-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "1080p30 H.264 + AAC stereo / 1280x720 canvas / Aperture balanced, VLC linear / D3D11",
+          "session": "direct-nv12-visible-once-h264-20261018",
+          "historySeries": "balanced-h264-canvas-observations",
+          "value": 98.27734375,
+          "samples": 1,
+          "evidence": "docs/evidence/direct-nv12-20261018/visible-once/review.json",
+          "runRange": {
+            "min": 98.27734375,
+            "max": 98.27734375,
+            "runs": 1,
+            "scope": "One authorized launch; min=max is not repeat-run variability. RAM is the median of seven snapshots; CPU uses the full calibrated-cycle delta over 30.0146089 seconds. Saved VLC is a separate historical session."
+          }
+        }
+      ],
+      "tests": [
+        {
+          "name": "Authorized Aperture playback sample",
+          "status": "pass",
+          "passed": 1,
+          "total": 1,
+          "durationSeconds": 30.0146089,
+          "evidence": "docs/evidence/direct-nv12-20261018/visible-once/comparison.json",
+          "scope": "Exactly one visible launch; advancing playback, actual 1280x720/96 DPI canvas, complete raw counters and owned-window cleanup verified. No VLC launch. Does not validate visible presentation cadence or decoder equivalence."
+        }
+      ],
+      "report": "direct-nv12-visible-once-20261018"
     }
   ],
   "reports": [
@@ -16144,6 +16274,12 @@ git diff --check</pre>
       "title": "Direct NV12 adoption and hidden validation",
       "source": "docs/evidence/direct-nv12-20261018/review.json",
       "text": "{\n  \"recordedUtc\": \"2026-10-18T20:43:19.711850+00:00\",\n  \"status\": \"Bundled and enabled; local portable candidate built and verified without launching/installing it. Overall performance victory over VLC remains unproven.\",\n  \"change\": \"Compatible 8-bit SDR NV12 filtering retains the existing separable LUT weights and bilinear chroma, skips full-sized RGB intermediates, and retires stale scaling targets on re-entry. No lower-precision framebuffer policy. Unsupported/specialized settings retain the original path.\",\n  \"quality\": [\n    {\n      \"case\": \"h264-down\",\n      \"expectedPath\": \"yes\",\n      \"pixels\": {\n        \"size\": [\n          1264,\n          761\n        ],\n        \"meanAbsoluteChannelError\": 0.021219373243067916,\n        \"maximumChannelError\": 1,\n        \"psnrDb\": 64.86347808875492,\n        \"fractionPixelsDiffer\": 0.06253742577221844,\n        \"limit\": 1\n      },\n      \"status\": \"pass\"\n    },\n    {\n      \"case\": \"av1-down\",\n      \"expectedPath\": \"yes\",\n      \"pixels\": {\n        \"size\": [\n          1264,\n          761\n        ],\n        \"meanAbsoluteChannelError\": 0.021090808784799037,\n        \"maximumChannelError\": 1,\n        \"psnrDb\": 64.88987126598299,\n        \"fractionPixelsDiffer\": 0.06212782148738338,\n        \"limit\": 1\n      },\n      \"status\": \"pass\"\n    },\n    {\n      \"case\": \"vp9-up\",\n      \"expectedPath\": \"yes\",\n      \"pixels\": {\n        \"size\": [\n          1264,\n          761\n        ],\n        \"meanAbsoluteChannelError\": 0.030335321057680047,\n        \"maximumChannelError\": 1,\n        \"psnrDb\": 63.3113176515333,\n        \"fractionPixelsDiffer\": 0.08923135780701608,\n        \"limit\": 1\n      },\n      \"status\": \"pass\"\n    },\n    {\n      \"case\": \"hevc-8bit\",\n      \"expectedPath\": \"yes\",\n      \"pixels\": {\n        \"size\": [\n          1264,\n          761\n        ],\n        \"meanAbsoluteChannelError\": 0.02023867939697378,\n        \"maximumChannelError\": 1,\n        \"psnrDb\": 65.06898190117072,\n        \"fractionPixelsDiffer\": 0.05954128478517606,\n        \"limit\": 1\n      },\n      \"status\": \"pass\"\n    },\n    {\n      \"case\": \"hevc-10bit\",\n      \"expectedPath\": \"no\",\n      \"pixels\": {\n        \"size\": [\n          1264,\n          761\n        ],\n        \"meanAbsoluteChannelError\": 0.0,\n        \"maximumChannelError\": 0,\n        \"psnrDb\": null,\n        \"fractionPixelsDiffer\": 0.0,\n        \"limit\": 0\n      },\n      \"status\": \"pass\"\n    },\n    {\n      \"case\": \"hdr-pq\",\n      \"expectedPath\": \"no\",\n      \"pixels\": {\n        \"size\": [\n          1264,\n          761\n        ],\n        \"meanAbsoluteChannelError\": 0.0009002977428100933,\n        \"maximumChannelError\": 1,\n        \"psnrDb\": 78.58694199567503,\n        \"fractionPixelsDiffer\": 0.002694655599727258,\n        \"limit\": null\n      },\n      \"status\": \"fallback-verified-pixels-reported\"\n    },\n    {\n      \"case\": \"alpha\",\n      \"expectedPath\": \"no\",\n      \"pixels\": {\n        \"size\": [\n          1264,\n          761\n        ],\n        \"meanAbsoluteChannelError\": 0.0,\n        \"maximumChannelError\": 0,\n        \"psnrDb\": null,\n        \"fractionPixelsDiffer\": 0.0,\n        \"limit\": 0\n      },\n      \"status\": \"pass\"\n    },\n    {\n      \"case\": \"h264-software\",\n      \"expectedPath\": \"no\",\n      \"pixels\": {\n        \"size\": [\n          1264,\n          761\n        ],\n        \"meanAbsoluteChannelError\": 0.0,\n        \"maximumChannelError\": 0,\n        \"psnrDb\": null,\n        \"fractionPixelsDiffer\": 0.0,\n        \"limit\": 0\n      },\n      \"status\": \"pass\"\n    },\n    {\n      \"case\": \"native-quality\",\n      \"expectedPath\": \"no\",\n      \"pixels\": {\n        \"size\": [\n          1264,\n          761\n        ],\n        \"meanAbsoluteChannelError\": 0.0,\n        \"maximumChannelError\": 0,\n        \"psnrDb\": null,\n        \"fractionPixelsDiffer\": 0.0,\n        \"limit\": 0\n      },\n      \"status\": \"pass\"\n    },\n    {\n      \"case\": \"explicit-float\",\n      \"expectedPath\": \"no\",\n      \"pixels\": {\n        \"size\": [\n          1264,\n          761\n        ],\n        \"meanAbsoluteChannelError\": 0.0,\n        \"maximumChannelError\": 0,\n        \"psnrDb\": null,\n        \"fractionPixelsDiffer\": 0.0,\n        \"limit\": 0\n      },\n      \"status\": \"pass\"\n    },\n    {\n      \"case\": \"explicit-rgba8\",\n      \"expectedPath\": \"no\",\n      \"pixels\": {\n        \"size\": [\n          1264,\n          761\n        ],\n        \"meanAbsoluteChannelError\": 0.0,\n        \"maximumChannelError\": 0,\n        \"psnrDb\": null,\n        \"fractionPixelsDiffer\": 0.0,\n        \"limit\": 0\n      },\n      \"status\": \"pass\"\n    },\n    {\n      \"case\": \"compute-dither\",\n      \"expectedPath\": \"no\",\n      \"pixels\": {\n        \"size\": [\n          1264,\n          761\n        ],\n        \"meanAbsoluteChannelError\": 0.0,\n        \"maximumChannelError\": 0,\n        \"psnrDb\": null,\n        \"fractionPixelsDiffer\": 0.0,\n        \"limit\": 0\n      },\n      \"status\": \"pass\"\n    },\n    {\n      \"case\": \"zoom-crop\",\n      \"expectedPath\": \"no\",\n      \"pixels\": {\n        \"size\": [\n          1264,\n          761\n        ],\n        \"meanAbsoluteChannelError\": 0.0,\n        \"maximumChannelError\": 0,\n        \"psnrDb\": null,\n        \"fractionPixelsDiffer\": 0.0,\n        \"limit\": 0\n      },\n      \"status\": \"pass\"\n    },\n    {\n      \"case\": \"rotated\",\n      \"expectedPath\": \"no\",\n      \"pixels\": {\n        \"size\": [\n          1264,\n          761\n        ],\n        \"meanAbsoluteChannelError\": 0.0,\n        \"maximumChannelError\": 0,\n        \"psnrDb\": null,\n        \"fractionPixelsDiffer\": 0.0,\n        \"limit\": 0\n      },\n      \"status\": \"pass\"\n    }\n  ],\n  \"validation\": {\n    \"nativeFunctional\": {\n      \"passed\": 79,\n      \"total\": 79,\n      \"scope\": \"Hidden correctness, balanced filtering, timing disabled/cache4/direct=yes. Includes hardware and libdav1d AV1, controls, geometry/reconfigure, audio and localhost playback. Does not establish visible presentation cadence.\"\n    },\n    \"frameCases\": {\n      \"passed\": 14,\n      \"total\": 14,\n      \"scope\": \"28 isolated frame runs. Actual path proved by redraw descriptions, exact 2s position, decoder verified, detailed nonblank picture, paired pixels. Thirteen cases enforce pixel bounds; adaptive HDR verifies fallback and reports pixels without a strict bound.\"\n    },\n    \"appUnit\": {\n      \"passed\": 52,\n      \"total\": 53,\n      \"skipped\": 1,\n      \"scope\": \"Desktop PlaybackSession geometry explicitly deferred; never counted as passed.\"\n    },\n    \"oldEngineCompatibility\": {\n      \"passed\": 1,\n      \"total\": 1\n    },\n    \"sourcePatchTests\": {\n      \"passed\": 7,\n      \"total\": 7\n    },\n    \"visibilityPreflightGuards\": {\n      \"passed\": 4,\n      \"total\": 4\n    },\n    \"chartChecks\": {\n      \"passed\": 14,\n      \"total\": 14\n    },\n    \"dependencyInventory\": {\n      \"files\": 20,\n      \"errors\": 0,\n      \"warnings\": 0\n    },\n    \"package\": \"10 runtime files; Read-AperturePackage cryptographic verification passed. Not installed or launched.\",\n    \"checkpointDataChecks\": {\n      \"passed\": 18,\n      \"total\": 18\n    }\n  },\n  \"gpuPassDiagnostic\": {\n    \"scope\": \"Offscreen renderer-reported pass timing diagnostic: sum of average redraw-pass times for a fixed 2s frame, three rotated rounds, same DLL with direct filtering off/on. GPU profiling is enabled here and disabled in normal Aperture. This does not establish visible playback throughput, app CPU/RAM or shader-arithmetic cost. No VLC run.\",\n    \"summary\": {\n      \"h264-down\": {\n        \"baseline\": {\n          \"redrawAverageNs\": [\n            4196044,\n            4221438,\n            4219391\n          ],\n          \"medianNs\": 4219391\n        },\n        \"candidate\": {\n          \"redrawAverageNs\": [\n            64000,\n            64614,\n            64000\n          ],\n          \"medianNs\": 64000\n        }\n      },\n      \"vp9-up\": {\n        \"baseline\": {\n          \"redrawAverageNs\": [\n            4435045,\n            4558233,\n            4686438\n          ],\n          \"medianNs\": 4558233\n        },\n        \"candidate\": {\n          \"redrawAverageNs\": [\n            123289,\n            126156,\n            151756\n          ],\n          \"medianNs\": 126156\n        }\n      }\n    },\n    \"limits\": [\n      \"The baseline first separable pass dominates the reported ~4ms. These timer-bracketed backend calls can include submission/query effects; the cause of that large interval is not established.\",\n      \"The diagnostic cannot be translated into a percentage app performance improvement.\",\n      \"Whole-player performance after adopting this build remains unmeasured because visible tests are deferred.\"\n    ]\n  },\n  \"performanceEvidence\": \"Prior isolated native screen saved about30MiB with the direct prototype; see docs/evidence/balanced-memory-20261018/research/direct-nv12-experiment/h264-screen-v3/results.json. This is historical engine evidence, not a new measurement of this bundled app. Prior balanced full-player CPU results remain in docs/evidence/balanced-frame-resources-20261018/review.json. Saved VLC data retains its original date/session.\",\n  \"limits\": [\n    \"No new visible full-app CPU/RAM/throughput comparison was run after this adoption. No VLC process was launched.\",\n    \"Hidden output checks and paused diagnostic pass timing cannot prove the whole-player ranking. GPU profiling is enabled only for that diagnostic and disabled normally.\",\n    \"Four tested optimized codec/scaling cases differ by at most1/255 per channel. This does not prove all media/driver/display combinations.\",\n    \"HDR remains on the original path. The paired HDR capture differed by1 level; adaptive peak history limits exact comparisons.\",\n    \"One desktop unit case and the full visible release gate remain deferred under the user preference.\",\n    \"The candidate includes pre-existing dirty source edits and uses the current local version; no release was published.\"\n  ],\n  \"recordingNote\": \"The initial checkpoint test run exposed fixtures assuming the last record had an observation. Its failure is retained; the fixture now chooses an actual observation and a new case verifies validation-only appends preserve measurements. The corrected18 data checks pass.\"\n}"
+    },
+    {
+      "id": "direct-nv12-visible-once-20261018",
+      "title": "Direct NV12 / one authorized playback sample",
+      "source": "docs/evidence/direct-nv12-20261018/visible-once/review.json",
+      "text": "{\n  \"recordedUtc\": \"2026-10-18T20:57:20.841507+00:00\",\n  \"batchCompletedUtc\": \"2026-10-18T20:54:28.1925961Z\",\n  \"status\": \"Single-run Aperture replay has lower private RAM and calibrated CPU than saved VLC; broad stable performance ranking remains unproven.\",\n  \"method\": \"One explicitly authorized visible Aperture launch; no VLC launch and no discarded warmup. Same SHA256-verified 180s 1080p30 H264/AAC stereo fixture, fresh owned portable profile, actual 1280x720 video canvas at 96 DPI. Seven raw process/cycle/memory snapshots span 30.0146089 seconds after \u003e=10s media time and settling; media advances from 10.0667 to 40.0667s. No other builds, profilers or tests ran during timing. CPU = cycle delta / actual elapsed / independently validated same-CPU invariant-TSC rate *100, percent of one logical processor; whole-machine capacity divides by 24. Raw sampled CPU time is retained separately. Private RAM and working set are median snapshots; GPU value is dedicated allocation, not GPU time. The saved VLC reference retains its original 2026-10-18T18:57:51.4393218Z batch date/session and original calibration; it requests D3D11/D3D11VA/linear scaling. Aperture retains balanced Lanczos-up/Hermite-down/correct-downscaling, bilinear chroma, no linear-light/sigmoid passes, with guarded direct NV12 optimization. Filters differ between players. Memory categories overlap and are not summed.\",\n  \"sourceIdentity\": \"docs/evidence/direct-nv12-20261018/visible-once/source-identity.json\",\n  \"aperture\": {\n    \"values\": {\n      \"cpu-core\": 4.949772590381909,\n      \"visible-ms\": 109.8057,\n      \"runtime-mib\": 27.88720417022705,\n      \"private-mib\": 148.01171875,\n      \"working-set-mib\": 141.5390625,\n      \"gpu-mib\": 98.27734375\n    },\n    \"sampledCpuOneLogicalPercent\": 4.945508385418275,\n    \"cpuTotalCapacityPercent\": 0.20624052459924622,\n    \"cycleDelta\": 5645490140,\n    \"sampledCpuSecondsDelta\": 1.484375,\n    \"actualElapsedSeconds\": 30.0146089,\n    \"privateMiBSnapshotRange\": [\n      147.3984375,\n      148.1171875\n    ],\n    \"sharedGpuMiB\": 13.59765625,\n    \"snapshotCount\": 7,\n    \"mediaIntervalSeconds\": [\n      10.0666666667,\n      40.0666666667\n    ]\n  },\n  \"savedVlc\": {\n    \"referenceId\": \"vlc-20261018-balanced-overlay-screen-h264\",\n    \"version\": \"3.0.23\",\n    \"originalBatchMeasuredAt\": \"2026-10-18T18:57:51.4393218Z\",\n    \"originalStartedUtc\": \"2026-10-18T18:57:02.2838411Z\",\n    \"originalSamplingEndedUtc\": \"2026-10-18T18:57:50.1329986Z\",\n    \"originalSession\": \"balanced-overlay-screen-h264-20261018\",\n    \"rawEvidence\": \"docs/evidence/balanced-memory-20261018/app/comparison.json\",\n    \"values\": {\n      \"cpu-core\": 5.091447168676399,\n      \"visible-ms\": 1639.955,\n      \"runtime-mib\": 182.99101448059082,\n      \"private-mib\": 150.8515625,\n      \"working-set-mib\": 146.0859375,\n      \"gpu-mib\": 118.4609375\n    },\n    \"sampledCpuOneLogicalPercent\": 4.529518017998671,\n    \"cpuTotalCapacityPercent\": 0.2121436320281833,\n    \"cycleDelta\": 5806467640,\n    \"sampledCpuSecondsDelta\": 1.359375,\n    \"actualElapsedSeconds\": 30.011471299999997,\n    \"privateMiBSnapshotRange\": [\n      150.58203125,\n      151.05859375\n    ],\n    \"sharedGpuMiB\": 15.28515625,\n    \"snapshotCount\": 7,\n    \"mediaIntervalSeconds\": [\n      11.0,\n      41.0\n    ]\n  },\n  \"versusSavedVlc\": {\n    \"privateMiBDifference\": -2.83984375,\n    \"privateRelativePercent\": -1.8825418198767374,\n    \"calibratedCpuRelativePercent\": -2.7825993985776787,\n    \"calibratedCpuMachinePercentagePointDifference\": -0.005903107428937071,\n    \"sampledCpuOneLogicalPercentagePointDifference\": 0.41599036741960393,\n    \"dedicatedGpuMiBDifference\": -20.18359375\n  },\n  \"versusPreviousAperture\": {\n    \"previousEvidence\": \"docs/evidence/balanced-memory-20261018/review.json\",\n    \"privateMiBDifference\": -26.50390625,\n    \"note\": \"Separate historical sessions; not a controlled attribution of the entire difference to one code change.\"\n  },\n  \"limits\": [\n    \"One measured Aperture launch. Snapshot ranges are not repeat-run variability; no stable overall ranking or all-format win follows.\",\n    \"Saved baselines are reused with their original dates, protocols, sessions and raw counters. No same-session reference link is fabricated.\",\n    \"Sampled process CPU-time accounting reports Aperture 4.9455 versus VLC 4.5295 percent of one processor; that counter does not show a CPU win. The small calibrated-cycle lead is counter- and session-dependent.\",\n    \"Advancing media and canvas were verified. This visible trial did not capture presented frames, dropped-frame counts, actual decoder/filter path or audio sink activity.\",\n    \"Previously recorded 14 paired frame cases and 79 hidden native checks remain separate validation, not fresh visible frame-quality/cadence verification.\",\n    \"Process-to-visible-window measures a shell, not time to visible video. Supplied runtime sizes are not feature-matched distributions.\",\n    \"Candidate is a prebuilt dirty-worktree portable runtime. No installation, release or restart was performed.\"\n  ],\n  \"preflight\": {\n    \"initialFailure\": \"Optional VLC path was still resolved unconditionally; failure occurred before output creation or player launch.\",\n    \"fix\": \"Resolve VLC runtime only when VLC is selected.\",\n    \"validation\": \"PowerShell parse and selected/unselected VLC initialization branch checks passed without launching a player.\"\n  }\n}"
     }
   ],
   "historySeries": {
@@ -16155,6 +16291,16 @@ git diff --check</pre>
         "startup-empty-20261017"
       ],
       "method": "Historical observations of the same empty-profile native startup endpoints. Each metric remains a separate series, preserving its unit and endpoint. Protocol, machine, sample count, timestamp and source revision remain per observation. This joins dated readings for history, not a matched-session before/after claim; the earliest native capture is a single sample."
+    },
+    "balanced-h264-canvas-observations": {
+      "label": "Balanced H.264 / matched canvas",
+      "method": "Observed history on the same verified machine, fixture and 1280x720 canvas; balanced Aperture and linear VLC. Earlier production batch uses one warmup plus three runs/variant; overlay screen and subsequent Aperture-only replay use one launch without discarded warmup. Separate protocols/sessions and each recorded run range are preserved. CPU uses each session's validated cycle calibration. Newer Aperture observations use the latest compatible saved VLC reference, without refreshing or redating it. Chronology is not controlled causal attribution, equal picture quality, or a stable player ranking.",
+      "workload": "1080p30 H.264 + AAC stereo / 1280x720 canvas / Aperture balanced, VLC linear / D3D11",
+      "protocols": [
+        "playback-balanced-canvas-tsc-30s-v1",
+        "playback-balanced-overlay-screen-30s-v1",
+        "playback-balanced-saved-vlc-replay-30s-v1"
+      ]
     }
   }
 }
@@ -16216,14 +16362,19 @@ function renderOverview(){renderStats();$('map-tab').setAttribute('aria-pressed'
 function svgText(x,y,text,extra=''){return `<text x="${x}" y="${y}" ${extra}>${esc(text)}</text>`}
 function machineCpu(r){const n=DATA.environments[r?.environment]?.logicalProcessors;return r?.metric==='cpu-core'&&Number.isInteger(n)&&n>0&&r.value!=null?r.value/n:null}
 function shortRevision(value){return value?value.slice(0,7):'commit unknown'}
-function sameWorkload(a,b){return a.protocol===b.protocol&&a.environment===b.environment&&a.workload===b.workload}
+function historyGroup(r){
+ if(r.historySeries)return r.historySeries;
+ const matches=Object.entries(DATA.historySeries||{}).filter(([,s])=>s.workload===r.workload&&s.protocols.includes(r.protocol));
+ return matches.length===1?matches[0][0]:null
+}
+function sameWorkload(a,b){const group=historyGroup(a);return a.environment===b.environment&&a.workload===b.workload&&(a.protocol===b.protocol||(group&&group===historyGroup(b)))}
 function playerOrigin(c){return c.results.find(r=>r.metric==='visible-ms'&&DATA.protocols[r.protocol]?.category==='Playback'&&c.results.some(s=>s.metric==='private-mib'&&sameWorkload(s,r)))}
 function resourceHistory(origin){return ordered.filter(c=>c.results.some(r=>r.metric==='visible-ms'&&sameWorkload(r,origin)))}
 function runRangeText(r){const q=r?.runRange;return q?'Run range: '+val({...r,value:q.min})+'–'+val({...r,value:q.max})+' (n = '+q.runs+')':''}
 function latestMeasured(orderedCheckpoints){
  return [...orderedCheckpoints].reverse().find(c=>c.results.some(r=>Number.isFinite(r.value)));
 }
-function seriesKey(r){return r.historySeries?JSON.stringify(['history',r.historySeries,r.metric,r.workload]):key(r)}
+function seriesKey(r){const group=historyGroup(r);return group?JSON.stringify(['history',group,r.metric,r.workload]):key(r)}
 function checkpointLabel(c){return c.label.replace(/\s*·\s*(before|after|optimized)$/i,'')}
 function latestVlcReferences(){
  const refs=Object.values(DATA.references).filter(r=>r.player==='VLC').sort((a,b)=>b.version.localeCompare(a.version,'en',{numeric:true})||Date.parse(b.measuredAt)-Date.parse(a.measuredAt));
@@ -16231,7 +16382,7 @@ function latestVlcReferences(){
 }
 function baseline(r){
  for(const ref of latestVlcReferences()){
-  const result=ref.results.find(b=>key(b)===key(r));
+  const result=ref.results.find(b=>b.metric===r.metric&&sameWorkload(b,r));
   if(result)return {...result,label:'VLC '+ref.version,measuredAt:ref.measuredAt}
  }
  return null
@@ -16246,7 +16397,7 @@ function renderTrendOptions(){
  const categories=['Playback','Startup','Storage','Library','Rendering','Subtitles','Maintenance'];
  $('trend-metric').innerHTML=categories.map(category=>{
   const rows=[...all].filter(([k,r])=>protocol(r).category===category&&(category==='Playback'||category==='Startup'||k===trendKey)).sort((a,b)=>metric(a[1]).label.localeCompare(metric(b[1]).label));
-  return rows.length?`<optgroup label="${esc(category)}">${rows.map(([k,r])=>`<option value="${esc(k)}">${esc(metric(r).label+' / '+r.workload+' / '+(r.historySeries?DATA.historySeries[r.historySeries].label:protocol(r).label))}</option>`).join('')}</optgroup>`:''
+  return rows.length?`<optgroup label="${esc(category)}">${rows.map(([k,r])=>`<option value="${esc(k)}">${esc(metric(r).label+' / '+r.workload+' / '+(historyGroup(r)?DATA.historySeries[historyGroup(r)].label:protocol(r).label))}</option>`).join('')}</optgroup>`:''
  }).join('');$('trend-metric').value=trendKey
 }
 function recordedTime(c,r){return r.measuredAt||c.measuredAt}
@@ -16376,7 +16527,7 @@ function renderHistory(){
  const plottedRef=ref&&(axisMode!=='log'||ref.y>0)?ref:null;
  if(!points.length){$('chart').innerHTML='<div class="empty">No recorded values selected.</div>';return}
  const title=metric(exemplar).label;$('chart-title').textContent=title;
- const scope=(exemplar.historySeries?DATA.historySeries[exemplar.historySeries].method:protocol(exemplar).method);
+ const scope=(historyGroup(exemplar)?DATA.historySeries[historyGroup(exemplar)].method:protocol(exemplar).method);
  $('chart-title').title=scope;
  const g=plotFrame(),values=points.map(p=>p.y);if(plottedRef)values.push(plottedRef.y);
  const ya=numericAxis(values,g.bottom,g.T,axisMode,['count','bytes'].includes(metric(exemplar).unit));

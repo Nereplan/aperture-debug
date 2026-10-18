@@ -1,0 +1,15 @@
+{
+  "recordedUtc": "2026-10-18T20:57:20.816268+00:00",
+  "recordingCommit": "7d07cc10136301b2b32d8e2bdd04b24358d66b04",
+  "dirty": true,
+  "builtCandidateSourceRecord": "docs/evidence/direct-nv12-20261018/source-identity.json",
+  "builtCandidateSourceCommit": "156e146e5c29d9e088ecf92f8f74fbee2106f7f2",
+  "appSha256": "3f63a5577e6c56b17441c88c28d8cbed2734a71738be165a44443243a04ae8b0",
+  "nativeSha256": "8dd14629f574a04a1d6904104be8748e73954d9ac5aef07cc36f1a34ee752daa",
+  "fixtureSha256": "86c249a196158ca2479bb9dd6e0045f24cbcbd2e04a80a41e37c2f6b78f70e68",
+  "runnerSha256": "db161d7e91399e42a1dda72d89ac5ec8240c99fe91b39c2f7026a454fe54dcad",
+  "calibratorSourceSha256": "4c5c1e508f7094a844d9e0c6b5632e8d9c0531aa093b3a90793d756f8ee51d9f",
+  "statusProbeSha256": "dd2d16e17b783f19de74d91755d1644c4278d3ebfcaa24c84b3a99760f0773b7",
+  "savedVlcComparisonSha256": "79fc292142a6374fe6f76d436f9b33b9f092da4162b708d2c8b67d6366a40aa2",
+  "note": "Previously built candidate; no rebuild, install or VLC launch. Existing user worktree edits are included in the EXE. Runner has the guarded VLC runtime selection fix."
+}

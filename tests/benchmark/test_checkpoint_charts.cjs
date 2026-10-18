@@ -104,6 +104,37 @@ test('an older VLC version cannot displace the newest version', () => {
   delete refs['test-new-version']; delete refs['test-old-version-new-date'];
 });
 
+test('compatible replays connect saved history and retain the original VLC date', () => {
+  const cp = DATA.checkpoints.find(c => c.id === 'direct-nv12-20261018-visible-once');
+  const r = cp.results.find(r => r.metric === 'cpu-core');
+  const points = context.historyPoints(context.seriesKey(r));
+  assert(points.length >= 5);
+  assert(points.some(p => p.id === 'balanced-overlay-20261018-released'));
+  assert.equal(points.at(-1).id, cp.id);
+  const b = context.baseline(r);
+  assert.equal(b.measuredAt, '2026-10-18T18:57:51.4393218Z');
+  assert.equal(b.value, 5.091447168676399);
+  assert.notEqual(b.session, r.session);
+  assert.equal(r.reference, undefined);
+  assert.equal(context.baseline({...r, environment: 'different-machine'}), null);
+  assert.equal(context.baseline({...r, workload: 'different-fixture'}), null);
+  assert(context.resourceHistory(context.playerOrigin(cp)).some(c => c.id === 'balanced-overlay-20261018-released'));
+});
+
+test('ambiguous inferred history groups leave observations separate', () => {
+  const r = {metric: 'cpu-core', protocol: 'test-ambiguous', workload: 'fixture', environment: 'machine'};
+  const group = {label: 'test', method: 'test', workload: r.workload, protocols: [r.protocol]};
+  DATA.historySeries['test-group-a'] = group;
+  DATA.historySeries['test-group-b'] = group;
+  try {
+    assert.equal(context.historyGroup(r), null);
+    assert.equal(context.seriesKey(r), context.key(r));
+    assert.equal(context.historyGroup({...r, historySeries: 'test-group-a'}), 'test-group-a');
+  } finally {
+    delete DATA.historySeries['test-group-a']; delete DATA.historySeries['test-group-b'];
+  }
+});
+
 test('1, 5, 10 and 200 retain detail without reserving the empty gap', () => {
   const a = context.numericAxis([1, 5, 10, 200], 0, 700, 'cuts');
   assert.equal(a.breaks.length, 1);

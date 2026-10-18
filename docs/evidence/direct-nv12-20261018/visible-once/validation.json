@@ -1,0 +1,26 @@
+{
+  "recordedUtc": "2026-10-18T20:58:21.878493+00:00",
+  "checkpointCheck": {
+    "checkpoints": 45,
+    "observations": 1227,
+    "embeddedReports": 34,
+    "status": "pass"
+  },
+  "checkpointTests": {
+    "passed": 18,
+    "total": 18
+  },
+  "chartTests": {
+    "passed": 16,
+    "total": 16
+  },
+  "historicalPreservation": "All 44 prior checkpoint objects, all prior definitions, all VLC references and all prior embedded reports compared equal after append. Only new definitions/checkpoint/report and updatedAt were added.",
+  "runtimeSelection": "PowerShell parse and both selected/unselected VLC runtime-initialization branches passed without a player launch. Initial empty-VLC-path failure occurred before any player launch.",
+  "whitespaceCheck": "git diff --check passed on the four changed maintenance/dashboard files.",
+  "processCleanup": "Post-run CIM inventory contained no Aperture.exe or vlc.exe process.",
+  "visibleLaunches": {
+    "Aperture": 1,
+    "VLC": 0
+  },
+  "limits": "Maintenance validation does not add playback repetitions or establish an overall performance ranking."
+}

@@ -97,7 +97,7 @@ if ($ApertureVariantsFile) {
         $players += $player
     }
 } else { $players += Runtime 'Aperture' $AperturePath @('Aperture.exe') }
-$players += Runtime 'VLC' $VlcPath @('vlc.exe')
+if ('VLC' -in $PlayerNames) { $players += Runtime 'VLC' $VlcPath @('vlc.exe') }
 if ($MpcHcPath) { $players += Runtime 'MPC-HC' $MpcHcPath @('mpc-hc64.exe','mpc-hc.exe') }
 $players = @($players | Where-Object { $_.name -in $PlayerNames })
 if (-not $players.Count) { throw 'No selected runtime supplied.' }
