@@ -71,6 +71,7 @@ template<class T> static bool Read(HANDLE process, DWORD64 address, T& value) {
 }
 struct AppProbe {
     DWORD64 pointer = 0; DWORD hubPresented = 0, opacity = 0, idleTimer = 0, frames = 0, progressTimer = 0;
+    DWORD bitmap = 0, presentedFrames = 0, presentationFailures = 0;
     bool Init(HANDLE process) {
         alignas(SYMBOL_INFO) char storage[sizeof(SYMBOL_INFO) + MAX_SYM_NAME]{};
         auto* symbol = reinterpret_cast<SYMBOL_INFO*>(storage);
@@ -79,7 +80,7 @@ struct AppProbe {
         pointer = symbol->Address;
         ULONG appType = 0;
         if (!SymGetTypeInfo(process, symbol->ModBase, symbol->TypeIndex, TI_GET_TYPEID, &appType)) return false;
-        Member renderer{}, presented{}, alpha{}, idle{}, progress{}, overlay{}, stats{}, drawn{};
+        Member renderer{}, presented{}, alpha{}, idle{}, progress{}, overlay{}, stats{}, drawn{}, surface{}, presentedCount{}, failures{};
         if (!MemberInfo(process, symbol->ModBase, appType, L"renderer", renderer) ||
             !MemberInfo(process, symbol->ModBase, renderer.type, L"hasPresentedFrame", presented) ||
             !MemberInfo(process, symbol->ModBase, appType, L"controlsOpacity", alpha) ||
@@ -87,21 +88,33 @@ struct AppProbe {
             !MemberInfo(process, symbol->ModBase, appType, L"progressSaveTimerSec", progress) ||
             !MemberInfo(process, symbol->ModBase, appType, L"overlayRenderer", overlay) ||
             !MemberInfo(process, symbol->ModBase, overlay.type, L"frameStatistics", stats) ||
-            !MemberInfo(process, symbol->ModBase, stats.type, L"framesDrawn", drawn)) return false;
+            !MemberInfo(process, symbol->ModBase, stats.type, L"framesDrawn", drawn) ||
+            !MemberInfo(process, symbol->ModBase, overlay.type, L"hBitmap", surface) ||
+            !MemberInfo(process, symbol->ModBase, stats.type, L"framesPresented", presentedCount) ||
+            !MemberInfo(process, symbol->ModBase, stats.type, L"presentationFailures", failures)) return false;
         hubPresented = renderer.offset + presented.offset; opacity = alpha.offset; idleTimer = idle.offset;
         frames = overlay.offset + stats.offset + drawn.offset;
         progressTimer = progress.offset;
+        bitmap = overlay.offset + surface.offset;
+        presentedFrames = overlay.offset + stats.offset + presentedCount.offset;
+        presentationFailures = overlay.offset + stats.offset + failures.offset;
         return true;
     }
     std::string Snapshot(HANDLE process, double elapsed) const {
         DWORD64 app = 0; bool shown = false; float alpha = 0, idle = 0, progress = 0; uint64_t frameCount = 0;
+        DWORD64 bitmapHandle = 0; uint64_t presentedCount = 0, failures = 0;
         if (!Read(process, pointer, app) || !app || !Read(process, app + hubPresented, shown) ||
             !Read(process, app + opacity, alpha) || !Read(process, app + idleTimer, idle) ||
-            !Read(process, app + progressTimer, progress) || !Read(process, app + frames, frameCount)) return "null";
+            !Read(process, app + progressTimer, progress) || !Read(process, app + frames, frameCount) ||
+            !Read(process, app + bitmap, bitmapHandle) || !Read(process, app + presentedFrames, presentedCount) ||
+            !Read(process, app + presentationFailures, failures)) return "null";
         return "{\"elapsedSeconds\":" + std::to_string(elapsed) + ",\"hubPresented\":" + (shown ? "true" : "false") +
             ",\"controlsOpacity\":" + std::to_string(alpha) + ",\"controlsIdleSeconds\":" + std::to_string(idle) +
             ",\"progressSaveTimerSeconds\":" + std::to_string(progress) +
-            ",\"overlayFramesDrawn\":" + std::to_string(frameCount) + "}";
+            ",\"overlayFramesDrawn\":" + std::to_string(frameCount) +
+            ",\"overlayBitmapAllocated\":" + (bitmapHandle ? "true" : "false") +
+            ",\"overlayFramesPresented\":" + std::to_string(presentedCount) +
+            ",\"overlayPresentationFailures\":" + std::to_string(failures) + "}";
     }
 };
 static std::string Stack(HANDLE process, HANDLE thread) {

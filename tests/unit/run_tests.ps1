@@ -39,6 +39,7 @@ $srcFiles = @(
     "`"$rootDir\src\OnlineSubtitles.cpp`"",
     "`"$rootDir\src\LibraryQuery.cpp`"",
     "`"$rootDir\src\Renderer.cpp`"",
+    "`"$rootDir\src\OverlayRenderer.cpp`"",
     "`"$rootDir\src\LibrarySnapshot.cpp`"",
     "`"$rootDir\src\MediaFoundation.cpp`"",
     "`"$rootDir\src\MediaProbeIsolation.cpp`"",

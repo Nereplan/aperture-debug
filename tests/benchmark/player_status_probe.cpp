@@ -1,10 +1,11 @@
 // Build in an MSVC developer shell:
 // cl /nologo /std:c++17 /EHsc player_status_probe.cpp /Fe:player_status_probe.exe user32.lib shell32.lib advapi32.lib
-// Queries only the explicitly supplied PID. --stop explicitly closes that PID's
-// playback before querying, for the direct-launch/return-to-library regression.
+// Queries/controls only the explicitly supplied PID. Optional --stop, --pause
+// --play and --open <file> support playback/overlay lifecycle checks.
 #include "../../src/IpcProtocol.h"
 #include <iostream>
 #include <iomanip>
+#include <cwchar>
 using namespace Aperture;
 static DWORD targetPid;
 static HWND target;
@@ -29,9 +30,12 @@ static LRESULT CALLBACK Reply(HWND window, UINT message, WPARAM sender, LPARAM p
     }
     return DefWindowProcW(window, message, sender, payload);
 }
-int main(int argc, char** argv) {
-    if (argc != 2 && (argc != 3 || strcmp(argv[2], "--stop") != 0)) return 2;
-    char* end = nullptr; const auto parsed = strtoul(argv[1], &end, 10);
+int wmain(int argc, wchar_t** argv) {
+    const bool control = argc == 3 && (wcscmp(argv[2], L"--stop") == 0 ||
+        wcscmp(argv[2], L"--pause") == 0 || wcscmp(argv[2], L"--play") == 0);
+    const bool open = argc == 4 && wcscmp(argv[2], L"--open") == 0;
+    if (argc != 2 && !control && !open) return 2;
+    wchar_t* end = nullptr; const auto parsed = wcstoul(argv[1], &end, 10);
     if (!parsed || *end) return 2;
     targetPid = static_cast<DWORD>(parsed);
     EnumWindows(FindOwned, 0);
@@ -41,9 +45,12 @@ int main(int argc, char** argv) {
     if (!RegisterClassW(&cls)) return 4;
     HWND reply = CreateWindowW(cls.lpszClassName, L"", 0, 0, 0, 0, 0, HWND_MESSAGE, nullptr, cls.hInstance, nullptr);
     if (!reply) return 4;
-    if (argc == 3) {
-        Ipc::AutomationCommand stop; stop.op = Ipc::AutomationOp::Stop;
-        if (!Ipc::SendAutomationCommand(target, stop)) { DestroyWindow(reply); return 5; }
+    if (control || open) {
+        Ipc::AutomationCommand action;
+        action.op = open ? Ipc::AutomationOp::Open : wcscmp(argv[2], L"--stop") == 0 ? Ipc::AutomationOp::Stop :
+                    wcscmp(argv[2], L"--pause") == 0 ? Ipc::AutomationOp::Pause : Ipc::AutomationOp::Play;
+        if (open) action.mediaTargets.emplace_back(argv[3]);
+        if (!Ipc::SendAutomationCommand(target, action)) { DestroyWindow(reply); return 5; }
     }
     Ipc::AutomationCommand command; command.op = Ipc::AutomationOp::QueryStatus;
     auto envelope = Ipc::SerializeAutomationEnvelope(command);

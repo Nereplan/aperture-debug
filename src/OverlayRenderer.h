@@ -44,6 +44,9 @@ public:
     };
     FrameStatistics GetFrameStatistics() const;
     void BeginDraw();
+    // After presentation, discard CPU drawing buffers only for an empty frame.
+    // The layered window keeps its presented image; drawing recreates buffers.
+    bool ReleaseEmptySurface();
     bool EndDrawAndPresent(HWND hOverlayWnd, int screenX, int screenY);
     float GetDpiScale() const { return dpiScale; }
     // Direct2D Drawing Primitives
@@ -135,6 +138,8 @@ private:
     // Font Formats
     void RecreateDIB();
     bool RecreateRenderTarget();
+    void ReleaseRenderTarget();
+    void ReleaseDIB();
     void CreateTextRenderingParams();
     // Set only while a DC target is between BeginDraw and EndDraw.  This
     // avoids attempting a target rebuild from an invalid draw state.

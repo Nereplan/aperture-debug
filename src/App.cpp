@@ -1681,7 +1681,9 @@ void App::Render() {
         if (!overlayRenderer.BeginFrame(hOverlayWnd)) return;
         PlayerRenderViewModel vm = BuildPlayerRenderViewModel();
         UIComponents::DrawPlayerOverlay(overlayRenderer, settings, vm);
-        overlayRenderer.EndDrawAndPresent(hOverlayWnd, clientScreenRect.left, clientScreenRect.top);
+        const bool presented = overlayRenderer.EndDrawAndPresent(hOverlayWnd, clientScreenRect.left, clientScreenRect.top);
+        if (presented && controlsOpacity <= 0.0f && (!vm.subtitle.visible || vm.subtitle.text.empty()))
+            overlayRenderer.ReleaseEmptySurface();
         return;
     }
     // --- Hub Library View (Rendered directly on main window) ---

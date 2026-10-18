@@ -121,7 +121,7 @@ DWORD OverlayRenderer::GetFrameWaitMs() const {
 OverlayRenderer::FrameStatistics OverlayRenderer::GetFrameStatistics() const {
     auto result = frameStatistics;
     result.refreshRate = framePacer.GetRefreshRate();
-    result.surfaceBytes = static_cast<uint64_t>(width) * height * 4;
+    result.surfaceBytes = hBitmap ? static_cast<uint64_t>(width) * height * 4 : 0;
     return result;
 }
 
@@ -166,14 +166,18 @@ void OverlayRenderer::CreateTextRenderingParams() {
         DWRITE_RENDERING_MODE1_NATURAL_SYMMETRIC, DWRITE_GRID_FIT_MODE_DISABLED, &textRenderingParams );
 }
 
-bool OverlayRenderer::RecreateRenderTarget() {
-    if (!d2dFactory) return false;
+void OverlayRenderer::ReleaseRenderTarget() {
     dcRenderTarget.Reset();
     solidBrush.Reset();
     gradientStopCache.clear();
     gradientBrushCache.clear();
     innerHighlightCache.clear();
     innerHighlightBrushCache.clear();
+}
+
+bool OverlayRenderer::RecreateRenderTarget() {
+    if (!d2dFactory) return false;
+    ReleaseRenderTarget();
     // All overlay geometry is explicitly dp-scaled by UIComponents. A 96 DPI DC target therefore maps one supplied coordinate to one DIB
     // pixel at every monitor scale and keeps layered-window dimensions deterministic.
     D2D1_RENDER_TARGET_PROPERTIES props = D2D1::RenderTargetProperties( D2D1_RENDER_TARGET_TYPE_DEFAULT,
@@ -265,10 +269,15 @@ void OverlayRenderer::Resize(UINT w, UINT h) {
     RecreateDIB();
 }
 
-void OverlayRenderer::RecreateDIB() {
+void OverlayRenderer::ReleaseDIB() {
     if (hdcMem) { if (hOldBitmap) SelectObject(hdcMem, hOldBitmap); DeleteDC(hdcMem); hdcMem = NULL; }
     if (hBitmap) { DeleteObject(hBitmap); hBitmap = NULL; }
+    hOldBitmap = NULL;
     pBitmapBits = nullptr;
+}
+
+void OverlayRenderer::RecreateDIB() {
+    ReleaseDIB();
     if (width == 0 || height == 0) return;
     HDC hdcScreen = GetDC(NULL);
     if (!hdcScreen) return;
@@ -284,6 +293,18 @@ void OverlayRenderer::RecreateDIB() {
     hBitmap = CreateDIBSection(hdcMem, &bmi, DIB_RGB_COLORS, &pBitmapBits, NULL, 0);
     if (hBitmap) { hOldBitmap = (HBITMAP)SelectObject(hdcMem, hBitmap); } else { pBitmapBits = nullptr; }
     ReleaseDC(NULL, hdcScreen);
+}
+
+bool OverlayRenderer::ReleaseEmptySurface() {
+    if (drawActive || !pBitmapBits || !hBitmap) return false;
+    const auto* pixels = static_cast<const uint32_t*>(pBitmapBits);
+    const size_t count = static_cast<size_t>(width) * height;
+    // Checking the complete premultiplied pixel also rejects invalid residual
+    // RGB with zero alpha. Never discard a frame containing visible content.
+    if (std::any_of(pixels, pixels + count, [](uint32_t pixel) { return pixel != 0; })) return false;
+    ReleaseRenderTarget();
+    ReleaseDIB();
+    return true;
 }
 
 void OverlayRenderer::BeginDraw() {

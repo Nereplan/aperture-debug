@@ -50,6 +50,7 @@
 #include "TestMetadataBackfill.h"
 #include "TestImportFingerprints.h"
 #include "TestOverlayPacing.h"
+#include "TestOverlaySurface.h"
 
 int main(int argc, char* argv[]) {
     return Aperture::Test::RunRegisteredTests(argc, argv, "Aperture unit tests");
