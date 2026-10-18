@@ -26,6 +26,9 @@ static void Scenario_Resources(const std::string& media, const std::string& file
     if (g_resourceScaling == "linear") {
         for (const auto& option : Aperture::PlaybackScaling::kLinear) options.emplace_back(option.name, option.value);
     }
+    if (g_resourceScaling == "balanced") {
+        for (const auto& option : Aperture::PlaybackScaling::kBalanced) options.emplace_back(option.name, option.value);
+    }
     auto* player = NewPlayer(options, window);
     if (!player) { Report("resource engine initialization", false); DestroyWindow(window); return; }
     if (g_resourceOptionsOnly) {

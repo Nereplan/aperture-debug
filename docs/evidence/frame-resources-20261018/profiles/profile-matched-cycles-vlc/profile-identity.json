@@ -1,0 +1,43 @@
+{
+  "createdUtc": "2026-10-18T05:59:38.7840443Z",
+  "pid": 25912,
+  "runtime": "C:\\Program Files\\VideoLAN\\VLC",
+  "executableSha256": "BFA5740F028A8F310CA01C779BBC5F2F1B435C41539C54DE592F715BB0C10389",
+  "mediaSha256": "86C249A196158CA2479BB9DD6E0045F24CBCBD2E04A80A41E37C2F6B78F70E68",
+  "privateBytes": 157802496,
+  "workingSetBytes": 156749824,
+  "player": "VLC",
+  "windowDimensions": [
+    1296,
+    832
+  ],
+  "arguments": [
+    "--intf=qt",
+    "--ignore-config",
+    "--no-one-instance",
+    "--no-one-instance-when-started-from-file",
+    "--no-media-library",
+    "--no-metadata-network-access",
+    "--no-qt-privacy-ask",
+    "--no-qt-updates-notif",
+    "--no-qt-recentplay",
+    "--qt-continue=0",
+    "--no-qt-video-autoresize",
+    "--vout=direct3d11",
+    "--avcodec-hw=d3d11va",
+    "--d3d11-upscale-mode=linear",
+    "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\h264-1080p30-audio.mp4"
+  ],
+  "stateOnly": false,
+  "cpuOnly": true,
+  "returnedToHub": false,
+  "experimentalWaitPolicy": null,
+  "videoCanvas": {
+    "handle": 8324904,
+    "className": "VLC video main 000001A6C3273180",
+    "clientWidth": 1280,
+    "clientHeight": 720,
+    "dpi": 96
+  },
+  "note": "Diagnostic run with a fresh portable profile; requested geometry is retained. Raw thread cycles are not a portable duration. Stack mode suspends; CPU/state modes do not. Not a ranking or output-equivalence check."
+}

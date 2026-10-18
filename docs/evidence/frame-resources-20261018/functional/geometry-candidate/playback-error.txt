@@ -1,0 +1,2 @@
+APERTURE_BACKBUFFER_CACHE {"created":10,"reuses":41}
+APERTURE_VERTEX_CACHE {"uploads":223,"reuses":54}

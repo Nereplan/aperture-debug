@@ -740,6 +740,7 @@ static void Scenario_Startup(const std::string& media, int iters) {
 }
 
 #include "playback_resource_probe.h"
+#include "playback_geometry.h"
 
 int main(int argc, char** argv) {
     std::string dll, media, scenario = "all";
@@ -771,7 +772,7 @@ int main(int argc, char** argv) {
         else if (!strcmp(argv[i], "--capture-window") && i + 1 < argc) g_resourceCapture = argv[++i];
     }
     if (g_resourceSampleSeconds < 1 || g_resourceSampleSeconds > 120 ||
-        (g_resourceScaling != "default" && g_resourceScaling != "linear") ||
+        (g_resourceScaling != "default" && g_resourceScaling != "linear" && g_resourceScaling != "balanced") ||
         (!g_resourceSyncInterval.empty() && g_resourceSyncInterval != "0" && g_resourceSyncInterval != "1") ||
         (!g_resourceHwdecThreads.empty() && g_resourceHwdecThreads != "1" && g_resourceHwdecThreads != "2" && g_resourceHwdecThreads != "4") ||
         (!g_resourceZeroCopy.empty() && g_resourceZeroCopy != "yes" && g_resourceZeroCopy != "no") ||
@@ -843,6 +844,7 @@ int main(int argc, char** argv) {
         if (all || scenario == "controls") Scenario_SeekPauseSpeed(media);
         if (all || scenario == "subs") Scenario_Subtitles(media);
         if (all || scenario == "screenshot") Scenario_Screenshot(media);
+        if (all || scenario == "geometry") Scenario_Geometry(media);
         if (all || scenario == "swrender") Scenario_SoftwareRender(media);
         if (all || scenario == "audio") Scenario_AudioFeatures(media);
         if (scenario == "all" || scenario == "bench") Scenario_DecodeBench(media, swWall, swCpu, hwWall, hwCpu, drops);

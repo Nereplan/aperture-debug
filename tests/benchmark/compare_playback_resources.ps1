@@ -6,7 +6,7 @@ param(
     [Parameter(Mandatory)][string]$MediaDir,
     [Parameter(Mandatory)][string]$OutputDir,
     [string]$MediaFile = 'h264_aac_720p.mp4',
-    [ValidateSet('Renderer','LinearRenderers','Pacing','Transfers','HardwareThreads','FreeHeapCaches','EagerFlush','GpuTimers','Backbuffer','Presentation','TimerPolicy','RoundedTimerPolicy','LazyTables','Scaling','WaitRounding','VideoViews','DrawOverhead','DrawSubmission')][string]$Experiment = 'Renderer',
+    [ValidateSet('Renderer','LinearRenderers','QualityScaling','Pacing','Transfers','HardwareThreads','FreeHeapCaches','EagerFlush','GpuTimers','Backbuffer','Presentation','TimerPolicy','RoundedTimerPolicy','LazyTables','Scaling','WaitRounding','VideoViews','DrawOverhead','DrawSubmission')][string]$Experiment = 'Renderer',
     [switch]$WithAudio,
     [ValidateRange(1,15)][int]$Iterations = 3,
     [ValidateRange(0,5)][int]$WarmupIterations = 1,
@@ -35,6 +35,13 @@ if ($Experiment -eq 'LinearRenderers') {
     if (-not [Text.Encoding]::ASCII.GetString([IO.File]::ReadAllBytes($CandidateDll)).Contains('APERTURE_TEST_ROUND_WAITS')) { throw 'LinearRenderers requires the marked experimental DLL.' }
     $variants = @('gpu','gpu-next' | ForEach-Object {
         @{name="linear-$_"; dll=$CandidateDll; renderer=$_; sync='audio'; threads='0'; hwthreads='1'; scaling='linear'; waitPolicy='min1'}
+    })
+}
+if ($Experiment -eq 'QualityScaling') {
+    $dllText = [Text.Encoding]::ASCII.GetString([IO.File]::ReadAllBytes($CandidateDll))
+    foreach ($marker in @('APERTURE_TEST_CACHE_BACKBUFFER','APERTURE_TEST_NO_GPU_TIMERS','APERTURE_TEST_REUSE_VERTICES','APERTURE_TEST_ROUND_WAITS')) { if (-not $dllText.Contains($marker)) { throw 'QualityScaling requires the marked experimental DLL.' } }
+    $variants = @('default','balanced','linear' | ForEach-Object {
+        @{name="quality-$_"; dll=$CandidateDll; renderer='gpu'; sync='audio'; threads='0'; hwthreads='1'; scaling=$_; waitPolicy='min1'; cacheBackbuffer=$true; noTimers=$true; reuseVertices=$true}
     })
 }
 if ($Experiment -eq 'Pacing') {
@@ -225,6 +232,10 @@ for ($round=0; $round -lt ($WarmupIterations+$Iterations); $round++) {
                 foreach ($name in @('scale','dscale','cscale')) { if ($sample.render_options.$name -ne 'bilinear') { throw "Requested bilinear option did not apply: $name" } }
                 foreach ($name in @('linear-downscaling','correct-downscaling','sigmoid-upscaling')) { if ($sample.render_options.$name -ne 'no') { throw "Requested scaling option did not apply: $name" } }
             }
+            if ($variant.scaling -eq 'balanced') {
+                $expected = @{scale='lanczos';dscale='hermite';cscale='bilinear';'linear-downscaling'='no';'correct-downscaling'='yes';'sigmoid-upscaling'='no'}
+                foreach ($name in $expected.Keys) { if ($sample.render_options.$name -ne $expected[$name]) { throw "Requested balanced option did not apply: $name" } }
+            }
         }
         if ($MemoryLayout) {
             $layoutMatch = [regex]::Match($log, '(?m)^HEAP_LAYOUT (.+)$')
@@ -243,7 +254,10 @@ for ($round=0; $round -lt ($WarmupIterations+$Iterations); $round++) {
         }
         if ($variant.reuseVertices) {
             $vertexStats = @([regex]::Matches($errorLog, '(?m)^APERTURE_VERTEX_CACHE (.+)$') | ForEach-Object { $_.Groups[1].Value | ConvertFrom-Json })
-            if (-not $vertexStats.Count -or ($vertexStats | Measure-Object reuses -Sum).Sum -lt 1) { throw "Vertex cache did not execute: $run" }
+            if (-not $vertexStats.Count -or ($vertexStats | Measure-Object uploads -Sum).Sum -lt 1) { throw "Vertex cache was not observed: $run" }
+            # A multi-pass quality scaler can change geometry every draw and
+            # legitimately get zero hits. Linear screens require actual reuse.
+            if ($variant.scaling -eq 'linear' -and ($vertexStats | Measure-Object reuses -Sum).Sum -lt 1) { throw "Linear vertex reuse did not execute: $run" }
             $sample | Add-Member vertex_cache_stats $vertexStats
         }
         if ($Experiment -eq 'DrawSubmission' -and $variant.cacheBackbuffer) {

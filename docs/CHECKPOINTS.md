@@ -61,12 +61,16 @@ Historical commits, exact times and hardware identities were sometimes incomplet
 New player comparisons can match the actual video canvas with `compare_players.ps1
 -VideoWidth 1280 -VideoHeight 720 -ForceD3D11Linear`. Keep the returned child-window
 sizes/DPI and rendering controls. Outer windows may differ because player chrome
-occupies different areas. The explicit app profile in `src/PlaybackScaling.h`
-uses bilinear luma/chroma scaling and disables linear/correct downscaling and
-sigmoid upscaling. The prior native mpv filters remain available through custom
+occupies different areas. The recorded `kLinear` comparison profile in
+`src/PlaybackScaling.h` uses bilinear scaling throughout. It is a performance
+profile with a picture-quality tradeoff, especially on fine detail and larger
+scale changes. The app's balanced candidate retains Lanczos upscaling, Hermite
+downscaling and correct downsampling, uses bilinear chroma, and disables the
+extra linear-light/sigmoid passes. Do not present the earlier all-linear results
+as measurements of the balanced candidate. The full native filters remain available through custom
 MPV settings (`scale=lanczos`, `dscale=hermite`, `cscale=lanczos`,
 `linear-downscaling=yes`, `correct-downscaling=yes`, `sigmoid-upscaling=yes`).
-Different filter profiles belong in separate protocols; matched options alone
+Different filter profiles belong in separate protocols/workloads; matched options alone
 do not establish identical decoder/output pixels.
 
 Preserve both sampled `cpuSeconds` and raw `cpuCycles`. Periodic short work can

@@ -1,0 +1,13 @@
+{
+  "experimentalOnly": true,
+  "applied": true,
+  "flag": "APERTURE_TEST_CACHE_VIDEO_VIEWS",
+  "beforeSha256": "008dcaa2e66b6b11d7a57641fb37310062c269bfdcc393ccab10f1d102055c09",
+  "afterSha256": "ef8c78f7e95b286b385b783e83facc18fb5d3844c090bf6de53b8a843e07748e",
+  "hypothesis": "Official zero-copy mapping currently creates/frees plane views each frame. A bounded per-array-slice cache may remove that cost and the separate frame copy. Requires resource, cache-hit, picture, seek/pool-change and functional tests before adoption.",
+  "baseDllSha256": "0a0502ab283bafa5dcb4e3a355aa04e9b239df3a9a56fb6bb6745437c55a9299",
+  "additionalSourcePatches": [
+    "wait-rounding-experiment/experiment.patch"
+  ],
+  "limits": "Experimental MPV patches are additional to the normal recipe provenance. Default cache disabled; only explicit flag plus zero-copy enables it."
+}

@@ -76,6 +76,7 @@ git diff --check</pre>
     <h2>One current VLC reference</h2>
     <p>The timeline connects dated Aperture observations; VLC is a single fixed benchmark from the latest recorded version. Its newest available matching metric/workload/environment measurement is used across the history, with the actual reference date preserved. Older VLC runs stay in the evidence and never become a second timeline. Add new <code>references</code> entries with player, version, measuredAt and results. Optional result <code>reference</code> links preserve original same-session provenance and must still match all conditions. Never present an old run as newly measured. Internal benchmarks without a VLC equivalent remain empty.</p>
     <h2>Units & comparison rules</h2>
+    <p>Record effective scaling options. Historical all-linear playback measurements use a faster picture-processing profile; they do not establish equal quality or predict the balanced app candidate. The balanced candidate keeps Lanczos/Hermite luma scaling and downsampling antialiasing, with bilinear chroma and no extra linear-light/sigmoid passes. Give different filter profiles separate protocol/workload identities.</p>
     <ul><li>All graph values use the metric definition's unit. <strong>MiB = 1,048,576 bytes.</strong> Recorded CPU values and history graphs use percent of one logical processor, so values may exceed 100. When the environment records its logical-processor count, the CPU summary card divides by that count and labels the result total capacity; its difference from VLC is in percentage points (pp). The original per-processor values remain in Measurements and the history. A +501% relative ratio is approximately 0.92% vs 0.15% of a 24-processor machine, not 501% total CPU. Counters for requested C++ heap bytes are separate from process private bytes and working set.</li><li>Delta is <code>(current − baseline) / baseline × 100</code>. Lower-is-better decreases are green; increases are red. These colors describe measured differences, not proof of a causal regression. Read run ranges and measurement reviews before attributing changes to code. A zero baseline produces no percentage; a missing value is never converted to zero.</li><li>Visible-window latency, GPU-shell latency, engine readiness and first video frame are different endpoints. Do not merge them. Runtime files are logical supplied bytes, not compressed download size.</li><li>Use <code>value: null</code> with <code>missingReason</code> for unavailable counters. Unknown sample counts need <code>samplingNote</code>. Keep failed verification out of successful playback measurements and record it in tests/notes.</li><li>Timeline stops follow measurement-date order with categorical checkpoint spacing, not invented elapsed times. The resource-map arrows follow the same chronological order. <strong>Cuts</strong> compresses empty numeric ranges and marks each omitted interval with an axis break; units remain linear within retained bands. Cuts apply to both resource axes and the timeline value axis. Linear and log modes remain available.</li><li>Reuse strict metric/protocol/workload/environment identities for a continuing series. A declared <code>historySeries</code> may join documented historical protocols only: define its label, method, exact workload and allowed protocols; assign its ID to each result. Metrics remain separate. Preserve differences in sampling or machine identity in provenance. The empty-profile startup group includes seven recordings; its first is a single sample and later gates use five-run medians. Per-result <code>measuredAt</code> can preserve an exact capture time.</li></ul>
     <h2>Reproduce the measurements</h2>
     <p>For matched player runs, use <code>-VideoWidth 1280 -VideoHeight 720 -ForceD3D11Linear</code> and retain child-window dimensions/DPI and effective scaling settings. Equal outer windows do not imply equal video areas. Keep raw CPU time and cycle counters. A cycle-derived CPU estimate requires a supported result from <code>calibrate_cpu_cycles.cpp</code> on the same CPU/boot: invariant TSC, stable measured rate and busy-counter validation. Record the calibration, label the value as a hardware-specific estimate and use a separate protocol. Never substitute advertised MHz or rewrite historical CPU measurements.</p>
@@ -95,7 +96,7 @@ git diff --check</pre>
 <script id="checkpoint-data" type="application/json">
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-10-18T05:42:18+00:00",
+  "updatedAt": "2026-10-18T06:28:44+00:00",
   "metrics": {
     "visible-ms": {
       "label": "Visible window",
@@ -997,6 +998,109 @@ git diff --check</pre>
           "runRange": {
             "min": 118.45703125,
             "max": 118.45703125,
+            "runs": 3,
+            "scope": "Three measured per-run values, one discarded warmup. Memory is the median of seven snapshots per run; CPU is the calibrated cycle delta over each ~30-second window."
+          }
+        }
+      ]
+    },
+    "vlc-20261018-frame-resources": {
+      "player": "VLC",
+      "version": "3.0.23",
+      "measuredAt": "2026-10-18T06:24:32.7828023Z",
+      "results": [
+        {
+          "metric": "visible-ms",
+          "protocol": "playback-linear-canvas-tsc-30s-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "1080p30 H.264 + AAC stereo / 1280x720 video canvas / bilinear / D3D11VA",
+          "session": "frame-resources-20261018",
+          "value": 1909.2218,
+          "samples": 3,
+          "evidence": "docs/evidence/frame-resources-20261018/review.json",
+          "runRange": {
+            "min": 1871.6469,
+            "max": 1919.0297,
+            "runs": 3,
+            "scope": "Three measured per-run values, one discarded warmup. Memory is the median of seven snapshots per run; CPU is the calibrated cycle delta over each ~30-second window."
+          }
+        },
+        {
+          "metric": "private-mib",
+          "protocol": "playback-linear-canvas-tsc-30s-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "1080p30 H.264 + AAC stereo / 1280x720 video canvas / bilinear / D3D11VA",
+          "session": "frame-resources-20261018",
+          "value": 150.75,
+          "samples": 3,
+          "evidence": "docs/evidence/frame-resources-20261018/review.json",
+          "runRange": {
+            "min": 150.45703125,
+            "max": 153.6796875,
+            "runs": 3,
+            "scope": "Three measured per-run values, one discarded warmup. Memory is the median of seven snapshots per run; CPU is the calibrated cycle delta over each ~30-second window."
+          }
+        },
+        {
+          "metric": "cpu-core",
+          "protocol": "playback-linear-canvas-tsc-30s-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "1080p30 H.264 + AAC stereo / 1280x720 video canvas / bilinear / D3D11VA",
+          "session": "frame-resources-20261018",
+          "value": 6.288646711357155,
+          "samples": 3,
+          "evidence": "docs/evidence/frame-resources-20261018/review.json",
+          "runRange": {
+            "min": 6.146398894872722,
+            "max": 6.296123247035612,
+            "runs": 3,
+            "scope": "Three measured per-run values, one discarded warmup. Memory is the median of seven snapshots per run; CPU is the calibrated cycle delta over each ~30-second window."
+          }
+        },
+        {
+          "metric": "runtime-mib",
+          "protocol": "playback-linear-canvas-tsc-30s-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "1080p30 H.264 + AAC stereo / 1280x720 video canvas / bilinear / D3D11VA",
+          "session": "frame-resources-20261018",
+          "value": 182.99101448059082,
+          "samples": 3,
+          "evidence": "docs/evidence/frame-resources-20261018/review.json",
+          "runRange": {
+            "min": 182.99101448059082,
+            "max": 182.99101448059082,
+            "runs": 3,
+            "scope": "Three measured per-run values, one discarded warmup. Memory is the median of seven snapshots per run; CPU is the calibrated cycle delta over each ~30-second window."
+          }
+        },
+        {
+          "metric": "working-set-mib",
+          "protocol": "playback-linear-canvas-tsc-30s-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "1080p30 H.264 + AAC stereo / 1280x720 video canvas / bilinear / D3D11VA",
+          "session": "frame-resources-20261018",
+          "value": 148.73828125,
+          "samples": 3,
+          "evidence": "docs/evidence/frame-resources-20261018/review.json",
+          "runRange": {
+            "min": 148.3984375,
+            "max": 148.796875,
+            "runs": 3,
+            "scope": "Three measured per-run values, one discarded warmup. Memory is the median of seven snapshots per run; CPU is the calibrated cycle delta over each ~30-second window."
+          }
+        },
+        {
+          "metric": "gpu-mib",
+          "protocol": "playback-linear-canvas-tsc-30s-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "1080p30 H.264 + AAC stereo / 1280x720 video canvas / bilinear / D3D11VA",
+          "session": "frame-resources-20261018",
+          "value": 118.4609375,
+          "samples": 3,
+          "evidence": "docs/evidence/frame-resources-20261018/review.json",
+          "runRange": {
+            "min": 118.45703125,
+            "max": 118.4609375,
             "runs": 3,
             "scope": "Three measured per-run values, one discarded warmup. Memory is the median of seven snapshots per run; CPU is the calibrated cycle delta over each ~30-second window."
           }
@@ -13697,6 +13801,288 @@ git diff --check</pre>
           "durationSeconds": null,
           "evidence": "docs/evidence/matched-linear-20261018/wait-fix/functional/playback.txt",
           "scope": "Separate native library functional checks with min1 enabled, not 59 independent full-player performance tests."
+        }
+      ]
+    },
+    {
+      "id": "frame-resources-20261018-cache",
+      "label": "Reuse D3D11 backbuffer",
+      "measuredAt": "2026-10-18T06:24:32.7828023Z",
+      "commit": "0f87b983641a73f928ba0bb9d229c246663a9e1d",
+      "dirty": true,
+      "sourceNote": "App EXE e14445c32f99209a0ec9e5abda077c5ded6126ea793375845a7ca2b18f25b44e, same as preceding matched-video batch. Experimental DLL b1291603c6cb6d890e55a71e11b4b8bbe1b66750f920e1a15bf83dc1814f018e. Exact source patch chain, flags and pinned source identities retained in evidence. Root bundled DLL unchanged; batch time shared because runs interleaved.",
+      "notes": "1280x720 actual video canvases at 96 DPI, bilinear/D3D11VA, H2641080p30 + AAC, fresh profiles, one warmup and three measured rounds. Combined candidate median calibrated CPU is about 0.3% below VLC, with overlapping ranges: practical parity, not a reliable CPU or overall win. Cache-only remains above VLC. Private/resident/GPU memory and visible-window startup are retained separately. The later app idle-loop build is excluded. Later quality review: the all-linear preset can visibly soften enlarged fine detail. The app candidate now keeps Lanczos/Hermite luma scaling and correct downsampling, trading some savings for quality. These recorded all-linear numbers are unchanged and do not measure that balanced preset; see docs/evidence/quality-scaling-20261018/review.json.",
+      "results": [
+        {
+          "metric": "visible-ms",
+          "protocol": "playback-linear-canvas-tsc-30s-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "1080p30 H.264 + AAC stereo / 1280x720 video canvas / bilinear / D3D11VA",
+          "session": "frame-resources-20261018",
+          "value": 128.1499,
+          "samples": 3,
+          "evidence": "docs/evidence/frame-resources-20261018/review.json",
+          "runRange": {
+            "min": 123.1657,
+            "max": 133.2376,
+            "runs": 3,
+            "scope": "Three measured per-run values, one discarded warmup. Memory is the median of seven snapshots per run; CPU is the calibrated cycle delta over each ~30-second window."
+          },
+          "reference": "vlc-20261018-frame-resources"
+        },
+        {
+          "metric": "private-mib",
+          "protocol": "playback-linear-canvas-tsc-30s-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "1080p30 H.264 + AAC stereo / 1280x720 video canvas / bilinear / D3D11VA",
+          "session": "frame-resources-20261018",
+          "value": 145.484375,
+          "samples": 3,
+          "evidence": "docs/evidence/frame-resources-20261018/review.json",
+          "runRange": {
+            "min": 145.3984375,
+            "max": 147.03515625,
+            "runs": 3,
+            "scope": "Three measured per-run values, one discarded warmup. Memory is the median of seven snapshots per run; CPU is the calibrated cycle delta over each ~30-second window."
+          },
+          "reference": "vlc-20261018-frame-resources"
+        },
+        {
+          "metric": "cpu-core",
+          "protocol": "playback-linear-canvas-tsc-30s-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "1080p30 H.264 + AAC stereo / 1280x720 video canvas / bilinear / D3D11VA",
+          "session": "frame-resources-20261018",
+          "value": 6.496725538747543,
+          "samples": 3,
+          "evidence": "docs/evidence/frame-resources-20261018/review.json",
+          "runRange": {
+            "min": 6.490742350750635,
+            "max": 6.531491902119808,
+            "runs": 3,
+            "scope": "Three measured per-run values, one discarded warmup. Memory is the median of seven snapshots per run; CPU is the calibrated cycle delta over each ~30-second window."
+          },
+          "reference": "vlc-20261018-frame-resources"
+        },
+        {
+          "metric": "runtime-mib",
+          "protocol": "playback-linear-canvas-tsc-30s-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "1080p30 H.264 + AAC stereo / 1280x720 video canvas / bilinear / D3D11VA",
+          "session": "frame-resources-20261018",
+          "value": 27.84386157989502,
+          "samples": 3,
+          "evidence": "docs/evidence/frame-resources-20261018/review.json",
+          "runRange": {
+            "min": 27.84386157989502,
+            "max": 27.84386157989502,
+            "runs": 3,
+            "scope": "Three measured per-run values, one discarded warmup. Memory is the median of seven snapshots per run; CPU is the calibrated cycle delta over each ~30-second window."
+          },
+          "reference": "vlc-20261018-frame-resources"
+        },
+        {
+          "metric": "working-set-mib",
+          "protocol": "playback-linear-canvas-tsc-30s-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "1080p30 H.264 + AAC stereo / 1280x720 video canvas / bilinear / D3D11VA",
+          "session": "frame-resources-20261018",
+          "value": 140.359375,
+          "samples": 3,
+          "evidence": "docs/evidence/frame-resources-20261018/review.json",
+          "runRange": {
+            "min": 140.09375,
+            "max": 140.3828125,
+            "runs": 3,
+            "scope": "Three measured per-run values, one discarded warmup. Memory is the median of seven snapshots per run; CPU is the calibrated cycle delta over each ~30-second window."
+          },
+          "reference": "vlc-20261018-frame-resources"
+        },
+        {
+          "metric": "gpu-mib",
+          "protocol": "playback-linear-canvas-tsc-30s-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "1080p30 H.264 + AAC stereo / 1280x720 video canvas / bilinear / D3D11VA",
+          "session": "frame-resources-20261018",
+          "value": 94.4921875,
+          "samples": 3,
+          "evidence": "docs/evidence/frame-resources-20261018/review.json",
+          "runRange": {
+            "min": 94.4921875,
+            "max": 94.4921875,
+            "runs": 3,
+            "scope": "Three measured per-run values, one discarded warmup. Memory is the median of seven snapshots per run; CPU is the calibrated cycle delta over each ~30-second window."
+          },
+          "reference": "vlc-20261018-frame-resources"
+        }
+      ],
+      "tests": [
+        {
+          "name": "Advancing playback / matched video canvas",
+          "status": "pass",
+          "passed": 4,
+          "total": 4,
+          "durationSeconds": null,
+          "evidence": "docs/evidence/frame-resources-20261018/comparison.json"
+        },
+        {
+          "name": "Combined guarded library functional playback",
+          "status": "pass",
+          "passed": 59,
+          "total": 59,
+          "durationSeconds": null,
+          "evidence": "docs/evidence/frame-resources-20261018/functional/combined-functional/playback.txt",
+          "scope": "All guarded cache/timing/vertex flags enabled; not 59 independent performance runs."
+        },
+        {
+          "name": "Candidate geometry / reconfiguration",
+          "status": "pass",
+          "passed": 15,
+          "total": 15,
+          "durationSeconds": null,
+          "evidence": "docs/evidence/frame-resources-20261018/functional/geometry-candidate/playback.txt",
+          "scope": "Same native combined flags. Original also passed; five paused PNG captures identical."
+        }
+      ]
+    },
+    {
+      "id": "frame-resources-20261018-combined",
+      "label": "Reuse frame resources / skip GPU timing",
+      "measuredAt": "2026-10-18T06:24:32.7828023Z",
+      "commit": "0f87b983641a73f928ba0bb9d229c246663a9e1d",
+      "dirty": true,
+      "sourceNote": "App EXE e14445c32f99209a0ec9e5abda077c5ded6126ea793375845a7ca2b18f25b44e, same as preceding matched-video batch. Experimental DLL b1291603c6cb6d890e55a71e11b4b8bbe1b66750f920e1a15bf83dc1814f018e. Exact source patch chain, flags and pinned source identities retained in evidence. Root bundled DLL unchanged; batch time shared because runs interleaved.",
+      "notes": "1280x720 actual video canvases at 96 DPI, bilinear/D3D11VA, H2641080p30 + AAC, fresh profiles, one warmup and three measured rounds. Combined candidate median calibrated CPU is about 0.3% below VLC, with overlapping ranges: practical parity, not a reliable CPU or overall win. Cache-only remains above VLC. Private/resident/GPU memory and visible-window startup are retained separately. The later app idle-loop build is excluded. Later quality review: the all-linear preset can visibly soften enlarged fine detail. The app candidate now keeps Lanczos/Hermite luma scaling and correct downsampling, trading some savings for quality. These recorded all-linear numbers are unchanged and do not measure that balanced preset; see docs/evidence/quality-scaling-20261018/review.json.",
+      "results": [
+        {
+          "metric": "visible-ms",
+          "protocol": "playback-linear-canvas-tsc-30s-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "1080p30 H.264 + AAC stereo / 1280x720 video canvas / bilinear / D3D11VA",
+          "session": "frame-resources-20261018",
+          "value": 130.4808,
+          "samples": 3,
+          "evidence": "docs/evidence/frame-resources-20261018/review.json",
+          "runRange": {
+            "min": 126.0296,
+            "max": 131.6684,
+            "runs": 3,
+            "scope": "Three measured per-run values, one discarded warmup. Memory is the median of seven snapshots per run; CPU is the calibrated cycle delta over each ~30-second window."
+          },
+          "reference": "vlc-20261018-frame-resources"
+        },
+        {
+          "metric": "private-mib",
+          "protocol": "playback-linear-canvas-tsc-30s-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "1080p30 H.264 + AAC stereo / 1280x720 video canvas / bilinear / D3D11VA",
+          "session": "frame-resources-20261018",
+          "value": 146.1015625,
+          "samples": 3,
+          "evidence": "docs/evidence/frame-resources-20261018/review.json",
+          "runRange": {
+            "min": 145.9140625,
+            "max": 146.39453125,
+            "runs": 3,
+            "scope": "Three measured per-run values, one discarded warmup. Memory is the median of seven snapshots per run; CPU is the calibrated cycle delta over each ~30-second window."
+          },
+          "reference": "vlc-20261018-frame-resources"
+        },
+        {
+          "metric": "cpu-core",
+          "protocol": "playback-linear-canvas-tsc-30s-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "1080p30 H.264 + AAC stereo / 1280x720 video canvas / bilinear / D3D11VA",
+          "session": "frame-resources-20261018",
+          "value": 6.270627611943837,
+          "samples": 3,
+          "evidence": "docs/evidence/frame-resources-20261018/review.json",
+          "runRange": {
+            "min": 6.2413597511856524,
+            "max": 6.274997002624029,
+            "runs": 3,
+            "scope": "Three measured per-run values, one discarded warmup. Memory is the median of seven snapshots per run; CPU is the calibrated cycle delta over each ~30-second window."
+          },
+          "reference": "vlc-20261018-frame-resources"
+        },
+        {
+          "metric": "runtime-mib",
+          "protocol": "playback-linear-canvas-tsc-30s-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "1080p30 H.264 + AAC stereo / 1280x720 video canvas / bilinear / D3D11VA",
+          "session": "frame-resources-20261018",
+          "value": 27.84386157989502,
+          "samples": 3,
+          "evidence": "docs/evidence/frame-resources-20261018/review.json",
+          "runRange": {
+            "min": 27.84386157989502,
+            "max": 27.84386157989502,
+            "runs": 3,
+            "scope": "Three measured per-run values, one discarded warmup. Memory is the median of seven snapshots per run; CPU is the calibrated cycle delta over each ~30-second window."
+          },
+          "reference": "vlc-20261018-frame-resources"
+        },
+        {
+          "metric": "working-set-mib",
+          "protocol": "playback-linear-canvas-tsc-30s-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "1080p30 H.264 + AAC stereo / 1280x720 video canvas / bilinear / D3D11VA",
+          "session": "frame-resources-20261018",
+          "value": 139.69921875,
+          "samples": 3,
+          "evidence": "docs/evidence/frame-resources-20261018/review.json",
+          "runRange": {
+            "min": 139.671875,
+            "max": 140.1171875,
+            "runs": 3,
+            "scope": "Three measured per-run values, one discarded warmup. Memory is the median of seven snapshots per run; CPU is the calibrated cycle delta over each ~30-second window."
+          },
+          "reference": "vlc-20261018-frame-resources"
+        },
+        {
+          "metric": "gpu-mib",
+          "protocol": "playback-linear-canvas-tsc-30s-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "1080p30 H.264 + AAC stereo / 1280x720 video canvas / bilinear / D3D11VA",
+          "session": "frame-resources-20261018",
+          "value": 94.4765625,
+          "samples": 3,
+          "evidence": "docs/evidence/frame-resources-20261018/review.json",
+          "runRange": {
+            "min": 94.4765625,
+            "max": 94.4921875,
+            "runs": 3,
+            "scope": "Three measured per-run values, one discarded warmup. Memory is the median of seven snapshots per run; CPU is the calibrated cycle delta over each ~30-second window."
+          },
+          "reference": "vlc-20261018-frame-resources"
+        }
+      ],
+      "tests": [
+        {
+          "name": "Advancing playback / matched video canvas",
+          "status": "pass",
+          "passed": 4,
+          "total": 4,
+          "durationSeconds": null,
+          "evidence": "docs/evidence/frame-resources-20261018/comparison.json"
+        },
+        {
+          "name": "Combined guarded library functional playback",
+          "status": "pass",
+          "passed": 59,
+          "total": 59,
+          "durationSeconds": null,
+          "evidence": "docs/evidence/frame-resources-20261018/functional/combined-functional/playback.txt",
+          "scope": "All guarded cache/timing/vertex flags enabled; not 59 independent performance runs."
+        },
+        {
+          "name": "Candidate geometry / reconfiguration",
+          "status": "pass",
+          "passed": 15,
+          "total": 15,
+          "durationSeconds": null,
+          "evidence": "docs/evidence/frame-resources-20261018/functional/geometry-candidate/playback.txt",
+          "scope": "Same native combined flags. Original also passed; five paused PNG captures identical."
         }
       ]
     }

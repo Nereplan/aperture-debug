@@ -1,0 +1,37 @@
+{
+  "createdUtc": "2026-10-18T06:14:56.893156+00:00",
+  "sourceCommit": "0f87b983641a73f928ba0bb9d229c246663a9e1d",
+  "dirty": true,
+  "variants": [
+    {
+      "id": "Aperture-cached-backbuffer",
+      "runtime": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\linear-draw-submit-runtime",
+      "environment": {
+        "APERTURE_TEST_ROUND_WAITS": "min1",
+        "APERTURE_TEST_CACHE_BACKBUFFER": "1"
+      }
+    },
+    {
+      "id": "Aperture-cached-no-timers-vertices",
+      "runtime": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\linear-draw-submit-runtime",
+      "environment": {
+        "APERTURE_TEST_ROUND_WAITS": "min1",
+        "APERTURE_TEST_CACHE_BACKBUFFER": "1",
+        "APERTURE_TEST_NO_GPU_TIMERS": "1",
+        "APERTURE_TEST_REUSE_VERTICES": "1"
+      }
+    }
+  ],
+  "files": {
+    "Aperture.exe": {
+      "bytes": 3432448,
+      "sha256": "e14445c32f99209a0ec9e5abda077c5ded6126ea793375845a7ca2b18f25b44e"
+    },
+    "libmpv-2.dll": {
+      "bytes": 24539648,
+      "sha256": "b1291603c6cb6d890e55a71e11b4b8bbe1b66750f920e1a15bf83dc1814f018e"
+    }
+  },
+  "mediaSha256": "86c249a196158ca2479bb9dd6e0045f24cbcbd2e04a80a41e37c2f6b78f70e68",
+  "sourceNote": "App unchanged from matched-linear inputs/source snapshot. Native baseline source pins + lazy FFT, guarded waits, guarded draw/submit patches retained in wait-rounding-experiment, draw-overhead-experiment and draw-submit-experiment. Explicit flush remains enabled. Root shipped DLL unchanged."
+}

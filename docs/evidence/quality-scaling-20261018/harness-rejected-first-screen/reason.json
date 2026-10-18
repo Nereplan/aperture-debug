@@ -1,0 +1,3 @@
+{
+  "reason": "Runner initially required positive vertex cache hits for every scaler. Multi-pass native/quality scalers legitimately upload different geometry and report zero hits. This was a harness assertion, not a player playback failure. The runner now requires counters/uploads and retains the positive-hit requirement for linear profiles. The complete comparison was rerun into a new directory."
+}

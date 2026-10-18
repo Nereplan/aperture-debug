@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "sources": [
+    {"name":"mpv","revision":"v0.41.0","url":"https://codeload.github.com/mpv-player/mpv/tar.gz/refs/tags/v0.41.0","sha256":"ee21092a5ee427353392360929dc64645c54479aefdb5babc5cfbb5fad626209","destination":"src/mpv"},
+    {"name":"ffmpeg","revision":"140fd653aed8cad774f991ba083e2d01e86420c7","url":"https://codeload.github.com/FFmpeg/FFmpeg/tar.gz/140fd653aed8cad774f991ba083e2d01e86420c7","sha256":"5c4a9e51e706b8deba835f02ea70e1e1101187f601adae72b36ec2b17b6f15be","destination":"src/ffmpeg"},
+    {"name":"libplacebo","revision":"cee9b076f2c63104ccfd497fa79c39a867293ec4","url":"https://codeload.github.com/haasn/libplacebo/tar.gz/cee9b076f2c63104ccfd497fa79c39a867293ec4","sha256":"6f8fa218cbafd8e5f50b8a82d918e1d8bbb92f9f980820bc0b34d92e9b79e484","destination":"src/libplacebo"},
+    {"name":"shaderc","revision":"v2026.3","url":"https://codeload.github.com/google/shaderc/tar.gz/refs/tags/v2026.3","sha256":"ee493ccf1b3038b4ef2fe024664c5eb2dc4bcc1f6b05b33e3909de0e19c81024","destination":"shader-src/shaderc"},
+    {"name":"glslang","revision":"16.3.0","url":"https://codeload.github.com/KhronosGroup/glslang/tar.gz/refs/tags/16.3.0","sha256":"efff5a15258dce1ca2d323bf64c974f5fca03778174615dbc30c8d36db645bf5","destination":"shader-src/shaderc/third_party/glslang"},
+    {"name":"spirv-tools","revision":"vulkan-sdk-1.4.357.0","url":"https://codeload.github.com/KhronosGroup/SPIRV-Tools/tar.gz/refs/tags/vulkan-sdk-1.4.357.0","sha256":"d31e7109b6ef3559067e53e520870eafed7c9534d00db9728814b6df03fa4a5e","destination":"shader-src/shaderc/third_party/spirv-tools"},
+    {"name":"spirv-headers","revision":"vulkan-sdk-1.4.357.0","url":"https://codeload.github.com/KhronosGroup/SPIRV-Headers/tar.gz/refs/tags/vulkan-sdk-1.4.357.0","sha256":"4d703067a7e06331ccb37bdfed3f9b7879cc61969a2689ae95c95db34a47ff07","destination":"shader-src/shaderc/third_party/spirv-headers"},
+    {"name":"spirv-cross","revision":"vulkan-sdk-1.4.357.0","url":"https://codeload.github.com/KhronosGroup/SPIRV-Cross/tar.gz/refs/tags/vulkan-sdk-1.4.357.0","sha256":"97c910326afdd44d794ce8561326fa675fd1958b27142f03295403044d639639","destination":"shader-src/spirv-cross"}
+  ]
+}

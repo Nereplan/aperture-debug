@@ -184,7 +184,7 @@ bool MpvPlayer::Initialize(HWND hParentWnd, HWND hChildVideoWnd) {
     // memory frame queue alongside the GPU decoder surfaces.
     SetMpvOption(mpv, "hwdec", "d3d11va", MpvOptionRequirement::Optional, "no");
     SetMpvOption(mpv, "vo", "gpu", MpvOptionRequirement::Essential);
-    for (const auto& option : PlaybackScaling::kLinear)
+    for (const auto& option : PlaybackScaling::kBalanced)
         SetMpvOption(mpv, option.name, option.value);
     // HEVC Main 10 frames are large (P010 is ~4 MiB at 1080p). mpv's default extra-surface cushion is unnecessary for this local player
     // and directly inflates both D3D11 video memory and mapped pages.

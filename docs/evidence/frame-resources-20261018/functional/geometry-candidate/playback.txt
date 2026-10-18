@@ -1,0 +1,24 @@
+Loaded module: C:\Users\Alperen\Desktop\Antigravity\Aperture Final\scratch\libmpv-tests\run-398e521ed8b24208a013e53fa441f051\libmpv-2.dll
+Loaded module path matches requested: YES
+[PASS] loaded DLL is the requested absolute path
+    mpv_client_api_version=0x20005 (2.5)
+[PASS] client api version >= 2.5
+[PASS] geometry playback starts
+[PASS] geometry paused exact seek settles
+[PASS] geometry paused 640x360
+[PASS] geometry paused 960x540
+[PASS] geometry portrait window 384x512
+[PASS] geometry restored 640x360
+[PASS] geometry rotate accepts
+[PASS] geometry rotated 480x640
+[PASS] geometry unrotate accepts
+[PASS] geometry resume advances
+[PASS] geometry playing 800x450
+    [END_FILE reason=2 error=none]
+    [log:ffmpeg/video] hevc: Unknown profile bitstream
+    [log:ffmpeg/video] hevc: Unknown profile bitstream
+    [log:ffmpeg/video] hevc: Unknown profile bitstream
+[PASS] geometry reconfigure H264 to HDR HEVC
+[PASS] geometry HDR reconfigure 640x360
+
+==== SUMMARY: 15 passed, 0 failed ====

@@ -1,0 +1,19 @@
+{
+  "experimentalOnly": true,
+  "files": {
+    "ra_d3d11.c": {
+      "beforeSha256": "1d3f807391e9816da4688b687d03216ee302a65ce7b6aaf3c9a5748c06fea1fc",
+      "afterSha256": "93b49b73b063935f5429b0a6d095f8f7229a1eccad95e3d79e10507a56c7af2f"
+    },
+    "context.c": {
+      "beforeSha256": "c29fc8e2bab12fc5ea730eb3572d50130a74af107ea41f71c577e80b6b306283",
+      "afterSha256": "df58bac67d5308f5426da8e0202013a8671df2328924538f68b86403807acddc"
+    }
+  },
+  "base": "Normal lazy FFT + guarded waits + guarded draw overhead; all new flags disabled by default.",
+  "references": [
+    "https://learn.microsoft.com/en-us/windows/win32/api/d3d11/nf-d3d11-id3d11devicecontext-flush",
+    "https://learn.microsoft.com/en-us/windows/win32/direct3ddxgi/d3d10-graphics-programming-guide-dxgi",
+    "https://learn.microsoft.com/en-us/windows/win32/api/dxgi/nf-dxgi-idxgiswapchain-resizebuffers"
+  ]
+}

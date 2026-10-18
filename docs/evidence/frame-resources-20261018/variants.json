@@ -1,0 +1,20 @@
+[
+  {
+    "id": "Aperture-cached-backbuffer",
+    "runtime": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\linear-draw-submit-runtime",
+    "environment": {
+      "APERTURE_TEST_ROUND_WAITS": "min1",
+      "APERTURE_TEST_CACHE_BACKBUFFER": "1"
+    }
+  },
+  {
+    "id": "Aperture-cached-no-timers-vertices",
+    "runtime": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\linear-draw-submit-runtime",
+    "environment": {
+      "APERTURE_TEST_ROUND_WAITS": "min1",
+      "APERTURE_TEST_CACHE_BACKBUFFER": "1",
+      "APERTURE_TEST_NO_GPU_TIMERS": "1",
+      "APERTURE_TEST_REUSE_VERTICES": "1"
+    }
+  }
+]

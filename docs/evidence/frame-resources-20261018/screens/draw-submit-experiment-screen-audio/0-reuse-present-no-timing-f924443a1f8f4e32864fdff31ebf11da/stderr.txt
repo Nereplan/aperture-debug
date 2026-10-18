@@ -1,0 +1,1 @@
+APERTURE_BACKBUFFER_CACHE {"created":2,"reuses":750}

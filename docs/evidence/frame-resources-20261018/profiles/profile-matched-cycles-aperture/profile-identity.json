@@ -1,0 +1,29 @@
+{
+  "createdUtc": "2026-10-18T05:58:51.5112294Z",
+  "pid": 27292,
+  "runtime": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\linear-fft-wait-runtime",
+  "executableSha256": "E14445C32F99209A0EC9E5ABDA077C5DED6126EA793375845A7CA2B18F25B44E",
+  "mediaSha256": "86C249A196158CA2479BB9DD6E0045F24CBCBD2E04A80A41E37C2F6B78F70E68",
+  "privateBytes": 154406912,
+  "workingSetBytes": 147410944,
+  "player": "Aperture",
+  "windowDimensions": [
+    1296,
+    759
+  ],
+  "arguments": [
+    "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\h264-1080p30-audio.mp4"
+  ],
+  "stateOnly": false,
+  "cpuOnly": true,
+  "returnedToHub": false,
+  "experimentalWaitPolicy": "min1",
+  "videoCanvas": {
+    "handle": 3804084,
+    "className": "mpv",
+    "clientWidth": 1280,
+    "clientHeight": 720,
+    "dpi": 96
+  },
+  "note": "Diagnostic run with a fresh portable profile; requested geometry is retained. Raw thread cycles are not a portable duration. Stack mode suspends; CPU/state modes do not. Not a ranking or output-equivalence check."
+}

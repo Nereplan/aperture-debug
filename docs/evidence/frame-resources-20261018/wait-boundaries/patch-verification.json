@@ -1,0 +1,20 @@
+{
+  "actualPinnedPatchApplied": true,
+  "idempotentCheckPassed": true,
+  "patch": {
+    "id": "mpv-windows-positive-wait-v1",
+    "sourceRoot": "src/mpv",
+    "patch": "mpv_windows_positive_wait.patch",
+    "patchSha256": "4ed936621f9446ec3cac6350e4a63c31a61390e42c5459bc5d78332257a4f95c",
+    "files": [
+      {
+        "path": "osdep/threads-win32.h",
+        "beforeSha256": "77d18858493e4d83bda4186d94611b361cb9bc14bb3b43132f0880a813265a62",
+        "afterSha256": "85859c791b532d364916acbcc7c6e7313531bd7c4186d16e33a84ec82f9b765d"
+      }
+    ]
+  },
+  "compiledHeaderSha256": "85859c791b532d364916acbcc7c6e7313531bd7c4186d16e33a84ec82f9b765d",
+  "originalResult": "Rejected positive 1ns wait because it polled with 0ms. Expected failure.",
+  "candidateResult": "12 timeout boundaries, success/error mapping and balanced timer cleanup passed."
+}

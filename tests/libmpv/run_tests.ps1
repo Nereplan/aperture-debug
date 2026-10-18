@@ -6,7 +6,7 @@
 param(
     [string]$DllPath = '',
     [string]$MediaDir = '',
-    [ValidateSet('all','functional','version','basics','controls','subs','screenshot','swrender','audio','hdr','bench','network','startup','url','resources')]
+    [ValidateSet('all','functional','version','basics','controls','subs','screenshot','geometry','swrender','audio','hdr','bench','network','startup','url','resources')]
     [string]$Scenario = 'functional',
     [string]$Url = '',
     [ValidateSet('gpu','gpu-next')][string]$Renderer = 'gpu',

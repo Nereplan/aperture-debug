@@ -1,0 +1,22 @@
+{
+  "recordedUtc": "2026-10-18T06:46:33.766118+00:00",
+  "sourceCommit": "aa4858942752c4f52f040a911f40e4ba71020266",
+  "dirty": true,
+  "appExeSha256": "14a908c33136881be24145df1201e043a7e9cf8806f67760fd9bff60ee429b0d",
+  "rootDllSha256": "11b37889e5103a1370509dcf5e5a9c389325c497552f522f45049dfba19f5c52",
+  "validation": {
+    "appBuild": "pass",
+    "localPrGate": {
+      "passed": 22,
+      "total": 22,
+      "durationSeconds": 474
+    },
+    "guardedNativeFunctional": {
+      "passed": 72,
+      "total": 72
+    },
+    "schemaChecks": 17,
+    "chartChecks": 13
+  },
+  "scope": "The balanced app and idle-loop changes were built; the gate used the current checked-in runtime inventory. Native frame-resource gains remain guarded experimental binaries. The subsequent AV1 hardware-decode recipe flag is unbuilt and is not covered by these validation results. No release, push or root DLL replacement."
+}

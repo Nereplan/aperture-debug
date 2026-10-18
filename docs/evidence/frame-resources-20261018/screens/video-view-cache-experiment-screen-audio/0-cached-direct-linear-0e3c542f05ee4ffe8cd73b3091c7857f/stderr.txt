@@ -1,0 +1,1 @@
+APERTURE_VIDEO_VIEWS {"hits":745,"created_views":12,"texture_changes":1}

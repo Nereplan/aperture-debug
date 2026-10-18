@@ -1,0 +1,221 @@
+{
+  "recordedUtc": "2026-10-18T06:40:05.717908+00:00",
+  "status": "Balanced candidate selected; not an identical-quality or broad performance-win claim.",
+  "userConstraint": "Avoid a significant visible quality sacrifice just to match VLC. Use a solid middle ground if needed.",
+  "decision": "Keep Lanczos upscaling and Hermite downscaling plus correct-downscaling. Use bilinear chroma and disable additional linear-light/sigmoid passes. Retain the all-linear profile only for explicit comparisons. Full native filtering remains available through custom MPV settings.",
+  "rationale": "The pinned MPV manual describes bilinear as a low-quality fast profile and Lanczos as a quality/performance balance. Fixed-frame synthetic upscaling captures visibly soften fine patterns with all-linear scaling; the balanced profile retains the original luma filters. Linear-light and chroma changes can still alter the image, so equivalence is not claimed.",
+  "summary": {
+    "1080p-downscale": {
+      "quality-default": {
+        "privateMiB": 177.3984375,
+        "captureDimensions": [
+          1264,
+          761
+        ],
+        "captureSha256": "7FDAFBD0C8AC127C20D8F58555979FB325B4189C472F9FC0C1BC57001E4DC4CD",
+        "steadyDecoderDrops": 0,
+        "steadyPresentationDrops": 0,
+        "nativeCyclesPerSecond": 200111146.20626724,
+        "options": {
+          "scale": "lanczos",
+          "dscale": "hermite",
+          "cscale": "",
+          "linear-downscaling": "yes",
+          "correct-downscaling": "yes",
+          "sigmoid-upscaling": "yes",
+          "dither-depth": "auto",
+          "dither": "fruit",
+          "target-colorspace-hint": "auto"
+        }
+      },
+      "quality-balanced": {
+        "privateMiB": 150.53515625,
+        "captureDimensions": [
+          1264,
+          761
+        ],
+        "captureSha256": "68AFA819BC6327F0058C5B1F8F70BE8225A8E33DC347206F61567983E91190E5",
+        "steadyDecoderDrops": 0,
+        "steadyPresentationDrops": 0,
+        "nativeCyclesPerSecond": 197855001.33747876,
+        "options": {
+          "scale": "lanczos",
+          "dscale": "hermite",
+          "cscale": "bilinear",
+          "linear-downscaling": "no",
+          "correct-downscaling": "yes",
+          "sigmoid-upscaling": "no",
+          "dither-depth": "auto",
+          "dither": "fruit",
+          "target-colorspace-hint": "auto"
+        }
+      },
+      "quality-linear": {
+        "privateMiB": 120.32421875,
+        "captureDimensions": [
+          1264,
+          761
+        ],
+        "captureSha256": "2273B01C8A33682E03754ECD736204ABF84C3274D920C207FD6A2F429E9AB215",
+        "steadyDecoderDrops": 0,
+        "steadyPresentationDrops": 0,
+        "nativeCyclesPerSecond": 185459110.56816047,
+        "options": {
+          "scale": "bilinear",
+          "dscale": "bilinear",
+          "cscale": "bilinear",
+          "linear-downscaling": "no",
+          "correct-downscaling": "no",
+          "sigmoid-upscaling": "no",
+          "dither-depth": "auto",
+          "dither": "fruit",
+          "target-colorspace-hint": "auto"
+        }
+      }
+    },
+    "4k-downscale": {
+      "quality-default": {
+        "privateMiB": 399.390625,
+        "captureDimensions": [
+          1264,
+          761
+        ],
+        "captureSha256": "C87B273A79B2B3568E38F00D5FB30ACDB4218180B7B5031B9533E5AFDE97577E",
+        "steadyDecoderDrops": 0,
+        "steadyPresentationDrops": 0,
+        "nativeCyclesPerSecond": 374574546.5359024,
+        "options": {
+          "scale": "lanczos",
+          "dscale": "hermite",
+          "cscale": "",
+          "linear-downscaling": "yes",
+          "correct-downscaling": "yes",
+          "sigmoid-upscaling": "yes",
+          "dither-depth": "auto",
+          "dither": "fruit",
+          "target-colorspace-hint": "auto"
+        }
+      },
+      "quality-balanced": {
+        "privateMiB": 302.2578125,
+        "captureDimensions": [
+          1264,
+          761
+        ],
+        "captureSha256": "E919903586FCC1B163893A710E896E95042BA1184C65F5A7A4749815BDE6AF01",
+        "steadyDecoderDrops": 0,
+        "steadyPresentationDrops": 0,
+        "nativeCyclesPerSecond": 369418518.659135,
+        "options": {
+          "scale": "lanczos",
+          "dscale": "hermite",
+          "cscale": "bilinear",
+          "linear-downscaling": "no",
+          "correct-downscaling": "yes",
+          "sigmoid-upscaling": "no",
+          "dither-depth": "auto",
+          "dither": "fruit",
+          "target-colorspace-hint": "auto"
+        }
+      },
+      "quality-linear": {
+        "privateMiB": 212.24609375,
+        "captureDimensions": [
+          1264,
+          761
+        ],
+        "captureSha256": "8F665917536F2672FC1B0E0C34CEAC7C38A22CBEB56EB6CA68B5DA62DC43230E",
+        "steadyDecoderDrops": 0,
+        "steadyPresentationDrops": 0,
+        "nativeCyclesPerSecond": 364212721.8050001,
+        "options": {
+          "scale": "bilinear",
+          "dscale": "bilinear",
+          "cscale": "bilinear",
+          "linear-downscaling": "no",
+          "correct-downscaling": "no",
+          "sigmoid-upscaling": "no",
+          "dither-depth": "auto",
+          "dither": "fruit",
+          "target-colorspace-hint": "auto"
+        }
+      }
+    },
+    "360p-upscale": {
+      "quality-default": {
+        "privateMiB": 109.9375,
+        "captureDimensions": [
+          1264,
+          761
+        ],
+        "captureSha256": "3B8D7E617FAA2E1CC56F82C7E184260C32C26CBAD85D37655BC31A209F37DC74",
+        "steadyDecoderDrops": 0,
+        "steadyPresentationDrops": 0,
+        "nativeCyclesPerSecond": 198432985.04980835,
+        "options": {
+          "scale": "lanczos",
+          "dscale": "hermite",
+          "cscale": "",
+          "linear-downscaling": "yes",
+          "correct-downscaling": "yes",
+          "sigmoid-upscaling": "yes",
+          "dither-depth": "auto",
+          "dither": "fruit",
+          "target-colorspace-hint": "auto"
+        }
+      },
+      "quality-balanced": {
+        "privateMiB": 107.203125,
+        "captureDimensions": [
+          1264,
+          761
+        ],
+        "captureSha256": "F71671F6660E6B554B645A52EAAB585C4C99FD5B573FF020E2F0773563809974",
+        "steadyDecoderDrops": 0,
+        "steadyPresentationDrops": 0,
+        "nativeCyclesPerSecond": 195217341.5596134,
+        "options": {
+          "scale": "lanczos",
+          "dscale": "hermite",
+          "cscale": "bilinear",
+          "linear-downscaling": "no",
+          "correct-downscaling": "yes",
+          "sigmoid-upscaling": "no",
+          "dither-depth": "auto",
+          "dither": "fruit",
+          "target-colorspace-hint": "auto"
+        }
+      },
+      "quality-linear": {
+        "privateMiB": 98.3984375,
+        "captureDimensions": [
+          1264,
+          761
+        ],
+        "captureSha256": "32C4D4D5FA16A3B2AAC20FD6B4E7C62FB47A173DA222360AAFE0C74D32557F28",
+        "steadyDecoderDrops": 0,
+        "steadyPresentationDrops": 0,
+        "nativeCyclesPerSecond": 181198941.7552736,
+        "options": {
+          "scale": "bilinear",
+          "dscale": "bilinear",
+          "cscale": "bilinear",
+          "linear-downscaling": "no",
+          "correct-downscaling": "no",
+          "sigmoid-upscaling": "no",
+          "dither-depth": "auto",
+          "dither": "fruit",
+          "target-colorspace-hint": "auto"
+        }
+      }
+    }
+  },
+  "method": "One fresh native-engine run per profile/case, 10-second samples after five seconds settling, fixed 2-second paused window capture. Same guarded DLL, positive waits, cached backbuffer, disabled GPU timing and bounded vertex reuse in every profile. Effective options retained. PNG dimensions are 1264x761 including letterboxing; these are not the full-player 1280x720 protocol.",
+  "limits": [
+    "Synthetic material and one machine, not a broad subjective movie-quality study.",
+    "One-run resource screens do not establish a statistically reliable CPU ranking or VLC comparison.",
+    "Window capture is MPV rendered output, not a physical-display/power measurement.",
+    "The old all-linear checkpoint measurements remain unchanged and do not describe the balanced app candidate."
+  ],
+  "nativeDllSha256": "b1291603c6cb6d890e55a71e11b4b8bbe1b66750f920e1a15bf83dc1814f018e"
+}

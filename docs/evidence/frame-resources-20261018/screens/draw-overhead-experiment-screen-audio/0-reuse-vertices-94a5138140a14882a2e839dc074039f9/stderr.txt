@@ -1,0 +1,1 @@
+APERTURE_VERTEX_CACHE {"uploads":1,"reuses":751}

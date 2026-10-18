@@ -1,0 +1,11 @@
+{
+  "experimentalOnly": true,
+  "beforeSha256": "4c949f11d5c81cc6911382e01d03ea2943d5e9d8c65e8395ef5c08cc02fb95cd",
+  "afterSha256": "1d3f807391e9816da4688b687d03216ee302a65ce7b6aaf3c9a5748c06fea1fc",
+  "flags": [
+    "APERTURE_TEST_REUSE_VERTICES",
+    "APERTURE_TEST_NO_GPU_TIMERS"
+  ],
+  "base": "Normal FFT patch plus guarded Windows wait policies; rejected decoder-view cache restored to original.",
+  "bounds": "Only the last successful upload of at most 512 bytes is cached; every different upload invalidates it before buffer growth/discard/map. Reuse requires exact byte equality and retains no extra GPU buffer. GPU timers are a separate optional diagnostic-cost experiment."
+}

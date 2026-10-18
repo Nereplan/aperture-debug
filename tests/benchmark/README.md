@@ -199,3 +199,18 @@ timeout conversion with an intercepted Windows sleep boundary, verifying polling
 positive remainders, finite/infinite limits, return codes and timer cleanup. It
 fails at the positive-remainder case against the original pinned header. The
 functional playback gate separately tests real signaling and presentation.
+
+`QualityScaling` compares full native, balanced and all-linear profiles with the
+same guarded frame-resource improvements. It retains effective options, captures
+and raw resource counters. A multi-pass scaler may legitimately have zero vertex
+cache hits; uploads/counter presence verify instrumentation while linear screens
+still require actual reuse. Keep these picture-processing workloads separate in
+the dashboard. The balanced candidate retains native Lanczos/Hermite luma scaling
+and downsampling antialiasing; it removes extra linear-light/sigmoid passes and
+uses bilinear chroma. It is a compromise, not an identical-quality claim.
+
+`run_tests.ps1 -Scenario geometry` under `tests/libmpv` exercises real paused and
+playing resizes, portrait geometry, rotation and H264-to-HDR-HEVC reconfiguration.
+The same checks run in the full functional gate. PNG captures remain in each
+owned run directory. Compare fixed paused captures across candidate/original;
+moving or unaligned frames must not be claimed pixel-identical.
