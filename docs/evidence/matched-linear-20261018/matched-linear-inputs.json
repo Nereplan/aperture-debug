@@ -1,0 +1,30 @@
+{
+  "sourceCommit": "0f87b983641a73f928ba0bb9d229c246663a9e1d",
+  "dirty": true,
+  "variants": [
+    {
+      "id": "Aperture-linear-only",
+      "runtime": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\linear-scaling-runtime",
+      "exeSha256": "e14445c32f99209a0ec9e5abda077c5ded6126ea793375845a7ca2b18f25b44e",
+      "dllSha256": "11b37889e5103a1370509dcf5e5a9c389325c497552f522f45049dfba19f5c52"
+    },
+    {
+      "id": "Aperture-linear-fft-floor",
+      "runtime": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\linear-fft-wait-runtime",
+      "environment": {
+        "APERTURE_TEST_ROUND_WAITS": "floor"
+      },
+      "exeSha256": "e14445c32f99209a0ec9e5abda077c5ded6126ea793375845a7ca2b18f25b44e",
+      "dllSha256": "0a0502ab283bafa5dcb4e3a355aa04e9b239df3a9a56fb6bb6745437c55a9299"
+    },
+    {
+      "id": "Aperture-linear-fft-min1",
+      "runtime": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\linear-fft-wait-runtime",
+      "environment": {
+        "APERTURE_TEST_ROUND_WAITS": "min1"
+      },
+      "exeSha256": "e14445c32f99209a0ec9e5abda077c5ded6126ea793375845a7ca2b18f25b44e",
+      "dllSha256": "0a0502ab283bafa5dcb4e3a355aa04e9b239df3a9a56fb6bb6745437c55a9299"
+    }
+  ]
+}

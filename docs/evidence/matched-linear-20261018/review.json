@@ -1,0 +1,204 @@
+{
+  "recordedUtc": "2026-10-18T05:41:17+00:00",
+  "batchCompletedUtc": "2026-10-18T05:32:40.7057300Z",
+  "status": "Candidate, not adopted. Aperture wins measured memory/startup but still has higher calibrated cycle-estimated CPU than VLC.",
+  "method": "Fresh owned portable profiles, 1280x720 actual video canvas at 96 DPI, D3D11VA, explicit linear scaling, H2641080p30 AAC stereo. One discarded warmup and three measured rounds per variant in rotated order; 30-second CPU/cycle windows after at least ten seconds playback. Same new app EXE in all Aperture variants, original versus experimental FFT/wait DLLs. No builders/profilers during the batch.",
+  "summary": {
+    "Aperture-linear-only": {
+      "cpu-core": {
+        "median": 8.233612336331364,
+        "min": 8.167481294348237,
+        "max": 8.260654960715238,
+        "runs": 3
+      },
+      "legacy-cpu-core": {
+        "median": 8.33278814678085,
+        "min": 7.445848656660766,
+        "max": 8.69328184345183,
+        "runs": 3
+      },
+      "private-mib": {
+        "median": 161.8515625,
+        "min": 161.17578125,
+        "max": 161.91796875,
+        "runs": 3
+      },
+      "working-set-mib": {
+        "median": 140.12890625,
+        "min": 139.76953125,
+        "max": 140.3203125,
+        "runs": 3
+      },
+      "gpu-mib": {
+        "median": 94.4921875,
+        "min": 94.484375,
+        "max": 94.4921875,
+        "runs": 3
+      },
+      "visible-ms": {
+        "median": 129.9938,
+        "min": 122.4044,
+        "max": 132.6704,
+        "runs": 3
+      },
+      "runtime-mib": {
+        "median": 27.83604907989502,
+        "min": 27.83604907989502,
+        "max": 27.83604907989502,
+        "runs": 3
+      }
+    },
+    "Aperture-linear-fft-floor": {
+      "cpu-core": {
+        "median": 8.150473875291416,
+        "min": 8.076563565353187,
+        "max": 8.1881899521334,
+        "runs": 3
+      },
+      "legacy-cpu-core": {
+        "median": 8.169582458431067,
+        "min": 7.288528566397308,
+        "max": 9.0587660973982,
+        "runs": 3
+      },
+      "private-mib": {
+        "median": 146.84765625,
+        "min": 143.62109375,
+        "max": 147.23046875,
+        "runs": 3
+      },
+      "working-set-mib": {
+        "median": 140.17578125,
+        "min": 140.05859375,
+        "max": 140.3046875,
+        "runs": 3
+      },
+      "gpu-mib": {
+        "median": 94.4921875,
+        "min": 94.4921875,
+        "max": 94.4921875,
+        "runs": 3
+      },
+      "visible-ms": {
+        "median": 125.6869,
+        "min": 125.0894,
+        "max": 134.0369,
+        "runs": 3
+      },
+      "runtime-mib": {
+        "median": 27.84337329864502,
+        "min": 27.84337329864502,
+        "max": 27.84337329864502,
+        "runs": 3
+      }
+    },
+    "Aperture-linear-fft-min1": {
+      "cpu-core": {
+        "median": 6.857798325645309,
+        "min": 6.848442919930372,
+        "max": 6.906489496111005,
+        "runs": 3
+      },
+      "legacy-cpu-core": {
+        "median": 7.2876640629333815,
+        "min": 6.716411591752176,
+        "max": 7.392227232404065,
+        "runs": 3
+      },
+      "private-mib": {
+        "median": 144.91015625,
+        "min": 144.5390625,
+        "max": 145.0625,
+        "runs": 3
+      },
+      "working-set-mib": {
+        "median": 140.34375,
+        "min": 139.68359375,
+        "max": 140.45703125,
+        "runs": 3
+      },
+      "gpu-mib": {
+        "median": 94.48828125,
+        "min": 94.48828125,
+        "max": 94.4921875,
+        "runs": 3
+      },
+      "visible-ms": {
+        "median": 130.4114,
+        "min": 124.0262,
+        "max": 133.6053,
+        "runs": 3
+      },
+      "runtime-mib": {
+        "median": 27.84337329864502,
+        "min": 27.84337329864502,
+        "max": 27.84337329864502,
+        "runs": 3
+      }
+    },
+    "VLC": {
+      "cpu-core": {
+        "median": 6.248288314997348,
+        "min": 6.239107439810482,
+        "max": 6.3388977729852956,
+        "runs": 3
+      },
+      "legacy-cpu-core": {
+        "median": 4.0608691414165765,
+        "min": 3.6439079652426583,
+        "max": 4.113539344471302,
+        "runs": 3
+      },
+      "private-mib": {
+        "median": 151.02734375,
+        "min": 150.265625,
+        "max": 151.875,
+        "runs": 3
+      },
+      "working-set-mib": {
+        "median": 148.7421875,
+        "min": 148.671875,
+        "max": 149.046875,
+        "runs": 3
+      },
+      "gpu-mib": {
+        "median": 118.45703125,
+        "min": 118.45703125,
+        "max": 118.45703125,
+        "runs": 3
+      },
+      "visible-ms": {
+        "median": 1922.9229,
+        "min": 1905.1786,
+        "max": 1945.878,
+        "runs": 3
+      },
+      "runtime-mib": {
+        "median": 182.99101448059082,
+        "min": 182.99101448059082,
+        "max": 182.99101448059082,
+        "runs": 3
+      }
+    }
+  },
+  "cpuMethod": "Hardware-specific estimate = process cycle delta / actual elapsed seconds / calibrated invariant-TSC rate * 100, one logical processor. Calibration was measured after the batch on the same boot/CPU. CPUID invariant TSC, five QPC/TSC rate samples and a busy-thread/process counter check passed. Raw cycles and sampled CPU times are preserved. This is not a portable cycles-to-time conversion.",
+  "cpuCalibration": {
+    "source": "cpu-cycle-calibration.json",
+    "sourceCode": "calibrate_cpu_cycles.cpp",
+    "sourceSha256": "4c5c1e508f7094a844d9e0c6b5632e8d9c0531aa093b3a90793d756f8ee51d9f",
+    "exeSha256": "1ef42419188a13b80e81f769bdac0bf1dd3149c5c1fd58961b726c711b868ac5"
+  },
+  "counterFinding": "Sampled process CPU times vary substantially more than cycle rates; periodic short work and coarse time accounting can alias. Do not treat legacy CPU-time differences as precise causal performance differences. Preserve historical values and keep this method in a separate protocol.",
+  "quality": "App and native probe share the explicit bilinear luma/chroma profile, with linear/correct downscaling and sigmoid upscaling disabled. VLC forces D3D11 output, D3D11VA and linear scaling. Matching these controls does not prove every decoded/output pixel is identical. This changes Aperture from its prior higher-order/linear-light defaults; custom MPV configuration can restore those settings.",
+  "functional": "The guarded min1 library passed 59/59 playback checks. One-run H2641080p30 and HEVC Main10 4K60 screens had identical captures across wait modes and no steady decoder/presentation drops. These screens are not full-player rankings or exhaustive frame-pacing validation.",
+  "viewportFinding": "Outer 1280x800 windows produced different video areas. The new controller targets 1280x720 canvases; resulting outer sizes are 1296x759 Aperture and 1296x832 VLC, with actual child geometry/DPI retained.",
+  "limits": [
+    "One synthetic H264 fixture and one CPU/GPU machine; not a universal player ranking.",
+    "Visible-window latency is not first-frame latency.",
+    "Root-process resource counters exclude shared system services. Private bytes are commit, working set is residency, and GPU/CPU accounts must not be added.",
+    "No cold-cache claim.",
+    "Raw sampled CPU times remain available as legacy diagnostics; new primary estimates require the retained hardware calibration.",
+    "The lower-level MPV changes are guarded experiments separate from normal recipe provenance. Bundled root DLL remains unchanged."
+  ],
+  "next": "Prototype bounded caching of D3D11 decoder views to remove the remaining per-frame resource/copy cost, then validate quality, resource counters and full-player performance."
+}

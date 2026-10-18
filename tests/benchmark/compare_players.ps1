@@ -25,6 +25,9 @@ param(
     [ValidateRange(0,10)][int]$WarmupIterations = 1,
     [ValidateRange(320,3840)][int]$WindowWidth = 1280,
     [ValidateRange(240,2160)][int]$WindowHeight = 800,
+    [ValidateRange(0,3840)][int]$VideoWidth = 0,
+    [ValidateRange(0,2160)][int]$VideoHeight = 0,
+    [switch]$ForceD3D11Linear,
     [string]$ApertureVariantsFile = '',
     [ValidateRange(0,120)][int]$SamplingSeconds = 0,
     [ValidateRange(0,86400)][int]$LaunchMediaStartSeconds = 0,
@@ -72,12 +75,18 @@ if ($ApertureVariantsFile) {
         $player | Add-Member -NotePropertyName variant -NotePropertyValue $variant.id
         $experimentalEnvironment = @{}
         if ($variant.environment) {
-            foreach ($entry in $variant.environment.PSObject.Properties) {
-                if ($entry.Name -ne 'APERTURE_TEST_ROUND_WAITS' -or $entry.Value -cnotin @('floor','ceil','min1')) { throw 'Unsupported experimental variant environment.' }
-                $experimentalEnvironment[$entry.Name] = [string]$entry.Value
+            $allowed = @{
+                APERTURE_TEST_ROUND_WAITS = @('floor','ceil','min1')
+                APERTURE_TEST_CACHE_BACKBUFFER = @('1')
+                APERTURE_TEST_NO_GPU_TIMERS = @('1')
+                APERTURE_TEST_REUSE_VERTICES = @('1')
             }
             $dllText = [Text.Encoding]::ASCII.GetString([IO.File]::ReadAllBytes((Join-Path $player.source 'libmpv-2.dll')))
-            if (-not $dllText.Contains('APERTURE_TEST_ROUND_WAITS')) { throw 'Wait policy variants require the marked experimental DLL.' }
+            foreach ($entry in $variant.environment.PSObject.Properties) {
+                if (-not $allowed.ContainsKey($entry.Name) -or $entry.Value -cnotin $allowed[$entry.Name]) { throw 'Unsupported experimental variant environment.' }
+                if (-not $dllText.Contains($entry.Name)) { throw "Variant requires a marked experimental DLL: $($entry.Name)" }
+                $experimentalEnvironment[$entry.Name] = [string]$entry.Value
+            }
         }
         $player | Add-Member -NotePropertyName experimentalEnvironment -NotePropertyValue $experimentalEnvironment
         $players += $player
@@ -89,6 +98,8 @@ $players = @($players | Where-Object { $_.name -in $PlayerNames })
 if (-not $players.Count) { throw 'No selected runtime supplied.' }
 if (($LaunchMediaStartSeconds -or $SamplingStartMediaSeconds -or $SamplingSeconds) -and 'MPC-HC' -in $players.name) { throw 'Aligned extended mode currently supports Aperture and VLC only.' }
 if ($SamplingStartMediaSeconds -lt $LaunchMediaStartSeconds) { throw 'Sampling media position precedes launch position.' }
+if (($VideoWidth -eq 0) -ne ($VideoHeight -eq 0)) { throw 'Specify both video canvas dimensions.' }
+if ($VideoWidth -and ('MPC-HC' -in $players.name -or $VideoWidth -lt 320 -or $VideoHeight -lt 180)) { throw 'Video canvas matching supports Aperture/VLC and at least 320x180.' }
 # Refuse singleton interference instead of controlling or terminating user players.
 foreach ($player in $players) {
     if (Get-Process -Name ([IO.Path]::GetFileNameWithoutExtension($player.exeName)) -ErrorAction SilentlyContinue) { throw "Close existing $($player.name) instances before comparing; nothing was closed." }
@@ -218,6 +229,9 @@ for ($round=0; $round -lt ($WarmupIterations+$Iterations); $round++) {
             $argsList.Add($(if ($player.name -eq 'VLC') { "--start-time=$LaunchMediaStartSeconds" } else { "--start=$LaunchMediaStartSeconds" }))
         }
         $argsList.Add($MediaPath)
+        if ($ForceD3D11Linear -and $player.name -eq 'VLC') {
+            foreach ($argument in @('--vout=direct3d11','--avcodec-hw=d3d11va','--d3d11-upscale-mode=linear')) { $argsList.Insert($argsList.Count-1,$argument) }
+        }
         $beforeRuntime=Bytes $runtime; $beforeProfile=Bytes $profile
         $configText = if(Test-Path -LiteralPath $config -PathType Leaf) { [IO.File]::ReadAllText($config) } else { 'Fresh executable-adjacent data/ directory.' }
         $record=[ordered]@{player=$player.name;round=$round;warmup=($round -lt $WarmupIterations);status='failed';failure=$null;runtimeSource=$player.source;runtimeBytes=$player.runtimeBytes;runtimeFileCount=$player.runtimeFileCount;executableHash=$player.exeHash;version=$player.version;runDirectory=$dir;arguments=$argsList.ToArray();childEnvironment=$envOverride;configPath=$config;initialConfig=$configText;pid=$null;processToVisibleWindowMs=$null;windowDimensions=$null;playbackVerification='playback-unverified';playbackReason=$null;samples=@();writableGrowthBytes=$null;cleanup=$null;artifactCleanup=$null}
@@ -227,7 +241,7 @@ for ($round=0; $round -lt ($WarmupIterations+$Iterations); $round++) {
         try {
             $psi=[Diagnostics.ProcessStartInfo]::new((Join-Path $runtime $player.exeName)); $psi.WorkingDirectory=$runtime; $psi.UseShellExecute=$false; $psi.CreateNoWindow=$true
             foreach($arg in $argsList) { $psi.ArgumentList.Add($arg) }
-            foreach ($key in @('APERTURE_TEST_SKIP_D3D11_FLUSH','APERTURE_TEST_NO_GPU_TIMERS','APERTURE_TEST_CACHE_BACKBUFFER','APERTURE_TEST_LAZY_TX_TABLES','APERTURE_TEST_VO_CPU_SECTIONS','APERTURE_TEST_ROUND_WAITS','MPV_HRT','MPV_HRT_MAX','MPV_HRT_RES')) { [void]$psi.Environment.Remove($key) }
+            foreach ($key in @('APERTURE_TEST_SKIP_D3D11_FLUSH','APERTURE_TEST_NO_GPU_TIMERS','APERTURE_TEST_CACHE_BACKBUFFER','APERTURE_TEST_LAZY_TX_TABLES','APERTURE_TEST_VO_CPU_SECTIONS','APERTURE_TEST_ROUND_WAITS','APERTURE_TEST_REUSE_VERTICES','APERTURE_TEST_CACHE_VIDEO_VIEWS','MPV_HRT','MPV_HRT_MAX','MPV_HRT_RES')) { [void]$psi.Environment.Remove($key) }
             foreach($key in $envOverride.Keys) { $psi.Environment[$key]=$envOverride[$key] }
             $timer=[Diagnostics.Stopwatch]::StartNew(); $process=[Diagnostics.Process]::Start($psi); $record.pid=$process.Id
             if($mpcObserver) { $mpcObserver.SetOwnedPid([uint32]$process.Id) }
@@ -243,6 +257,7 @@ for ($round=0; $round -lt ($WarmupIterations+$Iterations); $round++) {
             # Some players resize again when the decoder announces video size.
             # Enforce the shared outer dimensions after that initial load too.
             if(-not [PlayerBenchmarkWindow]::Resize($window,[uint32]$process.Id,$WindowWidth,$WindowHeight)) { throw 'Post-load resize failed.' }
+            if ($VideoWidth -and -not [PlayerBenchmarkWindow]::MatchVideoCanvas($window,[uint32]$process.Id,$player.name,$VideoWidth,$VideoHeight)) { throw 'Video canvas matching failed.' }
             Start-Sleep -Seconds 2
             if ($SamplingStartMediaSeconds) {
                 $alignmentDeadline = [DateTime]::UtcNow.AddSeconds(60)
@@ -283,7 +298,11 @@ for ($round=0; $round -lt ($WarmupIterations+$Iterations); $round++) {
             }
             $record.samplingEndedUtc = [DateTime]::UtcNow.ToString('o')
             $record.samples=$samples.ToArray(); $record.windowDimensions=[PlayerBenchmarkWindow]::Size($window)
-            if($record.windowDimensions[0] -ne $WindowWidth -or $record.windowDimensions[1] -ne $WindowHeight) { throw 'Player changed the requested comparison window size.' }
+            $record.videoCanvas=[PlayerBenchmarkWindow]::VideoCanvas($window,[uint32]$process.Id,$player.name)
+            $record.childWindows=[PlayerBenchmarkWindow]::Children($window,[uint32]$process.Id)
+            if ($VideoWidth) {
+                if (-not $record.videoCanvas -or $record.videoCanvas.clientWidth -ne $VideoWidth -or $record.videoCanvas.clientHeight -ne $VideoHeight) { throw 'Player changed the requested video canvas size.' }
+            } elseif($record.windowDimensions[0] -ne $WindowWidth -or $record.windowDimensions[1] -ne $WindowHeight) { throw 'Player changed the requested comparison window size.' }
             $positions=@($samples | ForEach-Object { $_.playback.positionSec }); $valid=@($samples | Where-Object { $null -ne $_.playback.positionSec -and -not $_.playback.reason })
             $statesOk=($player.name -ne 'Aperture' -or @($samples | Where-Object { $_.playback.state -ne 2 }).Count -eq 0)
             $advancing = $true
@@ -320,6 +339,8 @@ for ($round=0; $round -lt ($WarmupIterations+$Iterations); $round++) {
 }
 $report=[ordered]@{schemaVersion=1;createdUtc=[DateTime]::UtcNow.ToString('o');mediaPath=$MediaPath;mediaSha256=$mediaHash;mediaBytes=(Get-Item -LiteralPath $MediaPath).Length;iterations=$Iterations;warmupIterations=$WarmupIterations;windowTarget=@($WindowWidth,$WindowHeight);startupMetric='Process launch to first visible unowned top-level window (not first frame)';sampling='8s after visible window plus 2s after post-load resize; 3 samples separated by at least 2s (counter/status overhead included)';apertureStatusProbe=$ApertureStatusProbe;limitations=@('Warm OS caches; no cold-cache claim.','Window outer rectangles match; video viewport and default decoder may differ.','Samples cover owned root process only; inspect unexpected child processes separately.','Playback status does not prove pixels are visible or decoder hardware equivalence.','Child environment redirects ordinary profile/temp writes; Windows Known Folder APIs may bypass environment variables (VLC additionally uses portable/).','VLC RC verification adds a control-interface overhead.','MPC-HC uses a hidden /slave window to verify position; no decoder equivalence claim.');players=$players;results=$results.ToArray()}
 if ($SamplingSeconds) { $report.sampling = "CPU window requested ${SamplingSeconds}s with counter samples every ~5s; actual CPU/wall deltas retained; launch media position ${LaunchMediaStartSeconds}s, sampling begins after at least ${SamplingStartMediaSeconds}s media time and ten seconds settling. VLC media times are integer-quantized. Ordered variants rotate each round." }
+if ($VideoWidth) { $report.videoCanvasTarget=@($VideoWidth,$VideoHeight); $report.limitations[1]='Video canvases match; actual child window dimensions/DPI are retained. Equal filter choices do not establish identical decoder or output pixels.' }
+$report.forcedVlcD3D11Linear=[bool]$ForceD3D11Linear
 $report | ConvertTo-Json -Depth 14 | Set-Content -LiteralPath (Join-Path $OutputDir 'comparison.json') -Encoding utf8
 Write-Output (Join-Path $OutputDir 'comparison.json')
 if(@($results | Where-Object { $_.status -ne 'sampled' }).Count) { throw 'One or more player runs failed; see retained per-run results.' }

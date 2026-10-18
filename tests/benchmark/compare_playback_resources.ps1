@@ -6,7 +6,7 @@ param(
     [Parameter(Mandatory)][string]$MediaDir,
     [Parameter(Mandatory)][string]$OutputDir,
     [string]$MediaFile = 'h264_aac_720p.mp4',
-    [ValidateSet('Renderer','Pacing','Transfers','HardwareThreads','FreeHeapCaches','EagerFlush','GpuTimers','Backbuffer','Presentation','TimerPolicy','LazyTables','Scaling','WaitRounding')][string]$Experiment = 'Renderer',
+    [ValidateSet('Renderer','LinearRenderers','Pacing','Transfers','HardwareThreads','FreeHeapCaches','EagerFlush','GpuTimers','Backbuffer','Presentation','TimerPolicy','RoundedTimerPolicy','LazyTables','Scaling','WaitRounding','VideoViews','DrawOverhead','DrawSubmission')][string]$Experiment = 'Renderer',
     [switch]$WithAudio,
     [ValidateRange(1,15)][int]$Iterations = 3,
     [ValidateRange(0,5)][int]$WarmupIterations = 1,
@@ -31,6 +31,12 @@ $variants = @(
     @{name='candidate-gpu'; dll=$CandidateDll; renderer='gpu'},
     @{name='candidate-gpu-next'; dll=$CandidateDll; renderer='gpu-next'}
 )
+if ($Experiment -eq 'LinearRenderers') {
+    if (-not [Text.Encoding]::ASCII.GetString([IO.File]::ReadAllBytes($CandidateDll)).Contains('APERTURE_TEST_ROUND_WAITS')) { throw 'LinearRenderers requires the marked experimental DLL.' }
+    $variants = @('gpu','gpu-next' | ForEach-Object {
+        @{name="linear-$_"; dll=$CandidateDll; renderer=$_; sync='audio'; threads='0'; hwthreads='1'; scaling='linear'; waitPolicy='min1'}
+    })
+}
 if ($Experiment -eq 'Pacing') {
     $variants = @(
         @{name='display-auto'; dll=$CandidateDll; renderer='gpu'; sync='display-vdrop'; threads='0'},
@@ -58,6 +64,12 @@ if ($Experiment -eq 'TimerPolicy') {
         @{name="timer-$_"; dll=$CandidateDll; renderer='gpu'; sync='audio'; threads='0'; hwthreads='1'; timerPolicy=$_}
     })
 }
+if ($Experiment -eq 'RoundedTimerPolicy') {
+    if (-not [Text.Encoding]::ASCII.GetString([IO.File]::ReadAllBytes($CandidateDll)).Contains('APERTURE_TEST_ROUND_WAITS')) { throw 'RoundedTimerPolicy requires the marked experimental DLL.' }
+    $variants = @('perwait','always','never' | ForEach-Object {
+        @{name="rounded-timer-$_"; dll=$CandidateDll; renderer='gpu'; sync='audio'; threads='0'; hwthreads='1'; scaling='linear'; waitPolicy='min1'; timerPolicy=$_}
+    })
+}
 if ($Experiment -eq 'Scaling') {
     $variants = @(
         @{name='default-scaling'; dll=$CandidateDll; renderer='gpu'; sync='audio'; threads='0'; hwthreads='1'; scaling='default'},
@@ -69,6 +81,35 @@ if ($Experiment -eq 'WaitRounding') {
     $variants = @('floor','ceil','min1' | ForEach-Object {
         @{name="wait-$_"; dll=$CandidateDll; renderer='gpu'; sync='audio'; threads='0'; hwthreads='1'; waitPolicy=$_}
     })
+}
+if ($Experiment -eq 'VideoViews') {
+    $dllText = [Text.Encoding]::ASCII.GetString([IO.File]::ReadAllBytes($CandidateDll))
+    foreach ($marker in @('APERTURE_TEST_CACHE_VIDEO_VIEWS','APERTURE_TEST_ROUND_WAITS')) { if (-not $dllText.Contains($marker)) { throw 'VideoViews requires the marked experimental DLL.' } }
+    $variants = @(
+        @{name='copy-linear'; dll=$CandidateDll; renderer='gpu'; sync='audio'; threads='0'; hwthreads='1'; scaling='linear'; waitPolicy='min1'; zero='no'},
+        @{name='direct-linear'; dll=$CandidateDll; renderer='gpu'; sync='audio'; threads='0'; hwthreads='1'; scaling='linear'; waitPolicy='min1'; zero='yes'},
+        @{name='cached-direct-linear'; dll=$CandidateDll; renderer='gpu'; sync='audio'; threads='0'; hwthreads='1'; scaling='linear'; waitPolicy='min1'; zero='yes'; cacheVideoViews=$true}
+    )
+}
+if ($Experiment -eq 'DrawOverhead') {
+    $dllText = [Text.Encoding]::ASCII.GetString([IO.File]::ReadAllBytes($CandidateDll))
+    foreach ($marker in @('APERTURE_TEST_REUSE_VERTICES','APERTURE_TEST_NO_GPU_TIMERS','APERTURE_TEST_ROUND_WAITS')) { if (-not $dllText.Contains($marker)) { throw 'DrawOverhead requires the marked experimental DLL.' } }
+    $variants = @(
+        @{name='draw-baseline'; dll=$CandidateDll; renderer='gpu'; sync='audio'; threads='0'; hwthreads='1'; scaling='linear'; waitPolicy='min1'; zero='no'},
+        @{name='reuse-vertices'; dll=$CandidateDll; renderer='gpu'; sync='audio'; threads='0'; hwthreads='1'; scaling='linear'; waitPolicy='min1'; zero='no'; reuseVertices=$true},
+        @{name='no-gpu-timing'; dll=$CandidateDll; renderer='gpu'; sync='audio'; threads='0'; hwthreads='1'; scaling='linear'; waitPolicy='min1'; zero='no'; noTimers=$true},
+        @{name='reuse-no-timing'; dll=$CandidateDll; renderer='gpu'; sync='audio'; threads='0'; hwthreads='1'; scaling='linear'; waitPolicy='min1'; zero='no'; reuseVertices=$true; noTimers=$true}
+    )
+}
+if ($Experiment -eq 'DrawSubmission') {
+    $dllText = [Text.Encoding]::ASCII.GetString([IO.File]::ReadAllBytes($CandidateDll))
+    foreach ($marker in @('APERTURE_TEST_SKIP_D3D11_FLUSH','APERTURE_TEST_CACHE_BACKBUFFER','APERTURE_BACKBUFFER_CACHE','APERTURE_TEST_NO_GPU_TIMERS','APERTURE_TEST_ROUND_WAITS')) { if (-not $dllText.Contains($marker)) { throw 'DrawSubmission requires the marked experimental DLL.' } }
+    $variants = @(
+        @{name='submission-baseline'; dll=$CandidateDll; renderer='gpu'; sync='audio'; threads='0'; hwthreads='1'; scaling='linear'; waitPolicy='min1'; zero='no'},
+        @{name='present-flush'; dll=$CandidateDll; renderer='gpu'; sync='audio'; threads='0'; hwthreads='1'; scaling='linear'; waitPolicy='min1'; zero='no'; skipFlush=$true},
+        @{name='reuse-backbuffer'; dll=$CandidateDll; renderer='gpu'; sync='audio'; threads='0'; hwthreads='1'; scaling='linear'; waitPolicy='min1'; zero='no'; cacheBackbuffer=$true},
+        @{name='reuse-present-no-timing'; dll=$CandidateDll; renderer='gpu'; sync='audio'; threads='0'; hwthreads='1'; scaling='linear'; waitPolicy='min1'; zero='no'; skipFlush=$true; cacheBackbuffer=$true; noTimers=$true}
+    )
 }
 if ($Experiment -eq 'LazyTables') {
     $dllText = [Text.Encoding]::ASCII.GetString([IO.File]::ReadAllBytes($CandidateDll))
@@ -152,6 +193,8 @@ for ($round=0; $round -lt ($WarmupIterations+$Iterations); $round++) {
         [void]$info.Environment.Remove('APERTURE_TEST_LAZY_TX_TABLES')
         [void]$info.Environment.Remove('APERTURE_TEST_VO_CPU_SECTIONS')
         [void]$info.Environment.Remove('APERTURE_TEST_ROUND_WAITS')
+        [void]$info.Environment.Remove('APERTURE_TEST_CACHE_VIDEO_VIEWS')
+        [void]$info.Environment.Remove('APERTURE_TEST_REUSE_VERTICES')
         foreach ($name in @('MPV_HRT','MPV_HRT_MAX','MPV_HRT_RES')) { [void]$info.Environment.Remove($name) }
         if ($variant.skipFlush) { $info.Environment['APERTURE_TEST_SKIP_D3D11_FLUSH'] = '1' }
         if ($variant.noTimers) { $info.Environment['APERTURE_TEST_NO_GPU_TIMERS'] = '1' }
@@ -160,6 +203,8 @@ for ($round=0; $round -lt ($WarmupIterations+$Iterations); $round++) {
         if ($VoCpuSections) { $info.Environment['APERTURE_TEST_VO_CPU_SECTIONS'] = '1' }
         if ($variant.timerPolicy) { $info.Environment['MPV_HRT'] = $variant.timerPolicy }
         if ($variant.waitPolicy) { $info.Environment['APERTURE_TEST_ROUND_WAITS'] = $variant.waitPolicy }
+        if ($variant.cacheVideoViews) { $info.Environment['APERTURE_TEST_CACHE_VIDEO_VIEWS'] = '1' }
+        if ($variant.reuseVertices) { $info.Environment['APERTURE_TEST_REUSE_VERTICES'] = '1' }
         $startedUtc = [DateTime]::UtcNow.ToString('o')
         $process = [Diagnostics.Process]::Start($info)
         $stdout = $process.StandardOutput.ReadToEndAsync(); $stderr = $process.StandardError.ReadToEndAsync()
@@ -191,10 +236,27 @@ for ($round=0; $round -lt ($WarmupIterations+$Iterations); $round++) {
             if ($sections.Count -lt 2 -or @($sections | Where-Object failures -NE 0).Count) { throw "Incomplete video CPU diagnostic: $run" }
             $sample | Add-Member vo_cpu_sections $sections
         }
+        if ($variant.cacheVideoViews) {
+            $viewStats = @([regex]::Matches($errorLog, '(?m)^APERTURE_VIDEO_VIEWS (.+)$') | ForEach-Object { $_.Groups[1].Value | ConvertFrom-Json })
+            if (-not $viewStats.Count -or ($viewStats | Measure-Object hits -Sum).Sum -lt 1 -or ($viewStats | Measure-Object created_views -Sum).Sum -lt 1) { throw "Video view cache did not execute: $run" }
+            $sample | Add-Member video_view_cache_stats $viewStats
+        }
+        if ($variant.reuseVertices) {
+            $vertexStats = @([regex]::Matches($errorLog, '(?m)^APERTURE_VERTEX_CACHE (.+)$') | ForEach-Object { $_.Groups[1].Value | ConvertFrom-Json })
+            if (-not $vertexStats.Count -or ($vertexStats | Measure-Object reuses -Sum).Sum -lt 1) { throw "Vertex cache did not execute: $run" }
+            $sample | Add-Member vertex_cache_stats $vertexStats
+        }
+        if ($Experiment -eq 'DrawSubmission' -and $variant.cacheBackbuffer) {
+            $cacheStats = @([regex]::Matches($errorLog, '(?m)^APERTURE_BACKBUFFER_CACHE (.+)$') | ForEach-Object { $_.Groups[1].Value | ConvertFrom-Json })
+            if (-not $cacheStats.Count -or ($cacheStats | Measure-Object reuses -Sum).Sum -lt 1) { throw "Backbuffer cache did not execute: $run" }
+            $sample | Add-Member backbuffer_cache_stats $cacheStats
+        }
         $sample | Add-Member skip_eager_flush ([bool]$variant.skipFlush)
         $sample | Add-Member gpu_timers_disabled ([bool]$variant.noTimers)
         $sample | Add-Member backbuffer_reuse ([bool]$variant.cacheBackbuffer)
         $sample | Add-Member lazy_tables ([bool]$variant.lazyTables)
+        $sample | Add-Member cached_video_views ([bool]$variant.cacheVideoViews)
+        $sample | Add-Member reused_vertices ([bool]$variant.reuseVertices)
         if ($variant.timerPolicy) { $sample | Add-Member timer_policy $variant.timerPolicy }
         if ($variant.waitPolicy) { $sample | Add-Member wait_policy $variant.waitPolicy }
         if ($variant.interval) { $sample | Add-Member sync_interval $variant.interval }

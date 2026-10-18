@@ -56,3 +56,25 @@ Use the existing [benchmark runners](../tests/benchmark/README.md), [backend har
 The initial migration normalizes explicit paired JSON summaries from the query, duplicate, removal, subtitle, UI refresh, backend, JSON ownership, library-record, thumbnail-removal, loading and playback/capture studies. Forward/reverse loading trials stay separate. Complete-app and empty-profile startup endpoints stay separate. Archived reports and runner guides are embedded in full; experiments without normalized pairs remain available in that library rather than being inferred into numerical series. Raw CSVs, hashes and logs remain in `docs/evidence/` as optional companions, while their paths are recorded inside the HTML.
 
 Historical commits, exact times and hardware identities were sometimes incomplete. Unknowns remain explicit. Study-specific protocols and environments prevent unrelated harnesses from being joined automatically. The declared empty-profile startup history adds seven dated readings from 3–17 October: the first is a single captured sample, while later gates use five-run medians. These are observed history, not a claim of a controlled causal speedup. The legacy silent-playback series retains its three matching Aperture snapshots; earlier playback values are not invented. A separate 17 October audio-enabled replay records the preserved pre-fix build and the optimized build across one warmup and three measured rounds per player, using ~30-second CPU windows over corresponding media segments. See `docs/evidence/direct-playback-20261017/optimization-review.json`. Selecting one of these checkpoints switches the resource map and cards to its matching workload/protocol; it does not merge audio and silent sessions. The replay checkpoints share the batch completion timestamp because the runs were interleaved; exact per-run times and ranges remain in the evidence. The local 22-suite gate, 59 functional playback checks and live overlay/return-to-library checks passed. This validates a substantial improvement, not an overall performance win over VLC or decoder/picture-quality equivalence between players. Raw 14 and 17 October VLC records remain intact, while the UI uses one latest-version reference. Percentages across studies are never compounded.
+
+
+New player comparisons can match the actual video canvas with `compare_players.ps1
+-VideoWidth 1280 -VideoHeight 720 -ForceD3D11Linear`. Keep the returned child-window
+sizes/DPI and rendering controls. Outer windows may differ because player chrome
+occupies different areas. The explicit app profile in `src/PlaybackScaling.h`
+uses bilinear luma/chroma scaling and disables linear/correct downscaling and
+sigmoid upscaling. The prior native mpv filters remain available through custom
+MPV settings (`scale=lanczos`, `dscale=hermite`, `cscale=lanczos`,
+`linear-downscaling=yes`, `correct-downscaling=yes`, `sigmoid-upscaling=yes`).
+Different filter profiles belong in separate protocols; matched options alone
+do not establish identical decoder/output pixels.
+
+Preserve both sampled `cpuSeconds` and raw `cpuCycles`. Periodic short work can
+alias with Windows' coarse CPU-time accounting. For a hardware-specific estimate,
+build/run `tests/benchmark/calibrate_cpu_cycles.cpp` outside timing trials, retain
+its JSON/source hash and require its invariant-TSC, stable-rate and busy-counter
+validation to pass on the same CPU/boot. Use `cycleDelta / elapsedSeconds /
+tscTicksPerSecond * 100` only in an explicitly calibrated protocol. An unsupported
+calibration is not a zero CPU measurement. Never substitute generic CPU MHz,
+convert unvalidated counters, or overwrite the historical sampled-CPU values.
+See `docs/evidence/matched-linear-20261018/review.json` for the first such batch.

@@ -10,11 +10,16 @@ param(
     [string]$ReturnToHubWithProbe = '',
     [ValidateSet('Aperture','VLC')][string]$Player = 'Aperture',
     [switch]$CpuOnly,
+    [switch]$WindowOnly,
+    [switch]$ForceD3D11Linear,
     [ValidateRange(320,3840)][int]$WindowWidth = 1280,
-    [ValidateRange(240,2160)][int]$WindowHeight = 800
+    [ValidateRange(240,2160)][int]$WindowHeight = 800,
+    [ValidateRange(0,3840)][int]$VideoWidth = 0,
+    [ValidateRange(0,2160)][int]$VideoHeight = 0
 )
 $ErrorActionPreference = 'Stop'
-if ($CpuOnly -and $StateOnly) { throw 'Choose one sampler mode.' }
+if (([int][bool]$CpuOnly+[int][bool]$StateOnly+[int][bool]$WindowOnly) -gt 1) { throw 'Choose one sampler mode.' }
+if (($VideoWidth -eq 0) -ne ($VideoHeight -eq 0)) { throw 'Specify both video canvas dimensions.' }
 if ($Player -eq 'VLC' -and ($StateOnly -or $ReturnToHubWithProbe)) { throw 'App-field and return-to-hub checks require Aperture.' }
 if (Get-Process -Name $Player -ErrorAction SilentlyContinue) { throw "Existing $Player process; nothing was closed." }
 if (-not ('PlayerBenchmarkWindow' -as [type])) { Add-Type -Path (Join-Path $PSScriptRoot 'PlayerBenchmarkWindow.cs') }
@@ -38,6 +43,9 @@ if ($Player -eq 'VLC') {
     foreach ($arg in @('--intf=qt','--ignore-config','--no-one-instance','--no-one-instance-when-started-from-file',
         '--no-media-library','--no-metadata-network-access','--no-qt-privacy-ask','--no-qt-updates-notif','--no-qt-recentplay','--qt-continue=0','--no-qt-video-autoresize')) { $info.ArgumentList.Add($arg) }
 }
+if ($Player -eq 'VLC' -and $ForceD3D11Linear) {
+    foreach ($arg in @('--vout=direct3d11','--avcodec-hw=d3d11va','--d3d11-upscale-mode=linear')) { $info.ArgumentList.Add($arg) }
+}
 $info.ArgumentList.Add($mediaPath)
 foreach ($name in @('TEMP','TMP','APPDATA','LOCALAPPDATA')) {
     $path = Join-Path $profileRoot $name
@@ -56,9 +64,20 @@ try {
     if ($window -eq [IntPtr]::Zero -or -not [PlayerBenchmarkWindow]::Resize($window,[uint32]$process.Id,$WindowWidth,$WindowHeight)) { throw 'Owned-window setup failed.' }
     Start-Sleep -Seconds 8
     if (-not [PlayerBenchmarkWindow]::Resize($window,[uint32]$process.Id,$WindowWidth,$WindowHeight)) { throw 'Post-load resize failed.' }
+    if ($VideoWidth -and -not [PlayerBenchmarkWindow]::MatchVideoCanvas($window,[uint32]$process.Id,$Player,$VideoWidth,$VideoHeight)) { throw 'Video canvas matching failed.' }
     Start-Sleep -Seconds 2
     $process.Refresh()
     if ($process.HasExited) { throw 'Aperture exited during settling.' }
+    if ($WindowOnly) {
+        [ordered]@{player=$Player;pid=$process.Id;runtime=$runtimeSource;media=$mediaPath;
+            executableSha256=(Get-FileHash -LiteralPath (Join-Path $stage $exeName)).Hash;
+            outerDimensions=[PlayerBenchmarkWindow]::Size($window);
+            children=[PlayerBenchmarkWindow]::Children($window,[uint32]$process.Id);
+            method='Owned-window geometry only; no CPU sampling or ranking.'
+        } | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $profileRoot 'window-layout.json') -Encoding utf8
+        Write-Output (Join-Path $profileRoot 'window-layout.json')
+        return
+    }
     $sampleInfo = [Diagnostics.ProcessStartInfo]::new($samplerPath)
     $sampleInfo.WorkingDirectory=$profileRoot; $sampleInfo.UseShellExecute=$false; $sampleInfo.CreateNoWindow=$true
     $sampleInfo.RedirectStandardOutput=$true; $sampleInfo.RedirectStandardError=$true
@@ -108,7 +127,9 @@ try {
         privateBytes=$process.PrivateMemorySize64;workingSetBytes=$process.WorkingSet64;
         player=$Player;windowDimensions=[PlayerBenchmarkWindow]::Size($window);arguments=[string[]]@($info.ArgumentList);
         stateOnly=[bool]$StateOnly;cpuOnly=[bool]$CpuOnly;returnedToHub=[bool]$ReturnToHubWithProbe;
-        note='Diagnostic run with a fresh portable profile and equal outer window dimensions. Stack mode suspends; CPU/state modes do not. Not a ranking or output-equivalence check.'} |
+        experimentalWaitPolicy=$env:APERTURE_TEST_ROUND_WAITS;
+        videoCanvas=[PlayerBenchmarkWindow]::VideoCanvas($window,[uint32]$process.Id,$Player);
+        note='Diagnostic run with a fresh portable profile; requested geometry is retained. Raw thread cycles are not a portable duration. Stack mode suspends; CPU/state modes do not. Not a ranking or output-equivalence check.'} |
         ConvertTo-Json | Set-Content -LiteralPath (Join-Path $profileRoot 'profile-identity.json') -Encoding utf8
     Write-Output "Profile saved: $profileRoot"
 } finally {

@@ -1,0 +1,77 @@
+{
+  "player": "VLC",
+  "pid": 44560,
+  "runtime": "C:\\Program Files\\VideoLAN\\VLC",
+  "media": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\h264-1080p30-audio.mp4",
+  "executableSha256": "BFA5740F028A8F310CA01C779BBC5F2F1B435C41539C54DE592F715BB0C10389",
+  "outerDimensions": [
+    1296,
+    832
+  ],
+  "children": [
+    {
+      "handle": 21104384,
+      "className": "Qt5QWindowIcon",
+      "clientWidth": 1280,
+      "clientHeight": 772,
+      "dpi": 96
+    },
+    {
+      "handle": 7735080,
+      "className": "Qt5QWindowIcon",
+      "clientWidth": 1280,
+      "clientHeight": 34,
+      "dpi": 96
+    },
+    {
+      "handle": 1312276,
+      "className": "Qt5QWindowIcon",
+      "clientWidth": 1280,
+      "clientHeight": 18,
+      "dpi": 96
+    },
+    {
+      "handle": 10421966,
+      "className": "Qt5QWindowIcon",
+      "clientWidth": 1280,
+      "clientHeight": 720,
+      "dpi": 96
+    },
+    {
+      "handle": 921170,
+      "className": "Qt5QWindowIcon",
+      "clientWidth": 1280,
+      "clientHeight": 720,
+      "dpi": 96
+    },
+    {
+      "handle": 5901466,
+      "className": "Qt5QWindowIcon",
+      "clientWidth": 1280,
+      "clientHeight": 720,
+      "dpi": 96
+    },
+    {
+      "handle": 13567712,
+      "className": "VLC video main 0000024A3FC29CB0",
+      "clientWidth": 1280,
+      "clientHeight": 720,
+      "dpi": 96
+    },
+    {
+      "handle": 13371302,
+      "className": "VLC video output 0000024A3FC29CB0",
+      "clientWidth": 1280,
+      "clientHeight": 720,
+      "dpi": 96
+    },
+    {
+      "handle": 10815788,
+      "className": "Qt5QWindowIcon",
+      "clientWidth": 1280,
+      "clientHeight": 21,
+      "dpi": 96
+    }
+  ],
+  "method": "Owned-window geometry only; no CPU sampling or ranking."
+}

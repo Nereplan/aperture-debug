@@ -42,6 +42,8 @@ static std::string Json(const std::string& value) {
 struct ThreadData {
     uint64_t first = 0, last = 0, previous = 0;
     bool seen = false;
+    bool cyclesSeen = false;
+    uint64_t firstCycles = 0, lastCycles = 0, cycleReadFailures = 0;
     std::string name;
     std::map<std::string, uint64_t> sampledStacks;
 };
@@ -133,6 +135,7 @@ static std::string Stack(HANDLE process, HANDLE thread) {
         DWORD64 displacement = 0;
         if (SymFromAddr(process, address, &displacement, symbol)) result += symbol->Name;
         else result += std::to_string(address - module.BaseOfImage);
+        result += " [rva=" + std::to_string(address - module.BaseOfImage) + "]";
     }
     return result.empty() ? "unavailable" : result;
 }
@@ -169,6 +172,11 @@ int wmain(int argc, wchar_t** argv) {
             FILETIME create{}, exit{}, kernel{}, user{};
             if (!GetThreadTimes(thread.h, &create, &exit, &kernel, &user)) continue;
             auto& record = threads[{entry.th32ThreadID, Ticks(create)}];
+            ULONG64 cycles = 0;
+            if (QueryThreadCycleTime(thread.h, &cycles)) {
+                if (!record.cyclesSeen) { record.cyclesSeen = true; record.firstCycles = cycles; }
+                record.lastCycles = cycles;
+            } else { ++record.cycleReadFailures; }
             const uint64_t ticks = Ticks(kernel) + Ticks(user);
             if (!record.seen) { record.seen = true; record.first = ticks; record.previous = ticks; }
             if (record.name.empty()) {
@@ -194,7 +202,10 @@ int wmain(int argc, wchar_t** argv) {
     for (const auto& item : threads) {
         if (!first) std::cout << ','; first = false;
         std::cout << "{\"id\":" << item.first.first << ",\"createdTicks\":" << item.first.second << ",\"name\":" << Json(item.second.name)
-            << ",\"cpuSeconds\":" << static_cast<double>(item.second.last - item.second.first) / 1e7 << ",\"stacks\":[";
+            << ",\"cpuSeconds\":" << static_cast<double>(item.second.last - item.second.first) / 1e7
+            << ",\"cyclesAvailable\":" << (item.second.cyclesSeen ? "true" : "false")
+            << ",\"cyclesDelta\":" << (item.second.lastCycles - item.second.firstCycles)
+            << ",\"cycleReadFailures\":" << item.second.cycleReadFailures << ",\"stacks\":[";
         std::vector<std::pair<std::string, uint64_t>> stacks(item.second.sampledStacks.begin(), item.second.sampledStacks.end());
         std::sort(stacks.begin(), stacks.end(), [](const auto& a, const auto& b) { return a.second > b.second; });
         for (size_t i = 0; i < std::min<size_t>(stacks.size(), 8); ++i) {

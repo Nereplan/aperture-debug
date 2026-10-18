@@ -163,11 +163,39 @@ establish equal image processing or output quality between players.
 
 `WaitRounding` requires the marked guarded MPV build and compares legacy floor,
 ceiling and a one-millisecond minimum for positive waits. The full-player variant
-JSON can request the same experimental policy through `environment` with only
-`APERTURE_TEST_ROUND_WAITS` set to `floor`, `ceil` or `min1`; the runner rejects
-unrecognized flags and unmarked DLLs. Other inherited experiment flags are cleared.
+JSON can request the same experimental policy through `environment` with
+`APERTURE_TEST_ROUND_WAITS` set to `floor`, `ceil` or `min1`. It also accepts
+`APERTURE_TEST_CACHE_BACKBUFFER`, `APERTURE_TEST_NO_GPU_TIMERS` and
+`APERTURE_TEST_REUSE_VERTICES`, each explicitly set to `1`. Every requested flag
+must have a matching marker in the DLL. Unrecognized flags/values are rejected;
+inherited experimental flags are cleared for both players.
 Both engine and full-player samples retain raw process cycle counters alongside
-CPU time. Cycle counters are processor-specific work counters, not elapsed time;
-do not turn them into CPU percentages. Short CPU-time samples can quantize to
-zero even when cycle counters show activity. `wait_rounding_probe.c` is an isolated
+CPU time. Raw cycles have a processor-specific time base. A CPU-time estimate
+requires `calibrate_cpu_cycles.cpp` to verify invariant TSC, rate stability and
+the busy thread/process counters on the same CPU/boot. Retain the calibration,
+label the result as an estimate and use a separate protocol; generic MHz values
+are insufficient. Sampled CPU time can alias with periodic work, even in longer
+windows, and short samples can quantize to zero. `wait_rounding_probe.c` is an isolated
 Windows deadline-loop diagnostic (GCC, `-O2 -static -lntdll`), not a player ranking.
+
+For matched rendering areas, `compare_players.ps1` and `run_player_profile.ps1`
+accept `-VideoWidth 1280 -VideoHeight 720`; the returned child geometry and DPI
+must match. `-ForceD3D11Linear` also fixes VLC's output, hardware decoder and
+sampler. Equal outer windows do not imply equal video areas. CPU-only thread
+profiles retain raw cycles without suspending; stack profiles retain module RVAs
+for resolving the exact unstripped native binary and are diagnostic only.
+
+Native screening modes `LinearRenderers` and `RoundedTimerPolicy` keep bilinear
+scaling and positive-wait rounding fixed while varying the renderer or timer
+policy. `VideoViews`, `DrawOverhead` and `DrawSubmission` require marked guarded
+builds; cache counters must prove that a requested cache executed. Screen results
+need repeated full-player verification before adoption. A preserved frame capture
+and zero reported drops are useful checks, not exhaustive visual/pacing proof.
+
+After applying the maintained MPV source patches, compile
+`test_mpv_windows_wait.c` with GCC (`-O2 -static -std=gnu11`) and include paths for
+the MPV source, generated MPV build and prefix headers. It calls the real patched
+timeout conversion with an intercepted Windows sleep boundary, verifying polling,
+positive remainders, finite/infinite limits, return codes and timer cleanup. It
+fails at the positive-remainder case against the original pinned header. The
+functional playback gate separately tests real signaling and presentation.

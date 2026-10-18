@@ -2,6 +2,7 @@
 // fresh engine. PLAYBACK_RESTART is engine readiness, not compositor presentation.
 #include "playback_memory_layout.h"
 #include "playback_render_options.h"
+#include "../../src/PlaybackScaling.h"
 static double ProcessCpuSeconds() {
     FILETIME created{}, exited{}, kernel{}, user{};
     if (!GetProcessTimes(GetCurrentProcess(), &created, &exited, &kernel, &user)) return -1;
@@ -23,8 +24,7 @@ static void Scenario_Resources(const std::string& media, const std::string& file
     if (!g_resourceSwapchain.empty()) options.emplace_back("swapchain-depth", g_resourceSwapchain);
     if (!g_resourceSyncInterval.empty()) options.emplace_back("d3d11-sync-interval", g_resourceSyncInterval);
     if (g_resourceScaling == "linear") {
-        for (const char* name : {"scale", "dscale", "cscale"}) options.emplace_back(name, "bilinear");
-        for (const char* name : {"linear-downscaling", "correct-downscaling", "sigmoid-upscaling"}) options.emplace_back(name, "no");
+        for (const auto& option : Aperture::PlaybackScaling::kLinear) options.emplace_back(option.name, option.value);
     }
     auto* player = NewPlayer(options, window);
     if (!player) { Report("resource engine initialization", false); DestroyWindow(window); return; }

@@ -1,0 +1,25 @@
+{
+  "experimentalOnly": true,
+  "notApplied": false,
+  "flag": "APERTURE_TEST_ROUND_WAITS",
+  "hypothesis": "Flooring positive Windows condition-variable waits to milliseconds may cause outer deadline loops to retry with a zero timeout. Compare off/on CPU, deadline lateness, dropped frames and audio/video behavior before production use.",
+  "sources": [
+    {
+      "path": "osdep/threads-win32.h",
+      "beforeSha256": "77d18858493e4d83bda4186d94611b361cb9bc14bb3b43132f0880a813265a62",
+      "afterSha256": "429356e7dc07469b5faa39f3fa4b18307884d3e9dac4783e3cd9ecb38dc769ef"
+    },
+    {
+      "path": "osdep/timer-win32.c",
+      "beforeSha256": "e0de27f1717df12f11855272df8ce43d49a9e2b98134977c17693cf5815ec8ee",
+      "afterSha256": "67aae259e23592a480940616db5423ca95c544c72ac7ecc3877aa8eeb8c230eb"
+    }
+  ],
+  "policies": [
+    "floor (default)",
+    "ceil",
+    "min1"
+  ],
+  "normalBaseDllSha256": "7a9eb5162875fd047ff7782490b1b9f317e4a1ebd51922d8d7b6d14ce1b3a618",
+  "normalRecipeNote": "Additional experimental MPV source patch is separate from the normal FFmpeg source-patch provenance."
+}

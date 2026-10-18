@@ -1,0 +1,9 @@
+{
+  "scenario": "functional",
+  "sourceDll": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-build\\wait-rounding-experiment\\libmpv-2.dll",
+  "loadedDll": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-f492b52c817a45b3a97acaf37311d2a3\\libmpv-2.dll",
+  "sha256": "0A0502AB283BAFA5DCB4E3A355AA04E9B239DF3A9A56FB6BB6745437C55A9299",
+  "bytes": 24539136,
+  "exitCode": 0,
+  "logs": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-f492b52c817a45b3a97acaf37311d2a3"
+}

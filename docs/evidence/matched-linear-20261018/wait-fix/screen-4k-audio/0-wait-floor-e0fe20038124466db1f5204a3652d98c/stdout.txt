@@ -1,0 +1,18 @@
+Loaded module: C:\Users\Alperen\AppData\Local\Codex\tools\scratch\aperture-vlc-performance-20261017\wait-rounding-experiment\screen-4k-audio\0-wait-floor-e0fe20038124466db1f5204a3652d98c\libmpv-2.dll
+Loaded module path matches requested: YES
+[PASS] loaded DLL is the requested absolute path
+    mpv_client_api_version=0x20005 (2.5)
+[PASS] client api version >= 2.5
+[PASS] resource playback restart
+[PASS] resource CPU counter interval
+[PASS] resource process cycle counter interval
+[PASS] resource process counters
+[PASS] resource playback advances
+[PASS] resource direct hardware decoder
+[PASS] resource frame-drop counters available
+[PASS] resource no steady decoding or presentation drops
+RESOURCE {"renderer":"gpu","file":"hevc-2160p60-audio.mp4","sync":"audio","decoder_threads":"0","audio_enabled":true,"init_ms":20.061,"restart_ms":761.027,"cpu_one_core_percent":15.776,"working_set":158277632,"private_bytes":419672064,"gpu_local_bytes":671596544,"gpu_shared_bytes":15785984,"dropped_frames":0,"steady_drops":0,"hwdec":"d3d11va","cpu_start_seconds":1.71875000,"cpu_end_seconds":4.87500000,"sample_elapsed_seconds":20.00649990,"process_cycles_start":5839355880,"process_cycles_end":17309969380,"position_start":4.96666667,"position_end":24.96666667,"vo_steady_drops":0,"zero_cpu_interval":false,"zero_copy":"default","swapchain_depth":"default","latency_hacks":"yes","hwdec_threads":"1","drop_property":"decoder-frame-drop-count","vo_drop_property":"frame-drop-count","heap_cleanup":false,"heap_cleanup_ms":0.000,"heap_before_private":0,"heap_after_private":0}
+RENDER_OPTIONS {"scale":"lanczos","dscale":"hermite","cscale":"","linear-downscaling":"yes","correct-downscaling":"yes","sigmoid-upscaling":"yes","dither-depth":"auto","dither":"fruit","target-colorspace-hint":"auto"}
+[PASS] resource fixed-frame rendered window capture
+
+==== SUMMARY: 11 passed, 0 failed ====
