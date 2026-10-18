@@ -128,6 +128,7 @@ cd ffmpeg-build
   --enable-hwaccel=vc1_d3d11va --enable-hwaccel=vc1_d3d11va2 \
   --enable-hwaccel=wmv3_d3d11va --enable-hwaccel=wmv3_d3d11va2 \
   --enable-hwaccel=vp9_d3d11va --enable-hwaccel=vp9_d3d11va2 \
+  --enable-hwaccel=av1_d3d11va --enable-hwaccel=av1_d3d11va2 \
   --disable-shared --enable-static --enable-pic \
   --enable-lto --enable-small \
   --extra-cflags="-ffunction-sections" \

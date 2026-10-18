@@ -12,6 +12,8 @@ param(
     [ValidateSet('gpu','gpu-next')][string]$Renderer = 'gpu',
     [string]$ResourceFile = '',
     [ValidateSet('','1','2','4')][string]$HardwareDecoderThreads = '',
+    [ValidateSet('','yes','no')][string]$GpuTiming = '',
+    [ValidateSet('','0','1','4')][string]$VertexCacheEntries = '',
     [ValidateSet('yes','no')][string]$TlsVerify = 'yes',
     [string]$Python = 'python',
     [int]$TimeoutSeconds = 300
@@ -67,6 +69,8 @@ try {
     $arguments += ' --tls-verify ' + $TlsVerify
     $arguments += ' --renderer ' + $Renderer
     if ($HardwareDecoderThreads) { $arguments += ' --hwdec-threads ' + $HardwareDecoderThreads }
+    if ($GpuTiming) { $arguments += ' --gpu-timing ' + $GpuTiming }
+    if ($VertexCacheEntries -ne '') { $arguments += ' --vertex-cache-entries ' + $VertexCacheEntries }
     if ($ResourceFile) {
         if ($ResourceFile -match '["\r\n/\\]' -or $ResourceFile -eq '..') { throw 'ResourceFile must be a filename.' }
         $arguments += ' --resource-file "' + $ResourceFile + '"'

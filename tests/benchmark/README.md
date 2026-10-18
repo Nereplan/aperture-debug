@@ -214,3 +214,21 @@ playing resizes, portrait geometry, rotation and H264-to-HDR-HEVC reconfiguratio
 The same checks run in the full functional gate. PNG captures remain in each
 owned run directory. Compare fixed paused captures across candidate/original;
 moving or unaligned frames must not be claimed pixel-identical.
+
+`VertexReuse` screens zero, one and four cached geometry entries with the balanced
+scaler, preserving counters and fixed-frame captures. The guarded tiny-buffer
+mode is for correctness checks only: verify actual growth/discard counters and
+compare paused resize/rotation captures with the original engine. Never time
+that deliberately constrained buffer.
+
+The maintained frame-resource patch caches the swap-chain view until resize,
+keeps up to four small immutable vertex ranges, and exposes
+`d3d11-gpu-timing=yes|no` and `d3d11-vertex-cache-entries=0..4`. Native defaults
+retain GPU diagnostics and enable four entries; Aperture disables per-pass GPU
+timestamps for ordinary playback. These timestamps measure renderer cost; they
+do not pace playback or change pixels. Re-enable them in custom MPV settings for
+GPU profiling. The native runner accepts `-GpuTiming` and `-VertexCacheEntries`;
+resource probes accept `--gpu-timing` and `--vertex-cache-entries`, retaining the
+effective options when supported. Production builds use no experimental
+environment switches. Verify AV1 hardware decode and explicit software playback
+after rebuilding: enabling decoder flags alone is not playback evidence.

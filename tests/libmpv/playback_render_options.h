@@ -18,6 +18,15 @@ static bool ReportPlaybackRenderOptions(mpv_handle* player) {
         }
         printf("\"");
     }
+    // Older baseline DLLs do not expose Aperture's frame-resource options.
+    for (const char* name : {"d3d11-gpu-timing", "d3d11-vertex-cache-entries"}) {
+        char* value = fn_get_property_string(player, name);
+        if (value) {
+            // These options have constrained boolean/integer values.
+            printf(",\"%s\":\"%s\"", name, value);
+            fn_free(value);
+        }
+    }
     printf("}\n");
     return complete;
 }

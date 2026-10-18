@@ -1,0 +1,211 @@
+--- a/video/out/d3d11/ra_d3d11.c
++++ b/video/out/d3d11/ra_d3d11.c
+@@ -58,6 +58,13 @@
+     ID3D11Buffer *vbuf;
+     size_t vbuf_size;
+     size_t vbuf_used;
++    bool gpu_timing;
++    unsigned vertex_cache_entries, vertex_cache_next;
++    struct {
++        bool valid;
++        size_t size, offset;
++        unsigned char data[512];
++    } vertex_cache[4];
+ 
+     // clear() renderpass resources (only used when has_clear_view is false)
+     ID3D11PixelShader *clear_ps;
+@@ -1434,10 +1441,38 @@
+     };
+ }
+ 
++static void invalidate_vertex_cache(struct ra_d3d11 *p)
++{
++    for (unsigned i = 0; i < MP_ARRAY_SIZE(p->vertex_cache); i++)
++        p->vertex_cache[i].valid = false;
++    p->vertex_cache_next = 0;
++}
++
++// Set only during context creation, before rendering or allocating timer pools.
++void ra_d3d11_set_frame_options(struct ra *ra, bool gpu_timing, int vertex_entries)
++{
++    struct ra_d3d11 *p = ra->priv;
++    p->gpu_timing = gpu_timing;
++    p->vertex_cache_entries = MPCLAMP(vertex_entries, 0, 4);
++    invalidate_vertex_cache(p);
++}
++
+ static size_t vbuf_upload(struct ra *ra, void *data, size_t size)
+ {
+     struct ra_d3d11 *p = ra->priv;
+     HRESULT hr;
++
++    // Uploads append to a single dynamic buffer. Cached ranges stay immutable
++    // until growth or WRITE_DISCARD; both invalidate every entry below.
++    if (p->vertex_cache_entries > 0 && p->vbuf && size > 0) {
++        for (unsigned i = 0; i < p->vertex_cache_entries; i++) {
++            if (p->vertex_cache[i].valid && size == p->vertex_cache[i].size &&
++                memcmp(data, p->vertex_cache[i].data, size) == 0)
++            {
++                return p->vertex_cache[i].offset;
++            }
++        }
++    }
+ 
+     // Arbitrary size limit in case there is an insane number of vertices
+     if (size > 1e9) {
+@@ -1468,6 +1503,7 @@
+             return -1;
+         }
+ 
++        invalidate_vertex_cache(p);
+         SAFE_RELEASE(p->vbuf);
+         p->vbuf = new_buf;
+         p->vbuf_size = new_size;
+@@ -1482,6 +1518,9 @@
+         offset = 0;
+     }
+ 
++    if (discard)
++        invalidate_vertex_cache(p);
++
+     D3D11_MAPPED_SUBRESOURCE map = { 0 };
+     hr = ID3D11DeviceContext_Map(p->ctx, (ID3D11Resource *)p->vbuf, 0,
+         discard ? D3D11_MAP_WRITE_DISCARD : D3D11_MAP_WRITE_NO_OVERWRITE,
+@@ -1497,6 +1536,16 @@
+     ID3D11DeviceContext_Unmap(p->ctx, (ID3D11Resource *)p->vbuf, 0);
+ 
+     p->vbuf_used = offset + size;
++    if (p->vertex_cache_entries > 0) {
++        if (size > 0 && size <= sizeof(p->vertex_cache[0].data)) {
++            unsigned entry = p->vertex_cache_next;
++            memcpy(p->vertex_cache[entry].data, data, size);
++            p->vertex_cache[entry].size = size;
++            p->vertex_cache[entry].offset = offset;
++            p->vertex_cache[entry].valid = true;
++            p->vertex_cache_next = (entry + 1) % p->vertex_cache_entries;
++        }
++    }
+     return offset;
+ }
+ 
+@@ -2000,7 +2049,7 @@
+ static ra_timer *timer_create(struct ra *ra)
+ {
+     struct ra_d3d11 *p = ra->priv;
+-    if (!p->has_timestamp_queries)
++    if (!p->gpu_timing || !p->has_timestamp_queries)
+         return NULL;
+ 
+     struct d3d_timer *timer = talloc_zero(NULL, struct d3d_timer);
+@@ -2392,6 +2441,8 @@
+ 
+     struct ra_d3d11 *p = ra->priv = talloc_zero(ra, struct ra_d3d11);
+     p->spirv = spirv;
++    p->gpu_timing = true;
++    p->vertex_cache_entries = 4;
+ 
+     int minor = 0;
+     ID3D11Device_AddRef(dev);
+--- a/video/out/d3d11/context.c
++++ b/video/out/d3d11/context.c
+@@ -31,6 +31,8 @@
+     int feature_level;
+     int warp;
+     bool flip;
++    bool gpu_timing;
++    int vertex_cache_entries;
+     int sync_interval;
+     char *adapter_name;
+     int output_format;
+@@ -61,6 +63,9 @@
+             .flags = UPDATE_VO,
+         },
+         {"d3d11-flip", OPT_BOOL(flip), .flags = UPDATE_VO},
++        {"d3d11-gpu-timing", OPT_BOOL(gpu_timing), .flags = UPDATE_VO},
++        {"d3d11-vertex-cache-entries", OPT_INT(vertex_cache_entries), M_RANGE(0, 4),
++            .flags = UPDATE_VO},
+         {"d3d11-sync-interval", OPT_INT(sync_interval), M_RANGE(0, 4)},
+         {"d3d11-adapter",
+             OPT_STRING_VALIDATE(adapter_name, mp_dxgi_validate_adapter),
+@@ -95,6 +100,8 @@
+         .feature_level = D3D_FEATURE_LEVEL_12_1,
+         .warp = -1,
+         .flip = true,
++        .gpu_timing = true,
++        .vertex_cache_entries = 4,
+         .sync_interval = 1,
+         .adapter_name = NULL,
+         .output_format = DXGI_FORMAT_UNKNOWN,
+@@ -112,6 +119,7 @@
+     struct m_config_cache *vo_opts_cache;
+ 
+     struct ra_tex *backbuffer;
++    bool frame_in_progress;
+     ID3D11Device *device;
+     IDXGISwapChain *swapchain;
+     struct pl_color_space swapchain_csp;
+@@ -150,10 +158,13 @@
+     struct priv *p = ctx->priv;
+     HRESULT hr;
+ 
+-    if (p->backbuffer) {
++    if (p->frame_in_progress) {
+         MP_ERR(ctx, "Attempt at resizing while a frame was in progress!\n");
+         return false;
+     }
++
++    // All cached views must be released before ResizeBuffers.
++    ra_tex_free(ctx->ra, &p->backbuffer);
+ 
+     hr = IDXGISwapChain_ResizeBuffers(p->swapchain, 0, ctx->vo->dwidth,
+         ctx->vo->dheight, DXGI_FORMAT_UNKNOWN, 0);
+@@ -224,12 +235,14 @@
+     if (!out_fbo)
+         return true;
+ 
+-    mp_assert(!p->backbuffer);
+-
+-    p->backbuffer = get_backbuffer(sw->ctx);
++    mp_assert(!p->frame_in_progress);
++
++    if (!p->backbuffer)
++        p->backbuffer = get_backbuffer(sw->ctx);
+     if (!p->backbuffer)
+         return false;
+ 
++    p->frame_in_progress = true;
+     *out_fbo = (struct ra_fbo) {
+         .tex = p->backbuffer,
+         .flip = false,
+@@ -244,7 +257,9 @@
+     struct priv *p = sw->priv;
+ 
+     ra_d3d11_flush(sw->ctx->ra);
+-    ra_tex_free(sw->ctx->ra, &p->backbuffer);
++    // D3D11 buffer 0 retains its logical identity across Present. Every
++    // render pass still explicitly rebinds its RTV/UAV before drawing.
++    p->frame_in_progress = false;
+     return true;
+ }
+ 
+@@ -522,6 +537,8 @@
+     ctx->ra = ra_d3d11_create(p->device, ctx->log, ctx->spirv);
+     if (!ctx->ra)
+         goto error;
++    ra_d3d11_set_frame_options(ctx->ra, p->opts->gpu_timing,
++                              p->opts->vertex_cache_entries);
+ 
+     ctx->opts.composition = p->opts->output_mode == 1;
+     if (!ctx->opts.composition && !vo_w32_init(ctx->vo))
+--- a/video/out/d3d11/ra_d3d11.h
++++ b/video/out/d3d11/ra_d3d11.h
+@@ -19,6 +19,9 @@
+ // device, which is released when the RA instance is destroyed.
+ struct ra *ra_d3d11_create(ID3D11Device *device, struct mp_log *log,
+                            struct spirv_compiler *spirv);
++
++// Configure only during context creation, before timer pools/rendering start.
++void ra_d3d11_set_frame_options(struct ra *ra, bool gpu_timing, int vertex_entries);
+ 
+ // Flush the immediate context of the wrapped D3D11 device
+ void ra_d3d11_flush(struct ra *ra);

@@ -184,6 +184,9 @@ bool MpvPlayer::Initialize(HWND hParentWnd, HWND hChildVideoWnd) {
     // memory frame queue alongside the GPU decoder surfaces.
     SetMpvOption(mpv, "hwdec", "d3d11va", MpvOptionRequirement::Optional, "no");
     SetMpvOption(mpv, "vo", "gpu", MpvOptionRequirement::Essential);
+    // Per-pass GPU timestamps feed diagnostics, not playback or image quality.
+    // Custom mpv configuration can re-enable them when profiling the renderer.
+    SetMpvOption(mpv, "d3d11-gpu-timing", "no");
     for (const auto& option : PlaybackScaling::kBalanced)
         SetMpvOption(mpv, option.name, option.value);
     // HEVC Main 10 frames are large (P010 is ~4 MiB at 1080p). mpv's default extra-surface cushion is unnecessary for this local player

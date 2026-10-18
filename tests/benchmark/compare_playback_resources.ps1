@@ -6,7 +6,7 @@ param(
     [Parameter(Mandatory)][string]$MediaDir,
     [Parameter(Mandatory)][string]$OutputDir,
     [string]$MediaFile = 'h264_aac_720p.mp4',
-    [ValidateSet('Renderer','LinearRenderers','QualityScaling','Pacing','Transfers','HardwareThreads','FreeHeapCaches','EagerFlush','GpuTimers','Backbuffer','Presentation','TimerPolicy','RoundedTimerPolicy','LazyTables','Scaling','WaitRounding','VideoViews','DrawOverhead','DrawSubmission')][string]$Experiment = 'Renderer',
+    [ValidateSet('Renderer','LinearRenderers','QualityScaling','VertexReuse','Pacing','Transfers','HardwareThreads','FreeHeapCaches','EagerFlush','GpuTimers','Backbuffer','Presentation','TimerPolicy','RoundedTimerPolicy','LazyTables','Scaling','WaitRounding','VideoViews','DrawOverhead','DrawSubmission')][string]$Experiment = 'Renderer',
     [switch]$WithAudio,
     [ValidateRange(1,15)][int]$Iterations = 3,
     [ValidateRange(0,5)][int]$WarmupIterations = 1,
@@ -43,6 +43,15 @@ if ($Experiment -eq 'QualityScaling') {
     $variants = @('default','balanced','linear' | ForEach-Object {
         @{name="quality-$_"; dll=$CandidateDll; renderer='gpu'; sync='audio'; threads='0'; hwthreads='1'; scaling=$_; waitPolicy='min1'; cacheBackbuffer=$true; noTimers=$true; reuseVertices=$true}
     })
+}
+if ($Experiment -eq 'VertexReuse') {
+    $dllText = [Text.Encoding]::ASCII.GetString([IO.File]::ReadAllBytes($CandidateDll))
+    foreach ($marker in @('APERTURE_TEST_VERTEX_CACHE_ENTRIES','APERTURE_TEST_CACHE_BACKBUFFER','APERTURE_TEST_NO_GPU_TIMERS','APERTURE_TEST_ROUND_WAITS')) { if (-not $dllText.Contains($marker)) { throw 'VertexReuse requires the marked experimental DLL.' } }
+    $variants = @(
+        @{name='vertex-none'; dll=$CandidateDll; renderer='gpu'; sync='audio'; threads='0'; hwthreads='1'; scaling='balanced'; waitPolicy='min1'; cacheBackbuffer=$true; noTimers=$true},
+        @{name='vertex-one'; dll=$CandidateDll; renderer='gpu'; sync='audio'; threads='0'; hwthreads='1'; scaling='balanced'; waitPolicy='min1'; cacheBackbuffer=$true; noTimers=$true; reuseVertices=$true; vertexEntries='1'},
+        @{name='vertex-four'; dll=$CandidateDll; renderer='gpu'; sync='audio'; threads='0'; hwthreads='1'; scaling='balanced'; waitPolicy='min1'; cacheBackbuffer=$true; noTimers=$true; reuseVertices=$true; vertexEntries='4'}
+    )
 }
 if ($Experiment -eq 'Pacing') {
     $variants = @(
@@ -202,6 +211,8 @@ for ($round=0; $round -lt ($WarmupIterations+$Iterations); $round++) {
         [void]$info.Environment.Remove('APERTURE_TEST_ROUND_WAITS')
         [void]$info.Environment.Remove('APERTURE_TEST_CACHE_VIDEO_VIEWS')
         [void]$info.Environment.Remove('APERTURE_TEST_REUSE_VERTICES')
+        [void]$info.Environment.Remove('APERTURE_TEST_VERTEX_CACHE_ENTRIES')
+        [void]$info.Environment.Remove('APERTURE_TEST_SMALL_VERTEX_BUFFER')
         foreach ($name in @('MPV_HRT','MPV_HRT_MAX','MPV_HRT_RES')) { [void]$info.Environment.Remove($name) }
         if ($variant.skipFlush) { $info.Environment['APERTURE_TEST_SKIP_D3D11_FLUSH'] = '1' }
         if ($variant.noTimers) { $info.Environment['APERTURE_TEST_NO_GPU_TIMERS'] = '1' }
@@ -212,6 +223,7 @@ for ($round=0; $round -lt ($WarmupIterations+$Iterations); $round++) {
         if ($variant.waitPolicy) { $info.Environment['APERTURE_TEST_ROUND_WAITS'] = $variant.waitPolicy }
         if ($variant.cacheVideoViews) { $info.Environment['APERTURE_TEST_CACHE_VIDEO_VIEWS'] = '1' }
         if ($variant.reuseVertices) { $info.Environment['APERTURE_TEST_REUSE_VERTICES'] = '1' }
+        if ($variant.vertexEntries) { $info.Environment['APERTURE_TEST_VERTEX_CACHE_ENTRIES'] = $variant.vertexEntries }
         $startedUtc = [DateTime]::UtcNow.ToString('o')
         $process = [Diagnostics.Process]::Start($info)
         $stdout = $process.StandardOutput.ReadToEndAsync(); $stderr = $process.StandardError.ReadToEndAsync()
@@ -257,10 +269,12 @@ for ($round=0; $round -lt ($WarmupIterations+$Iterations); $round++) {
             if (-not $vertexStats.Count -or ($vertexStats | Measure-Object uploads -Sum).Sum -lt 1) { throw "Vertex cache was not observed: $run" }
             # A multi-pass quality scaler can change geometry every draw and
             # legitimately get zero hits. Linear screens require actual reuse.
-            if ($variant.scaling -eq 'linear' -and ($vertexStats | Measure-Object reuses -Sum).Sum -lt 1) { throw "Linear vertex reuse did not execute: $run" }
+            if (($variant.scaling -eq 'linear' -or ($Experiment -eq 'VertexReuse' -and $variant.vertexEntries -eq 4)) -and
+                ($vertexStats | Measure-Object reuses -Sum).Sum -lt 1) { throw "Requested vertex reuse did not execute: $run" }
+            if ($variant.vertexEntries -and @($vertexStats | Where-Object capacity -NE ([int]$variant.vertexEntries)).Count) { throw "Requested vertex cache capacity did not apply: $run" }
             $sample | Add-Member vertex_cache_stats $vertexStats
         }
-        if ($Experiment -eq 'DrawSubmission' -and $variant.cacheBackbuffer) {
+        if ($Experiment -in @('DrawSubmission','VertexReuse') -and $variant.cacheBackbuffer) {
             $cacheStats = @([regex]::Matches($errorLog, '(?m)^APERTURE_BACKBUFFER_CACHE (.+)$') | ForEach-Object { $_.Groups[1].Value | ConvertFrom-Json })
             if (-not $cacheStats.Count -or ($cacheStats | Measure-Object reuses -Sum).Sum -lt 1) { throw "Backbuffer cache did not execute: $run" }
             $sample | Add-Member backbuffer_cache_stats $cacheStats
@@ -271,6 +285,7 @@ for ($round=0; $round -lt ($WarmupIterations+$Iterations); $round++) {
         $sample | Add-Member lazy_tables ([bool]$variant.lazyTables)
         $sample | Add-Member cached_video_views ([bool]$variant.cacheVideoViews)
         $sample | Add-Member reused_vertices ([bool]$variant.reuseVertices)
+        if ($variant.vertexEntries) { $sample | Add-Member vertex_cache_entries ([int]$variant.vertexEntries) }
         if ($variant.timerPolicy) { $sample | Add-Member timer_policy $variant.timerPolicy }
         if ($variant.waitPolicy) { $sample | Add-Member wait_policy $variant.waitPolicy }
         if ($variant.interval) { $sample | Add-Member sync_interval $variant.interval }

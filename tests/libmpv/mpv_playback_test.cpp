@@ -22,6 +22,7 @@
 #include <cmath>
 #include <algorithm>
 #include <functional>
+#include <utility>
 #include <psapi.h>
 #include <dxgi1_4.h>
 #pragma comment(lib, "psapi.lib")
@@ -82,6 +83,7 @@ static bool g_resourceHeapCleanup = false;
 static bool g_resourceMemoryLayout = false;
 static std::string g_resourceSyncInterval;
 static std::string g_resourceScaling = "default";
+static std::string g_frameGpuTiming, g_frameVertexCacheEntries;
 static bool g_resourceOptionsOnly = false;
 static std::vector<std::string> g_failDetails;
 
@@ -181,6 +183,13 @@ static mpv_handle* NewPlayer(const std::vector<std::pair<std::string, std::strin
         Report("hardware decoder thread setting", false);
         fn_terminate_destroy(mpv); return nullptr;
     }
+    for (const auto& option : {std::make_pair("d3d11-gpu-timing", g_frameGpuTiming),
+                              std::make_pair("d3d11-vertex-cache-entries", g_frameVertexCacheEntries)}) {
+        if (!option.second.empty() && fn_set_property_string(mpv, option.first, option.second.c_str()) < 0) {
+            Report(option.first, false);
+            fn_terminate_destroy(mpv); return nullptr;
+        }
+    }
     if (attachHwnd) {
         char widBuf[32];
         snprintf(widBuf, sizeof(widBuf), "%llu", (unsigned long long)(uintptr_t)attachHwnd);
@@ -234,6 +243,8 @@ static void Scenario_PlaybackBasics(const std::string& media, const FileCheck& f
         {"force-window", "yes"}, {"keep-open", "yes"}, {"volume", "0"},
         {"video-sync", "audio"}, {"hr-seek", "always"},
     };
+    if (!wantHwdec && !strcmp(fc.videoCodecContains, "av1"))
+        opts.emplace_back("vd", "lavc:libdav1d");
     mpv_handle* mpv = NewPlayer(opts, hwnd);
     if (!mpv) { Report(testName, false, "player init failed"); DestroyWindow(hwnd); return; }
 
@@ -265,6 +276,9 @@ static void Scenario_PlaybackBasics(const std::string& media, const FileCheck& f
         PumpMessages(50);
         double t1 = GetDbl(mpv, "time-pos");
         Report((std::string(fc.name) + ": time advances").c_str(), t1 > t0 + 1.0);
+        if (!wantHwdec && !strcmp(fc.videoCodecContains, "av1"))
+            Report("AV1 libdav1d software fallback", GetStr(mpv, "hwdec-current") == "no",
+                   GetStr(mpv, "video-codec"));
 
         if (wantHwdec && *fc.videoCodecContains) {
             std::string hw = GetStr(mpv, "hwdec-current");
@@ -763,6 +777,8 @@ int main(int argc, char** argv) {
         else if (!strcmp(argv[i], "--memory-layout")) g_resourceMemoryLayout = true;
         else if (!strcmp(argv[i], "--options-only")) g_resourceOptionsOnly = true;
         else if (!strcmp(argv[i], "--scaling") && i + 1 < argc) g_resourceScaling = argv[++i];
+        else if (!strcmp(argv[i], "--gpu-timing") && i + 1 < argc) g_frameGpuTiming = argv[++i];
+        else if (!strcmp(argv[i], "--vertex-cache-entries") && i + 1 < argc) g_frameVertexCacheEntries = argv[++i];
         else if (!strcmp(argv[i], "--sync-interval") && i + 1 < argc) g_resourceSyncInterval = argv[++i];
         else if (!strcmp(argv[i], "--zero-copy") && i + 1 < argc) g_resourceZeroCopy = argv[++i];
         else if (!strcmp(argv[i], "--swapchain-depth") && i + 1 < argc) g_resourceSwapchain = argv[++i];
@@ -772,6 +788,8 @@ int main(int argc, char** argv) {
         else if (!strcmp(argv[i], "--capture-window") && i + 1 < argc) g_resourceCapture = argv[++i];
     }
     if (g_resourceSampleSeconds < 1 || g_resourceSampleSeconds > 120 ||
+        (!g_frameGpuTiming.empty() && g_frameGpuTiming != "yes" && g_frameGpuTiming != "no") ||
+        (!g_frameVertexCacheEntries.empty() && g_frameVertexCacheEntries != "0" && g_frameVertexCacheEntries != "1" && g_frameVertexCacheEntries != "4") ||
         (g_resourceScaling != "default" && g_resourceScaling != "linear" && g_resourceScaling != "balanced") ||
         (!g_resourceSyncInterval.empty() && g_resourceSyncInterval != "0" && g_resourceSyncInterval != "1") ||
         (!g_resourceHwdecThreads.empty() && g_resourceHwdecThreads != "1" && g_resourceHwdecThreads != "2" && g_resourceHwdecThreads != "4") ||
@@ -831,6 +849,7 @@ int main(int argc, char** argv) {
             Scenario_PlaybackBasics(media, {"h264_aac_720p.mp4", "h264", "aac", "h264+aac mp4"}, false);
             Scenario_PlaybackBasics(media, {"hevc_aac_720p.mp4", "hevc", "aac", "hevc+aac mp4"}, true);
             Scenario_PlaybackBasics(media, {"hevc_aac_720p.mp4", "hevc", "aac", "hevc+aac mp4"}, false);
+            Scenario_PlaybackBasics(media, {"av1_opus.mkv", "av1", "opus", "av1+opus mkv"}, true);
             Scenario_PlaybackBasics(media, {"av1_opus.mkv", "av1", "opus", "av1+opus mkv"}, false);
             Scenario_PlaybackBasics(media, {"vp9_opus.webm", "vp9", "opus", "vp9+opus webm"}, false);
             Scenario_PlaybackBasics(media, {"mpeg4_mp3.avi", "mpeg4", "mp3", "mpeg4+mp3 avi"}, false);

@@ -103,12 +103,13 @@ TEST_CASE(MpvInitialization, BundledProfilesHonorEssentialPolicyAndRetainIndepen
     if (!window.parent || !window.child) return;
     auto checkDiagnostics = [](const auto& player) {
         for (const auto& diagnostic : player.GetInitializationDiagnostics()) std::cout << "  " << diagnostic.message << "\n";
-        // The hash-pinned bundled build disables Lua and omits the ytdl option.
-        // Every other option must be accepted; future rejection is visible here.
+        // Bundled builds omit ytdl; older engines also omit optional GPU timing.
+        // All other rejections remain test failures.
         for (const auto& diagnostic : player.GetInitializationDiagnostics()) {
             TEST_ASSERT(!diagnostic.essential);
             TEST_ASSERT_EQ(diagnostic.errorCode, int(MPV_ERROR_OPTION_NOT_FOUND));
-            TEST_ASSERT(diagnostic.message.find("option ytdl=no") != std::string::npos);
+            TEST_ASSERT(diagnostic.message.find("option ytdl=no") != std::string::npos ||
+                        diagnostic.message.find("option d3d11-gpu-timing=no") != std::string::npos);
         }
     };
     MpvPlayer main;

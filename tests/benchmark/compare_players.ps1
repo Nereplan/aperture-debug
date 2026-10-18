@@ -241,7 +241,7 @@ for ($round=0; $round -lt ($WarmupIterations+$Iterations); $round++) {
         try {
             $psi=[Diagnostics.ProcessStartInfo]::new((Join-Path $runtime $player.exeName)); $psi.WorkingDirectory=$runtime; $psi.UseShellExecute=$false; $psi.CreateNoWindow=$true
             foreach($arg in $argsList) { $psi.ArgumentList.Add($arg) }
-            foreach ($key in @('APERTURE_TEST_SKIP_D3D11_FLUSH','APERTURE_TEST_NO_GPU_TIMERS','APERTURE_TEST_CACHE_BACKBUFFER','APERTURE_TEST_LAZY_TX_TABLES','APERTURE_TEST_VO_CPU_SECTIONS','APERTURE_TEST_ROUND_WAITS','APERTURE_TEST_REUSE_VERTICES','APERTURE_TEST_CACHE_VIDEO_VIEWS','MPV_HRT','MPV_HRT_MAX','MPV_HRT_RES')) { [void]$psi.Environment.Remove($key) }
+            foreach ($key in @('APERTURE_TEST_SKIP_D3D11_FLUSH','APERTURE_TEST_NO_GPU_TIMERS','APERTURE_TEST_CACHE_BACKBUFFER','APERTURE_TEST_LAZY_TX_TABLES','APERTURE_TEST_VO_CPU_SECTIONS','APERTURE_TEST_ROUND_WAITS','APERTURE_TEST_REUSE_VERTICES','APERTURE_TEST_VERTEX_CACHE_ENTRIES','APERTURE_TEST_SMALL_VERTEX_BUFFER','APERTURE_TEST_CACHE_VIDEO_VIEWS','MPV_HRT','MPV_HRT_MAX','MPV_HRT_RES')) { [void]$psi.Environment.Remove($key) }
             foreach($key in $envOverride.Keys) { $psi.Environment[$key]=$envOverride[$key] }
             $timer=[Diagnostics.Stopwatch]::StartNew(); $process=[Diagnostics.Process]::Start($psi); $record.pid=$process.Id
             if($mpcObserver) { $mpcObserver.SetOwnedPid([uint32]$process.Id) }
