@@ -1,0 +1,17 @@
+--- a/osdep/threads-win32.h
++++ b/osdep/threads-win32.h
+@@ -90,7 +90,13 @@
+ 
+ static inline int mp_cond_timedwait(mp_cond *cond, mp_mutex *mutex, int64_t timeout)
+ {
+-    timeout = MPCLAMP(timeout, 0, MP_TIME_MS_TO_NS(INFINITE)) / MP_TIME_MS_TO_NS(1);
++    int64_t bounded = MPCLAMP(timeout, 0, MP_TIME_MS_TO_NS(INFINITE));
++    timeout = bounded / MP_TIME_MS_TO_NS(1);
++    // Windows condition-variable waits have millisecond resolution. A positive
++    // sub-millisecond remainder must sleep rather than repeatedly poll an outer
++    // deadline loop. Explicit zero/expired deadlines and INFINITE stay intact.
++    if (bounded > 0 && timeout == 0)
++        timeout = 1;
+ 
+     int ret = 0;
+     int64_t hrt = mp_start_hires_timers(MP_TIME_MS_TO_NS(timeout));
