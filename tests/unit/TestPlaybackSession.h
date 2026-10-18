@@ -743,6 +743,7 @@ TEST_CASE(PlaybackSession, PiPTransitionsAndGeometry) {
     DestroyWindow(testWnd);
 }
 TEST_CASE(PlaybackSession, MaximizedWindowedPiPRoundTrip) {
+    if (!g_allowVisibleTestWindows) TEST_SKIP("requires an explicitly requested visible-window test");
     PlaybackSession session;
     HWND testWnd = CreateWindowExW(
         WS_EX_OVERLAPPEDWINDOW, L"STATIC", L"PiPMaximizedTest",
@@ -821,6 +822,7 @@ TEST_CASE(PlaybackSession, MaximizedWindowedPiPRoundTrip) {
 }
 
 TEST_CASE(PlaybackSession, NormalWindowedPiPRoundTrip) {
+    if (!g_allowVisibleTestWindows) TEST_SKIP("requires an explicitly requested visible-window test");
     PlaybackSession session;
     HWND testWnd = CreateWindowExW(
         WS_EX_OVERLAPPEDWINDOW, L"STATIC", L"PiPNormalTest",
@@ -860,6 +862,7 @@ TEST_CASE(PlaybackSession, NormalWindowedPiPRoundTrip) {
 }
 
 TEST_CASE(PlaybackSession, FullscreenPiPRoundTrip) {
+    if (!g_allowVisibleTestWindows) TEST_SKIP("requires an explicitly requested visible-window test");
     PlaybackSession session;
     HWND testWnd = CreateWindowExW(
         WS_EX_OVERLAPPEDWINDOW, L"STATIC", L"PiPFullscreenTest",
@@ -929,6 +932,7 @@ TEST_CASE(PlaybackSession, FullscreenPiPRoundTrip) {
 }
 
 TEST_CASE(PlaybackSession, FullscreenExitRestoresPlacementWithoutIntermediateSize) {
+    if (!g_allowVisibleTestWindows) TEST_SKIP("requires an explicitly requested visible-window test");
     struct WindowProbe {
         HWND window = CreateWindowExW(0, L"STATIC", L"Fullscreen restore test",
             WS_OVERLAPPEDWINDOW | WS_VISIBLE, 140, 120, 800, 600,
@@ -981,6 +985,7 @@ TEST_CASE(PlaybackSession, FullscreenExitRestoresPlacementWithoutIntermediateSiz
 }
 
 TEST_CASE(PlaybackSession, PiPFullscreenGeometryPreservation) {
+    if (!g_allowVisibleTestWindows) TEST_SKIP("requires an explicitly requested visible-window test");
     PlaybackSession session;
     HWND testWnd = CreateWindowExW(
         WS_EX_OVERLAPPEDWINDOW, L"STATIC", L"PiPGeomPreserveTest",
@@ -1037,6 +1042,7 @@ TEST_CASE(PlaybackSession, PiPFullscreenGeometryPreservation) {
 }
 
 TEST_CASE(PlaybackSession, PiPOverlayFollowsClientOriginAfterDrag) {
+    if (!g_allowVisibleTestWindows) TEST_SKIP("requires an explicitly requested visible-window test");
     HWND owner = CreateWindowExW(
         0, L"STATIC", L"PiPOverlayOwnerTest",
         WS_POPUP | WS_THICKFRAME | WS_VISIBLE, 160, 140, 520, 320,
@@ -1101,6 +1107,7 @@ TEST_CASE(PlaybackSession, SettingsPiPPersistence) {
 }
 
 TEST_CASE(PlaybackSession, PiPToFullscreenTransitionUsesAtomicTargetBounds) {
+    if (!g_allowVisibleTestWindows) TEST_SKIP("requires an explicitly requested visible-window test");
     PlaybackSession session;
     HWND testWnd = CreateWindowExW(
         WS_EX_OVERLAPPEDWINDOW, L"STATIC", L"PiPTransitionTest",

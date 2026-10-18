@@ -6,7 +6,7 @@
 param(
     [string]$DllPath = '',
     [string]$MediaDir = '',
-    [ValidateSet('all','functional','version','basics','controls','subs','screenshot','geometry','swrender','audio','hdr','bench','network','startup','url','resources')]
+    [ValidateSet('all','functional','version','basics','controls','subs','screenshot','geometry','swrender','audio','hdr','bench','network','startup','url','resources','framecheck')]
     [string]$Scenario = 'functional',
     [string]$Url = '',
     [ValidateSet('gpu','gpu-next')][string]$Renderer = 'gpu',
@@ -18,11 +18,19 @@ param(
     [ValidateSet('','yes','no')][string]$SdrFboPrecision = '',
     [ValidateSet('','yes','no')][string]$DirectNv12Filtering = '',
     [switch]$FramebufferDiagnostics,
+    [switch]$VisiblePlayback,
+    [ValidateSet('d3d11va','no')][string]$HardwareDecodeMode = 'd3d11va',
+    [ValidateSet('','auto','rgba16hf','rgb10_a2','rgba8')][string]$FramebufferFormat = '',
+    [string]$FrameCapture = '',
+    [ValidateSet('','fruit','ordered','error-diffusion','no')][string]$FrameDither = '',
+    [ValidateSet(0,90,180,270)][int]$FrameRotation = 0,
+    [ValidateRange(-3,3)][double]$FrameZoom = 0,
     [ValidateSet('yes','no')][string]$TlsVerify = 'yes',
     [string]$Python = 'python',
     [int]$TimeoutSeconds = 300
 )
 $ErrorActionPreference = 'Stop'
+if (!$VisiblePlayback -and $Scenario -in @('all','resources','bench','startup')) { throw 'This scenario requires visible playback; it cannot run as a hidden performance measurement.' }
 $repo = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..'))
 if (!$DllPath) { $DllPath = Join-Path $repo 'libmpv-2.dll' }
 if (!$MediaDir) { $MediaDir = Join-Path $repo 'scratch\libmpv-tests\media' }
@@ -69,6 +77,16 @@ try {
         if (!$ready) { throw 'Local HTTP fixture did not become ready.' }
     }
     $arguments = '--dll "{0}" --media "{1}" --scenario {2} --port {3}' -f $stagedDll,$MediaDir,$Scenario,$port
+    $arguments += $(if ($VisiblePlayback) { ' --visible' } else { ' --headless' })
+    if ($FrameDither) { $arguments += ' --frame-dither ' + $FrameDither }
+    if ($FrameRotation) { $arguments += ' --frame-rotate ' + $FrameRotation }
+    if ($FrameZoom) { $arguments += ' --frame-zoom ' + $FrameZoom.ToString([Globalization.CultureInfo]::InvariantCulture) }
+    if ($FramebufferFormat) { $arguments += ' --fbo-format ' + $FramebufferFormat }
+    $arguments += ' --resource-hwdec ' + $HardwareDecodeMode
+    if ($FrameCapture) {
+        if ($FrameCapture -match '["\r\n]') { throw 'Invalid capture path.' }
+        $arguments += ' --capture-window "' + [IO.Path]::GetFullPath($FrameCapture) + '"'
+    }
     if ($Url) { $arguments += ' --url "' + $Url + '"' }
     $arguments += ' --tls-verify ' + $TlsVerify
     $arguments += ' --renderer ' + $Renderer
@@ -97,7 +115,7 @@ try {
     Write-Host $log
     if ($log -notmatch 'Loaded module path matches requested: YES') { throw 'Test loaded an unexpected DLL.' }
     if ((Get-FileHash -LiteralPath $stagedDll).Hash -ne $sha) { throw 'Staged DLL changed during the test.' }
-    $summary = [ordered]@{scenario=$Scenario;sourceDll=$DllPath;loadedDll=$stagedDll;sha256=$sha;bytes=(Get-Item -LiteralPath $stagedDll).Length;exitCode=$process.ExitCode;logs=$run}
+    $summary = [ordered]@{scenario=$Scenario;sourceDll=$DllPath;loadedDll=$stagedDll;sha256=$sha;bytes=(Get-Item -LiteralPath $stagedDll).Length;exitCode=$process.ExitCode;visibility=$(if($VisiblePlayback){'visible-playback'}else{'hidden-correctness-only'});logs=$run}
     $summary | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $run 'summary.json') -Encoding UTF8
     Write-Host "Results: $run"
     if ($process.ExitCode -ne 0) { throw "Playback tests failed ($($process.ExitCode))." }

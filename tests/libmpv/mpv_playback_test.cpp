@@ -91,6 +91,10 @@ static std::string g_observedFboFormat;
 static std::string g_frameGpuTiming, g_frameVertexCacheEntries, g_frameSdrFbo, g_frameDirectNv12;
 static std::string g_observedDirectNv12;
 static bool g_resourceOptionsOnly = false;
+static bool g_headless = true, g_visibleTestWindowObserved = false;
+static std::string g_frameDither;
+static int g_frameRotation = 0;
+static double g_frameZoom = 0;
 static std::vector<std::string> g_failDetails;
 
 static void Report(const char* name, bool pass, const std::string& detail = "") {
@@ -252,6 +256,8 @@ static void DestroyPlayer(mpv_handle* mpv) {
 
 // ---- window for vo=gpu (d3d11 swapchain) ----
 static LRESULT CALLBACK TestWndProc(HWND h, UINT m, WPARAM w, LPARAM l) {
+    if (g_headless && m == WM_WINDOWPOSCHANGED && IsWindowVisible(h))
+        g_visibleTestWindowObserved = true;
     return DefWindowProcW(h, m, w, l);
 }
 static HWND CreateTestWindow(int w, int h) {
@@ -263,8 +269,10 @@ static HWND CreateTestWindow(int w, int h) {
     RegisterClassW(&wc);
     HWND hwnd = CreateWindowExW(0, wc.lpszClassName, L"mpv-test", WS_OVERLAPPEDWINDOW,
                                 CW_USEDEFAULT, CW_USEDEFAULT, w, h, nullptr, nullptr, wc.hInstance, nullptr);
-    ShowWindow(hwnd, SW_SHOWNOACTIVATE);
-    UpdateWindow(hwnd);
+    if (!g_headless) {
+        ShowWindow(hwnd, SW_SHOWNOACTIVATE);
+        UpdateWindow(hwnd);
+    }
     return hwnd;
 }
 
@@ -797,6 +805,7 @@ static void Scenario_Startup(const std::string& media, int iters) {
 }
 
 #include "playback_resource_probe.h"
+#include "playback_frame_check.h"
 #include "playback_geometry.h"
 
 int main(int argc, char** argv) {
@@ -811,6 +820,11 @@ int main(int argc, char** argv) {
         else if (!strcmp(argv[i], "--url") && i + 1 < argc) url = argv[++i];
         else if (!strcmp(argv[i], "--tls-verify") && i + 1 < argc) g_tlsVerify = argv[++i];
         else if (!strcmp(argv[i], "--iters") && i + 1 < argc) g_startupIters = atoi(argv[++i]);
+        else if (!strcmp(argv[i], "--frame-dither") && i + 1 < argc) g_frameDither = argv[++i];
+        else if (!strcmp(argv[i], "--frame-rotate") && i + 1 < argc) g_frameRotation = atoi(argv[++i]);
+        else if (!strcmp(argv[i], "--frame-zoom") && i + 1 < argc) g_frameZoom = atof(argv[++i]);
+        else if (!strcmp(argv[i], "--headless")) g_headless = true;
+        else if (!strcmp(argv[i], "--visible")) g_headless = false;
         else if (!strcmp(argv[i], "--renderer") && i + 1 < argc) g_renderer = argv[++i];
         else if (!strcmp(argv[i], "--resource-file") && i + 1 < argc) resourceFile = argv[++i];
         else if (!strcmp(argv[i], "--video-sync") && i + 1 < argc) g_videoSync = argv[++i];
@@ -836,6 +850,9 @@ int main(int argc, char** argv) {
         else if (!strcmp(argv[i], "--capture-window") && i + 1 < argc) g_resourceCapture = argv[++i];
     }
     if (g_resourceSampleSeconds < 1 || g_resourceSampleSeconds > 120 ||
+        (g_frameRotation != 0 && g_frameRotation != 90 && g_frameRotation != 180 && g_frameRotation != 270) ||
+        !std::isfinite(g_frameZoom) || g_frameZoom < -3 || g_frameZoom > 3 ||
+        (!g_frameDither.empty() && g_frameDither != "fruit" && g_frameDither != "ordered" && g_frameDither != "error-diffusion" && g_frameDither != "no") ||
         (!g_frameDirectNv12.empty() && g_frameDirectNv12 != "yes" && g_frameDirectNv12 != "no") ||
         (!g_frameSdrFbo.empty() && g_frameSdrFbo != "yes" && g_frameSdrFbo != "no") ||
         (g_resourceHwdec != "d3d11va" && g_resourceHwdec != "no") ||
@@ -849,6 +866,12 @@ int main(int argc, char** argv) {
         (g_resourceLatencyHacks != "yes" && g_resourceLatencyHacks != "no") ||
         (!g_resourceSwapchain.empty() && (atoi(g_resourceSwapchain.c_str()) < 1 || atoi(g_resourceSwapchain.c_str()) > 8))) return 2;
     if (dll.empty()) { printf("usage: --dll <path> [--media dir] [--scenario name]\n"); return 2; }
+
+    if (g_headless && (scenario == "all" || scenario == "resources" || scenario == "bench" || scenario == "startup")) {
+        printf("Headless checks cannot measure playback resources, decode speed or startup. Use --visible only for an explicitly requested desktop measurement.\n");
+        return 2;
+    }
+    printf("TEST_VISIBILITY %s\n", g_headless ? "hidden-correctness-only" : "visible-playback");
 
     // Resolve to absolute path and load like Aperture's DllLoader
     char abs[MAX_PATH];
@@ -923,6 +946,7 @@ int main(int argc, char** argv) {
         if (scenario == "url") Scenario_PlaybackBasics("", {url.c_str(), "", "", "network URL"}, false);
         if (scenario == "startup") Scenario_Startup(media, g_startupIters);
         if (scenario == "resources") Scenario_Resources(media, resourceFile);
+        if (scenario == "framecheck") Scenario_FrameCheck(media, resourceFile);
 
         if (all || scenario == "bench") {
             FILE* f = fopen("bench_result.txt", "w");
@@ -934,6 +958,7 @@ int main(int argc, char** argv) {
         }
     }
 
+    if (g_headless) Report("headless test owner windows remained hidden", !g_visibleTestWindowObserved);
     FreeLibrary(g_hMod);
     printf("\n==== SUMMARY: %d passed, %d failed ====\n", g_passes, g_failures);
     for (auto& d : g_failDetails) printf("  FAILED: %s\n", d.c_str());

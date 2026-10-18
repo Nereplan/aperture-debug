@@ -15,12 +15,14 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory)][string]$AperturePath,
-    [Parameter(Mandatory)][string]$VlcPath,
+    [string]$VlcPath = '',
     [string]$MpcHcPath = '',
     [Parameter(Mandatory)][string]$MediaPath,
     [Parameter(Mandatory)][string]$OutputDir,
     [string]$ApertureStatusProbe = '',
-    [ValidateSet('Aperture','VLC','MPC-HC')][string[]]$PlayerNames = @('Aperture','VLC','MPC-HC'),
+    [switch]$AllowVisiblePlayback,
+    [switch]$RefreshVlcBaseline,
+    [ValidateSet('Aperture','VLC','MPC-HC')][string[]]$PlayerNames = @('Aperture'),
     [ValidateRange(1,30)][int]$Iterations = 3,
     [ValidateRange(0,10)][int]$WarmupIterations = 1,
     [ValidateRange(320,3840)][int]$WindowWidth = 1280,
@@ -34,6 +36,9 @@ param(
     [ValidateRange(0,86400)][int]$SamplingStartMediaSeconds = 0
 )
 $ErrorActionPreference = 'Stop'
+if (!$AllowVisiblePlayback) { throw 'Visible player measurements are deferred by default. Use saved evidence unless the user requests a desktop test.' }
+if ('VLC' -in $PlayerNames -and !$RefreshVlcBaseline) { throw 'Reuse the saved matching VLC baseline. A new VLC test requires an explicitly requested baseline refresh.' }
+if ('VLC' -in $PlayerNames -and !$VlcPath) { throw 'A requested VLC baseline refresh requires -VlcPath.' }
 if ($PSVersionTable.PSVersion.Major -lt 7) { throw 'Use PowerShell 7 (ProcessStartInfo.ArgumentList required).' }
 function Assert-NoReparseAncestors([string]$Path) {
     $current=[IO.Path]::GetFullPath($Path)

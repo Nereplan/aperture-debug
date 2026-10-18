@@ -1,4 +1,4 @@
-﻿[CmdletBinding()]
+[CmdletBinding()]
 param(
     [Parameter(Mandatory)][string]$Probe,
     [Parameter(Mandatory)][string]$BaselineDll,
@@ -13,6 +13,7 @@ param(
     [ValidateSet('','auto','rgba16hf')][string]$ForcedFramebufferFormat = '',
     [ValidateSet('yes','no')][string]$ExpectedDirectFiltering = 'yes',
     [switch]$WithAudio,
+    [switch]$AllowVisiblePlayback,
     [ValidateRange(1,15)][int]$Iterations = 3,
     [ValidateRange(0,5)][int]$WarmupIterations = 1,
     [ValidateRange(1,120)][int]$SampleSeconds = 3,
@@ -21,6 +22,7 @@ param(
     [switch]$VoCpuSections
 )
 $ErrorActionPreference = 'Stop'
+if (!$AllowVisiblePlayback) { throw 'Playback measurements require visible rendering and are deferred by default. Use saved evidence; opt in only when the user requests a visible measurement.' }
 if ($PSVersionTable.PSVersion.Major -lt 7) { throw 'PowerShell 7 is required.' }
 foreach ($name in @('Probe','BaselineDll','CandidateDll','MediaDir')) {
     Set-Variable -Name $name -Value (Resolve-Path -LiteralPath (Get-Variable -Name $name -ValueOnly)).Path
@@ -214,6 +216,7 @@ for ($round=0; $round -lt ($WarmupIterations+$Iterations); $round++) {
         if ($variant.sync) {
             foreach ($argument in @('--video-sync',$variant.sync,'--decoder-threads',$variant.threads)) { $info.ArgumentList.Add($argument) }
         }
+        $info.ArgumentList.Add('--visible')
         if ($WithAudio) { $info.ArgumentList.Add('--with-audio') }
         if ($variant.scaling) { $info.ArgumentList.Add('--scaling'); $info.ArgumentList.Add($variant.scaling) }
         if ($Experiment -in @('FramebufferPrecision','AutomaticFramebuffer','DirectNv12')) { $info.ArgumentList.Add('--fbo-diagnostics') }

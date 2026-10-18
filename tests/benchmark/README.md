@@ -5,17 +5,22 @@ them or changing existing player settings. Use PowerShell 7 and clean runtime
 directories. MSVC is used to compile the small Aperture status observer, unless
 `-ApertureStatusProbe` supplies an existing copy.
 
+Visible measurements are deferred by default. Run the following only for a
+user-requested desktop session. Aperture is the default player; reuse saved VLC
+results for the same protocol/workload, preserving their original date/session.
+A requested VLC refresh additionally needs `-PlayerNames Aperture,VLC`,
+`-VlcPath` and `-RefreshVlcBaseline`.
+
 ```powershell
 ./tests/benchmark/compare_players.ps1 `
+    -AllowVisiblePlayback `
     -AperturePath C:/bench/aperture/Aperture.exe `
-    -VlcPath 'C:/Program Files/VideoLAN/VLC/vlc.exe' `
-    -MpcHcPath C:/bench/mpc-hc/mpc-hc64.exe `
     -MediaPath C:/bench/media/h264-1080p30.mp4 `
     -OutputDir "$env:LOCALAPPDATA/Codex/tools/scratch/player-comparison"
 ```
 
 The defaults are one warmup and three measured rounds, with player order rotated.
-Use `-PlayerNames Aperture,VLC` to restrict the selected players. Every run stages
+Use `-PlayerNames` to explicitly select any additional players. Every run stages
 a fresh runtime, uses executable-local portable configuration, and redirects the
 child process's ordinary profile and temporary paths. App-owned runtime/config
 growth is recorded before the generated copies are removed. Source media and
@@ -87,7 +92,7 @@ allocator overhead, process RSS and GPU memory. Sample zero is the warmup.
 
 `compare_playback_resources.ps1 -Probe <compiled-mpv_playback_test.exe>
 -BaselineDll <old-dll> -CandidateDll <new-dll> -MediaDir <fixtures>
--OutputDir <external-scratch>` rotates `gpu` and `gpu-next` across fresh engines.
+-OutputDir <external-scratch> -AllowVisiblePlayback` rotates `gpu` and `gpu-next` across fresh engines, only in a requested visible session.
 `-Experiment Pacing` compares display-vdrop/audio clocks and a one-thread decoder
 control; `-WithAudio` enables silent audio processing. `-MediaFile` selects one
 fixture. Build the probe with `tests/libmpv/run_tests.ps1 -Scenario version`.
@@ -276,3 +281,27 @@ separately from rankings. `player_status_probe.exe <pid>` queries one explicitly
 owned process; optional `--pause`, `--play`, `--stop`, or `--open <file>` support
 lifecycle checks, including Unicode paths. Stop can clear a direct-launch queue;
 use an explicit open when checking return from the library.
+
+Native correctness runs now default to hidden parent windows. `-VisiblePlayback`
+under `tests/libmpv/run_tests.ps1` is an explicit desktop-test opt-in; resource,
+startup and decode-speed scenarios refuse headless operation. The native probe
+also defaults to `--headless`, and requires `--visible` for those measurements.
+
+For output checks without opening a window, use `-Scenario framecheck` with
+`-ResourceFile`, a new `-FrameCapture` path, `-ScalingProfile balanced`,
+`-DirectNv12Filtering yes` and `-FramebufferDiagnostics`. It pauses at exactly
+2 seconds and saves the renderer's frame. `FRAME_CHECK` reports the actual filter
+from generated redraw-pass descriptions; `RENDER_OPTIONS` preserves settings,
+color metadata and decoder surface format. `-FrameDither`, `-FrameRotation`,
+`-FrameZoom` and `-FramebufferFormat` exercise guarded fallback paths. These are
+image/behavior checks, not player CPU/RAM, startup or throughput measurements.
+HDR comparisons must retain adaptive peak-history limits even when both paths
+select float textures. Existing captures are never overwritten.
+
+The pinned `mpv-direct-nv12-filter-v1` patch evaluates the existing separable LUT
+as a two-dimensional product on compatible SDR NV12 planes. It keeps the luma
+filter weights and bilinear chroma reconstruction; it does not lower texture
+precision. Explicit formats, compute dithering, high bit depth, HDR, alpha,
+rotation/cropping, linear-light processing and custom hooks retain the original
+pipeline. Native default `scale-direct-nv12=no` preserves existing callers;
+Aperture requests `yes`. Earlier engines can omit this optional optimization.

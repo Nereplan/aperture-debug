@@ -2,6 +2,7 @@ param(
     [string]$Suite = "",
     [string]$Test = "",
     [string]$LibmpvPath = "",
+    [switch]$AllowVisibleWindows,
     [switch]$List,
     [switch]$Help
 )
@@ -69,6 +70,7 @@ try {
     }
 
     $argsList = @()
+    if ($AllowVisibleWindows) { $argsList += "--allow-visible-windows" }
     if ($Suite) { $argsList += "--suite", $Suite }
     if ($Test) { $argsList += "--test", $Test }
     if ($List) { $argsList += "--list" }

@@ -8,6 +8,7 @@
 namespace Aperture::Test {
 
 inline int RunRegisteredTests(int argc, char* argv[], const char* title) {
+    g_allowVisibleTestWindows = false;
     std::string suiteFilter, testFilter;
     bool list = false, help = false;
     for (int i = 1; i < argc; ++i) {
@@ -18,12 +19,13 @@ inline int RunRegisteredTests(int argc, char* argv[], const char* title) {
                 return 2;
             }
             (arg == "--suite" ? suiteFilter : testFilter) = argv[++i];
-        } else if (arg == "--list") list = true;
+        } else if (arg == "--allow-visible-windows") g_allowVisibleTestWindows = true;
+        else if (arg == "--list") list = true;
         else if (arg == "--help" || arg == "-h") help = true;
         else { std::cerr << "Unknown argument: " << arg << "\n"; return 2; }
     }
     if (help) {
-        std::cout << "Usage: " << argv[0] << " [--suite <exact name>] [--test <substring>] [--list] [--help]\n";
+        std::cout << "Usage: " << argv[0] << " [--suite <exact name>] [--test <substring>] [--list] [--allow-visible-windows] [--help]\n";
         return 0;
     }
     auto& registry = TestRegistry::Instance();

@@ -20,6 +20,9 @@
 
 namespace Aperture::Test {
 
+// Desktop-dependent tests opt in explicitly; background runs report them skipped.
+inline bool g_allowVisibleTestWindows = false;
+
 // Helper to format values for error messages, including std::wstring and enum classes
 template <typename T, typename Enable = void>
 struct Formatter {
