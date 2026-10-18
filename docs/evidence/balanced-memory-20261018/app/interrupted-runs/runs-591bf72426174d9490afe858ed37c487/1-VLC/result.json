@@ -1,0 +1,240 @@
+{
+  "player": "VLC",
+  "round": 1,
+  "warmup": false,
+  "status": "sampled",
+  "failure": null,
+  "runtimeSource": "C:\\Program Files\\VideoLAN\\VLC",
+  "runtimeBytes": 191879986,
+  "runtimeFileCount": 587,
+  "executableHash": "BFA5740F028A8F310CA01C779BBC5F2F1B435C41539C54DE592F715BB0C10389",
+  "version": "3.0.23",
+  "runDirectory": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\overlay-surface-repeated\\runs-591bf72426174d9490afe858ed37c487\\1-VLC",
+  "arguments": [
+    "--intf=qt",
+    "--ignore-config",
+    "--config=C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\overlay-surface-repeated\\runs-591bf72426174d9490afe858ed37c487\\1-VLC\\profile\\vlcrc",
+    "--no-one-instance",
+    "--no-one-instance-when-started-from-file",
+    "--no-media-library",
+    "--no-metadata-network-access",
+    "--no-qt-privacy-ask",
+    "--no-qt-updates-notif",
+    "--no-qt-recentplay",
+    "--qt-continue=0",
+    "--no-qt-video-autoresize",
+    "--extraintf=rc",
+    "--rc-quiet",
+    "--rc-host=127.0.0.1:59701",
+    "--vout=direct3d11",
+    "--avcodec-hw=d3d11va",
+    "--d3d11-upscale-mode=linear",
+    "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\h264-1080p30-audio.mp4"
+  ],
+  "childEnvironment": {
+    "LOCALAPPDATA": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\overlay-surface-repeated\\runs-591bf72426174d9490afe858ed37c487\\1-VLC\\profile\\Local",
+    "TMP": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\overlay-surface-repeated\\runs-591bf72426174d9490afe858ed37c487\\1-VLC\\profile\\Temp",
+    "APPDATA": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\overlay-surface-repeated\\runs-591bf72426174d9490afe858ed37c487\\1-VLC\\profile\\Roaming",
+    "TEMP": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\overlay-surface-repeated\\runs-591bf72426174d9490afe858ed37c487\\1-VLC\\profile\\Temp"
+  },
+  "configPath": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\overlay-surface-repeated\\runs-591bf72426174d9490afe858ed37c487\\1-VLC\\profile\\vlcrc",
+  "initialConfig": "",
+  "pid": 5752,
+  "processToVisibleWindowMs": 1714.4571,
+  "windowDimensions": [
+    1296,
+    832
+  ],
+  "playbackVerification": "advancing-playback-verified",
+  "playbackReason": null,
+  "samples": [
+    {
+      "elapsedSeconds": 16.2214568,
+      "workingSetBytes": 153640960,
+      "privateBytes": 162172928,
+      "cpuSeconds": 1.734375,
+      "cpuCycles": 6191159880,
+      "dedicatedGpuBytes": 124211200,
+      "sharedGpuBytes": 16044032,
+      "gpuUnavailableReason": null,
+      "playback": {
+        "state": null,
+        "reason": null,
+        "positionSec": 10.0
+      }
+    },
+    {
+      "elapsedSeconds": 21.238309,
+      "workingSetBytes": 153726976,
+      "privateBytes": 162246656,
+      "cpuSeconds": 2.0625,
+      "cpuCycles": 7221637800,
+      "dedicatedGpuBytes": 124211200,
+      "sharedGpuBytes": 16044032,
+      "gpuUnavailableReason": null,
+      "playback": {
+        "state": null,
+        "reason": null,
+        "positionSec": 15.0
+      }
+    },
+    {
+      "elapsedSeconds": 26.2306325,
+      "workingSetBytes": 154148864,
+      "privateBytes": 162693120,
+      "cpuSeconds": 2.453125,
+      "cpuCycles": 8219248760,
+      "dedicatedGpuBytes": 124211200,
+      "sharedGpuBytes": 16044032,
+      "gpuUnavailableReason": null,
+      "playback": {
+        "state": null,
+        "reason": null,
+        "positionSec": 20.0
+      }
+    },
+    {
+      "elapsedSeconds": 31.2358298,
+      "workingSetBytes": 154247168,
+      "privateBytes": 162803712,
+      "cpuSeconds": 2.71875,
+      "cpuCycles": 9245063700,
+      "dedicatedGpuBytes": 124211200,
+      "sharedGpuBytes": 16044032,
+      "gpuUnavailableReason": null,
+      "playback": {
+        "state": null,
+        "reason": null,
+        "positionSec": 25.0
+      }
+    },
+    {
+      "elapsedSeconds": 36.2284691,
+      "workingSetBytes": 154312704,
+      "privateBytes": 162799616,
+      "cpuSeconds": 3.078125,
+      "cpuCycles": 10242695940,
+      "dedicatedGpuBytes": 124211200,
+      "sharedGpuBytes": 16044032,
+      "gpuUnavailableReason": null,
+      "playback": {
+        "state": null,
+        "reason": null,
+        "positionSec": 30.0
+      }
+    },
+    {
+      "elapsedSeconds": 41.2396651,
+      "workingSetBytes": 154402816,
+      "privateBytes": 162910208,
+      "cpuSeconds": 3.484375,
+      "cpuCycles": 11275729360,
+      "dedicatedGpuBytes": 124211200,
+      "sharedGpuBytes": 16044032,
+      "gpuUnavailableReason": null,
+      "playback": {
+        "state": null,
+        "reason": null,
+        "positionSec": 35.0
+      }
+    },
+    {
+      "elapsedSeconds": 46.2255185,
+      "workingSetBytes": 154484736,
+      "privateBytes": 162983936,
+      "cpuSeconds": 3.84375,
+      "cpuCycles": 12271267040,
+      "dedicatedGpuBytes": 124211200,
+      "sharedGpuBytes": 16044032,
+      "gpuUnavailableReason": null,
+      "playback": {
+        "state": null,
+        "reason": null,
+        "positionSec": 40.0
+      }
+    }
+  ],
+  "writableGrowthBytes": {
+    "profileDelta": 0,
+    "runtimeDelta": 419
+  },
+  "cleanup": "owned-window-closed",
+  "artifactCleanup": "runtime-and-profile-copies-removed; metadata-retained",
+  "variant": "VLC",
+  "startedUtc": "2026-10-18T19:43:53.4772957Z",
+  "alignedPlaybackPosition": 10.0,
+  "samplingStartedUtc": "2026-10-18T19:44:09.6992360Z",
+  "samplingEndedUtc": "2026-10-18T19:44:41.2032256Z",
+  "videoCanvas": {
+    "handle": 4655590,
+    "className": "VLC video main 0000015D9B57BAD0",
+    "clientWidth": 1280,
+    "clientHeight": 720,
+    "dpi": 96
+  },
+  "childWindows": [
+    {
+      "handle": 8194178,
+      "className": "Qt5QWindowIcon",
+      "clientWidth": 1280,
+      "clientHeight": 772,
+      "dpi": 96
+    },
+    {
+      "handle": 8914178,
+      "className": "Qt5QWindowIcon",
+      "clientWidth": 1280,
+      "clientHeight": 34,
+      "dpi": 96
+    },
+    {
+      "handle": 2820636,
+      "className": "Qt5QWindowIcon",
+      "clientWidth": 1280,
+      "clientHeight": 18,
+      "dpi": 96
+    },
+    {
+      "handle": 4590220,
+      "className": "Qt5QWindowIcon",
+      "clientWidth": 1280,
+      "clientHeight": 720,
+      "dpi": 96
+    },
+    {
+      "handle": 4587768,
+      "className": "Qt5QWindowIcon",
+      "clientWidth": 1280,
+      "clientHeight": 720,
+      "dpi": 96
+    },
+    {
+      "handle": 2099204,
+      "className": "Qt5QWindowIcon",
+      "clientWidth": 1280,
+      "clientHeight": 720,
+      "dpi": 96
+    },
+    {
+      "handle": 4655590,
+      "className": "VLC video main 0000015D9B57BAD0",
+      "clientWidth": 1280,
+      "clientHeight": 720,
+      "dpi": 96
+    },
+    {
+      "handle": 6554710,
+      "className": "VLC video output 0000015D9B57BAD0",
+      "clientWidth": 1280,
+      "clientHeight": 720,
+      "dpi": 96
+    },
+    {
+      "handle": 11799354,
+      "className": "Qt5QWindowIcon",
+      "clientWidth": 1280,
+      "clientHeight": 21,
+      "dpi": 96
+    }
+  ]
+}

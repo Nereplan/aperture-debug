@@ -1,0 +1,13 @@
+{
+  "size": [
+    1264,
+    761
+  ],
+  "mae": 0.021219373243067916,
+  "psnr": 64.86347808875492,
+  "max": 1,
+  "fractionPixelsDiffer": 0.06253742577221844,
+  "fractionPixelsOver1": 0.0,
+  "before": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-experiment\\h264-screen-v3\\0-direct-nv12-no-cce3aedcdfb04e28aa7e5cfd6b4be182\\rendered-frame.png",
+  "after": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-experiment\\h264-screen-v3\\0-direct-nv12-yes-1f16d5a7689c412a9e475029980583cb\\rendered-frame.png"
+}

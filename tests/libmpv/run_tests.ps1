@@ -14,6 +14,10 @@ param(
     [ValidateSet('','1','2','4')][string]$HardwareDecoderThreads = '',
     [ValidateSet('','yes','no')][string]$GpuTiming = '',
     [ValidateSet('','0','1','4')][string]$VertexCacheEntries = '',
+    [ValidateSet('default','balanced','linear')][string]$ScalingProfile = 'default',
+    [ValidateSet('','yes','no')][string]$SdrFboPrecision = '',
+    [ValidateSet('','yes','no')][string]$DirectNv12Filtering = '',
+    [switch]$FramebufferDiagnostics,
     [ValidateSet('yes','no')][string]$TlsVerify = 'yes',
     [string]$Python = 'python',
     [int]$TimeoutSeconds = 300
@@ -71,6 +75,10 @@ try {
     if ($HardwareDecoderThreads) { $arguments += ' --hwdec-threads ' + $HardwareDecoderThreads }
     if ($GpuTiming) { $arguments += ' --gpu-timing ' + $GpuTiming }
     if ($VertexCacheEntries -ne '') { $arguments += ' --vertex-cache-entries ' + $VertexCacheEntries }
+    if ($ScalingProfile -ne 'default') { $arguments += ' --scaling ' + $ScalingProfile }
+    if ($SdrFboPrecision) { $arguments += ' --fbo-sdr10 ' + $SdrFboPrecision }
+    if ($DirectNv12Filtering) { $arguments += ' --scale-direct-nv12 ' + $DirectNv12Filtering }
+    if ($FramebufferDiagnostics) { $arguments += ' --fbo-diagnostics' }
     if ($ResourceFile) {
         if ($ResourceFile -match '["\r\n/\\]' -or $ResourceFile -eq '..') { throw 'ResourceFile must be a filename.' }
         $arguments += ' --resource-file "' + $ResourceFile + '"'

@@ -1,0 +1,223 @@
+--- a/video/out/gpu/video.h
++++ b/video/out/gpu/video.h
+@@ -160,6 +160,7 @@
+     char *error_diffusion;
+     char *fbo_format;
+     bool fbo_sdr10;
++    bool direct_nv12;
+     int background;
+     bool use_rectangle;
+     struct m_color background_color;
+--- a/video/out/gpu/video.c
++++ b/video/out/gpu/video.c
+@@ -246,6 +246,8 @@
+     struct gl_transform texture_offset; // texture transform without rotation
+     int components;
+     bool use_linear;
++    bool direct_scale;
++    int direct_scale_reported;
+     float user_gamma;
+ 
+     // pass info / metrics
+@@ -516,6 +518,7 @@
+         {"sigmoid-slope", OPT_FLOAT(sigmoid_slope), M_RANGE(1.0, 20.0)},
+         {"fbo-format", OPT_STRING(fbo_format)},
+         {"fbo-sdr10", OPT_BOOL(fbo_sdr10)},
++        {"scale-direct-nv12", OPT_BOOL(direct_nv12)},
+         {"dither-depth", OPT_CHOICE(dither_depth, {"no", -1}, {"auto", 0}),
+             M_RANGE(-1, 16)},
+         {"dither", OPT_CHOICE(dither_algo,
+@@ -571,6 +574,7 @@
+ static void uninit_rendering(struct gl_video *p);
+ static void uninit_scaler(struct gl_video *p, struct scaler *scaler);
+ static void check_gl_features(struct gl_video *p);
++static bool pass_read_direct_nv12(struct gl_video *p, struct image img[4]);
+ static bool pass_upload_image(struct gl_video *p, struct mp_image *mpi, uint64_t id);
+ static void reinit_from_options(struct gl_video *p);
+ static void get_scale_factors(struct gl_video *p, bool transpose_rot, double xy[2]);
+@@ -2388,6 +2392,11 @@
+         img[n] = pass_hook(p, name, img[n], NULL);
+     }
+ 
++    if (pass_read_direct_nv12(p, img)) {
++        p->components = 3;
++        return;
++    }
++
+     // All planes are of the same size and properly aligned at this point
+     pass_describe(p, "combining planes");
+     int coord = 0;
+@@ -2437,7 +2446,13 @@
+     gl_sc_uniform_mat3(sc, "colormatrix", true, &m.mat.m[0][0]);
+     gl_sc_uniform_vec3(sc, "colormatrix_c", m.c);
+ 
+-    GLSL(color.rgb = mat3(colormatrix) * color.rgb + colormatrix_c;)
++    if (p->direct_scale) {
++        // Filtering and this affine transform commute. Preserve the actual LUT
++        // weight sum when moving its offset after the convolution.
++        GLSL(color.rgb = mat3(colormatrix) * color.rgb + colormatrix_c * nv12_weight_sum;)
++    } else {
++        GLSL(color.rgb = mat3(colormatrix) * color.rgb + colormatrix_c;)
++    }
+ 
+     if (cparams.repr.sys == PL_COLOR_SYSTEM_XYZ) {
+         pass_delinearize(p->sc, p->image_params.color.transfer);
+@@ -2518,8 +2533,76 @@
+ }
+ 
+ // Takes care of the main scaling and pre/post-conversions
++static bool pass_read_direct_nv12(struct gl_video *p, struct image img[4])
++{
++    enum pl_color_transfer trc = p->image_params.color.transfer;
++    bool standard_sdr = trc == PL_COLOR_TRC_BT_1886 || trc == PL_COLOR_TRC_SRGB ||
++                        trc == PL_COLOR_TRC_GAMMA22 || trc == PL_COLOR_TRC_GAMMA28;
++    if (!p->opts.direct_nv12 || p->has_alpha || !standard_sdr ||
++        p->image_params.color.primaries != PL_COLOR_PRIM_BT_709 ||
++        (p->image_params.repr.sys != PL_COLOR_SYSTEM_BT_709 &&
++         p->image_params.repr.sys != PL_COLOR_SYSTEM_BT_601) ||
++        p->ra_format.component_bits != 8 || p->color_swizzle[0] ||
++        p->opts.linear_downscaling || p->opts.linear_upscaling ||
++        p->opts.sigmoid_upscaling || p->opts.interpolation || p->use_lut_3d ||
++        p->opts.deband || p->opts.unsharp || p->opts.blend_subs ||
++        (p->opts.user_shaders && p->opts.user_shaders[0]) ||
++        p->image_params.rotate || p->image_params.p_w != p->image_params.p_h ||
++        p->src_rect.x0 || p->src_rect.y0 ||
++        p->src_rect.x1 != p->image_params.w || p->src_rect.y1 != p->image_params.h ||
++        !gl_transform_eq(p->texture_offset, identity_trans) ||
++        p->opts.scaler[SCALER_CSCALE].kernel.function != SCALER_BILINEAR ||
++        img[0].type != PLANE_LUMA || img[0].components != 1 || img[0].padding ||
++        img[1].type != PLANE_CHROMA || img[1].components != 2 || img[1].padding ||
++        img[2].type != PLANE_NONE || img[3].type != PLANE_NONE)
++        return false;
++    for (int n = 0; n < 2; n++) {
++        if (!img[n].tex || img[n].tex->params.dimensions != 2 ||
++            img[n].tex->params.non_normalized ||
++            img[n].tex->params.format->ctype != RA_CTYPE_UNORM ||
++            strcmp(get_tex_swizzle(&img[n]), "rgba") ||
++            img[n].transform.m[0][1] || img[n].transform.m[1][0] ||
++            img[n].transform.m[0][0] <= 0 || img[n].transform.m[1][1] <= 0)
++            return false;
++    }
++    double xy[2];
++    get_scale_factors(p, true, xy);
++    bool down = xy[0] < 1.0 - FLT_EPSILON || xy[1] < 1.0 - FLT_EPSILON;
++    bool up = !down && (xy[0] > 1.0 + FLT_EPSILON || xy[1] > 1.0 + FLT_EPSILON);
++    int index = down && p->opts.scaler[SCALER_DSCALE].kernel.function != SCALER_INHERIT
++              ? SCALER_DSCALE : SCALER_SCALE;
++    struct scaler_config conf = p->opts.scaler[index];
++    if (p->opts.scaler_resizes_only && !down && !up)
++        return false;
++    if (conf.antiring || conf.clamp)
++        return false;
++    double f = MPMAX(xy[0], xy[1]);
++    if (!(f > 0))
++        return false;
++    double factor = p->opts.correct_downscaling && f < 1.0 ? 1.0 / f : 1.0;
++    struct scaler *scaler = &p->scaler[index];
++    reinit_scaler(p, scaler, &conf, factor, filter_sizes);
++    if (!scaler->kernel || scaler->kernel->polar || scaler->insufficient ||
++        scaler->kernel->size < 2 || scaler->kernel->size > 8)
++        return false;
++    int y = pass_bind(p, img[0]);
++    int uv = pass_bind(p, img[1]);
++    pass_sample_nv12_2d(p->sc, scaler, y, uv, p->image_params.w,
++                        p->image_params.h, img[0].multiplier, img[1].multiplier);
++    pass_describe(p, "direct NV12 %s (%dx%d)",
++        m_opt_choice_str(conf.kernel.functions, conf.kernel.function),
++        scaler->kernel->size, scaler->kernel->size);
++    p->direct_scale = true;
++    return true;
++}
++
+ static void pass_scale_main(struct gl_video *p)
+ {
++    if (p->direct_scale) {
++        p->texture_w = p->dst_rect.x1 - p->dst_rect.x0;
++        p->texture_h = p->dst_rect.y1 - p->dst_rect.y0;
++        return;
++    }
+     // Figure out the main scaler.
+     double xy[2];
+     get_scale_factors(p, true, xy);
+@@ -3079,6 +3162,7 @@
+     p->num_saved_imgs = 0;
+     p->idx_hook_textures = 0;
+     p->use_linear = false;
++    p->direct_scale = false;
+ 
+     // try uploading the frame
+     if (!pass_upload_image(p, mpi, id))
+@@ -3091,6 +3175,11 @@
+         return true;
+ 
+     pass_read_video(p);
++    int direct_state = p->direct_scale ? 2 : 1;
++    if (p->opts.direct_nv12 && direct_state != p->direct_scale_reported) {
++        MP_VERBOSE(p, "Direct NV12 filter: %s\n", p->direct_scale ? "yes" : "no");
++        p->direct_scale_reported = direct_state;
++    }
+     pass_opt_hook_point(p, "NATIVE", &p->texture_offset);
+     pass_convert_yuv(p);
+     pass_opt_hook_point(p, "MAINPRESUB", &p->texture_offset);
+--- a/video/out/gpu/video_shaders.h
++++ b/video/out/gpu/video_shaders.h
+@@ -36,6 +36,9 @@
+ void sampler_prelude(struct gl_shader_cache *sc, int tex_num);
+ void pass_sample_separated_gen(struct gl_shader_cache *sc, struct scaler *scaler,
+                                int d_x, int d_y);
++void pass_sample_nv12_2d(struct gl_shader_cache *sc, struct scaler *scaler,
++                         int y_tex, int uv_tex, int valid_w, int valid_h,
++                         float y_mul, float uv_mul);
+ void pass_sample_polar(struct gl_shader_cache *sc, struct scaler *scaler,
+                        int components, bool sup_gather);
+ void pass_compute_polar(struct gl_shader_cache *sc, struct scaler *scaler,
+--- a/video/out/gpu/video_shaders.c
++++ b/video/out/gpu/video_shaders.c
+@@ -95,6 +95,47 @@
+     if (use_ar)
+         GLSLF("color = mix(color, clamp(color, lo, hi), %f);\n",
+               scaler->conf.antiring);
++    GLSLF("}\n");
++}
++
++// Evaluate the existing separable LUT as a 2D product directly on NV12.
++// Chroma is reconstructed at each luma-grid sample, preserving the original
++// bilinear-chroma -> RGB -> separable-filter operation without RGB FBOs.
++void pass_sample_nv12_2d(struct gl_shader_cache *sc, struct scaler *scaler,
++                         int y_tex, int uv_tex, int valid_w, int valid_h,
++                         float y_mul, float uv_mul)
++{
++    int N = scaler->kernel->size;
++    GLSLF("float nv12_weight_sum;\n{\n");
++    GLSLF("vec2 nv12_size = texture_size%d;\n", y_tex);
++    GLSLF("vec2 nv12_pt = pixel_size%d;\n", y_tex);
++    GLSLF("vec2 nv12_pos = texcoord%d;\n", y_tex);
++    GLSL(vec2 nv12_frac = fract(nv12_pos * nv12_size - vec2(0.5));)
++    GLSLF("vec2 nv12_base = nv12_pos - (nv12_frac + vec2(%d.0)) * nv12_pt;\n", N / 2 - 1);
++    GLSLF("vec2 nv12_uv_ratio = vec2(dFdx(texcoord%d.x) / dFdx(texcoord%d.x),\n"
++          " dFdy(texcoord%d.y) / dFdy(texcoord%d.y));\n", uv_tex, y_tex, uv_tex, y_tex);
++    GLSLF("float nv12_wx[%d], nv12_wy[%d];\n", N, N);
++    GLSL(float nv12_sx = 0.0, nv12_sy = 0.0;)
++    for (int axis = 0; axis < 2; axis++) {
++        char c = axis ? 'y' : 'x';
++        GLSLF("{ float fcoord = nv12_frac.%c; vec4 c;\n", c);
++        pass_sample_separated_get_weights(sc, scaler);
++        for (int n = 0; n < N; n++)
++            GLSLF("nv12_w%c[%d] = weights[%d]; nv12_s%c += weights[%d];\n", c, n, n, c, n);
++        GLSLF("}\n");
++    }
++    GLSL(nv12_weight_sum = nv12_sx * nv12_sy;)
++    GLSL(vec3 nv12_sum = vec3(0.0);)
++    GLSLF("for (int ny = 0; ny < %d; ny++) {\n", N);
++    GLSLF("for (int nx = 0; nx < %d; nx++) {\n", N);
++    GLSLF("vec2 q = clamp(nv12_base + vec2(nx, ny) * nv12_pt,\n"
++          " vec2(0.5) * nv12_pt, vec2(%d.5, %d.5) * nv12_pt);\n", valid_w - 1, valid_h - 1);
++    GLSLF("vec2 uvq = texcoord%d + (q - nv12_pos) * nv12_uv_ratio;\n", uv_tex);
++    GLSLF("float yy = texelFetch(texture%d, ivec2(q * nv12_size), 0).r * %.9f;\n", y_tex, y_mul);
++    GLSLF("vec2 uv = textureLod(texture%d, uvq, 0.0).rg * %.9f;\n", uv_tex, uv_mul);
++    GLSL(nv12_sum += nv12_wx[nx] * nv12_wy[ny] * vec3(yy, uv);)
++    GLSLF("}}\n");
++    GLSL(color = vec4(nv12_sum, 1.0);)
+     GLSLF("}\n");
+ }
+ 

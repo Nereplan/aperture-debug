@@ -1,0 +1,16 @@
+{
+  "baseDllSha256": "0e7eec0602177a5d5a4025bc12d91e477a9be1995da3376fd0a77509ca7d3c81",
+  "files": [
+    {
+      "path": "video/out/gpu/video.h",
+      "beforeSha256": "26989500d47f16c7d09347aaf7fa97ff6d7818a013a65e16225192e640c43a1e",
+      "afterSha256": "81334e777a91ccacdc203be62412a7059dd843e9998377be3d33ac0a6fdf6ffb"
+    },
+    {
+      "path": "video/out/gpu/video.c",
+      "beforeSha256": "740ef757a686037175fbabed7c14c2460407c826f884689c67cf6ec1863491cd",
+      "afterSha256": "c41e8c631850c646c1853b405fc3aba5c160269e7bceaa6910f346a01d5c5a55"
+    }
+  ],
+  "status": "Opt-in native prototype; not built or adopted yet. Native default remains float auto. App source unchanged."
+}

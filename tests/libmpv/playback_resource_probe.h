@@ -2,7 +2,6 @@
 // fresh engine. PLAYBACK_RESTART is engine readiness, not compositor presentation.
 #include "playback_memory_layout.h"
 #include "playback_render_options.h"
-#include "../../src/PlaybackScaling.h"
 static double ProcessCpuSeconds() {
     FILETIME created{}, exited{}, kernel{}, user{};
     if (!GetProcessTimes(GetCurrentProcess(), &created, &exited, &kernel, &user)) return -1;
@@ -15,7 +14,7 @@ static void Scenario_Resources(const std::string& media, const std::string& file
     const auto start = std::chrono::steady_clock::now();
     HWND window = CreateTestWindow(1280, 800);
     std::vector<std::pair<std::string, std::string>> options{{"vo", "gpu"}, {"gpu-api", "d3d11"}, {"gpu-context", "d3d11"},
-        {"hwdec", "d3d11va"}, {"hwdec-extra-frames", "0"}, {"video-latency-hacks", g_resourceLatencyHacks},
+        {"hwdec", g_resourceHwdec}, {"hwdec-extra-frames", "0"}, {"video-latency-hacks", g_resourceLatencyHacks},
         {"video-sync", g_videoSync}, {"vd-lavc-threads", g_decoderThreads}, {"framedrop", "vo"}, {"video-timing-offset", "0"},
         {"vd-lavc-dr", "yes"}, {"demuxer-max-bytes", "8MiB"}, {"demuxer-max-back-bytes", "0"},
         {"audio", g_resourceAudio ? "auto" : "no"}, {"volume", "0"},
@@ -23,12 +22,7 @@ static void Scenario_Resources(const std::string& media, const std::string& file
     if (!g_resourceZeroCopy.empty()) options.emplace_back("d3d11va-zero-copy", g_resourceZeroCopy);
     if (!g_resourceSwapchain.empty()) options.emplace_back("swapchain-depth", g_resourceSwapchain);
     if (!g_resourceSyncInterval.empty()) options.emplace_back("d3d11-sync-interval", g_resourceSyncInterval);
-    if (g_resourceScaling == "linear") {
-        for (const auto& option : Aperture::PlaybackScaling::kLinear) options.emplace_back(option.name, option.value);
-    }
-    if (g_resourceScaling == "balanced") {
-        for (const auto& option : Aperture::PlaybackScaling::kBalanced) options.emplace_back(option.name, option.value);
-    }
+    if (!g_resourceFboFormat.empty()) options.emplace_back("fbo-format", g_resourceFboFormat);
     auto* player = NewPlayer(options, window);
     if (!player) { Report("resource engine initialization", false); DestroyWindow(window); return; }
     if (g_resourceOptionsOnly) {
@@ -46,6 +40,7 @@ static void Scenario_Resources(const std::string& media, const std::string& file
             TranslateMessage(&message); DispatchMessage(&message);
         }
         const auto* event = fn_wait_event(player, 0.005);
+        ObserveFramebufferFormat(player, event);
         if (event->event_id == MPV_EVENT_PLAYBACK_RESTART) { restarted = true; break; }
         if (event->event_id == MPV_EVENT_END_FILE) break;
     }
@@ -54,6 +49,16 @@ static void Scenario_Resources(const std::string& media, const std::string& file
     Report("resource playback restart", restarted);
     if (restarted) {
         while (std::chrono::steady_clock::now() - ready < std::chrono::seconds(5)) WaitEvent(player, 0.01);
+        if (g_resourceFboDiagnostics) {
+            // Context creation can select a temporary format before source
+            // parameters arrive. Record the settled format, then stop verbose
+            // setup logging before measuring steady playback.
+            printf("FBO_ACTIVE {\"actual\":\"%s\"}\n", g_observedFboFormat.c_str());
+            if (!g_frameDirectNv12.empty())
+                printf("DIRECT_NV12_ACTIVE {\"actual\":\"%s\"}\n",
+                    g_frameDirectNv12 == "no" ? "no" : g_observedDirectNv12.c_str());
+            fn_request_log_messages(player, "warn");
+        }
         double cleanupMs = 0;
         uint64_t cleanupBefore = 0, cleanupAfter = 0;
         if (g_resourceHeapCleanup) {
@@ -109,7 +114,7 @@ static void Scenario_Resources(const std::string& media, const std::string& file
         const double finalPosition = GetDbl(player, "time-pos");
         Report("resource playback advances", position >= 0 && finalPosition >= 0 && position != finalPosition);
         const auto hwdec = GetStr(player, "hwdec-current");
-        Report("resource direct hardware decoder", hwdec == "d3d11va");
+        Report("resource requested decoder path", hwdec == g_resourceHwdec);
         Report("resource frame-drop counters available", initialDrops >= 0 && finalDrops >= 0 && initialVoDrops >= 0 && finalVoDrops >= 0);
         Report("resource no steady decoding or presentation drops", finalDrops == initialDrops && finalVoDrops == initialVoDrops);
         printf("RESOURCE {\"renderer\":\"%s\",\"file\":\"%s\",\"sync\":\"%s\",\"decoder_threads\":\"%s\",\"audio_enabled\":%s,\"init_ms\":%.3f,\"restart_ms\":%.3f,"

@@ -1,0 +1,10 @@
+{
+  "stoppedAtUtc": "2026-10-18T19:45:43.7826156Z",
+  "status": "interrupted-at-user-request",
+  "reason": "Stop displaying test windows; reuse the saved VLC baseline instead of repeating VLC trials.",
+  "driverPid": 22280,
+  "ownedPlayerPids": [
+    27380
+  ],
+  "note": "Completed per-run records remain intact. No aggregate completed-batch claim."
+}

@@ -1,0 +1,17 @@
+{
+  "recordedUtc": "2026-10-18T19:47:40.062622+00:00",
+  "commit": "ac731ee6573055c658ae7f83af0a0ee6aa4bdfcb",
+  "dirty": true,
+  "nativeSha256": "0e7eec0602177a5d5a4025bc12d91e477a9be1995da3376fd0a77509ca7d3c81",
+  "rootNativeSha256": "11b37889e5103a1370509dcf5e5a9c389325c497552f522f45049dfba19f5c52",
+  "sourceNote": "App runtimes were built from the working tree including pre-existing user edits. Candidate includes blank-overlay retirement. Native prototype DLLs are isolated research artifacts; neither precision nor direct NV12 flags are selected by normal App source.",
+  "sourceFiles": {
+    "src/App.cpp": "5598ec0e033f82f0e123f9035792464cb7e4a1c24f357b6a99963c67fe8f84f5",
+    "src/OverlayRenderer.cpp": "3711b596679a47c0d2cc42fada9dbaa9f0eed2cb1bbef18a9e013fb2cc3e88e1",
+    "src/OverlayRenderer.h": "6ed659902c1c59baf7893e33ad3eaef8d134d1bf2e1900e9225a8ab0ae477216",
+    "tests/benchmark/compare_players.ps1": "b1e0fa33b2dad1c1e49e1f995249f312b0d07fb3f5351c4f837129746f7a70a1",
+    "tests/benchmark/compare_playback_resources.ps1": "67a7940cd6687cc8fd01fe254f720a57498400b342bafdcdf083c1d3847645bf",
+    "tests/libmpv/mpv_playback_test.cpp": "4d0c2100f4ae3bec456cb78bc96e950650ef114359a5d02a032d724d34730d95",
+    "tests/libmpv/playback_resource_probe.h": "74a8d47b50904e6e4ef9eb070449e079d215958488bf84f5657226e6970f292b"
+  }
+}

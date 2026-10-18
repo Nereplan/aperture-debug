@@ -1,4 +1,4 @@
-[CmdletBinding()]
+﻿[CmdletBinding()]
 param(
     [Parameter(Mandatory)][string]$Probe,
     [Parameter(Mandatory)][string]$BaselineDll,
@@ -6,7 +6,12 @@ param(
     [Parameter(Mandatory)][string]$MediaDir,
     [Parameter(Mandatory)][string]$OutputDir,
     [string]$MediaFile = 'h264_aac_720p.mp4',
-    [ValidateSet('Renderer','LinearRenderers','QualityScaling','VertexReuse','Pacing','Transfers','HardwareThreads','FreeHeapCaches','EagerFlush','GpuTimers','Backbuffer','Presentation','TimerPolicy','RoundedTimerPolicy','LazyTables','Scaling','WaitRounding','VideoViews','DrawOverhead','DrawSubmission')][string]$Experiment = 'Renderer',
+    [ValidateSet('Renderer','LinearRenderers','QualityScaling','VertexReuse','FramebufferPrecision','AutomaticFramebuffer','DirectNv12','Pacing','Transfers','HardwareThreads','FreeHeapCaches','EagerFlush','GpuTimers','Backbuffer','Presentation','TimerPolicy','RoundedTimerPolicy','LazyTables','Scaling','WaitRounding','VideoViews','DrawOverhead','DrawSubmission')][string]$Experiment = 'Renderer',
+    [ValidateSet('balanced','default','linear')][string]$ScalingProfile = 'balanced',
+    [ValidateSet('d3d11va','no')][string]$HardwareDecodeMode = 'd3d11va',
+    [ValidateSet('','rgb10_a2','rgba16hf')][string]$ExpectedAutomaticFormat = '',
+    [ValidateSet('','auto','rgba16hf')][string]$ForcedFramebufferFormat = '',
+    [ValidateSet('yes','no')][string]$ExpectedDirectFiltering = 'yes',
     [switch]$WithAudio,
     [ValidateRange(1,15)][int]$Iterations = 3,
     [ValidateRange(0,5)][int]$WarmupIterations = 1,
@@ -52,6 +57,26 @@ if ($Experiment -eq 'VertexReuse') {
         @{name='vertex-one'; dll=$CandidateDll; renderer='gpu'; sync='audio'; threads='0'; hwthreads='1'; scaling='balanced'; waitPolicy='min1'; cacheBackbuffer=$true; noTimers=$true; reuseVertices=$true; vertexEntries='1'},
         @{name='vertex-four'; dll=$CandidateDll; renderer='gpu'; sync='audio'; threads='0'; hwthreads='1'; scaling='balanced'; waitPolicy='min1'; cacheBackbuffer=$true; noTimers=$true; reuseVertices=$true; vertexEntries='4'}
     )
+}
+if ($Experiment -eq 'FramebufferPrecision') {
+    $dllText = [Text.Encoding]::ASCII.GetString([IO.File]::ReadAllBytes($CandidateDll))
+    foreach ($marker in @('d3d11-gpu-timing','d3d11-vertex-cache-entries')) { if (-not $dllText.Contains($marker)) { throw 'FramebufferPrecision requires the production frame-resource options.' } }
+    $variants = @('auto','rgb10_a2','rgba8' | ForEach-Object {
+        @{name="fbo-$_"; dll=$CandidateDll; renderer='gpu'; sync='audio'; threads='0'; hwthreads='1'; scaling=$ScalingProfile; nativeTiming='no'; nativeVertex='4'; fbo=$_}
+    })
+}
+if ($Experiment -eq 'AutomaticFramebuffer') {
+    if (-not $ExpectedAutomaticFormat) { throw 'AutomaticFramebuffer requires the expected active candidate format.' }
+    if (-not [Text.Encoding]::ASCII.GetString([IO.File]::ReadAllBytes($CandidateDll)).Contains('fbo-sdr10')) { throw 'AutomaticFramebuffer requires the opt-in SDR framebuffer policy.' }
+    $variants = @('no','yes' | ForEach-Object {
+        @{name="automatic-$_"; dll=$CandidateDll; renderer='gpu'; sync='audio'; threads='0'; hwthreads='1'; scaling=$ScalingProfile; nativeTiming='no'; nativeVertex='4'; fbo=$(if($ForcedFramebufferFormat){$ForcedFramebufferFormat}else{'auto'}); sdrFbo=$_}
+    })
+}
+if ($Experiment -eq 'DirectNv12') {
+    if (-not [Text.Encoding]::ASCII.GetString([IO.File]::ReadAllBytes($CandidateDll)).Contains('scale-direct-nv12')) { throw 'DirectNv12 requires the opt-in prototype.' }
+    $variants = @('no','yes' | ForEach-Object {
+        @{name="direct-nv12-$_"; dll=$CandidateDll; renderer='gpu'; sync='audio'; threads='0'; hwthreads='1'; scaling=$ScalingProfile; nativeTiming='no'; nativeVertex='4'; fbo='auto'; directNv12=$_}
+    })
 }
 if ($Experiment -eq 'Pacing') {
     $variants = @(
@@ -191,6 +216,11 @@ for ($round=0; $round -lt ($WarmupIterations+$Iterations); $round++) {
         }
         if ($WithAudio) { $info.ArgumentList.Add('--with-audio') }
         if ($variant.scaling) { $info.ArgumentList.Add('--scaling'); $info.ArgumentList.Add($variant.scaling) }
+        if ($Experiment -in @('FramebufferPrecision','AutomaticFramebuffer','DirectNv12')) { $info.ArgumentList.Add('--fbo-diagnostics') }
+        $info.ArgumentList.Add('--resource-hwdec'); $info.ArgumentList.Add($HardwareDecodeMode)
+        foreach ($pair in @(@('--gpu-timing',$variant.nativeTiming),@('--vertex-cache-entries',$variant.nativeVertex),@('--fbo-format',$variant.fbo),@('--fbo-sdr10',$variant.sdrFbo),@('--scale-direct-nv12',$variant.directNv12))) {
+            if ($pair[1]) { $info.ArgumentList.Add($pair[0]); $info.ArgumentList.Add($pair[1]) }
+        }
         if ($MemoryLayout) { $info.ArgumentList.Add('--memory-layout') }
         if ($variant.heapCleanup) { $info.ArgumentList.Add('--heap-cleanup') }
         foreach ($pair in @(@('--zero-copy',$variant.zero),@('--swapchain-depth',$variant.depth),@('--latency-hacks',$variant.latency),@('--hwdec-threads',$variant.hwthreads),@('--sync-interval',$variant.interval))) {
@@ -249,10 +279,28 @@ for ($round=0; $round -lt ($WarmupIterations+$Iterations); $round++) {
                 foreach ($name in $expected.Keys) { if ($sample.render_options.$name -ne $expected[$name]) { throw "Requested balanced option did not apply: $name" } }
             }
         }
+        if ($Experiment -in @('FramebufferPrecision','AutomaticFramebuffer','DirectNv12')) {
+            $effective = $sample.render_options
+            if ($effective.'fbo-format' -ne $variant.fbo -or $effective.'d3d11-gpu-timing' -ne 'no' -or $effective.'d3d11-vertex-cache-entries' -ne '4') { throw "Requested framebuffer controls did not apply: $run" }
+            $formatMatch = [regex]::Match($log, '(?m)^FBO_ACTIVE (.+)$')
+            $format = if ($formatMatch.Success) { ($formatMatch.Groups[1].Value | ConvertFrom-Json).actual } else { $null }
+            $expectedFormat = if ($Experiment -eq 'AutomaticFramebuffer') { if ($variant.sdrFbo -eq 'yes') { $ExpectedAutomaticFormat } else { 'rgba16hf' } } elseif ($variant.fbo -ne 'auto') { $variant.fbo } else { 'rgba16hf' }
+            if ($format -ne $expectedFormat) { throw "Requested framebuffer format is not active: $run (actual=$format, expected=$expectedFormat)" }
+            if ($variant.sdrFbo -and $effective.'fbo-sdr10' -ne $variant.sdrFbo) { throw "Requested SDR policy did not apply: $run" }
+            $field = if ($Experiment -in @('AutomaticFramebuffer','DirectNv12')) { 'prototype_frame_options' } else { 'production_frame_options' }
+            $sample | Add-Member $field @{gpu_timing='no';vertex_cache_entries=4;cached_backbuffer=$true;fbo_format=$format;sdr_policy=$variant.sdrFbo}
+        }
         if ($MemoryLayout) {
             $layoutMatch = [regex]::Match($log, '(?m)^HEAP_LAYOUT (.+)$')
             if (-not $layoutMatch.Success) { throw "Missing post-measurement memory diagnostic: $run" }
             $sample | Add-Member memory_layout ($layoutMatch.Groups[1].Value | ConvertFrom-Json)
+        }
+        if ($Experiment -eq 'DirectNv12') {
+            $directMatch = [regex]::Match($log, '(?m)^DIRECT_NV12_ACTIVE (.+)$')
+            $active = if ($directMatch.Success) { ($directMatch.Groups[1].Value | ConvertFrom-Json).actual } else { $null }
+            $expectedDirect = if ($variant.directNv12 -eq 'no') { 'no' } else { $ExpectedDirectFiltering }
+            if ($sample.render_options.'scale-direct-nv12' -ne $variant.directNv12 -or $active -ne $expectedDirect) { throw "Direct NV12 path was not verified: $run (expected $expectedDirect, observed $active)" }
+            $sample | Add-Member direct_nv12_filter $active
         }
         if ($VoCpuSections) {
             $sections = @([regex]::Matches($errorLog, '(?m)^APERTURE_VO_CPU (.+)$') | ForEach-Object { $_.Groups[1].Value | ConvertFrom-Json })
@@ -280,11 +328,11 @@ for ($round=0; $round -lt ($WarmupIterations+$Iterations); $round++) {
             $sample | Add-Member backbuffer_cache_stats $cacheStats
         }
         $sample | Add-Member skip_eager_flush ([bool]$variant.skipFlush)
-        $sample | Add-Member gpu_timers_disabled ([bool]$variant.noTimers)
-        $sample | Add-Member backbuffer_reuse ([bool]$variant.cacheBackbuffer)
+        $sample | Add-Member gpu_timers_disabled ([bool]($variant.noTimers -or $variant.nativeTiming -eq 'no'))
+        $sample | Add-Member backbuffer_reuse ([bool]($variant.cacheBackbuffer -or $Experiment -in @('FramebufferPrecision','AutomaticFramebuffer','DirectNv12')))
         $sample | Add-Member lazy_tables ([bool]$variant.lazyTables)
         $sample | Add-Member cached_video_views ([bool]$variant.cacheVideoViews)
-        $sample | Add-Member reused_vertices ([bool]$variant.reuseVertices)
+        $sample | Add-Member reused_vertices ([bool]($variant.reuseVertices -or $variant.nativeVertex -eq '4'))
         if ($variant.vertexEntries) { $sample | Add-Member vertex_cache_entries ([int]$variant.vertexEntries) }
         if ($variant.timerPolicy) { $sample | Add-Member timer_policy $variant.timerPolicy }
         if ($variant.waitPolicy) { $sample | Add-Member wait_policy $variant.waitPolicy }

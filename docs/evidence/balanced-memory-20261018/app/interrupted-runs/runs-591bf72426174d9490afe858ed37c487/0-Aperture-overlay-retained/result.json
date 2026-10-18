@@ -1,0 +1,173 @@
+{
+  "player": "Aperture",
+  "round": 0,
+  "warmup": true,
+  "status": "sampled",
+  "failure": null,
+  "runtimeSource": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\balanced-frame-candidate-runtime",
+  "runtimeBytes": 29215349,
+  "runtimeFileCount": 6,
+  "executableHash": "2DDA89FBF70F7ABF82CE081D6EEFF9872F1FA460139D011E79B5AD49220C61AB",
+  "version": "2.0.0.0",
+  "runDirectory": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\overlay-surface-repeated\\runs-591bf72426174d9490afe858ed37c487\\0-Aperture-overlay-retained",
+  "arguments": [
+    "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\h264-1080p30-audio.mp4"
+  ],
+  "childEnvironment": {
+    "LOCALAPPDATA": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\overlay-surface-repeated\\runs-591bf72426174d9490afe858ed37c487\\0-Aperture-overlay-retained\\profile\\Local",
+    "TMP": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\overlay-surface-repeated\\runs-591bf72426174d9490afe858ed37c487\\0-Aperture-overlay-retained\\profile\\Temp",
+    "APPDATA": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\overlay-surface-repeated\\runs-591bf72426174d9490afe858ed37c487\\0-Aperture-overlay-retained\\profile\\Roaming",
+    "TEMP": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\overlay-surface-repeated\\runs-591bf72426174d9490afe858ed37c487\\0-Aperture-overlay-retained\\profile\\Temp"
+  },
+  "configPath": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\overlay-surface-repeated\\runs-591bf72426174d9490afe858ed37c487\\0-Aperture-overlay-retained\\runtime\\data",
+  "initialConfig": "Fresh executable-adjacent data/ directory.",
+  "pid": 29976,
+  "processToVisibleWindowMs": 100.0419,
+  "windowDimensions": [
+    1296,
+    759
+  ],
+  "playbackVerification": "advancing-playback-verified",
+  "playbackReason": null,
+  "samples": [
+    {
+      "elapsedSeconds": 10.8231252,
+      "workingSetBytes": 148029440,
+      "privateBytes": 200794112,
+      "cpuSeconds": 1.828125,
+      "cpuCycles": 7343059960,
+      "dedicatedGpuBytes": 132542464,
+      "sharedGpuBytes": 14794752,
+      "gpuUnavailableReason": null,
+      "playback": {
+        "state": 2,
+        "reason": null,
+        "positionSec": 10.0666666667
+      }
+    },
+    {
+      "elapsedSeconds": 15.8242672,
+      "workingSetBytes": 148316160,
+      "privateBytes": 189128704,
+      "cpuSeconds": 2.078125,
+      "cpuCycles": 8310574540,
+      "dedicatedGpuBytes": 132542464,
+      "sharedGpuBytes": 14794752,
+      "gpuUnavailableReason": null,
+      "playback": {
+        "state": 2,
+        "reason": null,
+        "positionSec": 15.0666666667
+      }
+    },
+    {
+      "elapsedSeconds": 20.8335687,
+      "workingSetBytes": 148578304,
+      "privateBytes": 189394944,
+      "cpuSeconds": 2.515625,
+      "cpuCycles": 9263745260,
+      "dedicatedGpuBytes": 132542464,
+      "sharedGpuBytes": 14794752,
+      "gpuUnavailableReason": null,
+      "playback": {
+        "state": 2,
+        "reason": null,
+        "positionSec": 20.0666666667
+      }
+    },
+    {
+      "elapsedSeconds": 25.8337331,
+      "workingSetBytes": 148488192,
+      "privateBytes": 189837312,
+      "cpuSeconds": 2.71875,
+      "cpuCycles": 10225123980,
+      "dedicatedGpuBytes": 132562944,
+      "sharedGpuBytes": 14290944,
+      "gpuUnavailableReason": null,
+      "playback": {
+        "state": 2,
+        "reason": null,
+        "positionSec": 25.0666666667
+      }
+    },
+    {
+      "elapsedSeconds": 30.8404238,
+      "workingSetBytes": 148688896,
+      "privateBytes": 189984768,
+      "cpuSeconds": 3.078125,
+      "cpuCycles": 11179428620,
+      "dedicatedGpuBytes": 132562944,
+      "sharedGpuBytes": 14290944,
+      "gpuUnavailableReason": null,
+      "playback": {
+        "state": 2,
+        "reason": null,
+        "positionSec": 30.0666666667
+      }
+    },
+    {
+      "elapsedSeconds": 35.8326294,
+      "workingSetBytes": 149000192,
+      "privateBytes": 190242816,
+      "cpuSeconds": 3.359375,
+      "cpuCycles": 12119985240,
+      "dedicatedGpuBytes": 132562944,
+      "sharedGpuBytes": 14290944,
+      "gpuUnavailableReason": null,
+      "playback": {
+        "state": 2,
+        "reason": null,
+        "positionSec": 35.0666666667
+      }
+    },
+    {
+      "elapsedSeconds": 40.8355171,
+      "workingSetBytes": 149245952,
+      "privateBytes": 190464000,
+      "cpuSeconds": 3.578125,
+      "cpuCycles": 13092597520,
+      "dedicatedGpuBytes": 132562944,
+      "sharedGpuBytes": 14290944,
+      "gpuUnavailableReason": null,
+      "playback": {
+        "state": 2,
+        "reason": null,
+        "positionSec": 40.0666666667
+      }
+    }
+  ],
+  "writableGrowthBytes": {
+    "profileDelta": 0,
+    "runtimeDelta": 20120
+  },
+  "cleanup": "owned-window-closed",
+  "artifactCleanup": "runtime-and-profile-copies-removed; metadata-retained",
+  "variant": "Aperture-overlay-retained",
+  "startedUtc": "2026-10-18T19:40:49.3476766Z",
+  "alignedPlaybackPosition": 10,
+  "samplingStartedUtc": "2026-10-18T19:41:00.1813680Z",
+  "samplingEndedUtc": "2026-10-18T19:41:31.2501243Z",
+  "videoCanvas": {
+    "handle": 7800962,
+    "className": "mpv",
+    "clientWidth": 1280,
+    "clientHeight": 720,
+    "dpi": 96
+  },
+  "childWindows": [
+    {
+      "handle": 3607250,
+      "className": "Aperture_Native_Video_Child",
+      "clientWidth": 1280,
+      "clientHeight": 720,
+      "dpi": 96
+    },
+    {
+      "handle": 7800962,
+      "className": "mpv",
+      "clientWidth": 1280,
+      "clientHeight": 720,
+      "dpi": 96
+    }
+  ]
+}

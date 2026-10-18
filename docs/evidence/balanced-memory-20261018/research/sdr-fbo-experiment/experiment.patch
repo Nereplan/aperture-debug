@@ -1,0 +1,56 @@
+--- a/video/out/gpu/video.h
++++ b/video/out/gpu/video.h
+@@ -159,6 +159,7 @@
+     int temporal_dither_period;
+     char *error_diffusion;
+     char *fbo_format;
++    bool fbo_sdr10;
+     int background;
+     bool use_rectangle;
+     struct m_color background_color;
+--- a/video/out/gpu/video.c
++++ b/video/out/gpu/video.c
+@@ -515,6 +515,7 @@
+         {"sigmoid-center", OPT_FLOAT(sigmoid_center), M_RANGE(0.0, 1.0)},
+         {"sigmoid-slope", OPT_FLOAT(sigmoid_slope), M_RANGE(1.0, 20.0)},
+         {"fbo-format", OPT_STRING(fbo_format)},
++        {"fbo-sdr10", OPT_BOOL(fbo_sdr10)},
+         {"dither-depth", OPT_CHOICE(dither_depth, {"no", -1}, {"auto", 0}),
+             M_RANGE(-1, 16)},
+         {"dither", OPT_CHOICE(dither_algo,
+@@ -3884,9 +3885,24 @@
+ 
+     const char *auto_fbo_fmts[] = {"rgba16f", "rgba16hf", "rgba16",
+                                    "rgb10_a2", "rgba8", 0};
++    // Keep float intermediates for HDR, deep inputs, alpha and processing
++    // that relies on linear-light/headroom. Explicit user formats still win.
++    int depth = p->ra_format.component_bits + MPMIN(p->ra_format.component_pad, 0);
++    enum pl_color_transfer trc = p->image_params.color.transfer;
++    bool standard_sdr = trc == PL_COLOR_TRC_BT_1886 || trc == PL_COLOR_TRC_SRGB ||
++                        trc == PL_COLOR_TRC_GAMMA22 || trc == PL_COLOR_TRC_GAMMA28;
++    bool prefer_sdr10 = p->opts.fbo_sdr10 && p->image_params.imgfmt &&
++        depth > 0 && depth <= 8 && !p->has_alpha && standard_sdr &&
++        p->image_params.color.primaries == PL_COLOR_PRIM_BT_709 &&
++        !p->opts.linear_downscaling && !p->opts.linear_upscaling &&
++        !p->opts.sigmoid_upscaling && !p->opts.interpolation &&
++        !p->use_lut_3d && !p->opts.deband && !p->opts.unsharp &&
++        !(p->opts.user_shaders && p->opts.user_shaders[0]);
++    const char *sdr_fbo_fmts[] = {"rgb10_a2", "rgba16f", "rgba16hf", "rgba16",
++                                "rgba8", 0};
+     const char *user_fbo_fmts[] = {p->opts.fbo_format, 0};
+     const char **fbo_fmts = user_fbo_fmts[0] && strcmp(user_fbo_fmts[0], "auto")
+-                          ? user_fbo_fmts : auto_fbo_fmts;
++                          ? user_fbo_fmts : prefer_sdr10 ? sdr_fbo_fmts : auto_fbo_fmts;
+     bool user_specified_fbo_fmt = fbo_fmts == user_fbo_fmts;
+     bool fbo_test_result = false;
+     bool have_fbo = false;
+@@ -3896,6 +3912,9 @@
+         const struct ra_format *f = ra_find_named_format(p->ra, fmt);
+         if (!f && user_specified_fbo_fmt)
+             MP_WARN(p, "FBO format '%s' not found!\n", fmt);
++        if (f && prefer_sdr10 && !user_specified_fbo_fmt && n == 0 &&
++            have_compute && !f->storable)
++            continue;
+         if (f && f->renderable && f->linear_filter &&
+             (fbo_test_result = test_fbo(p, f))) {
+             MP_VERBOSE(p, "Using FBO format %s.\n", f->name);

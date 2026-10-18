@@ -96,7 +96,7 @@ git diff --check</pre>
 <script id="checkpoint-data" type="application/json">
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-10-18T13:37:38+00:00",
+  "updatedAt": "2026-10-18T19:48:15+00:00",
   "metrics": {
     "visible-ms": {
       "label": "Visible window",
@@ -369,6 +369,11 @@ git diff --check</pre>
       "label": "Balanced scaling / matched canvas / calibrated CPU",
       "category": "Playback",
       "method": "Fresh owned portable profiles, same H2641080p30 AAC stereo fixture, actual 1280x720 video canvas at 96 DPI; one discarded warmup plus three measured rounds per variant, rotated order, ~30-second windows after at least ten seconds playback. Same current app EXE/assets in both Aperture variants; original bundled versus production-form native DLL. Aperture uses balanced Lanczos-up/Hermite-down/correct-downscaling, bilinear chroma, no linear-light/sigmoid passes. VLC requests D3D11 output, D3D11VA decoding and linear scaling. Different rendering profiles are deliberate and separate from the all-linear workload. Playback advancement and actual canvas verified for all 12 runs; equal decoder/output pixels not established. No builders/profilers/other tests during timing. CPU estimate = process-cycle delta / actual elapsed seconds / same-boot validated invariant-TSC rate *100 for one logical processor. Raw sampled CPU times retained separately; hardware-specific estimate, not a portable cycle conversion."
+    },
+    "playback-balanced-overlay-screen-30s-v1": {
+      "label": "Overlay memory / single-run screen / calibrated CPU",
+      "category": "Playback",
+      "method": "Saved initial screen, measured before the user requested baseline reuse. Fresh owned portable profiles; same H2641080p30 AAC stereo fixture and actual 1280x720 video canvas at 96 DPI. One measured launch per variant, no discarded warmups, ~30-second windows after at least ten seconds media time. Both Aperture builds use retained-resource production-form native DLL 0e7eec06 and balanced Lanczos-up/Hermite-down/correct-downscaling, bilinear chroma, no linear-light/sigmoid passes. VLC requests D3D11 output, D3D11VA and linear scaling. Different profiles and non-identical output pixels are explicit. Advancing playback/canvas verified for all three saved screen runs. This single-run screen does not establish stable player rankings. No concurrent builders, profilers or other tests. CPU estimate uses raw process cycles divided by actual elapsed time and a validated invariant-TSC calibration on this same CPU/boot, as percent of one logical processor; sampled process CPU times retained separately. RAM is median private commit of seven snapshots per run. Memory categories overlap and cannot be summed."
     }
   },
   "environments": {
@@ -1211,6 +1216,109 @@ git diff --check</pre>
             "max": 118.4609375,
             "runs": 3,
             "scope": "Three measured per-run values after one discarded warmup. Memory is median of seven snapshots/run; CPU is calibrated cycles over ~30 seconds."
+          }
+        }
+      ]
+    },
+    "vlc-20261018-balanced-overlay-screen-h264": {
+      "player": "VLC",
+      "version": "3.0.23",
+      "measuredAt": "2026-10-18T18:57:51.4393218Z",
+      "results": [
+        {
+          "metric": "cpu-core",
+          "protocol": "playback-balanced-overlay-screen-30s-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "1080p30 H.264 + AAC stereo / 1280x720 canvas / Aperture balanced, VLC linear / D3D11",
+          "session": "balanced-overlay-screen-h264-20261018",
+          "value": 5.091447168676399,
+          "samples": 1,
+          "evidence": "docs/evidence/balanced-memory-20261018/review.json",
+          "runRange": {
+            "min": 5.091447168676399,
+            "max": 5.091447168676399,
+            "runs": 1,
+            "scope": "Single-run screen; min=max is not a repeated-run distribution. Memory medians use seven snapshots/run. CPU uses calibrated process cycles over ~30seconds."
+          }
+        },
+        {
+          "metric": "visible-ms",
+          "protocol": "playback-balanced-overlay-screen-30s-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "1080p30 H.264 + AAC stereo / 1280x720 canvas / Aperture balanced, VLC linear / D3D11",
+          "session": "balanced-overlay-screen-h264-20261018",
+          "value": 1639.955,
+          "samples": 1,
+          "evidence": "docs/evidence/balanced-memory-20261018/review.json",
+          "runRange": {
+            "min": 1639.955,
+            "max": 1639.955,
+            "runs": 1,
+            "scope": "Single-run screen; min=max is not a repeated-run distribution. Memory medians use seven snapshots/run. CPU uses calibrated process cycles over ~30seconds."
+          }
+        },
+        {
+          "metric": "runtime-mib",
+          "protocol": "playback-balanced-overlay-screen-30s-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "1080p30 H.264 + AAC stereo / 1280x720 canvas / Aperture balanced, VLC linear / D3D11",
+          "session": "balanced-overlay-screen-h264-20261018",
+          "value": 182.99101448059082,
+          "samples": 1,
+          "evidence": "docs/evidence/balanced-memory-20261018/review.json",
+          "runRange": {
+            "min": 182.99101448059082,
+            "max": 182.99101448059082,
+            "runs": 1,
+            "scope": "Single-run screen; min=max is not a repeated-run distribution. Memory medians use seven snapshots/run. CPU uses calibrated process cycles over ~30seconds."
+          }
+        },
+        {
+          "metric": "private-mib",
+          "protocol": "playback-balanced-overlay-screen-30s-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "1080p30 H.264 + AAC stereo / 1280x720 canvas / Aperture balanced, VLC linear / D3D11",
+          "session": "balanced-overlay-screen-h264-20261018",
+          "value": 150.8515625,
+          "samples": 1,
+          "evidence": "docs/evidence/balanced-memory-20261018/review.json",
+          "runRange": {
+            "min": 150.8515625,
+            "max": 150.8515625,
+            "runs": 1,
+            "scope": "Single-run screen; min=max is not a repeated-run distribution. Memory medians use seven snapshots/run. CPU uses calibrated process cycles over ~30seconds."
+          }
+        },
+        {
+          "metric": "working-set-mib",
+          "protocol": "playback-balanced-overlay-screen-30s-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "1080p30 H.264 + AAC stereo / 1280x720 canvas / Aperture balanced, VLC linear / D3D11",
+          "session": "balanced-overlay-screen-h264-20261018",
+          "value": 146.0859375,
+          "samples": 1,
+          "evidence": "docs/evidence/balanced-memory-20261018/review.json",
+          "runRange": {
+            "min": 146.0859375,
+            "max": 146.0859375,
+            "runs": 1,
+            "scope": "Single-run screen; min=max is not a repeated-run distribution. Memory medians use seven snapshots/run. CPU uses calibrated process cycles over ~30seconds."
+          }
+        },
+        {
+          "metric": "gpu-mib",
+          "protocol": "playback-balanced-overlay-screen-30s-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "1080p30 H.264 + AAC stereo / 1280x720 canvas / Aperture balanced, VLC linear / D3D11",
+          "session": "balanced-overlay-screen-h264-20261018",
+          "value": 118.4609375,
+          "samples": 1,
+          "evidence": "docs/evidence/balanced-memory-20261018/review.json",
+          "runRange": {
+            "min": 118.4609375,
+            "max": 118.4609375,
+            "runs": 1,
+            "scope": "Single-run screen; min=max is not a repeated-run distribution. Memory medians use seven snapshots/run. CPU uses calibrated process cycles over ~30seconds."
           }
         }
       ]
@@ -15502,6 +15610,255 @@ git diff --check</pre>
         }
       ],
       "pairedWith": "thumbnail-purge-20261018-before"
+    },
+    {
+      "measuredAt": "2026-10-18T18:57:51.4393218Z",
+      "commit": "ac731ee6573055c658ae7f83af0a0ee6aa4bdfcb",
+      "dirty": true,
+      "sourceNote": "App runtimes were built from the working tree including pre-existing user edits. Candidate includes blank-overlay retirement. Native prototype DLLs are isolated research artifacts; neither precision nor direct NV12 flags are selected by normal App source. Exact EXE/DLL hashes and raw counters in app/comparison.json.",
+      "report": "balanced-memory-20261018",
+      "id": "balanced-overlay-20261018-retained",
+      "label": "Overlay memory screen / retained buffers",
+      "results": [
+        {
+          "metric": "cpu-core",
+          "protocol": "playback-balanced-overlay-screen-30s-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "1080p30 H.264 + AAC stereo / 1280x720 canvas / Aperture balanced, VLC linear / D3D11",
+          "session": "balanced-overlay-screen-h264-20261018",
+          "value": 5.020050870087431,
+          "samples": 1,
+          "evidence": "docs/evidence/balanced-memory-20261018/review.json",
+          "runRange": {
+            "min": 5.020050870087431,
+            "max": 5.020050870087431,
+            "runs": 1,
+            "scope": "Single-run screen; min=max is not a repeated-run distribution. Memory medians use seven snapshots/run. CPU uses calibrated process cycles over ~30seconds."
+          },
+          "reference": "vlc-20261018-balanced-overlay-screen-h264"
+        },
+        {
+          "metric": "visible-ms",
+          "protocol": "playback-balanced-overlay-screen-30s-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "1080p30 H.264 + AAC stereo / 1280x720 canvas / Aperture balanced, VLC linear / D3D11",
+          "session": "balanced-overlay-screen-h264-20261018",
+          "value": 102.9566,
+          "samples": 1,
+          "evidence": "docs/evidence/balanced-memory-20261018/review.json",
+          "runRange": {
+            "min": 102.9566,
+            "max": 102.9566,
+            "runs": 1,
+            "scope": "Single-run screen; min=max is not a repeated-run distribution. Memory medians use seven snapshots/run. CPU uses calibrated process cycles over ~30seconds."
+          },
+          "reference": "vlc-20261018-balanced-overlay-screen-h264"
+        },
+        {
+          "metric": "runtime-mib",
+          "protocol": "playback-balanced-overlay-screen-30s-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "1080p30 H.264 + AAC stereo / 1280x720 canvas / Aperture balanced, VLC linear / D3D11",
+          "session": "balanced-overlay-screen-h264-20261018",
+          "value": 27.86192798614502,
+          "samples": 1,
+          "evidence": "docs/evidence/balanced-memory-20261018/review.json",
+          "runRange": {
+            "min": 27.86192798614502,
+            "max": 27.86192798614502,
+            "runs": 1,
+            "scope": "Single-run screen; min=max is not a repeated-run distribution. Memory medians use seven snapshots/run. CPU uses calibrated process cycles over ~30seconds."
+          },
+          "reference": "vlc-20261018-balanced-overlay-screen-h264"
+        },
+        {
+          "metric": "private-mib",
+          "protocol": "playback-balanced-overlay-screen-30s-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "1080p30 H.264 + AAC stereo / 1280x720 canvas / Aperture balanced, VLC linear / D3D11",
+          "session": "balanced-overlay-screen-h264-20261018",
+          "value": 182.23046875,
+          "samples": 1,
+          "evidence": "docs/evidence/balanced-memory-20261018/review.json",
+          "runRange": {
+            "min": 182.23046875,
+            "max": 182.23046875,
+            "runs": 1,
+            "scope": "Single-run screen; min=max is not a repeated-run distribution. Memory medians use seven snapshots/run. CPU uses calibrated process cycles over ~30seconds."
+          },
+          "reference": "vlc-20261018-balanced-overlay-screen-h264"
+        },
+        {
+          "metric": "working-set-mib",
+          "protocol": "playback-balanced-overlay-screen-30s-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "1080p30 H.264 + AAC stereo / 1280x720 canvas / Aperture balanced, VLC linear / D3D11",
+          "session": "balanced-overlay-screen-h264-20261018",
+          "value": 139.79296875,
+          "samples": 1,
+          "evidence": "docs/evidence/balanced-memory-20261018/review.json",
+          "runRange": {
+            "min": 139.79296875,
+            "max": 139.79296875,
+            "runs": 1,
+            "scope": "Single-run screen; min=max is not a repeated-run distribution. Memory medians use seven snapshots/run. CPU uses calibrated process cycles over ~30seconds."
+          },
+          "reference": "vlc-20261018-balanced-overlay-screen-h264"
+        },
+        {
+          "metric": "gpu-mib",
+          "protocol": "playback-balanced-overlay-screen-30s-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "1080p30 H.264 + AAC stereo / 1280x720 canvas / Aperture balanced, VLC linear / D3D11",
+          "session": "balanced-overlay-screen-h264-20261018",
+          "value": 126.42578125,
+          "samples": 1,
+          "evidence": "docs/evidence/balanced-memory-20261018/review.json",
+          "runRange": {
+            "min": 126.42578125,
+            "max": 126.42578125,
+            "runs": 1,
+            "scope": "Single-run screen; min=max is not a repeated-run distribution. Memory medians use seven snapshots/run. CPU uses calibrated process cycles over ~30seconds."
+          },
+          "reference": "vlc-20261018-balanced-overlay-screen-h264"
+        }
+      ],
+      "tests": [],
+      "notes": "Single-run screen of the previous balanced App runtime with retained overlay drawing buffers. Single-run private RAM median 182.230 MiB; contemporaneous VLC 150.852 MiB. CPU 5.0201% of one logical processor; VLC 5.0914%. No overall/broad-format victory claimed. Precision/direct-NV12 research and rejected/partial screens remain in Evidence; neither experimental policy is selected by normal App source."
+    },
+    {
+      "measuredAt": "2026-10-18T18:57:51.4393218Z",
+      "commit": "ac731ee6573055c658ae7f83af0a0ee6aa4bdfcb",
+      "dirty": true,
+      "sourceNote": "App runtimes were built from the working tree including pre-existing user edits. Candidate includes blank-overlay retirement. Native prototype DLLs are isolated research artifacts; neither precision nor direct NV12 flags are selected by normal App source. Exact EXE/DLL hashes and raw counters in app/comparison.json.",
+      "report": "balanced-memory-20261018",
+      "id": "balanced-overlay-20261018-released",
+      "label": "Overlay memory screen / released buffers",
+      "results": [
+        {
+          "metric": "cpu-core",
+          "protocol": "playback-balanced-overlay-screen-30s-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "1080p30 H.264 + AAC stereo / 1280x720 canvas / Aperture balanced, VLC linear / D3D11",
+          "session": "balanced-overlay-screen-h264-20261018",
+          "value": 4.961592113845107,
+          "samples": 1,
+          "evidence": "docs/evidence/balanced-memory-20261018/review.json",
+          "runRange": {
+            "min": 4.961592113845107,
+            "max": 4.961592113845107,
+            "runs": 1,
+            "scope": "Single-run screen; min=max is not a repeated-run distribution. Memory medians use seven snapshots/run. CPU uses calibrated process cycles over ~30seconds."
+          },
+          "reference": "vlc-20261018-balanced-overlay-screen-h264"
+        },
+        {
+          "metric": "visible-ms",
+          "protocol": "playback-balanced-overlay-screen-30s-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "1080p30 H.264 + AAC stereo / 1280x720 canvas / Aperture balanced, VLC linear / D3D11",
+          "session": "balanced-overlay-screen-h264-20261018",
+          "value": 95.2768,
+          "samples": 1,
+          "evidence": "docs/evidence/balanced-memory-20261018/review.json",
+          "runRange": {
+            "min": 95.2768,
+            "max": 95.2768,
+            "runs": 1,
+            "scope": "Single-run screen; min=max is not a repeated-run distribution. Memory medians use seven snapshots/run. CPU uses calibrated process cycles over ~30seconds."
+          },
+          "reference": "vlc-20261018-balanced-overlay-screen-h264"
+        },
+        {
+          "metric": "runtime-mib",
+          "protocol": "playback-balanced-overlay-screen-30s-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "1080p30 H.264 + AAC stereo / 1280x720 canvas / Aperture balanced, VLC linear / D3D11",
+          "session": "balanced-overlay-screen-h264-20261018",
+          "value": 27.86192798614502,
+          "samples": 1,
+          "evidence": "docs/evidence/balanced-memory-20261018/review.json",
+          "runRange": {
+            "min": 27.86192798614502,
+            "max": 27.86192798614502,
+            "runs": 1,
+            "scope": "Single-run screen; min=max is not a repeated-run distribution. Memory medians use seven snapshots/run. CPU uses calibrated process cycles over ~30seconds."
+          },
+          "reference": "vlc-20261018-balanced-overlay-screen-h264"
+        },
+        {
+          "metric": "private-mib",
+          "protocol": "playback-balanced-overlay-screen-30s-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "1080p30 H.264 + AAC stereo / 1280x720 canvas / Aperture balanced, VLC linear / D3D11",
+          "session": "balanced-overlay-screen-h264-20261018",
+          "value": 174.515625,
+          "samples": 1,
+          "evidence": "docs/evidence/balanced-memory-20261018/review.json",
+          "runRange": {
+            "min": 174.515625,
+            "max": 174.515625,
+            "runs": 1,
+            "scope": "Single-run screen; min=max is not a repeated-run distribution. Memory medians use seven snapshots/run. CPU uses calibrated process cycles over ~30seconds."
+          },
+          "reference": "vlc-20261018-balanced-overlay-screen-h264"
+        },
+        {
+          "metric": "working-set-mib",
+          "protocol": "playback-balanced-overlay-screen-30s-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "1080p30 H.264 + AAC stereo / 1280x720 canvas / Aperture balanced, VLC linear / D3D11",
+          "session": "balanced-overlay-screen-h264-20261018",
+          "value": 136.046875,
+          "samples": 1,
+          "evidence": "docs/evidence/balanced-memory-20261018/review.json",
+          "runRange": {
+            "min": 136.046875,
+            "max": 136.046875,
+            "runs": 1,
+            "scope": "Single-run screen; min=max is not a repeated-run distribution. Memory medians use seven snapshots/run. CPU uses calibrated process cycles over ~30seconds."
+          },
+          "reference": "vlc-20261018-balanced-overlay-screen-h264"
+        },
+        {
+          "metric": "gpu-mib",
+          "protocol": "playback-balanced-overlay-screen-30s-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "1080p30 H.264 + AAC stereo / 1280x720 canvas / Aperture balanced, VLC linear / D3D11",
+          "session": "balanced-overlay-screen-h264-20261018",
+          "value": 122.6796875,
+          "samples": 1,
+          "evidence": "docs/evidence/balanced-memory-20261018/review.json",
+          "runRange": {
+            "min": 122.6796875,
+            "max": 122.6796875,
+            "runs": 1,
+            "scope": "Single-run screen; min=max is not a repeated-run distribution. Memory medians use seven snapshots/run. CPU uses calibrated process cycles over ~30seconds."
+          },
+          "reference": "vlc-20261018-balanced-overlay-screen-h264"
+        }
+      ],
+      "tests": [
+        {
+          "name": "App unit",
+          "status": "pass",
+          "passed": 53,
+          "total": 53,
+          "durationSeconds": null,
+          "evidence": "docs/evidence/balanced-memory-20261018/review.json",
+          "scope": "Current dirty worktree against production-form retained-resource DLL."
+        },
+        {
+          "name": "Overlay live lifecycle",
+          "status": "pass",
+          "passed": 8,
+          "total": 8,
+          "durationSeconds": null,
+          "evidence": "docs/evidence/balanced-memory-20261018/review.json",
+          "scope": "Idle release, visible control recreation, successful presentation, pause, resume/advancement, idle retirement, library return and explicit reopen."
+        }
+      ],
+      "notes": "Blank overlay CPU drawing storage retires after successful empty presentation; text/layout resources and the presented layered window are retained. Rendering recreates the target on demand. Video precision/scaling remains unchanged. Single-run private RAM median 174.516 MiB; contemporaneous VLC 150.852 MiB. CPU 4.9616% of one logical processor; VLC 5.0914%. No overall/broad-format victory claimed. Precision/direct-NV12 research and rejected/partial screens remain in Evidence; neither experimental policy is selected by normal App source."
     }
   ],
   "reports": [
@@ -15690,6 +16047,12 @@ git diff --check</pre>
       "title": "Balanced scaling and frame-resource validation",
       "source": "docs/evidence/balanced-frame-resources-20261018/review.json",
       "text": "{\n  \"recordedUtc\": \"2026-10-18T13:25:41.719335+00:00\",\n  \"batchCompletedUtc\": \"2026-10-18T13:21:05.8489424Z\",\n  \"status\": \"Production-form candidate. H264 CPU median below VLC with separated run ranges; private RAM remains higher. Broad-format/overall performance win is not established.\",\n  \"method\": \"Fresh owned portable profiles, same H2641080p30 AAC stereo fixture, actual 1280x720 video canvas at 96 DPI; one discarded warmup plus three measured rounds per variant, rotated order, ~30-second windows after at least ten seconds playback. Same current app EXE/assets in both Aperture variants; original bundled versus production-form native DLL. Aperture uses balanced Lanczos-up/Hermite-down/correct-downscaling, bilinear chroma, no linear-light/sigmoid passes. VLC requests D3D11 output, D3D11VA decoding and linear scaling. Different rendering profiles are deliberate and separate from the all-linear workload. Playback advancement and actual canvas verified for all 12 runs; equal decoder/output pixels not established. No builders/profilers/other tests during timing. CPU estimate = process-cycle delta / actual elapsed seconds / same-boot validated invariant-TSC rate *100 for one logical processor. Raw sampled CPU times retained separately; hardware-specific estimate, not a portable cycle conversion.\",\n  \"summary\": {\n    \"Aperture-balanced-before\": {\n      \"cpu-core\": {\n        \"median\": 9.55349608207985,\n        \"min\": 7.760644458729144,\n        \"max\": 10.658224834515174,\n        \"runs\": 3\n      },\n      \"legacy-cpu-core\": {\n        \"median\": 9.322619244037385,\n        \"min\": 7.550424580557231,\n        \"max\": 11.349304964898852,\n        \"runs\": 3\n      },\n      \"visible-ms\": {\n        \"median\": 118.5551,\n        \"min\": 89.4395,\n        \"max\": 120.2983,\n        \"runs\": 3\n      },\n      \"runtime-mib\": {\n        \"median\": 27.83653736114502,\n        \"min\": 27.83653736114502,\n        \"max\": 27.83653736114502,\n        \"runs\": 3\n      },\n      \"private-mib\": {\n        \"median\": 197.5546875,\n        \"min\": 194.4296875,\n        \"max\": 200.70703125,\n        \"runs\": 3\n      },\n      \"working-set-mib\": {\n        \"median\": 142.9453125,\n        \"min\": 142.86328125,\n        \"max\": 143.65625,\n        \"runs\": 3\n      },\n      \"gpu-mib\": {\n        \"median\": 122.671875,\n        \"min\": 122.66796875,\n        \"max\": 126.4296875,\n        \"runs\": 3\n      }\n    },\n    \"Aperture-balanced-candidate\": {\n      \"cpu-core\": {\n        \"median\": 4.752635797738222,\n        \"min\": 4.634370718915338,\n        \"max\": 5.009826957230992,\n        \"runs\": 3\n      },\n      \"legacy-cpu-core\": {\n        \"median\": 4.843478442308668,\n        \"min\": 4.528397245587198,\n        \"max\": 5.935672505363473,\n        \"runs\": 3\n      },\n      \"visible-ms\": {\n        \"median\": 114.5064,\n        \"min\": 98.1136,\n        \"max\": 115.7991,\n        \"runs\": 3\n      },\n      \"runtime-mib\": {\n        \"median\": 27.86192798614502,\n        \"min\": 27.86192798614502,\n        \"max\": 27.86192798614502,\n        \"runs\": 3\n      },\n      \"private-mib\": {\n        \"median\": 179.453125,\n        \"min\": 179.2734375,\n        \"max\": 183.953125,\n        \"runs\": 3\n      },\n      \"working-set-mib\": {\n        \"median\": 141.9765625,\n        \"min\": 141.1171875,\n        \"max\": 142.48828125,\n        \"runs\": 3\n      },\n      \"gpu-mib\": {\n        \"median\": 122.671875,\n        \"min\": 122.6484375,\n        \"max\": 126.4296875,\n        \"runs\": 3\n      }\n    },\n    \"VLC\": {\n      \"cpu-core\": {\n        \"median\": 5.181932047023672,\n        \"min\": 5.0696264143854695,\n        \"max\": 5.316343808233972,\n        \"runs\": 3\n      },\n      \"legacy-cpu-core\": {\n        \"median\": 2.8638205929026883,\n        \"min\": 2.863341359018859,\n        \"max\": 3.9046844688246853,\n        \"runs\": 3\n      },\n      \"visible-ms\": {\n        \"median\": 1616.8833,\n        \"min\": 1604.6825,\n        \"max\": 1724.4404,\n        \"runs\": 3\n      },\n      \"runtime-mib\": {\n        \"median\": 182.99101448059082,\n        \"min\": 182.99101448059082,\n        \"max\": 182.99101448059082,\n        \"runs\": 3\n      },\n      \"private-mib\": {\n        \"median\": 151.75,\n        \"min\": 150.67578125,\n        \"max\": 154.77734375,\n        \"runs\": 3\n      },\n      \"working-set-mib\": {\n        \"median\": 148.83984375,\n        \"min\": 147.54296875,\n        \"max\": 152.4453125,\n        \"runs\": 3\n      },\n      \"gpu-mib\": {\n        \"median\": 118.4609375,\n        \"min\": 118.45703125,\n        \"max\": 118.4609375,\n        \"runs\": 3\n      }\n    }\n  },\n  \"runs\": [\n    {\n      \"variant\": \"Aperture-balanced-before\",\n      \"round\": 1,\n      \"elapsedSeconds\": 30.006590699999997,\n      \"cycleDelta\": 8849075960,\n      \"startedUtc\": \"2026-10-18T13:15:50.7740772Z\",\n      \"samplingEndedUtc\": \"2026-10-18T13:16:32.6099018Z\",\n      \"values\": {\n        \"cpu-core\": 7.760644458729144,\n        \"legacy-cpu-core\": 7.550424580557231,\n        \"visible-ms\": 118.5551,\n        \"runtime-mib\": 27.83653736114502,\n        \"private-mib\": 194.4296875,\n        \"working-set-mib\": 142.9453125,\n        \"gpu-mib\": 122.66796875\n      }\n    },\n    {\n      \"variant\": \"Aperture-balanced-before\",\n      \"round\": 2,\n      \"elapsedSeconds\": 30.0009571,\n      \"cycleDelta\": 10891330100,\n      \"startedUtc\": \"2026-10-18T13:17:24.7669582Z\",\n      \"samplingEndedUtc\": \"2026-10-18T13:18:06.7986144Z\",\n      \"values\": {\n        \"cpu-core\": 9.55349608207985,\n        \"legacy-cpu-core\": 9.322619244037385,\n        \"visible-ms\": 120.2983,\n        \"runtime-mib\": 27.83653736114502,\n        \"private-mib\": 197.5546875,\n        \"working-set-mib\": 143.65625,\n        \"gpu-mib\": 122.671875\n      }\n    },\n    {\n      \"variant\": \"Aperture-balanced-before\",\n      \"round\": 3,\n      \"elapsedSeconds\": 30.0128511,\n      \"cycleDelta\": 12155577940,\n      \"startedUtc\": \"2026-10-18T13:18:49.7708622Z\",\n      \"samplingEndedUtc\": \"2026-10-18T13:19:31.8049931Z\",\n      \"values\": {\n        \"cpu-core\": 10.658224834515174,\n        \"legacy-cpu-core\": 11.349304964898852,\n        \"visible-ms\": 89.4395,\n        \"runtime-mib\": 27.83653736114502,\n        \"private-mib\": 200.70703125,\n        \"working-set-mib\": 142.86328125,\n        \"gpu-mib\": 126.4296875\n      }\n    },\n    {\n      \"variant\": \"Aperture-balanced-candidate\",\n      \"round\": 1,\n      \"elapsedSeconds\": 30.0092365,\n      \"cycleDelta\": 5284807820,\n      \"startedUtc\": \"2026-10-18T13:14:17.5833163Z\",\n      \"samplingEndedUtc\": \"2026-10-18T13:14:59.3859644Z\",\n      \"values\": {\n        \"cpu-core\": 4.634370718915338,\n        \"legacy-cpu-core\": 5.935672505363473,\n        \"visible-ms\": 114.5064,\n        \"runtime-mib\": 27.86192798614502,\n        \"private-mib\": 179.2734375,\n        \"working-set-mib\": 141.1171875,\n        \"gpu-mib\": 122.6484375\n      }\n    },\n    {\n      \"variant\": \"Aperture-balanced-candidate\",\n      \"round\": 2,\n      \"elapsedSeconds\": 30.001682000000002,\n      \"cycleDelta\": 5418307140,\n      \"startedUtc\": \"2026-10-18T13:18:07.3074272Z\",\n      \"samplingEndedUtc\": \"2026-10-18T13:18:49.3146166Z\",\n      \"values\": {\n        \"cpu-core\": 4.752635797738222,\n        \"legacy-cpu-core\": 4.843478442308668,\n        \"visible-ms\": 98.1136,\n        \"runtime-mib\": 27.86192798614502,\n        \"private-mib\": 183.953125,\n        \"working-set-mib\": 141.9765625,\n        \"gpu-mib\": 126.4296875\n      }\n    },\n    {\n      \"variant\": \"Aperture-balanced-candidate\",\n      \"round\": 3,\n      \"elapsedSeconds\": 30.0188991,\n      \"cycleDelta\": 5714799100,\n      \"startedUtc\": \"2026-10-18T13:19:32.2410545Z\",\n      \"samplingEndedUtc\": \"2026-10-18T13:20:14.2907853Z\",\n      \"values\": {\n        \"cpu-core\": 5.009826957230992,\n        \"legacy-cpu-core\": 4.528397245587198,\n        \"visible-ms\": 115.7991,\n        \"runtime-mib\": 27.86192798614502,\n        \"private-mib\": 179.453125,\n        \"working-set-mib\": 142.48828125,\n        \"gpu-mib\": 122.671875\n      }\n    },\n    {\n      \"variant\": \"VLC\",\n      \"round\": 1,\n      \"elapsedSeconds\": 30.0079901,\n      \"cycleDelta\": 6062244500,\n      \"startedUtc\": \"2026-10-18T13:15:02.9165961Z\",\n      \"samplingEndedUtc\": \"2026-10-18T13:15:49.6026342Z\",\n      \"values\": {\n        \"cpu-core\": 5.316343808233972,\n        \"legacy-cpu-core\": 2.8638205929026883,\n        \"visible-ms\": 1616.8833,\n        \"runtime-mib\": 182.99101448059082,\n        \"private-mib\": 150.67578125,\n        \"working-set-mib\": 148.83984375,\n        \"gpu-mib\": 118.4609375\n      }\n    },\n    {\n      \"variant\": \"VLC\",\n      \"round\": 2,\n      \"elapsedSeconds\": 30.012028099999995,\n      \"cycleDelta\": 5781689740,\n      \"startedUtc\": \"2026-10-18T13:16:36.4501209Z\",\n      \"samplingEndedUtc\": \"2026-10-18T13:17:23.5076399Z\",\n      \"values\": {\n        \"cpu-core\": 5.0696264143854695,\n        \"legacy-cpu-core\": 3.9046844688246853,\n        \"visible-ms\": 1724.4404,\n        \"runtime-mib\": 182.99101448059082,\n        \"private-mib\": 151.75,\n        \"working-set-mib\": 147.54296875,\n        \"gpu-mib\": 118.4609375\n      }\n    },\n    {\n      \"variant\": \"VLC\",\n      \"round\": 3,\n      \"elapsedSeconds\": 30.0130125,\n      \"cycleDelta\": 5909963300,\n      \"startedUtc\": \"2026-10-18T13:20:17.8760898Z\",\n      \"samplingEndedUtc\": \"2026-10-18T13:21:04.7962148Z\",\n      \"values\": {\n        \"cpu-core\": 5.181932047023672,\n        \"legacy-cpu-core\": 2.863341359018859,\n        \"visible-ms\": 1604.6825,\n        \"runtime-mib\": 182.99101448059082,\n        \"private-mib\": 154.77734375,\n        \"working-set-mib\": 152.4453125,\n        \"gpu-mib\": 118.45703125\n      }\n    }\n  ],\n  \"candidateVsVlc\": {\n    \"cpuRelativePercent\": -8.284482416785522,\n    \"privateMiBDifference\": 27.703125,\n    \"cpuMachineCapacityPointDifference\": -0.017887343720227083\n  },\n  \"candidateVsOriginal\": {\n    \"cpuRelativePercent\": -50.25239182697664,\n    \"privateMiBDifference\": -18.1015625\n  },\n  \"validation\": \"78 native playback checks; 52 app unit cases; 15 geometry checks with profiling enabled/cache disabled; old-engine compatibility retest 1/1; 7 pinned-patch checks. See validation.json, initial failure/retest logs and source/provenance identities.\",\n  \"limits\": [\n    \"One synthetic fixture has repeated full-player results; native AV1/4K screens are not repeated player rankings.\",\n    \"Differences belong to the complete DLL change bundle, not a proven contribution from one cache.\",\n    \"Different scaling profiles do not establish identical VLC pixels. Balanced quality remains a deliberate compromise.\",\n    \"Visible window is the bootstrap shell, not first video frame.\",\n    \"Private commit, working set and GPU allocations overlap; do not add them.\",\n    \"Root bundled DLL remains unchanged at recording time.\"\n  ]\n}"
+    },
+    {
+      "id": "balanced-memory-20261018",
+      "title": "Balanced playback memory and quality investigation",
+      "source": "docs/evidence/balanced-memory-20261018/review.json",
+      "text": "{\n  \"recordedUtc\": \"2026-10-18T19:47:40.062622+00:00\",\n  \"batchCompletedUtc\": \"2026-10-18T18:57:51.4393218Z\",\n  \"method\": \"Saved initial screen, measured before the user requested baseline reuse. Fresh owned portable profiles; same H2641080p30 AAC stereo fixture and actual 1280x720 video canvas at 96 DPI. One measured launch per variant, no discarded warmups, ~30-second windows after at least ten seconds media time. Both Aperture builds use retained-resource production-form native DLL 0e7eec06 and balanced Lanczos-up/Hermite-down/correct-downscaling, bilinear chroma, no linear-light/sigmoid passes. VLC requests D3D11 output, D3D11VA and linear scaling. Different profiles and non-identical output pixels are explicit. Advancing playback/canvas verified for all three saved screen runs. This single-run screen does not establish stable player rankings. No concurrent builders, profilers or other tests. CPU estimate uses raw process cycles divided by actual elapsed time and a validated invariant-TSC calibration on this same CPU/boot, as percent of one logical processor; sampled process CPU times retained separately. RAM is median private commit of seven snapshots per run. Memory categories overlap and cannot be summed.\",\n  \"summary\": {\n    \"Aperture-overlay-released\": {\n      \"cpu-core\": {\n        \"median\": 4.961592113845107,\n        \"min\": 4.961592113845107,\n        \"max\": 4.961592113845107,\n        \"runs\": 1\n      },\n      \"legacy-cpu-core\": {\n        \"median\": 4.478603527059175,\n        \"min\": 4.478603527059175,\n        \"max\": 4.478603527059175,\n        \"runs\": 1\n      },\n      \"visible-ms\": {\n        \"median\": 95.2768,\n        \"min\": 95.2768,\n        \"max\": 95.2768,\n        \"runs\": 1\n      },\n      \"runtime-mib\": {\n        \"median\": 27.86192798614502,\n        \"min\": 27.86192798614502,\n        \"max\": 27.86192798614502,\n        \"runs\": 1\n      },\n      \"private-mib\": {\n        \"median\": 174.515625,\n        \"min\": 174.515625,\n        \"max\": 174.515625,\n        \"runs\": 1\n      },\n      \"working-set-mib\": {\n        \"median\": 136.046875,\n        \"min\": 136.046875,\n        \"max\": 136.046875,\n        \"runs\": 1\n      },\n      \"gpu-mib\": {\n        \"median\": 122.6796875,\n        \"min\": 122.6796875,\n        \"max\": 122.6796875,\n        \"runs\": 1\n      }\n    },\n    \"Aperture-overlay-retained\": {\n      \"cpu-core\": {\n        \"median\": 5.020050870087431,\n        \"min\": 5.020050870087431,\n        \"max\": 5.020050870087431,\n        \"runs\": 1\n      },\n      \"legacy-cpu-core\": {\n        \"median\": 5.7250320675908934,\n        \"min\": 5.7250320675908934,\n        \"max\": 5.7250320675908934,\n        \"runs\": 1\n      },\n      \"visible-ms\": {\n        \"median\": 102.9566,\n        \"min\": 102.9566,\n        \"max\": 102.9566,\n        \"runs\": 1\n      },\n      \"runtime-mib\": {\n        \"median\": 27.86192798614502,\n        \"min\": 27.86192798614502,\n        \"max\": 27.86192798614502,\n        \"runs\": 1\n      },\n      \"private-mib\": {\n        \"median\": 182.23046875,\n        \"min\": 182.23046875,\n        \"max\": 182.23046875,\n        \"runs\": 1\n      },\n      \"working-set-mib\": {\n        \"median\": 139.79296875,\n        \"min\": 139.79296875,\n        \"max\": 139.79296875,\n        \"runs\": 1\n      },\n      \"gpu-mib\": {\n        \"median\": 126.42578125,\n        \"min\": 126.42578125,\n        \"max\": 126.42578125,\n        \"runs\": 1\n      }\n    },\n    \"VLC\": {\n      \"cpu-core\": {\n        \"median\": 5.091447168676399,\n        \"min\": 5.091447168676399,\n        \"max\": 5.091447168676399,\n        \"runs\": 1\n      },\n      \"legacy-cpu-core\": {\n        \"median\": 4.529518017998671,\n        \"min\": 4.529518017998671,\n        \"max\": 4.529518017998671,\n        \"runs\": 1\n      },\n      \"visible-ms\": {\n        \"median\": 1639.955,\n        \"min\": 1639.955,\n        \"max\": 1639.955,\n        \"runs\": 1\n      },\n      \"runtime-mib\": {\n        \"median\": 182.99101448059082,\n        \"min\": 182.99101448059082,\n        \"max\": 182.99101448059082,\n        \"runs\": 1\n      },\n      \"private-mib\": {\n        \"median\": 150.8515625,\n        \"min\": 150.8515625,\n        \"max\": 150.8515625,\n        \"runs\": 1\n      },\n      \"working-set-mib\": {\n        \"median\": 146.0859375,\n        \"min\": 146.0859375,\n        \"max\": 146.0859375,\n        \"runs\": 1\n      },\n      \"gpu-mib\": {\n        \"median\": 118.4609375,\n        \"min\": 118.4609375,\n        \"max\": 118.4609375,\n        \"runs\": 1\n      }\n    }\n  },\n  \"runs\": [\n    {\n      \"variant\": \"Aperture-overlay-released\",\n      \"round\": 0,\n      \"elapsedSeconds\": 30.003772199999997,\n      \"startedUtc\": \"2026-10-18T18:56:14.7623514Z\",\n      \"samplingEndedUtc\": \"2026-10-18T18:56:56.8007702Z\",\n      \"cycleDelta\": 5656924720,\n      \"values\": {\n        \"cpu-core\": 4.961592113845107,\n        \"legacy-cpu-core\": 4.478603527059175,\n        \"visible-ms\": 95.2768,\n        \"runtime-mib\": 27.86192798614502,\n        \"private-mib\": 174.515625,\n        \"working-set-mib\": 136.046875,\n        \"gpu-mib\": 122.6796875\n      }\n    },\n    {\n      \"variant\": \"Aperture-overlay-retained\",\n      \"round\": 0,\n      \"elapsedSeconds\": 30.0216659,\n      \"startedUtc\": \"2026-10-18T18:55:32.2006941Z\",\n      \"samplingEndedUtc\": \"2026-10-18T18:56:14.1305190Z\",\n      \"cycleDelta\": 5726989500,\n      \"values\": {\n        \"cpu-core\": 5.020050870087431,\n        \"legacy-cpu-core\": 5.7250320675908934,\n        \"visible-ms\": 102.9566,\n        \"runtime-mib\": 27.86192798614502,\n        \"private-mib\": 182.23046875,\n        \"working-set-mib\": 139.79296875,\n        \"gpu-mib\": 126.42578125\n      }\n    },\n    {\n      \"variant\": \"VLC\",\n      \"round\": 0,\n      \"elapsedSeconds\": 30.011471299999997,\n      \"startedUtc\": \"2026-10-18T18:57:02.2838411Z\",\n      \"samplingEndedUtc\": \"2026-10-18T18:57:50.1329986Z\",\n      \"cycleDelta\": 5806467640,\n      \"values\": {\n        \"cpu-core\": 5.091447168676399,\n        \"legacy-cpu-core\": 4.529518017998671,\n        \"visible-ms\": 1639.955,\n        \"runtime-mib\": 182.99101448059082,\n        \"private-mib\": 150.8515625,\n        \"working-set-mib\": 146.0859375,\n        \"gpu-mib\": 118.4609375\n      }\n    }\n  ],\n  \"screenCandidateVsPrevious\": {\n    \"privateMiBDifference\": -7.71484375,\n    \"cpuRelativePercent\": -1.1645052561251368\n  },\n  \"screenCandidateVsVlc\": {\n    \"privateMiBDifference\": 23.6640625,\n    \"cpuRelativePercent\": -2.550454723957185\n  },\n  \"validation\": {\n    \"appUnit\": {\n      \"passed\": 53,\n      \"total\": 53\n    },\n    \"liveOverlayLifecycle\": {\n      \"passed\": 8,\n      \"total\": 8\n    },\n    \"nativePrototypeGeometry\": {\n      \"passed\": 15,\n      \"total\": 15\n    }\n  },\n  \"research\": {\n    \"explicitFramebufferPrecision\": {\n      \"fbo-auto\": {\n        \"privateMiB\": 154.421875,\n        \"cyclesPerSecond\": [\n          168585877.38279423,\n          186335699.36658484,\n          172640724.25576437\n        ]\n      },\n      \"fbo-rgb10_a2\": {\n        \"privateMiB\": 141.078125,\n        \"cyclesPerSecond\": [\n          165671117.22220442,\n          168255380.98623812,\n          173664685.82827747\n        ]\n      },\n      \"fbo-rgba8\": {\n        \"privateMiB\": 141.765625,\n        \"cyclesPerSecond\": [\n          168744242.93017262,\n          167762017.68618122,\n          163884594.7607303\n        ]\n      }\n    },\n    \"precisionDecision\": \"Not adopted. RGB10 changes pixels; HDR screenshots differed despite both selecting float. HDR quality equivalence remains unproven.\",\n    \"directNv12\": \"Opt-in isolated prototype keeps existing separable LUT weights and directly reconstructs NV12. First active fixed H264 capture max difference 1/255 per channel, PSNR64.86dB; single engine screen ~30MiB lower private RAM. Not a repeated full-player result or proof across formats. Guarded HDR/alpha/rotation/crop cases fall back. App source does not enable it.\",\n    \"failedScreens\": \"First native C compile failed on a macro comma; fixed. First built direct screen failed actual-path assertion due an overly strict identity-swizzle guard; preserved. v3 comparator completed both paths, but the surrounding shell incorrectly treated unset LASTEXITCODE as failure. Raw per-process checks and results are retained.\"\n  },\n  \"limits\": [\n    \"One synthetic full-app fixture; broad-format/overall win remains unproven.\",\n    \"App builds include pre-existing dirty source edits; observations do not isolate every contribution.\",\n    \"Only the initial n1 screen is summarized numerically. The subsequent repeated app/VLC batch was interrupted at the user request; its completed raw runs are preserved without aggregation. Future comparisons reuse the saved matching VLC baseline and defer visible playback checks.\",\n    \"Live driver v1 assumed Stop retained the queue; v2 rejected legitimate mouse-triggered reallocations. Corrected v3 uses explicit Open and tolerates visible controls while requiring actual idle retirement. Earlier partial traces retained.\",\n    \"Lower-precision and direct-filter native prototypes are not production app defaults.\",\n    \"Native direct capture is one fixture/window size; more quality and fallback checks required before adoption.\"\n  ]\n}"
     }
   ],
   "historySeries": {

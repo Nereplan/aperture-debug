@@ -250,3 +250,29 @@ resource probes accept `--gpu-timing` and `--vertex-cache-entries`, retaining th
 effective options when supported. Production builds use no experimental
 environment switches. Verify AV1 hardware decode and explicit software playback
 after rebuilding: enabling decoder flags alone is not playback evidence.
+
+`FramebufferPrecision` compares explicit intermediate texture formats on the
+retained-resource engine. `AutomaticFramebuffer` and `DirectNv12` require the
+separate opt-in experimental DLLs; they are not app defaults. The former requires
+`-ExpectedAutomaticFormat` and validates the settled format after source metadata
+arrives. The latter validates both the requested switch and the observed filter
+path (`-ExpectedDirectFiltering yes|no`). Setup diagnostics stop before timed
+sampling. An unsupported path, missing observation or mismatched option fails
+the screen. Format selection alone does not prove that a direct path allocated
+or used an intermediate texture. Keep failed screens and fixed-frame captures;
+do not treat a precision change or an inactive prototype as equal-quality
+performance evidence. `-HardwareDecodeMode no` is for deliberate software cases
+such as alpha fixtures; the default still requires observed D3D11VA decoding.
+
+The libmpv wrapper accepts `-ScalingProfile`, `-SdrFboPrecision`,
+`-DirectNv12Filtering` and `-FramebufferDiagnostics` for these isolated checks.
+The resource probe also accepts `--fbo-format`, `--fbo-sdr10`,
+`--scale-direct-nv12`, `--resource-hwdec` and `--fbo-diagnostics`. Effective options,
+source color metadata and settled path/format logs remain in raw evidence.
+
+`profile_player.exe <pid> <seconds> <pdb-directory> --state-only` observes overlay
+allocation/presentation counters without suspending threads. Use diagnostic runs
+separately from rankings. `player_status_probe.exe <pid>` queries one explicitly
+owned process; optional `--pause`, `--play`, `--stop`, or `--open <file>` support
+lifecycle checks, including Unicode paths. Stop can clear a direct-launch queue;
+use an explicit open when checking return from the library.

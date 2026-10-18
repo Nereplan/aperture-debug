@@ -1,7 +1,7 @@
 // Capture effective options explicitly; player defaults are not a quality match.
 static bool ReportPlaybackRenderOptions(mpv_handle* player) {
     const char* names[] = {"scale", "dscale", "cscale", "linear-downscaling",
-        "correct-downscaling", "sigmoid-upscaling", "dither-depth", "dither", "target-colorspace-hint"};
+        "correct-downscaling", "sigmoid-upscaling", "dither-depth", "dither", "target-colorspace-hint", "fbo-format"};
     bool complete = true;
     printf("RENDER_OPTIONS {");
     for (unsigned i = 0; i < sizeof(names) / sizeof(names[0]); ++i) {
@@ -19,10 +19,11 @@ static bool ReportPlaybackRenderOptions(mpv_handle* player) {
         printf("\"");
     }
     // Older baseline DLLs do not expose Aperture's frame-resource options.
-    for (const char* name : {"d3d11-gpu-timing", "d3d11-vertex-cache-entries"}) {
+    for (const char* name : {"d3d11-gpu-timing", "d3d11-vertex-cache-entries", "fbo-sdr10", "scale-direct-nv12",
+                            "video-out-params/pixelformat", "video-params/primaries", "video-params/gamma", "video-params/alpha"}) {
         char* value = fn_get_property_string(player, name);
         if (value) {
-            // These options have constrained boolean/integer values.
+            // These are constrained boolean/integer/format identifiers.
             printf(",\"%s\":\"%s\"", name, value);
             fn_free(value);
         }

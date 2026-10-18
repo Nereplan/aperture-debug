@@ -1,0 +1,1040 @@
+[
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\overlay-surface-screen\\comparison.json",
+    "saved": "app/comparison.json",
+    "sourceSha256": "79fc292142a6374fe6f76d436f9b33b9f092da4162b708d2c8b67d6366a40aa2",
+    "sourceBytes": 24771
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\balanced-frame-h264-calibration.json",
+    "saved": "app/cpu-calibration.json",
+    "sourceSha256": "faeb64546911cadbc72775231f5d9fa6b0d21d052c11e53dd58678fa5b85a0f3",
+    "sourceBytes": 813
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\overlay-surface-repeated\\interrupted.json",
+    "saved": "app/interrupted-batch.json",
+    "sourceSha256": "05597ed16acbdcf2d2a128552dc9ebb68242bd9a09a7a018d59d1cb205427468",
+    "sourceBytes": 363
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\overlay-surface-repeated-driver.log",
+    "saved": "app/interrupted-batch-driver.log.gz",
+    "sourceSha256": "d39669bf03579fb95bd21c5cdf53c96e87a38449abaf70b2350f2aab6b414875",
+    "sourceBytes": 454
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\overlay-surface-repeated\\runs-591bf72426174d9490afe858ed37c487\\0-Aperture-overlay-released\\result.json",
+    "saved": "app/interrupted-runs/runs-591bf72426174d9490afe858ed37c487/0-Aperture-overlay-released/result.json",
+    "sourceSha256": "f866eeccfa76183f594f65d550e0a30a0248678ff8018321dbde019a67030782",
+    "sourceBytes": 5932
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\overlay-surface-repeated\\runs-591bf72426174d9490afe858ed37c487\\0-Aperture-overlay-retained\\result.json",
+    "saved": "app/interrupted-runs/runs-591bf72426174d9490afe858ed37c487/0-Aperture-overlay-retained/result.json",
+    "sourceSha256": "1bb8fd4a8bb7fd6f6f08932eeba24e1f01327606aee15b0cb4a8ed060e3adc0c",
+    "sourceBytes": 5996
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\overlay-surface-repeated\\runs-591bf72426174d9490afe858ed37c487\\0-VLC\\result.json",
+    "saved": "app/interrupted-runs/runs-591bf72426174d9490afe858ed37c487/0-VLC/result.json",
+    "sourceSha256": "ac2007490c8e1b38447e0cc0fabab702f72df800de47ac9c6139192912857331",
+    "sourceBytes": 7472
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\overlay-surface-repeated\\runs-591bf72426174d9490afe858ed37c487\\1-Aperture-overlay-released\\result.json",
+    "saved": "app/interrupted-runs/runs-591bf72426174d9490afe858ed37c487/1-Aperture-overlay-released/result.json",
+    "sourceSha256": "324218248d794605628178ece0bbcb4193c5ca016c2d1ad98474d5f59f844794",
+    "sourceBytes": 5978
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\overlay-surface-repeated\\runs-591bf72426174d9490afe858ed37c487\\1-Aperture-overlay-retained\\result.json",
+    "saved": "app/interrupted-runs/runs-591bf72426174d9490afe858ed37c487/1-Aperture-overlay-retained/result.json",
+    "sourceSha256": "b2db0b8b847d1b097c59baf1931aa60c0acf38c3f61e7d1e11c065108211720e",
+    "sourceBytes": 5994
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\overlay-surface-repeated\\runs-591bf72426174d9490afe858ed37c487\\1-VLC\\result.json",
+    "saved": "app/interrupted-runs/runs-591bf72426174d9490afe858ed37c487/1-VLC/result.json",
+    "sourceSha256": "fe1e2f1cb0c5e7d515093c8603f7a2dd1ab7565a58da9bb37f45c8f9215b25b1",
+    "sourceBytes": 7470
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\overlay-surface-live\\active-errors.txt",
+    "saved": "live-v1/active-errors.txt",
+    "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "sourceBytes": 0
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\overlay-surface-live\\active.json",
+    "saved": "live-v1/active.json",
+    "sourceSha256": "d11826bd27b4eb608f62194e66d0ae706496e393f94e162005950798774b185b",
+    "sourceBytes": 1629
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\overlay-surface-live\\idle-errors.txt",
+    "saved": "live-v1/idle-errors.txt",
+    "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "sourceBytes": 0
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\overlay-surface-live\\idle.json",
+    "saved": "live-v1/idle.json",
+    "sourceSha256": "5a14b02ef5588f3bf52d245f6de36fe17adae676eb627a54560796330556ce73",
+    "sourceBytes": 1629
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\overlay-surface-live\\resumed-errors.txt",
+    "saved": "live-v1/resumed-errors.txt",
+    "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "sourceBytes": 0
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\overlay-surface-live\\resumed.json",
+    "saved": "live-v1/resumed.json",
+    "sourceSha256": "5b395d727d9b149302193a5de9bb2eed35d1afc84d64b2f2cfa977ec9e2e72e2",
+    "sourceBytes": 1634
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\overlay-surface-live.ps1",
+    "saved": "live-v1/driver.ps1",
+    "sourceSha256": "1d94f39563d553d59620641a035966d195fd13d54b1d6cf0cfcedd7e6d57575e",
+    "sourceBytes": 4829
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\overlay-surface-live-v2\\idle-errors.txt",
+    "saved": "live-v2/idle-errors.txt",
+    "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "sourceBytes": 0
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\overlay-surface-live-v2\\idle.json",
+    "saved": "live-v2/idle.json",
+    "sourceSha256": "68f99ba4e94390ce272580907701588f410d5a8cba96a3cdd8b84fbed1aa2ba5",
+    "sourceBytes": 1626
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\overlay-surface-live-v2\\status-events.json",
+    "saved": "live-v2/status-events.json",
+    "sourceSha256": "0fb4ca29c3ff26763858f0908d0c444df96cbc0033e8db0f8756084b606150c5",
+    "sourceBytes": 161
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\overlay-surface-live-v2.ps1",
+    "saved": "live-v2/driver.ps1",
+    "sourceSha256": "63d443a42a72e300367753ea2c6c6524f9a204e0329b4234f3fbe5b6b0f4c93e",
+    "sourceBytes": 5097
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\overlay-surface-live-v3\\active-errors.txt",
+    "saved": "live-v3/active-errors.txt",
+    "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "sourceBytes": 0
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\overlay-surface-live-v3\\active.json",
+    "saved": "live-v3/active.json",
+    "sourceSha256": "083ed86e043aee5fb28ac9316ae48469887ed5516dd162f50491a86d034b67bc",
+    "sourceBytes": 1629
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\overlay-surface-live-v3\\idle-errors.txt",
+    "saved": "live-v3/idle-errors.txt",
+    "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "sourceBytes": 0
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\overlay-surface-live-v3\\idle.json",
+    "saved": "live-v3/idle.json",
+    "sourceSha256": "197342f19154dec67d03a37e526e1bb188ce03a6b84f283044b39d438d482f2d",
+    "sourceBytes": 1629
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\overlay-surface-live-v3\\result.json",
+    "saved": "live-v3/result.json",
+    "sourceSha256": "9d6b2d3012d2e4fa5402cfb2b7d5cc37709427747d498b236884788d44f0f641",
+    "sourceBytes": 6604
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\overlay-surface-live-v3\\resumed-errors.txt",
+    "saved": "live-v3/resumed-errors.txt",
+    "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "sourceBytes": 0
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\overlay-surface-live-v3\\resumed.json",
+    "saved": "live-v3/resumed.json",
+    "sourceSha256": "1ff43e3cff1751ddff9b5cebb55244b06a96940ea190cd6dd32d0fe79bcd7130",
+    "sourceBytes": 1634
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\overlay-surface-live-v3\\status-events.json",
+    "saved": "live-v3/status-events.json",
+    "sourceSha256": "41abdc7a2f5ce2103525daba849f6727ea79c12e4f7bf083152dde230b027967",
+    "sourceBytes": 5549
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\overlay-surface-live-v3.ps1",
+    "saved": "live-v3/driver.ps1",
+    "sourceSha256": "45596d116e463e66f9de5f01bbf99f2e2b70eb4e2168e7dcfa1e5bc687c7c803",
+    "sourceBytes": 5191
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\sdr-fbo-experiment\\overlay-all-unit.log",
+    "saved": "validation/overlay-all-unit.log.gz",
+    "sourceSha256": "a8c895321fce15ba5f26aafc956f80d41a9b29aae8625c24248bb8dfe957d42d",
+    "sourceBytes": 5266
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\sdr-fbo-experiment\\overlay-surface-test.log",
+    "saved": "validation/overlay-surface-test.log.gz",
+    "sourceSha256": "47b5b7a646c28d830b4ddc1ebf03b670d25ff0532326732f071c0fbb48d6a3ed",
+    "sourceBytes": 992
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\sdr-fbo-experiment\\overlay-surface-build.log",
+    "saved": "validation/overlay-surface-build.log.gz",
+    "sourceSha256": "7de2594bd1d63482d53b604140c2332a2e7327d80d6115704e5f5345af460b19",
+    "sourceBytes": 2973
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\fbo-precision-h264-v2\\results.json",
+    "saved": "research/fbo-precision-h264-v2/results.json",
+    "sourceSha256": "02b4a9e6fd75dfe61931d6336ae92be25fa9a5609d634c5e4e873c7d3ddcbd85",
+    "sourceBytes": 10363
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\fbo-precision-h264-v2\\0-fbo-auto-339c1a698b2b45be9aeb52e33af9bf57\\rendered-frame.png",
+    "saved": "research/fbo-precision-h264-v2/0-fbo-auto-339c1a698b2b45be9aeb52e33af9bf57/rendered-frame.png",
+    "sourceSha256": "68afa819bc6327f0058c5b1f8f70be8225a8e33dc347206f61567983e91190e5",
+    "sourceBytes": 249620
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\fbo-precision-h264-v2\\0-fbo-auto-339c1a698b2b45be9aeb52e33af9bf57\\stderr.txt",
+    "saved": "research/fbo-precision-h264-v2/0-fbo-auto-339c1a698b2b45be9aeb52e33af9bf57/stderr.txt.gz",
+    "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "sourceBytes": 0
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\fbo-precision-h264-v2\\0-fbo-auto-339c1a698b2b45be9aeb52e33af9bf57\\stdout.txt",
+    "saved": "research/fbo-precision-h264-v2/0-fbo-auto-339c1a698b2b45be9aeb52e33af9bf57/stdout.txt.gz",
+    "sourceSha256": "a7a1ebccc0ed7d5ae9ec0acab368ef98db2250b34bd6a519832938c1b8fc5ae9",
+    "sourceBytes": 2029
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\fbo-precision-h264-v2\\0-fbo-rgb10_a2-0d773053deca4087afb1440643b13c40\\rendered-frame.png",
+    "saved": "research/fbo-precision-h264-v2/0-fbo-rgb10_a2-0d773053deca4087afb1440643b13c40/rendered-frame.png",
+    "sourceSha256": "b41f35b28d4d4a680c03d8a554be6080aa2aab6eb52c2f52c32ddd8506fae16b",
+    "sourceBytes": 264325
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\fbo-precision-h264-v2\\0-fbo-rgb10_a2-0d773053deca4087afb1440643b13c40\\stderr.txt",
+    "saved": "research/fbo-precision-h264-v2/0-fbo-rgb10_a2-0d773053deca4087afb1440643b13c40/stderr.txt.gz",
+    "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "sourceBytes": 0
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\fbo-precision-h264-v2\\0-fbo-rgb10_a2-0d773053deca4087afb1440643b13c40\\stdout.txt",
+    "saved": "research/fbo-precision-h264-v2/0-fbo-rgb10_a2-0d773053deca4087afb1440643b13c40/stdout.txt.gz",
+    "sourceSha256": "b0b06cbaccde3f7bd5fa6d5a2550bb84f7c3104a494f8c089bf88c04dda745f8",
+    "sourceBytes": 2037
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\fbo-precision-h264-v2\\0-fbo-rgba8-b0547e99e76f4b68aba893a7b5f6275e\\rendered-frame.png",
+    "saved": "research/fbo-precision-h264-v2/0-fbo-rgba8-b0547e99e76f4b68aba893a7b5f6275e/rendered-frame.png",
+    "sourceSha256": "504b9f38b151da0b9d76790b30d5503682acd8758720de127b8255947ec99ebd",
+    "sourceBytes": 170394
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\fbo-precision-h264-v2\\0-fbo-rgba8-b0547e99e76f4b68aba893a7b5f6275e\\stderr.txt",
+    "saved": "research/fbo-precision-h264-v2/0-fbo-rgba8-b0547e99e76f4b68aba893a7b5f6275e/stderr.txt.gz",
+    "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "sourceBytes": 0
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\fbo-precision-h264-v2\\0-fbo-rgba8-b0547e99e76f4b68aba893a7b5f6275e\\stdout.txt",
+    "saved": "research/fbo-precision-h264-v2/0-fbo-rgba8-b0547e99e76f4b68aba893a7b5f6275e/stdout.txt.gz",
+    "sourceSha256": "51c263ccffe3681ead20b201f99d2afeb87533c2d081117db6bbb7b61a2cf2c8",
+    "sourceBytes": 2031
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\fbo-precision-h264-repeated\\results.json",
+    "saved": "research/fbo-precision-h264-repeated/results.json",
+    "sourceSha256": "602c43e97b5684925075dab7b476c4575dee74af5834b44a0b8a563e0729d353",
+    "sourceBytes": 41581
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\fbo-precision-h264-repeated\\0-fbo-auto-f8a0bae7377643ddaecacadc468ee778\\rendered-frame.png",
+    "saved": "research/fbo-precision-h264-repeated/0-fbo-auto-f8a0bae7377643ddaecacadc468ee778/rendered-frame.png",
+    "sourceSha256": "68afa819bc6327f0058c5b1f8f70be8225a8e33dc347206f61567983e91190e5",
+    "sourceBytes": 249620
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\fbo-precision-h264-repeated\\0-fbo-auto-f8a0bae7377643ddaecacadc468ee778\\stderr.txt",
+    "saved": "research/fbo-precision-h264-repeated/0-fbo-auto-f8a0bae7377643ddaecacadc468ee778/stderr.txt.gz",
+    "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "sourceBytes": 0
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\fbo-precision-h264-repeated\\0-fbo-auto-f8a0bae7377643ddaecacadc468ee778\\stdout.txt",
+    "saved": "research/fbo-precision-h264-repeated/0-fbo-auto-f8a0bae7377643ddaecacadc468ee778/stdout.txt.gz",
+    "sourceSha256": "ae3f894ea826f71fec97a04f62d74bcaed63d70281e3bf09bd090480e4a18117",
+    "sourceBytes": 2035
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\fbo-precision-h264-repeated\\0-fbo-rgb10_a2-2e0b1c265b8e482fb55165b80f986883\\rendered-frame.png",
+    "saved": "research/fbo-precision-h264-repeated/0-fbo-rgb10_a2-2e0b1c265b8e482fb55165b80f986883/rendered-frame.png",
+    "sourceSha256": "b41f35b28d4d4a680c03d8a554be6080aa2aab6eb52c2f52c32ddd8506fae16b",
+    "sourceBytes": 264325
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\fbo-precision-h264-repeated\\0-fbo-rgb10_a2-2e0b1c265b8e482fb55165b80f986883\\stderr.txt",
+    "saved": "research/fbo-precision-h264-repeated/0-fbo-rgb10_a2-2e0b1c265b8e482fb55165b80f986883/stderr.txt.gz",
+    "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "sourceBytes": 0
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\fbo-precision-h264-repeated\\0-fbo-rgb10_a2-2e0b1c265b8e482fb55165b80f986883\\stdout.txt",
+    "saved": "research/fbo-precision-h264-repeated/0-fbo-rgb10_a2-2e0b1c265b8e482fb55165b80f986883/stdout.txt.gz",
+    "sourceSha256": "0156c7b12634e711c50ae89cd8927f8d6b7d0a439d2f4e3dc7f469d57b85872c",
+    "sourceBytes": 2042
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\fbo-precision-h264-repeated\\0-fbo-rgba8-b41263e7b3f84e8d98834242b828c11d\\rendered-frame.png",
+    "saved": "research/fbo-precision-h264-repeated/0-fbo-rgba8-b41263e7b3f84e8d98834242b828c11d/rendered-frame.png",
+    "sourceSha256": "504b9f38b151da0b9d76790b30d5503682acd8758720de127b8255947ec99ebd",
+    "sourceBytes": 170394
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\fbo-precision-h264-repeated\\0-fbo-rgba8-b41263e7b3f84e8d98834242b828c11d\\stderr.txt",
+    "saved": "research/fbo-precision-h264-repeated/0-fbo-rgba8-b41263e7b3f84e8d98834242b828c11d/stderr.txt.gz",
+    "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "sourceBytes": 0
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\fbo-precision-h264-repeated\\0-fbo-rgba8-b41263e7b3f84e8d98834242b828c11d\\stdout.txt",
+    "saved": "research/fbo-precision-h264-repeated/0-fbo-rgba8-b41263e7b3f84e8d98834242b828c11d/stdout.txt.gz",
+    "sourceSha256": "ec31f9d65a1ad1a12660c6daf7adcfe53c842053b0bf6101e037a07463f22e07",
+    "sourceBytes": 2032
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\fbo-precision-h264-repeated\\1-fbo-auto-aa294cf8e0ba43e8b326618d2ae63ec7\\rendered-frame.png",
+    "saved": "research/fbo-precision-h264-repeated/1-fbo-auto-aa294cf8e0ba43e8b326618d2ae63ec7/rendered-frame.png",
+    "sourceSha256": "68afa819bc6327f0058c5b1f8f70be8225a8e33dc347206f61567983e91190e5",
+    "sourceBytes": 249620
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\fbo-precision-h264-repeated\\1-fbo-auto-aa294cf8e0ba43e8b326618d2ae63ec7\\stderr.txt",
+    "saved": "research/fbo-precision-h264-repeated/1-fbo-auto-aa294cf8e0ba43e8b326618d2ae63ec7/stderr.txt.gz",
+    "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "sourceBytes": 0
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\fbo-precision-h264-repeated\\1-fbo-auto-aa294cf8e0ba43e8b326618d2ae63ec7\\stdout.txt",
+    "saved": "research/fbo-precision-h264-repeated/1-fbo-auto-aa294cf8e0ba43e8b326618d2ae63ec7/stdout.txt.gz",
+    "sourceSha256": "01c6fa519a57558a0d3d3b54897bf7cee8394cc4cadb0714cf6edbf49e2579ad",
+    "sourceBytes": 2034
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\fbo-precision-h264-repeated\\1-fbo-rgb10_a2-8d8e06ada64a4ca2947d03b16fb58c58\\rendered-frame.png",
+    "saved": "research/fbo-precision-h264-repeated/1-fbo-rgb10_a2-8d8e06ada64a4ca2947d03b16fb58c58/rendered-frame.png",
+    "sourceSha256": "b41f35b28d4d4a680c03d8a554be6080aa2aab6eb52c2f52c32ddd8506fae16b",
+    "sourceBytes": 264325
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\fbo-precision-h264-repeated\\1-fbo-rgb10_a2-8d8e06ada64a4ca2947d03b16fb58c58\\stderr.txt",
+    "saved": "research/fbo-precision-h264-repeated/1-fbo-rgb10_a2-8d8e06ada64a4ca2947d03b16fb58c58/stderr.txt.gz",
+    "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "sourceBytes": 0
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\fbo-precision-h264-repeated\\1-fbo-rgb10_a2-8d8e06ada64a4ca2947d03b16fb58c58\\stdout.txt",
+    "saved": "research/fbo-precision-h264-repeated/1-fbo-rgb10_a2-8d8e06ada64a4ca2947d03b16fb58c58/stdout.txt.gz",
+    "sourceSha256": "af51b740822deba128a44b212054bd65fcdab1aec6f6330259d20f930f2ea973",
+    "sourceBytes": 2041
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\fbo-precision-h264-repeated\\1-fbo-rgba8-29ac3d6b568449c4aed2ec0f6961995a\\rendered-frame.png",
+    "saved": "research/fbo-precision-h264-repeated/1-fbo-rgba8-29ac3d6b568449c4aed2ec0f6961995a/rendered-frame.png",
+    "sourceSha256": "504b9f38b151da0b9d76790b30d5503682acd8758720de127b8255947ec99ebd",
+    "sourceBytes": 170394
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\fbo-precision-h264-repeated\\1-fbo-rgba8-29ac3d6b568449c4aed2ec0f6961995a\\stderr.txt",
+    "saved": "research/fbo-precision-h264-repeated/1-fbo-rgba8-29ac3d6b568449c4aed2ec0f6961995a/stderr.txt.gz",
+    "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "sourceBytes": 0
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\fbo-precision-h264-repeated\\1-fbo-rgba8-29ac3d6b568449c4aed2ec0f6961995a\\stdout.txt",
+    "saved": "research/fbo-precision-h264-repeated/1-fbo-rgba8-29ac3d6b568449c4aed2ec0f6961995a/stdout.txt.gz",
+    "sourceSha256": "ec34bd565dc419d9584b596f112a305c54a9c349bd058c79666cc0d7b638047e",
+    "sourceBytes": 2032
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\fbo-precision-h264-repeated\\2-fbo-auto-1fcb9c5a32a94fe3894f2cceb87db538\\rendered-frame.png",
+    "saved": "research/fbo-precision-h264-repeated/2-fbo-auto-1fcb9c5a32a94fe3894f2cceb87db538/rendered-frame.png",
+    "sourceSha256": "68afa819bc6327f0058c5b1f8f70be8225a8e33dc347206f61567983e91190e5",
+    "sourceBytes": 249620
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\fbo-precision-h264-repeated\\2-fbo-auto-1fcb9c5a32a94fe3894f2cceb87db538\\stderr.txt",
+    "saved": "research/fbo-precision-h264-repeated/2-fbo-auto-1fcb9c5a32a94fe3894f2cceb87db538/stderr.txt.gz",
+    "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "sourceBytes": 0
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\fbo-precision-h264-repeated\\2-fbo-auto-1fcb9c5a32a94fe3894f2cceb87db538\\stdout.txt",
+    "saved": "research/fbo-precision-h264-repeated/2-fbo-auto-1fcb9c5a32a94fe3894f2cceb87db538/stdout.txt.gz",
+    "sourceSha256": "9622175c64b998a6d0a8a572b18c379065d571760edb2f287a6c22b230336179",
+    "sourceBytes": 2035
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\fbo-precision-h264-repeated\\2-fbo-rgb10_a2-7430e60cec004084ac41dabd8115573b\\rendered-frame.png",
+    "saved": "research/fbo-precision-h264-repeated/2-fbo-rgb10_a2-7430e60cec004084ac41dabd8115573b/rendered-frame.png",
+    "sourceSha256": "b41f35b28d4d4a680c03d8a554be6080aa2aab6eb52c2f52c32ddd8506fae16b",
+    "sourceBytes": 264325
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\fbo-precision-h264-repeated\\2-fbo-rgb10_a2-7430e60cec004084ac41dabd8115573b\\stderr.txt",
+    "saved": "research/fbo-precision-h264-repeated/2-fbo-rgb10_a2-7430e60cec004084ac41dabd8115573b/stderr.txt.gz",
+    "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "sourceBytes": 0
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\fbo-precision-h264-repeated\\2-fbo-rgb10_a2-7430e60cec004084ac41dabd8115573b\\stdout.txt",
+    "saved": "research/fbo-precision-h264-repeated/2-fbo-rgb10_a2-7430e60cec004084ac41dabd8115573b/stdout.txt.gz",
+    "sourceSha256": "d567c590d62fe3e6413e34dc10abf88942c1066460e86192846751d36e221998",
+    "sourceBytes": 2042
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\fbo-precision-h264-repeated\\2-fbo-rgba8-95a0a09c8d544bdfbd9e99e000d192b5\\rendered-frame.png",
+    "saved": "research/fbo-precision-h264-repeated/2-fbo-rgba8-95a0a09c8d544bdfbd9e99e000d192b5/rendered-frame.png",
+    "sourceSha256": "504b9f38b151da0b9d76790b30d5503682acd8758720de127b8255947ec99ebd",
+    "sourceBytes": 170394
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\fbo-precision-h264-repeated\\2-fbo-rgba8-95a0a09c8d544bdfbd9e99e000d192b5\\stderr.txt",
+    "saved": "research/fbo-precision-h264-repeated/2-fbo-rgba8-95a0a09c8d544bdfbd9e99e000d192b5/stderr.txt.gz",
+    "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "sourceBytes": 0
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\fbo-precision-h264-repeated\\2-fbo-rgba8-95a0a09c8d544bdfbd9e99e000d192b5\\stdout.txt",
+    "saved": "research/fbo-precision-h264-repeated/2-fbo-rgba8-95a0a09c8d544bdfbd9e99e000d192b5/stdout.txt.gz",
+    "sourceSha256": "b7f7d2b44a5d49629d01a3a387e2a41a90d33112e9dcf89fca28c6e57ad07115",
+    "sourceBytes": 2032
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\fbo-precision-h264-repeated\\3-fbo-auto-7a305ca6c0c4409cb9c7d092407df33d\\rendered-frame.png",
+    "saved": "research/fbo-precision-h264-repeated/3-fbo-auto-7a305ca6c0c4409cb9c7d092407df33d/rendered-frame.png",
+    "sourceSha256": "68afa819bc6327f0058c5b1f8f70be8225a8e33dc347206f61567983e91190e5",
+    "sourceBytes": 249620
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\fbo-precision-h264-repeated\\3-fbo-auto-7a305ca6c0c4409cb9c7d092407df33d\\stderr.txt",
+    "saved": "research/fbo-precision-h264-repeated/3-fbo-auto-7a305ca6c0c4409cb9c7d092407df33d/stderr.txt.gz",
+    "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "sourceBytes": 0
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\fbo-precision-h264-repeated\\3-fbo-auto-7a305ca6c0c4409cb9c7d092407df33d\\stdout.txt",
+    "saved": "research/fbo-precision-h264-repeated/3-fbo-auto-7a305ca6c0c4409cb9c7d092407df33d/stdout.txt.gz",
+    "sourceSha256": "644b65384fd23726d48914117abaa9cd28fe474b79cc87a71c3c83294c8c9a7a",
+    "sourceBytes": 2035
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\fbo-precision-h264-repeated\\3-fbo-rgb10_a2-46435065d59c40d59b1b9ad0e46d91c6\\rendered-frame.png",
+    "saved": "research/fbo-precision-h264-repeated/3-fbo-rgb10_a2-46435065d59c40d59b1b9ad0e46d91c6/rendered-frame.png",
+    "sourceSha256": "b41f35b28d4d4a680c03d8a554be6080aa2aab6eb52c2f52c32ddd8506fae16b",
+    "sourceBytes": 264325
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\fbo-precision-h264-repeated\\3-fbo-rgb10_a2-46435065d59c40d59b1b9ad0e46d91c6\\stderr.txt",
+    "saved": "research/fbo-precision-h264-repeated/3-fbo-rgb10_a2-46435065d59c40d59b1b9ad0e46d91c6/stderr.txt.gz",
+    "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "sourceBytes": 0
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\fbo-precision-h264-repeated\\3-fbo-rgb10_a2-46435065d59c40d59b1b9ad0e46d91c6\\stdout.txt",
+    "saved": "research/fbo-precision-h264-repeated/3-fbo-rgb10_a2-46435065d59c40d59b1b9ad0e46d91c6/stdout.txt.gz",
+    "sourceSha256": "b890b6a1600a6442cf059d752f7ab8c746673c3eb38b56e53a94a4ddac4f77e4",
+    "sourceBytes": 2042
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\fbo-precision-h264-repeated\\3-fbo-rgba8-392d670c78554db0aa0d2bb4d8785c17\\rendered-frame.png",
+    "saved": "research/fbo-precision-h264-repeated/3-fbo-rgba8-392d670c78554db0aa0d2bb4d8785c17/rendered-frame.png",
+    "sourceSha256": "504b9f38b151da0b9d76790b30d5503682acd8758720de127b8255947ec99ebd",
+    "sourceBytes": 170394
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\fbo-precision-h264-repeated\\3-fbo-rgba8-392d670c78554db0aa0d2bb4d8785c17\\stderr.txt",
+    "saved": "research/fbo-precision-h264-repeated/3-fbo-rgba8-392d670c78554db0aa0d2bb4d8785c17/stderr.txt.gz",
+    "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "sourceBytes": 0
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\fbo-precision-h264-repeated\\3-fbo-rgba8-392d670c78554db0aa0d2bb4d8785c17\\stdout.txt",
+    "saved": "research/fbo-precision-h264-repeated/3-fbo-rgba8-392d670c78554db0aa0d2bb4d8785c17/stdout.txt.gz",
+    "sourceSha256": "94b6b1c2c92dd5f51897da4060a75d57d0b9feb236155f1593ff4e3032046e0b",
+    "sourceBytes": 2033
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\sdr-fbo-experiment\\policy-h264\\results.json",
+    "saved": "research/sdr-fbo-experiment/policy-h264/results.json",
+    "sourceSha256": "7c590b0743abe3079f93de22b70f0670c10c96d22e900ea1c806067d1820a363",
+    "sourceBytes": 7469
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\sdr-fbo-experiment\\policy-h264\\0-automatic-no-689f01efdd3e42a591810d805b4943a4\\rendered-frame.png",
+    "saved": "research/sdr-fbo-experiment/policy-h264/0-automatic-no-689f01efdd3e42a591810d805b4943a4/rendered-frame.png",
+    "sourceSha256": "68afa819bc6327f0058c5b1f8f70be8225a8e33dc347206f61567983e91190e5",
+    "sourceBytes": 249620
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\sdr-fbo-experiment\\policy-h264\\0-automatic-no-689f01efdd3e42a591810d805b4943a4\\stderr.txt",
+    "saved": "research/sdr-fbo-experiment/policy-h264/0-automatic-no-689f01efdd3e42a591810d805b4943a4/stderr.txt.gz",
+    "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "sourceBytes": 0
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\sdr-fbo-experiment\\policy-h264\\0-automatic-no-689f01efdd3e42a591810d805b4943a4\\stdout.txt",
+    "saved": "research/sdr-fbo-experiment/policy-h264/0-automatic-no-689f01efdd3e42a591810d805b4943a4/stdout.txt.gz",
+    "sourceSha256": "a95b54c344af36f162f145092b7b550d8e505f0571e6492b802cb73acbecc157",
+    "sourceBytes": 2251
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\sdr-fbo-experiment\\policy-h264\\0-automatic-yes-fd080d9ca5e345c9b169fd5e50a33a30\\rendered-frame.png",
+    "saved": "research/sdr-fbo-experiment/policy-h264/0-automatic-yes-fd080d9ca5e345c9b169fd5e50a33a30/rendered-frame.png",
+    "sourceSha256": "b41f35b28d4d4a680c03d8a554be6080aa2aab6eb52c2f52c32ddd8506fae16b",
+    "sourceBytes": 264325
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\sdr-fbo-experiment\\policy-h264\\0-automatic-yes-fd080d9ca5e345c9b169fd5e50a33a30\\stderr.txt",
+    "saved": "research/sdr-fbo-experiment/policy-h264/0-automatic-yes-fd080d9ca5e345c9b169fd5e50a33a30/stderr.txt.gz",
+    "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "sourceBytes": 0
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\sdr-fbo-experiment\\policy-h264\\0-automatic-yes-fd080d9ca5e345c9b169fd5e50a33a30\\stdout.txt",
+    "saved": "research/sdr-fbo-experiment/policy-h264/0-automatic-yes-fd080d9ca5e345c9b169fd5e50a33a30/stdout.txt.gz",
+    "sourceSha256": "baed80d3f25448deac852bfc99f10219b0b57a117083eccc66c3dcf8a0e7b5dc",
+    "sourceBytes": 2252
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\sdr-fbo-experiment\\policy-hdr\\results.json",
+    "saved": "research/sdr-fbo-experiment/policy-hdr/results.json",
+    "sourceSha256": "d63af8ee7d8075af8f15495b5cda414248d657236c24f29594d646b1f2613a6b",
+    "sourceBytes": 7404
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\sdr-fbo-experiment\\policy-hdr\\0-automatic-no-f34260dcd45f44238db4e43e5bf57cb6\\rendered-frame.png",
+    "saved": "research/sdr-fbo-experiment/policy-hdr/0-automatic-no-f34260dcd45f44238db4e43e5bf57cb6/rendered-frame.png",
+    "sourceSha256": "c749ff83d421af96cf3309e3e90f60eae52ae258a32f25cd4e29c6f4f407b4ce",
+    "sourceBytes": 659223
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\sdr-fbo-experiment\\policy-hdr\\0-automatic-no-f34260dcd45f44238db4e43e5bf57cb6\\stderr.txt",
+    "saved": "research/sdr-fbo-experiment/policy-hdr/0-automatic-no-f34260dcd45f44238db4e43e5bf57cb6/stderr.txt.gz",
+    "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "sourceBytes": 0
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\sdr-fbo-experiment\\policy-hdr\\0-automatic-no-f34260dcd45f44238db4e43e5bf57cb6\\stdout.txt",
+    "saved": "research/sdr-fbo-experiment/policy-hdr/0-automatic-no-f34260dcd45f44238db4e43e5bf57cb6/stdout.txt.gz",
+    "sourceSha256": "3575057a5d48fa32271d931b2104b98a2a3804fb63a0e951178f498f37b9171c",
+    "sourceBytes": 2241
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\sdr-fbo-experiment\\policy-hdr\\0-automatic-yes-f113ddb4adae49199ed552b06ec7de02\\rendered-frame.png",
+    "saved": "research/sdr-fbo-experiment/policy-hdr/0-automatic-yes-f113ddb4adae49199ed552b06ec7de02/rendered-frame.png",
+    "sourceSha256": "e2c51dc1e3be91bbd73719a11142e219d0a42a75ff1dc4275045664d4ed64be6",
+    "sourceBytes": 657185
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\sdr-fbo-experiment\\policy-hdr\\0-automatic-yes-f113ddb4adae49199ed552b06ec7de02\\stderr.txt",
+    "saved": "research/sdr-fbo-experiment/policy-hdr/0-automatic-yes-f113ddb4adae49199ed552b06ec7de02/stderr.txt.gz",
+    "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "sourceBytes": 0
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\sdr-fbo-experiment\\policy-hdr\\0-automatic-yes-f113ddb4adae49199ed552b06ec7de02\\stdout.txt",
+    "saved": "research/sdr-fbo-experiment/policy-hdr/0-automatic-yes-f113ddb4adae49199ed552b06ec7de02/stdout.txt.gz",
+    "sourceSha256": "0b0b9bde7cfbeb826e0544ec4ff9d7bff93285e65b3e6a113b8f272cdd2133dc",
+    "sourceBytes": 2243
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\sdr-fbo-experiment\\policy-depth10\\results.json",
+    "saved": "research/sdr-fbo-experiment/policy-depth10/results.json",
+    "sourceSha256": "d200be7889cf2e55045cdd2faacec23b2baefe3d80d1d7c02464eb6602005419",
+    "sourceBytes": 7472
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\sdr-fbo-experiment\\policy-depth10\\0-automatic-no-b164385a717649789e761f16225af733\\rendered-frame.png",
+    "saved": "research/sdr-fbo-experiment/policy-depth10/0-automatic-no-b164385a717649789e761f16225af733/rendered-frame.png",
+    "sourceSha256": "e919903586fcc1b163893a710e896e95042ba1184c65f5a7a4749815bde6af01",
+    "sourceBytes": 416184
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\sdr-fbo-experiment\\policy-depth10\\0-automatic-no-b164385a717649789e761f16225af733\\stderr.txt",
+    "saved": "research/sdr-fbo-experiment/policy-depth10/0-automatic-no-b164385a717649789e761f16225af733/stderr.txt.gz",
+    "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "sourceBytes": 0
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\sdr-fbo-experiment\\policy-depth10\\0-automatic-no-b164385a717649789e761f16225af733\\stdout.txt",
+    "saved": "research/sdr-fbo-experiment/policy-depth10/0-automatic-no-b164385a717649789e761f16225af733/stdout.txt.gz",
+    "sourceSha256": "bbe77fef26ef82f551316540fd549b0c2a0b6d8e4183a76780e27c1b7471bfa1",
+    "sourceBytes": 2254
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\sdr-fbo-experiment\\policy-depth10\\0-automatic-yes-79fc263b070c41bda0c3d67029f56609\\rendered-frame.png",
+    "saved": "research/sdr-fbo-experiment/policy-depth10/0-automatic-yes-79fc263b070c41bda0c3d67029f56609/rendered-frame.png",
+    "sourceSha256": "e919903586fcc1b163893a710e896e95042ba1184c65f5a7a4749815bde6af01",
+    "sourceBytes": 416184
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\sdr-fbo-experiment\\policy-depth10\\0-automatic-yes-79fc263b070c41bda0c3d67029f56609\\stderr.txt",
+    "saved": "research/sdr-fbo-experiment/policy-depth10/0-automatic-yes-79fc263b070c41bda0c3d67029f56609/stderr.txt.gz",
+    "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "sourceBytes": 0
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\sdr-fbo-experiment\\policy-depth10\\0-automatic-yes-79fc263b070c41bda0c3d67029f56609\\stdout.txt",
+    "saved": "research/sdr-fbo-experiment/policy-depth10/0-automatic-yes-79fc263b070c41bda0c3d67029f56609/stdout.txt.gz",
+    "sourceSha256": "f78930475f45e3045b99d704dc1baa85f07a093819770105b84a6c13be72d899",
+    "sourceBytes": 2256
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\sdr-fbo-experiment\\policy-alpha\\results.json",
+    "saved": "research/sdr-fbo-experiment/policy-alpha/results.json",
+    "sourceSha256": "b55a2affad556abeccd7d0676aca9a65408d6267c6071dbbc392a6db03d31da1",
+    "sourceBytes": 7477
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\sdr-fbo-experiment\\policy-alpha\\0-automatic-no-12f6099dd0764a72983ffe568073d12e\\rendered-frame.png",
+    "saved": "research/sdr-fbo-experiment/policy-alpha/0-automatic-no-12f6099dd0764a72983ffe568073d12e/rendered-frame.png",
+    "sourceSha256": "a04ca1f080b4f80d3047a9ca1af000f5cf4ff89ee8207d07d04aa18d680a756f",
+    "sourceBytes": 639201
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\sdr-fbo-experiment\\policy-alpha\\0-automatic-no-12f6099dd0764a72983ffe568073d12e\\stderr.txt",
+    "saved": "research/sdr-fbo-experiment/policy-alpha/0-automatic-no-12f6099dd0764a72983ffe568073d12e/stderr.txt.gz",
+    "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "sourceBytes": 0
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\sdr-fbo-experiment\\policy-alpha\\0-automatic-no-12f6099dd0764a72983ffe568073d12e\\stdout.txt",
+    "saved": "research/sdr-fbo-experiment/policy-alpha/0-automatic-no-12f6099dd0764a72983ffe568073d12e/stdout.txt.gz",
+    "sourceSha256": "a6001e5ae5ee1d5231cbd5be058418800339e9e16e473dbd30c84e7ed4b55738",
+    "sourceBytes": 2250
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\sdr-fbo-experiment\\policy-alpha\\0-automatic-yes-117427b29de94dce8126a48c46387298\\rendered-frame.png",
+    "saved": "research/sdr-fbo-experiment/policy-alpha/0-automatic-yes-117427b29de94dce8126a48c46387298/rendered-frame.png",
+    "sourceSha256": "a04ca1f080b4f80d3047a9ca1af000f5cf4ff89ee8207d07d04aa18d680a756f",
+    "sourceBytes": 639201
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\sdr-fbo-experiment\\policy-alpha\\0-automatic-yes-117427b29de94dce8126a48c46387298\\stderr.txt",
+    "saved": "research/sdr-fbo-experiment/policy-alpha/0-automatic-yes-117427b29de94dce8126a48c46387298/stderr.txt.gz",
+    "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "sourceBytes": 0
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\sdr-fbo-experiment\\policy-alpha\\0-automatic-yes-117427b29de94dce8126a48c46387298\\stdout.txt",
+    "saved": "research/sdr-fbo-experiment/policy-alpha/0-automatic-yes-117427b29de94dce8126a48c46387298/stdout.txt.gz",
+    "sourceSha256": "71cd8164d8cab7e6ff2f0980ab01a157959aa6911625af159b79306ec014b513",
+    "sourceBytes": 2251
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\sdr-fbo-experiment\\policy-native-quality\\results.json",
+    "saved": "research/sdr-fbo-experiment/policy-native-quality/results.json",
+    "sourceSha256": "3fe353286659ef738df2932ffc02f59f0416e51e12940db309d4046f7db8b8f9",
+    "sourceBytes": 7493
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\sdr-fbo-experiment\\policy-native-quality\\0-automatic-no-25ada803b5e6445ba586e3cc297aa603\\rendered-frame.png",
+    "saved": "research/sdr-fbo-experiment/policy-native-quality/0-automatic-no-25ada803b5e6445ba586e3cc297aa603/rendered-frame.png",
+    "sourceSha256": "7fdafbd0c8ac127c20d8f58555979fb325b4189c472f9fc0c1bc57001e4dc4cd",
+    "sourceBytes": 291597
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\sdr-fbo-experiment\\policy-native-quality\\0-automatic-no-25ada803b5e6445ba586e3cc297aa603\\stderr.txt",
+    "saved": "research/sdr-fbo-experiment/policy-native-quality/0-automatic-no-25ada803b5e6445ba586e3cc297aa603/stderr.txt.gz",
+    "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "sourceBytes": 0
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\sdr-fbo-experiment\\policy-native-quality\\0-automatic-no-25ada803b5e6445ba586e3cc297aa603\\stdout.txt",
+    "saved": "research/sdr-fbo-experiment/policy-native-quality/0-automatic-no-25ada803b5e6445ba586e3cc297aa603/stdout.txt.gz",
+    "sourceSha256": "96fbefbc6daab7ccde29a3b7db88bb3f0d01544696db068c73e1a06dc1986a87",
+    "sourceBytes": 2255
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\sdr-fbo-experiment\\policy-native-quality\\0-automatic-yes-47452d998b8b46d3a1b13595c9b7c73c\\rendered-frame.png",
+    "saved": "research/sdr-fbo-experiment/policy-native-quality/0-automatic-yes-47452d998b8b46d3a1b13595c9b7c73c/rendered-frame.png",
+    "sourceSha256": "7fdafbd0c8ac127c20d8f58555979fb325b4189c472f9fc0c1bc57001e4dc4cd",
+    "sourceBytes": 291597
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\sdr-fbo-experiment\\policy-native-quality\\0-automatic-yes-47452d998b8b46d3a1b13595c9b7c73c\\stderr.txt",
+    "saved": "research/sdr-fbo-experiment/policy-native-quality/0-automatic-yes-47452d998b8b46d3a1b13595c9b7c73c/stderr.txt.gz",
+    "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "sourceBytes": 0
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\sdr-fbo-experiment\\policy-native-quality\\0-automatic-yes-47452d998b8b46d3a1b13595c9b7c73c\\stdout.txt",
+    "saved": "research/sdr-fbo-experiment/policy-native-quality/0-automatic-yes-47452d998b8b46d3a1b13595c9b7c73c/stdout.txt.gz",
+    "sourceSha256": "6cde618cc14d05ea49f8dc6da668c2d41a75c5f59f77d82d77c8aba0cdb2eae1",
+    "sourceBytes": 2257
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\sdr-fbo-experiment\\policy-explicit-float\\results.json",
+    "saved": "research/sdr-fbo-experiment/policy-explicit-float/results.json",
+    "sourceSha256": "0b83986050acc46586f836bec9260d940bef0f8833c1b2a51f047e8a5738a868",
+    "sourceBytes": 7526
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\sdr-fbo-experiment\\policy-explicit-float\\0-automatic-no-6d23712bbbe544c7a39d3ad276e892a2\\rendered-frame.png",
+    "saved": "research/sdr-fbo-experiment/policy-explicit-float/0-automatic-no-6d23712bbbe544c7a39d3ad276e892a2/rendered-frame.png",
+    "sourceSha256": "68afa819bc6327f0058c5b1f8f70be8225a8e33dc347206f61567983e91190e5",
+    "sourceBytes": 249620
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\sdr-fbo-experiment\\policy-explicit-float\\0-automatic-no-6d23712bbbe544c7a39d3ad276e892a2\\stderr.txt",
+    "saved": "research/sdr-fbo-experiment/policy-explicit-float/0-automatic-no-6d23712bbbe544c7a39d3ad276e892a2/stderr.txt.gz",
+    "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "sourceBytes": 0
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\sdr-fbo-experiment\\policy-explicit-float\\0-automatic-no-6d23712bbbe544c7a39d3ad276e892a2\\stdout.txt",
+    "saved": "research/sdr-fbo-experiment/policy-explicit-float/0-automatic-no-6d23712bbbe544c7a39d3ad276e892a2/stdout.txt.gz",
+    "sourceSha256": "af1d2d0f6503ccf1aa8867b7694f0d2e388a9741e5ffd9346886f0ee47ee65ff",
+    "sourceBytes": 2265
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\sdr-fbo-experiment\\policy-explicit-float\\0-automatic-yes-6330f2385e4d45bc9be2843a5a3f3eac\\rendered-frame.png",
+    "saved": "research/sdr-fbo-experiment/policy-explicit-float/0-automatic-yes-6330f2385e4d45bc9be2843a5a3f3eac/rendered-frame.png",
+    "sourceSha256": "68afa819bc6327f0058c5b1f8f70be8225a8e33dc347206f61567983e91190e5",
+    "sourceBytes": 249620
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\sdr-fbo-experiment\\policy-explicit-float\\0-automatic-yes-6330f2385e4d45bc9be2843a5a3f3eac\\stderr.txt",
+    "saved": "research/sdr-fbo-experiment/policy-explicit-float/0-automatic-yes-6330f2385e4d45bc9be2843a5a3f3eac/stderr.txt.gz",
+    "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "sourceBytes": 0
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\sdr-fbo-experiment\\policy-explicit-float\\0-automatic-yes-6330f2385e4d45bc9be2843a5a3f3eac\\stdout.txt",
+    "saved": "research/sdr-fbo-experiment/policy-explicit-float/0-automatic-yes-6330f2385e4d45bc9be2843a5a3f3eac/stdout.txt.gz",
+    "sourceSha256": "a03c28d090981996b9b40dec59e995e1c723825d42223fbad064f603ba5b14d6",
+    "sourceBytes": 2267
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-experiment\\h264-screen-v2\\results.json",
+    "saved": "research/direct-nv12-experiment/h264-screen-v2/results.json",
+    "sourceSha256": "85d4b60b80d9d6435e095d9db995d03d62354e4d6979aea9e15f7270d1d6623e",
+    "sourceBytes": 3596
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-experiment\\h264-screen-v2\\0-direct-nv12-no-ca684dc5f2794904a0fc308f09988411\\rendered-frame.png",
+    "saved": "research/direct-nv12-experiment/h264-screen-v2/0-direct-nv12-no-ca684dc5f2794904a0fc308f09988411/rendered-frame.png",
+    "sourceSha256": "68afa819bc6327f0058c5b1f8f70be8225a8e33dc347206f61567983e91190e5",
+    "sourceBytes": 249620
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-experiment\\h264-screen-v2\\0-direct-nv12-no-ca684dc5f2794904a0fc308f09988411\\stderr.txt",
+    "saved": "research/direct-nv12-experiment/h264-screen-v2/0-direct-nv12-no-ca684dc5f2794904a0fc308f09988411/stderr.txt.gz",
+    "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "sourceBytes": 0
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-experiment\\h264-screen-v2\\0-direct-nv12-no-ca684dc5f2794904a0fc308f09988411\\stdout.txt",
+    "saved": "research/direct-nv12-experiment/h264-screen-v2/0-direct-nv12-no-ca684dc5f2794904a0fc308f09988411/stdout.txt.gz",
+    "sourceSha256": "743754e1b96026a30e211cf0b888b9ae527172521ef77d11088df437a9d51401",
+    "sourceBytes": 2321
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-experiment\\h264-screen-v2\\0-direct-nv12-yes-b446799e97d94bc3b90c3c96dfcbfd5f\\rendered-frame.png",
+    "saved": "research/direct-nv12-experiment/h264-screen-v2/0-direct-nv12-yes-b446799e97d94bc3b90c3c96dfcbfd5f/rendered-frame.png",
+    "sourceSha256": "68afa819bc6327f0058c5b1f8f70be8225a8e33dc347206f61567983e91190e5",
+    "sourceBytes": 249620
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-experiment\\h264-screen-v2\\0-direct-nv12-yes-b446799e97d94bc3b90c3c96dfcbfd5f\\stderr.txt",
+    "saved": "research/direct-nv12-experiment/h264-screen-v2/0-direct-nv12-yes-b446799e97d94bc3b90c3c96dfcbfd5f/stderr.txt.gz",
+    "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "sourceBytes": 0
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-experiment\\h264-screen-v2\\0-direct-nv12-yes-b446799e97d94bc3b90c3c96dfcbfd5f\\stdout.txt",
+    "saved": "research/direct-nv12-experiment/h264-screen-v2/0-direct-nv12-yes-b446799e97d94bc3b90c3c96dfcbfd5f/stdout.txt.gz",
+    "sourceSha256": "a137424c457968a19aa1482730e67a6973d897fdc2d07a78a344889bb01c8f8f",
+    "sourceBytes": 2357
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-experiment\\h264-screen-v3\\pixel-comparison.json",
+    "saved": "research/direct-nv12-experiment/h264-screen-v3/pixel-comparison.json",
+    "sourceSha256": "e00fdcf9d619d747fa78424600ce678ecfbe788d13592c374ff3393b0ed3e484",
+    "sourceBytes": 638
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-experiment\\h264-screen-v3\\results.json",
+    "saved": "research/direct-nv12-experiment/h264-screen-v3/results.json",
+    "sourceSha256": "8d553268d7a1520142ba09bdad89f3e3ac2cb4acda496f085c83366c9603d1a5",
+    "sourceBytes": 7652
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-experiment\\h264-screen-v3\\0-direct-nv12-no-cce3aedcdfb04e28aa7e5cfd6b4be182\\rendered-frame.png",
+    "saved": "research/direct-nv12-experiment/h264-screen-v3/0-direct-nv12-no-cce3aedcdfb04e28aa7e5cfd6b4be182/rendered-frame.png",
+    "sourceSha256": "68afa819bc6327f0058c5b1f8f70be8225a8e33dc347206f61567983e91190e5",
+    "sourceBytes": 249620
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-experiment\\h264-screen-v3\\0-direct-nv12-no-cce3aedcdfb04e28aa7e5cfd6b4be182\\stderr.txt",
+    "saved": "research/direct-nv12-experiment/h264-screen-v3/0-direct-nv12-no-cce3aedcdfb04e28aa7e5cfd6b4be182/stderr.txt.gz",
+    "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "sourceBytes": 0
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-experiment\\h264-screen-v3\\0-direct-nv12-no-cce3aedcdfb04e28aa7e5cfd6b4be182\\stdout.txt",
+    "saved": "research/direct-nv12-experiment/h264-screen-v3/0-direct-nv12-no-cce3aedcdfb04e28aa7e5cfd6b4be182/stdout.txt.gz",
+    "sourceSha256": "a2b2fd04bf5e3bae5d33618b8696281ba252502546c7c0446abe0765f203f1cc",
+    "sourceBytes": 13048
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-experiment\\h264-screen-v3\\0-direct-nv12-yes-1f16d5a7689c412a9e475029980583cb\\rendered-frame.png",
+    "saved": "research/direct-nv12-experiment/h264-screen-v3/0-direct-nv12-yes-1f16d5a7689c412a9e475029980583cb/rendered-frame.png",
+    "sourceSha256": "67809c972c8889030f2eefc864b2d2062c9e8cede97a503c2e50111059ce4e2f",
+    "sourceBytes": 252473
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-experiment\\h264-screen-v3\\0-direct-nv12-yes-1f16d5a7689c412a9e475029980583cb\\stderr.txt",
+    "saved": "research/direct-nv12-experiment/h264-screen-v3/0-direct-nv12-yes-1f16d5a7689c412a9e475029980583cb/stderr.txt.gz",
+    "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "sourceBytes": 0
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-experiment\\h264-screen-v3\\0-direct-nv12-yes-1f16d5a7689c412a9e475029980583cb\\stdout.txt",
+    "saved": "research/direct-nv12-experiment/h264-screen-v3/0-direct-nv12-yes-1f16d5a7689c412a9e475029980583cb/stdout.txt.gz",
+    "sourceSha256": "cab97fd2aa42bf0e68aa965059c0949b5e3b1fea17c083edd86a967e2d1621c7",
+    "sourceBytes": 12451
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\sdr-fbo-experiment\\build.log",
+    "saved": "research/sdr-fbo-experiment/build.log.gz",
+    "sourceSha256": "82597e26ad3839c5ff207516d3c76c16adc6a98c22eca214ff390f7f7a89441b",
+    "sourceBytes": 609
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\sdr-fbo-experiment\\experiment.patch",
+    "saved": "research/sdr-fbo-experiment/experiment.patch",
+    "sourceSha256": "b6750436f3c22ab4450fcf950074402e5806b2613711123779a78dad82e32b99",
+    "sourceBytes": 2883
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\sdr-fbo-experiment\\overlay-all-unit.log",
+    "saved": "research/sdr-fbo-experiment/overlay-all-unit.log.gz",
+    "sourceSha256": "a8c895321fce15ba5f26aafc956f80d41a9b29aae8625c24248bb8dfe957d42d",
+    "sourceBytes": 5266
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\sdr-fbo-experiment\\overlay-surface-build.log",
+    "saved": "research/sdr-fbo-experiment/overlay-surface-build.log.gz",
+    "sourceSha256": "7de2594bd1d63482d53b604140c2332a2e7327d80d6115704e5f5345af460b19",
+    "sourceBytes": 2973
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\sdr-fbo-experiment\\overlay-surface-test.log",
+    "saved": "research/sdr-fbo-experiment/overlay-surface-test.log.gz",
+    "sourceSha256": "47b5b7a646c28d830b4ddc1ebf03b670d25ff0532326732f071c0fbb48d6a3ed",
+    "sourceBytes": 992
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\sdr-fbo-experiment\\probe-build-v2.log",
+    "saved": "research/sdr-fbo-experiment/probe-build-v2.log.gz",
+    "sourceSha256": "77397390771d2e458fdd2b8261dcbf214cd3b9830f9eacdd70652fdbc17e22aa",
+    "sourceBytes": 494
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\sdr-fbo-experiment\\probe-build.log",
+    "saved": "research/sdr-fbo-experiment/probe-build.log.gz",
+    "sourceSha256": "b7c7aa7e1b2ed6fa722afad57f07cb16b57eb1d2efe880fb89c5d8e3c615cdc3",
+    "sourceBytes": 494
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\sdr-fbo-experiment\\source-identity.json",
+    "saved": "research/sdr-fbo-experiment/source-identity.json",
+    "sourceSha256": "ffd0cf1ba95258c682c93659a369e9080cdc7001d3b13278aa2ef379b5e8721b",
+    "sourceBytes": 706
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-experiment\\artifact-hashes-v2.json",
+    "saved": "research/direct-nv12-experiment/artifact-hashes-v2.json",
+    "sourceSha256": "9d0edba3b3d7ff253f43e53442e51ec74e2e7333a6325e993ebe89e562ee5759",
+    "sourceBytes": 457
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-experiment\\artifact-hashes-v3.json",
+    "saved": "research/direct-nv12-experiment/artifact-hashes-v3.json",
+    "sourceSha256": "0f2490f93618ce78c0c447a1ed941e8916da4ef46d597807b3b28907b234f815",
+    "sourceBytes": 457
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-experiment\\build-native-v2.ps1",
+    "saved": "research/direct-nv12-experiment/build-native-v2.ps1",
+    "sourceSha256": "ad8b611854b3d3b97b532a655290c7f30a749e0cd1a9769451f504514ccabcf8",
+    "sourceBytes": 1977
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-experiment\\build-native-v3.ps1",
+    "saved": "research/direct-nv12-experiment/build-native-v3.ps1",
+    "sourceSha256": "89ea10d33e7293d1d7941832d518c7c5c9ac597cd0ef102b04b3cb1255f5c05e",
+    "sourceBytes": 1977
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-experiment\\build-native.ps1",
+    "saved": "research/direct-nv12-experiment/build-native.ps1",
+    "sourceSha256": "dc0074e519fe3625e61a6e95ee92444e682221ad8506ccfe3b11ee73ff6caed2",
+    "sourceBytes": 1980
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-experiment\\experiment-v2.patch",
+    "saved": "research/direct-nv12-experiment/experiment-v2.patch",
+    "sourceSha256": "ec22949cfc56d833571b4ef9683ee5b81548d907e8a47e5810fdab6ae3014a4b",
+    "sourceBytes": 10162
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-experiment\\experiment.patch",
+    "saved": "research/direct-nv12-experiment/experiment.patch",
+    "sourceSha256": "9999578e34b828094a739f5df578a2809796f7b3890474ea5ba2c22dd7ebfa51",
+    "sourceBytes": 10145
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-experiment\\geometry-v3.log",
+    "saved": "research/direct-nv12-experiment/geometry-v3.log.gz",
+    "sourceSha256": "76138caef00d002b12e9df673174d32c310c02c21b85439ef5389edf7950ec8d",
+    "sourceBytes": 8190
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-experiment\\h264-screen-v2-driver.log",
+    "saved": "research/direct-nv12-experiment/h264-screen-v2-driver.log.gz",
+    "sourceSha256": "82ebff61f41646b64c8eae272d281372414921cd9747d93ca2fc8936109607ba",
+    "sourceBytes": 79
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-experiment\\h264-screen-v3-driver.log",
+    "saved": "research/direct-nv12-experiment/h264-screen-v3-driver.log.gz",
+    "sourceSha256": "6f768decbd1bfff0a68ee80ae051512508c917962f3b2b59b39ff2d60e4b1709",
+    "sourceBytes": 159
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-experiment\\native-build-v2.log",
+    "saved": "research/direct-nv12-experiment/native-build-v2.log.gz",
+    "sourceSha256": "970de02ddbd46b6aae1ac60d95b6dedf1bffa85eda937e9ae9535337a035fd92",
+    "sourceBytes": 262
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-experiment\\native-build-v3.log",
+    "saved": "research/direct-nv12-experiment/native-build-v3.log.gz",
+    "sourceSha256": "e7c6962fb6c13f82008f9635a0e5366ab3d39df6b51799ae251c7d5bc8f7b3d2",
+    "sourceBytes": 254
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-experiment\\native-build.log",
+    "saved": "research/direct-nv12-experiment/native-build.log.gz",
+    "sourceSha256": "e6bf8aaebb23a6a5452d1409a715d8a55fe8cc5b2607089a5633b83734e77bc6",
+    "sourceBytes": 3515
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-experiment\\probe-build-v2.log",
+    "saved": "research/direct-nv12-experiment/probe-build-v2.log.gz",
+    "sourceSha256": "72d8abefd2d15bf7fdc93115e4fac1860fdff4abb43cd9ea5be8f75fb32c19d2",
+    "sourceBytes": 494
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-experiment\\probe-build.log",
+    "saved": "research/direct-nv12-experiment/probe-build.log.gz",
+    "sourceSha256": "7df0112dcfa8d04dc7877e5e06e5a5d04dda29f5e7bc4e33819825e0592ded03",
+    "sourceBytes": 494
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-experiment\\production-to-experiment-v3.patch",
+    "saved": "research/direct-nv12-experiment/production-to-experiment-v3.patch",
+    "sourceSha256": "6902758e266bd94683818f78096baac7a3033fea562ab3b5194b8b2e3a41ea0d",
+    "sourceBytes": 13593
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-experiment\\source-identity-v2.json",
+    "saved": "research/direct-nv12-experiment/source-identity-v2.json",
+    "sourceSha256": "41326de73cf0a7dcc7686a4583ca97d31c0b7ba930c7dbb8ed78d85fcb0479ee",
+    "sourceBytes": 1201
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-experiment\\source-identity-v3.json",
+    "saved": "research/direct-nv12-experiment/source-identity-v3.json",
+    "sourceSha256": "7f74436011c5f7b562971a5fb36826385f6f1c5cd8fb80b3ab236ffe6c5cc586",
+    "sourceBytes": 1173
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-experiment\\source-identity.json",
+    "saved": "research/direct-nv12-experiment/source-identity.json",
+    "sourceSha256": "c8cfaf6492f9afab45d1a9f769fc85123aa7504c95709038b1635550a5c1e118",
+    "sourceBytes": 1238
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-experiment\\geometry-v3.log",
+    "saved": "validation/direct-geometry-v3.log.gz",
+    "sourceSha256": "76138caef00d002b12e9df673174d32c310c02c21b85439ef5389edf7950ec8d",
+    "sourceBytes": 8190
+  },
+  {
+    "source": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-b5b98f305527457f97a5e810353fafd1\\geometry-0.png",
+    "saved": "validation/direct-geometry/geometry-0.png",
+    "sourceSha256": "17b5ffde62b3601f64cc3931ea5618e3f9d163bd4b69883a95c55bc59ab99e60",
+    "sourceBytes": 91207
+  },
+  {
+    "source": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-b5b98f305527457f97a5e810353fafd1\\geometry-1.png",
+    "saved": "validation/direct-geometry/geometry-1.png",
+    "sourceSha256": "d4c449a0080907202cd341264f4de96c476e2b0ecc2369377eeadf0f681a8ee0",
+    "sourceBytes": 170204
+  },
+  {
+    "source": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-b5b98f305527457f97a5e810353fafd1\\geometry-2.png",
+    "saved": "validation/direct-geometry/geometry-2.png",
+    "sourceSha256": "19653925cdb59f414bc0a993fcf00403cbccedce77d6c4f17a737921100a7a66",
+    "sourceBytes": 41338
+  },
+  {
+    "source": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-b5b98f305527457f97a5e810353fafd1\\geometry-3.png",
+    "saved": "validation/direct-geometry/geometry-3.png",
+    "sourceSha256": "17b5ffde62b3601f64cc3931ea5618e3f9d163bd4b69883a95c55bc59ab99e60",
+    "sourceBytes": 91207
+  },
+  {
+    "source": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-b5b98f305527457f97a5e810353fafd1\\geometry-4.png",
+    "saved": "validation/direct-geometry/geometry-4.png",
+    "sourceSha256": "4836cf96f28d79900d414f67101e6af63a14e488d9490a54f2c40a8ec3711e4d",
+    "sourceBytes": 60557
+  },
+  {
+    "source": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-b5b98f305527457f97a5e810353fafd1\\geometry-5.png",
+    "saved": "validation/direct-geometry/geometry-5.png",
+    "sourceSha256": "a12a5db42d4647e634c9ee8c78344ba03fe604dcfdd83e87d3dd82f88507be5a",
+    "sourceBytes": 132213
+  },
+  {
+    "source": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-b5b98f305527457f97a5e810353fafd1\\geometry-6.png",
+    "saved": "validation/direct-geometry/geometry-6.png",
+    "sourceSha256": "111a7cf0e0bf5d244ebaed80e0b66c04405c12b11c3fe5e2e184257cdf574b8d",
+    "sourceBytes": 201446
+  },
+  {
+    "source": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-b5b98f305527457f97a5e810353fafd1\\summary.json",
+    "saved": "validation/direct-geometry/summary.json",
+    "sourceSha256": "6210432df8bc4a2c053bf59e2bcc289be74236c68cfd900d38cbcb5b3529c715",
+    "sourceBytes": 565
+  }
+]

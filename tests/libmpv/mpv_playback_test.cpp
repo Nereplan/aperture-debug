@@ -23,6 +23,7 @@
 #include <algorithm>
 #include <functional>
 #include <utility>
+#include "../../src/PlaybackScaling.h"
 #include <psapi.h>
 #include <dxgi1_4.h>
 #pragma comment(lib, "psapi.lib")
@@ -83,7 +84,12 @@ static bool g_resourceHeapCleanup = false;
 static bool g_resourceMemoryLayout = false;
 static std::string g_resourceSyncInterval;
 static std::string g_resourceScaling = "default";
-static std::string g_frameGpuTiming, g_frameVertexCacheEntries;
+static std::string g_resourceFboFormat;
+static std::string g_resourceHwdec = "d3d11va";
+static bool g_resourceFboDiagnostics = false;
+static std::string g_observedFboFormat;
+static std::string g_frameGpuTiming, g_frameVertexCacheEntries, g_frameSdrFbo, g_frameDirectNv12;
+static std::string g_observedDirectNv12;
 static bool g_resourceOptionsOnly = false;
 static std::vector<std::string> g_failDetails;
 
@@ -112,9 +118,31 @@ static bool PumpMessages(DWORD ms) {
 }
 
 // Pump messages while waiting on mpv events.
+static void ObserveFramebufferFormat(mpv_handle* mpv, const mpv_event* event) {
+    if (!g_resourceFboDiagnostics || !event || event->event_id != MPV_EVENT_LOG_MESSAGE) return;
+    const auto* log = static_cast<const mpv_event_log_message*>(event->data);
+    if (log && log->text) printf("[native:%s] %s", log->prefix, log->text);
+    const char* direct = log && log->text ? strstr(log->text, "Direct NV12 filter: ") : nullptr;
+    if (direct) {
+        direct += strlen("Direct NV12 filter: ");
+        g_observedDirectNv12.assign(direct, strcspn(direct, " \r\n"));
+        printf("DIRECT_NV12_MODE {\"actual\":\"%s\"}\n", g_observedDirectNv12.c_str());
+    }
+    const char* marker = "Using FBO format ";
+    const char* found = log && log->text ? strstr(log->text, marker) : nullptr;
+    if (!found) return;
+    found += strlen(marker);
+    const std::string format(found, strcspn(found, ". \r\n"));
+    if (format.empty() || format.find_first_not_of("abcdefghijklmnopqrstuvwxyz0123456789_") != std::string::npos) return;
+    g_observedFboFormat = format;
+    printf("FBO_FORMAT {\"actual\":\"%s\"}\n", format.c_str());
+}
+
 static mpv_event* WaitEvent(mpv_handle* mpv, double timeout) {
     PumpMessages(10);
-    return fn_wait_event(mpv, timeout);
+    mpv_event* event = fn_wait_event(mpv, timeout);
+    ObserveFramebufferFormat(mpv, event);
+    return event;
 }
 
 static std::string GetStr(mpv_handle* mpv, const char* prop) {
@@ -165,6 +193,8 @@ static bool WaitForCondition(mpv_handle* mpv, std::function<bool()> cond, double
 static mpv_handle* NewPlayer(const std::vector<std::pair<std::string, std::string>>& opts, HWND attachHwnd) {
     mpv_handle* mpv = fn_create();
     if (!mpv) return nullptr;
+    g_observedFboFormat.clear();
+    g_observedDirectNv12.clear();
     fn_set_property_string(mpv, "input-default-bindings", "no");
     fn_set_property_string(mpv, "input-vo-keyboard", "no");
     fn_set_property_string(mpv, "input-media-keys", "no");
@@ -179,12 +209,25 @@ static mpv_handle* NewPlayer(const std::vector<std::pair<std::string, std::strin
             fn_terminate_destroy(mpv); return nullptr;
         }
     }
+    const bool nativeVideo = std::any_of(opts.begin(), opts.end(), [](const auto& option) {
+        return option.first == "vo" && (option.second == "gpu" || option.second == "gpu-next");
+    });
+    if (nativeVideo && g_resourceScaling != "default") {
+        const auto& scaling = g_resourceScaling == "balanced" ? Aperture::PlaybackScaling::kBalanced : Aperture::PlaybackScaling::kLinear;
+        for (const auto& option : scaling) {
+            if (fn_set_property_string(mpv, option.name, option.value) < 0) {
+                Report(option.name, false); fn_terminate_destroy(mpv); return nullptr;
+            }
+        }
+    }
     if (!g_resourceHwdecThreads.empty() && fn_set_property_string(mpv, "hwdec-threads", g_resourceHwdecThreads.c_str()) < 0) {
         Report("hardware decoder thread setting", false);
         fn_terminate_destroy(mpv); return nullptr;
     }
     for (const auto& option : {std::make_pair("d3d11-gpu-timing", g_frameGpuTiming),
-                              std::make_pair("d3d11-vertex-cache-entries", g_frameVertexCacheEntries)}) {
+                              std::make_pair("d3d11-vertex-cache-entries", g_frameVertexCacheEntries),
+                              std::make_pair("fbo-sdr10", g_frameSdrFbo),
+                              std::make_pair("scale-direct-nv12", g_frameDirectNv12)}) {
         if (!option.second.empty() && fn_set_property_string(mpv, option.first, option.second.c_str()) < 0) {
             Report(option.first, false);
             fn_terminate_destroy(mpv); return nullptr;
@@ -195,7 +238,7 @@ static mpv_handle* NewPlayer(const std::vector<std::pair<std::string, std::strin
         snprintf(widBuf, sizeof(widBuf), "%llu", (unsigned long long)(uintptr_t)attachHwnd);
         fn_set_property_string(mpv, "wid", widBuf);
     }
-    fn_request_log_messages(mpv, "warn");
+    fn_request_log_messages(mpv, g_resourceFboDiagnostics ? "v" : "warn");
     if (fn_initialize(mpv) != 0) {
         fn_terminate_destroy(mpv);
         return nullptr;
@@ -777,6 +820,11 @@ int main(int argc, char** argv) {
         else if (!strcmp(argv[i], "--memory-layout")) g_resourceMemoryLayout = true;
         else if (!strcmp(argv[i], "--options-only")) g_resourceOptionsOnly = true;
         else if (!strcmp(argv[i], "--scaling") && i + 1 < argc) g_resourceScaling = argv[++i];
+        else if (!strcmp(argv[i], "--fbo-format") && i + 1 < argc) g_resourceFboFormat = argv[++i];
+        else if (!strcmp(argv[i], "--fbo-sdr10") && i + 1 < argc) g_frameSdrFbo = argv[++i];
+        else if (!strcmp(argv[i], "--scale-direct-nv12") && i + 1 < argc) g_frameDirectNv12 = argv[++i];
+        else if (!strcmp(argv[i], "--resource-hwdec") && i + 1 < argc) g_resourceHwdec = argv[++i];
+        else if (!strcmp(argv[i], "--fbo-diagnostics")) g_resourceFboDiagnostics = true;
         else if (!strcmp(argv[i], "--gpu-timing") && i + 1 < argc) g_frameGpuTiming = argv[++i];
         else if (!strcmp(argv[i], "--vertex-cache-entries") && i + 1 < argc) g_frameVertexCacheEntries = argv[++i];
         else if (!strcmp(argv[i], "--sync-interval") && i + 1 < argc) g_resourceSyncInterval = argv[++i];
@@ -788,6 +836,10 @@ int main(int argc, char** argv) {
         else if (!strcmp(argv[i], "--capture-window") && i + 1 < argc) g_resourceCapture = argv[++i];
     }
     if (g_resourceSampleSeconds < 1 || g_resourceSampleSeconds > 120 ||
+        (!g_frameDirectNv12.empty() && g_frameDirectNv12 != "yes" && g_frameDirectNv12 != "no") ||
+        (!g_frameSdrFbo.empty() && g_frameSdrFbo != "yes" && g_frameSdrFbo != "no") ||
+        (g_resourceHwdec != "d3d11va" && g_resourceHwdec != "no") ||
+        (!g_resourceFboFormat.empty() && g_resourceFboFormat != "auto" && g_resourceFboFormat != "rgb10_a2" && g_resourceFboFormat != "rgba8" && g_resourceFboFormat != "rgba16hf") ||
         (!g_frameGpuTiming.empty() && g_frameGpuTiming != "yes" && g_frameGpuTiming != "no") ||
         (!g_frameVertexCacheEntries.empty() && g_frameVertexCacheEntries != "0" && g_frameVertexCacheEntries != "1" && g_frameVertexCacheEntries != "4") ||
         (g_resourceScaling != "default" && g_resourceScaling != "linear" && g_resourceScaling != "balanced") ||
