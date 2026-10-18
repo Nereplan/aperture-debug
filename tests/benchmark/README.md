@@ -298,6 +298,17 @@ image/behavior checks, not player CPU/RAM, startup or throughput measurements.
 HDR comparisons must retain adaptive peak-history limits even when both paths
 select float textures. Existing captures are never overwritten.
 
+`-Scenario transitioncheck -ScalingProfile balanced -DirectNv12Filtering yes`
+keeps one player alive through crop/rotation, explicit framebuffer format,
+hardware/software decoding, HDR replacement, SDR return and stop/reopen. Give
+`-FrameCapture` a new filename prefix; twelve stage PNGs use that prefix. The
+scenario checks paused time, decoder and actual redraw path. Compare captures
+against a separate `-DirectNv12Filtering no` run, and compare restored stages
+with their initial frame. `-ZeroCopy yes/no` also applies to these hidden image
+checks; it controls D3D11 decoder-surface mapping independently of the direct
+NV12 filter. An accepted option or correct return frame alone does not establish
+picture parity for intermediate HDR stages or a playback performance win.
+
 The pinned `mpv-direct-nv12-filter-v1` patch evaluates the existing separable LUT
 as a two-dimensional product on compatible SDR NV12 planes. It keeps the luma
 filter weights and bilinear chroma reconstruction; it does not lower texture

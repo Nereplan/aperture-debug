@@ -19,7 +19,6 @@ static void Scenario_Resources(const std::string& media, const std::string& file
         {"vd-lavc-dr", "yes"}, {"demuxer-max-bytes", "8MiB"}, {"demuxer-max-back-bytes", "0"},
         {"audio", g_resourceAudio ? "auto" : "no"}, {"volume", "0"},
         {"sub", "no"}, {"loop-file", "inf"}, {"force-window", "yes"}};
-    if (!g_resourceZeroCopy.empty()) options.emplace_back("d3d11va-zero-copy", g_resourceZeroCopy);
     if (!g_resourceSwapchain.empty()) options.emplace_back("swapchain-depth", g_resourceSwapchain);
     if (!g_resourceSyncInterval.empty()) options.emplace_back("d3d11-sync-interval", g_resourceSyncInterval);
     if (!g_resourceFboFormat.empty()) options.emplace_back("fbo-format", g_resourceFboFormat);

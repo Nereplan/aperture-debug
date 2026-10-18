@@ -230,6 +230,7 @@ static mpv_handle* NewPlayer(const std::vector<std::pair<std::string, std::strin
     }
     for (const auto& option : {std::make_pair("d3d11-gpu-timing", g_frameGpuTiming),
                               std::make_pair("d3d11-vertex-cache-entries", g_frameVertexCacheEntries),
+                              std::make_pair("d3d11va-zero-copy", g_resourceZeroCopy),
                               std::make_pair("fbo-sdr10", g_frameSdrFbo),
                               std::make_pair("scale-direct-nv12", g_frameDirectNv12)}) {
         if (!option.second.empty() && fn_set_property_string(mpv, option.first, option.second.c_str()) < 0) {
@@ -806,6 +807,7 @@ static void Scenario_Startup(const std::string& media, int iters) {
 
 #include "playback_resource_probe.h"
 #include "playback_frame_check.h"
+#include "playback_transition_check.h"
 #include "playback_geometry.h"
 
 int main(int argc, char** argv) {
@@ -947,6 +949,7 @@ int main(int argc, char** argv) {
         if (scenario == "startup") Scenario_Startup(media, g_startupIters);
         if (scenario == "resources") Scenario_Resources(media, resourceFile);
         if (scenario == "framecheck") Scenario_FrameCheck(media, resourceFile);
+        if (scenario == "transitioncheck") Scenario_TransitionCheck(media);
 
         if (all || scenario == "bench") {
             FILE* f = fopen("bench_result.txt", "w");

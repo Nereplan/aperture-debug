@@ -1,0 +1,17 @@
+{
+  "recordedUtc": "2026-10-18T23:50:54.115459+00:00",
+  "commit": "30b87c4054da8a82af74f74d127e3e18d2a88ab0",
+  "dirty": true,
+  "note": "Only the harness/guide changed for this validation. Tests use the existing bundled native DLL; no app rebuild, native rebuild, installation, visible playback benchmark or VLC launch. Existing unrelated user changes remain in the worktree.",
+  "dllSha256": "8dd14629f574a04a1d6904104be8748e73954d9ac5aef07cc36f1a34ee752daa",
+  "originalDllBuildIdentity": "docs/evidence/direct-nv12-20261018/source-identity.json",
+  "sourceHashes": {
+    "tests/libmpv/mpv_playback_test.cpp": "16329817f639dff61e46d96910c1bb5c645e692bfbea8b60afdc697bdc8bed95",
+    "tests/libmpv/playback_transition_check.h": "3f3267caf7bd7b158561f9b229b2c9999f2dfdb45bf83ad63096470fc304c39d",
+    "tests/libmpv/playback_frame_check.h": "ad5f5dc0589613ae9ec1bd0e317d7e11c5dbada4124a4becfe3c15ab663c1b04",
+    "tests/libmpv/playback_render_options.h": "009305a55bb8e86a9fe1ca928770b919f432847c06dea42b9201a3424b543e1f",
+    "tests/libmpv/playback_resource_probe.h": "f42b20194e792c4f383cba199cdf485fe1d24c72cabdf6b7cf6ca11b71f42a3e",
+    "tests/libmpv/run_tests.ps1": "bd75e5a71c6b4bd6865d7832faaf170b761900ed6544f177a8eb9bbf2f3ff26c",
+    "tests/benchmark/README.md": "f950cd3aac9af41c5e8511609566d8f299c19a6b12cf8c7f1d0f7780b7fe3ee7"
+  }
+}

@@ -6,7 +6,7 @@
 param(
     [string]$DllPath = '',
     [string]$MediaDir = '',
-    [ValidateSet('all','functional','version','basics','controls','subs','screenshot','geometry','swrender','audio','hdr','bench','network','startup','url','resources','framecheck')]
+    [ValidateSet('all','functional','version','basics','controls','subs','screenshot','geometry','swrender','audio','hdr','bench','network','startup','url','resources','framecheck','transitioncheck')]
     [string]$Scenario = 'functional',
     [string]$Url = '',
     [ValidateSet('gpu','gpu-next')][string]$Renderer = 'gpu',
@@ -17,6 +17,7 @@ param(
     [ValidateSet('default','balanced','linear')][string]$ScalingProfile = 'default',
     [ValidateSet('','yes','no')][string]$SdrFboPrecision = '',
     [ValidateSet('','yes','no')][string]$DirectNv12Filtering = '',
+    [ValidateSet('','yes','no')][string]$ZeroCopy = '',
     [switch]$FramebufferDiagnostics,
     [switch]$VisiblePlayback,
     [ValidateSet('d3d11va','no')][string]$HardwareDecodeMode = 'd3d11va',
@@ -96,6 +97,7 @@ try {
     if ($ScalingProfile -ne 'default') { $arguments += ' --scaling ' + $ScalingProfile }
     if ($SdrFboPrecision) { $arguments += ' --fbo-sdr10 ' + $SdrFboPrecision }
     if ($DirectNv12Filtering) { $arguments += ' --scale-direct-nv12 ' + $DirectNv12Filtering }
+    if ($ZeroCopy) { $arguments += ' --zero-copy ' + $ZeroCopy }
     if ($FramebufferDiagnostics) { $arguments += ' --fbo-diagnostics' }
     if ($ResourceFile) {
         if ($ResourceFile -match '["\r\n/\\]' -or $ResourceFile -eq '..') { throw 'ResourceFile must be a filename.' }

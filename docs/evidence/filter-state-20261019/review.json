@@ -1,0 +1,55 @@
+{
+  "recordedUtc": "2026-10-18T23:50:54.141162+00:00",
+  "status": "Current production mapping/filtering passed stateful controls and fixed-frame checks. Experimental zero-copy remains disabled; its HDR image equivalence is unproven. No new player performance result.",
+  "method": "Three separate native processes, each one long-lived player through twelve stages: initial H264, zoom/unzoom, rotate/unrotate, explicit rgba8/auto, software/hardware decode replacement, HDR replacement/SDR return, stop/reopen. Original pipeline = direct NV12 off and default copy mapping. Candidate = direct NV12 on and default copy mapping. Experimental = direct NV12 on and zero-copy mapping. Same bundled DLL, balanced scaling, GPU timing off, four vertex cache entries and one hardware decoder thread. Each capture is paused at exactly 2s; load events are drained/awaited to exclude stale properties. Actual decoder and redraw-path descriptions checked per stage; all owner windows stayed hidden. No CPU, RAM, startup, throughput or visible-cadence performance measurement. No VLC process.",
+  "nativeDllSha256": "8dd14629f574a04a1d6904104be8748e73954d9ac5aef07cc36f1a34ee752daa",
+  "validation": {
+    "transitionChecks": {
+      "candidate": 26,
+      "baseline": 26,
+      "zero-copy": 26
+    },
+    "pairedSdrCases": {
+      "passed": 22,
+      "total": 22,
+      "maximumChannelError": 1,
+      "scope": "Each SDR stage versus the original pipeline, including fallback and restoration. One channel level out of 255 maximum."
+    },
+    "returnConsistency": {
+      "passed": 18,
+      "total": 18,
+      "maximumChannelError": 0,
+      "scope": "Six restored stages versus the initial H264 frame in each of three processes; exact pixels."
+    },
+    "hdrObservedMaximumChannelError": {
+      "candidate": 0,
+      "zero-copy": 40
+    },
+    "captureProtection": {
+      "passed": 1,
+      "total": 1,
+      "scope": "Existing prefix intentionally rejected, expected failure exit and twelve unchanged PNG hashes."
+    }
+  },
+  "experimentalZeroCopyDecision": {
+    "adopted": false,
+    "currentProductionSetting": "d3d11va-zero-copy=no (native default)",
+    "historicalScreen": "docs/evidence/filter-state-20261019/historical-video-view-screen.json",
+    "historicalDates": "2026-10-18T05:44:19.2459392Z through 2026-10-18T05:45:38.1893992Z",
+    "finding": "Earlier single-run linear-profile screen removed repeated view creation (745 hits, 12 created views) but still used more recorded CPU than the copy path. It is a different older DLL/profile and is not a fresh comparison of the balanced app. This validation also observes a 40-level HDR capture difference in the experimental zero-copy sequence. These data do not justify adoption.",
+    "hdrCause": "Unresolved. The observation does not isolate decoder-surface mapping/layout from adaptive HDR peak history. It must not be attributed to the direct NV12 filter, which was on its original fallback path for HDR."
+  },
+  "captures": {
+    "count": 36,
+    "uniqueFiles": 8,
+    "mapping": "docs/evidence/filter-state-20261019/capture-manifest.json",
+    "note": "Byte-identical captures share one stored PNG; all original stage SHA256/size mappings are preserved. All original files remain in the external scratch directory."
+  },
+  "limits": [
+    "Correctness validation does not prove a CPU/RAM win or visible presentation cadence. Existing performance history/VLC baseline are unchanged.",
+    "HDR was observed and reported, not subjected to an invented universal tolerance; current default mapping matched its baseline, experimental zero-copy did not.",
+    "The experimental native view cache was not rebuilt or enabled, and zero-copy is not enabled in App source.",
+    "This is not a new full app unit/regression gate. Previous validation remains separate evidence."
+  ],
+  "nextPerformanceInvestigation": "The native recipe uses FFmpeg --enable-small and size-optimized mpv/libplacebo builds. Evaluate a separate reproducible compiler/codec performance candidate against matching software-decode correctness and internal CPU work before considering adoption; no benefit has been measured yet."
+}

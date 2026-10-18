@@ -1,0 +1,19 @@
+{
+  "status": "pass",
+  "expectedExitCode": 1,
+  "scope": "Existing transition captures were refused before test-window creation; all twelve PNG hashes unchanged.",
+  "captureHashes": {
+    "frame.auto-fbo.png": "b9e3d1fef9e88432e0a41a9b5ed99f654d995b458efa088c6626fddee770a83b",
+    "frame.hardware.png": "b9e3d1fef9e88432e0a41a9b5ed99f654d995b458efa088c6626fddee770a83b",
+    "frame.hdr.png": "f290fa406cfba722db7e9065b339d58a292b9305e48b804317b87c50744219d8",
+    "frame.initial.png": "b9e3d1fef9e88432e0a41a9b5ed99f654d995b458efa088c6626fddee770a83b",
+    "frame.reopen.png": "b9e3d1fef9e88432e0a41a9b5ed99f654d995b458efa088c6626fddee770a83b",
+    "frame.rgba8.png": "aa5034f5ef55ed274288d8a8a8c943c7d256612042a8fd5d0256890134b2aafd",
+    "frame.rotate.png": "1a46754b923c31d5b1d9e0d0cf2169f42b451e26c1316fe75513165dd988af53",
+    "frame.sdr-return.png": "b9e3d1fef9e88432e0a41a9b5ed99f654d995b458efa088c6626fddee770a83b",
+    "frame.software.png": "ab7feb9d93c58c3efff751cb4ef784a3842bfdf1625dbcb07595487608201d18",
+    "frame.unrotate.png": "b9e3d1fef9e88432e0a41a9b5ed99f654d995b458efa088c6626fddee770a83b",
+    "frame.unzoom.png": "b9e3d1fef9e88432e0a41a9b5ed99f654d995b458efa088c6626fddee770a83b",
+    "frame.zoom.png": "c1310e94e9905619d11f59c4f0af8ef7859be16e8f6a9cad6ff401824036c2c9"
+  }
+}

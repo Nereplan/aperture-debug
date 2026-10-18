@@ -1,0 +1,11 @@
+TEST_VISIBILITY hidden-correctness-only
+Loaded module: C:\Users\Alperen\Desktop\Antigravity\Aperture Final\libmpv-2.dll
+Loaded module path matches requested: YES
+[PASS] loaded DLL is the requested absolute path
+    mpv_client_api_version=0x20005 (2.5)
+[PASS] client api version >= 2.5
+[FAIL] transition captures are new :: preserve existing captures
+[PASS] headless test owner windows remained hidden
+
+==== SUMMARY: 3 passed, 1 failed ====
+  FAILED: transition captures are new :: preserve existing captures

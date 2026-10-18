@@ -1,0 +1,863 @@
+{
+  "recordedUtc": "2026-10-18T23:47:13.495245+00:00",
+  "visibility": "hidden-correctness-only",
+  "scope": "Stateful fixed paused 2s rendered captures. No CPU/RAM/throughput/startup performance values. No VLC launch.",
+  "dllSha256": "8dd14629f574a04a1d6904104be8748e73954d9ac5aef07cc36f1a34ee752daa",
+  "probeSha256": "4a1b58a9e4770a96815ca857f58b3f28549027204ebfac37b18b3c2a4a120028",
+  "fixtureSha256": {
+    "h264_aac_720p.mp4": "c8a150cc6b9fb0df260248e9b4a678cfc8fd5d70fd2651969929c2238e05f531",
+    "hevc_hdr10.mp4": "9eb7c39fb342b58c6dd4529ca6d5ec4b6e1d5557d2f96206ee19392c4da2c6d6"
+  },
+  "variants": {
+    "candidate": {
+      "log": "candidate-driver.log",
+      "settings": {
+        "direct": "yes",
+        "zeroCopy": "no (default)"
+      },
+      "frames": [
+        {
+          "stage": "initial",
+          "headless": true,
+          "position": 2.0,
+          "hwdec": "d3d11va",
+          "direct_filter": true,
+          "expected_direct": true
+        },
+        {
+          "stage": "zoom",
+          "headless": true,
+          "position": 2.0,
+          "hwdec": "d3d11va",
+          "direct_filter": false,
+          "expected_direct": false
+        },
+        {
+          "stage": "unzoom",
+          "headless": true,
+          "position": 2.0,
+          "hwdec": "d3d11va",
+          "direct_filter": true,
+          "expected_direct": true
+        },
+        {
+          "stage": "rotate",
+          "headless": true,
+          "position": 2.0,
+          "hwdec": "d3d11va",
+          "direct_filter": false,
+          "expected_direct": false
+        },
+        {
+          "stage": "unrotate",
+          "headless": true,
+          "position": 2.0,
+          "hwdec": "d3d11va",
+          "direct_filter": true,
+          "expected_direct": true
+        },
+        {
+          "stage": "rgba8",
+          "headless": true,
+          "position": 2.0,
+          "hwdec": "d3d11va",
+          "direct_filter": false,
+          "expected_direct": false
+        },
+        {
+          "stage": "auto-fbo",
+          "headless": true,
+          "position": 2.0,
+          "hwdec": "d3d11va",
+          "direct_filter": true,
+          "expected_direct": true
+        },
+        {
+          "stage": "software",
+          "headless": true,
+          "position": 2.0,
+          "hwdec": "no",
+          "direct_filter": false,
+          "expected_direct": false
+        },
+        {
+          "stage": "hardware",
+          "headless": true,
+          "position": 2.0,
+          "hwdec": "d3d11va",
+          "direct_filter": true,
+          "expected_direct": true
+        },
+        {
+          "stage": "hdr",
+          "headless": true,
+          "position": 2.0,
+          "hwdec": "d3d11va",
+          "direct_filter": false,
+          "expected_direct": false
+        },
+        {
+          "stage": "sdr-return",
+          "headless": true,
+          "position": 2.0,
+          "hwdec": "d3d11va",
+          "direct_filter": true,
+          "expected_direct": true
+        },
+        {
+          "stage": "reopen",
+          "headless": true,
+          "position": 2.0,
+          "hwdec": "d3d11va",
+          "direct_filter": true,
+          "expected_direct": true
+        }
+      ]
+    },
+    "baseline": {
+      "arguments": [
+        "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-ee06c06a45224a9a9b84fea7c2309cc0\\mpv_playback_test.exe",
+        "--dll",
+        "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\libmpv-2.dll",
+        "--media",
+        "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\media",
+        "--scenario",
+        "transitioncheck",
+        "--headless",
+        "--capture-window",
+        "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-stateful-20261019\\baseline\\frame",
+        "--scaling",
+        "balanced",
+        "--gpu-timing",
+        "no",
+        "--vertex-cache-entries",
+        "4",
+        "--hwdec-threads",
+        "1",
+        "--scale-direct-nv12",
+        "no",
+        "--zero-copy",
+        "no"
+      ],
+      "renderOptions": {
+        "scale": "lanczos",
+        "dscale": "hermite",
+        "cscale": "bilinear",
+        "linear-downscaling": "no",
+        "correct-downscaling": "yes",
+        "sigmoid-upscaling": "no",
+        "dither-depth": "auto",
+        "dither": "fruit",
+        "target-colorspace-hint": "auto",
+        "fbo-format": "auto",
+        "d3d11-gpu-timing": "no",
+        "d3d11-vertex-cache-entries": "4",
+        "scale-direct-nv12": "no",
+        "d3d11va-zero-copy": "no",
+        "video-zoom": "0.000000",
+        "video-rotate": "0",
+        "video-params/hw-pixelformat": "nv12",
+        "video-out-params/pixelformat": "d3d11",
+        "video-params/primaries": "bt.709",
+        "video-params/gamma": "bt.1886",
+        "video-params/alpha": "none"
+      },
+      "frames": [
+        {
+          "stage": "initial",
+          "headless": true,
+          "position": 2.0,
+          "hwdec": "d3d11va",
+          "direct_filter": false,
+          "expected_direct": false
+        },
+        {
+          "stage": "zoom",
+          "headless": true,
+          "position": 2.0,
+          "hwdec": "d3d11va",
+          "direct_filter": false,
+          "expected_direct": false
+        },
+        {
+          "stage": "unzoom",
+          "headless": true,
+          "position": 2.0,
+          "hwdec": "d3d11va",
+          "direct_filter": false,
+          "expected_direct": false
+        },
+        {
+          "stage": "rotate",
+          "headless": true,
+          "position": 2.0,
+          "hwdec": "d3d11va",
+          "direct_filter": false,
+          "expected_direct": false
+        },
+        {
+          "stage": "unrotate",
+          "headless": true,
+          "position": 2.0,
+          "hwdec": "d3d11va",
+          "direct_filter": false,
+          "expected_direct": false
+        },
+        {
+          "stage": "rgba8",
+          "headless": true,
+          "position": 2.0,
+          "hwdec": "d3d11va",
+          "direct_filter": false,
+          "expected_direct": false
+        },
+        {
+          "stage": "auto-fbo",
+          "headless": true,
+          "position": 2.0,
+          "hwdec": "d3d11va",
+          "direct_filter": false,
+          "expected_direct": false
+        },
+        {
+          "stage": "software",
+          "headless": true,
+          "position": 2.0,
+          "hwdec": "no",
+          "direct_filter": false,
+          "expected_direct": false
+        },
+        {
+          "stage": "hardware",
+          "headless": true,
+          "position": 2.0,
+          "hwdec": "d3d11va",
+          "direct_filter": false,
+          "expected_direct": false
+        },
+        {
+          "stage": "hdr",
+          "headless": true,
+          "position": 2.0,
+          "hwdec": "d3d11va",
+          "direct_filter": false,
+          "expected_direct": false
+        },
+        {
+          "stage": "sdr-return",
+          "headless": true,
+          "position": 2.0,
+          "hwdec": "d3d11va",
+          "direct_filter": false,
+          "expected_direct": false
+        },
+        {
+          "stage": "reopen",
+          "headless": true,
+          "position": 2.0,
+          "hwdec": "d3d11va",
+          "direct_filter": false,
+          "expected_direct": false
+        }
+      ],
+      "passed": 26
+    },
+    "zero-copy": {
+      "arguments": [
+        "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-ee06c06a45224a9a9b84fea7c2309cc0\\mpv_playback_test.exe",
+        "--dll",
+        "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\libmpv-2.dll",
+        "--media",
+        "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\media",
+        "--scenario",
+        "transitioncheck",
+        "--headless",
+        "--capture-window",
+        "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-stateful-20261019\\zero-copy\\frame",
+        "--scaling",
+        "balanced",
+        "--gpu-timing",
+        "no",
+        "--vertex-cache-entries",
+        "4",
+        "--hwdec-threads",
+        "1",
+        "--scale-direct-nv12",
+        "yes",
+        "--zero-copy",
+        "yes"
+      ],
+      "renderOptions": {
+        "scale": "lanczos",
+        "dscale": "hermite",
+        "cscale": "bilinear",
+        "linear-downscaling": "no",
+        "correct-downscaling": "yes",
+        "sigmoid-upscaling": "no",
+        "dither-depth": "auto",
+        "dither": "fruit",
+        "target-colorspace-hint": "auto",
+        "fbo-format": "auto",
+        "d3d11-gpu-timing": "no",
+        "d3d11-vertex-cache-entries": "4",
+        "scale-direct-nv12": "yes",
+        "d3d11va-zero-copy": "yes",
+        "video-zoom": "0.000000",
+        "video-rotate": "0",
+        "video-params/hw-pixelformat": "nv12",
+        "video-out-params/pixelformat": "d3d11",
+        "video-params/primaries": "bt.709",
+        "video-params/gamma": "bt.1886",
+        "video-params/alpha": "none"
+      },
+      "frames": [
+        {
+          "stage": "initial",
+          "headless": true,
+          "position": 2.0,
+          "hwdec": "d3d11va",
+          "direct_filter": true,
+          "expected_direct": true
+        },
+        {
+          "stage": "zoom",
+          "headless": true,
+          "position": 2.0,
+          "hwdec": "d3d11va",
+          "direct_filter": false,
+          "expected_direct": false
+        },
+        {
+          "stage": "unzoom",
+          "headless": true,
+          "position": 2.0,
+          "hwdec": "d3d11va",
+          "direct_filter": true,
+          "expected_direct": true
+        },
+        {
+          "stage": "rotate",
+          "headless": true,
+          "position": 2.0,
+          "hwdec": "d3d11va",
+          "direct_filter": false,
+          "expected_direct": false
+        },
+        {
+          "stage": "unrotate",
+          "headless": true,
+          "position": 2.0,
+          "hwdec": "d3d11va",
+          "direct_filter": true,
+          "expected_direct": true
+        },
+        {
+          "stage": "rgba8",
+          "headless": true,
+          "position": 2.0,
+          "hwdec": "d3d11va",
+          "direct_filter": false,
+          "expected_direct": false
+        },
+        {
+          "stage": "auto-fbo",
+          "headless": true,
+          "position": 2.0,
+          "hwdec": "d3d11va",
+          "direct_filter": true,
+          "expected_direct": true
+        },
+        {
+          "stage": "software",
+          "headless": true,
+          "position": 2.0,
+          "hwdec": "no",
+          "direct_filter": false,
+          "expected_direct": false
+        },
+        {
+          "stage": "hardware",
+          "headless": true,
+          "position": 2.0,
+          "hwdec": "d3d11va",
+          "direct_filter": true,
+          "expected_direct": true
+        },
+        {
+          "stage": "hdr",
+          "headless": true,
+          "position": 2.0,
+          "hwdec": "d3d11va",
+          "direct_filter": false,
+          "expected_direct": false
+        },
+        {
+          "stage": "sdr-return",
+          "headless": true,
+          "position": 2.0,
+          "hwdec": "d3d11va",
+          "direct_filter": true,
+          "expected_direct": true
+        },
+        {
+          "stage": "reopen",
+          "headless": true,
+          "position": 2.0,
+          "hwdec": "d3d11va",
+          "direct_filter": true,
+          "expected_direct": true
+        }
+      ],
+      "passed": 26
+    }
+  },
+  "comparisons": [
+    {
+      "variant": "candidate",
+      "stage": "initial",
+      "size": [
+        1264,
+        761
+      ],
+      "maximumChannelError": 1,
+      "meanAbsoluteChannelError": 0.020093827797091325,
+      "limit": 1
+    },
+    {
+      "variant": "candidate",
+      "stage": "zoom",
+      "size": [
+        1264,
+        761
+      ],
+      "maximumChannelError": 0,
+      "meanAbsoluteChannelError": 0.0,
+      "limit": 1
+    },
+    {
+      "variant": "candidate",
+      "stage": "unzoom",
+      "size": [
+        1264,
+        761
+      ],
+      "maximumChannelError": 1,
+      "meanAbsoluteChannelError": 0.020093827797091325,
+      "limit": 1
+    },
+    {
+      "variant": "candidate",
+      "stage": "rotate",
+      "size": [
+        1264,
+        761
+      ],
+      "maximumChannelError": 0,
+      "meanAbsoluteChannelError": 0.0,
+      "limit": 1
+    },
+    {
+      "variant": "candidate",
+      "stage": "unrotate",
+      "size": [
+        1264,
+        761
+      ],
+      "maximumChannelError": 1,
+      "meanAbsoluteChannelError": 0.020093827797091325,
+      "limit": 1
+    },
+    {
+      "variant": "candidate",
+      "stage": "rgba8",
+      "size": [
+        1264,
+        761
+      ],
+      "maximumChannelError": 0,
+      "meanAbsoluteChannelError": 0.0,
+      "limit": 1
+    },
+    {
+      "variant": "candidate",
+      "stage": "auto-fbo",
+      "size": [
+        1264,
+        761
+      ],
+      "maximumChannelError": 1,
+      "meanAbsoluteChannelError": 0.020093827797091325,
+      "limit": 1
+    },
+    {
+      "variant": "candidate",
+      "stage": "software",
+      "size": [
+        1264,
+        761
+      ],
+      "maximumChannelError": 0,
+      "meanAbsoluteChannelError": 0.0,
+      "limit": 1
+    },
+    {
+      "variant": "candidate",
+      "stage": "hardware",
+      "size": [
+        1264,
+        761
+      ],
+      "maximumChannelError": 1,
+      "meanAbsoluteChannelError": 0.020093827797091325,
+      "limit": 1
+    },
+    {
+      "variant": "candidate",
+      "stage": "hdr",
+      "size": [
+        1264,
+        761
+      ],
+      "maximumChannelError": 0,
+      "meanAbsoluteChannelError": 0.0,
+      "limit": null
+    },
+    {
+      "variant": "candidate",
+      "stage": "sdr-return",
+      "size": [
+        1264,
+        761
+      ],
+      "maximumChannelError": 1,
+      "meanAbsoluteChannelError": 0.020093827797091325,
+      "limit": 1
+    },
+    {
+      "variant": "candidate",
+      "stage": "reopen",
+      "size": [
+        1264,
+        761
+      ],
+      "maximumChannelError": 1,
+      "meanAbsoluteChannelError": 0.020093827797091325,
+      "limit": 1
+    },
+    {
+      "variant": "zero-copy",
+      "stage": "initial",
+      "size": [
+        1264,
+        761
+      ],
+      "maximumChannelError": 1,
+      "meanAbsoluteChannelError": 0.020093827797091325,
+      "limit": 1
+    },
+    {
+      "variant": "zero-copy",
+      "stage": "zoom",
+      "size": [
+        1264,
+        761
+      ],
+      "maximumChannelError": 0,
+      "meanAbsoluteChannelError": 0.0,
+      "limit": 1
+    },
+    {
+      "variant": "zero-copy",
+      "stage": "unzoom",
+      "size": [
+        1264,
+        761
+      ],
+      "maximumChannelError": 1,
+      "meanAbsoluteChannelError": 0.020093827797091325,
+      "limit": 1
+    },
+    {
+      "variant": "zero-copy",
+      "stage": "rotate",
+      "size": [
+        1264,
+        761
+      ],
+      "maximumChannelError": 0,
+      "meanAbsoluteChannelError": 0.0,
+      "limit": 1
+    },
+    {
+      "variant": "zero-copy",
+      "stage": "unrotate",
+      "size": [
+        1264,
+        761
+      ],
+      "maximumChannelError": 1,
+      "meanAbsoluteChannelError": 0.020093827797091325,
+      "limit": 1
+    },
+    {
+      "variant": "zero-copy",
+      "stage": "rgba8",
+      "size": [
+        1264,
+        761
+      ],
+      "maximumChannelError": 0,
+      "meanAbsoluteChannelError": 0.0,
+      "limit": 1
+    },
+    {
+      "variant": "zero-copy",
+      "stage": "auto-fbo",
+      "size": [
+        1264,
+        761
+      ],
+      "maximumChannelError": 1,
+      "meanAbsoluteChannelError": 0.020093827797091325,
+      "limit": 1
+    },
+    {
+      "variant": "zero-copy",
+      "stage": "software",
+      "size": [
+        1264,
+        761
+      ],
+      "maximumChannelError": 0,
+      "meanAbsoluteChannelError": 0.0,
+      "limit": 1
+    },
+    {
+      "variant": "zero-copy",
+      "stage": "hardware",
+      "size": [
+        1264,
+        761
+      ],
+      "maximumChannelError": 1,
+      "meanAbsoluteChannelError": 0.020093827797091325,
+      "limit": 1
+    },
+    {
+      "variant": "zero-copy",
+      "stage": "hdr",
+      "size": [
+        1264,
+        761
+      ],
+      "maximumChannelError": 40,
+      "meanAbsoluteChannelError": 0.0835648186652029,
+      "limit": null
+    },
+    {
+      "variant": "zero-copy",
+      "stage": "sdr-return",
+      "size": [
+        1264,
+        761
+      ],
+      "maximumChannelError": 1,
+      "meanAbsoluteChannelError": 0.020093827797091325,
+      "limit": 1
+    },
+    {
+      "variant": "zero-copy",
+      "stage": "reopen",
+      "size": [
+        1264,
+        761
+      ],
+      "maximumChannelError": 1,
+      "meanAbsoluteChannelError": 0.020093827797091325,
+      "limit": 1
+    }
+  ],
+  "returnConsistency": [
+    {
+      "variant": "candidate",
+      "stage": "unzoom",
+      "size": [
+        1264,
+        761
+      ],
+      "maximumChannelError": 0,
+      "meanAbsoluteChannelError": 0.0
+    },
+    {
+      "variant": "candidate",
+      "stage": "unrotate",
+      "size": [
+        1264,
+        761
+      ],
+      "maximumChannelError": 0,
+      "meanAbsoluteChannelError": 0.0
+    },
+    {
+      "variant": "candidate",
+      "stage": "auto-fbo",
+      "size": [
+        1264,
+        761
+      ],
+      "maximumChannelError": 0,
+      "meanAbsoluteChannelError": 0.0
+    },
+    {
+      "variant": "candidate",
+      "stage": "hardware",
+      "size": [
+        1264,
+        761
+      ],
+      "maximumChannelError": 0,
+      "meanAbsoluteChannelError": 0.0
+    },
+    {
+      "variant": "candidate",
+      "stage": "sdr-return",
+      "size": [
+        1264,
+        761
+      ],
+      "maximumChannelError": 0,
+      "meanAbsoluteChannelError": 0.0
+    },
+    {
+      "variant": "candidate",
+      "stage": "reopen",
+      "size": [
+        1264,
+        761
+      ],
+      "maximumChannelError": 0,
+      "meanAbsoluteChannelError": 0.0
+    },
+    {
+      "variant": "baseline",
+      "stage": "unzoom",
+      "size": [
+        1264,
+        761
+      ],
+      "maximumChannelError": 0,
+      "meanAbsoluteChannelError": 0.0
+    },
+    {
+      "variant": "baseline",
+      "stage": "unrotate",
+      "size": [
+        1264,
+        761
+      ],
+      "maximumChannelError": 0,
+      "meanAbsoluteChannelError": 0.0
+    },
+    {
+      "variant": "baseline",
+      "stage": "auto-fbo",
+      "size": [
+        1264,
+        761
+      ],
+      "maximumChannelError": 0,
+      "meanAbsoluteChannelError": 0.0
+    },
+    {
+      "variant": "baseline",
+      "stage": "hardware",
+      "size": [
+        1264,
+        761
+      ],
+      "maximumChannelError": 0,
+      "meanAbsoluteChannelError": 0.0
+    },
+    {
+      "variant": "baseline",
+      "stage": "sdr-return",
+      "size": [
+        1264,
+        761
+      ],
+      "maximumChannelError": 0,
+      "meanAbsoluteChannelError": 0.0
+    },
+    {
+      "variant": "baseline",
+      "stage": "reopen",
+      "size": [
+        1264,
+        761
+      ],
+      "maximumChannelError": 0,
+      "meanAbsoluteChannelError": 0.0
+    },
+    {
+      "variant": "zero-copy",
+      "stage": "unzoom",
+      "size": [
+        1264,
+        761
+      ],
+      "maximumChannelError": 0,
+      "meanAbsoluteChannelError": 0.0
+    },
+    {
+      "variant": "zero-copy",
+      "stage": "unrotate",
+      "size": [
+        1264,
+        761
+      ],
+      "maximumChannelError": 0,
+      "meanAbsoluteChannelError": 0.0
+    },
+    {
+      "variant": "zero-copy",
+      "stage": "auto-fbo",
+      "size": [
+        1264,
+        761
+      ],
+      "maximumChannelError": 0,
+      "meanAbsoluteChannelError": 0.0
+    },
+    {
+      "variant": "zero-copy",
+      "stage": "hardware",
+      "size": [
+        1264,
+        761
+      ],
+      "maximumChannelError": 0,
+      "meanAbsoluteChannelError": 0.0
+    },
+    {
+      "variant": "zero-copy",
+      "stage": "sdr-return",
+      "size": [
+        1264,
+        761
+      ],
+      "maximumChannelError": 0,
+      "meanAbsoluteChannelError": 0.0
+    },
+    {
+      "variant": "zero-copy",
+      "stage": "reopen",
+      "size": [
+        1264,
+        761
+      ],
+      "maximumChannelError": 0,
+      "meanAbsoluteChannelError": 0.0
+    }
+  ],
+  "status": "passed"
+}
