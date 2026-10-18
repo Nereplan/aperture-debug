@@ -82,3 +82,9 @@ tscTicksPerSecond * 100` only in an explicitly calibrated protocol. An unsupport
 calibration is not a zero CPU measurement. Never substitute generic CPU MHz,
 convert unvalidated counters, or overwrite the historical sampled-CPU values.
 See `docs/evidence/matched-linear-20261018/review.json` for the first such batch.
+
+Validation-only checkpoints can use `results: []` with explicit test scopes and
+notes when no new performance measurement was taken. The dashboard keeps the
+latest measured observation selected and opens these records in Evidence.
+Retain desktop skips as partial validation; do not replace missing visible
+measurements with hidden-window performance or relabel saved VLC runs as fresh.

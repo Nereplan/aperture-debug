@@ -1,0 +1,10 @@
+{
+  "scenario": "functional",
+  "sourceDll": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-build\\direct-nv12-filter\\libmpv-2.dll",
+  "loadedDll": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-b5dce0f4826441769f177fa1b88b9775\\libmpv-2.dll",
+  "sha256": "8DD14629F574A04A1D6904104BE8748E73954D9AC5AEF07CC36F1A34EE752DAA",
+  "bytes": 24561152,
+  "exitCode": 0,
+  "visibility": "hidden-correctness-only",
+  "logs": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-b5dce0f4826441769f177fa1b88b9775"
+}

@@ -1,0 +1,1310 @@
+[
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\normal-build-driver.log",
+    "saved": "logs/normal-build-driver.log.gz",
+    "sha256": "b2b1c5134cbd19ad17b4fee499ca547b825665a64da95670f9bfc076b7e523d3",
+    "bytes": 158794
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\object-compile.log",
+    "saved": "logs/object-compile.log.gz",
+    "sha256": "ace992b665aafc78477eb3b83735c1ae98d6485f434183a71cee9821ecead53d",
+    "bytes": 294
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\remove-precision-prototype.log",
+    "saved": "logs/remove-precision-prototype.log.gz",
+    "sha256": "85ebeb0003a81acb9e527fb77af05e24c1855577cf5fa6f66303aae661619852",
+    "bytes": 361
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-control.log",
+    "saved": "logs/headless-control.log.gz",
+    "sha256": "40670a6ceb6d7a366c7970f1b006dc492be238acfdebf02dafa8999d494b8edf",
+    "bytes": 6079
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-prototype.log",
+    "saved": "logs/headless-prototype.log.gz",
+    "sha256": "b26b18083a00a1fb1bedadc8178ea25fb36a2e1f3fa2ab083f73aee902006ed0",
+    "bytes": 5899
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\native-functional.log",
+    "saved": "logs/native-functional.log.gz",
+    "sha256": "682a41824d44bcfc46105fc5ce805e2d218d10f4c320c28b85ede851a1a2ea1d",
+    "bytes": 4766
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\unit-background.log",
+    "saved": "logs/unit-background.log.gz",
+    "sha256": "47bddd257673abaa6df8296b98a0967463498aebfac72686318a9b75c2e35f1a",
+    "bytes": 5316
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\old-engine-compatibility.log",
+    "saved": "logs/old-engine-compatibility.log.gz",
+    "sha256": "7b191a8f72631493e4b7c4c1498c853be294bd56a7b5bf3c419dd0ed092add1a",
+    "bytes": 972
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\final-probe-build.log",
+    "saved": "logs/final-probe-build.log.gz",
+    "sha256": "330349c328d10a7f987c1002918314601ead988fef0210d60e708eb007c2f039",
+    "bytes": 587
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\dependency-validation.log",
+    "saved": "logs/dependency-validation.log.gz",
+    "sha256": "586301cfb20b5e4cf41fea627e09739c2621552f6ff81a2b79875411a0dd0255",
+    "bytes": 3624
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\app-build.log",
+    "saved": "logs/app-build.log.gz",
+    "sha256": "a63797dfae5eb0c32ae75701efe6267721abf8bd2459909975279db5adb252a8",
+    "bytes": 2980
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\package.log",
+    "saved": "logs/package.log.gz",
+    "sha256": "cb2faf73c1de401a802b25e9adc7d30069e514bb4afc062a51b963f76a81827e",
+    "bytes": 446
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\source-identity.json",
+    "saved": "producer/source-identity.json",
+    "sha256": "999aa5f32523835ce2eae12e89f283eadf9f213fc87539b7ebc8870ad234205a",
+    "bytes": 1176
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\adoption-hashes.json",
+    "saved": "producer/adoption-hashes.json",
+    "sha256": "dbcf57b286d8b8b32a5234da9a5aa596e201336a30c4acd4177ab3f33be6a33a",
+    "bytes": 678
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\unit-desktop-cases.json",
+    "saved": "producer/unit-desktop-cases.json",
+    "sha256": "bb4f8577c924344a899770c58fe82b310e95657da76920f8ef8a587c1c468cc0",
+    "bytes": 552
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\gpu-draw-review.json",
+    "saved": "producer/gpu-draw-review.json",
+    "sha256": "5fd6ec12b9f1167b61ac4120aa16b56971af01ba4758dfa84b0187bfe76a851c",
+    "bytes": 1484
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\check-headless-frames-quality.py",
+    "saved": "producer/check-headless-frames-quality.py",
+    "sha256": "9e9ec61adb1042e54b59d30a8ca844e722eaebf53436d379f3dd8c0d36419b20",
+    "bytes": 6308
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\check-headless-frames.py",
+    "saved": "producer/check-headless-frames.py",
+    "sha256": "f79ad17b642d39074d0380f25c92328468397c37953b416e629dcc65bb15a3b2",
+    "bytes": 6705
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-production-matrix\\results.json",
+    "saved": "headless-production-matrix/results.json",
+    "sha256": "598c273c2d9833b25e46456311f028be4898ed76e8bedb0360f4682d993d8cc6",
+    "bytes": 143731
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-production-matrix\\zoom-crop\\baseline\\frame.png",
+    "saved": "headless-production-matrix/zoom-crop/baseline/frame.png",
+    "sha256": "a77d3014eee8f9cbbebd717e13483f0cf7ec936d2817894db0a2b2f744f2bedb",
+    "bytes": 319303
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-production-matrix\\zoom-crop\\baseline\\stderr.txt",
+    "saved": "headless-production-matrix/zoom-crop/baseline/stderr.txt.gz",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-production-matrix\\zoom-crop\\baseline\\stdout.txt",
+    "saved": "headless-production-matrix/zoom-crop/baseline/stdout.txt.gz",
+    "sha256": "55abf62eaeba1907687224023e3df2106f820dd01503b9e2d02f2485523d4879",
+    "bytes": 5793
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-production-matrix\\zoom-crop\\candidate\\frame.png",
+    "saved": "headless-production-matrix/zoom-crop/candidate/frame.png",
+    "sha256": "a77d3014eee8f9cbbebd717e13483f0cf7ec936d2817894db0a2b2f744f2bedb",
+    "bytes": 319303
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-production-matrix\\zoom-crop\\candidate\\stderr.txt",
+    "saved": "headless-production-matrix/zoom-crop/candidate/stderr.txt.gz",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-production-matrix\\zoom-crop\\candidate\\stdout.txt",
+    "saved": "headless-production-matrix/zoom-crop/candidate/stdout.txt.gz",
+    "sha256": "2459872e86ba6806689045cf04172714c5da389e594811a773c3f9a1273daaa7",
+    "bytes": 5813
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-production-matrix\\vp9-up\\baseline\\frame.png",
+    "saved": "headless-production-matrix/vp9-up/baseline/frame.png",
+    "sha256": "f71671f6660e6b554b645a52eaab585c4c99fd5b573ff020e2f0773563809974",
+    "bytes": 375474
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-production-matrix\\vp9-up\\baseline\\stderr.txt",
+    "saved": "headless-production-matrix/vp9-up/baseline/stderr.txt.gz",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-production-matrix\\vp9-up\\baseline\\stdout.txt",
+    "saved": "headless-production-matrix/vp9-up/baseline/stdout.txt.gz",
+    "sha256": "aa737db86a13ef2c1f1b4bf88f50b9075d45b2097fd134940a9f3d63a75d8e72",
+    "bytes": 5877
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-production-matrix\\vp9-up\\candidate\\frame.png",
+    "saved": "headless-production-matrix/vp9-up/candidate/frame.png",
+    "sha256": "7b7ccd71090774a021e844ca90e154557cef2dc6831504dc4d22d6acfd93775c",
+    "bytes": 371086
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-production-matrix\\vp9-up\\candidate\\stderr.txt",
+    "saved": "headless-production-matrix/vp9-up/candidate/stderr.txt.gz",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-production-matrix\\vp9-up\\candidate\\stdout.txt",
+    "saved": "headless-production-matrix/vp9-up/candidate/stdout.txt.gz",
+    "sha256": "aa347fec715223f78987ba877533f98b9dc5bafd335429940ea45cca746b364e",
+    "bytes": 5510
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-production-matrix\\rotated\\baseline\\frame.png",
+    "saved": "headless-production-matrix/rotated/baseline/frame.png",
+    "sha256": "47c0807aeb070f65d5ff2df9ed03e3dcbace4e04f9061aa236a8d6e3543039b7",
+    "bytes": 100491
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-production-matrix\\rotated\\baseline\\stderr.txt",
+    "saved": "headless-production-matrix/rotated/baseline/stderr.txt.gz",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-production-matrix\\rotated\\baseline\\stdout.txt",
+    "saved": "headless-production-matrix/rotated/baseline/stdout.txt.gz",
+    "sha256": "810410c691f0bef57b00bed1ad2cd93e4706808584b3335c6d30f4c8865d1bf7",
+    "bytes": 6181
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-production-matrix\\rotated\\candidate\\frame.png",
+    "saved": "headless-production-matrix/rotated/candidate/frame.png",
+    "sha256": "47c0807aeb070f65d5ff2df9ed03e3dcbace4e04f9061aa236a8d6e3543039b7",
+    "bytes": 100491
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-production-matrix\\rotated\\candidate\\stderr.txt",
+    "saved": "headless-production-matrix/rotated/candidate/stderr.txt.gz",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-production-matrix\\rotated\\candidate\\stdout.txt",
+    "saved": "headless-production-matrix/rotated/candidate/stdout.txt.gz",
+    "sha256": "8334318179eae9b1424bd6fc93afeb6574d07e6b710faf3b21fe8ace31eaef72",
+    "bytes": 6201
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-production-matrix\\native-quality\\baseline\\frame.png",
+    "saved": "headless-production-matrix/native-quality/baseline/frame.png",
+    "sha256": "7fdafbd0c8ac127c20d8f58555979fb325b4189c472f9fc0c1bc57001e4dc4cd",
+    "bytes": 291597
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-production-matrix\\native-quality\\baseline\\stderr.txt",
+    "saved": "headless-production-matrix/native-quality/baseline/stderr.txt.gz",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-production-matrix\\native-quality\\baseline\\stdout.txt",
+    "saved": "headless-production-matrix/native-quality/baseline/stdout.txt.gz",
+    "sha256": "923ac8bb0ef6a7f01c342cd1856107946dab35ce0fc3934a3ac1bdc5b67b4607",
+    "bytes": 6324
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-production-matrix\\native-quality\\candidate\\frame.png",
+    "saved": "headless-production-matrix/native-quality/candidate/frame.png",
+    "sha256": "7fdafbd0c8ac127c20d8f58555979fb325b4189c472f9fc0c1bc57001e4dc4cd",
+    "bytes": 291597
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-production-matrix\\native-quality\\candidate\\stderr.txt",
+    "saved": "headless-production-matrix/native-quality/candidate/stderr.txt.gz",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-production-matrix\\native-quality\\candidate\\stdout.txt",
+    "saved": "headless-production-matrix/native-quality/candidate/stdout.txt.gz",
+    "sha256": "f379d5e80b2886874193c667539282271fcd2dfa92cf3988848e1bb6ea0bd01f",
+    "bytes": 6344
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-production-matrix\\hevc-8bit\\baseline\\frame.png",
+    "saved": "headless-production-matrix/hevc-8bit/baseline/frame.png",
+    "sha256": "8da69a8b1c2acda711e1cf57e11d02c696b388aa3a9a6f4feea1e9be9c7c969b",
+    "bytes": 273915
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-production-matrix\\hevc-8bit\\baseline\\stderr.txt",
+    "saved": "headless-production-matrix/hevc-8bit/baseline/stderr.txt.gz",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-production-matrix\\hevc-8bit\\baseline\\stdout.txt",
+    "saved": "headless-production-matrix/hevc-8bit/baseline/stdout.txt.gz",
+    "sha256": "c655975a683abfbdbd454bafee82b4d5669df5cc57f9d1a6308ebb87abd5fdab",
+    "bytes": 5879
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-production-matrix\\hevc-8bit\\candidate\\frame.png",
+    "saved": "headless-production-matrix/hevc-8bit/candidate/frame.png",
+    "sha256": "7c3f619fdb0d116be5dbc15442c82aecad8a36383f0c80fa6d7b6b12a3e9c5c8",
+    "bytes": 279118
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-production-matrix\\hevc-8bit\\candidate\\stderr.txt",
+    "saved": "headless-production-matrix/hevc-8bit/candidate/stderr.txt.gz",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-production-matrix\\hevc-8bit\\candidate\\stdout.txt",
+    "saved": "headless-production-matrix/hevc-8bit/candidate/stdout.txt.gz",
+    "sha256": "133f7188ec020e904d8b8709e23dd45559881902e63daffa0c6124f62bdb1bd0",
+    "bytes": 7310
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-production-matrix\\hevc-10bit\\baseline\\frame.png",
+    "saved": "headless-production-matrix/hevc-10bit/baseline/frame.png",
+    "sha256": "e919903586fcc1b163893a710e896e95042ba1184c65f5a7a4749815bde6af01",
+    "bytes": 416184
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-production-matrix\\hevc-10bit\\baseline\\stderr.txt",
+    "saved": "headless-production-matrix/hevc-10bit/baseline/stderr.txt.gz",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-production-matrix\\hevc-10bit\\baseline\\stdout.txt",
+    "saved": "headless-production-matrix/hevc-10bit/baseline/stdout.txt.gz",
+    "sha256": "33253d9db6cfcd95142606e56fd995696cfc9708869900a74a1056fe4f4d1e0a",
+    "bytes": 8459
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-production-matrix\\hevc-10bit\\candidate\\frame.png",
+    "saved": "headless-production-matrix/hevc-10bit/candidate/frame.png",
+    "sha256": "e919903586fcc1b163893a710e896e95042ba1184c65f5a7a4749815bde6af01",
+    "bytes": 416184
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-production-matrix\\hevc-10bit\\candidate\\stderr.txt",
+    "saved": "headless-production-matrix/hevc-10bit/candidate/stderr.txt.gz",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-production-matrix\\hevc-10bit\\candidate\\stdout.txt",
+    "saved": "headless-production-matrix/hevc-10bit/candidate/stdout.txt.gz",
+    "sha256": "6454c1ddff687e9fd3d3547ca02371863c59b6856da2630d352cd5ffb500b8e6",
+    "bytes": 8479
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-production-matrix\\hdr-pq\\baseline\\frame.png",
+    "saved": "headless-production-matrix/hdr-pq/baseline/frame.png",
+    "sha256": "dba8e5b39847e31c1d4c532b7a587d0dba7fdcaa76e480ed72d8c31699cd4416",
+    "bytes": 656174
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-production-matrix\\hdr-pq\\baseline\\stderr.txt",
+    "saved": "headless-production-matrix/hdr-pq/baseline/stderr.txt.gz",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-production-matrix\\hdr-pq\\baseline\\stdout.txt",
+    "saved": "headless-production-matrix/hdr-pq/baseline/stdout.txt.gz",
+    "sha256": "64edf0a9bae74321188471be591f270be72d7f5ee621ddd758ba8a22c5181a25",
+    "bytes": 6030
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-production-matrix\\hdr-pq\\candidate\\frame.png",
+    "saved": "headless-production-matrix/hdr-pq/candidate/frame.png",
+    "sha256": "df208d144a5ad353c114b0f5cdf762eea2d2f4d44f4b719b2c76d23195080323",
+    "bytes": 655851
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-production-matrix\\hdr-pq\\candidate\\stderr.txt",
+    "saved": "headless-production-matrix/hdr-pq/candidate/stderr.txt.gz",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-production-matrix\\hdr-pq\\candidate\\stdout.txt",
+    "saved": "headless-production-matrix/hdr-pq/candidate/stdout.txt.gz",
+    "sha256": "9f08a49687b86444bb2107dbbda4995dfd7d8f80f2722c9b94922b3634434b8e",
+    "bytes": 6050
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-production-matrix\\h264-software\\baseline\\frame.png",
+    "saved": "headless-production-matrix/h264-software/baseline/frame.png",
+    "sha256": "71b679c5359cba0b7a6b34fbe378462e7f6bb4351c85b49619337beff3fa3c3b",
+    "bytes": 250403
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-production-matrix\\h264-software\\baseline\\stderr.txt",
+    "saved": "headless-production-matrix/h264-software/baseline/stderr.txt.gz",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-production-matrix\\h264-software\\baseline\\stdout.txt",
+    "saved": "headless-production-matrix/h264-software/baseline/stdout.txt.gz",
+    "sha256": "04ce8157e8e0f0799a07c2dd8d4a08ac49b894766c34e413d90cfc28999559a7",
+    "bytes": 5906
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-production-matrix\\h264-software\\candidate\\frame.png",
+    "saved": "headless-production-matrix/h264-software/candidate/frame.png",
+    "sha256": "71b679c5359cba0b7a6b34fbe378462e7f6bb4351c85b49619337beff3fa3c3b",
+    "bytes": 250403
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-production-matrix\\h264-software\\candidate\\stderr.txt",
+    "saved": "headless-production-matrix/h264-software/candidate/stderr.txt.gz",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-production-matrix\\h264-software\\candidate\\stdout.txt",
+    "saved": "headless-production-matrix/h264-software/candidate/stdout.txt.gz",
+    "sha256": "bc22338194b11ebd88eaf2ef9073980da3b7d60eeecbe76c4b63b92cc4dd7c9d",
+    "bytes": 6092
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-production-matrix\\h264-down\\baseline\\frame.png",
+    "saved": "headless-production-matrix/h264-down/baseline/frame.png",
+    "sha256": "68afa819bc6327f0058c5b1f8f70be8225a8e33dc347206f61567983e91190e5",
+    "bytes": 249620
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-production-matrix\\h264-down\\baseline\\stderr.txt",
+    "saved": "headless-production-matrix/h264-down/baseline/stderr.txt.gz",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-production-matrix\\h264-down\\baseline\\stdout.txt",
+    "saved": "headless-production-matrix/h264-down/baseline/stdout.txt.gz",
+    "sha256": "c665661c45af1e6b9fe1908b3d357cafa1aac577693c3ba37e6ee49095c75129",
+    "bytes": 6002
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-production-matrix\\h264-down\\candidate\\frame.png",
+    "saved": "headless-production-matrix/h264-down/candidate/frame.png",
+    "sha256": "67809c972c8889030f2eefc864b2d2062c9e8cede97a503c2e50111059ce4e2f",
+    "bytes": 252473
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-production-matrix\\h264-down\\candidate\\stderr.txt",
+    "saved": "headless-production-matrix/h264-down/candidate/stderr.txt.gz",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-production-matrix\\h264-down\\candidate\\stdout.txt",
+    "saved": "headless-production-matrix/h264-down/candidate/stdout.txt.gz",
+    "sha256": "a56ed1c18c7d92552cfcd49cf310e39dd259edee5dfb6e380d23a7ae4b0c4d3f",
+    "bytes": 5719
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-production-matrix\\explicit-rgba8\\baseline\\frame.png",
+    "saved": "headless-production-matrix/explicit-rgba8/baseline/frame.png",
+    "sha256": "504b9f38b151da0b9d76790b30d5503682acd8758720de127b8255947ec99ebd",
+    "bytes": 170394
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-production-matrix\\explicit-rgba8\\baseline\\stderr.txt",
+    "saved": "headless-production-matrix/explicit-rgba8/baseline/stderr.txt.gz",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-production-matrix\\explicit-rgba8\\baseline\\stdout.txt",
+    "saved": "headless-production-matrix/explicit-rgba8/baseline/stdout.txt.gz",
+    "sha256": "e7bc7f4628bef68855a952fd52a659f7873c31cf9053ad412903bd71c26abc1d",
+    "bytes": 5991
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-production-matrix\\explicit-rgba8\\candidate\\frame.png",
+    "saved": "headless-production-matrix/explicit-rgba8/candidate/frame.png",
+    "sha256": "504b9f38b151da0b9d76790b30d5503682acd8758720de127b8255947ec99ebd",
+    "bytes": 170394
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-production-matrix\\explicit-rgba8\\candidate\\stderr.txt",
+    "saved": "headless-production-matrix/explicit-rgba8/candidate/stderr.txt.gz",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-production-matrix\\explicit-rgba8\\candidate\\stdout.txt",
+    "saved": "headless-production-matrix/explicit-rgba8/candidate/stdout.txt.gz",
+    "sha256": "a314f1b7a0ee667cca511f503dd74056dfe9fa988ff2d058ba37f67d603ab0c9",
+    "bytes": 6116
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-production-matrix\\explicit-float\\baseline\\frame.png",
+    "saved": "headless-production-matrix/explicit-float/baseline/frame.png",
+    "sha256": "68afa819bc6327f0058c5b1f8f70be8225a8e33dc347206f61567983e91190e5",
+    "bytes": 249620
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-production-matrix\\explicit-float\\baseline\\stderr.txt",
+    "saved": "headless-production-matrix/explicit-float/baseline/stderr.txt.gz",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-production-matrix\\explicit-float\\baseline\\stdout.txt",
+    "saved": "headless-production-matrix/explicit-float/baseline/stdout.txt.gz",
+    "sha256": "ace96cf0221a410b1866e6558ee74f85e19cb98a44a56d997c7ad869fa6d6b0b",
+    "bytes": 6111
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-production-matrix\\explicit-float\\candidate\\frame.png",
+    "saved": "headless-production-matrix/explicit-float/candidate/frame.png",
+    "sha256": "68afa819bc6327f0058c5b1f8f70be8225a8e33dc347206f61567983e91190e5",
+    "bytes": 249620
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-production-matrix\\explicit-float\\candidate\\stderr.txt",
+    "saved": "headless-production-matrix/explicit-float/candidate/stderr.txt.gz",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-production-matrix\\explicit-float\\candidate\\stdout.txt",
+    "saved": "headless-production-matrix/explicit-float/candidate/stdout.txt.gz",
+    "sha256": "cab779feff520766a858d140ad2a5e879487e0dd63897916bd8d3a8c3085167a",
+    "bytes": 6026
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-production-matrix\\compute-dither\\baseline\\frame.png",
+    "saved": "headless-production-matrix/compute-dither/baseline/frame.png",
+    "sha256": "eaab8498194780c61745d3d63a5667ecfadd5dc9d72a11a5f449ff645571c307",
+    "bytes": 297548
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-production-matrix\\compute-dither\\baseline\\stderr.txt",
+    "saved": "headless-production-matrix/compute-dither/baseline/stderr.txt.gz",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-production-matrix\\compute-dither\\baseline\\stdout.txt",
+    "saved": "headless-production-matrix/compute-dither/baseline/stdout.txt.gz",
+    "sha256": "3e9c9f02fd2f3af44d0b2d8fdeb2e3c6067cbd6dbd9a5d642c0b1587b51b2914",
+    "bytes": 6354
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-production-matrix\\compute-dither\\candidate\\frame.png",
+    "saved": "headless-production-matrix/compute-dither/candidate/frame.png",
+    "sha256": "eaab8498194780c61745d3d63a5667ecfadd5dc9d72a11a5f449ff645571c307",
+    "bytes": 297548
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-production-matrix\\compute-dither\\candidate\\stderr.txt",
+    "saved": "headless-production-matrix/compute-dither/candidate/stderr.txt.gz",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-production-matrix\\compute-dither\\candidate\\stdout.txt",
+    "saved": "headless-production-matrix/compute-dither/candidate/stdout.txt.gz",
+    "sha256": "dd7e0bf9f6dc29132a7e78fc5d3b4bbe05cffd994f84b22d41d36c68ab0efd1d",
+    "bytes": 6374
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-production-matrix\\av1-down\\baseline\\frame.png",
+    "saved": "headless-production-matrix/av1-down/baseline/frame.png",
+    "sha256": "f284a057ac9d11b0aaa1828ed7f2dd67e4ad3eae762a6097f28ec44ad4531b8d",
+    "bytes": 234538
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-production-matrix\\av1-down\\baseline\\stderr.txt",
+    "saved": "headless-production-matrix/av1-down/baseline/stderr.txt.gz",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-production-matrix\\av1-down\\baseline\\stdout.txt",
+    "saved": "headless-production-matrix/av1-down/baseline/stdout.txt.gz",
+    "sha256": "c655975a683abfbdbd454bafee82b4d5669df5cc57f9d1a6308ebb87abd5fdab",
+    "bytes": 5879
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-production-matrix\\av1-down\\candidate\\frame.png",
+    "saved": "headless-production-matrix/av1-down/candidate/frame.png",
+    "sha256": "641f4f6f4993ceb7cfe460dec3d4c536d860d1650ab74ac2ec932f0080089f25",
+    "bytes": 237861
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-production-matrix\\av1-down\\candidate\\stderr.txt",
+    "saved": "headless-production-matrix/av1-down/candidate/stderr.txt.gz",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-production-matrix\\av1-down\\candidate\\stdout.txt",
+    "saved": "headless-production-matrix/av1-down/candidate/stdout.txt.gz",
+    "sha256": "6f0af17b72ef09aab20ee94be29f893319678c7dd4290dfa0a7b9ebb5e22729d",
+    "bytes": 5676
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-production-matrix\\alpha\\baseline\\frame.png",
+    "saved": "headless-production-matrix/alpha/baseline/frame.png",
+    "sha256": "a04ca1f080b4f80d3047a9ca1af000f5cf4ff89ee8207d07d04aa18d680a756f",
+    "bytes": 639201
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-production-matrix\\alpha\\baseline\\stderr.txt",
+    "saved": "headless-production-matrix/alpha/baseline/stderr.txt.gz",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-production-matrix\\alpha\\baseline\\stdout.txt",
+    "saved": "headless-production-matrix/alpha/baseline/stdout.txt.gz",
+    "sha256": "0b3029e8b706857a4bdf9a8d67e3f37d9c469f592c7f0791f6ffb666fd4f4e4a",
+    "bytes": 5872
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-production-matrix\\alpha\\candidate\\frame.png",
+    "saved": "headless-production-matrix/alpha/candidate/frame.png",
+    "sha256": "a04ca1f080b4f80d3047a9ca1af000f5cf4ff89ee8207d07d04aa18d680a756f",
+    "bytes": 639201
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-production-matrix\\alpha\\candidate\\stderr.txt",
+    "saved": "headless-production-matrix/alpha/candidate/stderr.txt.gz",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-production-matrix\\alpha\\candidate\\stdout.txt",
+    "saved": "headless-production-matrix/alpha/candidate/stdout.txt.gz",
+    "sha256": "d8a278e8e308c2d4c221f1ee4c3f42cd6fdf0a08f9663ae1f1c127ce8079e0f3",
+    "bytes": 5858
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-prototype-matrix\\results.json",
+    "saved": "headless-prototype-matrix/results.json",
+    "sha256": "d020e807f532ce277963ab892007908f4759cc375ddfa7df64af808735438146",
+    "bytes": 90619
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-prototype-matrix\\vp9-up\\baseline\\frame.png",
+    "saved": "headless-prototype-matrix/vp9-up/baseline/frame.png",
+    "sha256": "f71671f6660e6b554b645a52eaab585c4c99fd5b573ff020e2f0773563809974",
+    "bytes": 375474
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-prototype-matrix\\vp9-up\\baseline\\stderr.txt",
+    "saved": "headless-prototype-matrix/vp9-up/baseline/stderr.txt.gz",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-prototype-matrix\\vp9-up\\baseline\\stdout.txt",
+    "saved": "headless-prototype-matrix/vp9-up/baseline/stdout.txt.gz",
+    "sha256": "aa737db86a13ef2c1f1b4bf88f50b9075d45b2097fd134940a9f3d63a75d8e72",
+    "bytes": 5877
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-prototype-matrix\\vp9-up\\candidate\\frame.png",
+    "saved": "headless-prototype-matrix/vp9-up/candidate/frame.png",
+    "sha256": "7b7ccd71090774a021e844ca90e154557cef2dc6831504dc4d22d6acfd93775c",
+    "bytes": 371086
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-prototype-matrix\\vp9-up\\candidate\\stderr.txt",
+    "saved": "headless-prototype-matrix/vp9-up/candidate/stderr.txt.gz",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-prototype-matrix\\vp9-up\\candidate\\stdout.txt",
+    "saved": "headless-prototype-matrix/vp9-up/candidate/stdout.txt.gz",
+    "sha256": "9e30f1ce98f61e0dc5b401126e31890d450679fb8c7948b0ba5e08563566c50e",
+    "bytes": 5689
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-prototype-matrix\\native-quality\\baseline\\frame.png",
+    "saved": "headless-prototype-matrix/native-quality/baseline/frame.png",
+    "sha256": "7fdafbd0c8ac127c20d8f58555979fb325b4189c472f9fc0c1bc57001e4dc4cd",
+    "bytes": 291597
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-prototype-matrix\\native-quality\\baseline\\stderr.txt",
+    "saved": "headless-prototype-matrix/native-quality/baseline/stderr.txt.gz",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-prototype-matrix\\native-quality\\baseline\\stdout.txt",
+    "saved": "headless-prototype-matrix/native-quality/baseline/stdout.txt.gz",
+    "sha256": "0d93562bb26cdceec78fd0eea10e7f1114413aacb28822f7052cc4e742aa75be",
+    "bytes": 6429
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-prototype-matrix\\native-quality\\candidate\\frame.png",
+    "saved": "headless-prototype-matrix/native-quality/candidate/frame.png",
+    "sha256": "7fdafbd0c8ac127c20d8f58555979fb325b4189c472f9fc0c1bc57001e4dc4cd",
+    "bytes": 291597
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-prototype-matrix\\native-quality\\candidate\\stderr.txt",
+    "saved": "headless-prototype-matrix/native-quality/candidate/stderr.txt.gz",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-prototype-matrix\\native-quality\\candidate\\stdout.txt",
+    "saved": "headless-prototype-matrix/native-quality/candidate/stdout.txt.gz",
+    "sha256": "664c2bce3b7c68ebf120fea078a41a203ef35d366745d09d1a85180ec8f6753a",
+    "bytes": 6148
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-prototype-matrix\\hevc-8bit\\baseline\\frame.png",
+    "saved": "headless-prototype-matrix/hevc-8bit/baseline/frame.png",
+    "sha256": "8da69a8b1c2acda711e1cf57e11d02c696b388aa3a9a6f4feea1e9be9c7c969b",
+    "bytes": 273915
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-prototype-matrix\\hevc-8bit\\baseline\\stderr.txt",
+    "saved": "headless-prototype-matrix/hevc-8bit/baseline/stderr.txt.gz",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-prototype-matrix\\hevc-8bit\\baseline\\stdout.txt",
+    "saved": "headless-prototype-matrix/hevc-8bit/baseline/stdout.txt.gz",
+    "sha256": "c655975a683abfbdbd454bafee82b4d5669df5cc57f9d1a6308ebb87abd5fdab",
+    "bytes": 5879
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-prototype-matrix\\hevc-8bit\\candidate\\frame.png",
+    "saved": "headless-prototype-matrix/hevc-8bit/candidate/frame.png",
+    "sha256": "7c3f619fdb0d116be5dbc15442c82aecad8a36383f0c80fa6d7b6b12a3e9c5c8",
+    "bytes": 279118
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-prototype-matrix\\hevc-8bit\\candidate\\stderr.txt",
+    "saved": "headless-prototype-matrix/hevc-8bit/candidate/stderr.txt.gz",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-prototype-matrix\\hevc-8bit\\candidate\\stdout.txt",
+    "saved": "headless-prototype-matrix/hevc-8bit/candidate/stdout.txt.gz",
+    "sha256": "7ee5ad9ba6c086f08f3a06e63ad2c9996808ef5b3ad99392401d7eb1e7818f31",
+    "bytes": 5609
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-prototype-matrix\\hevc-10bit\\baseline\\frame.png",
+    "saved": "headless-prototype-matrix/hevc-10bit/baseline/frame.png",
+    "sha256": "e919903586fcc1b163893a710e896e95042ba1184c65f5a7a4749815bde6af01",
+    "bytes": 416184
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-prototype-matrix\\hevc-10bit\\baseline\\stderr.txt",
+    "saved": "headless-prototype-matrix/hevc-10bit/baseline/stderr.txt.gz",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-prototype-matrix\\hevc-10bit\\baseline\\stdout.txt",
+    "saved": "headless-prototype-matrix/hevc-10bit/baseline/stdout.txt.gz",
+    "sha256": "9513a6202396d9d23e14b85d9b208a709784fbb1163c2a092311bb0665b5da5f",
+    "bytes": 8507
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-prototype-matrix\\hevc-10bit\\candidate\\frame.png",
+    "saved": "headless-prototype-matrix/hevc-10bit/candidate/frame.png",
+    "sha256": "e919903586fcc1b163893a710e896e95042ba1184c65f5a7a4749815bde6af01",
+    "bytes": 416184
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-prototype-matrix\\hevc-10bit\\candidate\\stderr.txt",
+    "saved": "headless-prototype-matrix/hevc-10bit/candidate/stderr.txt.gz",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-prototype-matrix\\hevc-10bit\\candidate\\stdout.txt",
+    "saved": "headless-prototype-matrix/hevc-10bit/candidate/stdout.txt.gz",
+    "sha256": "cf59084b916706a1d5c26171ab827bb6ee93a808e6c145a516aa9a1b0fb177ad",
+    "bytes": 8492
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-prototype-matrix\\hdr-pq\\baseline\\frame.png",
+    "saved": "headless-prototype-matrix/hdr-pq/baseline/frame.png",
+    "sha256": "df208d144a5ad353c114b0f5cdf762eea2d2f4d44f4b719b2c76d23195080323",
+    "bytes": 655851
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-prototype-matrix\\hdr-pq\\baseline\\stderr.txt",
+    "saved": "headless-prototype-matrix/hdr-pq/baseline/stderr.txt.gz",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-prototype-matrix\\hdr-pq\\baseline\\stdout.txt",
+    "saved": "headless-prototype-matrix/hdr-pq/baseline/stdout.txt.gz",
+    "sha256": "9297ce35a1a2c75ea76b07cfae491e13017b5fab5477b298b42498600ebb5f69",
+    "bytes": 6110
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-prototype-matrix\\hdr-pq\\candidate\\frame.png",
+    "saved": "headless-prototype-matrix/hdr-pq/candidate/frame.png",
+    "sha256": "df208d144a5ad353c114b0f5cdf762eea2d2f4d44f4b719b2c76d23195080323",
+    "bytes": 655851
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-prototype-matrix\\hdr-pq\\candidate\\stderr.txt",
+    "saved": "headless-prototype-matrix/hdr-pq/candidate/stderr.txt.gz",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-prototype-matrix\\hdr-pq\\candidate\\stdout.txt",
+    "saved": "headless-prototype-matrix/hdr-pq/candidate/stdout.txt.gz",
+    "sha256": "96708cb8654fbbbab6f794584c6552d8df9baff26c58dbdde0b5b086df146db5",
+    "bytes": 6063
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-prototype-matrix\\h264-software\\baseline\\frame.png",
+    "saved": "headless-prototype-matrix/h264-software/baseline/frame.png",
+    "sha256": "71b679c5359cba0b7a6b34fbe378462e7f6bb4351c85b49619337beff3fa3c3b",
+    "bytes": 250403
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-prototype-matrix\\h264-software\\baseline\\stderr.txt",
+    "saved": "headless-prototype-matrix/h264-software/baseline/stderr.txt.gz",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-prototype-matrix\\h264-software\\baseline\\stdout.txt",
+    "saved": "headless-prototype-matrix/h264-software/baseline/stdout.txt.gz",
+    "sha256": "04ce8157e8e0f0799a07c2dd8d4a08ac49b894766c34e413d90cfc28999559a7",
+    "bytes": 5906
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-prototype-matrix\\h264-software\\candidate\\frame.png",
+    "saved": "headless-prototype-matrix/h264-software/candidate/frame.png",
+    "sha256": "71b679c5359cba0b7a6b34fbe378462e7f6bb4351c85b49619337beff3fa3c3b",
+    "bytes": 250403
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-prototype-matrix\\h264-software\\candidate\\stderr.txt",
+    "saved": "headless-prototype-matrix/h264-software/candidate/stderr.txt.gz",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-prototype-matrix\\h264-software\\candidate\\stdout.txt",
+    "saved": "headless-prototype-matrix/h264-software/candidate/stdout.txt.gz",
+    "sha256": "2af5a823ce8265830065650842de6e0d59248a358a49a64d8badb148f1dfbc3c",
+    "bytes": 6148
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-prototype-matrix\\h264-down\\baseline\\frame.png",
+    "saved": "headless-prototype-matrix/h264-down/baseline/frame.png",
+    "sha256": "68afa819bc6327f0058c5b1f8f70be8225a8e33dc347206f61567983e91190e5",
+    "bytes": 249620
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-prototype-matrix\\h264-down\\baseline\\stderr.txt",
+    "saved": "headless-prototype-matrix/h264-down/baseline/stderr.txt.gz",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-prototype-matrix\\h264-down\\baseline\\stdout.txt",
+    "saved": "headless-prototype-matrix/h264-down/baseline/stdout.txt.gz",
+    "sha256": "c665661c45af1e6b9fe1908b3d357cafa1aac577693c3ba37e6ee49095c75129",
+    "bytes": 6002
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-prototype-matrix\\h264-down\\candidate\\frame.png",
+    "saved": "headless-prototype-matrix/h264-down/candidate/frame.png",
+    "sha256": "67809c972c8889030f2eefc864b2d2062c9e8cede97a503c2e50111059ce4e2f",
+    "bytes": 252473
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-prototype-matrix\\h264-down\\candidate\\stderr.txt",
+    "saved": "headless-prototype-matrix/h264-down/candidate/stderr.txt.gz",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-prototype-matrix\\h264-down\\candidate\\stdout.txt",
+    "saved": "headless-prototype-matrix/h264-down/candidate/stdout.txt.gz",
+    "sha256": "97e72000f444a9910efc6c7a4ff1f175a4d79c072001c1a2ce0ce2d577cd2f0d",
+    "bytes": 5732
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-prototype-matrix\\av1-down\\baseline\\frame.png",
+    "saved": "headless-prototype-matrix/av1-down/baseline/frame.png",
+    "sha256": "f284a057ac9d11b0aaa1828ed7f2dd67e4ad3eae762a6097f28ec44ad4531b8d",
+    "bytes": 234538
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-prototype-matrix\\av1-down\\baseline\\stderr.txt",
+    "saved": "headless-prototype-matrix/av1-down/baseline/stderr.txt.gz",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-prototype-matrix\\av1-down\\baseline\\stdout.txt",
+    "saved": "headless-prototype-matrix/av1-down/baseline/stdout.txt.gz",
+    "sha256": "c655975a683abfbdbd454bafee82b4d5669df5cc57f9d1a6308ebb87abd5fdab",
+    "bytes": 5879
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-prototype-matrix\\av1-down\\candidate\\frame.png",
+    "saved": "headless-prototype-matrix/av1-down/candidate/frame.png",
+    "sha256": "641f4f6f4993ceb7cfe460dec3d4c536d860d1650ab74ac2ec932f0080089f25",
+    "bytes": 237861
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-prototype-matrix\\av1-down\\candidate\\stderr.txt",
+    "saved": "headless-prototype-matrix/av1-down/candidate/stderr.txt.gz",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-prototype-matrix\\av1-down\\candidate\\stdout.txt",
+    "saved": "headless-prototype-matrix/av1-down/candidate/stdout.txt.gz",
+    "sha256": "e46b177ee092528cacca17305aae2d741ebac99866dd61615fa1ee40d827bf89",
+    "bytes": 5689
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-prototype-matrix\\alpha\\baseline\\frame.png",
+    "saved": "headless-prototype-matrix/alpha/baseline/frame.png",
+    "sha256": "a04ca1f080b4f80d3047a9ca1af000f5cf4ff89ee8207d07d04aa18d680a756f",
+    "bytes": 639201
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-prototype-matrix\\alpha\\baseline\\stderr.txt",
+    "saved": "headless-prototype-matrix/alpha/baseline/stderr.txt.gz",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-prototype-matrix\\alpha\\baseline\\stdout.txt",
+    "saved": "headless-prototype-matrix/alpha/baseline/stdout.txt.gz",
+    "sha256": "0b3029e8b706857a4bdf9a8d67e3f37d9c469f592c7f0791f6ffb666fd4f4e4a",
+    "bytes": 5872
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-prototype-matrix\\alpha\\candidate\\frame.png",
+    "saved": "headless-prototype-matrix/alpha/candidate/frame.png",
+    "sha256": "a04ca1f080b4f80d3047a9ca1af000f5cf4ff89ee8207d07d04aa18d680a756f",
+    "bytes": 639201
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-prototype-matrix\\alpha\\candidate\\stderr.txt",
+    "saved": "headless-prototype-matrix/alpha/candidate/stderr.txt.gz",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\headless-prototype-matrix\\alpha\\candidate\\stdout.txt",
+    "saved": "headless-prototype-matrix/alpha/candidate/stdout.txt.gz",
+    "sha256": "45fd9291d059f40d4d0c1df7a76723fd4ac93acca17212d556a68b3eb8dd8e18",
+    "bytes": 5905
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\gpu-draw-diagnostic-0\\results.json",
+    "saved": "gpu-draw-diagnostic-0/results.json",
+    "sha256": "20d6449ad3fd4cac70b3018402c9d1fa5be24886dc87243a2aa8839644cf14a9",
+    "bytes": 24514
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\gpu-draw-diagnostic-0\\vp9-up\\baseline\\frame.png",
+    "saved": "gpu-draw-diagnostic-0/vp9-up/baseline/frame.png",
+    "sha256": "f71671f6660e6b554b645a52eaab585c4c99fd5b573ff020e2f0773563809974",
+    "bytes": 375474
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\gpu-draw-diagnostic-0\\vp9-up\\baseline\\stderr.txt",
+    "saved": "gpu-draw-diagnostic-0/vp9-up/baseline/stderr.txt.gz",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\gpu-draw-diagnostic-0\\vp9-up\\baseline\\stdout.txt",
+    "saved": "gpu-draw-diagnostic-0/vp9-up/baseline/stdout.txt.gz",
+    "sha256": "c816168808b87c183b2ba846a98d690b5385cbcb64309edd329aad38d5627ac8",
+    "bytes": 6343
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\gpu-draw-diagnostic-0\\vp9-up\\candidate\\frame.png",
+    "saved": "gpu-draw-diagnostic-0/vp9-up/candidate/frame.png",
+    "sha256": "7b7ccd71090774a021e844ca90e154557cef2dc6831504dc4d22d6acfd93775c",
+    "bytes": 371086
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\gpu-draw-diagnostic-0\\vp9-up\\candidate\\stderr.txt",
+    "saved": "gpu-draw-diagnostic-0/vp9-up/candidate/stderr.txt.gz",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\gpu-draw-diagnostic-0\\vp9-up\\candidate\\stdout.txt",
+    "saved": "gpu-draw-diagnostic-0/vp9-up/candidate/stdout.txt.gz",
+    "sha256": "7f476c783a9faf65a98239c57cea6444a882baf267d3568add637b94501ca450",
+    "bytes": 5805
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\gpu-draw-diagnostic-0\\h264-down\\baseline\\frame.png",
+    "saved": "gpu-draw-diagnostic-0/h264-down/baseline/frame.png",
+    "sha256": "68afa819bc6327f0058c5b1f8f70be8225a8e33dc347206f61567983e91190e5",
+    "bytes": 249620
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\gpu-draw-diagnostic-0\\h264-down\\baseline\\stderr.txt",
+    "saved": "gpu-draw-diagnostic-0/h264-down/baseline/stderr.txt.gz",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\gpu-draw-diagnostic-0\\h264-down\\baseline\\stdout.txt",
+    "saved": "gpu-draw-diagnostic-0/h264-down/baseline/stdout.txt.gz",
+    "sha256": "135f45872cfad9f61500d0985f65ad53e32167f5b69e0e95b173bbeae97fa164",
+    "bytes": 6490
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\gpu-draw-diagnostic-0\\h264-down\\candidate\\frame.png",
+    "saved": "gpu-draw-diagnostic-0/h264-down/candidate/frame.png",
+    "sha256": "67809c972c8889030f2eefc864b2d2062c9e8cede97a503c2e50111059ce4e2f",
+    "bytes": 252473
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\gpu-draw-diagnostic-0\\h264-down\\candidate\\stderr.txt",
+    "saved": "gpu-draw-diagnostic-0/h264-down/candidate/stderr.txt.gz",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\gpu-draw-diagnostic-0\\h264-down\\candidate\\stdout.txt",
+    "saved": "gpu-draw-diagnostic-0/h264-down/candidate/stdout.txt.gz",
+    "sha256": "bd35f38fd1b22090d853ebb67a9820e4dde5c37c127f5ad71915a3b7e44aea0a",
+    "bytes": 5910
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\gpu-draw-diagnostic-1\\results.json",
+    "saved": "gpu-draw-diagnostic-1/results.json",
+    "sha256": "53b2cb91101126be0b58581411debc196036c166220e42dee9a8d58ecdb2eb8d",
+    "bytes": 24611
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\gpu-draw-diagnostic-1\\vp9-up\\baseline\\frame.png",
+    "saved": "gpu-draw-diagnostic-1/vp9-up/baseline/frame.png",
+    "sha256": "f71671f6660e6b554b645a52eaab585c4c99fd5b573ff020e2f0773563809974",
+    "bytes": 375474
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\gpu-draw-diagnostic-1\\vp9-up\\baseline\\stderr.txt",
+    "saved": "gpu-draw-diagnostic-1/vp9-up/baseline/stderr.txt.gz",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\gpu-draw-diagnostic-1\\vp9-up\\baseline\\stdout.txt",
+    "saved": "gpu-draw-diagnostic-1/vp9-up/baseline/stdout.txt.gz",
+    "sha256": "eb66e4a420d01af1f861fc9db9b24287ba30305f115ba645c5b90efc8fdefb78",
+    "bytes": 6340
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\gpu-draw-diagnostic-1\\vp9-up\\candidate\\frame.png",
+    "saved": "gpu-draw-diagnostic-1/vp9-up/candidate/frame.png",
+    "sha256": "7b7ccd71090774a021e844ca90e154557cef2dc6831504dc4d22d6acfd93775c",
+    "bytes": 371086
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\gpu-draw-diagnostic-1\\vp9-up\\candidate\\stderr.txt",
+    "saved": "gpu-draw-diagnostic-1/vp9-up/candidate/stderr.txt.gz",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\gpu-draw-diagnostic-1\\vp9-up\\candidate\\stdout.txt",
+    "saved": "gpu-draw-diagnostic-1/vp9-up/candidate/stdout.txt.gz",
+    "sha256": "629939414e9faa783d1d506b7a9ba4c4ca8b9d35c519b8887a8519bd9ddc8fe7",
+    "bytes": 5803
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\gpu-draw-diagnostic-1\\h264-down\\baseline\\frame.png",
+    "saved": "gpu-draw-diagnostic-1/h264-down/baseline/frame.png",
+    "sha256": "68afa819bc6327f0058c5b1f8f70be8225a8e33dc347206f61567983e91190e5",
+    "bytes": 249620
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\gpu-draw-diagnostic-1\\h264-down\\baseline\\stderr.txt",
+    "saved": "gpu-draw-diagnostic-1/h264-down/baseline/stderr.txt.gz",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\gpu-draw-diagnostic-1\\h264-down\\baseline\\stdout.txt",
+    "saved": "gpu-draw-diagnostic-1/h264-down/baseline/stdout.txt.gz",
+    "sha256": "96afd102a8fd1216de22ff5a0495cf2ac18053df618f482199485602bf6ec571",
+    "bytes": 6490
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\gpu-draw-diagnostic-1\\h264-down\\candidate\\frame.png",
+    "saved": "gpu-draw-diagnostic-1/h264-down/candidate/frame.png",
+    "sha256": "67809c972c8889030f2eefc864b2d2062c9e8cede97a503c2e50111059ce4e2f",
+    "bytes": 252473
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\gpu-draw-diagnostic-1\\h264-down\\candidate\\stderr.txt",
+    "saved": "gpu-draw-diagnostic-1/h264-down/candidate/stderr.txt.gz",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\gpu-draw-diagnostic-1\\h264-down\\candidate\\stdout.txt",
+    "saved": "gpu-draw-diagnostic-1/h264-down/candidate/stdout.txt.gz",
+    "sha256": "790b33141edcd61f6847921e29f96b5e40109981800602d391d1e8b7e36a8d6a",
+    "bytes": 5936
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\gpu-draw-diagnostic-2\\results.json",
+    "saved": "gpu-draw-diagnostic-2/results.json",
+    "sha256": "44f9d5c3e65db98faa0f593ca17cc28a559879a360a992d03716de7b8bf32708",
+    "bytes": 24570
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\gpu-draw-diagnostic-2\\vp9-up\\baseline\\frame.png",
+    "saved": "gpu-draw-diagnostic-2/vp9-up/baseline/frame.png",
+    "sha256": "f71671f6660e6b554b645a52eaab585c4c99fd5b573ff020e2f0773563809974",
+    "bytes": 375474
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\gpu-draw-diagnostic-2\\vp9-up\\baseline\\stderr.txt",
+    "saved": "gpu-draw-diagnostic-2/vp9-up/baseline/stderr.txt.gz",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\gpu-draw-diagnostic-2\\vp9-up\\baseline\\stdout.txt",
+    "saved": "gpu-draw-diagnostic-2/vp9-up/baseline/stdout.txt.gz",
+    "sha256": "704df9a756dcc64010946cc84b006d37eaf16e723421924277e6775ae486a5b3",
+    "bytes": 7934
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\gpu-draw-diagnostic-2\\vp9-up\\candidate\\frame.png",
+    "saved": "gpu-draw-diagnostic-2/vp9-up/candidate/frame.png",
+    "sha256": "7b7ccd71090774a021e844ca90e154557cef2dc6831504dc4d22d6acfd93775c",
+    "bytes": 371086
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\gpu-draw-diagnostic-2\\vp9-up\\candidate\\stderr.txt",
+    "saved": "gpu-draw-diagnostic-2/vp9-up/candidate/stderr.txt.gz",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\gpu-draw-diagnostic-2\\vp9-up\\candidate\\stdout.txt",
+    "saved": "gpu-draw-diagnostic-2/vp9-up/candidate/stdout.txt.gz",
+    "sha256": "c77471a6d233ca22eabf60ba9905923927e97aa5e50dcb11ae85dbb560c36ff9",
+    "bytes": 5803
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\gpu-draw-diagnostic-2\\h264-down\\baseline\\frame.png",
+    "saved": "gpu-draw-diagnostic-2/h264-down/baseline/frame.png",
+    "sha256": "68afa819bc6327f0058c5b1f8f70be8225a8e33dc347206f61567983e91190e5",
+    "bytes": 249620
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\gpu-draw-diagnostic-2\\h264-down\\baseline\\stderr.txt",
+    "saved": "gpu-draw-diagnostic-2/h264-down/baseline/stderr.txt.gz",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\gpu-draw-diagnostic-2\\h264-down\\baseline\\stdout.txt",
+    "saved": "gpu-draw-diagnostic-2/h264-down/baseline/stdout.txt.gz",
+    "sha256": "7770c1d0afd40e5aca05021f9053b16814e4743cf18b40de294ec91b5387c4ff",
+    "bytes": 6508
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\gpu-draw-diagnostic-2\\h264-down\\candidate\\frame.png",
+    "saved": "gpu-draw-diagnostic-2/h264-down/candidate/frame.png",
+    "sha256": "67809c972c8889030f2eefc864b2d2062c9e8cede97a503c2e50111059ce4e2f",
+    "bytes": 252473
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\gpu-draw-diagnostic-2\\h264-down\\candidate\\stderr.txt",
+    "saved": "gpu-draw-diagnostic-2/h264-down/candidate/stderr.txt.gz",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\gpu-draw-diagnostic-2\\h264-down\\candidate\\stdout.txt",
+    "saved": "gpu-draw-diagnostic-2/h264-down/candidate/stdout.txt.gz",
+    "sha256": "7880fc192d4d007c49c8ff15820e810c816270a04cae04bab1f3ad6108b7cfaf",
+    "bytes": 5701
+  },
+  {
+    "source": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-build\\direct-nv12-filter\\build-provenance.json",
+    "saved": "build-provenance.json",
+    "sha256": "11bf3210b2134ccf21d5081413fac6fc9ab29f323e97f274712507732c39078f",
+    "bytes": 16415
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\portable-candidate\\manifest.json",
+    "saved": "package-manifest.json",
+    "sha256": "c67f503beb14e28b039645d407530c844838e2d978143be5c70ab264f61a3898",
+    "bytes": 2200
+  },
+  {
+    "source": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-b5dce0f4826441769f177fa1b88b9775\\geometry-0.png",
+    "saved": "native-functional/geometry-0.png",
+    "sha256": "17b5ffde62b3601f64cc3931ea5618e3f9d163bd4b69883a95c55bc59ab99e60",
+    "bytes": 91207
+  },
+  {
+    "source": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-b5dce0f4826441769f177fa1b88b9775\\geometry-1.png",
+    "saved": "native-functional/geometry-1.png",
+    "sha256": "d4c449a0080907202cd341264f4de96c476e2b0ecc2369377eeadf0f681a8ee0",
+    "bytes": 170204
+  },
+  {
+    "source": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-b5dce0f4826441769f177fa1b88b9775\\geometry-2.png",
+    "saved": "native-functional/geometry-2.png",
+    "sha256": "19653925cdb59f414bc0a993fcf00403cbccedce77d6c4f17a737921100a7a66",
+    "bytes": 41338
+  },
+  {
+    "source": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-b5dce0f4826441769f177fa1b88b9775\\geometry-3.png",
+    "saved": "native-functional/geometry-3.png",
+    "sha256": "17b5ffde62b3601f64cc3931ea5618e3f9d163bd4b69883a95c55bc59ab99e60",
+    "bytes": 91207
+  },
+  {
+    "source": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-b5dce0f4826441769f177fa1b88b9775\\geometry-4.png",
+    "saved": "native-functional/geometry-4.png",
+    "sha256": "4836cf96f28d79900d414f67101e6af63a14e488d9490a54f2c40a8ec3711e4d",
+    "bytes": 60557
+  },
+  {
+    "source": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-b5dce0f4826441769f177fa1b88b9775\\geometry-5.png",
+    "saved": "native-functional/geometry-5.png",
+    "sha256": "3154e2f0dc85c37bc5600127199dca6b1f38e8bcf7ecf9525384d13423370d93",
+    "bytes": 134297
+  },
+  {
+    "source": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-b5dce0f4826441769f177fa1b88b9775\\geometry-6.png",
+    "saved": "native-functional/geometry-6.png",
+    "sha256": "2f577e388ee1698dc7548b06de6e2630aec079c71d78ee2d74a39224b70ae69b",
+    "bytes": 202720
+  },
+  {
+    "source": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-b5dce0f4826441769f177fa1b88b9775\\summary.json",
+    "saved": "native-functional/summary.json",
+    "sha256": "3558c477073705f3f8af422430ec8f38e1f53409491be78127d1903c77790cea",
+    "bytes": 615
+  },
+  {
+    "source": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\tests\\libmpv\\mpv_playback_test.cpp",
+    "saved": "producer/source/tests/libmpv/mpv_playback_test.cpp",
+    "sha256": "e3526abf1064b7ccbfc628054711ad609b5d37cc976a160cbffc115c4377a7b9",
+    "bytes": 48632
+  },
+  {
+    "source": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\tests\\libmpv\\playback_frame_check.h",
+    "saved": "producer/source/tests/libmpv/playback_frame_check.h",
+    "sha256": "ad5f5dc0589613ae9ec1bd0e317d7e11c5dbada4124a4becfe3c15ab663c1b04",
+    "bytes": 3972
+  },
+  {
+    "source": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\tests\\libmpv\\playback_render_options.h",
+    "saved": "producer/source/tests/libmpv/playback_render_options.h",
+    "sha256": "14843309113eb472f2e0dcd50da6186d26bfbf83267050825d00dbe985a08ddc",
+    "bytes": 1622
+  },
+  {
+    "source": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\tests\\libmpv\\playback_geometry.h",
+    "saved": "producer/source/tests/libmpv/playback_geometry.h",
+    "sha256": "f4c773fde2397d33bedc1f9de0de0c3954f7d43e9883e2c4e6e1a628bf21c4dc",
+    "bytes": 4625
+  },
+  {
+    "source": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\tests\\support\\TestFramework.h",
+    "saved": "producer/source/tests/support/TestFramework.h",
+    "sha256": "e503ca6ede9aaaa4fa58700ca4ee4f6e626e6101d69de02d0d3c7cfbb92b942b",
+    "bytes": 6060
+  },
+  {
+    "source": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\tests\\support\\TestRunner.h",
+    "saved": "producer/source/tests/support/TestRunner.h",
+    "sha256": "9268037a7470557645ae0d6d7e16bbbc6702dad8d8c3dfd23bfea9df3b9b97f3",
+    "bytes": 4302
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\checkpoint-fixture-failure.log",
+    "saved": "logs/checkpoint-fixture-failure.log.gz",
+    "sha256": "3dd05bddf8025c0d11fb85f1c42d14b36566e42bc450f5712d79f4555bd72144",
+    "bytes": 6615
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\checkpoint-tests.log",
+    "saved": "logs/checkpoint-tests.log.gz",
+    "sha256": "4b8cbcdedbbdc41c1e0408767f7e4cffe4aadcad1a266dd3d083323d46e91f6f",
+    "bytes": 122
+  },
+  {
+    "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\chart-tests.log",
+    "saved": "logs/chart-tests.log.gz",
+    "sha256": "26446c07ddaf62c7fc02a3f291ece6835b08bad412a582cc39ffb88a48fff829",
+    "bytes": 939
+  },
+  {
+    "source": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\tests\\benchmark\\test_checkpoints.py",
+    "saved": "producer/source/tests/benchmark/test_checkpoints.py",
+    "sha256": "70f20d1320e474aaf3c81f457eb40cea3a18bb226277f7a3c26bc1f4695db3c3",
+    "bytes": 9575
+  },
+  {
+    "source": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\tests\\benchmark\\test_checkpoint_charts.cjs",
+    "saved": "producer/source/tests/benchmark/test_checkpoint_charts.cjs",
+    "sha256": "48e1279eb201260cefcf620da92355f554685c52eb35a520d342e40baedec5e3",
+    "bytes": 8453
+  }
+]

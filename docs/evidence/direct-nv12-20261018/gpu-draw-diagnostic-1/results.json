@@ -1,0 +1,751 @@
+{
+  "createdUtc": "2026-10-18T20:28:31.791919+00:00",
+  "visibility": "hidden-correctness-only",
+  "gpuTiming": "yes",
+  "scope": "Exact paused time 2s, rendered GPU screenshot. No playback CPU/RAM/throughput ranking. No VLC process. HDR differences are reported without a pixel bound because adaptive peak history can vary.",
+  "probe": {
+    "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-deefef25a3514dcea2115730ec997a33\\mpv_playback_test.exe",
+    "sha256": "271f44eefdaf730365ddd3f7017c51f9fc93d297c767817fc8ac1f9be999b68d"
+  },
+  "libraries": {
+    "baseline": {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-build\\direct-nv12-filter\\libmpv-2.dll",
+      "sha256": "8dd14629f574a04a1d6904104be8748e73954d9ac5aef07cc36f1a34ee752daa"
+    },
+    "candidate": {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-build\\direct-nv12-filter\\libmpv-2.dll",
+      "sha256": "8dd14629f574a04a1d6904104be8748e73954d9ac5aef07cc36f1a34ee752daa"
+    }
+  },
+  "cases": [
+    {
+      "id": "h264-down",
+      "dir": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017",
+      "file": "h264-1080p30-audio.mp4",
+      "direct": "yes",
+      "limit": 1,
+      "fixtureSha256": "86c249a196158ca2479bb9dd6e0045f24cbcbd2e04a80a41e37c2f6b78f70e68",
+      "variants": [
+        {
+          "variant": "candidate",
+          "startedUtc": "2026-10-18T20:28:31.944617+00:00",
+          "arguments": [
+            "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-deefef25a3514dcea2115730ec997a33\\mpv_playback_test.exe",
+            "--dll",
+            "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-build\\direct-nv12-filter\\libmpv-2.dll",
+            "--media",
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017",
+            "--scenario",
+            "framecheck",
+            "--headless",
+            "--resource-file",
+            "h264-1080p30-audio.mp4",
+            "--capture-window",
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\gpu-draw-diagnostic-1\\h264-down\\candidate\\frame.png",
+            "--scaling",
+            "balanced",
+            "--gpu-timing",
+            "yes",
+            "--vertex-cache-entries",
+            "4",
+            "--resource-hwdec",
+            "d3d11va",
+            "--fbo-diagnostics",
+            "--scale-direct-nv12",
+            "yes"
+          ],
+          "checksPassed": 9,
+          "frame": {
+            "headless": true,
+            "position": 2.0,
+            "hwdec": "d3d11va",
+            "selected_fbo": "rgba16hf",
+            "direct_filter": "yes"
+          },
+          "renderOptions": {
+            "scale": "lanczos",
+            "dscale": "hermite",
+            "cscale": "bilinear",
+            "linear-downscaling": "no",
+            "correct-downscaling": "yes",
+            "sigmoid-upscaling": "no",
+            "dither-depth": "auto",
+            "dither": "fruit",
+            "target-colorspace-hint": "auto",
+            "fbo-format": "auto",
+            "d3d11-gpu-timing": "yes",
+            "d3d11-vertex-cache-entries": "4",
+            "scale-direct-nv12": "yes",
+            "video-zoom": "0.000000",
+            "video-rotate": "0",
+            "video-params/hw-pixelformat": "nv12",
+            "video-out-params/pixelformat": "d3d11",
+            "video-params/primaries": "bt.709",
+            "video-params/gamma": "bt.1886",
+            "video-params/alpha": "none"
+          },
+          "renderPasses": {
+            "fresh": [
+              {
+                "desc": "map frame (hwdec)",
+                "last": 22528,
+                "avg": 21888,
+                "peak": 23552,
+                "count": 8,
+                "samples": [
+                  20480,
+                  21504,
+                  22528,
+                  21504,
+                  23552,
+                  20480,
+                  22528,
+                  22528
+                ]
+              },
+              {
+                "desc": "direct NV12 hermite (4x4) + color conversion + output to screen",
+                "last": 62464,
+                "avg": 63872,
+                "peak": 77824,
+                "count": 8,
+                "samples": [
+                  77824,
+                  61440,
+                  61440,
+                  60416,
+                  62464,
+                  62464,
+                  62464,
+                  62464
+                ]
+              },
+              {
+                "desc": "drawing osd",
+                "last": 1024,
+                "avg": 1024,
+                "peak": 1024,
+                "count": 1,
+                "samples": [
+                  1024
+                ]
+              }
+            ],
+            "redraw": [
+              {
+                "desc": "direct NV12 hermite (4x4) + color conversion + output to screen",
+                "last": 62464,
+                "avg": 63590,
+                "peak": 77824,
+                "count": 10,
+                "samples": [
+                  77824,
+                  61440,
+                  61440,
+                  60416,
+                  62464,
+                  62464,
+                  62464,
+                  62464,
+                  62464,
+                  62464
+                ]
+              },
+              {
+                "desc": "drawing osd",
+                "last": 1024,
+                "avg": 1024,
+                "peak": 1024,
+                "count": 1,
+                "samples": [
+                  1024
+                ]
+              }
+            ]
+          },
+          "captureSha256": "67809c972c8889030f2eefc864b2d2062c9e8cede97a503c2e50111059ce4e2f"
+        },
+        {
+          "variant": "baseline",
+          "startedUtc": "2026-10-18T20:28:33.348608+00:00",
+          "arguments": [
+            "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-deefef25a3514dcea2115730ec997a33\\mpv_playback_test.exe",
+            "--dll",
+            "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-build\\direct-nv12-filter\\libmpv-2.dll",
+            "--media",
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017",
+            "--scenario",
+            "framecheck",
+            "--headless",
+            "--resource-file",
+            "h264-1080p30-audio.mp4",
+            "--capture-window",
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\gpu-draw-diagnostic-1\\h264-down\\baseline\\frame.png",
+            "--scaling",
+            "balanced",
+            "--gpu-timing",
+            "yes",
+            "--vertex-cache-entries",
+            "4",
+            "--resource-hwdec",
+            "d3d11va",
+            "--fbo-diagnostics"
+          ],
+          "checksPassed": 9,
+          "frame": {
+            "headless": true,
+            "position": 2.0,
+            "hwdec": "d3d11va",
+            "selected_fbo": "rgba16hf",
+            "direct_filter": "no"
+          },
+          "renderOptions": {
+            "scale": "lanczos",
+            "dscale": "hermite",
+            "cscale": "bilinear",
+            "linear-downscaling": "no",
+            "correct-downscaling": "yes",
+            "sigmoid-upscaling": "no",
+            "dither-depth": "auto",
+            "dither": "fruit",
+            "target-colorspace-hint": "auto",
+            "fbo-format": "auto",
+            "d3d11-gpu-timing": "yes",
+            "d3d11-vertex-cache-entries": "4",
+            "scale-direct-nv12": "no",
+            "video-zoom": "0.000000",
+            "video-rotate": "0",
+            "video-params/hw-pixelformat": "nv12",
+            "video-out-params/pixelformat": "d3d11",
+            "video-params/primaries": "bt.709",
+            "video-params/gamma": "bt.1886",
+            "video-params/alpha": "none"
+          },
+          "renderPasses": {
+            "fresh": [
+              {
+                "desc": "map frame (hwdec)",
+                "last": 21504,
+                "avg": 21888,
+                "peak": 23552,
+                "count": 8,
+                "samples": [
+                  22528,
+                  21504,
+                  22528,
+                  23552,
+                  21504,
+                  21504,
+                  20480,
+                  21504
+                ]
+              },
+              {
+                "desc": "combining planes + color conversion",
+                "last": 32768,
+                "avg": 30592,
+                "peak": 37888,
+                "count": 8,
+                "samples": [
+                  37888,
+                  26624,
+                  29696,
+                  29696,
+                  29696,
+                  28672,
+                  29696,
+                  32768
+                ]
+              },
+              {
+                "desc": "dscale=hermite (rgb)",
+                "last": 24576,
+                "avg": 5208704,
+                "peak": 41497600,
+                "count": 8,
+                "samples": [
+                  41497600,
+                  23552,
+                  23552,
+                  23552,
+                  22528,
+                  23552,
+                  30720,
+                  24576
+                ]
+              },
+              {
+                "desc": "hermite second pass + output to screen",
+                "last": 17408,
+                "avg": 19840,
+                "peak": 37888,
+                "count": 8,
+                "samples": [
+                  37888,
+                  16384,
+                  17408,
+                  17408,
+                  17408,
+                  17408,
+                  17408,
+                  17408
+                ]
+              },
+              {
+                "desc": "drawing osd",
+                "last": 0,
+                "avg": 0,
+                "peak": 0,
+                "count": 0,
+                "samples": []
+              }
+            ],
+            "redraw": [
+              {
+                "desc": "combining planes + color conversion",
+                "last": 29696,
+                "avg": 30412,
+                "peak": 37888,
+                "count": 10,
+                "samples": [
+                  37888,
+                  26624,
+                  29696,
+                  29696,
+                  29696,
+                  28672,
+                  29696,
+                  32768,
+                  29696,
+                  29696
+                ]
+              },
+              {
+                "desc": "dscale=hermite (rgb)",
+                "last": 23552,
+                "avg": 4171673,
+                "peak": 41497600,
+                "count": 10,
+                "samples": [
+                  41497600,
+                  23552,
+                  23552,
+                  23552,
+                  22528,
+                  23552,
+                  30720,
+                  24576,
+                  23552,
+                  23552
+                ]
+              },
+              {
+                "desc": "hermite second pass + output to screen",
+                "last": 17408,
+                "avg": 19353,
+                "peak": 37888,
+                "count": 10,
+                "samples": [
+                  37888,
+                  16384,
+                  17408,
+                  17408,
+                  17408,
+                  17408,
+                  17408,
+                  17408,
+                  17408,
+                  17408
+                ]
+              },
+              {
+                "desc": "drawing osd",
+                "last": 0,
+                "avg": 0,
+                "peak": 0,
+                "count": 0,
+                "samples": []
+              }
+            ]
+          },
+          "captureSha256": "68afa819bc6327f0058c5b1f8f70be8225a8e33dc347206f61567983e91190e5"
+        }
+      ],
+      "status": "pass",
+      "pixels": {
+        "size": [
+          1264,
+          761
+        ],
+        "meanAbsoluteChannelError": 0.021219373243067916,
+        "maximumChannelError": 1,
+        "psnrDb": 64.86347808875492,
+        "fractionPixelsDiffer": 0.06253742577221844,
+        "limit": 1
+      }
+    },
+    {
+      "id": "vp9-up",
+      "dir": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\media",
+      "file": "vp9_opus.webm",
+      "direct": "yes",
+      "limit": 1,
+      "fixtureSha256": "528795a1a00230900f2ade0e62cfe4d789f5b093e817d2ef4a21cdac44428063",
+      "variants": [
+        {
+          "variant": "candidate",
+          "startedUtc": "2026-10-18T20:28:34.820480+00:00",
+          "arguments": [
+            "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-deefef25a3514dcea2115730ec997a33\\mpv_playback_test.exe",
+            "--dll",
+            "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-build\\direct-nv12-filter\\libmpv-2.dll",
+            "--media",
+            "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\media",
+            "--scenario",
+            "framecheck",
+            "--headless",
+            "--resource-file",
+            "vp9_opus.webm",
+            "--capture-window",
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\gpu-draw-diagnostic-1\\vp9-up\\candidate\\frame.png",
+            "--scaling",
+            "balanced",
+            "--gpu-timing",
+            "yes",
+            "--vertex-cache-entries",
+            "4",
+            "--resource-hwdec",
+            "d3d11va",
+            "--fbo-diagnostics",
+            "--scale-direct-nv12",
+            "yes"
+          ],
+          "checksPassed": 9,
+          "frame": {
+            "headless": true,
+            "position": 2.0,
+            "hwdec": "d3d11va",
+            "selected_fbo": "rgba16hf",
+            "direct_filter": "yes"
+          },
+          "renderOptions": {
+            "scale": "lanczos",
+            "dscale": "hermite",
+            "cscale": "bilinear",
+            "linear-downscaling": "no",
+            "correct-downscaling": "yes",
+            "sigmoid-upscaling": "no",
+            "dither-depth": "auto",
+            "dither": "fruit",
+            "target-colorspace-hint": "auto",
+            "fbo-format": "auto",
+            "d3d11-gpu-timing": "yes",
+            "d3d11-vertex-cache-entries": "4",
+            "scale-direct-nv12": "yes",
+            "video-zoom": "0.000000",
+            "video-rotate": "0",
+            "video-params/hw-pixelformat": "nv12",
+            "video-out-params/pixelformat": "d3d11",
+            "video-params/primaries": "bt.709",
+            "video-params/gamma": "bt.1886",
+            "video-params/alpha": "none"
+          },
+          "renderPasses": {
+            "fresh": [
+              {
+                "desc": "map frame (hwdec)",
+                "last": 8192,
+                "avg": 9216,
+                "peak": 10240,
+                "count": 8,
+                "samples": [
+                  10240,
+                  9216,
+                  9216,
+                  9216,
+                  10240,
+                  9216,
+                  8192,
+                  8192
+                ]
+              },
+              {
+                "desc": "direct NV12 lanczos (6x6) + color conversion + output to screen",
+                "last": 117760,
+                "avg": 128256,
+                "peak": 200704,
+                "count": 8,
+                "samples": [
+                  200704,
+                  117760,
+                  116736,
+                  116736,
+                  120832,
+                  116736,
+                  118784,
+                  117760
+                ]
+              },
+              {
+                "desc": "drawing osd",
+                "last": 0,
+                "avg": 0,
+                "peak": 0,
+                "count": 0,
+                "samples": []
+              }
+            ],
+            "redraw": [
+              {
+                "desc": "direct NV12 lanczos (6x6) + color conversion + output to screen",
+                "last": 117760,
+                "avg": 126156,
+                "peak": 200704,
+                "count": 10,
+                "samples": [
+                  200704,
+                  117760,
+                  116736,
+                  116736,
+                  120832,
+                  116736,
+                  118784,
+                  117760,
+                  117760,
+                  117760
+                ]
+              },
+              {
+                "desc": "drawing osd",
+                "last": 0,
+                "avg": 0,
+                "peak": 0,
+                "count": 0,
+                "samples": []
+              }
+            ]
+          },
+          "captureSha256": "7b7ccd71090774a021e844ca90e154557cef2dc6831504dc4d22d6acfd93775c"
+        },
+        {
+          "variant": "baseline",
+          "startedUtc": "2026-10-18T20:28:36.246190+00:00",
+          "arguments": [
+            "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-deefef25a3514dcea2115730ec997a33\\mpv_playback_test.exe",
+            "--dll",
+            "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-build\\direct-nv12-filter\\libmpv-2.dll",
+            "--media",
+            "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\media",
+            "--scenario",
+            "framecheck",
+            "--headless",
+            "--resource-file",
+            "vp9_opus.webm",
+            "--capture-window",
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\gpu-draw-diagnostic-1\\vp9-up\\baseline\\frame.png",
+            "--scaling",
+            "balanced",
+            "--gpu-timing",
+            "yes",
+            "--vertex-cache-entries",
+            "4",
+            "--resource-hwdec",
+            "d3d11va",
+            "--fbo-diagnostics"
+          ],
+          "checksPassed": 9,
+          "frame": {
+            "headless": true,
+            "position": 2.0,
+            "hwdec": "d3d11va",
+            "selected_fbo": "rgba16hf",
+            "direct_filter": "no"
+          },
+          "renderOptions": {
+            "scale": "lanczos",
+            "dscale": "hermite",
+            "cscale": "bilinear",
+            "linear-downscaling": "no",
+            "correct-downscaling": "yes",
+            "sigmoid-upscaling": "no",
+            "dither-depth": "auto",
+            "dither": "fruit",
+            "target-colorspace-hint": "auto",
+            "fbo-format": "auto",
+            "d3d11-gpu-timing": "yes",
+            "d3d11-vertex-cache-entries": "4",
+            "scale-direct-nv12": "no",
+            "video-zoom": "0.000000",
+            "video-rotate": "0",
+            "video-params/hw-pixelformat": "nv12",
+            "video-out-params/pixelformat": "d3d11",
+            "video-params/primaries": "bt.709",
+            "video-params/gamma": "bt.1886",
+            "video-params/alpha": "none"
+          },
+          "renderPasses": {
+            "fresh": [
+              {
+                "desc": "map frame (hwdec)",
+                "last": 10240,
+                "avg": 9600,
+                "peak": 11264,
+                "count": 8,
+                "samples": [
+                  11264,
+                  9216,
+                  9216,
+                  8192,
+                  10240,
+                  9216,
+                  9216,
+                  10240
+                ]
+              },
+              {
+                "desc": "combining planes + color conversion",
+                "last": 8192,
+                "avg": 10112,
+                "peak": 23552,
+                "count": 8,
+                "samples": [
+                  23552,
+                  7168,
+                  8192,
+                  7168,
+                  8192,
+                  9216,
+                  9216,
+                  8192
+                ]
+              },
+              {
+                "desc": "scale=lanczos (rgb)",
+                "last": 12288,
+                "avg": 5648896,
+                "peak": 45099008,
+                "count": 8,
+                "samples": [
+                  45099008,
+                  13312,
+                  13312,
+                  12288,
+                  14336,
+                  13312,
+                  13312,
+                  12288
+                ]
+              },
+              {
+                "desc": "lanczos second pass + output to screen",
+                "last": 25600,
+                "avg": 27136,
+                "peak": 44032,
+                "count": 8,
+                "samples": [
+                  44032,
+                  23552,
+                  24576,
+                  24576,
+                  24576,
+                  25600,
+                  24576,
+                  25600
+                ]
+              },
+              {
+                "desc": "drawing osd",
+                "last": 0,
+                "avg": 0,
+                "peak": 0,
+                "count": 0,
+                "samples": []
+              }
+            ],
+            "redraw": [
+              {
+                "desc": "combining planes + color conversion",
+                "last": 9216,
+                "avg": 9830,
+                "peak": 23552,
+                "count": 10,
+                "samples": [
+                  23552,
+                  7168,
+                  8192,
+                  7168,
+                  8192,
+                  9216,
+                  9216,
+                  8192,
+                  8192,
+                  9216
+                ]
+              },
+              {
+                "desc": "scale=lanczos (rgb)",
+                "last": 13312,
+                "avg": 4521779,
+                "peak": 45099008,
+                "count": 10,
+                "samples": [
+                  45099008,
+                  13312,
+                  13312,
+                  12288,
+                  14336,
+                  13312,
+                  13312,
+                  12288,
+                  13312,
+                  13312
+                ]
+              },
+              {
+                "desc": "lanczos second pass + output to screen",
+                "last": 24576,
+                "avg": 26624,
+                "peak": 44032,
+                "count": 10,
+                "samples": [
+                  44032,
+                  23552,
+                  24576,
+                  24576,
+                  24576,
+                  25600,
+                  24576,
+                  25600,
+                  24576,
+                  24576
+                ]
+              },
+              {
+                "desc": "drawing osd",
+                "last": 0,
+                "avg": 0,
+                "peak": 0,
+                "count": 0,
+                "samples": []
+              }
+            ]
+          },
+          "captureSha256": "f71671f6660e6b554b645a52eaab585c4c99fd5b573ff020e2f0773563809974"
+        }
+      ],
+      "status": "pass",
+      "pixels": {
+        "size": [
+          1264,
+          761
+        ],
+        "meanAbsoluteChannelError": 0.030335321057680047,
+        "maximumChannelError": 1,
+        "psnrDb": 63.3113176515333,
+        "fractionPixelsDiffer": 0.08923135780701608,
+        "limit": 1
+      }
+    }
+  ],
+  "completedUtc": "2026-10-18T20:28:37.723301+00:00"
+}

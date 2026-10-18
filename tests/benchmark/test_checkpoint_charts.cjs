@@ -22,6 +22,21 @@ function test(name, fn) {
   fn(); checks++; process.stdout.write(`PASS ${name}\n`);
 }
 
+test('Validation records leave the latest actual measurement selected', () => {
+  const measured = {id: 'measured', results: [{value: 12}]};
+  const empty = {id: 'validation', results: []};
+  const missing = {id: 'unmeasured', results: [{value: null}]};
+  assert.equal(context.latestMeasured([measured, empty, missing]).id, 'measured');
+  assert.equal(context.latestMeasured([empty, missing]), undefined);
+  assert.equal(context.latestMeasured([empty, {id: 'zero', results: [{value: 0}]}]).id, 'zero');
+  const previous = context.ordered;
+  const r = DATA.checkpoints.find(c => c.id === 'players-20261014').results.find(r => r.metric === 'visible-ms');
+  const before = context.historyPoints(context.seriesKey(r)).map(p => p.id).join(',');
+  context.ordered = [...previous, empty]; context.visible.add(empty.id);
+  assert.equal(context.historyPoints(context.seriesKey(r)).map(p => p.id).join(','), before);
+  context.ordered = previous; context.visible.delete(empty.id);
+});
+
 test('Aperture playback is a dated history, not just the latest pair', () => {
   const cp = DATA.checkpoints.find(c => c.id === 'players-20261014');
   const r = cp.results.find(r => r.metric === 'visible-ms');

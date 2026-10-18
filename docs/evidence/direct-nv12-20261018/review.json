@@ -1,0 +1,331 @@
+{
+  "recordedUtc": "2026-10-18T20:43:19.711850+00:00",
+  "status": "Bundled and enabled; local portable candidate built and verified without launching/installing it. Overall performance victory over VLC remains unproven.",
+  "change": "Compatible 8-bit SDR NV12 filtering retains the existing separable LUT weights and bilinear chroma, skips full-sized RGB intermediates, and retires stale scaling targets on re-entry. No lower-precision framebuffer policy. Unsupported/specialized settings retain the original path.",
+  "quality": [
+    {
+      "case": "h264-down",
+      "expectedPath": "yes",
+      "pixels": {
+        "size": [
+          1264,
+          761
+        ],
+        "meanAbsoluteChannelError": 0.021219373243067916,
+        "maximumChannelError": 1,
+        "psnrDb": 64.86347808875492,
+        "fractionPixelsDiffer": 0.06253742577221844,
+        "limit": 1
+      },
+      "status": "pass"
+    },
+    {
+      "case": "av1-down",
+      "expectedPath": "yes",
+      "pixels": {
+        "size": [
+          1264,
+          761
+        ],
+        "meanAbsoluteChannelError": 0.021090808784799037,
+        "maximumChannelError": 1,
+        "psnrDb": 64.88987126598299,
+        "fractionPixelsDiffer": 0.06212782148738338,
+        "limit": 1
+      },
+      "status": "pass"
+    },
+    {
+      "case": "vp9-up",
+      "expectedPath": "yes",
+      "pixels": {
+        "size": [
+          1264,
+          761
+        ],
+        "meanAbsoluteChannelError": 0.030335321057680047,
+        "maximumChannelError": 1,
+        "psnrDb": 63.3113176515333,
+        "fractionPixelsDiffer": 0.08923135780701608,
+        "limit": 1
+      },
+      "status": "pass"
+    },
+    {
+      "case": "hevc-8bit",
+      "expectedPath": "yes",
+      "pixels": {
+        "size": [
+          1264,
+          761
+        ],
+        "meanAbsoluteChannelError": 0.02023867939697378,
+        "maximumChannelError": 1,
+        "psnrDb": 65.06898190117072,
+        "fractionPixelsDiffer": 0.05954128478517606,
+        "limit": 1
+      },
+      "status": "pass"
+    },
+    {
+      "case": "hevc-10bit",
+      "expectedPath": "no",
+      "pixels": {
+        "size": [
+          1264,
+          761
+        ],
+        "meanAbsoluteChannelError": 0.0,
+        "maximumChannelError": 0,
+        "psnrDb": null,
+        "fractionPixelsDiffer": 0.0,
+        "limit": 0
+      },
+      "status": "pass"
+    },
+    {
+      "case": "hdr-pq",
+      "expectedPath": "no",
+      "pixels": {
+        "size": [
+          1264,
+          761
+        ],
+        "meanAbsoluteChannelError": 0.0009002977428100933,
+        "maximumChannelError": 1,
+        "psnrDb": 78.58694199567503,
+        "fractionPixelsDiffer": 0.002694655599727258,
+        "limit": null
+      },
+      "status": "fallback-verified-pixels-reported"
+    },
+    {
+      "case": "alpha",
+      "expectedPath": "no",
+      "pixels": {
+        "size": [
+          1264,
+          761
+        ],
+        "meanAbsoluteChannelError": 0.0,
+        "maximumChannelError": 0,
+        "psnrDb": null,
+        "fractionPixelsDiffer": 0.0,
+        "limit": 0
+      },
+      "status": "pass"
+    },
+    {
+      "case": "h264-software",
+      "expectedPath": "no",
+      "pixels": {
+        "size": [
+          1264,
+          761
+        ],
+        "meanAbsoluteChannelError": 0.0,
+        "maximumChannelError": 0,
+        "psnrDb": null,
+        "fractionPixelsDiffer": 0.0,
+        "limit": 0
+      },
+      "status": "pass"
+    },
+    {
+      "case": "native-quality",
+      "expectedPath": "no",
+      "pixels": {
+        "size": [
+          1264,
+          761
+        ],
+        "meanAbsoluteChannelError": 0.0,
+        "maximumChannelError": 0,
+        "psnrDb": null,
+        "fractionPixelsDiffer": 0.0,
+        "limit": 0
+      },
+      "status": "pass"
+    },
+    {
+      "case": "explicit-float",
+      "expectedPath": "no",
+      "pixels": {
+        "size": [
+          1264,
+          761
+        ],
+        "meanAbsoluteChannelError": 0.0,
+        "maximumChannelError": 0,
+        "psnrDb": null,
+        "fractionPixelsDiffer": 0.0,
+        "limit": 0
+      },
+      "status": "pass"
+    },
+    {
+      "case": "explicit-rgba8",
+      "expectedPath": "no",
+      "pixels": {
+        "size": [
+          1264,
+          761
+        ],
+        "meanAbsoluteChannelError": 0.0,
+        "maximumChannelError": 0,
+        "psnrDb": null,
+        "fractionPixelsDiffer": 0.0,
+        "limit": 0
+      },
+      "status": "pass"
+    },
+    {
+      "case": "compute-dither",
+      "expectedPath": "no",
+      "pixels": {
+        "size": [
+          1264,
+          761
+        ],
+        "meanAbsoluteChannelError": 0.0,
+        "maximumChannelError": 0,
+        "psnrDb": null,
+        "fractionPixelsDiffer": 0.0,
+        "limit": 0
+      },
+      "status": "pass"
+    },
+    {
+      "case": "zoom-crop",
+      "expectedPath": "no",
+      "pixels": {
+        "size": [
+          1264,
+          761
+        ],
+        "meanAbsoluteChannelError": 0.0,
+        "maximumChannelError": 0,
+        "psnrDb": null,
+        "fractionPixelsDiffer": 0.0,
+        "limit": 0
+      },
+      "status": "pass"
+    },
+    {
+      "case": "rotated",
+      "expectedPath": "no",
+      "pixels": {
+        "size": [
+          1264,
+          761
+        ],
+        "meanAbsoluteChannelError": 0.0,
+        "maximumChannelError": 0,
+        "psnrDb": null,
+        "fractionPixelsDiffer": 0.0,
+        "limit": 0
+      },
+      "status": "pass"
+    }
+  ],
+  "validation": {
+    "nativeFunctional": {
+      "passed": 79,
+      "total": 79,
+      "scope": "Hidden correctness, balanced filtering, timing disabled/cache4/direct=yes. Includes hardware and libdav1d AV1, controls, geometry/reconfigure, audio and localhost playback. Does not establish visible presentation cadence."
+    },
+    "frameCases": {
+      "passed": 14,
+      "total": 14,
+      "scope": "28 isolated frame runs. Actual path proved by redraw descriptions, exact 2s position, decoder verified, detailed nonblank picture, paired pixels. Thirteen cases enforce pixel bounds; adaptive HDR verifies fallback and reports pixels without a strict bound."
+    },
+    "appUnit": {
+      "passed": 52,
+      "total": 53,
+      "skipped": 1,
+      "scope": "Desktop PlaybackSession geometry explicitly deferred; never counted as passed."
+    },
+    "oldEngineCompatibility": {
+      "passed": 1,
+      "total": 1
+    },
+    "sourcePatchTests": {
+      "passed": 7,
+      "total": 7
+    },
+    "visibilityPreflightGuards": {
+      "passed": 4,
+      "total": 4
+    },
+    "chartChecks": {
+      "passed": 14,
+      "total": 14
+    },
+    "dependencyInventory": {
+      "files": 20,
+      "errors": 0,
+      "warnings": 0
+    },
+    "package": "10 runtime files; Read-AperturePackage cryptographic verification passed. Not installed or launched.",
+    "checkpointDataChecks": {
+      "passed": 18,
+      "total": 18
+    }
+  },
+  "gpuPassDiagnostic": {
+    "scope": "Offscreen renderer-reported pass timing diagnostic: sum of average redraw-pass times for a fixed 2s frame, three rotated rounds, same DLL with direct filtering off/on. GPU profiling is enabled here and disabled in normal Aperture. This does not establish visible playback throughput, app CPU/RAM or shader-arithmetic cost. No VLC run.",
+    "summary": {
+      "h264-down": {
+        "baseline": {
+          "redrawAverageNs": [
+            4196044,
+            4221438,
+            4219391
+          ],
+          "medianNs": 4219391
+        },
+        "candidate": {
+          "redrawAverageNs": [
+            64000,
+            64614,
+            64000
+          ],
+          "medianNs": 64000
+        }
+      },
+      "vp9-up": {
+        "baseline": {
+          "redrawAverageNs": [
+            4435045,
+            4558233,
+            4686438
+          ],
+          "medianNs": 4558233
+        },
+        "candidate": {
+          "redrawAverageNs": [
+            123289,
+            126156,
+            151756
+          ],
+          "medianNs": 126156
+        }
+      }
+    },
+    "limits": [
+      "The baseline first separable pass dominates the reported ~4ms. These timer-bracketed backend calls can include submission/query effects; the cause of that large interval is not established.",
+      "The diagnostic cannot be translated into a percentage app performance improvement.",
+      "Whole-player performance after adopting this build remains unmeasured because visible tests are deferred."
+    ]
+  },
+  "performanceEvidence": "Prior isolated native screen saved about30MiB with the direct prototype; see docs/evidence/balanced-memory-20261018/research/direct-nv12-experiment/h264-screen-v3/results.json. This is historical engine evidence, not a new measurement of this bundled app. Prior balanced full-player CPU results remain in docs/evidence/balanced-frame-resources-20261018/review.json. Saved VLC data retains its original date/session.",
+  "limits": [
+    "No new visible full-app CPU/RAM/throughput comparison was run after this adoption. No VLC process was launched.",
+    "Hidden output checks and paused diagnostic pass timing cannot prove the whole-player ranking. GPU profiling is enabled only for that diagnostic and disabled normally.",
+    "Four tested optimized codec/scaling cases differ by at most1/255 per channel. This does not prove all media/driver/display combinations.",
+    "HDR remains on the original path. The paired HDR capture differed by1 level; adaptive peak history limits exact comparisons.",
+    "One desktop unit case and the full visible release gate remain deferred under the user preference.",
+    "The candidate includes pre-existing dirty source edits and uses the current local version; no release was published."
+  ],
+  "recordingNote": "The initial checkpoint test run exposed fixtures assuming the last record had an observation. Its failure is retained; the fixture now chooses an actual observation and a new case verifies validation-only appends preserve measurements. The corrected18 data checks pass."
+}

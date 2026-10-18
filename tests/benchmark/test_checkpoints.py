@@ -26,6 +26,21 @@ class CheckpointsTests(unittest.TestCase):
         cp["results"] = []
         return {"checkpoints": [cp]}
 
+    def sample_result(self):
+        # Newest records can contain validation only. Keep test observations
+        # independent of their position in the real historical dataset.
+        return copy.deepcopy(next(r for cp in reversed(self.data["checkpoints"])
+                                  for r in cp["results"] if r["value"] is not None))
+
+    def test_validation_only_checkpoint_does_not_invent_observations(self):
+        bundle = self.bundle()
+        self.assertEqual(bundle["checkpoints"][0]["results"], [])
+        updated = api.append_bundle(self.data, bundle)
+        before = [r for cp in self.data["checkpoints"] for r in cp["results"]]
+        after = [r for cp in updated["checkpoints"] for r in cp["results"]]
+        self.assertEqual(after, before)
+        self.assertEqual(updated["checkpoints"][-1]["results"], [])
+
     def test_saved_dataset_is_valid(self):
         api.validate(self.data)
 
@@ -72,7 +87,7 @@ class CheckpointsTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "Duplicate checkpoint"):
             api.append_bundle(self.data, {"checkpoints": [self.data["checkpoints"][-1]]})
         bundle = self.bundle()
-        r = copy.deepcopy(self.data["checkpoints"][-1]["results"][0])
+        r = self.sample_result()
         bundle["checkpoints"][0]["results"] = [r, r]
         with self.assertRaisesRegex(ValueError, "Duplicate metric"):
             api.append_bundle(self.data, bundle)
@@ -89,7 +104,7 @@ class CheckpointsTests(unittest.TestCase):
         for value in [-1, float("inf"), float("nan"), True, None]:
             with self.subTest(value=value):
                 bundle = self.bundle()
-                r = copy.deepcopy(self.data["checkpoints"][-1]["results"][0])
+                r = self.sample_result()
                 r["value"] = value
                 bundle["checkpoints"][0]["results"] = [r]
                 with self.assertRaises(ValueError):
@@ -98,7 +113,7 @@ class CheckpointsTests(unittest.TestCase):
     def test_zero_and_explicit_unavailable_values_are_preserved(self):
         for value in [0, None]:
             bundle = self.bundle()
-            r = copy.deepcopy(self.data["checkpoints"][-1]["results"][0])
+            r = self.sample_result()
             r["value"] = value
             if value is None:
                 r["missingReason"] = "GPU counter unavailable"
@@ -122,7 +137,7 @@ class CheckpointsTests(unittest.TestCase):
 
     def test_reversed_run_ranges_rejected(self):
         bundle = self.bundle()
-        r = copy.deepcopy(self.data["checkpoints"][-1]["results"][0])
+        r = self.sample_result()
         r["runRange"] = {"min": 200, "max": 100, "runs": 3, "scope": "Measured launches"}
         bundle["checkpoints"][0]["results"] = [r]
         with self.assertRaisesRegex(ValueError, "Invalid run range"):
@@ -135,7 +150,7 @@ class CheckpointsTests(unittest.TestCase):
             api.append_bundle(self.data, bundle)
 
     def test_history_group_requires_declared_protocol_and_workload(self):
-        r = copy.deepcopy(self.data["checkpoints"][-1]["results"][0])
+        r = self.sample_result()
         bundle = self.bundle()
         bundle["historySeries"] = {"test-history": {
             "label": "Same endpoint history", "method": "Recorded readings of the same workload",
@@ -149,7 +164,7 @@ class CheckpointsTests(unittest.TestCase):
 
     def test_unknown_history_group_rejected(self):
         bundle = self.bundle()
-        r = copy.deepcopy(self.data["checkpoints"][-1]["results"][0])
+        r = self.sample_result()
         r["historySeries"] = "not-a-declared-history"
         bundle["checkpoints"][0]["results"] = [r]
         with self.assertRaisesRegex(ValueError, "Unknown history series"):

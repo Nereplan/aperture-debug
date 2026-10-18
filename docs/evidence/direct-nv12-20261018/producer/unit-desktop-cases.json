@@ -1,0 +1,13 @@
+{
+  "headDesktopCases": [
+    "MaximizedWindowedPiPRoundTrip",
+    "NormalWindowedPiPRoundTrip",
+    "FullscreenPiPRoundTrip",
+    "FullscreenExitRestoresPlacementWithoutIntermediateSize",
+    "PiPFullscreenGeometryPreservation",
+    "PiPOverlayFollowsClientOriginAfterDrag",
+    "PiPToFullscreenTransitionUsesAtomicTargetBounds"
+  ],
+  "worktreeDesktopCase": "QueueProgressionPersistenceAndGeometry",
+  "reason": "The current user-consolidated case includes real visible/maximized/restored windows. It is deferred in a background run."
+}

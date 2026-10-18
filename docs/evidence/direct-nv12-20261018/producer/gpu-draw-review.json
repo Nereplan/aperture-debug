@@ -1,0 +1,46 @@
+{
+  "scope": "Offscreen renderer-reported pass timing diagnostic: sum of average redraw-pass times for a fixed 2s frame, three rotated rounds, same DLL with direct filtering off/on. GPU profiling is enabled here and disabled in normal Aperture. This does not establish visible playback throughput, app CPU/RAM or shader-arithmetic cost. No VLC run.",
+  "summary": {
+    "h264-down": {
+      "baseline": {
+        "redrawAverageNs": [
+          4196044,
+          4221438,
+          4219391
+        ],
+        "medianNs": 4219391
+      },
+      "candidate": {
+        "redrawAverageNs": [
+          64000,
+          64614,
+          64000
+        ],
+        "medianNs": 64000
+      }
+    },
+    "vp9-up": {
+      "baseline": {
+        "redrawAverageNs": [
+          4435045,
+          4558233,
+          4686438
+        ],
+        "medianNs": 4558233
+      },
+      "candidate": {
+        "redrawAverageNs": [
+          123289,
+          126156,
+          151756
+        ],
+        "medianNs": 126156
+      }
+    }
+  },
+  "limits": [
+    "The baseline first separable pass dominates the reported ~4ms. These timer-bracketed backend calls can include submission/query effects; the cause of that large interval is not established.",
+    "The diagnostic cannot be translated into a percentage app performance improvement.",
+    "Whole-player performance after adopting this build remains unmeasured because visible tests are deferred."
+  ]
+}

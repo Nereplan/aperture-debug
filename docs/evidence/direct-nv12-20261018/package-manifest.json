@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 1,
+  "application": "Aperture",
+  "version": "2.0.0.0",
+  "channel": "stable",
+  "configuration": "Release",
+  "compilerStandard": "c++17",
+  "architecture": "x64",
+  "binary": "Aperture.exe",
+  "binarySha256": "3f63a5577e6c56b17441c88c28d8cbed2734a71738be165a44443243a04ae8b0",
+  "sourceBinaryLastWriteUtc": "2026-10-18T20:21:12.4125879Z",
+  "signature": {
+    "signed": false,
+    "status": "Unsigned"
+  },
+  "runtime": {
+    "platform": "Windows 10/11 x64",
+    "graphics": "Direct2D 1.1 / Direct3D 11",
+    "playback": "libmpv-2.dll",
+    "writableDirectory": "data"
+  },
+  "files": [
+    {
+      "path": "Aperture.exe",
+      "size": 3433472,
+      "sha256": "3f63a5577e6c56b17441c88c28d8cbed2734a71738be165a44443243a04ae8b0"
+    },
+    {
+      "path": "fonts/Inter.ttf",
+      "size": 876576,
+      "sha256": "29160a80ff49ddcab2c97711247e08b1fab27a484a329ce8b813d820dc559031"
+    },
+    {
+      "path": "fonts/JetBrainsMono.ttf",
+      "size": 187208,
+      "sha256": "48715a42ec242c21e9f02692891e147d022299a52e48d5e413e1a942193ffeda"
+    },
+    {
+      "path": "fonts/SpaceGrotesk.ttf",
+      "size": 136676,
+      "sha256": "acad6de1fc93436f5c0f1f4137751ef04f1aea3063e7036535970ffcfbd79f72"
+    },
+    {
+      "path": "libmpv-2.dll",
+      "size": 24561152,
+      "sha256": "8dd14629f574a04a1d6904104be8748e73954d9ac5aef07cc36f1a34ee752daa"
+    },
+    {
+      "path": "locales/en-US.json",
+      "size": 23849,
+      "sha256": "c1ef8802cc97b203f511b85b63881d22880e55cc3c09291e74e0855d7f1b4f2d"
+    },
+    {
+      "path": "release-source.json",
+      "size": 66,
+      "sha256": "25b3c72694aa5ba85adfc0a1b3a4176f2c8b6807bc86d4dff3e93232afb873de"
+    },
+    {
+      "path": "runtime_update.ps1",
+      "size": 15546,
+      "sha256": "6ef9dfb151703f5a4a61e929495257e7c9888ce0feb345c9b33e1ebec2f339c3"
+    },
+    {
+      "path": "Update.cmd",
+      "size": 115,
+      "sha256": "6cc03e15614148057f34ee7c315505730a1427e00ee145eb78d52e89c49afa35"
+    },
+    {
+      "path": "update.ps1",
+      "size": 4993,
+      "sha256": "f9b2d606a60f6fbcf9c88b8422ca3bf75ffd3c1a339dd7f73fd033832e5d8775"
+    }
+  ]
+}

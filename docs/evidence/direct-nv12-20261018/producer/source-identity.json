@@ -1,0 +1,28 @@
+{
+  "id": "mpv-direct-nv12-filter-v1",
+  "sourceRoot": "src/mpv",
+  "patch": "mpv_direct_nv12_filter.patch",
+  "patchSha256": "ff60c5cd9e0ea3f3d55d8b546b75670bc1d48189ca41dcdf060e6c3336af94be",
+  "files": [
+    {
+      "path": "video/out/gpu/video.h",
+      "beforeSha256": "26989500d47f16c7d09347aaf7fa97ff6d7818a013a65e16225192e640c43a1e",
+      "afterSha256": "d5bbdfd11c6df0c5156f6d5723f0550d4463ac7ed9a7284ea119d9e39120bf61"
+    },
+    {
+      "path": "video/out/gpu/video.c",
+      "beforeSha256": "740ef757a686037175fbabed7c14c2460407c826f884689c67cf6ec1863491cd",
+      "afterSha256": "cee4a5698ff59595d7a87c5ddabf90c697b96672385e6f3103c822a2b9f1bd4f"
+    },
+    {
+      "path": "video/out/gpu/video_shaders.h",
+      "beforeSha256": "a06097d69ee28095f3bb066c9b07342646819f5f77ac139a8c37c6a8f07ef73e",
+      "afterSha256": "85a2e993cf1d409d248316fb9cb9e6fb43cff438fe117d22ca7e0406bbb81c72"
+    },
+    {
+      "path": "video/out/gpu/video_shaders.c",
+      "beforeSha256": "e578aca300b0b5766d37a18b2dbd8b5fe95f485b207a02fa4e8dd8ffa6264c43",
+      "afterSha256": "7bd2a701f7a04cec591307c688c19bb24397dc79b1e7c6332a21679b7a699b87"
+    }
+  ]
+}

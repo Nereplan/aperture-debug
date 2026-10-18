@@ -1,0 +1,14 @@
+[
+  {
+    "Path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\libmpv-2.dll",
+    "Hash": "8DD14629F574A04A1D6904104BE8748E73954D9AC5AEF07CC36F1A34EE752DAA"
+  },
+  {
+    "Path": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\direct-nv12-production\\bundled-before-direct-nv12.dll",
+    "Hash": "11B37889E5103A1370509DCF5E5A9C389325C497552F522F45049DFBA19F5C52"
+  },
+  {
+    "Path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-build\\direct-nv12-filter\\libmpv-2.actual-unstripped.dll",
+    "Hash": "2317422D160C95582AD839BDB22990E787244B9DEB704495836DDF25CC3E9145"
+  }
+]
