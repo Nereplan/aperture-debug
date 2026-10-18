@@ -1,0 +1,29 @@
+{
+  "passed": true,
+  "appliesFromPinnedArchive": true,
+  "idempotent": true,
+  "checkOnlyPassed": true,
+  "entry": {
+    "id": "mpv-d3d11-frame-resources-v1",
+    "sourceRoot": "src/mpv",
+    "patch": "mpv_d3d11_frame_resources.patch",
+    "patchSha256": "3162001c8bf292d40ece5e457dba14f13ae05035af2126a96f21ebe2867d30c1",
+    "files": [
+      {
+        "path": "video/out/d3d11/ra_d3d11.c",
+        "beforeSha256": "4c949f11d5c81cc6911382e01d03ea2943d5e9d8c65e8395ef5c08cc02fb95cd",
+        "afterSha256": "169fc0194c2c98a28cdfbcbd4f1ed04eccb0191f15bd604b19ab07ab239a46f4"
+      },
+      {
+        "path": "video/out/d3d11/context.c",
+        "beforeSha256": "c29fc8e2bab12fc5ea730eb3572d50130a74af107ea41f71c577e80b6b306283",
+        "afterSha256": "c590d6d11e9d9cc8e5526bb83e109926ea46bd9ffc7c3396ad5d9583a4fea501"
+      },
+      {
+        "path": "video/out/d3d11/ra_d3d11.h",
+        "beforeSha256": "1b3b8f8b360cdca302f7d27cc8f97de606a88d9d1edab15a60d8da9e870e8149",
+        "afterSha256": "ee4c2aa83d0c9145a52fc4b05537d97d98d433cc35b955dc1e86823c1d31b607"
+      }
+    ]
+  }
+}

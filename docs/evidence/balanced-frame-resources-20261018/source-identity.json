@@ -1,0 +1,26 @@
+{
+  "commit": "6a897dbd1ab25602d04bf76d35001c4b94ffb1ab",
+  "dirty": true,
+  "sourceNote": "The same app EXE includes pre-existing uncommitted application/test edits. Both Aperture variants use that identical EXE and asset set; only their DLL differs. Production-form patches are hash-pinned and compiled by the normal clean local recipe. Root DLL remains the original at recording time.",
+  "files": {
+    "src/PlaybackScaling.h": "357d242d73bd742d4c71b9eed1b47cfa333f16f734df4eff0878d77100f78e82",
+    "src/MpvPlayer.cpp": "9ce347a1249e9166816dea9a6db13635307f1776380e6934ab3ac1a8d036f83a",
+    "src/App.cpp": "776ab99d43df425bfca4f0f2c0d79a1e20359e1cc1c9ec265e43e2638bfa65e3",
+    "src/main.cpp": "be05aea928eba5f3dd6c0680a8734d579ed4dc9a83599e6c6314729cc0fcae7f",
+    "scripts/libmpv/build.sh": "f84bb95b8b9bcc641a709ddaecbb68aae5b498839b4b83dd680845883a34887f",
+    "scripts/libmpv/source_patches.json": "a1b33e7340a22ef2b0eaba103dd0df2bd0632bd63fac757bad7878a0988b4bea",
+    "scripts/libmpv/mpv_d3d11_frame_resources.patch": "3162001c8bf292d40ece5e457dba14f13ae05035af2126a96f21ebe2867d30c1",
+    "tests/libmpv/mpv_playback_test.cpp": "1c87e53fca47c24e0d3fa52fa1cc18e3cef552815ed27be676c4285829258710",
+    "tests/unit/TestMpvInitialization.h": "ac512356d51abe80bcd729bde3230b99036acc752be8748ce9689e6e3b58bc14"
+  },
+  "app": {
+    "sha256": "2dda89fbf70f7abf82ce081d6eeff9872f1fa460139d011e79b5ad49220c61ab",
+    "bytes": 3432960
+  },
+  "native": {
+    "sha256": "0e7eec0602177a5d5a4025bc12d91e477a9be1995da3376fd0a77509ca7d3c81",
+    "bytes": 24558080,
+    "unstrippedSha256": "e569fd9264225dba5947b2426c582fd4c074515a82ae53b27affd63a6df0e282"
+  },
+  "originalNativeSha256": "11b37889e5103a1370509dcf5e5a9c389325c497552f522f45049dfba19f5c52"
+}

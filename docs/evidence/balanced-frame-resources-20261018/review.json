@@ -1,0 +1,313 @@
+{
+  "recordedUtc": "2026-10-18T13:25:41.719335+00:00",
+  "batchCompletedUtc": "2026-10-18T13:21:05.8489424Z",
+  "status": "Production-form candidate. H264 CPU median below VLC with separated run ranges; private RAM remains higher. Broad-format/overall performance win is not established.",
+  "method": "Fresh owned portable profiles, same H2641080p30 AAC stereo fixture, actual 1280x720 video canvas at 96 DPI; one discarded warmup plus three measured rounds per variant, rotated order, ~30-second windows after at least ten seconds playback. Same current app EXE/assets in both Aperture variants; original bundled versus production-form native DLL. Aperture uses balanced Lanczos-up/Hermite-down/correct-downscaling, bilinear chroma, no linear-light/sigmoid passes. VLC requests D3D11 output, D3D11VA decoding and linear scaling. Different rendering profiles are deliberate and separate from the all-linear workload. Playback advancement and actual canvas verified for all 12 runs; equal decoder/output pixels not established. No builders/profilers/other tests during timing. CPU estimate = process-cycle delta / actual elapsed seconds / same-boot validated invariant-TSC rate *100 for one logical processor. Raw sampled CPU times retained separately; hardware-specific estimate, not a portable cycle conversion.",
+  "summary": {
+    "Aperture-balanced-before": {
+      "cpu-core": {
+        "median": 9.55349608207985,
+        "min": 7.760644458729144,
+        "max": 10.658224834515174,
+        "runs": 3
+      },
+      "legacy-cpu-core": {
+        "median": 9.322619244037385,
+        "min": 7.550424580557231,
+        "max": 11.349304964898852,
+        "runs": 3
+      },
+      "visible-ms": {
+        "median": 118.5551,
+        "min": 89.4395,
+        "max": 120.2983,
+        "runs": 3
+      },
+      "runtime-mib": {
+        "median": 27.83653736114502,
+        "min": 27.83653736114502,
+        "max": 27.83653736114502,
+        "runs": 3
+      },
+      "private-mib": {
+        "median": 197.5546875,
+        "min": 194.4296875,
+        "max": 200.70703125,
+        "runs": 3
+      },
+      "working-set-mib": {
+        "median": 142.9453125,
+        "min": 142.86328125,
+        "max": 143.65625,
+        "runs": 3
+      },
+      "gpu-mib": {
+        "median": 122.671875,
+        "min": 122.66796875,
+        "max": 126.4296875,
+        "runs": 3
+      }
+    },
+    "Aperture-balanced-candidate": {
+      "cpu-core": {
+        "median": 4.752635797738222,
+        "min": 4.634370718915338,
+        "max": 5.009826957230992,
+        "runs": 3
+      },
+      "legacy-cpu-core": {
+        "median": 4.843478442308668,
+        "min": 4.528397245587198,
+        "max": 5.935672505363473,
+        "runs": 3
+      },
+      "visible-ms": {
+        "median": 114.5064,
+        "min": 98.1136,
+        "max": 115.7991,
+        "runs": 3
+      },
+      "runtime-mib": {
+        "median": 27.86192798614502,
+        "min": 27.86192798614502,
+        "max": 27.86192798614502,
+        "runs": 3
+      },
+      "private-mib": {
+        "median": 179.453125,
+        "min": 179.2734375,
+        "max": 183.953125,
+        "runs": 3
+      },
+      "working-set-mib": {
+        "median": 141.9765625,
+        "min": 141.1171875,
+        "max": 142.48828125,
+        "runs": 3
+      },
+      "gpu-mib": {
+        "median": 122.671875,
+        "min": 122.6484375,
+        "max": 126.4296875,
+        "runs": 3
+      }
+    },
+    "VLC": {
+      "cpu-core": {
+        "median": 5.181932047023672,
+        "min": 5.0696264143854695,
+        "max": 5.316343808233972,
+        "runs": 3
+      },
+      "legacy-cpu-core": {
+        "median": 2.8638205929026883,
+        "min": 2.863341359018859,
+        "max": 3.9046844688246853,
+        "runs": 3
+      },
+      "visible-ms": {
+        "median": 1616.8833,
+        "min": 1604.6825,
+        "max": 1724.4404,
+        "runs": 3
+      },
+      "runtime-mib": {
+        "median": 182.99101448059082,
+        "min": 182.99101448059082,
+        "max": 182.99101448059082,
+        "runs": 3
+      },
+      "private-mib": {
+        "median": 151.75,
+        "min": 150.67578125,
+        "max": 154.77734375,
+        "runs": 3
+      },
+      "working-set-mib": {
+        "median": 148.83984375,
+        "min": 147.54296875,
+        "max": 152.4453125,
+        "runs": 3
+      },
+      "gpu-mib": {
+        "median": 118.4609375,
+        "min": 118.45703125,
+        "max": 118.4609375,
+        "runs": 3
+      }
+    }
+  },
+  "runs": [
+    {
+      "variant": "Aperture-balanced-before",
+      "round": 1,
+      "elapsedSeconds": 30.006590699999997,
+      "cycleDelta": 8849075960,
+      "startedUtc": "2026-10-18T13:15:50.7740772Z",
+      "samplingEndedUtc": "2026-10-18T13:16:32.6099018Z",
+      "values": {
+        "cpu-core": 7.760644458729144,
+        "legacy-cpu-core": 7.550424580557231,
+        "visible-ms": 118.5551,
+        "runtime-mib": 27.83653736114502,
+        "private-mib": 194.4296875,
+        "working-set-mib": 142.9453125,
+        "gpu-mib": 122.66796875
+      }
+    },
+    {
+      "variant": "Aperture-balanced-before",
+      "round": 2,
+      "elapsedSeconds": 30.0009571,
+      "cycleDelta": 10891330100,
+      "startedUtc": "2026-10-18T13:17:24.7669582Z",
+      "samplingEndedUtc": "2026-10-18T13:18:06.7986144Z",
+      "values": {
+        "cpu-core": 9.55349608207985,
+        "legacy-cpu-core": 9.322619244037385,
+        "visible-ms": 120.2983,
+        "runtime-mib": 27.83653736114502,
+        "private-mib": 197.5546875,
+        "working-set-mib": 143.65625,
+        "gpu-mib": 122.671875
+      }
+    },
+    {
+      "variant": "Aperture-balanced-before",
+      "round": 3,
+      "elapsedSeconds": 30.0128511,
+      "cycleDelta": 12155577940,
+      "startedUtc": "2026-10-18T13:18:49.7708622Z",
+      "samplingEndedUtc": "2026-10-18T13:19:31.8049931Z",
+      "values": {
+        "cpu-core": 10.658224834515174,
+        "legacy-cpu-core": 11.349304964898852,
+        "visible-ms": 89.4395,
+        "runtime-mib": 27.83653736114502,
+        "private-mib": 200.70703125,
+        "working-set-mib": 142.86328125,
+        "gpu-mib": 126.4296875
+      }
+    },
+    {
+      "variant": "Aperture-balanced-candidate",
+      "round": 1,
+      "elapsedSeconds": 30.0092365,
+      "cycleDelta": 5284807820,
+      "startedUtc": "2026-10-18T13:14:17.5833163Z",
+      "samplingEndedUtc": "2026-10-18T13:14:59.3859644Z",
+      "values": {
+        "cpu-core": 4.634370718915338,
+        "legacy-cpu-core": 5.935672505363473,
+        "visible-ms": 114.5064,
+        "runtime-mib": 27.86192798614502,
+        "private-mib": 179.2734375,
+        "working-set-mib": 141.1171875,
+        "gpu-mib": 122.6484375
+      }
+    },
+    {
+      "variant": "Aperture-balanced-candidate",
+      "round": 2,
+      "elapsedSeconds": 30.001682000000002,
+      "cycleDelta": 5418307140,
+      "startedUtc": "2026-10-18T13:18:07.3074272Z",
+      "samplingEndedUtc": "2026-10-18T13:18:49.3146166Z",
+      "values": {
+        "cpu-core": 4.752635797738222,
+        "legacy-cpu-core": 4.843478442308668,
+        "visible-ms": 98.1136,
+        "runtime-mib": 27.86192798614502,
+        "private-mib": 183.953125,
+        "working-set-mib": 141.9765625,
+        "gpu-mib": 126.4296875
+      }
+    },
+    {
+      "variant": "Aperture-balanced-candidate",
+      "round": 3,
+      "elapsedSeconds": 30.0188991,
+      "cycleDelta": 5714799100,
+      "startedUtc": "2026-10-18T13:19:32.2410545Z",
+      "samplingEndedUtc": "2026-10-18T13:20:14.2907853Z",
+      "values": {
+        "cpu-core": 5.009826957230992,
+        "legacy-cpu-core": 4.528397245587198,
+        "visible-ms": 115.7991,
+        "runtime-mib": 27.86192798614502,
+        "private-mib": 179.453125,
+        "working-set-mib": 142.48828125,
+        "gpu-mib": 122.671875
+      }
+    },
+    {
+      "variant": "VLC",
+      "round": 1,
+      "elapsedSeconds": 30.0079901,
+      "cycleDelta": 6062244500,
+      "startedUtc": "2026-10-18T13:15:02.9165961Z",
+      "samplingEndedUtc": "2026-10-18T13:15:49.6026342Z",
+      "values": {
+        "cpu-core": 5.316343808233972,
+        "legacy-cpu-core": 2.8638205929026883,
+        "visible-ms": 1616.8833,
+        "runtime-mib": 182.99101448059082,
+        "private-mib": 150.67578125,
+        "working-set-mib": 148.83984375,
+        "gpu-mib": 118.4609375
+      }
+    },
+    {
+      "variant": "VLC",
+      "round": 2,
+      "elapsedSeconds": 30.012028099999995,
+      "cycleDelta": 5781689740,
+      "startedUtc": "2026-10-18T13:16:36.4501209Z",
+      "samplingEndedUtc": "2026-10-18T13:17:23.5076399Z",
+      "values": {
+        "cpu-core": 5.0696264143854695,
+        "legacy-cpu-core": 3.9046844688246853,
+        "visible-ms": 1724.4404,
+        "runtime-mib": 182.99101448059082,
+        "private-mib": 151.75,
+        "working-set-mib": 147.54296875,
+        "gpu-mib": 118.4609375
+      }
+    },
+    {
+      "variant": "VLC",
+      "round": 3,
+      "elapsedSeconds": 30.0130125,
+      "cycleDelta": 5909963300,
+      "startedUtc": "2026-10-18T13:20:17.8760898Z",
+      "samplingEndedUtc": "2026-10-18T13:21:04.7962148Z",
+      "values": {
+        "cpu-core": 5.181932047023672,
+        "legacy-cpu-core": 2.863341359018859,
+        "visible-ms": 1604.6825,
+        "runtime-mib": 182.99101448059082,
+        "private-mib": 154.77734375,
+        "working-set-mib": 152.4453125,
+        "gpu-mib": 118.45703125
+      }
+    }
+  ],
+  "candidateVsVlc": {
+    "cpuRelativePercent": -8.284482416785522,
+    "privateMiBDifference": 27.703125,
+    "cpuMachineCapacityPointDifference": -0.017887343720227083
+  },
+  "candidateVsOriginal": {
+    "cpuRelativePercent": -50.25239182697664,
+    "privateMiBDifference": -18.1015625
+  },
+  "validation": "78 native playback checks; 52 app unit cases; 15 geometry checks with profiling enabled/cache disabled; old-engine compatibility retest 1/1; 7 pinned-patch checks. See validation.json, initial failure/retest logs and source/provenance identities.",
+  "limits": [
+    "One synthetic fixture has repeated full-player results; native AV1/4K screens are not repeated player rankings.",
+    "Differences belong to the complete DLL change bundle, not a proven contribution from one cache.",
+    "Different scaling profiles do not establish identical VLC pixels. Balanced quality remains a deliberate compromise.",
+    "Visible window is the bootstrap shell, not first video frame.",
+    "Private commit, working set and GPU allocations overlap; do not add them.",
+    "Root bundled DLL remains unchanged at recording time."
+  ]
+}

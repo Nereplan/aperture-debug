@@ -1,0 +1,259 @@
+{
+  "nativeFunctional": {
+    "passed": 78,
+    "failed": 0,
+    "scope": "Production DLL, GPU timing disabled, four-entry cache; hardware AV1 and explicit libdav1d fallback both observed."
+  },
+  "nativeProfilingControls": {
+    "passed": 15,
+    "failed": 0,
+    "scope": "GPU timing enabled, vertex cache disabled; real geometry, resize, rotation and H264/HDR reconfiguration."
+  },
+  "appUnit": {
+    "passed": 52,
+    "failed": 0,
+    "scope": "Current app source against production DLL."
+  },
+  "oldRuntimeCompatibility": {
+    "initialPassed": 0,
+    "initialFailed": 1,
+    "retestPassed": 1,
+    "retestFailed": 0,
+    "reason": "Old DLL lacks the new optional GPU timing setting. Existing diagnostic allowlist updated to allow that exact missing optional setting while retaining all other failure checks."
+  },
+  "pinnedPatchChecks": {
+    "passed": 7,
+    "failed": 0
+  },
+  "geometry": [
+    {
+      "run": "run-db38b9e3d37e43f78371950e8697f2b5",
+      "captures": [
+        {
+          "name": "geometry-0.png",
+          "candidateSha256": "946bf20e3633b99c10a5683358ba33c232dd87b03628f2a66b5a90576305ba83",
+          "originalSha256": "946bf20e3633b99c10a5683358ba33c232dd87b03628f2a66b5a90576305ba83",
+          "identical": true
+        },
+        {
+          "name": "geometry-1.png",
+          "candidateSha256": "30e38d116b1ff12ee4b5f837910e0a00af5a46f85102adde85dc36bfcc49a115",
+          "originalSha256": "30e38d116b1ff12ee4b5f837910e0a00af5a46f85102adde85dc36bfcc49a115",
+          "identical": true
+        },
+        {
+          "name": "geometry-2.png",
+          "candidateSha256": "708fc3af3026ca2f1a76185d9bb3c1aa99e61b56e1b25ff983c729d833820d2f",
+          "originalSha256": "708fc3af3026ca2f1a76185d9bb3c1aa99e61b56e1b25ff983c729d833820d2f",
+          "identical": true
+        },
+        {
+          "name": "geometry-3.png",
+          "candidateSha256": "946bf20e3633b99c10a5683358ba33c232dd87b03628f2a66b5a90576305ba83",
+          "originalSha256": "946bf20e3633b99c10a5683358ba33c232dd87b03628f2a66b5a90576305ba83",
+          "identical": true
+        },
+        {
+          "name": "geometry-4.png",
+          "candidateSha256": "8bf091d4575739ef7931ba7ecc3e74931ed52ebbb02bd068e8e88932733a9c17",
+          "originalSha256": "8bf091d4575739ef7931ba7ecc3e74931ed52ebbb02bd068e8e88932733a9c17",
+          "identical": true
+        }
+      ]
+    },
+    {
+      "run": "run-3155e2a0bdd34872a4729fd3ce725fd9",
+      "captures": [
+        {
+          "name": "geometry-0.png",
+          "candidateSha256": "946bf20e3633b99c10a5683358ba33c232dd87b03628f2a66b5a90576305ba83",
+          "originalSha256": "946bf20e3633b99c10a5683358ba33c232dd87b03628f2a66b5a90576305ba83",
+          "identical": true
+        },
+        {
+          "name": "geometry-1.png",
+          "candidateSha256": "30e38d116b1ff12ee4b5f837910e0a00af5a46f85102adde85dc36bfcc49a115",
+          "originalSha256": "30e38d116b1ff12ee4b5f837910e0a00af5a46f85102adde85dc36bfcc49a115",
+          "identical": true
+        },
+        {
+          "name": "geometry-2.png",
+          "candidateSha256": "708fc3af3026ca2f1a76185d9bb3c1aa99e61b56e1b25ff983c729d833820d2f",
+          "originalSha256": "708fc3af3026ca2f1a76185d9bb3c1aa99e61b56e1b25ff983c729d833820d2f",
+          "identical": true
+        },
+        {
+          "name": "geometry-3.png",
+          "candidateSha256": "946bf20e3633b99c10a5683358ba33c232dd87b03628f2a66b5a90576305ba83",
+          "originalSha256": "946bf20e3633b99c10a5683358ba33c232dd87b03628f2a66b5a90576305ba83",
+          "identical": true
+        },
+        {
+          "name": "geometry-4.png",
+          "candidateSha256": "8bf091d4575739ef7931ba7ecc3e74931ed52ebbb02bd068e8e88932733a9c17",
+          "originalSha256": "8bf091d4575739ef7931ba7ecc3e74931ed52ebbb02bd068e8e88932733a9c17",
+          "identical": true
+        }
+      ]
+    }
+  ],
+  "steadyPlayback": [
+    {
+      "renderer": "gpu",
+      "file": "h264-1080p30-audio.mp4",
+      "sync": "audio",
+      "decoder_threads": "0",
+      "audio_enabled": true,
+      "init_ms": 8.893,
+      "restart_ms": 512.72,
+      "cpu_one_core_percent": 3.277,
+      "working_set": 115802112,
+      "private_bytes": 160256000,
+      "gpu_local_bytes": 106008576,
+      "gpu_shared_bytes": 12345344,
+      "dropped_frames": 0,
+      "steady_drops": 0,
+      "hwdec": "d3d11va",
+      "cpu_start_seconds": 0.796875,
+      "cpu_end_seconds": 1.125,
+      "sample_elapsed_seconds": 10.0114419,
+      "process_cycles_start": 3118831760,
+      "process_cycles_end": 4770373320,
+      "position_start": 4.93333333,
+      "position_end": 14.96666667,
+      "vo_steady_drops": 0,
+      "zero_cpu_interval": false,
+      "zero_copy": "default",
+      "swapchain_depth": "default",
+      "latency_hacks": "yes",
+      "hwdec_threads": "1",
+      "drop_property": "decoder-frame-drop-count",
+      "vo_drop_property": "frame-drop-count",
+      "heap_cleanup": false,
+      "heap_cleanup_ms": 0.0,
+      "heap_before_private": 0,
+      "heap_after_private": 0,
+      "render_options": {
+        "scale": "lanczos",
+        "dscale": "hermite",
+        "cscale": "bilinear",
+        "linear-downscaling": "no",
+        "correct-downscaling": "yes",
+        "sigmoid-upscaling": "no",
+        "dither-depth": "auto",
+        "dither": "fruit",
+        "target-colorspace-hint": "auto",
+        "d3d11-gpu-timing": "no",
+        "d3d11-vertex-cache-entries": "4"
+      },
+      "case": "h264",
+      "captureSha256": "68afa819bc6327f0058c5b1f8f70be8225a8e33dc347206f61567983e91190e5"
+    },
+    {
+      "renderer": "gpu",
+      "file": "av1-1080p30-audio.mp4",
+      "sync": "audio",
+      "decoder_threads": "0",
+      "audio_enabled": true,
+      "init_ms": 8.879,
+      "restart_ms": 509.52,
+      "cpu_one_core_percent": 2.967,
+      "working_set": 112840704,
+      "private_bytes": 155168768,
+      "gpu_local_bytes": 82534400,
+      "gpu_shared_bytes": 13156352,
+      "dropped_frames": 0,
+      "steady_drops": 0,
+      "hwdec": "d3d11va",
+      "cpu_start_seconds": 0.84375,
+      "cpu_end_seconds": 1.140625,
+      "sample_elapsed_seconds": 10.0057515,
+      "process_cycles_start": 3050670020,
+      "process_cycles_end": 4684615300,
+      "position_start": 4.93333333,
+      "position_end": 14.96666667,
+      "vo_steady_drops": 0,
+      "zero_cpu_interval": false,
+      "zero_copy": "default",
+      "swapchain_depth": "default",
+      "latency_hacks": "yes",
+      "hwdec_threads": "1",
+      "drop_property": "decoder-frame-drop-count",
+      "vo_drop_property": "frame-drop-count",
+      "heap_cleanup": false,
+      "heap_cleanup_ms": 0.0,
+      "heap_before_private": 0,
+      "heap_after_private": 0,
+      "render_options": {
+        "scale": "lanczos",
+        "dscale": "hermite",
+        "cscale": "bilinear",
+        "linear-downscaling": "no",
+        "correct-downscaling": "yes",
+        "sigmoid-upscaling": "no",
+        "dither-depth": "auto",
+        "dither": "fruit",
+        "target-colorspace-hint": "auto",
+        "d3d11-gpu-timing": "no",
+        "d3d11-vertex-cache-entries": "4"
+      },
+      "case": "av1",
+      "captureSha256": "f284a057ac9d11b0aaa1828ed7f2dd67e4ad3eae762a6097f28ec44ad4531b8d"
+    },
+    {
+      "renderer": "gpu",
+      "file": "hevc-2160p60-audio.mp4",
+      "sync": "audio",
+      "decoder_threads": "0",
+      "audio_enabled": true,
+      "init_ms": 8.777,
+      "restart_ms": 520.287,
+      "cpu_one_core_percent": 6.401,
+      "working_set": 160378880,
+      "private_bytes": 320430080,
+      "gpu_local_bytes": 571269120,
+      "gpu_shared_bytes": 15491072,
+      "dropped_frames": 0,
+      "steady_drops": 0,
+      "hwdec": "d3d11va",
+      "cpu_start_seconds": 0.921875,
+      "cpu_end_seconds": 1.5625,
+      "sample_elapsed_seconds": 10.0080321,
+      "process_cycles_start": 3903755580,
+      "process_cycles_end": 6918847720,
+      "position_start": 4.98333333,
+      "position_end": 14.98333333,
+      "vo_steady_drops": 0,
+      "zero_cpu_interval": false,
+      "zero_copy": "default",
+      "swapchain_depth": "default",
+      "latency_hacks": "yes",
+      "hwdec_threads": "1",
+      "drop_property": "decoder-frame-drop-count",
+      "vo_drop_property": "frame-drop-count",
+      "heap_cleanup": false,
+      "heap_cleanup_ms": 0.0,
+      "heap_before_private": 0,
+      "heap_after_private": 0,
+      "render_options": {
+        "scale": "lanczos",
+        "dscale": "hermite",
+        "cscale": "bilinear",
+        "linear-downscaling": "no",
+        "correct-downscaling": "yes",
+        "sigmoid-upscaling": "no",
+        "dither-depth": "auto",
+        "dither": "fruit",
+        "target-colorspace-hint": "auto",
+        "d3d11-gpu-timing": "no",
+        "d3d11-vertex-cache-entries": "4"
+      },
+      "case": "hevc4k",
+      "captureSha256": "e919903586fcc1b163893a710e896e95042ba1184c65f5a7a4749815bde6af01"
+    }
+  ],
+  "limits": [
+    "Native steady screens are one run per format with 10-second windows, not a repeated whole-player ranking.",
+    "Fixed geometry and H264 captures match earlier output byte-for-byte; that is not exhaustive visual validation or VLC pixel equivalence."
+  ]
+}

@@ -1,0 +1,175 @@
+{
+  "functional": {
+    "passed": 72,
+    "failed": 0,
+    "run": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-5a62b2a83e594ec0bb34c557ba630ac2"
+  },
+  "tinyBuffer": true,
+  "vertexStats": [
+    {
+      "uploads": 350,
+      "reuses": 0,
+      "capacity": 4,
+      "discards": 174,
+      "growths": 2
+    },
+    {
+      "uploads": 420,
+      "reuses": 0,
+      "capacity": 4,
+      "discards": 209,
+      "growths": 1
+    },
+    {
+      "uploads": 345,
+      "reuses": 0,
+      "capacity": 4,
+      "discards": 172,
+      "growths": 2
+    },
+    {
+      "uploads": 426,
+      "reuses": 0,
+      "capacity": 4,
+      "discards": 212,
+      "growths": 1
+    },
+    {
+      "uploads": 414,
+      "reuses": 0,
+      "capacity": 4,
+      "discards": 206,
+      "growths": 1
+    },
+    {
+      "uploads": 420,
+      "reuses": 0,
+      "capacity": 4,
+      "discards": 209,
+      "growths": 1
+    },
+    {
+      "uploads": 414,
+      "reuses": 0,
+      "capacity": 4,
+      "discards": 206,
+      "growths": 1
+    },
+    {
+      "uploads": 402,
+      "reuses": 0,
+      "capacity": 4,
+      "discards": 200,
+      "growths": 1
+    },
+    {
+      "uploads": 360,
+      "reuses": 0,
+      "capacity": 4,
+      "discards": 179,
+      "growths": 2
+    },
+    {
+      "uploads": 414,
+      "reuses": 0,
+      "capacity": 4,
+      "discards": 206,
+      "growths": 1
+    },
+    {
+      "uploads": 790,
+      "reuses": 0,
+      "capacity": 4,
+      "discards": 394,
+      "growths": 2
+    },
+    {
+      "uploads": 129,
+      "reuses": 0,
+      "capacity": 4,
+      "discards": 77,
+      "growths": 2
+    },
+    {
+      "uploads": 72,
+      "reuses": 0,
+      "capacity": 4,
+      "discards": 47,
+      "growths": 2
+    },
+    {
+      "uploads": 118,
+      "reuses": 1,
+      "capacity": 4,
+      "discards": 58,
+      "growths": 2
+    },
+    {
+      "uploads": 215,
+      "reuses": 67,
+      "capacity": 4,
+      "discards": 107,
+      "growths": 2
+    },
+    {
+      "uploads": 565,
+      "reuses": 0,
+      "capacity": 4,
+      "discards": 282,
+      "growths": 2
+    },
+    {
+      "uploads": 155,
+      "reuses": 0,
+      "capacity": 4,
+      "discards": 77,
+      "growths": 2
+    },
+    {
+      "uploads": 0,
+      "reuses": 0,
+      "capacity": 4,
+      "discards": 0,
+      "growths": 0
+    },
+    {
+      "uploads": 90,
+      "reuses": 0,
+      "capacity": 4,
+      "discards": 44,
+      "growths": 2
+    }
+  ],
+  "captures": [
+    {
+      "file": "geometry-0.png",
+      "candidateSha256": "946bf20e3633b99c10a5683358ba33c232dd87b03628f2a66b5a90576305ba83",
+      "originalSha256": "946bf20e3633b99c10a5683358ba33c232dd87b03628f2a66b5a90576305ba83",
+      "identical": true
+    },
+    {
+      "file": "geometry-1.png",
+      "candidateSha256": "30e38d116b1ff12ee4b5f837910e0a00af5a46f85102adde85dc36bfcc49a115",
+      "originalSha256": "30e38d116b1ff12ee4b5f837910e0a00af5a46f85102adde85dc36bfcc49a115",
+      "identical": true
+    },
+    {
+      "file": "geometry-2.png",
+      "candidateSha256": "708fc3af3026ca2f1a76185d9bb3c1aa99e61b56e1b25ff983c729d833820d2f",
+      "originalSha256": "708fc3af3026ca2f1a76185d9bb3c1aa99e61b56e1b25ff983c729d833820d2f",
+      "identical": true
+    },
+    {
+      "file": "geometry-3.png",
+      "candidateSha256": "946bf20e3633b99c10a5683358ba33c232dd87b03628f2a66b5a90576305ba83",
+      "originalSha256": "946bf20e3633b99c10a5683358ba33c232dd87b03628f2a66b5a90576305ba83",
+      "identical": true
+    },
+    {
+      "file": "geometry-4.png",
+      "candidateSha256": "8bf091d4575739ef7931ba7ecc3e74931ed52ebbb02bd068e8e88932733a9c17",
+      "originalSha256": "8bf091d4575739ef7931ba7ecc3e74931ed52ebbb02bd068e8e88932733a9c17",
+      "identical": true
+    }
+  ]
+}
