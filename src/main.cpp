@@ -464,16 +464,15 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
     // 7. Event-driven message loop. A short wait caps idle polling while
     // retaining responsive animation/playback updates when the app is active. When nothing requests redraws and no input arrives, the
     // timeout backs off progressively so a fully idle hub idles at ~16 wakeups/s instead
-    // of ~60; any message or redraw request drops it back to 16 ms.
+    // of ~60; redraw requests drop it back to 16 ms. Incoming messages wake
+    // the wait immediately without restarting the fast poll for background work.
     LARGE_INTEGER qpcLast;
     QueryPerformanceCounter(&qpcLast);
     DWORD idleWaitMs = 16;
     MSG msg = {};
     while (true) {
         // Process all pending Windows messages without blocking
-        bool processedMessages = false;
         while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
-            processedMessages = true;
             if (msg.message == WM_QUIT) goto ExitApp;
             TranslateMessage(&msg);
             DispatchMessage(&msg);
@@ -482,12 +481,11 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
         QueryPerformanceCounter(&qpcNow);
         float dt = (float)((double)(qpcNow.QuadPart - qpcLast.QuadPart) / (double)qpcFreq.QuadPart);
         qpcLast = qpcNow;
-        if (dt > 0.05f) dt = 0.05f;
         if (dt < 0.0f) dt = 0.0f;
         if (g_pApp) {
             bool needsRedraw = g_pApp->Update(dt);
             if (needsRedraw) { InvalidateRect(hWnd, NULL, FALSE); UpdateWindow(hWnd); }
-            if (needsRedraw || processedMessages) { idleWaitMs = 16; } else { idleWaitMs = std::min<DWORD>(64, idleWaitMs * 2); }
+            if (needsRedraw) { idleWaitMs = 16; } else { idleWaitMs = std::min<DWORD>(64, idleWaitMs * 2); }
             HANDLE hWaitable = g_pApp->GetFrameLatencyWaitableObject();
             if (needsRedraw || g_pApp->HasPendingPlaybackFrame()) {
                 if (g_pApp->IsOccluded()) { MsgWaitForMultipleObjects(0, NULL, FALSE, 16, QS_ALLINPUT); } else if (hWaitable) {

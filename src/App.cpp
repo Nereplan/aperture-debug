@@ -1250,6 +1250,10 @@ void App::ExecuteCommandLineOptions(const PlaybackCommandLineOptions& options) {
 }
 
 bool App::Update(float dt) {
+    // Bound visual steps while keeping timers accurate when idle waits back off.
+    // Clamping elapsed time in the message loop stretched autosave/sleep timers.
+    const float elapsedDt = std::isfinite(dt) ? std::max(0.0f, dt) : 0.0f;
+    dt = std::min(elapsedDt, 0.05f);
     Diagnostics::RecordHeartbeat(L"running");
     if (closeRequested) { PollClose(); return false; }
     bool needsRedraw = PumpLibrarySaveResults();
@@ -1339,7 +1343,7 @@ bool App::Update(float dt) {
         if (settings.autoUpdateCheckEnabled && !playbackSession.IsPrivateMode()) { CheckForUpdates(false); }
     }
     if (sleepTimerRemainingSec > 0.0f) {
-        sleepTimerRemainingSec = std::max(0.0f, sleepTimerRemainingSec - std::max(0.0f, dt));
+        sleepTimerRemainingSec = std::max(0.0f, sleepTimerRemainingSec - elapsedDt);
         if (sleepTimerRemainingSec == 0.0f) { ClosePlayer(); ShowOSD(IconType::HistoryClock, L"Sleep timer finished"); }
     }
     ClampScrollOffsets();
@@ -1352,7 +1356,7 @@ bool App::Update(float dt) {
     if (playbackSession.IsOpen()) {
         float targetControlsOpacity = 1.0f;
         if (!isScrubbing && !isVolumeScrubbing && !isSettingsFlyoutOpen && !isContextMenuOpen) {
-            controlsIdleTimer += dt;
+            controlsIdleTimer += elapsedDt;
             const float idleLimit = player.IsPlaying() ? 1.2f : 2.0f;
             if (controlsIdleTimer >= idleLimit) { targetControlsOpacity = 0.0f; }
         } else { controlsIdleTimer = 0.0f; targetControlsOpacity = 1.0f; }
@@ -1379,7 +1383,7 @@ bool App::Update(float dt) {
             if (overlayRenderer.ShouldRefreshPlayback(controlsOpacity > 0.0f || showPlaybackDiagnostics ||
                 isSettingsFlyoutOpen || isContextMenuOpen, subtitles.GetActiveTrack() ?
                 subtitles.GetCurrentSubtitleText(player.GetCurrentTime(), settings.subDelayMs) : std::wstring{})) needsRedraw = true;
-            progressSaveTimerSec += dt;
+            progressSaveTimerSec += elapsedDt;
             if (progressSaveTimerSec >= 5.0f) { progressSaveTimerSec = 0.0f; QueuePlaybackProgressSave(); SaveSession(); }
         }
         // Jump ahead chapter detection
@@ -1408,7 +1412,7 @@ bool App::Update(float dt) {
                 }
             } else if (isJumpAheadVisible) {
                 if (!isJumpAheadHovered && !isJumpAheadPressed) {
-                    jumpAheadTimer -= dt;
+                    jumpAheadTimer -= elapsedDt;
                     if (jumpAheadTimer <= 0.0f) {
                         isJumpAheadVisible = false;
                         jumpAheadTimer = 0.0f;
@@ -1588,7 +1592,7 @@ bool App::Update(float dt) {
     }
     // Non-blocking notification timer. Notifications from the same channel
     // coalesce in ShowOSD; distinct notifications are presented in order.
-    if (osdTimer > 0.0f) { osdTimer = std::max(0.0f, osdTimer - dt); needsRedraw = true; }
+    if (osdTimer > 0.0f) { osdTimer = std::max(0.0f, osdTimer - elapsedDt); needsRedraw = true; }
     if (!pendingCoalescedAnnouncement.empty() && (GetTickCount64() - lastVolumeOrSeekAnnounceMs >= 150)) {
         std::wstring msg = std::move(pendingCoalescedAnnouncement);
         pendingCoalescedAnnouncement.clear();
@@ -1609,7 +1613,7 @@ bool App::Update(float dt) {
         slides.erase(std::remove_if(slides.begin(), slides.end(), [](float progress) { return progress >= 1.0f; }), slides.end());
     };
     if (doubleTapTimer > 0.0f) {
-        doubleTapTimer = std::max(0.0f, doubleTapTimer - dt);
+        doubleTapTimer = std::max(0.0f, doubleTapTimer - elapsedDt);
         if (IsReducedMotionEnabled()) {
             doubleTapSignPop = 1.0f;
             doubleTapNumberPop = 1.0f;

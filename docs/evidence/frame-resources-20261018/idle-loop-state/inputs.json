@@ -1,0 +1,30 @@
+{
+  "commit": "d9c5b1ada944028d55c80f505d53cc6cc4ebc6de",
+  "dirty": true,
+  "variants": [
+    {
+      "id": "Aperture-ui-before",
+      "runtime": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\linear-draw-submit-runtime",
+      "environment": {
+        "APERTURE_TEST_ROUND_WAITS": "min1",
+        "APERTURE_TEST_CACHE_BACKBUFFER": "1",
+        "APERTURE_TEST_NO_GPU_TIMERS": "1",
+        "APERTURE_TEST_REUSE_VERTICES": "1"
+      }
+    },
+    {
+      "id": "Aperture-ui-after",
+      "runtime": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\idle-loop-runtime",
+      "environment": {
+        "APERTURE_TEST_ROUND_WAITS": "min1",
+        "APERTURE_TEST_CACHE_BACKBUFFER": "1",
+        "APERTURE_TEST_NO_GPU_TIMERS": "1",
+        "APERTURE_TEST_REUSE_VERTICES": "1"
+      }
+    }
+  ],
+  "sourceSnapshot": "idle-loop-source.patch.gz",
+  "exeSha256": "84aa150a30f702c5335ccca39f4e55e0d97fd061e5997056347eb347f6a2d8e9",
+  "dllSha256": "b1291603c6cb6d890e55a71e11b4b8bbe1b66750f920e1a15bf83dc1814f018e",
+  "note": "App Update uses real elapsed time for autosave/sleep/visibility deadlines, capped steps for visuals. Only redraws reset fast idle polling. No native code/flags differ between variants."
+}

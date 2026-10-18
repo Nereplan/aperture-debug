@@ -123,14 +123,16 @@ try {
     if ($process.HasExited) { throw "$Player exited before the diagnostic completed." }
     [ordered]@{createdUtc=[DateTime]::UtcNow.ToString('o');pid=$process.Id;runtime=$runtimeSource;
         executableSha256=(Get-FileHash -LiteralPath $info.FileName -Algorithm SHA256).Hash;
+        dllSha256=$(if ($Player -eq 'Aperture') { (Get-FileHash -LiteralPath (Join-Path $stage 'libmpv-2.dll')).Hash } else { $null });
         mediaSha256=(Get-FileHash -LiteralPath $mediaPath -Algorithm SHA256).Hash;
         privateBytes=$process.PrivateMemorySize64;workingSetBytes=$process.WorkingSet64;
         player=$Player;windowDimensions=[PlayerBenchmarkWindow]::Size($window);arguments=[string[]]@($info.ArgumentList);
         stateOnly=[bool]$StateOnly;cpuOnly=[bool]$CpuOnly;returnedToHub=[bool]$ReturnToHubWithProbe;
         experimentalWaitPolicy=$env:APERTURE_TEST_ROUND_WAITS;
+        experimentalFlags=@{backbuffer=$env:APERTURE_TEST_CACHE_BACKBUFFER;noGpuTimers=$env:APERTURE_TEST_NO_GPU_TIMERS;reuseVertices=$env:APERTURE_TEST_REUSE_VERTICES};
         videoCanvas=[PlayerBenchmarkWindow]::VideoCanvas($window,[uint32]$process.Id,$Player);
         note='Diagnostic run with a fresh portable profile; requested geometry is retained. Raw thread cycles are not a portable duration. Stack mode suspends; CPU/state modes do not. Not a ranking or output-equivalence check.'} |
-        ConvertTo-Json | Set-Content -LiteralPath (Join-Path $profileRoot 'profile-identity.json') -Encoding utf8
+        ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $profileRoot 'profile-identity.json') -Encoding utf8
     Write-Output "Profile saved: $profileRoot"
 } finally {
     if (-not $process.HasExited) {
