@@ -187,6 +187,9 @@ bool MpvPlayer::Initialize(HWND hParentWnd, HWND hChildVideoWnd) {
     // Per-pass GPU timestamps feed diagnostics, not playback or image quality.
     // Custom mpv configuration can re-enable them when profiling the renderer.
     SetMpvOption(mpv, "d3d11-gpu-timing", "no");
+    // Compatible NV12 frames can keep the existing filter LUTs while avoiding
+    // full-sized RGB intermediates. Specialized/custom paths retain the original pipeline.
+    SetMpvOption(mpv, "scale-direct-nv12", "yes");
     for (const auto& option : PlaybackScaling::kBalanced)
         SetMpvOption(mpv, option.name, option.value);
     // HEVC Main 10 frames are large (P010 is ~4 MiB at 1080p). mpv's default extra-surface cushion is unnecessary for this local player

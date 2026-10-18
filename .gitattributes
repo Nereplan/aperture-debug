@@ -9,7 +9,7 @@
 *.sh text eol=lf
 *.cmd text eol=crlf
 # Unified diffs retain a space prefix on blank context lines.
-/scripts/libmpv/*.patch text eol=lf whitespace=-blank-at-eol
+/scripts/libmpv/*.patch text eol=lf whitespace=-blank-at-eol,-blank-at-eof
 *.dll binary
 *.ttf binary
 *.ico binary

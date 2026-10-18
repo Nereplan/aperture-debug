@@ -2,7 +2,7 @@
 
 Normal Aperture builds use the bundled `libmpv-2.dll`. Its version, SHA-256, size, license identifiers, and upstream URL are recorded in `scripts/dependencies.json`. `scripts/check_dependencies.ps1 -Validate` verifies the bundled file and public headers before each application build.
 
-The bundled engine is **mpv v0.41.0, client API 2.5, 24,531,456 bytes**. The source archives for mpv, FFmpeg n8.0, libplacebo v7.360.1, shaderc, glslang and the SPIR-V dependencies are SHA-256 pinned in `scripts/libmpv/sources.lock.json`. Public headers come from that mpv tag.
+The bundled engine is **mpv v0.41.0, client API 2.5, 24,561,152 bytes**. The source archives for mpv, FFmpeg n8.0, libplacebo v7.360.1, shaderc, glslang and the SPIR-V dependencies are SHA-256 pinned in `scripts/libmpv/sources.lock.json`. Public headers come from that mpv tag.
 
 `scripts/build_lean_libmpv.ps1` rebuilds the complete engine in MSYS2 **MINGW64/MSVCRT**. Prepare GCC/G++, CMake, Meson, Ninja, NASM, pkgconf, Make, GNU patch, curl, Python 3.12+, and the static dav1d, libass, FreeType, HarfBuzz, FriBidi, Fontconfig, uchardet, lcms2, iconv, xxhash, zlib, bzip2 and xz development packages. The script uses existing packages and records their versions; it does not update MSYS2.
 
@@ -18,7 +18,7 @@ Size settings are `-Os`, FFmpeg `--enable-small`, and LTO for FFmpeg, libplacebo
 
 Local source patches are pinned in `scripts/libmpv/source_patches.json`, including the patch payload and every affected file's original/patched SHA-256. The build rejects edited or partially patched inputs, dry-runs patches before applying them, and verifies the resulting hashes again when producing provenance. Changes to these recipe files require `-Clean` with an existing build cache. `output/libmpv-2.unstripped.dll` retains the build binary's native symbols for diagnostics; the stripped DLL remains the runtime artifact.
 
-The Windows FFT-table patch keeps only full interior pages of unused coefficient arrays read-only until their existing thread-once initializers need them. Page boundaries shared with other globals stay writable. Initial protection failure preserves normal writable tables; failure to make a needed table writable propagates `AVERROR(ENOMEM)` through the codelet initializers. Coefficients and transform algorithms are unchanged. This recipe change is staged separately from replacing the bundled runtime.
+The Windows FFT-table patch keeps only full interior pages of unused coefficient arrays read-only until their existing thread-once initializers need them. Page boundaries shared with other globals stay writable. Initial protection failure preserves normal writable tables; failure to make a needed table writable propagates `AVERROR(ENOMEM)` through the codelet initializers. Coefficients and transform algorithms are unchanged. The bundled runtime includes this patch with the pinned positive-wait, retained D3D11-resource and guarded direct-NV12 patches.
 
 For native transform checks, preserve the original `prefix/lib/libavutil.a` before rebuilding, then run `tests/libmpv/check_fft_tables.ps1 -BaselineArchive <original.a> -CandidateArchive <new.a> -IncludeDirectory <prefix/include> -CandidateMode Enabled -OutputDir <new-external-directory>`. It compares complete transform outputs in native/scalar execution, concurrent initialization and lengths up to 2,097,152, checks float/double inverse accuracy, and forces a table-write protection failure in the test process. Run `python tests/benchmark/test_libmpv_source_patches.py` for the build's source-integrity checks.
 
@@ -39,3 +39,19 @@ Playback tests compile an isolated harness, copy the selected DLL, verify its lo
 The integration results and limitations are in [LIBMPV_INTEGRATION_REPORT.md](reports/LIBMPV_INTEGRATION_REPORT.md). Source/flags and the captured toolchain support rebuilding the same configuration; timestamps and toolchain differences can change the binary hash.
 
 When updating libmpv, update the matching headers in `include/mpv/` and the dependency inventory, run the loader and playback tests, and create a new complete release package. The portable updater distributes the DLL, fonts, and locale catalogs together with the application executable.
+
+The guarded `scale-direct-nv12` option bypasses temporary RGB scaling targets
+for compatible 8-bit SDR NV12 frames while retaining the existing separable
+filter LUTs and bilinear chroma. It does not lower intermediate texture precision.
+Explicit framebuffer formats, error-diffusion dithering, HDR/high bit depth,
+alpha, cropping/rotation, linear-light processing and user shaders keep the
+original path. Native callers default to `no`; Aperture requests `yes`, and
+custom MPV configuration can disable it. Existing baseline engines can omit
+this optional option without blocking initialization.
+
+Correctness tests now keep owner windows hidden by default. `-Scenario framecheck`
+can capture fixed GPU-rendered frames without displaying a test window. Hidden
+checks do not establish visible playback CPU/RAM or throughput. Visible native
+measurements require an explicit `-VisiblePlayback` opt-in; desktop unit cases
+require `-AllowVisibleWindows` and otherwise report a skip. Reuse recorded VLC
+baselines for matching protocols rather than repeating them.

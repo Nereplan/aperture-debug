@@ -103,13 +103,14 @@ TEST_CASE(MpvInitialization, BundledProfilesHonorEssentialPolicyAndRetainIndepen
     if (!window.parent || !window.child) return;
     auto checkDiagnostics = [](const auto& player) {
         for (const auto& diagnostic : player.GetInitializationDiagnostics()) std::cout << "  " << diagnostic.message << "\n";
-        // Bundled builds omit ytdl; older engines also omit optional GPU timing.
+        // Bundled builds omit ytdl; older engines can omit optional renderer optimizations.
         // All other rejections remain test failures.
         for (const auto& diagnostic : player.GetInitializationDiagnostics()) {
             TEST_ASSERT(!diagnostic.essential);
             TEST_ASSERT_EQ(diagnostic.errorCode, int(MPV_ERROR_OPTION_NOT_FOUND));
             TEST_ASSERT(diagnostic.message.find("option ytdl=no") != std::string::npos ||
-                        diagnostic.message.find("option d3d11-gpu-timing=no") != std::string::npos);
+                        diagnostic.message.find("option d3d11-gpu-timing=no") != std::string::npos ||
+                        diagnostic.message.find("option scale-direct-nv12=yes") != std::string::npos);
         }
     };
     MpvPlayer main;
