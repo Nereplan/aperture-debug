@@ -1,0 +1,19 @@
+ninja: Entering directory `mpv-build'
+[1/8] Generating common/version.h with a custom command (wrapped by meson because command contains newlines)
+[2/5] Compiling C object libmpv-2.dll.p/video_out_vo.c.obj
+[3/5] Compiling C object libmpv-2.dll.p/video_out_d3d11_context.c.obj
+[4/5] Compiling C object libmpv-2.dll.p/video_out_d3d11_ra_d3d11.c.obj
+[5/5] Linking target libmpv-2.dll
+ninja: Entering directory `mpv-build'
+[1/6] Generating common/version.h with a custom command (wrapped by meson because command contains newlines)
+[1/2] Installing files
+Installing libmpv-2.dll to Q:/stage/prefix/bin
+Stripping target 'libmpv-2.dll'.
+Installing libmpv.dll.a to Q:/stage/prefix/lib
+Installing C:/Users/Alperen/Desktop/Antigravity/Aperture Final/scratch/libmpv-build/src/mpv/include/mpv/client.h to Q:/stage/prefix/include/mpv
+Installing C:/Users/Alperen/Desktop/Antigravity/Aperture Final/scratch/libmpv-build/src/mpv/include/mpv/render.h to Q:/stage/prefix/include/mpv
+Installing C:/Users/Alperen/Desktop/Antigravity/Aperture Final/scratch/libmpv-build/src/mpv/include/mpv/render_gl.h to Q:/stage/prefix/include/mpv
+Installing C:/Users/Alperen/Desktop/Antigravity/Aperture Final/scratch/libmpv-build/src/mpv/include/mpv/stream_cb.h to Q:/stage/prefix/include/mpv
+Installing C:/Users/Alperen/Desktop/Antigravity/Aperture Final/scratch/libmpv-build/mpv-build/meson-private/mpv.pc to Q:/stage/prefix/lib/pkgconfig
+17368db4efc66968f04a2d6123e918e3b892b1e97f6796b847c7e8b4ba8d31e8 *output/libmpv-2.dll
+libmpv build and dependency checks passed.

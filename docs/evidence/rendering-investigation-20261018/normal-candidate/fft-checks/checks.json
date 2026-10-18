@@ -1,0 +1,30 @@
+{
+  "baselineArchive": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\lazy-tables-experiment\\original-libavutil.a",
+  "candidateArchive": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-build\\prefix\\lib\\libavutil.a",
+  "baselineSha256": "36CF95302ACC2D10B54DAC759C3E90D524C673E33C0BE55FE67BB37E26B94CAC",
+  "candidateSha256": "81B28061F6F6C1E95B11102178F8B095E3C0FD412A90D58492B96829A8955C35",
+  "probeSha256": "CDB31BB0F64E76358A722F643C0257B46BBCEEB92DDBB7F3C5F0C5BC8AEF6B1E",
+  "candidateMode": "Enabled",
+  "limits": "FFT output equivalence and concurrent initialization checks, not an exhaustive codec or player test.",
+  "checks": [
+    {
+      "mode": "native",
+      "lazyTables": true,
+      "featureFlagRequested": false,
+      "transforms": 78,
+      "bitExact": true
+    },
+    {
+      "mode": "scalar",
+      "lazyTables": true,
+      "featureFlagRequested": false,
+      "transforms": 78,
+      "bitExact": true
+    }
+  ],
+  "protectionFailure": {
+    "protection_failure": true,
+    "error": -12,
+    "blocked_transitions": 1
+  }
+}

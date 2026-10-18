@@ -1,0 +1,7 @@
+{
+  "experimentalOnly": true,
+  "flag": "APERTURE_TEST_VO_CPU_SECTIONS",
+  "originalSha256": "c4c4aad4f2907b7fffdd0da7bfb4ce8f46bd5bd25ed9b6e1509e9c0f6833c7bb",
+  "patchedSha256": "6c95e4f29a9448e7ad38d7877dcef456bdb9a01dd34df7a86b6e6703dec55ef8",
+  "sections": "render includes draw and flip; other CPU remains in wait/locks/frame release; counters are thread cycles, not elapsed time"
+}

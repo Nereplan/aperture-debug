@@ -1,0 +1,188 @@
+--- a/libavutil/tx_template.c
++++ b/libavutil/tx_template.c
+@@ -66,16 +66,58 @@
+     int factors[TX_MAX_SUB]; /* Must be sorted high -> low */
+ } FFTabInitData;
+ 
++static int TX_TAB(aperture_table_errors)[32];
++
++#if defined(_WIN32) && defined(__GNUC__)
++#include <windows.h>
++static uintptr_t TX_TAB(aperture_page_size) = 4096;
++static int TX_TAB(aperture_table_protect)(void *data, size_t bytes, DWORD protection, DWORD *old)
++{
++    // Only full interior pages belong exclusively to this array. Prefix/tail
++    // pages can contain unrelated globals and must stay writable.
++    uintptr_t start = ((uintptr_t)data + TX_TAB(aperture_page_size) - 1) & ~(TX_TAB(aperture_page_size) - 1);
++    uintptr_t end = ((uintptr_t)data + bytes) & ~(TX_TAB(aperture_page_size) - 1);
++    if (end <= start) { if (old) *old = 0; return 1; }
++    DWORD ignored;
++    return VirtualProtect((void *)start, end - start, protection, old ? old : &ignored) != 0;
++}
++static void __attribute__((constructor)) TX_TAB(aperture_prepare_tables)(void)
++{
++    // Untouched writable image pages otherwise reserve private commit for every
++    // transform size at DLL load. Keep only this array's exclusive pages read-only
++    // until its existing thread-once initializer needs them. If this optional
++    // protection fails, the original writable table remains fully usable.
++    SYSTEM_INFO info;
++    GetSystemInfo(&info);
++    TX_TAB(aperture_page_size) = info.dwPageSize;
++#define SR_TABLE(len) TX_TAB(aperture_table_protect)(TX_TAB(ff_tx_tab_ ##len), sizeof(TX_TAB(ff_tx_tab_ ##len)), PAGE_READONLY, NULL);
++    SR_POW2_TABLES
++#undef SR_TABLE
++}
++#define APERTURE_TABLE_BEGIN(len) DWORD aperture_old = 0; \
++    if (!TX_TAB(aperture_table_protect)(TX_TAB(ff_tx_tab_ ##len), sizeof(TX_TAB(ff_tx_tab_ ##len)), PAGE_READWRITE, &aperture_old)) { \
++        TX_TAB(aperture_table_errors)[ff_ctz(len) - 3] = AVERROR(ENOMEM); \
++        return; \
++    }
++#define APERTURE_TABLE_END(len) \
++    if (aperture_old) TX_TAB(aperture_table_protect)(TX_TAB(ff_tx_tab_ ##len), sizeof(TX_TAB(ff_tx_tab_ ##len)), aperture_old, NULL);
++#else
++#define APERTURE_TABLE_BEGIN(len)
++#define APERTURE_TABLE_END(len)
++#endif
++
+ #define SR_TABLE(len)                                              \
+ static av_cold void TX_TAB(ff_tx_init_tab_ ##len)(void)            \
+ {                                                                  \
+     double freq = 2*M_PI/len;                                      \
+     TXSample *tab = TX_TAB(ff_tx_tab_ ##len);                      \
++    APERTURE_TABLE_BEGIN(len)                                    \
+                                                                    \
+     for (int i = 0; i < len/4; i++)                                \
+         *tab++ = RESCALE(cos(i*freq));                             \
+                                                                    \
+     *tab = 0;                                                      \
++    APERTURE_TABLE_END(len)                                      \
+ }
+ SR_POW2_TABLES
+ #undef SR_TABLE
+@@ -145,14 +187,16 @@
+     AV_ONCE_INIT,
+ };
+ 
+-av_cold void TX_TAB(ff_tx_init_tabs)(int len)
++av_cold int TX_TAB(ff_tx_init_tabs)(int len)
+ {
+     int factor_2 = ff_ctz(len);
+     if (factor_2) {
+         int idx = factor_2 - 3;
+-        for (int i = 0; i <= idx; i++)
+-            ff_thread_once(&sr_tabs_init_once[i],
+-                            sr_tabs_init_funcs[i]);
++        for (int i = 0; i <= idx; i++) {
++            ff_thread_once(&sr_tabs_init_once[i], sr_tabs_init_funcs[i]);
++            if (TX_TAB(aperture_table_errors)[i])
++                return TX_TAB(aperture_table_errors)[i];
++        }
+         len >>= factor_2;
+     }
+ 
+@@ -160,7 +204,7 @@
+         int f, f_idx = 0;
+ 
+         if (len <= 1)
+-            return;
++            return 0;
+ 
+         while ((f = nptwo_tabs_init_data[i].factors[f_idx++])) {
+             if (f % len)
+@@ -172,6 +216,7 @@
+             break;
+         }
+     }
++    return 0;
+ }
+ 
+ static av_always_inline void fft3(TXComplex *out, TXComplex *in,
+@@ -487,7 +532,8 @@
+                                                   const void *scale)
+ {
+     int ret = 0;
+-    TX_TAB(ff_tx_init_tabs)(len);
++    int aperture_ret = TX_TAB(ff_tx_init_tabs)(len);
++    if (aperture_ret < 0) return aperture_ret;
+ 
+     if (len == 15)
+         ret = ff_tx_gen_pfa_input_map(s, opts, 3, 5);
+@@ -596,7 +642,8 @@
+                                                       int len, int inv,
+                                                       const void *scale)
+ {
+-    TX_TAB(ff_tx_init_tabs)(len);
++    int aperture_ret = TX_TAB(ff_tx_init_tabs)(len);
++    if (aperture_ret < 0) return aperture_ret;
+     return ff_tx_gen_ptwo_revtab(s, opts);
+ }
+ 
+@@ -1471,7 +1518,8 @@
+     if (!(s->tmp = av_malloc(len*sizeof(*s->tmp))))
+         return AVERROR(ENOMEM);
+ 
+-    TX_TAB(ff_tx_init_tabs)(len / sub_len);
++    int aperture_ret = TX_TAB(ff_tx_init_tabs)(len / sub_len);
++    if (aperture_ret < 0) return aperture_ret;
+ 
+     return 0;
+ }
+--- a/libavutil/tx_priv.h
++++ b/libavutil/tx_priv.h
+@@ -368,9 +368,9 @@
+ 
+ /* Typed init function to initialize shared tables. Will initialize all tables
+  * for all factors of a length. */
+-void ff_tx_init_tabs_float (int len);
+-void ff_tx_init_tabs_double(int len);
+-void ff_tx_init_tabs_int32 (int len);
++int ff_tx_init_tabs_float (int len);
++int ff_tx_init_tabs_double(int len);
++int ff_tx_init_tabs_int32 (int len);
+ 
+ /* Typed init function to initialize an MDCT exptab in a context.
+  * If pre_tab is set, duplicates the entire table, with the first
+--- a/libavutil/x86/tx_float_init.c
++++ b/libavutil/x86/tx_float_init.c
+@@ -76,7 +76,8 @@
+                                                int len, int inv,               \
+                                                const void *scale)              \
+ {                                                                              \
+-    ff_tx_init_tabs_float(len);                                                \
++    int aperture_ret = ff_tx_init_tabs_float(len); \
++    if (aperture_ret < 0) return aperture_ret; \
+     if (cd->max_len == 2)                                                      \
+         return ff_tx_gen_ptwo_revtab(s, opts);                                 \
+     else                                                                       \
+@@ -98,7 +99,8 @@
+      * to SCATTER if needed. */
+     FFTXCodeletOptions sub_opts = { .map_dir = FF_TX_MAP_GATHER };
+ 
+-    TX_TAB(ff_tx_init_tabs)(len);
++    int aperture_ret = TX_TAB(ff_tx_init_tabs)(len);
++    if (aperture_ret < 0) return aperture_ret;
+ 
+     if (len == 15)
+         ret = ff_tx_gen_pfa_input_map(s, &sub_opts, 3, 5);
+@@ -223,7 +225,8 @@
+     if (!(s->tmp = av_malloc(len*sizeof(*s->tmp))))
+         return AVERROR(ENOMEM);
+ 
+-    TX_TAB(ff_tx_init_tabs)(len / sub_len);
++    int aperture_ret = TX_TAB(ff_tx_init_tabs)(len / sub_len);
++    if (aperture_ret < 0) return aperture_ret;
+ 
+     return 0;
+ }
+--- a/libavutil/aarch64/tx_float_init.c
++++ b/libavutil/aarch64/tx_float_init.c
+@@ -37,7 +37,8 @@
+                              uint64_t flags, FFTXCodeletOptions *opts,
+                              int len, int inv, const void *scale)
+ {
+-    ff_tx_init_tabs_float(len);
++    int aperture_ret = ff_tx_init_tabs_float(len);
++    if (aperture_ret < 0) return aperture_ret;
+     if (cd->max_len == 2)
+         return ff_tx_gen_ptwo_revtab(s, opts);
+     else

@@ -1,0 +1,6 @@
+{
+  "file": "build.log.gz",
+  "uncompressedSha256": "af517993ac4eba4b1b565a3e24ff5d3bbdb10f1bee184060a77202c64d95bc40",
+  "uncompressedBytes": 158553,
+  "encoding": "gzip of the original compiler log bytes; whitespace preserved"
+}

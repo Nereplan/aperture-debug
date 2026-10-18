@@ -141,3 +141,33 @@ playback with a chosen hardware pool, use `tests/libmpv/run_tests.ps1
 overrides. These are diagnostic counters, not an output-equivalence or ranking
 protocol. The comparison and profiler share `PlayerBenchmarkWindow.cs` for
 owned-PID window discovery, resizing and cleanup.
+
+`compare_playback_resources.ps1 -Experiment TimerPolicy` isolates mpv's per-wait,
+always and disabled timer-resolution policies. `Presentation` compares presentation
+intervals; `EagerFlush`, `GpuTimers`, `Backbuffer` and `LazyTables` require their
+explicitly marked experimental DLLs. These modes keep child environment flags
+isolated. `-MemoryLayout` records post-timing heap/virtual-address diagnostics;
+these overlapping categories are not additive RAM measurements. `-VoCpuSections`
+requires the temporary instrumented DLL and records cumulative thread cycles,
+not elapsed-time estimates or player rankings.
+
+Resource runs now retain effective `RENDER_OPTIONS`, including scale, dscale,
+cscale and linear/correct downscaling. An empty cscale value is the valid inherit
+default, not a failed query. `--options-only` on the native resource probe queries
+configuration without loading media or collecting timing samples. `-Experiment
+Scaling` compares current defaults with explicitly bilinear luma/chroma scaling
+and disabled linear/correct downscaling and sigmoid upscaling. Keep those profiles
+in separate protocols; identical outer windows and default settings do not
+establish equal image processing or output quality between players.
+
+
+`WaitRounding` requires the marked guarded MPV build and compares legacy floor,
+ceiling and a one-millisecond minimum for positive waits. The full-player variant
+JSON can request the same experimental policy through `environment` with only
+`APERTURE_TEST_ROUND_WAITS` set to `floor`, `ceil` or `min1`; the runner rejects
+unrecognized flags and unmarked DLLs. Other inherited experiment flags are cleared.
+Both engine and full-player samples retain raw process cycle counters alongside
+CPU time. Cycle counters are processor-specific work counters, not elapsed time;
+do not turn them into CPU percentages. Short CPU-time samples can quantize to
+zero even when cycle counters show activity. `wait_rounding_probe.c` is an isolated
+Windows deadline-loop diagnostic (GCC, `-O2 -static -lntdll`), not a player ranking.

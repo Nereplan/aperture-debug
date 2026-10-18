@@ -4,6 +4,7 @@ import json
 import pathlib
 import re
 import subprocess
+from apply_source_patches import apply_patches
 
 root = pathlib.Path.cwd()
 pe = (root / "output/pe.txt").read_text()
@@ -28,6 +29,7 @@ with dll.open("rb") as stream:
 report = {
     "sources": json.loads((root / "recipe/sources.lock.json").read_text()),
     "recipeId": (root / "prefix/.recipe-id").read_text().strip(),
+    "sourcePatches": apply_patches(root, check_only=True),
     "packages": (root / "output/msys2-packages.txt").read_text().splitlines(),
     "compiler": subprocess.check_output(["gcc", "--version"], text=True).splitlines()[0],
     "optimization": "-Os; FFmpeg enable-small; LTO for mpv/FFmpeg/libplacebo; shader chain without LTO",

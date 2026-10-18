@@ -1,0 +1,27 @@
+{
+  "experimentalOnly": true,
+  "flag": "APERTURE_TEST_LAZY_TX_TABLES",
+  "failurePolicy": "Initial read-only protection failure safely retains the original writable image pages. A later writable transition failure returns AVERROR(ENOMEM) through every codelet initializer. Restoring read-only protection is optional after successful initialization. Only exclusive interior pages are changed.",
+  "sources": [
+    {
+      "path": "libavutil/tx_template.c",
+      "originalTextSha256": "4f0240d04ca254bcdf4bdfd9d6358ad41a47708a262e868ee9792281fd11b534",
+      "patchedTextSha256": "ce0cc94d91559de4fd238b65b054b4c3d761391c3862a50ea3cf55690ea20a05"
+    },
+    {
+      "path": "libavutil/tx_priv.h",
+      "originalTextSha256": "c3db88b6eb58c8837bfcf3992872376244142d155efe1b03a8b0fe83825434ac",
+      "patchedTextSha256": "35227264a9df07003b1c4237ae0217d5c8f36fb2c66e6e70baaf1682773b42d9"
+    },
+    {
+      "path": "libavutil/x86/tx_float_init.c",
+      "originalTextSha256": "720e5e49e5fcf3158f150764202a73e7567a82f72e5dca563afbc2ed3f856032",
+      "patchedTextSha256": "77aff3adb164005b54d5e3752b03cf7dc5a9bdb54a5bc33f21a796750940b89c"
+    },
+    {
+      "path": "libavutil/aarch64/tx_float_init.c",
+      "originalTextSha256": "334389d4da468829b63701a64d6e0784ba33bc454b0923f10ce74b38b9aed50b",
+      "patchedTextSha256": "53e00fa4d87fea039c9b1b20f74ce7b60f2359ba53927ec79ddccbc9693c0eee"
+    }
+  ]
+}

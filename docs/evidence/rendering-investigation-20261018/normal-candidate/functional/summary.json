@@ -1,0 +1,9 @@
+{
+  "scenario": "functional",
+  "sourceDll": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-build\\memory-candidate\\libmpv-2.dll",
+  "loadedDll": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-d048bf44a3884e028fe1a039a45502e5\\libmpv-2.dll",
+  "sha256": "7A9EB5162875FD047FF7782490B1B9F317E4A1EBD51922D8D7B6D14CE1B3A618",
+  "bytes": 24539136,
+  "exitCode": 0,
+  "logs": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-d048bf44a3884e028fe1a039a45502e5"
+}

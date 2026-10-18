@@ -70,6 +70,16 @@ if ($ApertureVariantsFile) {
         if ($variant.id -notmatch '^[a-zA-Z0-9-]{1,64}$') { throw 'Invalid variant ID.' }
         $player = Runtime 'Aperture' $variant.runtime @('Aperture.exe')
         $player | Add-Member -NotePropertyName variant -NotePropertyValue $variant.id
+        $experimentalEnvironment = @{}
+        if ($variant.environment) {
+            foreach ($entry in $variant.environment.PSObject.Properties) {
+                if ($entry.Name -ne 'APERTURE_TEST_ROUND_WAITS' -or $entry.Value -cnotin @('floor','ceil','min1')) { throw 'Unsupported experimental variant environment.' }
+                $experimentalEnvironment[$entry.Name] = [string]$entry.Value
+            }
+            $dllText = [Text.Encoding]::ASCII.GetString([IO.File]::ReadAllBytes((Join-Path $player.source 'libmpv-2.dll')))
+            if (-not $dllText.Contains('APERTURE_TEST_ROUND_WAITS')) { throw 'Wait policy variants require the marked experimental DLL.' }
+        }
+        $player | Add-Member -NotePropertyName experimentalEnvironment -NotePropertyValue $experimentalEnvironment
         $players += $player
     }
 } else { $players += Runtime 'Aperture' $AperturePath @('Aperture.exe') }
@@ -86,6 +96,11 @@ foreach ($player in $players) {
 if (-not ('PlayerBenchmarkWindow' -as [type])) { Add-Type -Path (Join-Path $PSScriptRoot 'PlayerBenchmarkWindow.cs') }
 if ($MpcHcPath) { Add-Type -Path (Join-Path $PSScriptRoot 'MpcStatusObserver.cs') }
 function Bytes([string]$Path) { [int64]((Get-ChildItem -LiteralPath $Path -File -Recurse | Measure-Object Length -Sum).Sum) }
+function Cycles([Diagnostics.Process]$OwnedProcess) {
+    [UInt64]$count = 0
+    if (-not [PlayerBenchmarkWindow]::QueryProcessCycles($OwnedProcess.Handle,[ref]$count)) { throw 'Owned-process cycle counter unavailable.' }
+    $count
+}
 function Gpu([int]$OwnedPid) {
     try {
         $samples = (Get-Counter -Counter @('\GPU Process Memory(*)\Dedicated Usage','\GPU Process Memory(*)\Shared Usage') -ErrorAction Stop).CounterSamples
@@ -172,6 +187,9 @@ for ($round=0; $round -lt ($WarmupIterations+$Iterations); $round++) {
         Get-ChildItem -LiteralPath $player.source -Force | Copy-Item -Destination $runtime -Recurse -Force
         $envOverride = @{APPDATA=(Join-Path $profile 'Roaming');LOCALAPPDATA=(Join-Path $profile 'Local');TEMP=(Join-Path $profile 'Temp');TMP=(Join-Path $profile 'Temp')}
         foreach($path in ($envOverride.Values | Select-Object -Unique)) { New-Item -ItemType Directory -Path $path -Force | Out-Null }
+        if ($player.PSObject.Properties['experimentalEnvironment']) {
+            foreach ($key in $player.experimentalEnvironment.Keys) { $envOverride[$key]=$player.experimentalEnvironment[$key] }
+        }
         $argsList = [Collections.Generic.List[string]]::new(); $port=0; $config=$null; $mpcObserver=$null
         if ($player.name -eq 'VLC') {
             # Windows VLC uses native Shell folders, not APPDATA overrides. Official
@@ -209,6 +227,7 @@ for ($round=0; $round -lt ($WarmupIterations+$Iterations); $round++) {
         try {
             $psi=[Diagnostics.ProcessStartInfo]::new((Join-Path $runtime $player.exeName)); $psi.WorkingDirectory=$runtime; $psi.UseShellExecute=$false; $psi.CreateNoWindow=$true
             foreach($arg in $argsList) { $psi.ArgumentList.Add($arg) }
+            foreach ($key in @('APERTURE_TEST_SKIP_D3D11_FLUSH','APERTURE_TEST_NO_GPU_TIMERS','APERTURE_TEST_CACHE_BACKBUFFER','APERTURE_TEST_LAZY_TX_TABLES','APERTURE_TEST_VO_CPU_SECTIONS','APERTURE_TEST_ROUND_WAITS','MPV_HRT','MPV_HRT_MAX','MPV_HRT_RES')) { [void]$psi.Environment.Remove($key) }
             foreach($key in $envOverride.Keys) { $psi.Environment[$key]=$envOverride[$key] }
             $timer=[Diagnostics.Stopwatch]::StartNew(); $process=[Diagnostics.Process]::Start($psi); $record.pid=$process.Id
             if($mpcObserver) { $mpcObserver.SetOwnedPid([uint32]$process.Id) }
@@ -251,15 +270,16 @@ for ($round=0; $round -lt ($WarmupIterations+$Iterations); $round++) {
                     # Timestamp CPU before either control or GPU queries. Their
                     # overhead remains inside the measured wall interval.
                     $elapsed = $timer.Elapsed.TotalSeconds; $cpu = $process.TotalProcessorTime.TotalSeconds
+                    $cycles = Cycles $process
                     $workingSet = $process.WorkingSet64; $private = $process.PrivateMemorySize64
                     $playback = Playback $player.name $process.Id $port $envOverride
                     $gpu = Gpu $process.Id
-                    $samples.Add([pscustomobject]@{elapsedSeconds=$elapsed;workingSetBytes=$workingSet;privateBytes=$private;cpuSeconds=$cpu;dedicatedGpuBytes=$gpu.dedicatedBytes;sharedGpuBytes=$gpu.sharedBytes;gpuUnavailableReason=$gpu.unavailableReason;playback=$playback})
+                    $samples.Add([pscustomobject]@{elapsedSeconds=$elapsed;workingSetBytes=$workingSet;privateBytes=$private;cpuSeconds=$cpu;cpuCycles=$cycles;dedicatedGpuBytes=$gpu.dedicatedBytes;sharedGpuBytes=$gpu.sharedBytes;gpuUnavailableReason=$gpu.unavailableReason;playback=$playback})
                     continue
                 }
                 $gpu=Gpu $process.Id
                 $process.Refresh()
-                $samples.Add([pscustomobject]@{elapsedSeconds=$timer.Elapsed.TotalSeconds;workingSetBytes=$process.WorkingSet64;privateBytes=$process.PrivateMemorySize64;cpuSeconds=$process.TotalProcessorTime.TotalSeconds;dedicatedGpuBytes=$gpu.dedicatedBytes;sharedGpuBytes=$gpu.sharedBytes;gpuUnavailableReason=$gpu.unavailableReason;playback=(Playback $player.name $process.Id $port $envOverride)})
+                $samples.Add([pscustomobject]@{elapsedSeconds=$timer.Elapsed.TotalSeconds;workingSetBytes=$process.WorkingSet64;privateBytes=$process.PrivateMemorySize64;cpuSeconds=$process.TotalProcessorTime.TotalSeconds;cpuCycles=(Cycles $process);dedicatedGpuBytes=$gpu.dedicatedBytes;sharedGpuBytes=$gpu.sharedBytes;gpuUnavailableReason=$gpu.unavailableReason;playback=(Playback $player.name $process.Id $port $envOverride)})
             }
             $record.samplingEndedUtc = [DateTime]::UtcNow.ToString('o')
             $record.samples=$samples.ToArray(); $record.windowDimensions=[PlayerBenchmarkWindow]::Size($window)

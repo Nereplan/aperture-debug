@@ -3,6 +3,7 @@ import hashlib
 import json
 import pathlib
 import subprocess
+import sys
 import tarfile
 
 root = pathlib.Path.cwd()
@@ -36,3 +37,5 @@ for entry in lock["sources"]:
                 tar.extract(member, destination, filter="data")
     marker.write_text(entry["sha256"] + "\n")
     print(f"Verified source: {entry['name']} {entry['revision']}", flush=True)
+
+subprocess.run([sys.executable, "recipe/apply_source_patches.py"], check=True)

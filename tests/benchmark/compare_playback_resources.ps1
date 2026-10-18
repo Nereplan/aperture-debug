@@ -6,12 +6,14 @@ param(
     [Parameter(Mandatory)][string]$MediaDir,
     [Parameter(Mandatory)][string]$OutputDir,
     [string]$MediaFile = 'h264_aac_720p.mp4',
-    [ValidateSet('Renderer','Pacing','Transfers','HardwareThreads','FreeHeapCaches')][string]$Experiment = 'Renderer',
+    [ValidateSet('Renderer','Pacing','Transfers','HardwareThreads','FreeHeapCaches','EagerFlush','GpuTimers','Backbuffer','Presentation','TimerPolicy','LazyTables','Scaling','WaitRounding')][string]$Experiment = 'Renderer',
     [switch]$WithAudio,
     [ValidateRange(1,15)][int]$Iterations = 3,
     [ValidateRange(0,5)][int]$WarmupIterations = 1,
     [ValidateRange(1,120)][int]$SampleSeconds = 3,
-    [switch]$CaptureFrames
+    [switch]$CaptureFrames,
+    [switch]$MemoryLayout,
+    [switch]$VoCpuSections
 )
 $ErrorActionPreference = 'Stop'
 if ($PSVersionTable.PSVersion.Major -lt 7) { throw 'PowerShell 7 is required.' }
@@ -19,7 +21,11 @@ foreach ($name in @('Probe','BaselineDll','CandidateDll','MediaDir')) {
     Set-Variable -Name $name -Value (Resolve-Path -LiteralPath (Get-Variable -Name $name -ValueOnly)).Path
 }
 $OutputDir = [IO.Path]::GetFullPath($OutputDir)
+if (Test-Path -LiteralPath $OutputDir) { throw 'OutputDir must be new; preserve prior measurements.' }
 New-Item -ItemType Directory -Path $OutputDir -Force | Out-Null
+if ($VoCpuSections -and -not [Text.Encoding]::ASCII.GetString([IO.File]::ReadAllBytes($CandidateDll)).Contains('APERTURE_TEST_VO_CPU_SECTIONS')) {
+    throw 'VoCpuSections requires the marked diagnostic DLL.'
+}
 $variants = @(
     @{name='baseline-gpu'; dll=$BaselineDll; renderer='gpu'},
     @{name='candidate-gpu'; dll=$CandidateDll; renderer='gpu'},
@@ -39,6 +45,62 @@ if ($Experiment -eq 'Transfers') {
         @{name='one-inflight'; dll=$CandidateDll; renderer='gpu'; sync='audio'; threads='0'; zero='no'; depth='1'; latency='yes'},
         @{name='zero-one-inflight'; dll=$CandidateDll; renderer='gpu'; sync='audio'; threads='0'; zero='yes'; depth='1'; latency='yes'},
         @{name='normal-latency'; dll=$CandidateDll; renderer='gpu'; sync='audio'; threads='0'; zero='no'; latency='no'}
+    )
+}
+if ($Experiment -eq 'Presentation') {
+    $variants = @(
+        @{name='present-one'; dll=$CandidateDll; renderer='gpu'; sync='audio'; threads='0'; hwthreads='1'; interval='1'},
+        @{name='present-zero'; dll=$CandidateDll; renderer='gpu'; sync='audio'; threads='0'; hwthreads='1'; interval='0'}
+    )
+}
+if ($Experiment -eq 'TimerPolicy') {
+    $variants = @('perwait','always','never' | ForEach-Object {
+        @{name="timer-$_"; dll=$CandidateDll; renderer='gpu'; sync='audio'; threads='0'; hwthreads='1'; timerPolicy=$_}
+    })
+}
+if ($Experiment -eq 'Scaling') {
+    $variants = @(
+        @{name='default-scaling'; dll=$CandidateDll; renderer='gpu'; sync='audio'; threads='0'; hwthreads='1'; scaling='default'},
+        @{name='linear-scaling'; dll=$CandidateDll; renderer='gpu'; sync='audio'; threads='0'; hwthreads='1'; scaling='linear'}
+    )
+}
+if ($Experiment -eq 'WaitRounding') {
+    if (-not [Text.Encoding]::ASCII.GetString([IO.File]::ReadAllBytes($CandidateDll)).Contains('APERTURE_TEST_ROUND_WAITS')) { throw 'WaitRounding requires the marked experimental DLL.' }
+    $variants = @('floor','ceil','min1' | ForEach-Object {
+        @{name="wait-$_"; dll=$CandidateDll; renderer='gpu'; sync='audio'; threads='0'; hwthreads='1'; waitPolicy=$_}
+    })
+}
+if ($Experiment -eq 'LazyTables') {
+    $dllText = [Text.Encoding]::ASCII.GetString([IO.File]::ReadAllBytes($CandidateDll))
+    if (-not $dllText.Contains('APERTURE_TEST_LAZY_TX_TABLES')) { throw 'LazyTables requires the marked experimental DLL.' }
+    $variants = @(
+        @{name='writable-tables'; dll=$CandidateDll; renderer='gpu'; sync='audio'; threads='0'; hwthreads='1'},
+        @{name='lazy-tables'; dll=$CandidateDll; renderer='gpu'; sync='audio'; threads='0'; hwthreads='1'; lazyTables=$true}
+    )
+}
+if ($Experiment -eq 'Backbuffer') {
+    $dllText = [Text.Encoding]::ASCII.GetString([IO.File]::ReadAllBytes($CandidateDll))
+    if (-not $dllText.Contains('APERTURE_TEST_CACHE_BACKBUFFER')) { throw 'Backbuffer requires the marked experimental DLL.' }
+    $variants = @(
+        @{name='recreate-backbuffer'; dll=$CandidateDll; renderer='gpu'; sync='audio'; threads='0'; hwthreads='1'},
+        @{name='reuse-backbuffer'; dll=$CandidateDll; renderer='gpu'; sync='audio'; threads='0'; hwthreads='1'; cacheBackbuffer=$true},
+        @{name='reuse-present-flush'; dll=$CandidateDll; renderer='gpu'; sync='audio'; threads='0'; hwthreads='1'; cacheBackbuffer=$true; skipFlush=$true}
+    )
+}
+if ($Experiment -eq 'GpuTimers') {
+    $dllText = [Text.Encoding]::ASCII.GetString([IO.File]::ReadAllBytes($CandidateDll))
+    if (-not $dllText.Contains('APERTURE_TEST_NO_GPU_TIMERS')) { throw 'GpuTimers requires the marked experimental DLL.' }
+    $variants = @(
+        @{name='gpu-timers'; dll=$CandidateDll; renderer='gpu'; sync='audio'; threads='0'; hwthreads='1'},
+        @{name='no-gpu-timers'; dll=$CandidateDll; renderer='gpu'; sync='audio'; threads='0'; hwthreads='1'; noTimers=$true}
+    )
+}
+if ($Experiment -eq 'EagerFlush') {
+    $dllText = [Text.Encoding]::ASCII.GetString([IO.File]::ReadAllBytes($CandidateDll))
+    if (-not $dllText.Contains('APERTURE_TEST_SKIP_D3D11_FLUSH')) { throw 'EagerFlush requires the marked experimental DLL, not a normal runtime.' }
+    $variants = @(
+        @{name='eager-flush'; dll=$CandidateDll; renderer='gpu'; sync='audio'; threads='0'; hwthreads='1'},
+        @{name='present-flush'; dll=$CandidateDll; renderer='gpu'; sync='audio'; threads='0'; hwthreads='1'; skipFlush=$true}
     )
 }
 $results = [Collections.Generic.List[object]]::new()
@@ -71,8 +133,10 @@ for ($round=0; $round -lt ($WarmupIterations+$Iterations); $round++) {
             foreach ($argument in @('--video-sync',$variant.sync,'--decoder-threads',$variant.threads)) { $info.ArgumentList.Add($argument) }
         }
         if ($WithAudio) { $info.ArgumentList.Add('--with-audio') }
+        if ($variant.scaling) { $info.ArgumentList.Add('--scaling'); $info.ArgumentList.Add($variant.scaling) }
+        if ($MemoryLayout) { $info.ArgumentList.Add('--memory-layout') }
         if ($variant.heapCleanup) { $info.ArgumentList.Add('--heap-cleanup') }
-        foreach ($pair in @(@('--zero-copy',$variant.zero),@('--swapchain-depth',$variant.depth),@('--latency-hacks',$variant.latency),@('--hwdec-threads',$variant.hwthreads))) {
+        foreach ($pair in @(@('--zero-copy',$variant.zero),@('--swapchain-depth',$variant.depth),@('--latency-hacks',$variant.latency),@('--hwdec-threads',$variant.hwthreads),@('--sync-interval',$variant.interval))) {
             if ($pair[1]) { $info.ArgumentList.Add($pair[0]); $info.ArgumentList.Add($pair[1]) }
         }
         $info.ArgumentList.Add('--sample-seconds'); $info.ArgumentList.Add([string]$SampleSeconds)
@@ -82,9 +146,25 @@ for ($round=0; $round -lt ($WarmupIterations+$Iterations); $round++) {
             New-Item -ItemType Directory -Path $directory | Out-Null
             $info.Environment[$name] = $directory
         }
+        [void]$info.Environment.Remove('APERTURE_TEST_SKIP_D3D11_FLUSH')
+        [void]$info.Environment.Remove('APERTURE_TEST_NO_GPU_TIMERS')
+        [void]$info.Environment.Remove('APERTURE_TEST_CACHE_BACKBUFFER')
+        [void]$info.Environment.Remove('APERTURE_TEST_LAZY_TX_TABLES')
+        [void]$info.Environment.Remove('APERTURE_TEST_VO_CPU_SECTIONS')
+        [void]$info.Environment.Remove('APERTURE_TEST_ROUND_WAITS')
+        foreach ($name in @('MPV_HRT','MPV_HRT_MAX','MPV_HRT_RES')) { [void]$info.Environment.Remove($name) }
+        if ($variant.skipFlush) { $info.Environment['APERTURE_TEST_SKIP_D3D11_FLUSH'] = '1' }
+        if ($variant.noTimers) { $info.Environment['APERTURE_TEST_NO_GPU_TIMERS'] = '1' }
+        if ($variant.cacheBackbuffer) { $info.Environment['APERTURE_TEST_CACHE_BACKBUFFER'] = '1' }
+        if ($variant.lazyTables) { $info.Environment['APERTURE_TEST_LAZY_TX_TABLES'] = '1' }
+        if ($VoCpuSections) { $info.Environment['APERTURE_TEST_VO_CPU_SECTIONS'] = '1' }
+        if ($variant.timerPolicy) { $info.Environment['MPV_HRT'] = $variant.timerPolicy }
+        if ($variant.waitPolicy) { $info.Environment['APERTURE_TEST_ROUND_WAITS'] = $variant.waitPolicy }
+        $startedUtc = [DateTime]::UtcNow.ToString('o')
         $process = [Diagnostics.Process]::Start($info)
         $stdout = $process.StandardOutput.ReadToEndAsync(); $stderr = $process.StandardError.ReadToEndAsync()
         if (!$process.WaitForExit(($SampleSeconds+60)*1000)) { $process.Kill(); throw "Resource probe timed out: $run" }
+        $completedUtc = [DateTime]::UtcNow.ToString('o')
         $log = $stdout.GetAwaiter().GetResult(); $errorLog = $stderr.GetAwaiter().GetResult()
         [IO.File]::WriteAllText((Join-Path $run 'stdout.txt'), $log)
         [IO.File]::WriteAllText((Join-Path $run 'stderr.txt'), $errorLog)
@@ -92,10 +172,40 @@ for ($round=0; $round -lt ($WarmupIterations+$Iterations); $round++) {
         $match = [regex]::Match($log, '(?m)^RESOURCE (.+)$')
         if (!$match.Success) { throw "No resource sample: $run" }
         $sample = $match.Groups[1].Value | ConvertFrom-Json
+        $renderOptions = [regex]::Match($log, '(?m)^RENDER_OPTIONS (.+)$')
+        if ($renderOptions.Success) { $sample | Add-Member render_options ($renderOptions.Groups[1].Value | ConvertFrom-Json) }
+        if ($variant.scaling) {
+            if (-not $renderOptions.Success) { throw "Scaling experiments require effective renderer options: $run" }
+            if ($variant.scaling -eq 'linear') {
+                foreach ($name in @('scale','dscale','cscale')) { if ($sample.render_options.$name -ne 'bilinear') { throw "Requested bilinear option did not apply: $name" } }
+                foreach ($name in @('linear-downscaling','correct-downscaling','sigmoid-upscaling')) { if ($sample.render_options.$name -ne 'no') { throw "Requested scaling option did not apply: $name" } }
+            }
+        }
+        if ($MemoryLayout) {
+            $layoutMatch = [regex]::Match($log, '(?m)^HEAP_LAYOUT (.+)$')
+            if (-not $layoutMatch.Success) { throw "Missing post-measurement memory diagnostic: $run" }
+            $sample | Add-Member memory_layout ($layoutMatch.Groups[1].Value | ConvertFrom-Json)
+        }
+        if ($VoCpuSections) {
+            $sections = @([regex]::Matches($errorLog, '(?m)^APERTURE_VO_CPU (.+)$') | ForEach-Object { $_.Groups[1].Value | ConvertFrom-Json })
+            if ($sections.Count -lt 2 -or @($sections | Where-Object failures -NE 0).Count) { throw "Incomplete video CPU diagnostic: $run" }
+            $sample | Add-Member vo_cpu_sections $sections
+        }
+        $sample | Add-Member skip_eager_flush ([bool]$variant.skipFlush)
+        $sample | Add-Member gpu_timers_disabled ([bool]$variant.noTimers)
+        $sample | Add-Member backbuffer_reuse ([bool]$variant.cacheBackbuffer)
+        $sample | Add-Member lazy_tables ([bool]$variant.lazyTables)
+        if ($variant.timerPolicy) { $sample | Add-Member timer_policy $variant.timerPolicy }
+        if ($variant.waitPolicy) { $sample | Add-Member wait_policy $variant.waitPolicy }
+        if ($variant.interval) { $sample | Add-Member sync_interval $variant.interval }
         $sample | Add-Member variant $variant.name
         $sample | Add-Member round $round
         $sample | Add-Member warmup ($round -lt $WarmupIterations)
         $sample | Add-Member dll_sha256 (Get-FileHash -LiteralPath $dll).Hash
+        $sample | Add-Member probe_sha256 (Get-FileHash -LiteralPath $exe).Hash
+        $sample | Add-Member started_utc $startedUtc
+        $sample | Add-Member completed_utc $completedUtc
+        $sample | Add-Member launch_arguments ([string[]]@($info.ArgumentList))
         if ($CaptureFrames) {
             $capturePath = Join-Path $run 'rendered-frame.png'
             if (-not (Test-Path -LiteralPath $capturePath -PathType Leaf)) { throw "Missing rendered capture: $run" }

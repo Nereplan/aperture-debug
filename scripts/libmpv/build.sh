@@ -2,7 +2,7 @@
 # Aperture x64/MSVCRT libmpv recipe. All output belongs to the wrapper's build tree.
 set -euo pipefail
 export PATH="/mingw64/bin:/usr/bin:$PATH"
-for tool in gcc g++ meson ninja nasm pkgconf cmake python make objdump strip curl; do
+for tool in gcc g++ meson ninja nasm pkgconf cmake python make objdump strip curl patch; do
   command -v "$tool" >/dev/null || { echo "Missing MSYS2 MINGW64 tool: $tool"; exit 1; }
 done
 python recipe/fetch_sources.py
@@ -180,7 +180,7 @@ ninja -C mpv-build -j"$JOBS"
 DESTDIR="$PWD/stage" ninja -C mpv-build install
 DLL=$(find stage -name 'libmpv-2.dll' -print -quit)
 test -n "$DLL"
-cp "$DLL" output/libmpv-2.unstripped.dll
+cp mpv-build/libmpv-2.dll output/libmpv-2.unstripped.dll
 strip --strip-unneeded "$DLL"
 cp "$DLL" output/libmpv-2.dll
 objdump -f output/libmpv-2.dll | grep -qi x86-64

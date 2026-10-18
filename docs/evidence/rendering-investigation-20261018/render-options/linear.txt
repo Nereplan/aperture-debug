@@ -1,0 +1,9 @@
+Loaded module: C:\Users\Alperen\Desktop\Antigravity\Aperture Final\libmpv-2.dll
+Loaded module path matches requested: YES
+[PASS] loaded DLL is the requested absolute path
+    mpv_client_api_version=0x20005 (2.5)
+[PASS] client api version >= 2.5
+RENDER_OPTIONS {"scale":"bilinear","dscale":"bilinear","cscale":"bilinear","linear-downscaling":"no","correct-downscaling":"no","sigmoid-upscaling":"no","dither-depth":"auto","dither":"fruit","target-colorspace-hint":"auto"}
+[PASS] effective renderer options available
+
+==== SUMMARY: 3 passed, 0 failed ====

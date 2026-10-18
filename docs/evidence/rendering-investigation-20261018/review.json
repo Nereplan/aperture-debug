@@ -1,0 +1,276 @@
+{
+  "status": "Experimental memory candidate validated by clean build/native transforms/59 functional checks; bundled runtime unchanged; full-player CPU acceptance pending.",
+  "recordedUtc": "2026-10-17T21:53:44+00:00",
+  "batchCompletedUtc": "2026-10-17T21:40:12+00:00",
+  "batchTimestampSource": "Last write of the final results.json, used as batch completion. Individual run timestamps were not captured by that version of the runner.",
+  "method": "Owned engine probe, same experimental DLL with lazy tables disabled/enabled. H2641080p30 with AAC stereo, audio active at zero volume, 1280x800 outer window, audio-clock pacing, D3D11VA and hwdec-threads=1. One discarded warmup and three measured rounds per variant, rotated order, 20-second CPU windows after five seconds playback. No build/profiler during repeated runs. Rendered captures occur after timing, paused at two seconds.",
+  "summary": {
+    "writable-tables": {
+      "private_bytes": {
+        "median": 205643776,
+        "min": 204349440,
+        "max": 205701120,
+        "runs": 3
+      },
+      "working_set": {
+        "median": 115134464,
+        "min": 115068928,
+        "max": 115470336,
+        "runs": 3
+      },
+      "cpu_one_core_percent": {
+        "median": 7.417355271651996,
+        "min": 7.256812761990606,
+        "max": 8.117216117362497,
+        "runs": 3
+      },
+      "gpu_local_bytes": {
+        "median": 132640768,
+        "min": 132608000,
+        "max": 132640768,
+        "runs": 3
+      },
+      "restart_ms": {
+        "median": 608.251,
+        "min": 598.386,
+        "max": 611.939,
+        "runs": 3
+      }
+    },
+    "lazy-tables": {
+      "private_bytes": {
+        "median": 191598592,
+        "min": 188248064,
+        "max": 191692800,
+        "runs": 3
+      },
+      "working_set": {
+        "median": 114593792,
+        "min": 114470912,
+        "max": 114905088,
+        "runs": 3
+      },
+      "cpu_one_core_percent": {
+        "median": 8.900091003524196,
+        "min": 8.201204400947363,
+        "max": 8.904128457832995,
+        "runs": 3
+      },
+      "gpu_local_bytes": {
+        "median": 132640768,
+        "min": 132608000,
+        "max": 132640768,
+        "runs": 3
+      },
+      "restart_ms": {
+        "median": 607.29,
+        "min": 594.765,
+        "max": 614.896,
+        "runs": 3
+      }
+    }
+  },
+  "privateCommitReductionMiB": 13.39453125,
+  "observedCpuChangePercent": 19.990086460318146,
+  "interpretation": "Private commit improved in this batch; CPU was higher. The CPU cause is unresolved. This is not a verified overall performance gain and not a full-player comparison against VLC.",
+  "allCapturesIdentical": true,
+  "allSteadyDropsZero": true,
+  "voSections": [
+    {
+      "variant": "writable-tables",
+      "from_ns": 5002272100,
+      "to_ns": 10028623100,
+      "frames": 150,
+      "fractionOfVoCycles": {
+        "total_cycles": 1.0,
+        "dispatch_cycles": 0.016624861852985718,
+        "events_cycles": 0.017683942117103696,
+        "render_cycles": 0.6259147496601837,
+        "draw_cycles": 0.30687300368429515,
+        "flip_cycles": 0.2903234691961671
+      },
+      "counterFailures": 0
+    },
+    {
+      "variant": "writable-tables",
+      "from_ns": 10028623100,
+      "to_ns": 15029060400,
+      "frames": 150,
+      "fractionOfVoCycles": {
+        "total_cycles": 1.0,
+        "dispatch_cycles": 0.015310512413913378,
+        "events_cycles": 0.016617908789468762,
+        "render_cycles": 0.6607179361616367,
+        "draw_cycles": 0.31807787324029874,
+        "flip_cycles": 0.31465346488913115
+      },
+      "counterFailures": 0
+    },
+    {
+      "variant": "writable-tables",
+      "from_ns": 15029060400,
+      "to_ns": 20029329300,
+      "frames": 150,
+      "fractionOfVoCycles": {
+        "total_cycles": 1.0,
+        "dispatch_cycles": 0.015974461478000083,
+        "events_cycles": 0.01715614426730835,
+        "render_cycles": 0.6423914339003908,
+        "draw_cycles": 0.3004867394896805,
+        "flip_cycles": 0.3140897821215313
+      },
+      "counterFailures": 0
+    },
+    {
+      "variant": "writable-tables",
+      "from_ns": 20029329300,
+      "to_ns": 25030868100,
+      "frames": 150,
+      "fractionOfVoCycles": {
+        "total_cycles": 1.0,
+        "dispatch_cycles": 0.015607768282797594,
+        "events_cycles": 0.016727413150695734,
+        "render_cycles": 0.6559159112494448,
+        "draw_cycles": 0.3223394373596095,
+        "flip_cycles": 0.3045694962583799
+      },
+      "counterFailures": 0
+    },
+    {
+      "variant": "lazy-tables",
+      "from_ns": 5008755500,
+      "to_ns": 10028190600,
+      "frames": 150,
+      "fractionOfVoCycles": {
+        "total_cycles": 1.0,
+        "dispatch_cycles": 0.015274880559854653,
+        "events_cycles": 0.016239178708203263,
+        "render_cycles": 0.6628876867669389,
+        "draw_cycles": 0.3341076585050453,
+        "flip_cycles": 0.2999944412424701
+      },
+      "counterFailures": 0
+    },
+    {
+      "variant": "lazy-tables",
+      "from_ns": 10028190600,
+      "to_ns": 15030639300,
+      "frames": 150,
+      "fractionOfVoCycles": {
+        "total_cycles": 1.0,
+        "dispatch_cycles": 0.016235209122041527,
+        "events_cycles": 0.01726305482873595,
+        "render_cycles": 0.6425633877794492,
+        "draw_cycles": 0.32448494829876684,
+        "flip_cycles": 0.28797384875339543
+      },
+      "counterFailures": 0
+    },
+    {
+      "variant": "lazy-tables",
+      "from_ns": 15030639300,
+      "to_ns": 20031160200,
+      "frames": 151,
+      "fractionOfVoCycles": {
+        "total_cycles": 1.0,
+        "dispatch_cycles": 0.014327498077155297,
+        "events_cycles": 0.01545532903099929,
+        "render_cycles": 0.6855510935379926,
+        "draw_cycles": 0.32251028045277413,
+        "flip_cycles": 0.33524299224973125
+      },
+      "counterFailures": 0
+    },
+    {
+      "variant": "lazy-tables",
+      "from_ns": 20031160200,
+      "to_ns": 25040846400,
+      "frames": 150,
+      "fractionOfVoCycles": {
+        "total_cycles": 1.0,
+        "dispatch_cycles": 0.016065501501719214,
+        "events_cycles": 0.016880528399360842,
+        "render_cycles": 0.6476914684691585,
+        "draw_cycles": 0.31194365205718283,
+        "flip_cycles": 0.3071347594939817
+      },
+      "counterFailures": 0
+    }
+  ],
+  "voDiagnosticLimits": "Cumulative thread cycles are not elapsed time. Render includes draw and flip, so those shares overlap. Diagnostic runs are separate from uninstrumented repeated samples. No exact attribution for the remainder of VO cycles.",
+  "effectiveRenderOptions": {
+    "default": {
+      "scale": "lanczos",
+      "dscale": "hermite",
+      "cscale": "",
+      "linear-downscaling": "yes",
+      "correct-downscaling": "yes",
+      "sigmoid-upscaling": "yes",
+      "dither-depth": "auto",
+      "dither": "fruit",
+      "target-colorspace-hint": "auto"
+    },
+    "linear": {
+      "scale": "bilinear",
+      "dscale": "bilinear",
+      "cscale": "bilinear",
+      "linear-downscaling": "no",
+      "correct-downscaling": "no",
+      "sigmoid-upscaling": "no",
+      "dither-depth": "auto",
+      "dither": "fruit",
+      "target-colorspace-hint": "auto"
+    }
+  },
+  "vlcScalingSource": "https://raw.githubusercontent.com/videolan/vlc/3.0.23/modules/video_output/win32/direct3d11.c",
+  "qualityFinding": "Live libmpv options confirm Lanczos/Hermite and linear/correct downscaling, while fresh-profile VLC D3D11 source defaults to linear scaling. Prior default-player measurements do not isolate equal image processing. A bilinear profile was added to the probe; it has not yet been timed. No production scaling setting was changed.",
+  "initialGetterFailure": "The first renderer-option check incorrectly treated the valid empty/inherit cscale string as unavailable. Corrected to test the native property pointer for null; both configuration-only queries passed. The failed log is retained.",
+  "timerPolicyResult": "One sample per policy: perwait 7.808%, always 9.216%, never 10.147% of one logical core. No performance conclusion from n=1; neither alternative justified adoption.",
+  "nextValidation": [
+    "Complete the guarded MPV wait-policy build; verify default floor and explicit ceil/min1 modes.",
+    "Test real-player CPU/cycles, dropped frames, audio/video behavior and pacing before adopting a wait change.",
+    "Check the normal memory candidate in full-player CPU comparisons.",
+    "Time explicit scaling profiles separately; configuration-only queries are not performance samples."
+  ],
+  "accountingLimits": [
+    "Private bytes are commit, not resident physical memory. Heap/virtual-address/GPU figures overlap and are not additive.",
+    "One synthetic clip and one machine. Engine harness CPU is not complete Aperture CPU.",
+    "No fresh VLC measurement in this batch.",
+    "Per-run executable/DLL hashes are retained; an exact resource-harness source snapshot was not captured. The FFT correctness probe source is retained and matches its recorded hash."
+  ],
+  "normalCandidate": {
+    "dllSha256": "7a9eb5162875fd047ff7782490b1b9f317e4a1ebd51922d8d7b6d14ce1b3a618",
+    "bytes": 24539136,
+    "cleanBuild": "pass",
+    "nativeTransforms": "Two default-on native/scalar output comparisons, 78 transforms each, plus forced allocation failure; passed.",
+    "functional": "59 passed, 0 failed",
+    "evidence": "docs/evidence/rendering-investigation-20261018/normal-candidate/",
+    "notYetMeasured": "Normal candidate full-player CPU/memory vs VLC; experimental engine values above are not substituted for those measurements."
+  },
+  "waitDeadlineProbe": {
+    "method": "Fresh native test processes, 150 absolute 30Hz deadlines (~5sec) per process, three runs each in rotated order. mpv-style per-wait 1ms HRT requests. No builds/profilers/players running. floor/ceil/min1 change only the positive-nanosecond to millisecond conversion.",
+    "scope": "A standalone Windows wait-loop diagnostic, not player CPU or presented-frame pacing. Thread cycles are raw counter values and must not be converted to elapsed time. Short GetThreadTimes samples frequently quantized to zero; those zero values do not demonstrate zero CPU use.",
+    "policies": {
+      "floor": {
+        "medianCycles": 114753920,
+        "medianZeroWaits": 8437,
+        "medianAverageLatenessMs": 0.187829,
+        "maxLatenessMs": 1.412026
+      },
+      "ceil": {
+        "medianCycles": 9879620,
+        "medianZeroWaits": 0,
+        "medianAverageLatenessMs": 1.057836,
+        "maxLatenessMs": 2.621967
+      },
+      "min1": {
+        "medianCycles": 13005500,
+        "medianZeroWaits": 0,
+        "medianAverageLatenessMs": 0.742623,
+        "maxLatenessMs": 2.504548
+      }
+    },
+    "finding": "Both positive-wait policies remove zero-timeout retries and reduce cycles in the isolated loop; both increase deadline lateness. A guarded MPV build is being tested before selecting any runtime policy."
+  },
+  "updatedUtc": "2026-10-17T22:10:07+00:00"
+}

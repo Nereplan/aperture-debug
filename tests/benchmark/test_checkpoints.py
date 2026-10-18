@@ -79,7 +79,7 @@ class CheckpointsTests(unittest.TestCase):
 
     def test_incompatible_reference_rejected(self):
         bundle = self.bundle()
-        r = copy.deepcopy(self.data["checkpoints"][-1]["results"][0])
+        r = copy.deepcopy(next(r for cp in self.data["checkpoints"] for r in cp["results"] if r.get("reference")))
         r["session"] = "new-session-with-no-new-vlc-measurement"
         bundle["checkpoints"][0]["results"] = [r]
         with self.assertRaisesRegex(ValueError, "Reference conditions/session"):

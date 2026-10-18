@@ -43,6 +43,7 @@ $lock = $null
 $drive = $null
 $mapped = $false
 $previousMsystem = $env:MSYSTEM
+$previousNoBytecode = $env:PYTHONDONTWRITEBYTECODE
 try {
     $lock = [IO.File]::Open((Join-Path $BuildRoot '.build.lock'), 'OpenOrCreate', 'ReadWrite', 'None')
     # Clean only owned build products; retain verified downloads and extracted sources.
@@ -59,6 +60,18 @@ try {
     }
     $recipe = Join-Path $BuildRoot 'recipe'
     New-Item -ItemType Directory -Path $recipe -Force | Out-Null
+    # Imports in provenance must not create directories among hashed recipe files.
+    # Remove only ordinary Python cache files left by an earlier invocation.
+    $recipeCache = [IO.Path]::GetFullPath((Join-Path $recipe '__pycache__'))
+    if (-not $recipeCache.StartsWith($BuildRoot + '\recipe\', [StringComparison]::OrdinalIgnoreCase)) { throw 'Unsafe recipe cache path.' }
+    if (Test-Path -LiteralPath $recipeCache) {
+        if (((Get-Item -LiteralPath $recipe -Force).Attributes -band [IO.FileAttributes]::ReparsePoint) -or
+            ((Get-Item -LiteralPath $recipeCache -Force).Attributes -band [IO.FileAttributes]::ReparsePoint)) { throw 'Reparse point in recipe cache.' }
+        $cacheFiles = @(Get-ChildItem -LiteralPath $recipeCache -Force)
+        if (@($cacheFiles | Where-Object { $_.PSIsContainer -or $_.Extension -ne '.pyc' -or ($_.Attributes -band [IO.FileAttributes]::ReparsePoint) }).Count) { throw 'Unexpected entry in recipe cache.' }
+        foreach ($file in $cacheFiles) { Remove-Item -LiteralPath $file.FullName }
+        Remove-Item -LiteralPath $recipeCache
+    }
     $utf8 = New-Object Text.UTF8Encoding($false)
     foreach ($file in Get-ChildItem -LiteralPath (Join-Path $PSScriptRoot 'libmpv') -File) {
         [IO.File]::WriteAllText((Join-Path $recipe $file.Name), ([IO.File]::ReadAllText($file.FullName).Replace([string][char]13 + [char]10, [string][char]10)), $utf8)
@@ -81,6 +94,7 @@ try {
     [IO.File]::WriteAllText($driveRecord, $drive, $utf8)
     if ($Jobs -eq 0) { $Jobs = [Environment]::ProcessorCount }
     $env:MSYSTEM = 'MINGW64'
+    $env:PYTHONDONTWRITEBYTECODE = '1'
     $msys = '/' + $drive.ToLowerInvariant()
     & $bash -lc "cd '$msys' && JOBS=$Jobs bash recipe/build.sh 2>&1" | Tee-Object -FilePath (Join-Path $BuildRoot 'build.log')
     if ($LASTEXITCODE -ne 0) { throw "libmpv build failed ($LASTEXITCODE); see $BuildRoot\build.log" }
@@ -92,6 +106,7 @@ try {
     Write-Host ("Built {0}: {1:N0} bytes; SHA-256 {2}" -f $dll, (Get-Item -LiteralPath $dll).Length, (Get-FileHash -LiteralPath $dll).Hash)
 } finally {
     $env:MSYSTEM = $previousMsystem
+    $env:PYTHONDONTWRITEBYTECODE = $previousNoBytecode
     if ($mapped) { & subst.exe ($drive + ':') /D | Out-Null }
     if ($lock) { $lock.Dispose() }
 }

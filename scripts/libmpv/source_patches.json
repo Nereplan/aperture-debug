@@ -1,0 +1,32 @@
+{
+  "patches": [
+    {
+      "id": "ffmpeg-lazy-windows-transform-tables-v1",
+      "sourceRoot": "src/ffmpeg",
+      "patch": "ffmpeg_lazy_tables.patch",
+      "patchSha256": "0da5bf6b2dcdb005d401582d10c0bd1889a71a5f3fc983bc56114729b7c7a639",
+      "files": [
+        {
+          "path": "libavutil/tx_template.c",
+          "beforeSha256": "4f0240d04ca254bcdf4bdfd9d6358ad41a47708a262e868ee9792281fd11b534",
+          "afterSha256": "09b031679e8d0c39a33ff02239a1fcae0950034cc04169d049b4472ca11f79a8"
+        },
+        {
+          "path": "libavutil/tx_priv.h",
+          "beforeSha256": "c3db88b6eb58c8837bfcf3992872376244142d155efe1b03a8b0fe83825434ac",
+          "afterSha256": "35227264a9df07003b1c4237ae0217d5c8f36fb2c66e6e70baaf1682773b42d9"
+        },
+        {
+          "path": "libavutil/x86/tx_float_init.c",
+          "beforeSha256": "720e5e49e5fcf3158f150764202a73e7567a82f72e5dca563afbc2ed3f856032",
+          "afterSha256": "77aff3adb164005b54d5e3752b03cf7dc5a9bdb54a5bc33f21a796750940b89c"
+        },
+        {
+          "path": "libavutil/aarch64/tx_float_init.c",
+          "beforeSha256": "334389d4da468829b63701a64d6e0784ba33bc454b0923f10ce74b38b9aed50b",
+          "afterSha256": "53e00fa4d87fea039c9b1b20f74ce7b60f2359ba53927ec79ddccbc9693c0eee"
+        }
+      ]
+    }
+  ]
+}

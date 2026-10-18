@@ -9,6 +9,8 @@ public static class PlayerBenchmarkWindow {
     [DllImport("user32.dll")] static extern bool SetWindowPos(IntPtr window, IntPtr after, int x, int y, int width, int height, uint flags);
     [DllImport("user32.dll")] static extern bool PostMessage(IntPtr window, uint message, IntPtr w, IntPtr l);
     [DllImport("user32.dll")] static extern bool GetWindowRect(IntPtr window, out Rect rect);
+    [DllImport("kernel32.dll", EntryPoint="QueryProcessCycleTime", SetLastError=true)]
+    public static extern bool QueryProcessCycles(IntPtr process, out ulong cycles);
     public struct Rect { public int left, top, right, bottom; }
     public static IntPtr Find(uint pid) {
         IntPtr found = IntPtr.Zero;

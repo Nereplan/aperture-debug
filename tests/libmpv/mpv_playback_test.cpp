@@ -79,6 +79,10 @@ static std::string g_resourceZeroCopy, g_resourceSwapchain, g_resourceCapture, g
 static std::string g_resourceLatencyHacks = "yes";
 static int g_resourceSampleSeconds = 3;
 static bool g_resourceHeapCleanup = false;
+static bool g_resourceMemoryLayout = false;
+static std::string g_resourceSyncInterval;
+static std::string g_resourceScaling = "default";
+static bool g_resourceOptionsOnly = false;
 static std::vector<std::string> g_failDetails;
 
 static void Report(const char* name, bool pass, const std::string& detail = "") {
@@ -755,6 +759,10 @@ int main(int argc, char** argv) {
         else if (!strcmp(argv[i], "--decoder-threads") && i + 1 < argc) g_decoderThreads = argv[++i];
         else if (!strcmp(argv[i], "--with-audio")) g_resourceAudio = true;
         else if (!strcmp(argv[i], "--heap-cleanup")) g_resourceHeapCleanup = true;
+        else if (!strcmp(argv[i], "--memory-layout")) g_resourceMemoryLayout = true;
+        else if (!strcmp(argv[i], "--options-only")) g_resourceOptionsOnly = true;
+        else if (!strcmp(argv[i], "--scaling") && i + 1 < argc) g_resourceScaling = argv[++i];
+        else if (!strcmp(argv[i], "--sync-interval") && i + 1 < argc) g_resourceSyncInterval = argv[++i];
         else if (!strcmp(argv[i], "--zero-copy") && i + 1 < argc) g_resourceZeroCopy = argv[++i];
         else if (!strcmp(argv[i], "--swapchain-depth") && i + 1 < argc) g_resourceSwapchain = argv[++i];
         else if (!strcmp(argv[i], "--latency-hacks") && i + 1 < argc) g_resourceLatencyHacks = argv[++i];
@@ -763,6 +771,8 @@ int main(int argc, char** argv) {
         else if (!strcmp(argv[i], "--capture-window") && i + 1 < argc) g_resourceCapture = argv[++i];
     }
     if (g_resourceSampleSeconds < 1 || g_resourceSampleSeconds > 120 ||
+        (g_resourceScaling != "default" && g_resourceScaling != "linear") ||
+        (!g_resourceSyncInterval.empty() && g_resourceSyncInterval != "0" && g_resourceSyncInterval != "1") ||
         (!g_resourceHwdecThreads.empty() && g_resourceHwdecThreads != "1" && g_resourceHwdecThreads != "2" && g_resourceHwdecThreads != "4") ||
         (!g_resourceZeroCopy.empty() && g_resourceZeroCopy != "yes" && g_resourceZeroCopy != "no") ||
         (g_resourceLatencyHacks != "yes" && g_resourceLatencyHacks != "no") ||

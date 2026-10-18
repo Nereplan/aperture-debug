@@ -1,0 +1,1 @@
+{"policy":"floor","frames":150,"waits":7910,"zero_timeout_waits":7758,"thread_cpu_ticks_start":156250,"thread_cpu_ticks_end":312500,"elapsed_ns":5000237100,"average_lateness_ns":210122,"max_lateness_ns":1418207}

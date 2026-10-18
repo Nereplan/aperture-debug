@@ -1,0 +1,5 @@
+APERTURE_VO_CPU {"elapsed_ns":5008755500,"total_cycles":2526300040,"dispatch_cycles":39182560,"events_cycles":21817700,"render_cycles":1276784800,"draw_cycles":1074999480,"flip_cycles":183718600,"frames":132,"failures":0}
+APERTURE_VO_CPU {"elapsed_ns":10028190600,"total_cycles":3175725740,"dispatch_cycles":49102460,"events_cycles":32363840,"render_cycles":1707281100,"draw_cycles":1291977580,"flip_cycles":378542700,"frames":282,"failures":0}
+APERTURE_VO_CPU {"elapsed_ns":15030639300,"total_cycles":3815315900,"dispatch_cycles":59486340,"events_cycles":43405120,"render_cycles":2118258320,"draw_cycles":1499514960,"flip_cycles":562727940,"frames":432,"failures":0}
+APERTURE_VO_CPU {"elapsed_ns":20031160200,"total_cycles":4454135040,"dispatch_cycles":68639020,"events_cycles":53278280,"render_cycles":2556201480,"draw_cycles":1705540700,"flip_cycles":776887580,"frames":583,"failures":0}
+APERTURE_VO_CPU {"elapsed_ns":25040846400,"total_cycles":5104076780,"dispatch_cycles":79080660,"events_cycles":64249640,"render_cycles":2977163200,"draw_cycles":1908285900,"flip_cycles":976507280,"frames":733,"failures":0}
