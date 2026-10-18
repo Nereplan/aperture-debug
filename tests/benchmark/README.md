@@ -65,6 +65,24 @@ indexes, allocator overhead, process RSS, playback and GPU memory. Use the save
 and startup benchmarks for broader behavior, and compare dense as well as sparse
 optional-field workloads when evaluating a memory/speed tradeoff.
 
+## Thumbnail removal
+
+`compare_thumbnail_purge.ps1 -BeforeSourceDirectory <baseline-src> -OutputDirectory
+<scratch-directory>` compiles both production implementations before measuring.
+It alternates process order for one warmup and seven measured samples per version.
+`-AfterSourceDirectory` and `-Samples` override the current source and sample count.
+The generated executables, fixtures and object files stay under a unique `run-*`
+directory inside the supplied output directory; use a harness scratch directory.
+
+The benchmark calls the real thumbnail purge on empty, sparse, populated and dense
+caches, a directory exceeding the listing bound, and a short clip in a large cache.
+It verifies removal counts, deleted targets and retained unrelated files after
+every sample. Fixture construction, verification and process startup are excluded
+from timing. Payloads are empty files so corrupt-entry removal is measured too.
+Metadata is warm and the process uses one available logical processor. CSV heap
+metrics count requested C++ allocations, excluding Windows enumeration buffers,
+allocator overhead, process RSS and GPU memory. Sample zero is the warmup.
+
 ## Playback balance and progress capture
 
 `compare_playback_resources.ps1 -Probe <compiled-mpv_playback_test.exe>

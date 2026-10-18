@@ -8,7 +8,7 @@ do not measure whole-app frame rate. The unit suite uses actual Direct2D bitmaps
 to verify index admission, rounded drawing, eviction, and cache clearing.
 
 The PR gate runs `tests/thumbnails/run_tests.ps1`. It compiles the production
-codec, migration worker, and storage code in an isolated temporary directory.
+codec, migration worker, storage code and player cache functions in an isolated temporary directory.
 It requires MSVC and Windows; it does not need mpv, media files, a desktop app,
 or a personal library. It can run while another Aperture installation is open.
 
@@ -24,10 +24,13 @@ Covered behaviors:
   tier limits, total-budget pressure, disabled storage, replacement size deltas,
   Windows path aliases, cross-class/path traversal rejection, and concurrent writers.
 - Full accounting and eviction with more than 8,192 files.
+- Production seek/hub cache write/read/removal, compatibility with legacy key
+  formatting, fractional endpoints, Unicode paths, corrupt entries, case aliases,
+  locked-file retries, unrelated-entry retention, bounded-inventory fallback,
+  empty caches and invalid durations.
 
-The unit suite additionally exercises the actual player writer default arguments
-against disabled global settings, and verifies that a private-mode read does
-not migrate an existing file.
+The shared native harness builder reuses production objects within the PR gate.
+Linking the player cache functions does not load the media engine.
 
 ## Real thumbnail corpus
 

@@ -21,6 +21,7 @@ Read the most recent report relevant to the subsystem in the [reports index](rep
 | Report | Scope |
 |---|---|
 | [Backend performance balance](reports/BACKEND_BALANCE_20261017.md) | 17 October: playback pacing, progress capture, startup/import scheduling, hidden caches, smaller engine and measured experiment dispositions |
+| [Thumbnail cache removal](reports/THUMBNAIL_PURGE_20261014.md) | 14 October: skip absent thumbnail deletes with a bounded inventory; measured latency and transient-memory tradeoffs |
 | [Library record memory](reports/LIBRARY_RECORD_MEMORY_20261014.md) | 14 October: on-demand playback preferences, sparse/dense memory and CPU tradeoffs, save/load validation |
 | [JSON array ownership during loading](reports/JSON_ARRAY_GROWTH_20261014.md) | 14 October: remove repeated deep copies during JSON array growth; measured library-load speed and allocation reductions |
 | [Player comparison and preview work reduction](reports/PLAYER_COMPARISON_20261014.md) | 14 October: measured VLC/MPC-HC comparison and paused one-shot thumbnail extraction |

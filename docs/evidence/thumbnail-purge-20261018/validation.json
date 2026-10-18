@@ -1,0 +1,39 @@
+{
+  "verifiedAt": "2026-10-18T13:35:22.073685+00:00",
+  "gate": {
+    "total": 22,
+    "passed": 22,
+    "failed": 0,
+    "durationSeconds": 416.92
+  },
+  "thumbnailAssertions": 8894,
+  "artifacts": {
+    "release/Aperture.exe": {
+      "bytes": 3432960,
+      "sha256": "2dda89fbf70f7abf82ce081d6eeff9872f1fa460139d011e79b5ad49220c61ab"
+    },
+    "debug/Aperture.exe": {
+      "bytes": 3432960,
+      "sha256": "2dda89fbf70f7abf82ce081d6eeff9872f1fa460139d011e79b5ad49220c61ab"
+    },
+    "dist/Aperture-2.0.0.0-windows-x64.zip": {
+      "bytes": 13155559,
+      "sha256": "c7f5c53a85df3ea6ff3009600d7ed6071ce15b9e5564459d72ba242adc42716b"
+    },
+    "libmpv-2.dll": {
+      "bytes": 24531456,
+      "sha256": "11b37889e5103a1370509dcf5e5a9c389325c497552f522f45049dfba19f5c52"
+    }
+  },
+  "nativePreviewFixtureSha256": "a63d4f5edbf33359157fa1969ce87c21d0baaf6963e8a5ea410a930dd930d444",
+  "scope": "Current dirty worktree. Local build, gate and package installation succeeded; artifact sizes are recorded identity, not an isolated footprint comparison. Existing frontend edits were included in the build and left unchanged.",
+  "nativePreview": "pass",
+  "checkpointValidation": {
+    "check": "pass",
+    "testsPassed": 17,
+    "testsTotal": 17,
+    "chartLogicChanged": false
+  },
+  "initiallyDirtyPathsPreserved": 119,
+  "concurrentHistoryNote": "Balanced playback history was committed separately during validation and preserved; only the two thumbnail checkpoints were appended."
+}

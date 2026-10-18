@@ -10,6 +10,7 @@ Reports capture empirical observations on specific machines and source revisions
 
 ### Backend, storage and persistence
 - [Backend performance balance (17 Oct 2026)](BACKEND_BALANCE_20261017.md) — Speed/resource/size measurements, all eight research dispositions, local build and regression evidence.
+- [Thumbnail cache removal (14 Oct 2026)](THUMBNAIL_PURGE_20261014.md) — Bounded filename inventories, compatible key formatting, and removal latency/memory measurements.
 - [Library record memory (14 Oct 2026)](LIBRARY_RECORD_MEMORY_20261014.md) — On-demand playback preferences, independent snapshot ownership, and sparse/dense memory and CPU measurements.
 - [JSON array ownership during loading (14 Oct 2026)](JSON_ARRAY_GROWTH_20261014.md) — Explicit parser ownership transfer, library-load measurements and array-boundary regressions.
 - [Player comparison and preview work reduction (14 Oct 2026)](PLAYER_COMPARISON_20261014.md) — Local VLC/MPC-HC resource measurements, source review, and one-shot seekbar extraction.
@@ -46,6 +47,7 @@ Reports capture empirical observations on specific machines and source revisions
 
 | Date | Report | Baseline | Primary focus | Raw evidence |
 |:---|:---|:---|:---|:---|
+| 2026-10-14 | [Thumbnail cache removal](THUMBNAIL_PURGE_20261014.md) | `9a053d3` | Skip absent thumbnail deletes; bounded memory and fallback tradeoffs | [thumbnail-purge-20261014](../evidence/thumbnail-purge-20261014/) |
 | 2026-10-14 | [Library record memory](LIBRARY_RECORD_MEMORY_20261014.md) | `4fcf456` | On-demand preferences and record memory/CPU tradeoffs | [library-record-memory-20261014](../evidence/library-record-memory-20261014/) |
 | 2026-10-14 | [JSON array ownership during loading](JSON_ARRAY_GROWTH_20261014.md) | `fbb9eb4` | Library-load speed and allocation reductions | [json-array-growth-20261014](../evidence/json-array-growth-20261014/) |
 | 2026-10-14 | [Player comparison and preview work reduction](PLAYER_COMPARISON_20261014.md) | `cee51e3` | VLC/MPC-HC resources and one-shot seekbar extraction | [player-comparison-20261014](../evidence/player-comparison-20261014/) |

@@ -1,0 +1,10 @@
+{
+  "beforeExecutableSha256": "5E2D4F42CCD1F3089A13EC2317F3862437203AAEFE1C5C886B980B73E7836A6A",
+  "runRoot": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-thumbnail-finish-20261018\\comparison\\run-64427090ef4d48e8a4eb1f88b2307cc5",
+  "afterExecutableSha256": "8207BDFA79389146C383E2FD9F1C6849C824D6F6DF7C0D7B398273D0003C2C0B",
+  "beforeSource": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-thumbnail-finish-20261018\\before-src",
+  "warmupSample": 0,
+  "samples": 7,
+  "afterSource": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\src",
+  "limits": "Warm filesystem metadata; single available logical processor; empty cache payloads; C++ requested heap excludes OS directory buffers, process RSS and GPU memory. Fixtures and builds are retained below runRoot."
+}

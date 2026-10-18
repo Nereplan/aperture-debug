@@ -7,6 +7,7 @@
 
 using namespace Aperture;
 namespace fs = std::filesystem;
+size_t TestThumbnailPurge(const fs::path& root);
 static size_t checks = 0;
 void Check(bool value, const char* message) { ++checks; if (!value) throw std::runtime_error(message); }
 std::string Read(const fs::path& path) {
@@ -116,6 +117,7 @@ void TestCacheIndexAndAge(const fs::path& root) {
 
 void SelfTest(const fs::path& root) {
     fs::create_directories(root);
+    checks += TestThumbnailPurge(root / L"purge");
     TestEvictionPhases(root/L"eviction-phases");
     TestCacheIndexAndAge(root/L"index");
     bool staCodecPassed = false;
@@ -253,7 +255,7 @@ void SelfTest(const fs::path& root) {
     CacheBudgetConfig manyConfig; manyConfig.genericBudgetBytes=8199;
     Check(AtomicWriteCacheFile(CacheClass::Generic,L"incoming.bin","new",manyConfig,(root/L"many").wstring()).is_ok(),"Large-cache eviction succeeds");
     Check(QueryCacheStats((root/L"many").wstring()).totalBytes<=8199,"Large-cache budget counts every file");
-    std::cout<<"PASS thumbnail codec, migration, budgets, concurrent writers, corruption and containment: "<<checks<<" assertions\n";
+    std::cout<<"PASS thumbnail codec, purge, migration, budgets, concurrent writers, corruption and containment: "<<checks<<" assertions\n";
 }
 
 double Percentile(std::vector<double> values, double p) {

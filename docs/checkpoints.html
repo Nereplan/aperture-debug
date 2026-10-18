@@ -96,7 +96,7 @@ git diff --check</pre>
 <script id="checkpoint-data" type="application/json">
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-10-18T13:25:41+00:00",
+  "updatedAt": "2026-10-18T13:37:38+00:00",
   "metrics": {
     "visible-ms": {
       "label": "Visible window",
@@ -14461,6 +14461,1047 @@ git diff --check</pre>
         }
       ],
       "notes": "Native SHA256 0e7eec0602177a5d5a4025bc12d91e477a9be1995da3376fd0a77509ca7d3c81. Hash-pinned FFT memory, positive-wait and frame-resource patches, GPU diagnostic timestamps disabled; AV1 hardware decoding enabled with libdav1d fallback retained. H264 CPU median 8.3% below contemporaneous VLC; private RAM ~27.7 MiB higher. This is a CPU improvement for this fixture; broader/overall win remains unproven. Fixed native captures match original output. Balanced scaling retains sharper luma processing, with deliberate linear-light/chroma compromises; it is not identical quality to VLC linear or the prior full native preset."
+    },
+    {
+      "id": "thumbnail-purge-20261018-before",
+      "label": "Thumbnail removal / current before",
+      "measuredAt": "2026-10-18T13:26:57+00:00",
+      "commit": "6a897dbd1ab25602d04bf76d35001c4b94ffb1ab",
+      "dirty": true,
+      "sourceNote": "Baseline copies current source, replacing only MpvPlayer.cpp/.h with HEAD versions. Both include the same unrelated working-tree changes. Candidate is current source with thumbnail purge optimization. Source hashes are in docs/evidence/thumbnail-purge-20261018/source-identity.json; executable hashes are in run.json. Timestamp is the batch metadata completion time (filesystem UTC); exact individual sample times were not saved. No clean checkout is implied.",
+      "notes": "Controlled current-worktree replay of the bounded filename inventory and compatible key formatter. Same unrelated source edits on both sides; both builds complete before timing. Seven alternating samples after one warmup. Preserve the earlier 14 October observations; differences between sessions are not attributed to code. The inventory adds transient memory and its overflow fallback can add listing cost. No new persistent index or application file, and no playback/VRAM claim.",
+      "results": [
+        {
+          "metric": "elapsed-ms",
+          "value": 380.8578,
+          "protocol": "thumbnail-purge-20261014",
+          "workload": "dense_30m",
+          "environment": "ryzen3900x-4070super",
+          "session": "thumbnail-purge-20261018",
+          "samples": 7,
+          "evidence": "docs/evidence/thumbnail-purge-20261018/results.csv",
+          "runRange": {
+            "min": 337.2563,
+            "max": 467.4304,
+            "runs": 7,
+            "scope": "Range across seven separately launched measured executions; warmup excluded."
+          }
+        },
+        {
+          "metric": "allocations",
+          "value": 12632.0,
+          "protocol": "thumbnail-purge-20261014",
+          "workload": "dense_30m",
+          "environment": "ryzen3900x-4070super",
+          "session": "thumbnail-purge-20261018",
+          "samples": 7,
+          "evidence": "docs/evidence/thumbnail-purge-20261018/results.csv",
+          "runRange": {
+            "min": 12632.0,
+            "max": 12632.0,
+            "runs": 7,
+            "scope": "Range across seven separately launched measured executions; warmup excluded."
+          }
+        },
+        {
+          "metric": "allocated-bytes",
+          "value": 1212118.0,
+          "protocol": "thumbnail-purge-20261014",
+          "workload": "dense_30m",
+          "environment": "ryzen3900x-4070super",
+          "session": "thumbnail-purge-20261018",
+          "samples": 7,
+          "evidence": "docs/evidence/thumbnail-purge-20261018/results.csv",
+          "runRange": {
+            "min": 1212118.0,
+            "max": 1212118.0,
+            "runs": 7,
+            "scope": "Range across seven separately launched measured executions; warmup excluded."
+          }
+        },
+        {
+          "metric": "peak-cpp-bytes",
+          "value": 1174.0,
+          "protocol": "thumbnail-purge-20261014",
+          "workload": "dense_30m",
+          "environment": "ryzen3900x-4070super",
+          "session": "thumbnail-purge-20261018",
+          "samples": 7,
+          "evidence": "docs/evidence/thumbnail-purge-20261018/results.csv",
+          "runRange": {
+            "min": 1174.0,
+            "max": 1174.0,
+            "runs": 7,
+            "scope": "Range across seven separately launched measured executions; warmup excluded."
+          }
+        },
+        {
+          "metric": "retained-bytes",
+          "value": 0.0,
+          "protocol": "thumbnail-purge-20261014",
+          "workload": "dense_30m",
+          "environment": "ryzen3900x-4070super",
+          "session": "thumbnail-purge-20261018",
+          "samples": 7,
+          "evidence": "docs/evidence/thumbnail-purge-20261018/results.csv",
+          "runRange": {
+            "min": 0.0,
+            "max": 0.0,
+            "runs": 7,
+            "scope": "Range across seven separately launched measured executions; warmup excluded."
+          }
+        },
+        {
+          "metric": "elapsed-ms",
+          "value": 364.8354,
+          "protocol": "thumbnail-purge-20261014",
+          "workload": "empty_2h",
+          "environment": "ryzen3900x-4070super",
+          "session": "thumbnail-purge-20261018",
+          "samples": 7,
+          "evidence": "docs/evidence/thumbnail-purge-20261018/results.csv",
+          "runRange": {
+            "min": 356.3993,
+            "max": 387.1288,
+            "runs": 7,
+            "scope": "Range across seven separately launched measured executions; warmup excluded."
+          }
+        },
+        {
+          "metric": "allocations",
+          "value": 50432.0,
+          "protocol": "thumbnail-purge-20261014",
+          "workload": "empty_2h",
+          "environment": "ryzen3900x-4070super",
+          "session": "thumbnail-purge-20261018",
+          "samples": 7,
+          "evidence": "docs/evidence/thumbnail-purge-20261018/results.csv",
+          "runRange": {
+            "min": 50432.0,
+            "max": 50432.0,
+            "runs": 7,
+            "scope": "Range across seven separately launched measured executions; warmup excluded."
+          }
+        },
+        {
+          "metric": "allocated-bytes",
+          "value": 4835574.0,
+          "protocol": "thumbnail-purge-20261014",
+          "workload": "empty_2h",
+          "environment": "ryzen3900x-4070super",
+          "session": "thumbnail-purge-20261018",
+          "samples": 7,
+          "evidence": "docs/evidence/thumbnail-purge-20261018/results.csv",
+          "runRange": {
+            "min": 4835574.0,
+            "max": 4835574.0,
+            "runs": 7,
+            "scope": "Range across seven separately launched measured executions; warmup excluded."
+          }
+        },
+        {
+          "metric": "peak-cpp-bytes",
+          "value": 1174.0,
+          "protocol": "thumbnail-purge-20261014",
+          "workload": "empty_2h",
+          "environment": "ryzen3900x-4070super",
+          "session": "thumbnail-purge-20261018",
+          "samples": 7,
+          "evidence": "docs/evidence/thumbnail-purge-20261018/results.csv",
+          "runRange": {
+            "min": 1174.0,
+            "max": 1174.0,
+            "runs": 7,
+            "scope": "Range across seven separately launched measured executions; warmup excluded."
+          }
+        },
+        {
+          "metric": "retained-bytes",
+          "value": 0.0,
+          "protocol": "thumbnail-purge-20261014",
+          "workload": "empty_2h",
+          "environment": "ryzen3900x-4070super",
+          "session": "thumbnail-purge-20261018",
+          "samples": 7,
+          "evidence": "docs/evidence/thumbnail-purge-20261018/results.csv",
+          "runRange": {
+            "min": 0.0,
+            "max": 0.0,
+            "runs": 7,
+            "scope": "Range across seven separately launched measured executions; warmup excluded."
+          }
+        },
+        {
+          "metric": "elapsed-ms",
+          "value": 5.2392,
+          "protocol": "thumbnail-purge-20261014",
+          "workload": "overflow_65s",
+          "environment": "ryzen3900x-4070super",
+          "session": "thumbnail-purge-20261018",
+          "samples": 7,
+          "evidence": "docs/evidence/thumbnail-purge-20261018/results.csv",
+          "runRange": {
+            "min": 4.5581,
+            "max": 7.2018,
+            "runs": 7,
+            "scope": "Range across seven separately launched measured executions; warmup excluded."
+          }
+        },
+        {
+          "metric": "allocations",
+          "value": 487.0,
+          "protocol": "thumbnail-purge-20261014",
+          "workload": "overflow_65s",
+          "environment": "ryzen3900x-4070super",
+          "session": "thumbnail-purge-20261018",
+          "samples": 7,
+          "evidence": "docs/evidence/thumbnail-purge-20261018/results.csv",
+          "runRange": {
+            "min": 487.0,
+            "max": 487.0,
+            "runs": 7,
+            "scope": "Range across seven separately launched measured executions; warmup excluded."
+          }
+        },
+        {
+          "metric": "allocated-bytes",
+          "value": 47886.0,
+          "protocol": "thumbnail-purge-20261014",
+          "workload": "overflow_65s",
+          "environment": "ryzen3900x-4070super",
+          "session": "thumbnail-purge-20261018",
+          "samples": 7,
+          "evidence": "docs/evidence/thumbnail-purge-20261018/results.csv",
+          "runRange": {
+            "min": 47886.0,
+            "max": 47886.0,
+            "runs": 7,
+            "scope": "Range across seven separately launched measured executions; warmup excluded."
+          }
+        },
+        {
+          "metric": "peak-cpp-bytes",
+          "value": 1230.0,
+          "protocol": "thumbnail-purge-20261014",
+          "workload": "overflow_65s",
+          "environment": "ryzen3900x-4070super",
+          "session": "thumbnail-purge-20261018",
+          "samples": 7,
+          "evidence": "docs/evidence/thumbnail-purge-20261018/results.csv",
+          "runRange": {
+            "min": 1230.0,
+            "max": 1230.0,
+            "runs": 7,
+            "scope": "Range across seven separately launched measured executions; warmup excluded."
+          }
+        },
+        {
+          "metric": "retained-bytes",
+          "value": 0.0,
+          "protocol": "thumbnail-purge-20261014",
+          "workload": "overflow_65s",
+          "environment": "ryzen3900x-4070super",
+          "session": "thumbnail-purge-20261018",
+          "samples": 7,
+          "evidence": "docs/evidence/thumbnail-purge-20261018/results.csv",
+          "runRange": {
+            "min": 0.0,
+            "max": 0.0,
+            "runs": 7,
+            "scope": "Range across seven separately launched measured executions; warmup excluded."
+          }
+        },
+        {
+          "metric": "elapsed-ms",
+          "value": 437.5845,
+          "protocol": "thumbnail-purge-20261014",
+          "workload": "populated_2h",
+          "environment": "ryzen3900x-4070super",
+          "session": "thumbnail-purge-20261018",
+          "samples": 7,
+          "evidence": "docs/evidence/thumbnail-purge-20261018/results.csv",
+          "runRange": {
+            "min": 416.0713,
+            "max": 502.1429,
+            "runs": 7,
+            "scope": "Range across seven separately launched measured executions; warmup excluded."
+          }
+        },
+        {
+          "metric": "allocations",
+          "value": 50432.0,
+          "protocol": "thumbnail-purge-20261014",
+          "workload": "populated_2h",
+          "environment": "ryzen3900x-4070super",
+          "session": "thumbnail-purge-20261018",
+          "samples": 7,
+          "evidence": "docs/evidence/thumbnail-purge-20261018/results.csv",
+          "runRange": {
+            "min": 50432.0,
+            "max": 50432.0,
+            "runs": 7,
+            "scope": "Range across seven separately launched measured executions; warmup excluded."
+          }
+        },
+        {
+          "metric": "allocated-bytes",
+          "value": 4835646.0,
+          "protocol": "thumbnail-purge-20261014",
+          "workload": "populated_2h",
+          "environment": "ryzen3900x-4070super",
+          "session": "thumbnail-purge-20261018",
+          "samples": 7,
+          "evidence": "docs/evidence/thumbnail-purge-20261018/results.csv",
+          "runRange": {
+            "min": 4835646.0,
+            "max": 4835646.0,
+            "runs": 7,
+            "scope": "Range across seven separately launched measured executions; warmup excluded."
+          }
+        },
+        {
+          "metric": "peak-cpp-bytes",
+          "value": 1230.0,
+          "protocol": "thumbnail-purge-20261014",
+          "workload": "populated_2h",
+          "environment": "ryzen3900x-4070super",
+          "session": "thumbnail-purge-20261018",
+          "samples": 7,
+          "evidence": "docs/evidence/thumbnail-purge-20261018/results.csv",
+          "runRange": {
+            "min": 1230.0,
+            "max": 1230.0,
+            "runs": 7,
+            "scope": "Range across seven separately launched measured executions; warmup excluded."
+          }
+        },
+        {
+          "metric": "retained-bytes",
+          "value": 0.0,
+          "protocol": "thumbnail-purge-20261014",
+          "workload": "populated_2h",
+          "environment": "ryzen3900x-4070super",
+          "session": "thumbnail-purge-20261018",
+          "samples": 7,
+          "evidence": "docs/evidence/thumbnail-purge-20261018/results.csv",
+          "runRange": {
+            "min": 0.0,
+            "max": 0.0,
+            "runs": 7,
+            "scope": "Range across seven separately launched measured executions; warmup excluded."
+          }
+        },
+        {
+          "metric": "elapsed-ms",
+          "value": 2.533,
+          "protocol": "thumbnail-purge-20261014",
+          "workload": "short_20s",
+          "environment": "ryzen3900x-4070super",
+          "session": "thumbnail-purge-20261018",
+          "samples": 7,
+          "evidence": "docs/evidence/thumbnail-purge-20261018/results.csv",
+          "runRange": {
+            "min": 2.3472,
+            "max": 3.5342,
+            "runs": 7,
+            "scope": "Range across seven separately launched measured executions; warmup excluded."
+          }
+        },
+        {
+          "metric": "allocations",
+          "value": 172.0,
+          "protocol": "thumbnail-purge-20261014",
+          "workload": "short_20s",
+          "environment": "ryzen3900x-4070super",
+          "session": "thumbnail-purge-20261018",
+          "samples": 7,
+          "evidence": "docs/evidence/thumbnail-purge-20261018/results.csv",
+          "runRange": {
+            "min": 172.0,
+            "max": 172.0,
+            "runs": 7,
+            "scope": "Range across seven separately launched measured executions; warmup excluded."
+          }
+        },
+        {
+          "metric": "allocated-bytes",
+          "value": 17638.0,
+          "protocol": "thumbnail-purge-20261014",
+          "workload": "short_20s",
+          "environment": "ryzen3900x-4070super",
+          "session": "thumbnail-purge-20261018",
+          "samples": 7,
+          "evidence": "docs/evidence/thumbnail-purge-20261018/results.csv",
+          "runRange": {
+            "min": 17638.0,
+            "max": 17638.0,
+            "runs": 7,
+            "scope": "Range across seven separately launched measured executions; warmup excluded."
+          }
+        },
+        {
+          "metric": "peak-cpp-bytes",
+          "value": 1174.0,
+          "protocol": "thumbnail-purge-20261014",
+          "workload": "short_20s",
+          "environment": "ryzen3900x-4070super",
+          "session": "thumbnail-purge-20261018",
+          "samples": 7,
+          "evidence": "docs/evidence/thumbnail-purge-20261018/results.csv",
+          "runRange": {
+            "min": 1174.0,
+            "max": 1174.0,
+            "runs": 7,
+            "scope": "Range across seven separately launched measured executions; warmup excluded."
+          }
+        },
+        {
+          "metric": "retained-bytes",
+          "value": 0.0,
+          "protocol": "thumbnail-purge-20261014",
+          "workload": "short_20s",
+          "environment": "ryzen3900x-4070super",
+          "session": "thumbnail-purge-20261018",
+          "samples": 7,
+          "evidence": "docs/evidence/thumbnail-purge-20261018/results.csv",
+          "runRange": {
+            "min": 0.0,
+            "max": 0.0,
+            "runs": 7,
+            "scope": "Range across seven separately launched measured executions; warmup excluded."
+          }
+        },
+        {
+          "metric": "elapsed-ms",
+          "value": 399.0932,
+          "protocol": "thumbnail-purge-20261014",
+          "workload": "sparse_2h",
+          "environment": "ryzen3900x-4070super",
+          "session": "thumbnail-purge-20261018",
+          "samples": 7,
+          "evidence": "docs/evidence/thumbnail-purge-20261018/results.csv",
+          "runRange": {
+            "min": 375.1047,
+            "max": 444.0537,
+            "runs": 7,
+            "scope": "Range across seven separately launched measured executions; warmup excluded."
+          }
+        },
+        {
+          "metric": "allocations",
+          "value": 50432.0,
+          "protocol": "thumbnail-purge-20261014",
+          "workload": "sparse_2h",
+          "environment": "ryzen3900x-4070super",
+          "session": "thumbnail-purge-20261018",
+          "samples": 7,
+          "evidence": "docs/evidence/thumbnail-purge-20261018/results.csv",
+          "runRange": {
+            "min": 50432.0,
+            "max": 50432.0,
+            "runs": 7,
+            "scope": "Range across seven separately launched measured executions; warmup excluded."
+          }
+        },
+        {
+          "metric": "allocated-bytes",
+          "value": 4835590.0,
+          "protocol": "thumbnail-purge-20261014",
+          "workload": "sparse_2h",
+          "environment": "ryzen3900x-4070super",
+          "session": "thumbnail-purge-20261018",
+          "samples": 7,
+          "evidence": "docs/evidence/thumbnail-purge-20261018/results.csv",
+          "runRange": {
+            "min": 4835590.0,
+            "max": 4835590.0,
+            "runs": 7,
+            "scope": "Range across seven separately launched measured executions; warmup excluded."
+          }
+        },
+        {
+          "metric": "peak-cpp-bytes",
+          "value": 1174.0,
+          "protocol": "thumbnail-purge-20261014",
+          "workload": "sparse_2h",
+          "environment": "ryzen3900x-4070super",
+          "session": "thumbnail-purge-20261018",
+          "samples": 7,
+          "evidence": "docs/evidence/thumbnail-purge-20261018/results.csv",
+          "runRange": {
+            "min": 1174.0,
+            "max": 1174.0,
+            "runs": 7,
+            "scope": "Range across seven separately launched measured executions; warmup excluded."
+          }
+        },
+        {
+          "metric": "retained-bytes",
+          "value": 0.0,
+          "protocol": "thumbnail-purge-20261014",
+          "workload": "sparse_2h",
+          "environment": "ryzen3900x-4070super",
+          "session": "thumbnail-purge-20261018",
+          "samples": 7,
+          "evidence": "docs/evidence/thumbnail-purge-20261018/results.csv",
+          "runRange": {
+            "min": 0.0,
+            "max": 0.0,
+            "runs": 7,
+            "scope": "Range across seven separately launched measured executions; warmup excluded."
+          }
+        }
+      ],
+      "tests": [
+        {
+          "name": "Production purge fixture verification",
+          "status": "pass",
+          "passed": 48,
+          "total": 48,
+          "durationSeconds": null,
+          "evidence": "docs/evidence/thumbnail-purge-20261018/results.csv",
+          "scope": "Six workloads times eight executions including warmup; each checks removed count, missing target entries and surviving unrelated files. Not 48 independent features."
+        }
+      ]
+    },
+    {
+      "id": "thumbnail-purge-20261018-after",
+      "label": "Thumbnail removal / current after",
+      "measuredAt": "2026-10-18T13:26:57+00:00",
+      "commit": "6a897dbd1ab25602d04bf76d35001c4b94ffb1ab",
+      "dirty": true,
+      "sourceNote": "Baseline copies current source, replacing only MpvPlayer.cpp/.h with HEAD versions. Both include the same unrelated working-tree changes. Candidate is current source with thumbnail purge optimization. Source hashes are in docs/evidence/thumbnail-purge-20261018/source-identity.json; executable hashes are in run.json. Timestamp is the batch metadata completion time (filesystem UTC); exact individual sample times were not saved. No clean checkout is implied.",
+      "notes": "Controlled current-worktree replay of the bounded filename inventory and compatible key formatter. Same unrelated source edits on both sides; both builds complete before timing. Seven alternating samples after one warmup. Preserve the earlier 14 October observations; differences between sessions are not attributed to code. The inventory adds transient memory and its overflow fallback can add listing cost. No new persistent index or application file, and no playback/VRAM claim. Sparse two-hour median 399.09 to 5.22 ms; populated cache 437.58 to 22.11 ms. Overflow case 5.24 to 6.52 ms; peak requested transient C++ heap up to 72,540 bytes in measured cases and zero retained bytes. Hash iteration remains O(duration) for nonempty inventories; directory enumeration and allocation are bounded. Real I/O, empty/corrupt payloads, warm metadata and one logical processor; not whole-library removal latency. The deleted legacy unit header was not restored; purge regressions now run in the active thumbnail suite using production cache functions and shared build objects. Existing frontend and unrelated backend/test edits remain untouched. Historical validation audit: the 14 October full-gate log ends during static analysis without a completion summary. It remains partial, not a passing full gate. The archived report is preserved verbatim; this checkpoint supplies the later complete validation.",
+      "results": [
+        {
+          "metric": "elapsed-ms",
+          "value": 337.7638,
+          "protocol": "thumbnail-purge-20261014",
+          "workload": "dense_30m",
+          "environment": "ryzen3900x-4070super",
+          "session": "thumbnail-purge-20261018",
+          "samples": 7,
+          "evidence": "docs/evidence/thumbnail-purge-20261018/results.csv",
+          "runRange": {
+            "min": 326.9516,
+            "max": 367.9668,
+            "runs": 7,
+            "scope": "Range across seven separately launched measured executions; warmup excluded."
+          }
+        },
+        {
+          "metric": "allocations",
+          "value": 3232.0,
+          "protocol": "thumbnail-purge-20261014",
+          "workload": "dense_30m",
+          "environment": "ryzen3900x-4070super",
+          "session": "thumbnail-purge-20261018",
+          "samples": 7,
+          "evidence": "docs/evidence/thumbnail-purge-20261018/results.csv",
+          "runRange": {
+            "min": 3232.0,
+            "max": 3232.0,
+            "runs": 7,
+            "scope": "Range across seven separately launched measured executions; warmup excluded."
+          }
+        },
+        {
+          "metric": "allocated-bytes",
+          "value": 829122.0,
+          "protocol": "thumbnail-purge-20261014",
+          "workload": "dense_30m",
+          "environment": "ryzen3900x-4070super",
+          "session": "thumbnail-purge-20261018",
+          "samples": 7,
+          "evidence": "docs/evidence/thumbnail-purge-20261018/results.csv",
+          "runRange": {
+            "min": 829122.0,
+            "max": 829122.0,
+            "runs": 7,
+            "scope": "Range across seven separately launched measured executions; warmup excluded."
+          }
+        },
+        {
+          "metric": "peak-cpp-bytes",
+          "value": 32556.0,
+          "protocol": "thumbnail-purge-20261014",
+          "workload": "dense_30m",
+          "environment": "ryzen3900x-4070super",
+          "session": "thumbnail-purge-20261018",
+          "samples": 7,
+          "evidence": "docs/evidence/thumbnail-purge-20261018/results.csv",
+          "runRange": {
+            "min": 32556.0,
+            "max": 32556.0,
+            "runs": 7,
+            "scope": "Range across seven separately launched measured executions; warmup excluded."
+          }
+        },
+        {
+          "metric": "retained-bytes",
+          "value": 0.0,
+          "protocol": "thumbnail-purge-20261014",
+          "workload": "dense_30m",
+          "environment": "ryzen3900x-4070super",
+          "session": "thumbnail-purge-20261018",
+          "samples": 7,
+          "evidence": "docs/evidence/thumbnail-purge-20261018/results.csv",
+          "runRange": {
+            "min": 0.0,
+            "max": 0.0,
+            "runs": 7,
+            "scope": "Range across seven separately launched measured executions; warmup excluded."
+          }
+        },
+        {
+          "metric": "elapsed-ms",
+          "value": 0.3051,
+          "protocol": "thumbnail-purge-20261014",
+          "workload": "empty_2h",
+          "environment": "ryzen3900x-4070super",
+          "session": "thumbnail-purge-20261018",
+          "samples": 7,
+          "evidence": "docs/evidence/thumbnail-purge-20261018/results.csv",
+          "runRange": {
+            "min": 0.2912,
+            "max": 0.3786,
+            "runs": 7,
+            "scope": "Range across seven separately launched measured executions; warmup excluded."
+          }
+        },
+        {
+          "metric": "allocations",
+          "value": 8.0,
+          "protocol": "thumbnail-purge-20261014",
+          "workload": "empty_2h",
+          "environment": "ryzen3900x-4070super",
+          "session": "thumbnail-purge-20261018",
+          "samples": 7,
+          "evidence": "docs/evidence/thumbnail-purge-20261018/results.csv",
+          "runRange": {
+            "min": 8.0,
+            "max": 8.0,
+            "runs": 7,
+            "scope": "Range across seven separately launched measured executions; warmup excluded."
+          }
+        },
+        {
+          "metric": "allocated-bytes",
+          "value": 2390.0,
+          "protocol": "thumbnail-purge-20261014",
+          "workload": "empty_2h",
+          "environment": "ryzen3900x-4070super",
+          "session": "thumbnail-purge-20261018",
+          "samples": 7,
+          "evidence": "docs/evidence/thumbnail-purge-20261018/results.csv",
+          "runRange": {
+            "min": 2390.0,
+            "max": 2390.0,
+            "runs": 7,
+            "scope": "Range across seven separately launched measured executions; warmup excluded."
+          }
+        },
+        {
+          "metric": "peak-cpp-bytes",
+          "value": 1174.0,
+          "protocol": "thumbnail-purge-20261014",
+          "workload": "empty_2h",
+          "environment": "ryzen3900x-4070super",
+          "session": "thumbnail-purge-20261018",
+          "samples": 7,
+          "evidence": "docs/evidence/thumbnail-purge-20261018/results.csv",
+          "runRange": {
+            "min": 1174.0,
+            "max": 1174.0,
+            "runs": 7,
+            "scope": "Range across seven separately launched measured executions; warmup excluded."
+          }
+        },
+        {
+          "metric": "retained-bytes",
+          "value": 0.0,
+          "protocol": "thumbnail-purge-20261014",
+          "workload": "empty_2h",
+          "environment": "ryzen3900x-4070super",
+          "session": "thumbnail-purge-20261018",
+          "samples": 7,
+          "evidence": "docs/evidence/thumbnail-purge-20261018/results.csv",
+          "runRange": {
+            "min": 0.0,
+            "max": 0.0,
+            "runs": 7,
+            "scope": "Range across seven separately launched measured executions; warmup excluded."
+          }
+        },
+        {
+          "metric": "elapsed-ms",
+          "value": 6.5242,
+          "protocol": "thumbnail-purge-20261014",
+          "workload": "overflow_65s",
+          "environment": "ryzen3900x-4070super",
+          "session": "thumbnail-purge-20261018",
+          "samples": 7,
+          "evidence": "docs/evidence/thumbnail-purge-20261018/results.csv",
+          "runRange": {
+            "min": 6.2769,
+            "max": 7.3439,
+            "runs": 7,
+            "scope": "Range across seven separately launched measured executions; warmup excluded."
+          }
+        },
+        {
+          "metric": "allocations",
+          "value": 156.0,
+          "protocol": "thumbnail-purge-20261014",
+          "workload": "overflow_65s",
+          "environment": "ryzen3900x-4070super",
+          "session": "thumbnail-purge-20261018",
+          "samples": 7,
+          "evidence": "docs/evidence/thumbnail-purge-20261018/results.csv",
+          "runRange": {
+            "min": 156.0,
+            "max": 156.0,
+            "runs": 7,
+            "scope": "Range across seven separately launched measured executions; warmup excluded."
+          }
+        },
+        {
+          "metric": "allocated-bytes",
+          "value": 37374.0,
+          "protocol": "thumbnail-purge-20261014",
+          "workload": "overflow_65s",
+          "environment": "ryzen3900x-4070super",
+          "session": "thumbnail-purge-20261018",
+          "samples": 7,
+          "evidence": "docs/evidence/thumbnail-purge-20261018/results.csv",
+          "runRange": {
+            "min": 37374.0,
+            "max": 37374.0,
+            "runs": 7,
+            "scope": "Range across seven separately launched measured executions; warmup excluded."
+          }
+        },
+        {
+          "metric": "peak-cpp-bytes",
+          "value": 1782.0,
+          "protocol": "thumbnail-purge-20261014",
+          "workload": "overflow_65s",
+          "environment": "ryzen3900x-4070super",
+          "session": "thumbnail-purge-20261018",
+          "samples": 7,
+          "evidence": "docs/evidence/thumbnail-purge-20261018/results.csv",
+          "runRange": {
+            "min": 1782.0,
+            "max": 1782.0,
+            "runs": 7,
+            "scope": "Range across seven separately launched measured executions; warmup excluded."
+          }
+        },
+        {
+          "metric": "retained-bytes",
+          "value": 0.0,
+          "protocol": "thumbnail-purge-20261014",
+          "workload": "overflow_65s",
+          "environment": "ryzen3900x-4070super",
+          "session": "thumbnail-purge-20261018",
+          "samples": 7,
+          "evidence": "docs/evidence/thumbnail-purge-20261018/results.csv",
+          "runRange": {
+            "min": 0.0,
+            "max": 0.0,
+            "runs": 7,
+            "scope": "Range across seven separately launched measured executions; warmup excluded."
+          }
+        },
+        {
+          "metric": "elapsed-ms",
+          "value": 22.1129,
+          "protocol": "thumbnail-purge-20261014",
+          "workload": "populated_2h",
+          "environment": "ryzen3900x-4070super",
+          "session": "thumbnail-purge-20261018",
+          "samples": 7,
+          "evidence": "docs/evidence/thumbnail-purge-20261018/results.csv",
+          "runRange": {
+            "min": 20.5895,
+            "max": 23.1361,
+            "runs": 7,
+            "scope": "Range across seven separately launched measured executions; warmup excluded."
+          }
+        },
+        {
+          "metric": "allocations",
+          "value": 162.0,
+          "protocol": "thumbnail-purge-20261014",
+          "workload": "populated_2h",
+          "environment": "ryzen3900x-4070super",
+          "session": "thumbnail-purge-20261018",
+          "samples": 7,
+          "evidence": "docs/evidence/thumbnail-purge-20261018/results.csv",
+          "runRange": {
+            "min": 162.0,
+            "max": 162.0,
+            "runs": 7,
+            "scope": "Range across seven separately launched measured executions; warmup excluded."
+          }
+        },
+        {
+          "metric": "allocated-bytes",
+          "value": 163912.0,
+          "protocol": "thumbnail-purge-20261014",
+          "workload": "populated_2h",
+          "environment": "ryzen3900x-4070super",
+          "session": "thumbnail-purge-20261018",
+          "samples": 7,
+          "evidence": "docs/evidence/thumbnail-purge-20261018/results.csv",
+          "runRange": {
+            "min": 163912.0,
+            "max": 163912.0,
+            "runs": 7,
+            "scope": "Range across seven separately launched measured executions; warmup excluded."
+          }
+        },
+        {
+          "metric": "peak-cpp-bytes",
+          "value": 72540.0,
+          "protocol": "thumbnail-purge-20261014",
+          "workload": "populated_2h",
+          "environment": "ryzen3900x-4070super",
+          "session": "thumbnail-purge-20261018",
+          "samples": 7,
+          "evidence": "docs/evidence/thumbnail-purge-20261018/results.csv",
+          "runRange": {
+            "min": 72540.0,
+            "max": 72540.0,
+            "runs": 7,
+            "scope": "Range across seven separately launched measured executions; warmup excluded."
+          }
+        },
+        {
+          "metric": "retained-bytes",
+          "value": 0.0,
+          "protocol": "thumbnail-purge-20261014",
+          "workload": "populated_2h",
+          "environment": "ryzen3900x-4070super",
+          "session": "thumbnail-purge-20261018",
+          "samples": 7,
+          "evidence": "docs/evidence/thumbnail-purge-20261018/results.csv",
+          "runRange": {
+            "min": 0.0,
+            "max": 0.0,
+            "runs": 7,
+            "scope": "Range across seven separately launched measured executions; warmup excluded."
+          }
+        },
+        {
+          "metric": "elapsed-ms",
+          "value": 2.3351,
+          "protocol": "thumbnail-purge-20261014",
+          "workload": "short_20s",
+          "environment": "ryzen3900x-4070super",
+          "session": "thumbnail-purge-20261018",
+          "samples": 7,
+          "evidence": "docs/evidence/thumbnail-purge-20261018/results.csv",
+          "runRange": {
+            "min": 2.1513,
+            "max": 2.8479,
+            "runs": 7,
+            "scope": "Range across seven separately launched measured executions; warmup excluded."
+          }
+        },
+        {
+          "metric": "allocations",
+          "value": 53.0,
+          "protocol": "thumbnail-purge-20261014",
+          "workload": "short_20s",
+          "environment": "ryzen3900x-4070super",
+          "session": "thumbnail-purge-20261018",
+          "samples": 7,
+          "evidence": "docs/evidence/thumbnail-purge-20261018/results.csv",
+          "runRange": {
+            "min": 53.0,
+            "max": 53.0,
+            "runs": 7,
+            "scope": "Range across seven separately launched measured executions; warmup excluded."
+          }
+        },
+        {
+          "metric": "allocated-bytes",
+          "value": 13062.0,
+          "protocol": "thumbnail-purge-20261014",
+          "workload": "short_20s",
+          "environment": "ryzen3900x-4070super",
+          "session": "thumbnail-purge-20261018",
+          "samples": 7,
+          "evidence": "docs/evidence/thumbnail-purge-20261018/results.csv",
+          "runRange": {
+            "min": 13062.0,
+            "max": 13062.0,
+            "runs": 7,
+            "scope": "Range across seven separately launched measured executions; warmup excluded."
+          }
+        },
+        {
+          "metric": "peak-cpp-bytes",
+          "value": 1174.0,
+          "protocol": "thumbnail-purge-20261014",
+          "workload": "short_20s",
+          "environment": "ryzen3900x-4070super",
+          "session": "thumbnail-purge-20261018",
+          "samples": 7,
+          "evidence": "docs/evidence/thumbnail-purge-20261018/results.csv",
+          "runRange": {
+            "min": 1174.0,
+            "max": 1174.0,
+            "runs": 7,
+            "scope": "Range across seven separately launched measured executions; warmup excluded."
+          }
+        },
+        {
+          "metric": "retained-bytes",
+          "value": 0.0,
+          "protocol": "thumbnail-purge-20261014",
+          "workload": "short_20s",
+          "environment": "ryzen3900x-4070super",
+          "session": "thumbnail-purge-20261018",
+          "samples": 7,
+          "evidence": "docs/evidence/thumbnail-purge-20261018/results.csv",
+          "runRange": {
+            "min": 0.0,
+            "max": 0.0,
+            "runs": 7,
+            "scope": "Range across seven separately launched measured executions; warmup excluded."
+          }
+        },
+        {
+          "metric": "elapsed-ms",
+          "value": 5.2244,
+          "protocol": "thumbnail-purge-20261014",
+          "workload": "sparse_2h",
+          "environment": "ryzen3900x-4070super",
+          "session": "thumbnail-purge-20261018",
+          "samples": 7,
+          "evidence": "docs/evidence/thumbnail-purge-20261018/results.csv",
+          "runRange": {
+            "min": 4.7832,
+            "max": 5.4946,
+            "runs": 7,
+            "scope": "Range across seven separately launched measured executions; warmup excluded."
+          }
+        },
+        {
+          "metric": "allocations",
+          "value": 37.0,
+          "protocol": "thumbnail-purge-20261014",
+          "workload": "sparse_2h",
+          "environment": "ryzen3900x-4070super",
+          "session": "thumbnail-purge-20261018",
+          "samples": 7,
+          "evidence": "docs/evidence/thumbnail-purge-20261018/results.csv",
+          "runRange": {
+            "min": 37.0,
+            "max": 37.0,
+            "runs": 7,
+            "scope": "Range across seven separately launched measured executions; warmup excluded."
+          }
+        },
+        {
+          "metric": "allocated-bytes",
+          "value": 9646.0,
+          "protocol": "thumbnail-purge-20261014",
+          "workload": "sparse_2h",
+          "environment": "ryzen3900x-4070super",
+          "session": "thumbnail-purge-20261018",
+          "samples": 7,
+          "evidence": "docs/evidence/thumbnail-purge-20261018/results.csv",
+          "runRange": {
+            "min": 9646.0,
+            "max": 9646.0,
+            "runs": 7,
+            "scope": "Range across seven separately launched measured executions; warmup excluded."
+          }
+        },
+        {
+          "metric": "peak-cpp-bytes",
+          "value": 2382.0,
+          "protocol": "thumbnail-purge-20261014",
+          "workload": "sparse_2h",
+          "environment": "ryzen3900x-4070super",
+          "session": "thumbnail-purge-20261018",
+          "samples": 7,
+          "evidence": "docs/evidence/thumbnail-purge-20261018/results.csv",
+          "runRange": {
+            "min": 2382.0,
+            "max": 2382.0,
+            "runs": 7,
+            "scope": "Range across seven separately launched measured executions; warmup excluded."
+          }
+        },
+        {
+          "metric": "retained-bytes",
+          "value": 0.0,
+          "protocol": "thumbnail-purge-20261014",
+          "workload": "sparse_2h",
+          "environment": "ryzen3900x-4070super",
+          "session": "thumbnail-purge-20261018",
+          "samples": 7,
+          "evidence": "docs/evidence/thumbnail-purge-20261018/results.csv",
+          "runRange": {
+            "min": 0.0,
+            "max": 0.0,
+            "runs": 7,
+            "scope": "Range across seven separately launched measured executions; warmup excluded."
+          }
+        }
+      ],
+      "tests": [
+        {
+          "name": "Production purge fixture verification",
+          "status": "pass",
+          "passed": 48,
+          "total": 48,
+          "durationSeconds": null,
+          "evidence": "docs/evidence/thumbnail-purge-20261018/results.csv",
+          "scope": "Six workloads times eight executions including warmup; each checks removed count, missing target entries and surviving unrelated files. Not 48 independent features."
+        },
+        {
+          "name": "Local PR regression gate",
+          "status": "pass",
+          "passed": 22,
+          "total": 22,
+          "durationSeconds": 416.92,
+          "evidence": "docs/evidence/thumbnail-purge-20261018/build-and-release.log.gz",
+          "scope": "Current worktree; local Release build and package installation also completed. Suite count does not sum overlapping assertions."
+        },
+        {
+          "name": "Thumbnail production workflows",
+          "status": "pass",
+          "passed": 8894,
+          "total": 8894,
+          "durationSeconds": 24.96,
+          "evidence": "docs/evidence/thumbnail-purge-20261018/build-and-release.log.gz",
+          "scope": "Assertion count, included in the PR gate; codec, migration, budgets, concurrency, purge compatibility/locks/bounds and real write/read/removal round trip."
+        },
+        {
+          "name": "Native preview pipeline",
+          "status": "pass",
+          "passed": null,
+          "total": null,
+          "durationSeconds": null,
+          "evidence": "docs/evidence/thumbnail-purge-20261018/preview-result.txt",
+          "scope": "Actual hover and hub decoding, dormant seekbar extraction, forward/backward targets, cache cancellation, device rebinding and zero stationary rerenders. Not a playback performance comparison."
+        },
+        {
+          "name": "14 October gate / historical incomplete log",
+          "status": "partial",
+          "passed": 16,
+          "total": 20,
+          "durationSeconds": null,
+          "evidence": "docs/evidence/thumbnail-purge-20261014/build-and-release.log.gz",
+          "scope": "Audit of preserved historical log only; not a fresh test run. It ends during static analysis without an overall completion summary."
+        }
+      ],
+      "pairedWith": "thumbnail-purge-20261018-before"
     }
   ],
   "reports": [

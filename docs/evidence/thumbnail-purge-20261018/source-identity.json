@@ -1,0 +1,621 @@
+{
+  "baseCommit": "6a897dbd1ab25602d04bf76d35001c4b94ffb1ab",
+  "dirty": true,
+  "capturedAt": "2026-10-18T13:25:06.058035+00:00",
+  "sourceHashes": {
+    "MpvPlayer.cpp": {
+      "before": "e841ea64334cc4d544910fca6c870376c2069af38f23e07b151bce50e7673529",
+      "after": "9ce347a1249e9166816dea9a6db13635307f1776380e6934ab3ac1a8d036f83a"
+    },
+    "MpvPlayer.h": {
+      "before": "b72af377a35af95e8b4f9064fbe2c81587a5f5e92373819d7cce360210588602",
+      "after": "64d1d3fce9934740e02adebd0eb743c5e33a18e9204df34e17142a57a25edd87"
+    }
+  },
+  "method": "Baseline copies current source, replacing only MpvPlayer.cpp/.h with HEAD versions. Both include the same unrelated working-tree changes. Candidate is current source with thumbnail purge optimization.",
+  "initialTrackedPatchSha256": "b5629c1d837e7c805175fde7ede86d461328afa4fa30bf49dc9c7cc039b4e516",
+  "initialTrackedState": [
+    {
+      "path": "docs/README.md",
+      "exists": true,
+      "sha256": "356DB17A79151EB4F8C8D9411D6E6A7742424FE5F5AD121B96F3A7FA05C67D19"
+    },
+    {
+      "path": "docs/TESTING.md",
+      "exists": true,
+      "sha256": "6309B30A12FE799B13A1DCD5D43945BF91EDF02618CE8A699692797AE87A2131"
+    },
+    {
+      "path": "docs/THREAT_BOUNDARIES.md",
+      "exists": true,
+      "sha256": "2C47ACEB97EA27FBA22C25C7C01EE26F93AC5A61621AFAA6838E78890C1B7BB1"
+    },
+    {
+      "path": "docs/reports/README.md",
+      "exists": true,
+      "sha256": "2FCA83C61F534606215AFB02A788291E92D49153E8894A46FB2CEFA8C4E1FC52"
+    },
+    {
+      "path": "docs/threat_boundaries_manifest.json",
+      "exists": true,
+      "sha256": "779848211447EBBF0BC5AC64AEFD89267566B09142CF8755FC483D8BF63EE6D4"
+    },
+    {
+      "path": "src/App.cpp",
+      "exists": true,
+      "sha256": "776AB99D43DF425BFCA4F0F2C0D79A1E20359E1CC1C9EC265E43E2638BFA65E3"
+    },
+    {
+      "path": "src/App.h",
+      "exists": true,
+      "sha256": "386EF90B3D33753A5FD84D5CDABBD7BFCCCD88FE89EE1495177E06CF94E024AD"
+    },
+    {
+      "path": "src/AppHover.cpp",
+      "exists": true,
+      "sha256": "8566E55EE232030E7611CCD0B9F5C3183E985B591A4AB0DF04EE6B50A7935658"
+    },
+    {
+      "path": "src/AppKeyboard.cpp",
+      "exists": true,
+      "sha256": "D362DE7348263F5F88BEEC85B1BE0DF088202C2A8C1C8FA808785BE97F470C0A"
+    },
+    {
+      "path": "src/AppMenus.cpp",
+      "exists": true,
+      "sha256": "21EB3F676327E0E9E463B8B609300CF9C7A0841334F69BD3DFFF89697AA4CDC4"
+    },
+    {
+      "path": "src/AppTooltips.cpp",
+      "exists": true,
+      "sha256": "D73464FC7F15C9D41070C3C407C5CDC12C8C34940C0D89B05F5BBD4C4B64A7D6"
+    },
+    {
+      "path": "src/AppViewModels.cpp",
+      "exists": true,
+      "sha256": "7B68E5738DE9207B14E5FF0B4A28BE04096BD0A799F58F7FA84CBA7E3142049D"
+    },
+    {
+      "path": "src/CacheStorage.h",
+      "exists": true,
+      "sha256": "8F98A632F4574D4E616D63EE90E71E130AA01042DC328A10A091937B36349171"
+    },
+    {
+      "path": "src/MpvPlayer.cpp",
+      "exists": true,
+      "sha256": "9CE347A1249E9166816DEA9A6DB13635307F1776380E6934AB3AC1A8D036F83A"
+    },
+    {
+      "path": "src/MpvPlayer.h",
+      "exists": true,
+      "sha256": "64D1D3FCE9934740E02ADEBD0EB743C5E33A18E9204DF34E17142A57A25EDD87"
+    },
+    {
+      "path": "src/Presentation.h",
+      "exists": true,
+      "sha256": "0C802CDB48E59E30A55D2D1E50DBEC26B0EA94E24BC7EE9316C874CBE32B8142"
+    },
+    {
+      "path": "src/RenderViewModel.h",
+      "exists": true,
+      "sha256": "02B1E4DCC5A946C95851D589268782A8569807EB4D357CB50EE738A5B207BCE6"
+    },
+    {
+      "path": "src/Renderer.cpp",
+      "exists": true,
+      "sha256": "8AF18141B259A75844FEF4B3ECD24A9400BCEA2A159FFB747C66574E3F7387AD"
+    },
+    {
+      "path": "src/Renderer.h",
+      "exists": true,
+      "sha256": "12055F016137AD23135B1E7A8B1750C37818BFC9E212954F7E7B6DE90DCC7671"
+    },
+    {
+      "path": "src/Settings.cpp",
+      "exists": true,
+      "sha256": "09CC42469C7D16C89DA63D68F81B1658B13812AB291B8CAB413899D0C2C9F930"
+    },
+    {
+      "path": "src/SystemVisualPreferences.cpp",
+      "exists": true,
+      "sha256": "9746933D4B5D0ECA2CA089CE4A01AF83B30E6F7D605B054FA3C89EBDC24D57B1"
+    },
+    {
+      "path": "src/UIComponents.cpp",
+      "exists": true,
+      "sha256": "8120A9B91B4F92EB6F2613776513EF534974987BDEB0EE465BDA17BF242F8CF6"
+    },
+    {
+      "path": "tests/benchmark/README.md",
+      "exists": true,
+      "sha256": "77B9405629A8EAF0E04A8B5C2F233D1237966A016B7914789D1C0A35E2DAD287"
+    },
+    {
+      "path": "tests/benchmark/save_resource_benchmark.cpp",
+      "exists": true,
+      "sha256": "073CAE67A29BCC9F4780775019483E0BF738C513FF182EAEA6C8EB635EBF6222"
+    },
+    {
+      "path": "tests/fixtures/history_with_unknown_fields.json",
+      "exists": false,
+      "sha256": null
+    },
+    {
+      "path": "tests/fixtures/library_with_unknown_fields.json",
+      "exists": false,
+      "sha256": null
+    },
+    {
+      "path": "tests/fixtures/playlists_with_unknown_fields.json",
+      "exists": false,
+      "sha256": null
+    },
+    {
+      "path": "tests/fixtures/settings_with_unknown_fields.json",
+      "exists": false,
+      "sha256": null
+    },
+    {
+      "path": "tests/ipc/TestIpcEnvelope.h",
+      "exists": true,
+      "sha256": "62DF3005BC5FD8B6FEC3C680BBEE9EF13B2548B83DA60769F163858217CE1DAE"
+    },
+    {
+      "path": "tests/loader/TestDllLoader.h",
+      "exists": true,
+      "sha256": "0D3C1BDA521ADE952C13671B54C9403CEACEAD2A729ADECDD3AAE07E38B134D0"
+    },
+    {
+      "path": "tests/persistence/TestAbsoluteProfile.h",
+      "exists": false,
+      "sha256": null
+    },
+    {
+      "path": "tests/persistence/TestBulkRelocation.h",
+      "exists": false,
+      "sha256": null
+    },
+    {
+      "path": "tests/persistence/TestCacheBudget.h",
+      "exists": false,
+      "sha256": null
+    },
+    {
+      "path": "tests/persistence/TestCacheIsolation.h",
+      "exists": false,
+      "sha256": null
+    },
+    {
+      "path": "tests/persistence/TestFileIdentity.h",
+      "exists": false,
+      "sha256": null
+    },
+    {
+      "path": "tests/persistence/TestFolderWatcher.h",
+      "exists": false,
+      "sha256": null
+    },
+    {
+      "path": "tests/persistence/TestImportConflictPolicy.h",
+      "exists": false,
+      "sha256": null
+    },
+    {
+      "path": "tests/persistence/TestJsonLimits.h",
+      "exists": false,
+      "sha256": null
+    },
+    {
+      "path": "tests/persistence/TestMediaPreferences.h",
+      "exists": false,
+      "sha256": null
+    },
+    {
+      "path": "tests/persistence/TestMetadataBackfill.h",
+      "exists": false,
+      "sha256": null
+    },
+    {
+      "path": "tests/persistence/TestPartialRecovery.h",
+      "exists": false,
+      "sha256": null
+    },
+    {
+      "path": "tests/persistence/TestPathRelocation.h",
+      "exists": false,
+      "sha256": null
+    },
+    {
+      "path": "tests/persistence/TestPortableRoot.h",
+      "exists": true,
+      "sha256": "882E3569F6F062E0A22E26D9FEE7AD50BAA69FD644A4763561AD5A9BC45064B9"
+    },
+    {
+      "path": "tests/persistence/TestRelativePaths.h",
+      "exists": false,
+      "sha256": null
+    },
+    {
+      "path": "tests/persistence/TestRotatingBackups.h",
+      "exists": true,
+      "sha256": "D1115B2B0F89710BDA0C1E4625256AEB8F9EB325CCFCB241A0644A9EBBA7A615"
+    },
+    {
+      "path": "tests/persistence/TestSchemaMigration.h",
+      "exists": true,
+      "sha256": "B3C55636123948F986EC75037FDFF271E028BC018517FA966DD4564DB9918B4C"
+    },
+    {
+      "path": "tests/persistence/TestUnknownFields.h",
+      "exists": false,
+      "sha256": null
+    },
+    {
+      "path": "tests/persistence/TestUnwritableRoot.h",
+      "exists": true,
+      "sha256": "01BF4F3F2D79C0B8899271C30C93DF7E6F2B85CC29EA16EA40A0FA868039E250"
+    },
+    {
+      "path": "tests/persistence/main.cpp",
+      "exists": true,
+      "sha256": "E5C9E0CDF6D22F39B19CC2D01CA52F7EFBCF7E90F9BB6959B3F7D129D1375B18"
+    },
+    {
+      "path": "tests/stress/TestDiagnosticsStress.h",
+      "exists": false,
+      "sha256": null
+    },
+    {
+      "path": "tests/stress/TestFolderWatcherStress.h",
+      "exists": false,
+      "sha256": null
+    },
+    {
+      "path": "tests/stress/TestMediaBackfillStress.h",
+      "exists": false,
+      "sha256": null
+    },
+    {
+      "path": "tests/stress/TestNetworkStreamLoaderStress.h",
+      "exists": false,
+      "sha256": null
+    },
+    {
+      "path": "tests/stress/TestOnlineSubtitlesStress.h",
+      "exists": false,
+      "sha256": null
+    },
+    {
+      "path": "tests/stress/TestPlayerCallbacksStress.h",
+      "exists": false,
+      "sha256": null
+    },
+    {
+      "path": "tests/stress/TestUpdaterServiceStress.h",
+      "exists": false,
+      "sha256": null
+    },
+    {
+      "path": "tests/stress/main.cpp",
+      "exists": true,
+      "sha256": "48B659704814198E1FA3F38815F8178BAE803C32AB918D73DA79DF44CDE08C36"
+    },
+    {
+      "path": "tests/suites.json",
+      "exists": true,
+      "sha256": "2719EE8AE2EBBA13741BC8D05A0368ABAAC59222EF728ECBB158D6DBAFE11CF9"
+    },
+    {
+      "path": "tests/unit/TestAccessibility.h",
+      "exists": true,
+      "sha256": "819407E990A94849D709004C10D561AA7B4206041130A80A9CBE328C54EF944A"
+    },
+    {
+      "path": "tests/unit/TestAnimationPerformance.h",
+      "exists": true,
+      "sha256": "03E25D64D474376771271F905154C5780251159A4B4294CC8130B93796560088"
+    },
+    {
+      "path": "tests/unit/TestAsyncNetworkJobs.h",
+      "exists": false,
+      "sha256": null
+    },
+    {
+      "path": "tests/unit/TestAudioManagement.h",
+      "exists": true,
+      "sha256": "67877504C67E8432ED649D9A24515462583765A6D5F0C855F1064F9421FABCC6"
+    },
+    {
+      "path": "tests/unit/TestBackgroundAvailability.h",
+      "exists": true,
+      "sha256": "95A384A1883A714872A6832C20C925A87C17A975B957FE17C1950FD7CCEC5B75"
+    },
+    {
+      "path": "tests/unit/TestBookmarks.h",
+      "exists": false,
+      "sha256": null
+    },
+    {
+      "path": "tests/unit/TestBulkLibraryOperations.h",
+      "exists": true,
+      "sha256": "100BFB4841C730119913F3210C88A627A0E2A72547B4B5373D7B1ADAA1E7C06D"
+    },
+    {
+      "path": "tests/unit/TestColorManagement.h",
+      "exists": true,
+      "sha256": "287099157C27B0D32B94CFB6A43A431F6CCF5ACC44D9C2C43FD387984F6F9BD1"
+    },
+    {
+      "path": "tests/unit/TestCommandDispatcher.h",
+      "exists": true,
+      "sha256": "42318AE2AF51DFB92980BC645669D710409F8B3C4E5553142F79CCD5B3127B54"
+    },
+    {
+      "path": "tests/unit/TestCustomMpvConfig.h",
+      "exists": true,
+      "sha256": "9F666B159ECD5D9C27E62BB3548BDDA648C28588A53ADC74659A70A999E57CDC"
+    },
+    {
+      "path": "tests/unit/TestDeferredServices.h",
+      "exists": true,
+      "sha256": "54FF187C258DBD591F2C75B659E05BAAD931CC8B43020D336E8421B6C76AEF3A"
+    },
+    {
+      "path": "tests/unit/TestDuplicateDetection.h",
+      "exists": true,
+      "sha256": "1F17A5D17726C857170D944116C8D4C59A513A3AACDBEBAF8469B0E817339A9C"
+    },
+    {
+      "path": "tests/unit/TestEvaluationFixes.h",
+      "exists": false,
+      "sha256": null
+    },
+    {
+      "path": "tests/unit/TestFolderOperations.h",
+      "exists": false,
+      "sha256": null
+    },
+    {
+      "path": "tests/unit/TestFolderRediscovery.h",
+      "exists": true,
+      "sha256": "BB5A9EEC7F43DD33615C6ABF5D02B6EC4E33D3268A1CBDBB1EF7ED24DD4B0805"
+    },
+    {
+      "path": "tests/unit/TestFolderWatchConfiguration.h",
+      "exists": true,
+      "sha256": "0598DC7F154EBC9FC1C23D5DB713CE68BFE921DA9DC33D967C3F6E6721F3BDDE"
+    },
+    {
+      "path": "tests/unit/TestGlobalSearch.h",
+      "exists": true,
+      "sha256": "3C95E42FF08A65F65E34ADC29BB9317B90EC5F2AB330ADAD07ACA40777D8FBFF"
+    },
+    {
+      "path": "tests/unit/TestHistoryGrouping.h",
+      "exists": false,
+      "sha256": null
+    },
+    {
+      "path": "tests/unit/TestHttpTransportFixes.h",
+      "exists": false,
+      "sha256": null
+    },
+    {
+      "path": "tests/unit/TestImportFingerprints.h",
+      "exists": false,
+      "sha256": null
+    },
+    {
+      "path": "tests/unit/TestIncrementalSaving.h",
+      "exists": false,
+      "sha256": null
+    },
+    {
+      "path": "tests/unit/TestLibraryQuery.h",
+      "exists": true,
+      "sha256": "DFD1216471B1CAF4428F0585EAE9C98F2C7F872947D71E1651ECC13D352B526A"
+    },
+    {
+      "path": "tests/unit/TestLibrarySnapshot.h",
+      "exists": true,
+      "sha256": "9C73437C76C4A65AC771C21112508DC045245FDB00A6AD6596FCA24626E29976"
+    },
+    {
+      "path": "tests/unit/TestLocalization.h",
+      "exists": true,
+      "sha256": "751F8B6F2EC4DAFDD8175C2971A3E418195106B7D0133184D615F69042E06CF8"
+    },
+    {
+      "path": "tests/unit/TestLongPathSupport.h",
+      "exists": false,
+      "sha256": null
+    },
+    {
+      "path": "tests/unit/TestMediaTransport.h",
+      "exists": true,
+      "sha256": "3CB45E31A57F2BDB88C2491A77DAA960B0630FD2343294A38FB229701B37AF6B"
+    },
+    {
+      "path": "tests/unit/TestMetadataBackfill.h",
+      "exists": false,
+      "sha256": null
+    },
+    {
+      "path": "tests/unit/TestMetadataOverrides.h",
+      "exists": true,
+      "sha256": "2F646D612265BF0C2BEB3225BBAC909135515881891245353FD39EB31604A6A8"
+    },
+    {
+      "path": "tests/unit/TestMpvInitialization.h",
+      "exists": true,
+      "sha256": "AC512356D51ABE80BCD729BDE3230B99036ACC752BE8748CE9689E6E3B58BC14"
+    },
+    {
+      "path": "tests/unit/TestNetworkStream.h",
+      "exists": true,
+      "sha256": "8F59F8B1C7F068E5BB2D8EB0A6709B4F7CBF760A70B5EC201425CF0EFD5CB319"
+    },
+    {
+      "path": "tests/unit/TestOnlineSubtitles.h",
+      "exists": true,
+      "sha256": "7555B91B3A694CF04B6F8AD8CDA3BB12F5C831FB1C262140027783FCDDE80BF5"
+    },
+    {
+      "path": "tests/unit/TestOverlayPacing.h",
+      "exists": true,
+      "sha256": "5F68860D8EDA0E48C4251CD317DDDE15C856C8A0E7A7D554152680DF31ADF1CD"
+    },
+    {
+      "path": "tests/unit/TestPlaybackSession.h",
+      "exists": true,
+      "sha256": "138FC678BDFA656786C19F1982A5B0C484A12962A87F1155D9597F18CA34820A"
+    },
+    {
+      "path": "tests/unit/TestPlaylistIO.h",
+      "exists": false,
+      "sha256": null
+    },
+    {
+      "path": "tests/unit/TestPresentation.h",
+      "exists": false,
+      "sha256": null
+    },
+    {
+      "path": "tests/unit/TestRenderViewModel.h",
+      "exists": false,
+      "sha256": null
+    },
+    {
+      "path": "tests/unit/TestRendererCache.h",
+      "exists": true,
+      "sha256": "EBAA3AC4CC7D7DF7D3C65290FB69342FCB19D776781ED887C8E58D89A6C06927"
+    },
+    {
+      "path": "tests/unit/TestReorder.h",
+      "exists": false,
+      "sha256": null
+    },
+    {
+      "path": "tests/unit/TestRtlComplexScripts.h",
+      "exists": true,
+      "sha256": "71622A5EF689949E3648C20367AF9E4DB896FAB56B162D008B7B7AA26D878360"
+    },
+    {
+      "path": "tests/unit/TestScreenshotCapture.h",
+      "exists": false,
+      "sha256": null
+    },
+    {
+      "path": "tests/unit/TestSeekbarThumbnailPreview.h",
+      "exists": false,
+      "sha256": null
+    },
+    {
+      "path": "tests/unit/TestSmartPlaylists.h",
+      "exists": false,
+      "sha256": null
+    },
+    {
+      "path": "tests/unit/TestSubtitleDiscovery.h",
+      "exists": true,
+      "sha256": "4237A65EE997050F8A0DC6BC49CEB0E9328626E7895685107981017D4A2688AA"
+    },
+    {
+      "path": "tests/unit/TestSubtitleProfiles.h",
+      "exists": false,
+      "sha256": null
+    },
+    {
+      "path": "tests/unit/TestSubtitlesDual.h",
+      "exists": true,
+      "sha256": "31AA327CE3C4F2474F0CDD3B9AE963CC7166C97EAF057EE0CAB6DE4A077B82F6"
+    },
+    {
+      "path": "tests/unit/TestTaskbarController.h",
+      "exists": true,
+      "sha256": "D67A4F6F7F97AA91893CE3E450132EEC8A3DFCD83DB6EBE17BB66C92F9BFA3A1"
+    },
+    {
+      "path": "tests/unit/TestTouchInput.h",
+      "exists": false,
+      "sha256": null
+    },
+    {
+      "path": "tests/unit/TestVideoAdjustments.h",
+      "exists": false,
+      "sha256": null
+    },
+    {
+      "path": "tests/unit/TestWatchReconcile.h",
+      "exists": true,
+      "sha256": "AB0DB037E625644431CAF9BE0290BD51EA2B7EEE75A05639388E8415FE868F08"
+    },
+    {
+      "path": "tests/unit/main.cpp",
+      "exists": true,
+      "sha256": "9A346DA384ABC7C03A7EFD56771C4DADFCC1684BC1C24275E08EE2F67984C3DC"
+    },
+    {
+      "path": "tests/updater/TestAsyncUpdateCancellation.h",
+      "exists": false,
+      "sha256": null
+    },
+    {
+      "path": "tests/updater/TestAuthenticodePe.h",
+      "exists": false,
+      "sha256": null
+    },
+    {
+      "path": "tests/updater/TestChannelPolicy.h",
+      "exists": false,
+      "sha256": null
+    },
+    {
+      "path": "tests/updater/TestCryptoSignature.h",
+      "exists": true,
+      "sha256": "27FA3611C166A8C5B21136D78B198A6B617444C5937808D0FFB7E7289BEA2CDA"
+    },
+    {
+      "path": "tests/updater/TestHelperValidation.h",
+      "exists": false,
+      "sha256": null
+    },
+    {
+      "path": "tests/updater/TestManifestValidation.h",
+      "exists": true,
+      "sha256": "18870EB9D4548F2BFD47F90F4ABC45F8A1F4AA21AA3A889060C90257F5AC72C2"
+    },
+    {
+      "path": "tests/updater/TestNetworkBounds.h",
+      "exists": false,
+      "sha256": null
+    },
+    {
+      "path": "tests/updater/TestPrivateModeIsolation.h",
+      "exists": false,
+      "sha256": null
+    },
+    {
+      "path": "tests/updater/TestSwapRollback.h",
+      "exists": true,
+      "sha256": "55C3EA679D1845AC3AF55B41BAEFF8D0A49864C96214A2D3A45157F0DA1F6B75"
+    },
+    {
+      "path": "tests/updater/TestTempCleanup.h",
+      "exists": false,
+      "sha256": null
+    },
+    {
+      "path": "tests/updater/main.cpp",
+      "exists": true,
+      "sha256": "77CCD71F0FE02854AA629FF304E8B7E989F58E13BC8821DD2CCC2B2A76488222"
+    }
+  ],
+  "harnessSha256": {
+    "tests/benchmark/thumbnail_purge_benchmark.cpp": "85889ec409ef335d6392a3fab8f1b38f6311a4df70ef83620bb35433e8304747",
+    "tests/benchmark/compare_thumbnail_purge.ps1": "eb24aa11ea7aacf6e03ab36d3dfa02cb71ec8d21482106f2186edef2a043e8e6",
+    "tests/benchmark/AllocationProbe.h": "13e18817dfaf4f761394aed84bf22cfb296cae8ae91c6048e3416b8aa6823e82"
+  },
+  "measuredRunnerCopy": "docs/evidence/thumbnail-purge-20261018/measured-runner.ps1",
+  "postMeasurementHarnessChange": "Renamed the fixture path variable from profile to fixtureRoot to avoid shadowing the PowerShell automatic PROFILE variable; generated command arguments and native benchmark are unchanged."
+}

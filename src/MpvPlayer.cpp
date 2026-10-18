@@ -1935,6 +1935,40 @@ bool ReadThumbnailBuffer(const std::string& bytes, const std::wstring& path, Pre
     out.width = header.width; out.height = header.height; out.bgraPixels = std::move(pixels);
     return true;
 }
+
+// Read names only: corrupt/empty cache files still need removal. A bounded
+// inventory avoids turning a short-file purge into a scan of a huge directory.
+// On incomplete enumeration the caller retains the direct deletion fallback.
+bool ReadSeekThumbnailHashes(const std::wstring& dir, size_t maxEntries, std::vector<uint64_t>& hashes) {
+    WIN32_FIND_DATAW data{};
+    HANDLE find = FindFirstFileW((dir + L"thumb_*.bin").c_str(), &data);
+    if (find == INVALID_HANDLE_VALUE) {
+        const DWORD error = GetLastError();
+        return error == ERROR_FILE_NOT_FOUND || error == ERROR_PATH_NOT_FOUND;
+    }
+    struct FindGuard { HANDLE handle; ~FindGuard() { FindClose(handle); } } guard{find};
+    size_t visited = 0;
+    do {
+        if (++visited > maxEntries) return false;
+        if (data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) continue;
+        const std::wstring_view name(data.cFileName);
+        if (name.size() != 26 || _wcsnicmp(data.cFileName, L"thumb_", 6) != 0 ||
+            _wcsicmp(data.cFileName + 22, L".bin") != 0) continue;
+        uint64_t hash = 0;
+        bool valid = true;
+        for (size_t i = 6; i < 22; ++i) {
+            const wchar_t c = name[i];
+            const int digit = c >= L'0' && c <= L'9' ? c - L'0' :
+                c >= L'a' && c <= L'f' ? c - L'a' + 10 : c >= L'A' && c <= L'F' ? c - L'A' + 10 : -1;
+            if (digit < 0) { valid = false; break; }
+            hash = (hash << 4) | static_cast<uint64_t>(digit);
+        }
+        if (valid) hashes.push_back(hash);
+    } while (FindNextFileW(find, &data));
+    if (GetLastError() != ERROR_NO_MORE_FILES) return false;
+    std::sort(hashes.begin(), hashes.end());
+    return true;
+}
 } // namespace
 
 bool SaveThumbnailToDiskCache( const PreviewThumbnailFrame& frame, const CacheBudgetConfig& config, const std::wstring& root ) {
@@ -1982,12 +2016,22 @@ size_t PurgeThumbnailDiskCacheForFile( const std::wstring& filePath, double dura
     const std::wstring dir = GetCacheDir(CacheClass::Thumbnails, root) + L"\\";
     size_t removed = 0;
     auto removeKey = [&dir, &removed](const std::wstring& key) { if (!key.empty() && DeleteFileW((dir + key).c_str())) ++removed; };
-    removeKey(MakeHubThumbnailCacheKey(filePath, 0, 0));
+    const ThumbnailKeyBuilder keys(filePath);
+    removeKey(keys.HubKey());
     if (durationSec > 0.0 && std::isfinite(durationSec) && durationSec <= static_cast<double>((std::numeric_limits<int>::max)() - 1)) {
         const int lastBucket = static_cast<int>(std::ceil(durationSec));
-        for (int t = 0; t <= lastBucket; ++t) { removeKey(MakeThumbnailCacheKey(filePath, static_cast<double>(t))); }
+        std::vector<uint64_t> existing;
+        const size_t inventoryLimit = (std::min)(static_cast<size_t>(lastBucket) + 1, size_t{16384});
+        const bool haveInventory = lastBucket > 64 && ReadSeekThumbnailHashes(dir, inventoryLimit, existing);
+        if (haveInventory && existing.empty()) return removed;
+        auto removeTime = [&](uint64_t milliseconds) {
+            const uint64_t hash = keys.SeekHash(milliseconds);
+            if (!haveInventory || std::binary_search(existing.begin(), existing.end(), hash))
+                removeKey(keys.SeekKey(hash));
+        };
+        for (int t = 0; t <= lastBucket; ++t) { removeTime(static_cast<uint64_t>(t) * 1000); }
         // Quantization clamps a rounded final bucket back to a fractional duration, so the exact-duration key is possible as well.
-        removeKey(MakeThumbnailCacheKey(filePath, durationSec));
+        removeTime(static_cast<uint64_t>(std::llround(durationSec * 1000.0)));
     }
     return removed;
 }

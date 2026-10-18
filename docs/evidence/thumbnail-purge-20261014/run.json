@@ -1,0 +1,10 @@
+{
+  "afterExecutableSha256": "102D3977C47CFBBFBABF46312C09B83785ED6B1C11A7155898EE92BC393B1141",
+  "limits": "Warm filesystem metadata; single available logical processor; empty cache payloads; C++ requested heap excludes OS directory buffers, process RSS and GPU memory. Fixtures and builds are retained below runRoot.",
+  "runRoot": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-thumbnail-purge-20261014\\comparison\\run-87ade0ce87a542518873d83577766608",
+  "beforeExecutableSha256": "45A5B8A785AED81D265DFCD9F10B295727364EE3570A6132EEA68C6B8617369B",
+  "samples": 7,
+  "afterSource": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\src",
+  "warmupSample": 0,
+  "beforeSource": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-thumbnail-purge-20261014\\before-src"
+}

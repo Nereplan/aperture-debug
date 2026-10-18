@@ -12,6 +12,7 @@
 #include <thread>
 #include <atomic>
 #include <condition_variable>
+#include <charconv>
 
 namespace Aperture {
 
@@ -316,13 +317,42 @@ struct PreviewThumbnailFrame {
     size_t GetMemoryBytes() const { return sizeof(PreviewThumbnailFrame) + filePath.capacity() * sizeof(wchar_t) + bgraPixels.capacity(); }
 };
 
+class ThumbnailKeyBuilder {
+public:
+    explicit ThumbnailKeyBuilder(const std::wstring& path) {
+        const auto utf8 = Utf16ToUtf8(path);
+        prefix_ = (Fnv1a64(utf8.data(), utf8.size()) ^ uint64_t('|')) * 1099511628211ull;
+    }
+    uint64_t SeekHash(uint64_t milliseconds) const {
+        char digits[20]; // uint64_t's longest decimal representation
+        const auto converted = std::to_chars(digits, digits + sizeof(digits), milliseconds);
+        return Append(prefix_, digits, converted.ptr);
+    }
+    static std::wstring SeekKey(uint64_t hash) { return Format(L"thumb_", hash); }
+    std::wstring HubKey() const {
+        constexpr char suffix[] = "hub";
+        return Format(L"hub_", Append(prefix_, suffix, suffix + 3));
+    }
+private:
+    static uint64_t Append(uint64_t hash, const char* begin, const char* end) {
+        for (; begin != end; ++begin) hash = (hash ^ static_cast<unsigned char>(*begin)) * 1099511628211ull;
+        return hash;
+    }
+    static std::wstring Format(const wchar_t* prefix, uint64_t hash) {
+        constexpr wchar_t hex[] = L"0123456789abcdef";
+        std::wstring key(prefix);
+        const size_t start = key.size();
+        key.resize(start + 20);
+        for (size_t i = 0; i < 16; ++i) key[start + i] = hex[(hash >> (60 - i * 4)) & 15];
+        std::copy_n(L".bin", 4, key.begin() + start + 16);
+        return key;
+    }
+    uint64_t prefix_ = 0;
+};
+
 inline std::wstring MakeThumbnailCacheKey(const std::wstring& filePath, double quantizedTimeSec) {
-    uint64_t timeMs = (uint64_t)std::llround(quantizedTimeSec * 1000.0);
-    std::string utf8 = Utf16ToUtf8(filePath) + "|" + std::to_string(timeMs);
-    uint64_t hash = Fnv1a64(utf8.data(), utf8.size());
-    std::wostringstream oss;
-    oss << L"thumb_" << std::hex << std::setfill(L'0') << std::setw(16) << hash << L".bin";
-    return oss.str();
+    const ThumbnailKeyBuilder key(filePath);
+    return key.SeekKey(key.SeekHash(static_cast<uint64_t>(std::llround(quantizedTimeSec * 1000.0))));
 }
 
 // Hub card thumbnails share cache/thumbnails with the seekbar tier but use a distinct path-only key (no dimensions or timestamp): hub cards
@@ -332,11 +362,7 @@ inline std::wstring MakeHubThumbnailCacheKey(const std::wstring& filePath, int w
     // Including the size would fragment one file's entry across unpredictable keys and make cache purging on media removal impossible.
     // (width/height params are kept for source compatibility.)
     (void)width; (void)height;
-    std::string utf8 = Utf16ToUtf8(filePath) + "|hub";
-    uint64_t hash = Fnv1a64(utf8.data(), utf8.size());
-    std::wostringstream oss;
-    oss << L"hub_" << std::hex << std::setfill(L'0') << std::setw(16) << hash << L".bin";
-    return oss.str();
+    return ThumbnailKeyBuilder(filePath).HubKey();
 }
 
 class ThumbnailMemoryCache {

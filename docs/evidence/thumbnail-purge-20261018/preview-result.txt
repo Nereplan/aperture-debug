@@ -1,0 +1,1 @@
+PASS actual_hover_decode=true dormant_seekbar_decode=true new_device_cache_upload=true actual_hub_decode=true stationary_hold_render_calls=0 continuous_hover_render_calls=6 stationary_hold_bitmap_updates=0 forward_backward_target_verified=true repeated_request_count=100 cached_cancellation=true expired_request_bounded=true

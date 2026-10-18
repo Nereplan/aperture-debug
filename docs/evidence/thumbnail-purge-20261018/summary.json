@@ -1,0 +1,134 @@
+[
+  {
+    "version": "after",
+    "scenario": "dense_30m",
+    "samples": 7,
+    "ms": 337.7638,
+    "allocations": 3232.0,
+    "allocated_bytes": 829122.0,
+    "peak_live_cpp_bytes": 32556.0,
+    "retained_cpp_bytes": 0.0,
+    "removed": 1603.0
+  },
+  {
+    "version": "after",
+    "scenario": "empty_2h",
+    "samples": 7,
+    "ms": 0.3051,
+    "allocations": 8.0,
+    "allocated_bytes": 2390.0,
+    "peak_live_cpp_bytes": 1174.0,
+    "retained_cpp_bytes": 0.0,
+    "removed": 0.0
+  },
+  {
+    "version": "after",
+    "scenario": "overflow_65s",
+    "samples": 7,
+    "ms": 6.5242,
+    "allocations": 156.0,
+    "allocated_bytes": 37374.0,
+    "peak_live_cpp_bytes": 1782.0,
+    "retained_cpp_bytes": 0.0,
+    "removed": 5.0
+  },
+  {
+    "version": "after",
+    "scenario": "populated_2h",
+    "samples": 7,
+    "ms": 22.1129,
+    "allocations": 162.0,
+    "allocated_bytes": 163912.0,
+    "peak_live_cpp_bytes": 72540.0,
+    "retained_cpp_bytes": 0.0,
+    "removed": 67.0
+  },
+  {
+    "version": "after",
+    "scenario": "short_20s",
+    "samples": 7,
+    "ms": 2.3351,
+    "allocations": 53.0,
+    "allocated_bytes": 13062.0,
+    "peak_live_cpp_bytes": 1174.0,
+    "retained_cpp_bytes": 0.0,
+    "removed": 5.0
+  },
+  {
+    "version": "after",
+    "scenario": "sparse_2h",
+    "samples": 7,
+    "ms": 5.2244,
+    "allocations": 37.0,
+    "allocated_bytes": 9646.0,
+    "peak_live_cpp_bytes": 2382.0,
+    "retained_cpp_bytes": 0.0,
+    "removed": 9.0
+  },
+  {
+    "version": "before",
+    "scenario": "dense_30m",
+    "samples": 7,
+    "ms": 380.8578,
+    "allocations": 12632.0,
+    "allocated_bytes": 1212118.0,
+    "peak_live_cpp_bytes": 1174.0,
+    "retained_cpp_bytes": 0.0,
+    "removed": 1603.0
+  },
+  {
+    "version": "before",
+    "scenario": "empty_2h",
+    "samples": 7,
+    "ms": 364.8354,
+    "allocations": 50432.0,
+    "allocated_bytes": 4835574.0,
+    "peak_live_cpp_bytes": 1174.0,
+    "retained_cpp_bytes": 0.0,
+    "removed": 0.0
+  },
+  {
+    "version": "before",
+    "scenario": "overflow_65s",
+    "samples": 7,
+    "ms": 5.2392,
+    "allocations": 487.0,
+    "allocated_bytes": 47886.0,
+    "peak_live_cpp_bytes": 1230.0,
+    "retained_cpp_bytes": 0.0,
+    "removed": 5.0
+  },
+  {
+    "version": "before",
+    "scenario": "populated_2h",
+    "samples": 7,
+    "ms": 437.5845,
+    "allocations": 50432.0,
+    "allocated_bytes": 4835646.0,
+    "peak_live_cpp_bytes": 1230.0,
+    "retained_cpp_bytes": 0.0,
+    "removed": 67.0
+  },
+  {
+    "version": "before",
+    "scenario": "short_20s",
+    "samples": 7,
+    "ms": 2.533,
+    "allocations": 172.0,
+    "allocated_bytes": 17638.0,
+    "peak_live_cpp_bytes": 1174.0,
+    "retained_cpp_bytes": 0.0,
+    "removed": 5.0
+  },
+  {
+    "version": "before",
+    "scenario": "sparse_2h",
+    "samples": 7,
+    "ms": 399.0932,
+    "allocations": 50432.0,
+    "allocated_bytes": 4835590.0,
+    "peak_live_cpp_bytes": 1174.0,
+    "retained_cpp_bytes": 0.0,
+    "removed": 9.0
+  }
+]
