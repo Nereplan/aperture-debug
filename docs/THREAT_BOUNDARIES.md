@@ -278,19 +278,18 @@ The system defines twelve distinct security boundaries spanning external data, i
 
 - **Boundary ID**: `shell_registration_and_system_metadata`
 - **Category**: `shell_and_os_integration`
-- **Assets & Actors**: Windows Shell file associations, Taskbar JumpList (`ICustomDestinationList`), Taskbar thumbnail toolbar buttons. Strict portable mode uses none of them.
-- **Trust Level**: Windows Shell interface (explicitly not used in strict portable mode).
-- **Entry Points**: `App::RegisterFileAssociations`, `JumpListController::Update`, `JumpListController::Clear`, `JumpListController::ProjectRecentLocalMedia`, `TaskbarController::UpdatePlaybackState`.
+- **Assets & Actors**: Windows Shell file associations and JumpLists (removed), plus transient taskbar playback controls.
+- **Trust Level**: Windows taskbar COM interface (transient UI state only).
+- **Entry Points**: `TaskbarController::Update`, `TaskbarController::Initialize`.
 - **Security Validations & Bounds**:
-  - Strict portable containment: shell registration and JumpList entry points are disabled no-ops; the app performs zero durable writes outside the application root (no `HKCU`, no `%APPDATA%`).
-  - `RegisterFileAssociations` always reports disabled; `JumpListController::Update`/`Clear` return without touching the shell.
-  - JumpList projection (`ProjectRecentLocalMedia`) remains as a pure in-memory helper only; nothing is committed to the OS.
+  - Shell registration and the unused JumpList controller have been removed. Taskbar controls store no durable state outside the application root (no `HKCU`, no `%APPDATA%`).
+  - The legacy `jumpListEnabled` setting remains readable/writable for profile compatibility and has no shell implementation.
   - Media is opened in-app via file picker, drag/drop, or CLI.
 - **Privilege & Context**: Standard user process (no registry writes).
 - **Durable-Write Destination**: None (strict portable containment; zero writes outside the application root).
-- **Failure Behavior**: Returns `bool` (registration reports disabled, removal reports clean); UI explains portable mode without touching system state.
+- **Failure Behavior**: Taskbar failures are reported through HRESULT/bool results; no shell registration API exists.
 - **Residual Risk**: None from shell writes (disabled). Media must be opened in-app rather than via OS file verbs.
-- **Authoritative Code References**: `src/App.h`, `src/App.cpp`, `src/JumpList.h`, `src/JumpList.cpp`, `src/TaskbarController.h`, `src/TaskbarController.cpp`.
+- **Authoritative Code References**: `src/App.h`, `src/App.cpp`, `src/TaskbarController.h`, `src/TaskbarController.cpp`.
 - **Authoritative Test References**: `tests/unit/TestTaskbarController.h`.
 
 ---

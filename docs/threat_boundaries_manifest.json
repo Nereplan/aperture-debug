@@ -363,23 +363,17 @@
       "id": "shell_registration_and_system_metadata",
       "name": "Windows Shell Verb Registration & Taskbar Integration",
       "category": "shell_and_os_integration",
-      "trustLevel": "Windows Shell interface (explicitly not used in strict portable mode)",
+      "trustLevel": "Windows taskbar COM interface (transient UI state only)",
       "privilegeContext": "Standard user process (no registry writes)",
-      "durableWriteDestination": "None (strict portable containment: shell registration and JumpList entry points are disabled no-ops; zero writes outside the application root)",
-      "failureErrorCode": "bool (registration always reports disabled; removal always reports clean)",
+      "durableWriteDestination": "None (shell registration and JumpList implementation removed; taskbar integration stores no durable state outside the application root)",
+      "failureErrorCode": "Taskbar integration reports HRESULT/bool failures; no shell registration API exists",
       "authoritativeSymbols": [
-        "Aperture::App::RegisterFileAssociations",
-        "Aperture::JumpListController::Update",
-        "Aperture::JumpListController::Clear",
-        "Aperture::JumpListController::ProjectRecentLocalMedia",
         "Aperture::TaskbarController::Update",
         "Aperture::TaskbarController::Initialize"
       ],
       "sourceFiles": [
         "src/App.h",
         "src/App.cpp",
-        "src/JumpList.h",
-        "src/JumpList.cpp",
         "src/TaskbarController.h",
         "src/TaskbarController.cpp"
       ],

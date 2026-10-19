@@ -122,12 +122,6 @@ inline void MixTooltipSignature(unsigned long long& signature, unsigned long lon
 }
 
 
-inline void MixTooltipString(unsigned long long& signature, const std::wstring& value) {
-    for (wchar_t ch : value) MixTooltipSignature(signature, static_cast<unsigned long long>(ch));
-    MixTooltipSignature(signature, value.size());
-}
-
-
 inline std::wstring TooltipActionLabel(const Settings& settings, const std::wstring& label, const std::string& actionId) {
     const auto it = settings.shortcuts.find(actionId);
     if (it == settings.shortcuts.end()) return label;

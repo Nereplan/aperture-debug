@@ -202,14 +202,6 @@ bool App::TakeScreenshot() {
     return true;
 }
 
-bool App::RegisterFileAssociations() {
-    // Portable containment: registering Open-With verbs requires writing to HKCU\Software\Classes, outside the application folder. Strict
-    // portable mode refuses all durable writes outside the root, so registration is disabled. Media is opened via in-app picker, drag/drop,
-    // or CLI.
-    return false;
-}
-
-
 // Thumbnail cache keys are one-way hashes, so removing a media item must
 // regenerate its candidate keys and drop each cached file. The hub entry is
 // size-independent (one per file); seekbar entries are per-second buckets.
@@ -228,6 +220,7 @@ void App::PruneOrphanedHubThumbnailCache() {
 
 void App::RemoveSelectedFolders() {
     if (selectedFolderKeys.empty()) return;
+    ArmLibraryUndo(L"Folder removal");
     if (libraryGroupMode == LibraryGroupMode::Series) {
         const auto& proj = GetCurrentMediaProjection(true);
         std::vector<std::string> idsToRemove;

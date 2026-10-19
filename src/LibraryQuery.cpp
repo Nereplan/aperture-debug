@@ -442,21 +442,6 @@ void LibraryQueryEngine::InvalidateCache() {
     cachedProjection = LibraryQueryProjection();
 }
 
-LibraryQueryProjection LibraryQueryEngine::ReleaseCachedProjection() {
-    LibraryQueryProjection released = std::move(cachedProjection);
-    cachedLibraryVersion = (std::numeric_limits<uint64_t>::max)();
-    cachedProjection = LibraryQueryProjection();
-    return released;
-}
-
-bool LibraryQueryEngine::PrimeCache(const MediaLibrary& library, const LibraryQueryOptions& options, LibraryQueryProjection&& projection) {
-    if (projection.libraryVersion != library.GetVersion() || projection.options != options) { return false; }
-    cachedProjection = std::move(projection);
-    cachedLibraryVersion = library.GetVersion();
-    projectionRevisions = library.GetRevisions();
-    return true;
-}
-
 namespace {
 bool UsesPlaybackOrder(const LibraryQueryOptions& options) {
     return options.sortField == LibrarySortField::LastPlayed || options.sortField == LibrarySortField::Progress ||

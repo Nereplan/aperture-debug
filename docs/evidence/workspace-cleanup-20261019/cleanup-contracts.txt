@@ -1,0 +1,18 @@
+================================================================================
+  Aperture Test Runner: Executing 1 suite(s)
+================================================================================
+
+>>> [Suite: workspace_cleanup] Workspace Cleanup Behavior (Tier: pr, Category: package)
+    Script: tests\package\test_workspace_cleanup.ps1 | Cleanup: isolated_temp | Timeout: 60s
+<<< [PASS] workspace_cleanup (2.85s)
+
+================================================================================
+  Test Execution Summary
+================================================================================
+
+Suite             Tier Category Result Duration ExitCode
+-----             ---- -------- ------ -------- --------
+workspace_cleanup pr   package  PASS   2.85s           0
+
+
+Total Suites: 1 | Passed: 1 | Failed: 0 (Timeouts: 0) | Total Time: 2.89s

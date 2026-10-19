@@ -198,7 +198,6 @@ set(APERTURE_SOURCES
     src/GlobalSearch.cpp
     src/HttpTransport.cpp
     src/Json.cpp
-    src/JumpList.cpp
     src/LibraryQuery.cpp
     src/LibrarySnapshot.cpp
     src/Localization.cpp
@@ -244,7 +243,6 @@ set(APERTURE_HEADERS
     src/HttpTransport.h
     src/IpcProtocol.h
     src/Json.h
-    src/JumpList.h
     src/LibraryQuery.h
     src/Localization.h
     src/MediaLibrary.h

@@ -217,7 +217,7 @@ PlayerRenderViewModel App::BuildPlayerRenderViewModel() const {
         vm.settingsFlyout.subTracks = GetCachedSubtitleTracks();
         vm.settingsFlyout.activeSubIndex = -1;
         for (size_t i = 0; i < vm.settingsFlyout.subTracks.size(); ++i) {
-            if (settings.subtitlesEnabled && player.GetSubtitleVisibility() && vm.settingsFlyout.subTracks[i].isSelected) { vm.settingsFlyout.activeSubIndex = (int)i; break; }
+            if (vm.settingsFlyout.subTracks[i].isSelected && settings.subtitlesEnabled && player.GetSubtitleVisibility()) { vm.settingsFlyout.activeSubIndex = (int)i; break; }
         }
         vm.settingsFlyout.audioTracks = GetCachedAudioTracks();
         vm.settingsFlyout.activeAudioIndex = -1;

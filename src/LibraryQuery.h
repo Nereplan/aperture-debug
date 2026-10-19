@@ -204,10 +204,6 @@ public:
     uint64_t GetSearchTextBuildCount() const { return searchTextBuildCount; }
     LibraryViewProjection ReleaseCachedView();
     bool PrimeViewCache(const MediaLibrary& library, const LibraryQueryOptions& options, LibraryViewProjection&& projection);
-    // Startup workers can transfer a fully built projection without a deep copy, then prime the UI-owned cache after the matching library
-    // moves to the main thread.
-    LibraryQueryProjection ReleaseCachedProjection();
-    bool PrimeCache(const MediaLibrary& library, const LibraryQueryOptions& options, LibraryQueryProjection&& projection);
     // Conservative Next-Episode Detection
     static std::optional<EpisodeInfo> FindNextEpisode( const std::wstring& currentFilePath, const std::vector<std::wstring>& candidatePaths,
         std::wstring* outAmbiguityDetails = nullptr);

@@ -285,6 +285,13 @@ struct PlaybackUiTestAccess {
         Require(a.settings.customFolderOrder != beforeFolders, "Folder order did not change");
         Key(a, 'Z', false, true); Require(a.settings.customFolderOrder == beforeFolders, "Folder order undo failed");
         Pass("Hub Ctrl+Z restores folder order");
+        const auto mediaCount = a.library.mediaItems.size();
+        a.selectedFolderKeys.insert(a.GetCurrentMediaProjection().groups.front().key);
+        a.RemoveSelectedFolders();
+        Require(a.library.mediaItems.size() < mediaCount, "Folder removal did not remove library entries");
+        Key(a, 'Z', false, true);
+        Require(a.library.mediaItems.size() == mediaCount, "Folder removal undo failed");
+        Pass("Hub Ctrl+Z restores removed folder entries");
     }
     static void EditHistory(App& a) {
         a.currentTab = TabView::Playlists;
@@ -314,6 +321,26 @@ struct PlaybackUiTestAccess {
         Key(a, 'Z', false, true);
         Require(a.library.FindByPath(path)->lastPosSec == 19 && a.libraryUndoHistory.empty(), "Stale undo overwrote later progress");
         Pass("Stale undo refuses to overwrite newer progress");
+        a.library.FindByPath(path)->status = "new"; a.library.FindByPath(path)->lastPosSec = 7;
+        a.activePlaylistId = "ui_playlist"; a.library.FindPlaylist(a.activePlaylistId)->itemPaths = {path};
+        a.selectedEpisodeIndices.clear(); a.selectedEpisodeIndices.insert(0);
+        a.OpenPlaylistItemContextMenu(0, 100, 200);
+        auto watched = std::find_if(a.contextMenuItems.begin(), a.contextMenuItems.end(), [](const auto& item) { return item.id == "mark_watched"; });
+        Require(watched != a.contextMenuItems.end() && watched->onClick, "Playlist watched action missing");
+        auto action = watched->onClick; a.CloseContextMenu(); action();
+        Require(a.library.FindByPath(path)->status == "done", "Playlist watched action failed");
+        Key(a, 'Z', false, true); Require(a.library.FindByPath(path)->status == "new", "Playlist watched action did not arm undo");
+        Pass("Playlist watched menu actions participate in Ctrl+Z history");
+        const auto historyCount = a.library.history.size();
+        HistoryRecord record; record.filePath = path; record.title = L"History fixture";
+        a.library.history.push_back(record); a.currentTab = TabView::History;
+        a.OpenHistoryContextMenu(record, 100, 200);
+        auto remove = std::find_if(a.contextMenuItems.begin(), a.contextMenuItems.end(), [](const auto& item) { return item.id == "remove"; });
+        Require(remove != a.contextMenuItems.end() && remove->onClick, "History remove action missing");
+        action = remove->onClick; a.CloseContextMenu(); action();
+        Require(a.library.history.size() == historyCount, "History removal failed");
+        Key(a, 'Z', false, true); Require(a.library.history.size() == historyCount + 1, "History removal undo failed");
+        Pass("Ctrl+Z restores an individual history entry");
         a.libraryUndoHistory.clear();
         for (int i = 0; i < 40; ++i) a.ArmLibraryUndo(L"Bound", []() { return true; });
         Require(a.libraryUndoHistory.size() == 32, "Undo entry bound failed");

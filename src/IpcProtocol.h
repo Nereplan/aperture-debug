@@ -755,7 +755,6 @@ inline std::wstring PathsToAppPayload(const std::vector<std::wstring>& paths) {
     return payload;
 }
 
-inline std::wstring OptionsToAppPayload(const PlaybackCommandLineOptions& options) { return PathsToAppPayload(options.mediaTargets); }
 
 inline std::vector<uint8_t> SerializeAutomationEnvelope(const AutomationCommand &cmd, uint32_t flags = 0) {
     if (cmd.op == AutomationOp::None || static_cast<uint32_t>(cmd.op) > static_cast<uint32_t>(AutomationOp::QueryStatus)) { return {}; }

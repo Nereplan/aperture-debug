@@ -962,7 +962,6 @@ void App::Shutdown() {
     ReportLibrarySaveResult(SubmitPendingLibrarySave());
     librarySaveWorker.StopAndFlush(); PumpLibrarySaveResults();
     library.SetSaveRequestHandler({});
-    if (!settings.jumpListEnabled) jumpListController.Clear();
     if (hWnd && pOleDropTarget) { RevokeDragDrop(hWnd); pOleDropTarget->Release(); pOleDropTarget = nullptr; }
     if (oleInitialized) { OleUninitialize(); oleInitialized = false; }
     // Both objects are safe to shut down repeatedly, but avoid touching the lazy libmpv handles when neither path was ever initialized.

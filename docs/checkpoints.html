@@ -96,7 +96,7 @@ git diff --check</pre>
 <script id="checkpoint-data" type="application/json">
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-10-19T15:45:25+00:00",
+  "updatedAt": "2026-10-19T16:06:27+00:00",
   "metrics": {
     "visible-ms": {
       "label": "Visible window",
@@ -17549,6 +17549,45 @@ git diff --check</pre>
           "durationSeconds": 4.85674,
           "evidence": "docs/evidence/playback-ui-20261019/unit.txt",
           "scope": "0 failed; 1 explicitly skipped visible-window case. Includes four flyout geometry/parser tests."
+        }
+      ]
+    },
+    {
+      "id": "workspace-cleanup-20261019",
+      "label": "Workspace cleanup and final UI validation",
+      "measuredAt": "2026-10-19T16:06:27.468605+00:00",
+      "commit": "f68bc4c4644d562b59138bac2219b75fcbe0878b",
+      "dirty": true,
+      "sourceNote": "Dirty worktree based on UI save point f68bc4c4644d562b59138bac2219b75fcbe0878b. Tested source, app and native hashes plus detailed before/after scope: docs/evidence/workspace-cleanup-20261019/audit.json. Existing unrelated edits excluded from task commits.",
+      "notes": "UI save point f68bc4c precedes cleanup. Removed no-op shell code, old projection transfer helpers and three unused helpers; extended folder/history/playlist watched undo. Workspace logical file size fell from 4.63 GB to 1.31 GB; removed 3.10 GiB of regenerable outputs. Source cleanup removed 113 lines; all requested UI/undo features leave the complete task at +221 source lines. Sources/downloads, fixtures, profiles/backups and historical evidence retained. Full local gate 22/22 suites passed (unit suite retains one visible-window skip), then final build/25 hidden interactions and five compactor safety contracts passed. Subtitle visibility lookup skips unselected tracks; no runtime speedup measurement or fresh VLC session. External temporary build copies remain after an automatic approval-review policy rejection.",
+      "results": [],
+      "tests": [
+        {
+          "name": "Local PR regression gate",
+          "status": "pass",
+          "passed": 22,
+          "total": 22,
+          "durationSeconds": 414.2,
+          "evidence": "docs/evidence/workspace-cleanup-20261019/regression.txt",
+          "scope": "22 suites passed; unit 56 pass / 1 visible-window skip; zero new static-analysis warnings. Scope/order in audit.json."
+        },
+        {
+          "name": "Final hidden native App interactions",
+          "status": "pass",
+          "passed": 25,
+          "total": 25,
+          "durationSeconds": null,
+          "evidence": "docs/evidence/workspace-cleanup-20261019/interactions.txt",
+          "scope": "Playback controls, A/B native loop/clear, bookmarks, subtitle toggle, context relocation and Hub undo."
+        },
+        {
+          "name": "Workspace compactor contracts",
+          "status": "pass",
+          "passed": 5,
+          "total": 5,
+          "durationSeconds": null,
+          "evidence": "docs/evidence/workspace-cleanup-20261019/cleanup-contracts.txt",
+          "scope": "Dry run, retained data, idempotence, junction rejection and active-native-build lock."
         }
       ]
     }

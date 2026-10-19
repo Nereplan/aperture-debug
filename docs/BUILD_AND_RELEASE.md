@@ -7,6 +7,11 @@
 - `build_and_release.ps1 -IncludeDebug`: additionally compile Debug with symbols for `debug/`.
 - `build.ps1`: compile only. The default output is `debug/Aperture.Release.exe`; `-Debug` produces `debug/Aperture.exe`. It does not deploy runtime dependencies. Normal builds reuse a configuration-specific cache in `scratch/build/`; `-Clean`, static analysis and sanitizer builds use isolated temporary directories.
 
+Use `./scripts/compact_workspace.ps1` to preview disposable build/cache totals, or
+add `-Apply` to remove them after testing. `-ReportPath <new-file.json>` records the
+exact paths and bytes. Native sources/downloads, media fixtures, evidence, profiles
+and backups are retained; the next build regenerates its compiler caches.
+
 Required tools: Windows x64, Visual Studio 2022 C++ tools and Windows SDK, CMake, and Python 3. Dependencies are checked against `scripts/dependencies.json` before building.
 
 The release ZIP contains runtime assets, the updater, repository/version configuration, and a SHA-256 file manifest. It never takes files from an existing application's data directory. Distribute the ZIP in `dist/`, not your working `release/` folder, which may contain personal data and backups after you use it.

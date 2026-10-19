@@ -19,14 +19,6 @@ static std::wstring ToLower(const std::wstring& s) {
     return result;
 }
 
-static std::string ToLowerUtf8(const std::string& s) {
-    std::string result = s;
-    for (auto& c : result) {
-        if (c >= 'A' && c <= 'Z') { c = c + ('a' - 'A'); }
-    }
-    return result;
-}
-
 static std::wstring WideFromUtf16(const TextInputModel::Text& value) {
     std::wstring result;
     result.reserve(value.size());

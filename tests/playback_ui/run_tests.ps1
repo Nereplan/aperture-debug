@@ -20,10 +20,17 @@ if ($LASTEXITCODE -ne 0) { throw 'Application build failed; see app-build.log.' 
 # Reuse only the objects just built from the current worktree, replacing wWinMain
 # with a console runner. Every created window lacks WS_VISIBLE; native playback
 # is muted and this runner never calls the app launch/presentation transition.
-$objects = @(Get-ChildItem -LiteralPath (Join-Path $repo 'scratch/build/ninja-Release/CMakeFiles/Aperture.dir/src') -Filter '*.obj' -File |
-    Where-Object { $_.Name -ne 'main.cpp.obj' } | ForEach-Object { '"' + $_.FullName + '"' })
-if ($objects.Count -lt 30) { throw 'Expected completed native application objects.' }
 $cmake = Get-Content -Raw -LiteralPath (Join-Path $repo 'CMakeLists.txt')
+$sourceBlock = [regex]::Match($cmake, '(?s)set\(APERTURE_SOURCES\s+(.*?)\)')
+if (-not $sourceBlock.Success) { throw 'Application source inventory not found.' }
+$objects = @([regex]::Matches($sourceBlock.Groups[1].Value, 'src/([^\s)]+\.cpp)') | ForEach-Object {
+    if ($_.Groups[1].Value -ne 'main.cpp') {
+        $objectPath = Join-Path $repo ('scratch/build/ninja-Release/CMakeFiles/Aperture.dir/src/' + $_.Groups[1].Value + '.obj')
+        if (-not (Test-Path -LiteralPath $objectPath)) { throw "Missing production object: $objectPath" }
+        '"' + $objectPath + '"'
+    }
+})
+if ($objects.Count -lt 30) { throw 'Expected completed native application objects.' }
 $libraryBlock = [regex]::Match($cmake, '(?s)target_link_libraries\(Aperture PRIVATE\s+(.*?)\)')
 if (-not $libraryBlock.Success) { throw 'Application library inventory not found.' }
 $libraries = @($libraryBlock.Groups[1].Value -split '\s+' | Where-Object { $_ } | ForEach-Object { $_ + '.lib' })

@@ -749,7 +749,7 @@ void App::OpenPlaylistItemContextMenu(size_t itemIndex, float x, float y) {
             std::vector<std::wstring> paths;
             paths.reserve(selectedEpisodeIndices.size());
             for (size_t idx : selectedEpisodeIndices) { if (idx < p->itemPaths.size()) paths.push_back(p->itemPaths[idx]); }
-            library.SetWatched(paths, true);
+            SetWatchedWithUndo(paths, true);
             ShowOSD(IconType::Checkmark, L"Marked as watched");
             InvalidateRect(hWnd, NULL, FALSE);
         }});
@@ -759,7 +759,7 @@ void App::OpenPlaylistItemContextMenu(size_t itemIndex, float x, float y) {
             std::vector<std::wstring> paths;
             paths.reserve(selectedEpisodeIndices.size());
             for (size_t idx : selectedEpisodeIndices) { if (idx < p->itemPaths.size()) paths.push_back(p->itemPaths[idx]); }
-            library.SetWatched(paths, false);
+            SetWatchedWithUndo(paths, false);
             ShowOSD(IconType::Refresh, L"Marked as unwatched");
             InvalidateRect(hWnd, NULL, FALSE);
         }});
@@ -770,12 +770,12 @@ void App::OpenPlaylistItemContextMenu(size_t itemIndex, float x, float y) {
         contextMenuItems.push_back({"play_item", L"Play Video", L"Enter", IconType::Play, false, false, false,
                                     [this, plId, itemIndex]() { PlayPlaylist(plId, itemIndex); }});
         contextMenuItems.push_back({ "mark_watched", L"Mark as watched", L"", IconType::Checkmark, false, false, false, [this, path]() {
-            library.SetWatched(path, true);
+            SetWatchedWithUndo({ path }, true);
             ShowOSD(IconType::Checkmark, L"Marked as watched");
             InvalidateRect(hWnd, NULL, FALSE);
         }});
         contextMenuItems.push_back({ "mark_unwatched", L"Mark as unwatched", L"", IconType::Refresh, false, false, false, [this, path]() {
-            library.SetWatched(path, false);
+            SetWatchedWithUndo({ path }, false);
             ShowOSD(IconType::Refresh, L"Marked as unwatched");
             InvalidateRect(hWnd, NULL, FALSE);
         }});
@@ -815,7 +815,7 @@ void App::OpenHistoryContextMenu(const HistoryRecord& item, float x, float y) {
         contextMenuItems.push_back({ "sep2", L"", L"", IconType::Play, true });
         contextMenuItems.push_back({ "remove", L"Remove", L"Del", IconType::Trash, false, false, true, [this, path]() {
             for (size_t i = 0; i < library.history.size(); ++i) {
-                if (library.history[i].filePath == path) { library.RemoveFromHistory(i); break; }
+                if (library.history[i].filePath == path) { ArmLibraryUndo(L"History removal"); library.RemoveFromHistory(i); break; }
             }
             ShowOSD(IconType::Trash, L"Removed from History");
             InvalidateRect(hWnd, NULL, FALSE);

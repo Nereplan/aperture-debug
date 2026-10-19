@@ -19,7 +19,6 @@
 #include "PlaybackFlyoutLayout.h"
 #include "CommandDispatcher.h"
 #include "MediaTransport.h"
-#include "JumpList.h"
 #include "Error.h"
 #include "Diagnostics.h"
 #include "GlobalSearch.h"
@@ -122,7 +121,6 @@ public:
     bool IsPiP() const { return playbackSession.IsPiP(); }
     // File Operations
     void HandleDroppedFiles(HDROP hDrop);
-    bool RegisterFileAssociations();
     // Visual Capture & Automation
     bool CaptureClientContent(const std::wstring& outputPath);
     void PrepareVisualCaptureScene(const std::wstring& scene);
@@ -172,7 +170,6 @@ private:
     MediaTransport mediaTransport;
     TaskbarController taskbarController;
     NetworkStreamModel networkStreamModel;
-    JumpListController jumpListController;
     HWND hOverlayWnd = NULL;
     HWND hVideoWnd = NULL;
     // WM_CLOSE and the destructor can both reach cleanup. Keep resource teardown idempotent and only balance COM/OLE initialization once.

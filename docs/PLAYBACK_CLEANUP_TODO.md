@@ -24,28 +24,28 @@ no fresh VLC baseline or visible playback benchmark is needed for this work.
       when a submenu is open.
 - [x] Add focused behavioral checks, build locally and inspect hidden render
       captures of the changed playback menus.
-- [ ] Commit the validated UI save point before cleanup.
+- [x] Commit the validated UI save point before cleanup.
 
 ## 2. Workspace and dead-code cleanup
 
-- [ ] Measure directory sizes and separate source, dependencies, Git history,
+- [x] Measure directory sizes and separate source, dependencies, Git history,
       generated build/cache output, saved user data and historical evidence.
-- [ ] Audit production entry points, build inputs and references before deleting
+- [x] Audit production entry points, build inputs and references before deleting
       unused functions/types/files; preserve actual feature behavior.
-- [ ] Remove redundant code and consolidate repeated logic where it improves
+- [x] Remove redundant code and consolidate repeated logic where it improves
       correctness or maintainability; retain meaningful test coverage.
-- [ ] Remove only verified disposable generated files; keep source, runtime
+- [x] Remove only verified disposable generated files; keep source, runtime
       dependencies, user profiles, backups and performance evidence.
-- [ ] Report actual disk and source-line reductions, with before/after counts.
+- [x] Report actual disk and source-line reductions, with before/after counts.
 
 ## 3. Further efficiency and final validation
 
-- [ ] Investigate remaining avoidable work found during the cleanup and implement
+- [x] Investigate remaining avoidable work found during the cleanup and implement
       justified improvements without reducing playback quality.
-- [ ] Run checks appropriate to the changed code and a local regression gate.
-- [ ] Append validation/optimization findings to docs/checkpoints.html when ready;
+- [x] Run checks appropriate to the changed code and a local regression gate.
+- [x] Append validation/optimization findings to docs/checkpoints.html when ready;
       retain exact measurement scope and do not invent new performance results.
-- [ ] Audit every request against current code, test and render evidence, then
+- [x] Audit every request against current code, test and render evidence, then
       commit the remaining changes and report any real verification limitation.
 
 ## Progress
@@ -53,3 +53,11 @@ no fresh VLC baseline or visible playback benchmark is needed for this work.
 - Initial worktree snapshot: external Codex scratch directory
   `aperture-playback-cleanup-20261019`; existing edits are not this task's changes.
 - Starting source commit: bd81ac6. Referenced screenshots inspected.
+
+- UI save point: `f68bc4c`; exported source built and passed 22 hidden checks.
+- Final validation: 22/22 PR suites, 25/25 hidden App checks, 5/5 compactor
+  contracts; one visible-window unit case remains explicitly skipped.
+- Workspace: 4.63 GB to 1.31 GB. Cleanup removed 113 source lines; the requested
+  UI/undo additions make the complete task net +221 production source lines.
+- Raw scope, hashes, before/after counts and remaining external temporary copies
+  are recorded in `docs/evidence/workspace-cleanup-20261019/audit.json`.

@@ -1,0 +1,914 @@
+{
+  "recordedUtc": "2026-10-19T16:03:30.0556876Z",
+  "applied": true,
+  "bytes": 3327629859,
+  "files": 3667,
+  "targets": [
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\build\\ninja-Debug",
+      "directory": true,
+      "files": 81,
+      "bytes": 556381813
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\build\\ninja-Release",
+      "directory": true,
+      "files": 78,
+      "bytes": 546773320
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-build\\ffmpeg-build",
+      "directory": true,
+      "files": 1774,
+      "bytes": 90757260
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-build\\placebo-build",
+      "directory": true,
+      "files": 152,
+      "bytes": 15185635
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-build\\mpv-build",
+      "directory": true,
+      "files": 327,
+      "bytes": 99397507
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-build\\build-shaderc",
+      "directory": true,
+      "files": 522,
+      "bytes": 123087920
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-build\\build-spirv-cross",
+      "directory": true,
+      "files": 47,
+      "bytes": 10106107
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-build\\prefix",
+      "directory": true,
+      "files": 314,
+      "bytes": 141746106
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-build\\stage",
+      "directory": true,
+      "files": 7,
+      "bytes": 25067668
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-build\\backbuffer-experiment\\libmpv-2.dll",
+      "directory": false,
+      "files": 1,
+      "bytes": 24531968
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-build\\balanced-frame-resources\\libmpv-2.dll",
+      "directory": false,
+      "files": 1,
+      "bytes": 24558080
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-build\\balanced-frame-resources\\libmpv-2.unstripped.dll",
+      "directory": false,
+      "files": 1,
+      "bytes": 41463404
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-build\\direct-nv12-filter\\libmpv-2.actual-unstripped.dll",
+      "directory": false,
+      "files": 1,
+      "bytes": 41467114
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-build\\direct-nv12-filter\\libmpv-2.dll",
+      "directory": false,
+      "files": 1,
+      "bytes": 24561152
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-build\\direct-nv12-v2\\libmpv-2.actual-unstripped.dll",
+      "directory": false,
+      "files": 1,
+      "bytes": 41468442
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-build\\direct-nv12-v2\\libmpv-2.dll",
+      "directory": false,
+      "files": 1,
+      "bytes": 24588356
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-build\\direct-nv12-v3\\libmpv-2.actual-unstripped.dll",
+      "directory": false,
+      "files": 1,
+      "bytes": 41468442
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-build\\direct-nv12-v3\\libmpv-2.dll",
+      "directory": false,
+      "files": 1,
+      "bytes": 24588356
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-build\\draw-overhead-experiment\\libmpv-2.dll",
+      "directory": false,
+      "files": 1,
+      "bytes": 24539648
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-build\\draw-submit-experiment\\libmpv-2.actual-unstripped.dll",
+      "directory": false,
+      "files": 1,
+      "bytes": 41482162
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-build\\draw-submit-experiment\\libmpv-2.dll",
+      "directory": false,
+      "files": 1,
+      "bytes": 24539648
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-build\\flush-experiment\\libmpv-2.dll",
+      "directory": false,
+      "files": 1,
+      "bytes": 24531456
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-build\\flush-timing-experiment\\libmpv-2.dll",
+      "directory": false,
+      "files": 1,
+      "bytes": 24531456
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-build\\lazy-tables-experiment\\libmpv-2.actual-unstripped.dll",
+      "directory": false,
+      "files": 1,
+      "bytes": 41480120
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-build\\lazy-tables-experiment\\libmpv-2.dll",
+      "directory": false,
+      "files": 1,
+      "bytes": 24540160
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-build\\memory-candidate\\libmpv-2.dll",
+      "directory": false,
+      "files": 1,
+      "bytes": 24539136
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-build\\memory-candidate\\libmpv-2.unstripped.dll",
+      "directory": false,
+      "files": 1,
+      "bytes": 41481220
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-build\\output\\libmpv-2.dll",
+      "directory": false,
+      "files": 1,
+      "bytes": 24561152
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-build\\output\\libmpv-2.unstripped.dll",
+      "directory": false,
+      "files": 1,
+      "bytes": 41467114
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-build\\sdr-fbo-experiment\\libmpv-2.dll",
+      "directory": false,
+      "files": 1,
+      "bytes": 24584260
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-build\\sdr-fbo-experiment\\libmpv-2.unstripped.dll",
+      "directory": false,
+      "files": 1,
+      "bytes": 41463708
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-build\\vertex-ring-experiment\\libmpv-2.actual-unstripped.dll",
+      "directory": false,
+      "files": 1,
+      "bytes": 41482674
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-build\\vertex-ring-experiment\\libmpv-2.dll",
+      "directory": false,
+      "files": 1,
+      "bytes": 24540160
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-build\\video-view-cache-experiment\\libmpv-2.dll",
+      "directory": false,
+      "files": 1,
+      "bytes": 24540672
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-build\\video-view-cache-experiment\\libmpv-2.unstripped.dll",
+      "directory": false,
+      "files": 1,
+      "bytes": 41490076
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-build\\wait-rounding-experiment\\libmpv-2.dll",
+      "directory": false,
+      "files": 1,
+      "bytes": 24539136
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-build\\wait-rounding-experiment\\libmpv-2.unstripped.dll",
+      "directory": false,
+      "files": 1,
+      "bytes": 41481639
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-0e751060e75340dd859726be35959968\\libmpv-2.dll",
+      "directory": false,
+      "files": 1,
+      "bytes": 24588356
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-0e751060e75340dd859726be35959968\\mpv_playback_test.exe",
+      "directory": false,
+      "files": 1,
+      "bytes": 289792
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-0e751060e75340dd859726be35959968\\mpv_playback_test.obj",
+      "directory": false,
+      "files": 1,
+      "bytes": 996831
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-1067c623a4a54e8e8645aaef48a5c917\\libmpv-2.dll",
+      "directory": false,
+      "files": 1,
+      "bytes": 24558080
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-1067c623a4a54e8e8645aaef48a5c917\\mpv_playback_test.exe",
+      "directory": false,
+      "files": 1,
+      "bytes": 285184
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-1067c623a4a54e8e8645aaef48a5c917\\mpv_playback_test.obj",
+      "directory": false,
+      "files": 1,
+      "bytes": 981560
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-15fdce68f12446eda773b3ed53346ad7\\libmpv-2.dll",
+      "directory": false,
+      "files": 1,
+      "bytes": 24531456
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-15fdce68f12446eda773b3ed53346ad7\\mpv_playback_test.exe",
+      "directory": false,
+      "files": 1,
+      "bytes": 255488
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-15fdce68f12446eda773b3ed53346ad7\\mpv_playback_test.obj",
+      "directory": false,
+      "files": 1,
+      "bytes": 658581
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-16d9988e20f9453bb1cee0668abe032b\\libmpv-2.dll",
+      "directory": false,
+      "files": 1,
+      "bytes": 24584260
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-16d9988e20f9453bb1cee0668abe032b\\mpv_playback_test.exe",
+      "directory": false,
+      "files": 1,
+      "bytes": 287232
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-16d9988e20f9453bb1cee0668abe032b\\mpv_playback_test.obj",
+      "directory": false,
+      "files": 1,
+      "bytes": 986417
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-1b51135dfc29408ebe495d383586412f\\libmpv-2.dll",
+      "directory": false,
+      "files": 1,
+      "bytes": 24588356
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-1b51135dfc29408ebe495d383586412f\\mpv_playback_test.exe",
+      "directory": false,
+      "files": 1,
+      "bytes": 295424
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-1b51135dfc29408ebe495d383586412f\\mpv_playback_test.obj",
+      "directory": false,
+      "files": 1,
+      "bytes": 1034418
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-23a2371077114ac489d790e570df9e3a\\libmpv-2.dll",
+      "directory": false,
+      "files": 1,
+      "bytes": 24588356
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-23a2371077114ac489d790e570df9e3a\\mpv_playback_test.exe",
+      "directory": false,
+      "files": 1,
+      "bytes": 311808
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-23a2371077114ac489d790e570df9e3a\\mpv_playback_test.obj",
+      "directory": false,
+      "files": 1,
+      "bytes": 1111954
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-3155e2a0bdd34872a4729fd3ce725fd9\\libmpv-2.dll",
+      "directory": false,
+      "files": 1,
+      "bytes": 24558080
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-3155e2a0bdd34872a4729fd3ce725fd9\\mpv_playback_test.exe",
+      "directory": false,
+      "files": 1,
+      "bytes": 285184
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-3155e2a0bdd34872a4729fd3ce725fd9\\mpv_playback_test.obj",
+      "directory": false,
+      "files": 1,
+      "bytes": 956652
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-37472b7befdc4e97826b921a9bec7630\\libmpv-2.dll",
+      "directory": false,
+      "files": 1,
+      "bytes": 24558080
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-37472b7befdc4e97826b921a9bec7630\\mpv_playback_test.exe",
+      "directory": false,
+      "files": 1,
+      "bytes": 288768
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-37472b7befdc4e97826b921a9bec7630\\mpv_playback_test.obj",
+      "directory": false,
+      "files": 1,
+      "bytes": 994167
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-398e521ed8b24208a013e53fa441f051\\libmpv-2.dll",
+      "directory": false,
+      "files": 1,
+      "bytes": 24539648
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-398e521ed8b24208a013e53fa441f051\\mpv_playback_test.exe",
+      "directory": false,
+      "files": 1,
+      "bytes": 282112
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-398e521ed8b24208a013e53fa441f051\\mpv_playback_test.obj",
+      "directory": false,
+      "files": 1,
+      "bytes": 919783
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-3ad421ff98fe4e8f9ccda268bb9aa6ea\\libmpv-2.dll",
+      "directory": false,
+      "files": 1,
+      "bytes": 24558080
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-3ad421ff98fe4e8f9ccda268bb9aa6ea\\mpv_playback_test.exe",
+      "directory": false,
+      "files": 1,
+      "bytes": 288768
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-3ad421ff98fe4e8f9ccda268bb9aa6ea\\mpv_playback_test.obj",
+      "directory": false,
+      "files": 1,
+      "bytes": 993950
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-58caca0f0988404b9d4bbad8bf98c350\\libmpv-2.dll",
+      "directory": false,
+      "files": 1,
+      "bytes": 24531456
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-58caca0f0988404b9d4bbad8bf98c350\\mpv_playback_test.exe",
+      "directory": false,
+      "files": 1,
+      "bytes": 262656
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-58caca0f0988404b9d4bbad8bf98c350\\mpv_playback_test.obj",
+      "directory": false,
+      "files": 1,
+      "bytes": 752497
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-5a62b2a83e594ec0bb34c557ba630ac2\\libmpv-2.dll",
+      "directory": false,
+      "files": 1,
+      "bytes": 24540160
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-5a62b2a83e594ec0bb34c557ba630ac2\\mpv_playback_test.exe",
+      "directory": false,
+      "files": 1,
+      "bytes": 284672
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-5a62b2a83e594ec0bb34c557ba630ac2\\mpv_playback_test.obj",
+      "directory": false,
+      "files": 1,
+      "bytes": 934046
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-674152d879254f35920e4a3f4174e271\\libmpv-2.dll",
+      "directory": false,
+      "files": 1,
+      "bytes": 24558080
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-674152d879254f35920e4a3f4174e271\\mpv_playback_test.exe",
+      "directory": false,
+      "files": 1,
+      "bytes": 287232
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-674152d879254f35920e4a3f4174e271\\mpv_playback_test.obj",
+      "directory": false,
+      "files": 1,
+      "bytes": 989895
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-76e1154e8f5548a39e5ef0670b8b75df\\libmpv-2.dll",
+      "directory": false,
+      "files": 1,
+      "bytes": 24539648
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-76e1154e8f5548a39e5ef0670b8b75df\\mpv_playback_test.exe",
+      "directory": false,
+      "files": 1,
+      "bytes": 283648
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-76e1154e8f5548a39e5ef0670b8b75df\\mpv_playback_test.obj",
+      "directory": false,
+      "files": 1,
+      "bytes": 921295
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-8d45441d4ec04c4ba0e9447ed488d266\\libmpv-2.dll",
+      "directory": false,
+      "files": 1,
+      "bytes": 24539648
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-8d45441d4ec04c4ba0e9447ed488d266\\mpv_playback_test.exe",
+      "directory": false,
+      "files": 1,
+      "bytes": 269312
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-8d45441d4ec04c4ba0e9447ed488d266\\mpv_playback_test.obj",
+      "directory": false,
+      "files": 1,
+      "bytes": 826780
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-954332c725494e0ca1016bccd2e66473\\libmpv-2.dll",
+      "directory": false,
+      "files": 1,
+      "bytes": 24531456
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-954332c725494e0ca1016bccd2e66473\\mpv_playback_test.exe",
+      "directory": false,
+      "files": 1,
+      "bytes": 282112
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-954332c725494e0ca1016bccd2e66473\\mpv_playback_test.obj",
+      "directory": false,
+      "files": 1,
+      "bytes": 919783
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-a352796ce2ba4481aacaeac68b787491\\libmpv-2.dll",
+      "directory": false,
+      "files": 1,
+      "bytes": 24584260
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-a352796ce2ba4481aacaeac68b787491\\mpv_playback_test.exe",
+      "directory": false,
+      "files": 1,
+      "bytes": 287744
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-a352796ce2ba4481aacaeac68b787491\\mpv_playback_test.obj",
+      "directory": false,
+      "files": 1,
+      "bytes": 987452
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-a7151848b11c4b2bb7178a9206025082\\libmpv-2.dll",
+      "directory": false,
+      "files": 1,
+      "bytes": 24558080
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-a7151848b11c4b2bb7178a9206025082\\mpv_playback_test.exe",
+      "directory": false,
+      "files": 1,
+      "bytes": 295424
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-a7151848b11c4b2bb7178a9206025082\\mpv_playback_test.obj",
+      "directory": false,
+      "files": 1,
+      "bytes": 1035445
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-b5b98f305527457f97a5e810353fafd1\\libmpv-2.dll",
+      "directory": false,
+      "files": 1,
+      "bytes": 24588356
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-b5b98f305527457f97a5e810353fafd1\\mpv_playback_test.exe",
+      "directory": false,
+      "files": 1,
+      "bytes": 288768
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-b5b98f305527457f97a5e810353fafd1\\mpv_playback_test.obj",
+      "directory": false,
+      "files": 1,
+      "bytes": 994167
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-b5dce0f4826441769f177fa1b88b9775\\libmpv-2.dll",
+      "directory": false,
+      "files": 1,
+      "bytes": 24561152
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-b5dce0f4826441769f177fa1b88b9775\\mpv_playback_test.exe",
+      "directory": false,
+      "files": 1,
+      "bytes": 312320
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-b5dce0f4826441769f177fa1b88b9775\\mpv_playback_test.obj",
+      "directory": false,
+      "files": 1,
+      "bytes": 1112965
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-cfb9803879c34474b986d541925e7d3f\\libmpv-2.dll",
+      "directory": false,
+      "files": 1,
+      "bytes": 24561152
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-cfb9803879c34474b986d541925e7d3f\\mpv_playback_test.exe",
+      "directory": false,
+      "files": 1,
+      "bytes": 312832
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-cfb9803879c34474b986d541925e7d3f\\mpv_playback_test.obj",
+      "directory": false,
+      "files": 1,
+      "bytes": 1086765
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-d048bf44a3884e028fe1a039a45502e5\\libmpv-2.dll",
+      "directory": false,
+      "files": 1,
+      "bytes": 24539136
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-d048bf44a3884e028fe1a039a45502e5\\mpv_playback_test.exe",
+      "directory": false,
+      "files": 1,
+      "bytes": 269312
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-d048bf44a3884e028fe1a039a45502e5\\mpv_playback_test.obj",
+      "directory": false,
+      "files": 1,
+      "bytes": 849621
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-db38b9e3d37e43f78371950e8697f2b5\\libmpv-2.dll",
+      "directory": false,
+      "files": 1,
+      "bytes": 24558080
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-db38b9e3d37e43f78371950e8697f2b5\\mpv_playback_test.exe",
+      "directory": false,
+      "files": 1,
+      "bytes": 285184
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-db38b9e3d37e43f78371950e8697f2b5\\mpv_playback_test.obj",
+      "directory": false,
+      "files": 1,
+      "bytes": 956652
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-deefef25a3514dcea2115730ec997a33\\libmpv-2.dll",
+      "directory": false,
+      "files": 1,
+      "bytes": 24588356
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-deefef25a3514dcea2115730ec997a33\\mpv_playback_test.exe",
+      "directory": false,
+      "files": 1,
+      "bytes": 312320
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-deefef25a3514dcea2115730ec997a33\\mpv_playback_test.obj",
+      "directory": false,
+      "files": 1,
+      "bytes": 1112965
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-e9bbdb1c571041ec809b59c71feebeff\\libmpv-2.dll",
+      "directory": false,
+      "files": 1,
+      "bytes": 24531456
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-e9bbdb1c571041ec809b59c71feebeff\\mpv_playback_test.exe",
+      "directory": false,
+      "files": 1,
+      "bytes": 256512
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-e9bbdb1c571041ec809b59c71feebeff\\mpv_playback_test.obj",
+      "directory": false,
+      "files": 1,
+      "bytes": 665853
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-ec92e8c4cca7477da4f671bf42508a8f\\libmpv-2.dll",
+      "directory": false,
+      "files": 1,
+      "bytes": 24531456
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-ec92e8c4cca7477da4f671bf42508a8f\\mpv_playback_test.exe",
+      "directory": false,
+      "files": 1,
+      "bytes": 257024
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-ec92e8c4cca7477da4f671bf42508a8f\\mpv_playback_test.obj",
+      "directory": false,
+      "files": 1,
+      "bytes": 667341
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-ee06c06a45224a9a9b84fea7c2309cc0\\libmpv-2.dll",
+      "directory": false,
+      "files": 1,
+      "bytes": 24561152
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-ee06c06a45224a9a9b84fea7c2309cc0\\mpv_playback_test.exe",
+      "directory": false,
+      "files": 1,
+      "bytes": 323584
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-ee06c06a45224a9a9b84fea7c2309cc0\\mpv_playback_test.obj",
+      "directory": false,
+      "files": 1,
+      "bytes": 1146557
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-f3f41ec5c0e14ca1af161a4fcebf44cf\\libmpv-2.dll",
+      "directory": false,
+      "files": 1,
+      "bytes": 24558080
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-f3f41ec5c0e14ca1af161a4fcebf44cf\\mpv_playback_test.exe",
+      "directory": false,
+      "files": 1,
+      "bytes": 287232
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-f3f41ec5c0e14ca1af161a4fcebf44cf\\mpv_playback_test.obj",
+      "directory": false,
+      "files": 1,
+      "bytes": 985015
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-f492b52c817a45b3a97acaf37311d2a3\\libmpv-2.dll",
+      "directory": false,
+      "files": 1,
+      "bytes": 24539136
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-f492b52c817a45b3a97acaf37311d2a3\\mpv_playback_test.exe",
+      "directory": false,
+      "files": 1,
+      "bytes": 269312
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-f492b52c817a45b3a97acaf37311d2a3\\mpv_playback_test.obj",
+      "directory": false,
+      "files": 1,
+      "bytes": 826780
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\backend-optimization\\save-after\\save-benchmark.exe",
+      "directory": false,
+      "files": 1,
+      "bytes": 551936
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\backend-optimization\\save-before\\save-benchmark.exe",
+      "directory": false,
+      "files": 1,
+      "bytes": 551424
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\evaluation-fixes\\http-async-probe\\http_async_probe.exe",
+      "directory": false,
+      "files": 1,
+      "bytes": 456192
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\evaluation-fixes\\http-probe\\http_redirect_probe.exe",
+      "directory": false,
+      "files": 1,
+      "bytes": 357376
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\evaluation-fixes\\media-probe-isolation\\media_probe_isolation.exe",
+      "directory": false,
+      "files": 1,
+      "bytes": 309248
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\evaluation-fixes\\package-verify-2a4ce512f7d942d2bc764806695d2a61\\libmpv-2.dll",
+      "directory": false,
+      "files": 1,
+      "bytes": 25240576
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\evaluation-fixes\\save-capture\\save-benchmark.exe",
+      "directory": false,
+      "files": 1,
+      "bytes": 618496
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\hoverprobe\\stage\\libmpv-2.dll",
+      "directory": false,
+      "files": 1,
+      "bytes": 25240576
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\bench-stage\\74a7362a89c54ce5a4ddb81c320ffbca\\stage\\libmpv-2.dll",
+      "directory": false,
+      "files": 1,
+      "bytes": 25240576
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\debug\\cache",
+      "directory": true,
+      "files": 200,
+      "bytes": 1967334
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\release\\cache",
+      "directory": true,
+      "files": 25,
+      "bytes": 104312
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-build\\shader-src\\shaderc\\third_party\\spirv-tools\\utils\\Table\\__pycache__\\__init__.cpython-313.pyc",
+      "directory": false,
+      "files": 1,
+      "bytes": 216
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-build\\shader-src\\shaderc\\third_party\\spirv-tools\\utils\\Table\\__pycache__\\Context.cpython-313.pyc",
+      "directory": false,
+      "files": 1,
+      "bytes": 7009
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-build\\shader-src\\shaderc\\third_party\\spirv-tools\\utils\\Table\\__pycache__\\IndexRange.cpython-313.pyc",
+      "directory": false,
+      "files": 1,
+      "bytes": 1933
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-build\\shader-src\\shaderc\\third_party\\spirv-tools\\utils\\Table\\__pycache__\\Operand.cpython-313.pyc",
+      "directory": false,
+      "files": 1,
+      "bytes": 3073
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-build\\shader-src\\shaderc\\third_party\\spirv-tools\\utils\\Table\\__pycache__\\StringList.cpython-313.pyc",
+      "directory": false,
+      "files": 1,
+      "bytes": 1279
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-build\\src\\libplacebo\\tools\\glsl_preproc\\__pycache__\\macros.cpython-314.pyc",
+      "directory": false,
+      "files": 1,
+      "bytes": 5129
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-build\\src\\libplacebo\\tools\\glsl_preproc\\__pycache__\\statement.cpython-314.pyc",
+      "directory": false,
+      "files": 1,
+      "bytes": 18483
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-build\\src\\libplacebo\\tools\\glsl_preproc\\__pycache__\\templates.cpython-314.pyc",
+      "directory": false,
+      "files": 1,
+      "bytes": 958
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-build\\src\\libplacebo\\tools\\glsl_preproc\\__pycache__\\variables.cpython-314.pyc",
+      "directory": false,
+      "files": 1,
+      "bytes": 4548
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scripts\\libmpv\\__pycache__\\apply_source_patches.cpython-313.pyc",
+      "directory": false,
+      "files": 1,
+      "bytes": 5477
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scripts\\libmpv\\__pycache__\\fetch_sources.cpython-313.pyc",
+      "directory": false,
+      "files": 1,
+      "bytes": 3157
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scripts\\libmpv\\__pycache__\\provenance.cpython-313.pyc",
+      "directory": false,
+      "files": 1,
+      "bytes": 4118
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scripts\\__pycache__\\checkpoints.cpython-313.pyc",
+      "directory": false,
+      "files": 1,
+      "bytes": 25100
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scripts\\__pycache__\\validate_threat_boundaries.cpython-313.pyc",
+      "directory": false,
+      "files": 1,
+      "bytes": 26009
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\tests\\benchmark\\__pycache__\\compare_native_decode.cpython-313.pyc",
+      "directory": false,
+      "files": 1,
+      "bytes": 10759
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\tests\\benchmark\\__pycache__\\test_native_build_profiles.cpython-313.pyc",
+      "directory": false,
+      "files": 1,
+      "bytes": 4119
+    }
+  ]
+}

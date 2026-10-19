@@ -158,7 +158,6 @@ void App::RunDeferredLibraryReadyWork() {
     if (!deferredLibraryReadyWorkPending || !libraryReady) return;
     if (!librarySnapshotFrameRendered && !playbackSession.IsOpen()) return;
     deferredLibraryReadyWorkPending = false;
-    if (settings.jumpListEnabled) jumpListController.Update(library.history);
     folderWatcher.SetWatchedFoldersAsync(library.GetWatchedFolders());
     RunFolderRediscovery(false);
     ScheduleMetadataBackfill();
