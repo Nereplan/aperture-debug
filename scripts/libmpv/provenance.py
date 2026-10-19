@@ -24,6 +24,13 @@ missing = [name for name in required if not re.search(r"\b" + name + r"\b", pe)]
 if missing:
     raise SystemExit(f"Missing mpv exports: {missing}")
 dll = root / "output/libmpv-2.dll"
+profile = (root / "output/optimization-profile.txt").read_text().strip()
+optimizations = {
+    "size": "-Os; FFmpeg enable-small; LTO for mpv/FFmpeg/libplacebo; shader chain -Os without LTO",
+    "performance": "-O3; FFmpeg disable-small; LTO for mpv/FFmpeg/libplacebo; shader chain -Os without LTO; no fast-math or CPU target change",
+}
+if profile not in optimizations:
+    raise SystemExit(f"Unknown native optimization profile: {profile}")
 with dll.open("rb") as stream:
     sha = hashlib.file_digest(stream, "sha256").hexdigest()
 report = {
@@ -32,7 +39,8 @@ report = {
     "sourcePatches": apply_patches(root, check_only=True),
     "packages": (root / "output/msys2-packages.txt").read_text().splitlines(),
     "compiler": subprocess.check_output(["gcc", "--version"], text=True).splitlines()[0],
-    "optimization": "-Os; FFmpeg enable-small; LTO for mpv/FFmpeg/libplacebo; shader chain without LTO",
+    "optimizationProfile": profile,
+    "optimization": optimizations[profile],
     "dll": {"bytes": dll.stat().st_size, "sha256": sha, "architecture": "x64", "imports": imports},
 }
 (root / "output/build-provenance.json").write_text(json.dumps(report, indent=2) + "\n")

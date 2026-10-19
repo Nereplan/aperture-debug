@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    Builds Aperture's size-optimized, self-contained x64 libmpv DLL.
+    Builds Aperture's self-contained x64 libmpv DLL with a recorded optimization profile.
 .DESCRIPTION
     Uses hash-pinned sources and existing MSYS2 MINGW64 packages. Never updates
     MSYS2, replaces the bundled DLL, or changes the dependency inventory.
@@ -11,16 +11,19 @@ param(
     [string]$MsysRoot = 'C:\msys64',
     [string]$BuildRoot = '',
     [string]$OutputDir = '',
+    [ValidateSet('size','performance')][string]$OptimizationProfile = 'size',
     [ValidateRange(0, 256)][int]$Jobs = 0,
     [switch]$Clean
 )
 $ErrorActionPreference = 'Stop'
 $repo = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..')).TrimEnd('\','/')
 $scratch = Join-Path $repo 'scratch'
-if (!$BuildRoot) { $BuildRoot = Join-Path $scratch 'libmpv-build' }
+$nativeToolScratch = Join-Path ([Environment]::GetFolderPath('LocalApplicationData')) 'Codex\tools\scratch'
+if (!$BuildRoot) { $BuildRoot = Join-Path $nativeToolScratch 'aperture-libmpv-build' }
 $BuildRoot = [IO.Path]::GetFullPath($BuildRoot).TrimEnd('\','/')
-if (-not $BuildRoot.StartsWith($scratch + '\', [StringComparison]::OrdinalIgnoreCase)) {
-    throw 'BuildRoot must be a strict descendant of this repository''s scratch directory.'
+if (-not ($BuildRoot.StartsWith($scratch + '\', [StringComparison]::OrdinalIgnoreCase) -or
+          $BuildRoot.StartsWith($nativeToolScratch + '\', [StringComparison]::OrdinalIgnoreCase))) {
+    throw 'BuildRoot must be a strict descendant of repository scratch or Codex tools scratch.'
 }
 if (!$OutputDir) { $OutputDir = Join-Path $BuildRoot 'output' }
 $OutputDir = [IO.Path]::GetFullPath($OutputDir).TrimEnd('\','/')
@@ -44,6 +47,7 @@ $drive = $null
 $mapped = $false
 $previousMsystem = $env:MSYSTEM
 $previousNoBytecode = $env:PYTHONDONTWRITEBYTECODE
+$previousNativeProfile = $env:APERTURE_NATIVE_PROFILE
 try {
     $lock = [IO.File]::Open((Join-Path $BuildRoot '.build.lock'), 'OpenOrCreate', 'ReadWrite', 'None')
     # Clean only owned build products; retain verified downloads and extracted sources.
@@ -95,6 +99,7 @@ try {
     if ($Jobs -eq 0) { $Jobs = [Environment]::ProcessorCount }
     $env:MSYSTEM = 'MINGW64'
     $env:PYTHONDONTWRITEBYTECODE = '1'
+    $env:APERTURE_NATIVE_PROFILE = $OptimizationProfile.ToLowerInvariant()
     $msys = '/' + $drive.ToLowerInvariant()
     & $bash -lc "cd '$msys' && JOBS=$Jobs bash recipe/build.sh 2>&1" | Tee-Object -FilePath (Join-Path $BuildRoot 'build.log')
     if ($LASTEXITCODE -ne 0) { throw "libmpv build failed ($LASTEXITCODE); see $BuildRoot\build.log" }
@@ -107,6 +112,7 @@ try {
 } finally {
     $env:MSYSTEM = $previousMsystem
     $env:PYTHONDONTWRITEBYTECODE = $previousNoBytecode
+    $env:APERTURE_NATIVE_PROFILE = $previousNativeProfile
     if ($mapped) { & subst.exe ($drive + ':') /D | Out-Null }
     if ($lock) { $lock.Dispose() }
 }

@@ -309,6 +309,28 @@ checks; it controls D3D11 decoder-surface mapping independently of the direct
 NV12 filter. An accepted option or correct return frame alone does not establish
 picture parity for intermediate HDR stages or a playback performance win.
 
+Native compiler-profile comparisons use `scripts/build_lean_libmpv.ps1
+-OptimizationProfile size` or `performance`, with separate `-BuildRoot` paths.
+The default build/cache directory is under `%LOCALAPPDATA%/Codex/tools/scratch`;
+existing repository scratch builds remain supported. Profile selection is part
+of the recipe/cache identity and output provenance. Performance uses `-O3` and
+FFmpeg `--disable-small`; it keeps the decoder features, CPU target and normal
+floating-point semantics. It does not replace the bundled DLL automatically.
+
+For CPU-only decoder comparisons, build one probe per completed native prefix
+with `build_native_decode_probe.ps1 -PrefixPath <build>/prefix -OutputPath
+<new-exe> -OptimizationProfile <matching-profile>`. Run
+`python tests/benchmark/compare_native_decode.py --baseline <size-exe>
+--candidate <performance-exe> --manifest <cases.json> --out <new-directory>`.
+The manifest is a JSON list of `{id,path,kind,frames}` cases; kind is `video` or
+`audio`. Each process hashes the fixed-count decoded buffers and metadata in a
+separate warmup before timing a fresh single-thread decoder. The driver verifies
+exact hashes, excludes one discarded process per variant, rotates five measured
+rounds and preserves raw counters/logs. Finish builds and other benchmarks first.
+These internal software demux/decode times exclude player startup, presentation,
+hardware decoding and audio output; give them their own checkpoint protocol and
+workload without attaching a player/VLC reference.
+
 The pinned `mpv-direct-nv12-filter-v1` patch evaluates the existing separable LUT
 as a two-dimensional product on compatible SDR NV12 planes. It keeps the luma
 filter weights and bilinear chroma reconstruction; it does not lower texture

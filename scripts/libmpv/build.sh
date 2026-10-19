@@ -1,6 +1,7 @@
 #!/bin/bash
 # Aperture x64/MSVCRT libmpv recipe. All output belongs to the wrapper's build tree.
 set -euo pipefail
+source recipe/build_profile.sh
 export PATH="/mingw64/bin:/usr/bin:$PATH"
 for tool in gcc g++ meson ninja nasm pkgconf cmake python make objdump strip curl patch; do
   command -v "$tool" >/dev/null || { echo "Missing MSYS2 MINGW64 tool: $tool"; exit 1; }
@@ -12,10 +13,11 @@ MPV_SRC="$SRC/mpv"
 PREFIX="$PWD/prefix"
 mkdir -p "$PREFIX" output
 pacman -Q > output/msys2-packages.txt
-RECIPE_ID=$(cat recipe/* output/msys2-packages.txt | sha256sum | cut -d' ' -f1)
+RECIPE_ID=$({ cat recipe/* output/msys2-packages.txt; printf '%s\n' "$NATIVE_PROFILE"; } | sha256sum | cut -d' ' -f1)
 if [ -f "$PREFIX/.recipe-id" ] && [ "$(cat "$PREFIX/.recipe-id")" != "$RECIPE_ID" ]; then
   echo "Build inputs changed; run the PowerShell wrapper with -Clean."; exit 1
 fi
+printf '%s\n' "$NATIVE_PROFILE" > output/optimization-profile.txt
 printf '%s\n' "$RECIPE_ID" > "$PREFIX/.recipe-id"
 export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig:/mingw64/lib/pkgconfig"
 export CFLAGS="-ffunction-sections"
@@ -130,7 +132,7 @@ cd ffmpeg-build
   --enable-hwaccel=vp9_d3d11va --enable-hwaccel=vp9_d3d11va2 \
   --enable-hwaccel=av1_d3d11va --enable-hwaccel=av1_d3d11va2 \
   --disable-shared --enable-static --enable-pic \
-  --enable-lto --enable-small \
+  --enable-lto "$FFMPEG_SMALL_FLAG" --optflags="$NATIVE_OPT_FLAG" \
   --extra-cflags="-ffunction-sections" \
   --extra-ldflags="-static-libgcc -static-libstdc++ -Wl,--gc-sections"
 
@@ -142,7 +144,7 @@ fi
 if [ ! -f "$PREFIX/.placebo-done" ]; then
 meson setup "$SRC/libplacebo" placebo-build \
   --prefix="$PREFIX" --buildtype=release --prefer-static \
-  -Db_lto=true -Doptimization=s -Db_ndebug=true -Ddefault_library=static \
+  -Db_lto=true -Doptimization="$MESON_OPT_LEVEL" -Db_ndebug=true -Ddefault_library=static \
   -Dvulkan=disabled -Dd3d11=enabled -Dopengl=disabled \
   -Dshaderc=enabled -Dglslang=disabled -Dlcms=enabled -Dlibdovi=disabled \
   -Ddemos=false -Dtests=false -Dbench=false -Dfuzz=false
@@ -153,11 +155,11 @@ meson install -C placebo-build
 sed -i 's/, vulkan\([, ]\)/\1/' "$PREFIX/lib/pkgconfig/libplacebo.pc"
 touch "$PREFIX/.placebo-done"
 fi
-export LDFLAGS="$LDFLAGS -Os -Wl,-Map,mpv-link.map"
+export LDFLAGS="$LDFLAGS $NATIVE_OPT_FLAG -Wl,-Map,mpv-link.map"
 if [ ! -f mpv-build/build.ninja ]; then
 meson setup "$MPV_SRC" mpv-build \
   --prefix="$PREFIX" --buildtype=release --prefer-static \
-  -Db_lto=true -Doptimization=s \
+  -Db_lto=true -Doptimization="$MESON_OPT_LEVEL" \
   -Db_ndebug=true -Dstrip=true -Dbuild-date=false -Dlibmpv=true -Dcplayer=false \
   -Dtests=false -Dmanpage-build=disabled -Dlua=disabled -Djavascript=disabled \
   -Dlibarchive=disabled -Ddvdnav=disabled -Dlibbluray=disabled -Dvapoursynth=disabled \
