@@ -96,7 +96,7 @@ git diff --check</pre>
 <script id="checkpoint-data" type="application/json">
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-10-19T08:47:26+00:00",
+  "updatedAt": "2026-10-19T15:45:25+00:00",
   "metrics": {
     "visible-ms": {
       "label": "Visible window",
@@ -17521,6 +17521,36 @@ git diff --check</pre>
         }
       ],
       "report": "native-o2-visible-once-20261019"
+    },
+    {
+      "id": "playback-ui-20261019",
+      "label": "Playback controls and Hub undo",
+      "measuredAt": "2026-10-19T15:45:03.306608+00:00",
+      "commit": "bd81ac67c38b34d41305d2c2bd503468ea65166a",
+      "dirty": true,
+      "sourceNote": "Current dirty worktree based on bd81ac67c38b34d41305d2c2bd503468ea65166a; exact tested source/runtime hashes in docs/evidence/playback-ui-20261019/validation.json and identity.json. Pre-existing edits preserved separately from the UI save point.",
+      "notes": "Shared flyout geometry, persistent Space playback, captured/typed speed, subtitle visibility toggle, playback bookmarks, one timed Shift+A A/B cycle, submenu relocation and bounded multi-action Hub undo. Hidden native interaction checks validate handlers and native loop behavior; captures inspected. Initial run exposed a visible overlay and stopped; guards fixed before the final hidden run. No new performance measurement, VLC session or picture-quality claim.",
+      "results": [],
+      "tests": [
+        {
+          "name": "Hidden native playback/Hub interactions",
+          "status": "pass",
+          "passed": 22,
+          "total": 22,
+          "durationSeconds": null,
+          "evidence": "docs/evidence/playback-ui-20261019/interactions.txt",
+          "scope": "Actual App handlers, hidden muted native player; all four reorder types, chained/stale undo and rule edits."
+        },
+        {
+          "name": "Native unit suite",
+          "status": "partial",
+          "passed": 56,
+          "total": 57,
+          "durationSeconds": 4.85674,
+          "evidence": "docs/evidence/playback-ui-20261019/unit.txt",
+          "scope": "0 failed; 1 explicitly skipped visible-window case. Includes four flyout geometry/parser tests."
+        }
+      ]
     }
   ],
   "reports": [

@@ -16,6 +16,7 @@
 #include "SystemVisualPreferences.h"
 #include "TooltipManager.h"
 #include "PlaybackSession.h"
+#include "PlaybackFlyoutLayout.h"
 #include "CommandDispatcher.h"
 #include "MediaTransport.h"
 #include "JumpList.h"
@@ -47,6 +48,7 @@
 namespace Aperture {
 class App : public ICommandContext {
     friend class ApertureDropTarget;
+    friend struct PlaybackUiTestAccess;
 public:
     App();
     ~App();
@@ -129,6 +131,7 @@ public:
     // Snapshot & View-Model Derivation
     PlayerRenderViewModel BuildPlayerRenderViewModel() const;
     HubRenderViewModel BuildHubRenderViewModel();
+    ModalViewModel BuildModalViewModel() const;
 private:
     HWND hWnd = NULL;
     HINSTANCE hInstance = NULL;
@@ -368,6 +371,13 @@ private:
     std::string currentFlyoutMenu = "main";
     int hoveredFlyoutOption = -1;
     size_t queueFlyoutFirstVisible = 0;
+    TextInputModel playbackSpeedInput;
+    bool isPlaybackSpeedDragging = false;
+    double playbackSpeedDragValue = 1.0;
+    D2D1_RECT_F PlaybackSpeedEditorBounds() const;
+    bool CommitPlaybackSpeedInput();
+    void UpdatePlaybackSpeedDrag(float clientX);
+    bool HandlePlaybackSpeedDragMessage(UINT message, LPARAM position);
     void UpdateFlyoutHitTarget(float mouseX, float mouseY, float winW, float winH, float dp, float bottomBarH);
     void HandleFlyoutClick(float localX, float localY);
     float GetFlyoutHeight() const;
@@ -520,7 +530,7 @@ private:
     LibraryRevisions cachedSearchKeyRevisions;
     uint64_t cachedSearchPathsGeneration = 0;
     std::vector<std::wstring> cachedPlaylistSearchKeys;
-    enum class TextInputField { None, PlaylistSearch, Modal, InlineRename, GlobalSearch, MediaSearch };
+    enum class TextInputField { None, PlaylistSearch, Modal, InlineRename, GlobalSearch, MediaSearch, PlaybackSpeed };
     TextInputModel modalInput;
     TextInputModel inlineRenameInput;
     TextInputField activeTextInputField = TextInputField::None;
@@ -566,6 +576,8 @@ private:
     void ActivateCreatedPlaylist(const std::string& playlistId);
     void DismissActiveModal(bool confirmed = false);
     void CloseContextMenu();
+    void RepositionContextMenu(float x, float y);
+    float contextMenuPreferredWidth = 220.0f;
     void CloseSettingsFlyout();
     std::unordered_set<size_t> selectedMediaIndices;
     std::unordered_set<size_t> selectedPlaylistIndices;
@@ -592,10 +604,20 @@ private:
     void ConfirmDeleteSelectedMedia();
     void PurgeThumbnailCacheForFile(const std::wstring& filePath, double durationSec);
     void PruneOrphanedHubThumbnailCache();
-    void ArmLibraryUndo(const std::wstring& actionLabel);
+    struct LibraryUndoEntry {
+        std::wstring label;
+        std::function<bool()> apply;
+        std::unique_ptr<MediaLibrary> snapshot;
+        size_t retainedBytes = 0;
+    };
+    std::deque<LibraryUndoEntry> libraryUndoHistory;
+    void PushLibraryUndo(LibraryUndoEntry entry);
+    void ArmLibraryUndo(const std::wstring& label);
+    void ArmLibraryUndo(const std::wstring& label, std::function<bool()> edit, size_t retainedBytes = 0);
     bool UndoLastLibraryAction();
-    std::unique_ptr<MediaLibrary> undoLibrarySnapshot;
-    std::wstring undoLibraryActionLabel;
+    size_t SetWatchedWithUndo(const std::vector<std::wstring>& paths, bool watched, size_t* skipped = nullptr);
+    size_t AddToPlaylistWithUndo(const std::string& id, const std::vector<std::wstring>& paths, size_t* skipped = nullptr);
+    void ArmCreatedPlaylistUndo(const std::string& id);
     void BulkSetWatched(bool watched);
     void BulkAddToPlaylist(const std::string& playlistId);
     void PlaySelectedInCurrentPane();
@@ -784,7 +806,7 @@ private:
     enum class PlayerMenuReveal { None, Controls, Cursor };
     void PresentHubContextMenu(float x, float y, float width);
     void PresentPlayerContextMenu(float x, float y, float width, bool animate, PlayerMenuReveal reveal);
-    void PrepareContextMenu(float& x, float& y, float width, float dp);
+    void PrepareContextMenu(float& x, float& y, float width, float dp, bool reposition = false);
     void PrepareSplitIrisContextMenu(float x, float y, float dp, bool resetIrisAnimation);
     void SetIrisShoulders(IrisShoulderButton left, IrisShoulderButton right);
     void SetActiveIrisDial(int index);
@@ -808,7 +830,7 @@ private:
     void OpenBackgroundContextMenu(float x, float y);
     void OpenPlayerContextMenu(float x, float y);
     void OpenPlayerAdvancedContextMenu(float x, float y);
-    void OpenContentSpeedContextMenu(float x, float y);
+    void CycleABRepeat();
     void OpenSleepTimerContextMenu(float x, float y);
     void OpenAudioDelayContextMenu(float x, float y);
     void OpenAudioBalanceContextMenu(float x, float y);

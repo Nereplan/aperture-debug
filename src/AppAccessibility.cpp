@@ -731,7 +731,7 @@ void App::RefreshAccessibilityTree(bool force) {
             const float right = winW - playerPadX - btn;
             addNode(9005, L"Subtitles / CC", L"Cycle subtitle tracks", player.GetCurrentSubtitleTrackTitle(), ROLE_SYSTEM_PUSHBUTTON, playerControlState(9005) | (playerLayout.showSubtitles ? 0 : STATE_SYSTEM_INVISIBLE),
                 playerRect(playerLayout.subtitles),
-                L"Cycle", shortcut("cycleSubtitles"), [this]() { commandDispatcher.Execute(AppCommand::CycleSubtitles); },
+                L"Toggle", L"", [this]() { commandDispatcher.Execute(AppCommand::ToggleSubtitles); },
                 [&](AccessibilityNode& n) {
                     n.automationId = L"SubtitlesButton";
                     n.className = L"ApertureButton";
@@ -741,7 +741,7 @@ void App::RefreshAccessibilityTree(bool force) {
                     n.flowsToIds = { 9006 };
                     n.hasToggle = true;
                     n.toggleState = settings.subtitlesEnabled ? ToggleState_On : ToggleState_Off;
-                    n.onToggle = [this](LONG, ToggleState) { commandDispatcher.Execute(AppCommand::CycleSubtitles); };
+                    n.onToggle = [this](LONG, ToggleState) { commandDispatcher.Execute(AppCommand::ToggleSubtitles); };
                 });
             addNode(9006, L"Settings", L"Open playback settings", L"", ROLE_SYSTEM_PUSHBUTTON, playerControlState(9006),
                 playerRect(playerLayout.settings),

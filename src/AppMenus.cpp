@@ -19,6 +19,8 @@ void App::CloseContextMenu() {
 
 void App::CloseSettingsFlyout() {
     if (!isSettingsFlyoutOpen) return;
+    HandlePlaybackSpeedDragMessage(WM_CAPTURECHANGED, 0);
+    if (activeTextInputField == TextInputField::PlaybackSpeed) BlurTextInput();
     isSettingsFlyoutOpen = false;
     hoveredFlyoutOption = -1;
     flyoutClosing = true;
@@ -26,7 +28,9 @@ void App::CloseSettingsFlyout() {
     PopAndRestoreFocus(TransientSurfaceType::SettingsFlyout);
 }
 
-void App::PrepareContextMenu(float& x, float& y, float width, float dp) {
+void App::PrepareContextMenu(float& x, float& y, float width, float dp, bool reposition) {
+    if (isContextMenuOpen && !isSplitIrisMenu && !reposition) { x = contextMenuOrigin.x; y = contextMenuOrigin.y; }
+    contextMenuPreferredWidth = width;
     RECT rc;
     GetClientRect(hWnd, &rc);
     float winW = (float)(rc.right - rc.left);
@@ -42,6 +46,20 @@ void App::PrepareContextMenu(float& x, float& y, float width, float dp) {
     isSplitIrisMenu = false;
     isContextMenuOpen = true;
     contextMenuClosing = false;
+}
+
+void App::RepositionContextMenu(float x, float y) {
+    if (!isContextMenuOpen) return;
+    const float dp = playbackSession.IsOpen() ? overlayRenderer.GetDpiScale() : renderer.GetDpiScale();
+    if (isSplitIrisMenu) {
+        irisAnchorCursor = D2D1::Point2F(x, y);
+        PrepareSplitIrisContextMenu(x, y, dp, false);
+    } else PrepareContextMenu(x, y, contextMenuPreferredWidth, dp, true);
+    UpdateContextMenuHitTarget(x, y, dp);
+    isKeyboardNavActive = false;
+    MarkAccessibilityDirty();
+    if (playbackSession.IsOpen()) Render();
+    else InvalidateRect(hWnd, nullptr, FALSE);
 }
 
 void App::PrepareSplitIrisContextMenu(float x, float y, float dp, bool resetIrisAnimation) {
@@ -466,58 +484,11 @@ void App::OpenMediaSortContextMenu(float x, float y) {
 }
 
 void App::UpdateFlyoutHitTarget(float mouseX, float mouseY, float winW, float winH, float dp, float bottomBarH) {
-    if (isSettingsFlyoutOpen) {
-        float flyoutW = 280.0f * dp;
-        float flyoutH = GetFlyoutHeight();
-        D2D1_RECT_F flyoutBounds = D2D1::RectF(winW - flyoutW - 20.0f * dp, winH - bottomBarH - flyoutH - 10.0f * dp,
-            winW - 20.0f * dp, winH - bottomBarH - 10.0f * dp);
-        if (PtInRectF(flyoutBounds, mouseX, mouseY)) {
-            float relY = mouseY - flyoutBounds.top, relX = mouseX - flyoutBounds.left;
-            if (currentFlyoutMenu == "main") {
-                int idx = (int)((relY - 8.0f * dp) / (42.0f * dp));
-                if (idx >= 0 && idx < GetFlyoutOptionCount()) {
-                    float rowTop = 8.0f * dp + idx * 42.0f * dp;
-                    if (relY >= rowTop && relY <= rowTop + 40.0f * dp) hoveredFlyoutOption = idx;
-                }
-            } else if (currentFlyoutMenu == "queue") {
-                const float optionTop = 78.0f * dp;
-                int idx = (int)((relY - optionTop) / (36.0f * dp));
-                if (idx >= 0 && idx < GetFlyoutOptionCount()) {
-                    float rowTop = optionTop + idx * 36.0f * dp;
-                    if (relY >= rowTop && relY <= rowTop + 34.0f * dp) hoveredFlyoutOption = idx;
-                }
-            } else if (currentFlyoutMenu == "speed") {
-                // The header and slider are not selectable rows. The nine presets are a 3x3 grid beginning below the slider.
-                float pillTop = 108.0f * dp, pillH = 30.0f * dp, pillGap = 5.0f * dp;
-                float pillW = (flyoutW - 28.0f * dp - 2.0f * pillGap) / 3.0f;
-                if (relY >= pillTop && relY <= pillTop + 3.0f * pillH + 2.0f * pillGap && relX >= 14.0f * dp) {
-                    int col = (int)((relX - 14.0f * dp) / (pillW + pillGap));
-                    int row = (int)((relY - pillTop) / (pillH + pillGap));
-                    float pillLeft = 14.0f * dp + col * (pillW + pillGap);
-                    float rowTop = pillTop + row * (pillH + pillGap);
-                    if (col >= 0 && col < 3 && row >= 0 && row < 3 &&
-                        relX >= pillLeft && relX <= pillLeft + pillW && relY >= rowTop && relY <= rowTop + pillH) {
-                        hoveredFlyoutOption = row * 3 + col;
-                    }
-                }
-            } else if (currentFlyoutMenu == "audiodelay" || currentFlyoutMenu == "subdelay") {
-                float buttonTop = 96.0f * dp, buttonH = 34.0f * dp, buttonGap = 6.0f * dp;
-                float buttonW = (flyoutW - 28.0f * dp - 2.0f * buttonGap) / 3.0f;
-                if (relY >= buttonTop && relY <= buttonTop + buttonH && relX >= 14.0f * dp) {
-                    int idx = (int)((relX - 14.0f * dp) / (buttonW + buttonGap));
-                    float left = 14.0f * dp + idx * (buttonW + buttonGap);
-                    if (idx >= 0 && idx < 3 && relX >= left && relX <= left + buttonW) hoveredFlyoutOption = idx;
-                }
-            } else {
-                float optionTop = 50.0f * dp;
-                int idx = (int)((relY - optionTop) / (36.0f * dp));
-                if (idx >= 0 && idx < GetFlyoutOptionCount()) {
-                    float rowTop = optionTop + idx * 36.0f * dp;
-                    if (relY >= rowTop && relY <= rowTop + 34.0f * dp) hoveredFlyoutOption = idx;
-                }
-            }
-        }
-    }
+    hoveredFlyoutOption = PlaybackFlyoutLayout::None;
+    if (!isSettingsFlyoutOpen) return;
+    const auto bounds = D2D1::RectF(winW - 300.0f * dp, winH - bottomBarH - GetFlyoutHeight() - 10.0f * dp,
+        winW - 20.0f * dp, winH - bottomBarH - 10.0f * dp);
+    hoveredFlyoutOption = PlaybackFlyoutLayout::HitTest(currentFlyoutMenu, GetFlyoutOptionCount(), bounds, mouseX, mouseY, dp);
 }
 
 void App::OpenFolderContextMenu(int groupIndex, float x, float y) {
@@ -620,9 +591,9 @@ void App::OpenMediaContextMenu(const MediaItem& item, float x, float y) {
             playbackSession.OpenQueue({ item.filePath }, 0);
             OpenAndPlayMedia(item.filePath, 0.0, true);
         }});
-        const bool isWatched = (item.status == "watched");
+        const bool isWatched = (item.status == "done" || item.status == "watched");
         contextMenuItems.push_back({ "toggle_watched", isWatched ? L"Mark as unwatched" : L"Mark as watched", L"", IconType::Checkmark, false, false, false, [this, item, isWatched]() {
-            library.SetWatched(item.filePath, !isWatched);
+            SetWatchedWithUndo({ item.filePath }, !isWatched);
             SaveLibrary();
             ShowOSD(IconType::Checkmark, isWatched ? L"Marked as unwatched" : L"Marked as watched");
             InvalidateRect(hWnd, NULL, FALSE);
@@ -634,7 +605,7 @@ void App::OpenMediaContextMenu(const MediaItem& item, float x, float y) {
             std::wstring plName = Utf8ToUtf16(pl.name);
             contextMenuItems.push_back({ "add_to_pl_" + plId, L"Add to " + plName, L"", IconType::FolderPlaylist, false, false, false, [this, plId, plName, item]() {
                 size_t skipped = 0;
-                size_t added = library.AddToPlaylist(plId, { item.filePath }, &skipped);
+                size_t added = AddToPlaylistWithUndo(plId, { item.filePath }, &skipped);
                 SaveLibrary();
                 if (added > 0) {
                     ShowOSD(IconType::FolderPlaylist, L"Added to " + plName);
@@ -887,28 +858,31 @@ void App::OpenSleepTimerContextMenu(float x, float y) {
     PresentPlayerContextMenu(x, y, 238.0f, false, PlayerMenuReveal::None);
 }
 
-void App::OpenContentSpeedContextMenu(float x, float y) {
-    if (!isContextMenuOpen) PushFocusSnapshot(TransientSurfaceType::ContextMenu);
-    contextMenuItems.clear();
-    SetIrisShoulders(
-        { L"Back", IconType::ChevronLeft, true, false, false, true, [this, x, y]() { OpenPlayerAdvancedContextMenu(x, y); } },
-        { L"1.0x", IconType::Refresh, false, false, false, true, [this, x, y]() {
-            ResetIrisDial(0);
-            OpenContentSpeedContextMenu(x, y);
-        } });
-    const auto addPreset = [this](const char* id, const wchar_t* label, double speed) {
-        contextMenuItems.push_back({id, label, L"", IconType::SpeedGauge, false, std::abs(player.GetPlaybackRate() - speed) < 0.001, false,
-                                    [this, speed]() { commandDispatcher.Execute(AppCommand::SetSpeed, CommandArgs{speed}); }});
-    };
-    addPreset("speed_cinema", L"Cinema / TV — 1.00x", 1.0);
-    addPreset("speed_audiobook", L"Audiobook — 1.20x", 1.2);
-    addPreset("speed_lecture", L"Lecture — 1.25x", 1.25);
-    addPreset("speed_podcast", L"Podcast — 1.50x", 1.5);
-    addPreset("speed_review", L"Review / Skim — 2.00x", 2.0);
-    PresentPlayerContextMenu(x, y, 238.0f, false, PlayerMenuReveal::None);
+void App::CycleABRepeat() {
+    if (!playbackSession.IsOpen()) return;
+    if (abLoopA >= 0.0 && abLoopB > abLoopA) {
+        abLoopA = abLoopB = -1.0;
+        player.ClearABLoop();
+        ShowOSD(IconType::Refresh, L"A-B repeat cleared");
+        return;
+    }
+    const double point = player.GetCurrentTime();
+    if (!std::isfinite(point) || point < 0.0) return;
+    if (abLoopA < 0.0) {
+        abLoopA = point;
+        abLoopB = -1.0;
+        player.ClearABLoop();
+        player.SetABLoopA(point);
+        ShowOSD(IconType::Refresh, L"A-B start: " + FormatDuration(point));
+    } else if (point > abLoopA) {
+        abLoopB = point;
+        player.SetABLoopB(point);
+        ShowOSD(IconType::Refresh, L"A-B repeat: " + FormatDuration(abLoopA) + L" - " + FormatDuration(point));
+    } else ShowOSD(IconType::VolumeMuted, L"Choose an end after " + FormatDuration(abLoopA));
 }
 
 void App::OpenPlayerContextMenu(float x, float y) {
+    if (isSettingsFlyoutOpen) CloseSettingsFlyout();
     if (!isContextMenuOpen) PushFocusSnapshot(TransientSurfaceType::ContextMenu);
     contextMenuItems.clear();
 
@@ -1009,28 +983,15 @@ void App::OpenPlayerAdvancedContextMenu(float x, float y) {
 
     contextMenuItems.push_back(
         {"add_bookmark", L"Add Bookmark...", L"", IconType::Plus, false, false, false, [this]() { ShowAddBookmarkModal(); }});
-    contextMenuItems.push_back({ "ab_set_a", L"Set A-B Start", L"[", IconType::Refresh, false, abLoopA >= 0.0, false, [this, x, y]() {
-        abLoopA = player.GetCurrentTime();
-        abLoopB = -1.0;
-        player.SetABLoopA(abLoopA);
-        ShowOSD(IconType::Refresh, L"A-B repeat start set");
-        OpenPlayerAdvancedContextMenu(x, y);
-    }, false, false, true});
-    contextMenuItems.push_back({ "ab_set_b", L"Set A-B End", L"]", IconType::Refresh, false, abLoopB >= 0.0, false, [this, x, y]() {
-        const double point = player.GetCurrentTime();
-        if (abLoopA >= 0.0 && point > abLoopA) {
-            abLoopB = point;
-            player.SetABLoopB(abLoopB);
-            ShowOSD(IconType::Refresh, L"A-B repeat active");
-        } else { ShowOSD(IconType::VolumeMuted, L"Set A before B"); }
-        OpenPlayerAdvancedContextMenu(x, y);
-    }, false, false, true});
-    contextMenuItems.push_back({ "ab_clear", L"Clear A-B Repeat", L"\\", IconType::Refresh, false, false, true, [this, x, y]() {
-        abLoopA = abLoopB = -1.0;
-        player.ClearABLoop();
-        ShowOSD(IconType::Refresh, L"A-B repeat cleared");
-        OpenPlayerAdvancedContextMenu(x, y);
-    }, false, false, true});
+    const bool abStarted = abLoopA >= 0.0;
+    const bool abActive = abStarted && abLoopB > abLoopA;
+    const std::wstring abTimes = !abStarted ? L"Shift+A" :
+        (abActive ? FormatDuration(abLoopA) + L"\u2013" + FormatDuration(abLoopB) : L"A " + FormatDuration(abLoopA));
+    contextMenuItems.push_back({ "ab_cycle", abActive ? L"Clear A-B Repeat" : abStarted ? L"Set A-B End" : L"Set A-B Start",
+        abTimes, IconType::Refresh, false, abStarted, abActive, [this, x, y]() {
+            CycleABRepeat();
+            OpenPlayerAdvancedContextMenu(x, y);
+        }, false, abStarted, true });
     contextMenuItems.push_back({ "sep1", L"", L"", IconType::Play, true });
     contextMenuItems.push_back({ "sleep_timer", L"Sleep Timer...", L"", IconType::HistoryClock, false,
         sleepTimerRemainingSec > 0.0f || stopAfterCurrent, false,
@@ -1056,8 +1017,6 @@ void App::OpenPlayerAdvancedContextMenu(float x, float y) {
                                 false, [this, x, y]() { OpenAudioChannelMapContextMenu(x, y); }, false, false, true});
     contextMenuItems.push_back({"video_adjustments_menu", L"Video Adjustments...", L"", IconType::SettingsGear, false, false, false,
                                 [this, x, y]() { OpenVideoAdjustmentsContextMenu(x, y); }, false, false, true});
-    contextMenuItems.push_back({"content_speed", L"Content Speed Presets...", L"", IconType::SpeedGauge, false, false, false,
-                                [this, x, y]() { OpenContentSpeedContextMenu(x, y); }, false, false, true});
     contextMenuItems.push_back({ "sep2", L"", L"", IconType::Play, true });
     contextMenuItems.push_back({ "diagnostics", showPlaybackDiagnostics ? L"Hide Diagnostics" : L"Playback Diagnostics", L"I", IconType::SettingsGear, false, showPlaybackDiagnostics, false, [this]() {
         commandDispatcher.Execute(AppCommand::TogglePlaybackDiagnostics);
@@ -1773,104 +1732,136 @@ int App::GetFlyoutOptionCount() const {
     return 0;
 }
 
+D2D1_RECT_F App::PlaybackSpeedEditorBounds() const {
+    RECT client{};
+    GetClientRect(hWnd, &client);
+    const float dp = std::max(0.5f, overlayRenderer.GetDpiScale());
+    const auto bounds = D2D1::RectF(client.right - 300 * dp, client.bottom - 86 * dp - GetFlyoutHeight(),
+        client.right - 20 * dp, client.bottom - 86 * dp);
+    return PlaybackFlyoutLayout::SpeedInput(bounds, dp);
+}
+
+bool App::CommitPlaybackSpeedInput() {
+    double speed = 0;
+    if (!PlaybackFlyoutLayout::ParseSpeed(Text16ToWideString(playbackSpeedInput.GetText()), speed)) {
+        ShowOSD(IconType::SpeedGauge, L"Enter a speed from 0.25 to 4.00");
+        return false;
+    }
+    commandDispatcher.Execute(AppCommand::SetSpeed, CommandArgs{ speed });
+    return true;
+}
+
+void App::UpdatePlaybackSpeedDrag(float clientX) {
+    RECT client{};
+    GetClientRect(hWnd, &client);
+    const float dp = std::max(0.5f, overlayRenderer.GetDpiScale());
+    const auto track = PlaybackFlyoutLayout::SpeedTrack(D2D1::RectF(client.right - 300 * dp, 0, client.right - 20 * dp, 340 * dp), dp);
+    const double ratio = std::clamp((double)(clientX - track.left) / std::max(1.0f, RectWidth(track)), 0.0, 1.0);
+    const double speed = std::round((0.25 + ratio * 2.75) * 100) / 100;
+    if (std::abs(speed - playbackSpeedDragValue) < 0.0001) return;
+    playbackSpeedDragValue = speed;
+    player.SetPlaybackRate(speed);
+    Render();
+}
+
+bool App::HandlePlaybackSpeedDragMessage(UINT message, LPARAM position) {
+    if (!isPlaybackSpeedDragging) return false;
+    if (message == WM_MOUSEMOVE) { UpdatePlaybackSpeedDrag(static_cast<float>(GET_X_LPARAM(position))); return true; }
+    if (message != WM_LBUTTONUP && message != WM_CAPTURECHANGED) return false;
+    if (message == WM_LBUTTONUP) UpdatePlaybackSpeedDrag(static_cast<float>(GET_X_LPARAM(position)));
+    isPlaybackSpeedDragging = false;
+    if (GetCapture() == hWnd || GetCapture() == hOverlayWnd) ReleaseCapture();
+    if (playbackSession.IsOpen()) commandDispatcher.Execute(AppCommand::SetSpeed, CommandArgs{ playbackSpeedDragValue });
+    Render();
+    return true;
+}
+
 void App::HandleFlyoutClick(float localX, float localY) {
     const float dp = std::max(0.5f, overlayRenderer.GetDpiScale());
-    const float flyoutW = 280.0f * dp;
+    const auto bounds = D2D1::RectF(0, 0, 280.0f * dp, GetFlyoutHeight());
+    const int idx = PlaybackFlyoutLayout::HitTest(currentFlyoutMenu, GetFlyoutOptionCount(), bounds, localX, localY, dp);
+    if (activeTextInputField == TextInputField::PlaybackSpeed &&
+        (currentFlyoutMenu != "speed" || !PtInRectF(PlaybackFlyoutLayout::SpeedInput(bounds, dp), localX, localY))) BlurTextInput();
+    if (idx == PlaybackFlyoutLayout::Back) {
+        currentFlyoutMenu = "main";
+        hoveredFlyoutOption = PlaybackFlyoutLayout::None;
+        return;
+    }
+    if (currentFlyoutMenu == "speed") {
+        if (PtInRectF(PlaybackFlyoutLayout::SpeedInput(bounds, dp), localX, localY)) {
+            if (activeTextInputField == TextInputField::PlaybackSpeed) {
+                const auto editor = PlaybackSpeedEditorBounds();
+                const bool extend = (GetKeyState(VK_SHIFT) & 0x8000) != 0;
+                SetTextInputCaretFromMouse(editor.left + localX - (bounds.right * 0.5f - 56 * dp), editor.top + localY - 50 * dp, extend);
+                textInputDragAnchor = playbackSpeedInput.GetAnchor();
+                textInputDragging = true;
+                SetCapture(hWnd);
+                return;
+            }
+            wchar_t text[32];
+            swprintf_s(text, L"%.2f", player.GetPlaybackRate());
+            playbackSpeedInput.SetText(WideStringToText16(text));
+            playbackSpeedInput.SelectAll();
+            FocusTextInput(TextInputField::PlaybackSpeed);
+            return;
+        }
+        const auto track = PlaybackFlyoutLayout::SpeedTrack(bounds, dp);
+        if (PtInRectF(track, localX, localY)) {
+            isPlaybackSpeedDragging = true;
+            playbackSpeedDragValue = player.GetPlaybackRate();
+            SetCapture(hOverlayWnd ? hOverlayWnd : hWnd);
+            RECT client{};
+            GetClientRect(hWnd, &client);
+            UpdatePlaybackSpeedDrag(client.right - 300 * dp + localX);
+        } else if (idx >= 0 && idx < 9) {
+            commandDispatcher.Execute(AppCommand::SetSpeed, CommandArgs{ PlaybackFlyoutLayout::Speeds[idx] });
+        }
+        return;
+    }
+    if (idx < 0) return;
     if (currentFlyoutMenu == "main") {
-        const float rowTop = 8.0f * dp, rowStep = 42.0f * dp;
-        const int clickedIdx = (int)((localY - rowTop) / rowStep);
-        const float clickedTop = rowTop + clickedIdx * rowStep;
-        if (clickedIdx < 0 || clickedIdx >= 8 || localY < clickedTop || localY > clickedTop + 40.0f * dp) return;
-        switch (clickedIdx) {
+        switch (idx) {
         case 0: currentFlyoutMenu = "subtitles"; break;
         case 1: currentFlyoutMenu = "audio"; break;
         case 2: currentFlyoutMenu = "speed"; break;
         case 3: currentFlyoutMenu = "aspect"; break;
         case 4: {
             currentFlyoutMenu = "queue";
-            hoveredFlyoutOption = -1;
-            const size_t queueSize = playbackSession.GetQueueSize();
-            if (queueSize == 0) { queueFlyoutFirstVisible = 0; } else {
-                const size_t current = std::min(playbackSession.GetQueueIndex(), queueSize - 1);
-                const size_t maxFirst = queueSize > 7 ? queueSize - 7 : 0;
-                queueFlyoutFirstVisible = std::min(maxFirst, current > 3 ? current - 3 : 0);
-            }
+            const size_t count = playbackSession.GetQueueSize();
+            const size_t current = count ? std::min(playbackSession.GetQueueIndex(), count - 1) : 0;
+            queueFlyoutFirstVisible = std::min(count > 7 ? count - 7 : 0, current > 3 ? current - 3 : 0);
             break;
         }
         case 5: commandDispatcher.Execute(AppCommand::ToggleLoop); break;
         case 6: commandDispatcher.Execute(AppCommand::ToggleAutoplay); break;
         case 7: commandDispatcher.Execute(AppCommand::TogglePrivateMode); break;
-        default: break;
         }
-        return;
-    }
-    if (localY < 44.0f * dp) { currentFlyoutMenu = "main"; return; }
-    if (currentFlyoutMenu == "speed") {
-        const double speeds[] = { 0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 3.0 };
-        const float sliderTop = 87.0f * dp, sliderBottom = 108.0f * dp, sliderLeft = 26.0f * dp, sliderRight = flyoutW - 26.0f * dp;
-        if (localY >= sliderTop && localY <= sliderBottom && localX >= sliderLeft && localX <= sliderRight) {
-            double ratio = std::clamp((double)(localX - sliderLeft) / (double)std::max(1.0f, sliderRight - sliderLeft), 0.0, 1.0);
-            double newSpeed = std::clamp(0.25 + ratio * (3.0 - 0.25), 0.25, 3.0);
-            newSpeed = std::round(newSpeed / 0.05) * 0.05;
-            commandDispatcher.Execute(AppCommand::SetSpeed, CommandArgs{ newSpeed });
-            return;
-        }
-        const float pillTop = 108.0f * dp, pillH = 30.0f * dp, pillGap = 5.0f * dp;
-        const float pillW = (flyoutW - 28.0f * dp - 2.0f * pillGap) / 3.0f;
-        if (localY < pillTop || localX < 14.0f * dp) return;
-        const int col = (int)((localX - 14.0f * dp) / (pillW + pillGap));
-        const int row = (int)((localY - pillTop) / (pillH + pillGap));
-        const float pillLeft = 14.0f * dp + col * (pillW + pillGap);
-        const float pillRowTop = pillTop + row * (pillH + pillGap);
-        if (col < 0 || col >= 3 || row < 0 || row >= 3 || localX < pillLeft || localX > pillLeft + pillW || localY < pillRowTop || localY > pillRowTop + pillH) return;
-        const int idx = row * 3 + col;
-        commandDispatcher.Execute(AppCommand::SetSpeed, CommandArgs{ speeds[idx] });
-        currentFlyoutMenu = "main";
-        return;
-    }
-    if (currentFlyoutMenu == "queue") {
-        const float optionTop = 78.0f * dp;
-        const int visibleIndex = (int)((localY - optionTop) / (36.0f * dp));
-        if (visibleIndex < 0 || visibleIndex >= GetFlyoutOptionCount()) return;
-        const float rowTop = optionTop + visibleIndex * 36.0f * dp;
-        if (localY < rowTop || localY > rowTop + 34.0f * dp) return;
+        hoveredFlyoutOption = PlaybackFlyoutLayout::None;
+    } else if (currentFlyoutMenu == "queue") {
         const auto queue = playbackSession.GetQueue();
         if (queue.empty()) return;
-        const size_t first = std::min(queueFlyoutFirstVisible, queue.size() - 1);
-        const size_t targetIndex = first + static_cast<size_t>(visibleIndex);
-        if (targetIndex >= queue.size()) return;
+        const size_t target = std::min(queueFlyoutFirstVisible, queue.size() - 1) + static_cast<size_t>(idx);
+        if (target >= queue.size()) return;
         PersistCurrentPlaybackProgress();
-        playbackSession.SetQueue(queue, targetIndex);
-        OpenAndPlayMedia(queue[targetIndex], 0.0, true);
-        return;
-    }
-    const float optionTop = 50.0f * dp;
-    const int idx = (int)((localY - optionTop) / (36.0f * dp));
-    if (idx < 0 || idx >= GetFlyoutOptionCount()) return;
-    const float rowTop = optionTop + idx * 36.0f * dp;
-    if (localY < rowTop || localY > rowTop + 34.0f * dp) return;
-    if (currentFlyoutMenu == "aspect") {
+        playbackSession.SetQueue(queue, target);
+        OpenAndPlayMedia(queue[target], 0.0, true);
+    } else if (currentFlyoutMenu == "aspect") {
         const char* aspects[] = { "auto", "16:9", "4:3", "21:9", "fill", "cover" };
         commandDispatcher.Execute(AppCommand::SetAspectRatio, CommandArgs{ 0.0, 0, aspects[idx] });
         currentFlyoutMenu = "main";
     } else if (currentFlyoutMenu == "subtitles") {
-        auto subTracks = player.GetSubtitleTracks();
-        if (idx == 0) {
-            commandDispatcher.Execute(AppCommand::SelectSubtitleTrack, CommandArgs{ 0.0, 0, "", L"", L"" });
-        } else if ((size_t)(idx - 1) < subTracks.size()) {
-            int targetId = subTracks[idx - 1].id;
-            std::wstring targetTitle = subTracks[idx - 1].title;
-            std::wstring targetLang = subTracks[idx - 1].lang;
-            commandDispatcher.Execute(AppCommand::SelectSubtitleTrack, CommandArgs{ 0.0, targetId, "", targetTitle, targetLang });
+        const auto tracks = player.GetSubtitleTracks();
+        if (idx == 0) commandDispatcher.Execute(AppCommand::SelectSubtitleTrack, CommandArgs{});
+        else if (static_cast<size_t>(idx - 1) < tracks.size()) {
+            const auto& track = tracks[idx - 1];
+            commandDispatcher.Execute(AppCommand::SelectSubtitleTrack, CommandArgs{ 0.0, track.id, "", track.title, track.lang });
         }
         currentFlyoutMenu = "main";
     } else if (currentFlyoutMenu == "audio") {
-        auto audTracks = player.GetAudioTracks();
-        if ((size_t)idx >= audTracks.size()) return;
-        int targetId = audTracks[idx].id;
-        std::wstring targetTitle = audTracks[idx].title;
-        std::wstring targetLang = audTracks[idx].lang;
-        commandDispatcher.Execute(AppCommand::SelectAudioTrack, CommandArgs{ 0.0, targetId, "", targetTitle, targetLang });
+        const auto tracks = player.GetAudioTracks();
+        if (static_cast<size_t>(idx) >= tracks.size()) return;
+        const auto& track = tracks[idx];
+        commandDispatcher.Execute(AppCommand::SelectAudioTrack, CommandArgs{ 0.0, track.id, "", track.title, track.lang });
         currentFlyoutMenu = "main";
     }
 }

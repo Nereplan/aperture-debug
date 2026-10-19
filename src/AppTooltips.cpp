@@ -246,7 +246,7 @@ void App::RefreshPlayerTooltips(bool force) {
     addRect(2008, TooltipActionLabel(settings, playbackSession.IsFullscreen() ? L"Exit Fullscreen" : L"Fullscreen", "toggleFullscreen"), layout.fullscreen);
     if (layout.showPip) addRect(2007, TooltipActionLabel(settings, L"Picture-in-Picture", "togglePiP"), layout.pip);
     addRect(2006, TooltipActionLabel(settings, L"Settings", "openSettings"), layout.settings);
-    if (layout.showSubtitles) addRect(2005, TooltipActionLabel(settings, L"Subtitles / CC", "cycleSubtitles"), layout.subtitles);
+    if (layout.showSubtitles) addRect(2005, TooltipActionLabel(settings, L"Subtitles / CC", "toggleSubtitles"), layout.subtitles);
     for (TooltipManager::ToolId id : playerTooltips.GetToolIds()) { if (activeIds.find(id) == activeIds.end()) playerTooltips.Remove(id); }
 }
 

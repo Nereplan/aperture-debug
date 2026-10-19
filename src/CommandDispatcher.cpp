@@ -434,7 +434,27 @@ bool CommandDispatcher::Execute(AppCommand cmd, const CommandArgs& args) {
         }
         return true;
     }
-    case AppCommand::ToggleSubtitles: { return Execute(AppCommand::CycleSubtitles); }
+    case AppCommand::ToggleSubtitles: {
+        if (!session.IsOpen()) return false;
+        const auto tracks = player.GetSubtitleTracks();
+        if (tracks.empty()) {
+            context->ShowOSD(IconType::Subtitles, L"No Subtitles Available");
+            return true;
+        }
+        const int currentId = player.GetCurrentSubtitleTrackId();
+        if (player.GetSubtitleVisibility() && currentId > 0) {
+            settings.subtitlesEnabled = false;
+            player.SetSubtitleVisibility(false);
+            context->SaveSettings();
+            UpdateCurrentMediaPreferences(*context, [](MediaPlaybackPreferences& prefs) { prefs.subtitlesVisible = false; });
+            context->ShowOSD(IconType::Subtitles, L"Subtitles: Off");
+            return true;
+        }
+        const auto* selected = &tracks.front();
+        const int restoreId = currentId > 0 ? currentId : session.GetLastActiveSubtitleTrackId();
+        for (const auto& track : tracks) if (track.id == restoreId) { selected = &track; break; }
+        return Execute(AppCommand::SelectSubtitleTrack, CommandArgs{ 0.0, selected->id, "", selected->title, selected->lang });
+    }
     case AppCommand::CycleAudio: {
         if (session.IsOpen()) {
             player.CycleAudioTrack();
@@ -844,6 +864,7 @@ bool CommandDispatcher::Execute(AppCommand cmd, const CommandArgs& args) {
         return true;
     }
     case AppCommand::SetSpeed: {
+        if (!std::isfinite(args.doubleVal)) return false;
         double speed = std::clamp(args.doubleVal, 0.25, 4.0);
         player.SetPlaybackRate(speed);
         UpdateCurrentMediaPreferences(*context, [&](MediaPlaybackPreferences& prefs) { prefs.playbackSpeed = speed; });

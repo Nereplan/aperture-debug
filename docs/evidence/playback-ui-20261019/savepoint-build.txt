@@ -1,0 +1,82 @@
+========================================
+  Building Aperture Native (Release)
+========================================
+Incremental build cache: C:\Users\Alperen\AppData\Local\Codex\tools\scratch\aperture-playback-cleanup-20261019\ui-savepoint-source\scratch\build\ninja-Release (use -Clean for an isolated rebuild)
+Configuring CMake (Ninja toolchain, Release)...
+**********************************************************************
+** Visual Studio 2022 Developer Command Prompt v17.14.37
+** Copyright (c) 2025 Microsoft Corporation
+**********************************************************************
+[vcvarsall.bat] Environment initialized for: 'x64'
+-- The CXX compiler identification is MSVC 19.44.35228.0
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/cl.exe - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Configuring done (2.0s)
+-- Generating done (0.1s)
+-- Build files have been written to: C:/Users/Alperen/AppData/Local/Codex/tools/scratch/aperture-playback-cleanup-20261019/ui-savepoint-source/scratch/build/ninja-Release
+Building target Aperture (Release)...
+**********************************************************************
+** Visual Studio 2022 Developer Command Prompt v17.14.37
+** Copyright (c) 2025 Microsoft Corporation
+**********************************************************************
+[vcvarsall.bat] Environment initialized for: 'x64'
+[1/53] Building CXX object CMakeFiles\Aperture.dir\src\Accessibility.cpp.obj
+[2/53] Building CXX object CMakeFiles\Aperture.dir\src\AudioConfig.cpp.obj
+[3/53] Building CXX object CMakeFiles\Aperture.dir\src\Json.cpp.obj
+[4/53] Building CXX object CMakeFiles\Aperture.dir\src\ChannelPolicy.cpp.obj
+[5/53] Building CXX object CMakeFiles\Aperture.dir\src\Diagnostics.cpp.obj
+[6/53] Building CXX object CMakeFiles\Aperture.dir\src\HttpTransport.cpp.obj
+[7/53] Building CXX object CMakeFiles\Aperture.dir\src\GlobalSearch.cpp.obj
+[8/53] Building CXX object CMakeFiles\Aperture.dir\src\FolderWatcher.cpp.obj
+[9/53] Building CXX object CMakeFiles\Aperture.dir\src\BuildInfo.cpp.obj
+[10/53] Building CXX object CMakeFiles\Aperture.dir\src\CommandDispatcher.cpp.obj
+[11/53] Building CXX object CMakeFiles\Aperture.dir\src\JumpList.cpp.obj
+[12/53] Building CXX object CMakeFiles\Aperture.dir\src\MediaFoundation.cpp.obj
+[13/53] Building CXX object CMakeFiles\Aperture.dir\src\Localization.cpp.obj
+[14/53] Building CXX object CMakeFiles\Aperture.dir\src\LibrarySnapshot.cpp.obj
+[15/53] Building CXX object CMakeFiles\Aperture.dir\src\LibraryQuery.cpp.obj
+[16/53] Building CXX object CMakeFiles\Aperture.dir\src\MediaProbeIsolation.cpp.obj
+[17/53] Building CXX object CMakeFiles\Aperture.dir\src\NetworkStream.cpp.obj
+[18/53] Building CXX object CMakeFiles\Aperture.dir\src\OnlineSubtitles.cpp.obj
+[19/53] Building CXX object CMakeFiles\Aperture.dir\src\OverlayRenderer.cpp.obj
+[20/53] Building CXX object CMakeFiles\Aperture.dir\src\AppTouch.cpp.obj
+[21/53] Building CXX object CMakeFiles\Aperture.dir\src\AppImportJobs.cpp.obj
+[22/53] Building CXX object CMakeFiles\Aperture.dir\src\AppFileOps.cpp.obj
+[23/53] Building CXX object CMakeFiles\Aperture.dir\src\AppLibrary.cpp.obj
+[24/53] Building CXX object CMakeFiles\Aperture.dir\src\AppPlayback.cpp.obj
+[25/53] Building CXX object CMakeFiles\Aperture.dir\src\Settings.cpp.obj
+[26/53] Building CXX object CMakeFiles\Aperture.dir\src\PlaybackSession.cpp.obj
+[27/53] Building CXX object CMakeFiles\Aperture.dir\src\MpvPlayer.cpp.obj
+[28/53] Building CXX object CMakeFiles\Aperture.dir\src\TextInputModel.cpp.obj
+[29/53] Building CXX object CMakeFiles\Aperture.dir\src\PlaylistIO.cpp.obj
+[30/53] Building CXX object CMakeFiles\Aperture.dir\src\SystemVisualPreferences.cpp.obj
+[31/53] Building CXX object CMakeFiles\Aperture.dir\src\MediaTransport.cpp.obj
+[32/53] Building CXX object CMakeFiles\Aperture.dir\src\TooltipManager.cpp.obj
+[33/53] Building RC object CMakeFiles\Aperture.dir\generated\resources.rc.res
+[34/53] Building CXX object CMakeFiles\Aperture.dir\src\AppDragDrop.cpp.obj
+[35/53] Building CXX object CMakeFiles\Aperture.dir\src\AppAccessibility.cpp.obj
+[36/53] Building CXX object CMakeFiles\Aperture.dir\src\AppPersistence.cpp.obj
+[37/53] Building CXX object CMakeFiles\Aperture.dir\src\AppHover.cpp.obj
+[38/53] Building CXX object CMakeFiles\Aperture.dir\src\AppTooltips.cpp.obj
+[39/53] Building CXX object CMakeFiles\Aperture.dir\src\Renderer.cpp.obj
+[40/53] Building CXX object CMakeFiles\Aperture.dir\src\App.cpp.obj
+[41/53] Building CXX object CMakeFiles\Aperture.dir\src\AppKeyboard.cpp.obj
+[42/53] Building CXX object CMakeFiles\Aperture.dir\src\AppViewModels.cpp.obj
+[43/53] Building CXX object CMakeFiles\Aperture.dir\src\AppSelection.cpp.obj
+[44/53] Building CXX object CMakeFiles\Aperture.dir\src\AppMenus.cpp.obj
+[45/53] Building CXX object CMakeFiles\Aperture.dir\src\AppModals.cpp.obj
+[46/53] Building CXX object CMakeFiles\Aperture.dir\src\MediaLibrary.cpp.obj
+[47/53] Building CXX object CMakeFiles\Aperture.dir\src\SubtitleDiscovery.cpp.obj
+[48/53] Building CXX object CMakeFiles\Aperture.dir\src\Subtitles.cpp.obj
+[49/53] Building CXX object CMakeFiles\Aperture.dir\src\TaskbarController.cpp.obj
+[50/53] Building CXX object CMakeFiles\Aperture.dir\src\Updater.cpp.obj
+[51/53] Building CXX object CMakeFiles\Aperture.dir\src\UIComponents.cpp.obj
+[52/53] Building CXX object CMakeFiles\Aperture.dir\src\main.cpp.obj
+[53/53] Linking CXX executable Aperture.exe
+
+SUCCESS! Built native binary: C:\Users\Alperen\AppData\Local\Codex\tools\scratch\aperture-playback-cleanup-20261019\ui-savepoint-build\Aperture.exe
+Binary size: 3,459,072 bytes (3.30 MB)
+PDB size:    46,559,232 bytes (44.40 MB) -> C:\Users\Alperen\AppData\Local\Codex\tools\scratch\aperture-playback-cleanup-20261019\ui-savepoint-build\Aperture.pdb

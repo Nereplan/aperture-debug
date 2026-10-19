@@ -618,7 +618,7 @@ void App::SyncOverlayPosition() {
     // those intermediate bounds and place it once the transition completes.
     if (inPresentationTransition) return;
 
-    if (IsIconic(hWnd)) { ShowWindow(hOverlayWnd, SW_HIDE); return; }
+    if (IsIconic(hWnd) || !IsWindowVisible(hWnd)) { ShowWindow(hOverlayWnd, SW_HIDE); return; }
     RECT clientScreenRect{};
     const HWND insertAfter = playbackSession.IsPiPPinned() ? HWND_TOPMOST : HWND_NOTOPMOST;
     const UINT positionFlags = SWP_NOACTIVATE | SWP_NOREDRAW |

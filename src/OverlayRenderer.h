@@ -68,6 +68,9 @@ public:
     using DrawingPrimitives::DrawInnerHighlight;
     // Text & Icons
     void DrawString(const std::wstring& text, const D2D1_RECT_F& rect, const D2D1_COLOR_F& color, FontType font = FontType::Regular, DWRITE_TEXT_ALIGNMENT align = DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT valign = DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+    void DrawStringWrapped(const std::wstring& text, const D2D1_RECT_F& rect, const D2D1_COLOR_F& color,
+        FontType font = FontType::Regular, DWRITE_TEXT_ALIGNMENT align = DWRITE_TEXT_ALIGNMENT_LEADING,
+        DWRITE_PARAGRAPH_ALIGNMENT valign = DWRITE_PARAGRAPH_ALIGNMENT_NEAR);
     D2D1_SIZE_F MeasureString(const std::wstring& text, FontType font = FontType::Regular);
     // Text at an arbitrary size (dp), for live previews and scaled OSD pops.
     void DrawStringSized(const std::wstring& text, const D2D1_RECT_F& rect, const D2D1_COLOR_F& color, float sizeDp,
@@ -83,6 +86,7 @@ public:
     void PopClip();
 
 private:
+    friend struct PlaybackUiTestAccess;
     friend class DrawingPrimitives<OverlayRenderer>;
     auto DrawingTarget() const { return dcRenderTarget.Get(); }
     using DrawingPrimitives::FillRoundedGradientRect;
@@ -110,6 +114,7 @@ private:
         int maxW = 0, maxH = 0;
         DWRITE_TEXT_ALIGNMENT align;
         DWRITE_PARAGRAPH_ALIGNMENT valign;
+        bool wrapped = false;
     };
     // Copy-free lookup key (see Renderer::LayoutKeyProbe): probing with a full
     // LayoutKey would copy the text on every hit of every drawn control label.
@@ -119,11 +124,13 @@ private:
         int maxW, maxH;
         DWRITE_TEXT_ALIGNMENT align;
         DWRITE_PARAGRAPH_ALIGNMENT valign;
+        bool wrapped = false;
     };
     struct LayoutKeyLess {
         using is_transparent = void;
         template <typename A, typename B>
         bool operator()(const A& a, const B& b) const {
+            if (a.wrapped != b.wrapped) return a.wrapped < b.wrapped;
             if (a.font != b.font) return a.font < b.font;
             if (a.maxW != b.maxW) return a.maxW < b.maxW;
             if (a.maxH != b.maxH) return a.maxH < b.maxH;
@@ -137,7 +144,7 @@ private:
     std::map<LayoutKey, LayoutCacheEntry, LayoutKeyLess> layoutCache;
     std::list<LayoutKey> layoutLru;
     ComPtr<IDWriteTextLayout> GetOrCreateTextLayout( const std::wstring& text, FontType font, float maxW, float maxH,
-        DWRITE_TEXT_ALIGNMENT align = DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT valign = DWRITE_PARAGRAPH_ALIGNMENT_NEAR );
+        DWRITE_TEXT_ALIGNMENT align = DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT valign = DWRITE_PARAGRAPH_ALIGNMENT_NEAR, bool wrapped = false );
     // Font Formats
     void RecreateDIB();
     bool RecreateRenderTarget();

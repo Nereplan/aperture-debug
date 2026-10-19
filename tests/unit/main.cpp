@@ -1,4 +1,5 @@
 #include "../support/TestRunner.h"
+#include "TestPlaybackFlyout.h"
 #include "TestBackendBalance.h"
 #include "TestPlaybackSession.h"
 #include "TestCommandDispatcher.h"

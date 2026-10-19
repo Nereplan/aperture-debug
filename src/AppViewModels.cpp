@@ -217,14 +217,20 @@ PlayerRenderViewModel App::BuildPlayerRenderViewModel() const {
         vm.settingsFlyout.subTracks = GetCachedSubtitleTracks();
         vm.settingsFlyout.activeSubIndex = -1;
         for (size_t i = 0; i < vm.settingsFlyout.subTracks.size(); ++i) {
-            if (vm.settingsFlyout.subTracks[i].isSelected) { vm.settingsFlyout.activeSubIndex = (int)i; break; }
+            if (settings.subtitlesEnabled && player.GetSubtitleVisibility() && vm.settingsFlyout.subTracks[i].isSelected) { vm.settingsFlyout.activeSubIndex = (int)i; break; }
         }
         vm.settingsFlyout.audioTracks = GetCachedAudioTracks();
         vm.settingsFlyout.activeAudioIndex = -1;
         for (size_t i = 0; i < vm.settingsFlyout.audioTracks.size(); ++i) {
             if (vm.settingsFlyout.audioTracks[i].isSelected) { vm.settingsFlyout.activeAudioIndex = (int)i; break; }
         }
-        vm.settingsFlyout.currentSpeed = player.GetPlaybackRate();
+        vm.settingsFlyout.currentSpeed = isPlaybackSpeedDragging ? playbackSpeedDragValue : player.GetPlaybackRate();
+        vm.settingsFlyout.speedInput.displayText = Text16ToWideString(playbackSpeedInput.GetDisplayText());
+        vm.settingsFlyout.speedInput.selectionStart = playbackSpeedInput.GetSelection().start;
+        vm.settingsFlyout.speedInput.selectionEnd = playbackSpeedInput.GetSelection().end;
+        vm.settingsFlyout.speedInput.caretIndex = playbackSpeedInput.GetCaret();
+        vm.settingsFlyout.speedInput.focused = activeTextInputField == TextInputField::PlaybackSpeed;
+        vm.settingsFlyout.speedInput.caretVisible = vm.settingsFlyout.speedInput.focused && textInputCaretVisible;
         vm.settingsFlyout.currentAspect = settings.lastAspectRatio;
         vm.settingsFlyout.isLoop = settings.loop;
         vm.settingsFlyout.isAutoplay = settings.autoplay;
@@ -278,6 +284,7 @@ PlayerRenderViewModel App::BuildPlayerRenderViewModel() const {
     if (isContextMenuOpen || contextMenuClosing) {
         PopulateContextMenuViewModel(vm.contextMenu);
     }
+    vm.modal = BuildModalViewModel();
     if (inPresentationTransition) {
         vm.pipOverlay.visible = false;
         vm.topBar.visible = false;
@@ -285,6 +292,39 @@ PlayerRenderViewModel App::BuildPlayerRenderViewModel() const {
         vm.jumpAhead.visible = false;
         vm.contextMenu.isOpen = false;
         vm.settingsFlyout.isOpen = false;
+    }
+    return vm;
+}
+
+ModalViewModel App::BuildModalViewModel() const {
+    ModalViewModel vm;
+    if (activeModal != ModalType::None) {
+        vm.type = activeModal;
+        vm.title = modalTitle;
+        vm.prompt = modalPrompt;
+        vm.message = modalMessage;
+        vm.confirmText = modalConfirmText;
+        vm.isDestructive = modalIsDestructive;
+        const bool confirmation = activeModal == ModalType::Confirmation || activeModal == ModalType::DeletePlaylist;
+        vm.isOkHovered = isModalOkHovered || modalKeyboardFocus == (confirmation ? 0 : 1);
+        vm.isCancelHovered = isModalCancelHovered || modalKeyboardFocus == (confirmation ? 1 : 2);
+        vm.isOkPressed = isModalOkPressed;
+        vm.isCancelPressed = isModalCancelPressed;
+        if (activeModal == ModalType::NewPlaylist || activeModal == ModalType::NewSmartPlaylist || activeModal == ModalType::EditSmartPlaylist || activeModal == ModalType::SeekStepInput || activeModal == ModalType::FrameSeekInput || activeModal == ModalType::CustomSettingInput || activeModal == ModalType::BookmarkInput || activeModal == ModalType::EditMetadataOverrides || activeModal == ModalType::SaveSubtitleProfile || activeModal == ModalType::RenameSubtitleProfile) {
+            vm.visualState.displayText = Text16ToWideString(modalInput.GetDisplayText());
+            vm.visualState.selectionStart = modalInput.GetSelection().start;
+            vm.visualState.selectionEnd = modalInput.GetSelection().end;
+            vm.visualState.caretIndex = modalInput.GetCaret();
+            vm.visualState.focused = (activeTextInputField == TextInputField::Modal);
+            vm.visualState.caretVisible = vm.visualState.focused && textInputCaretVisible;
+            if (modalInput.IsComposing()) {
+                const auto compositionRange = modalInput.GetCompositionRange();
+                vm.visualState.hasCompositionRange = true;
+                vm.visualState.compositionStart = compositionRange.start;
+                vm.visualState.compositionEnd = compositionRange.end;
+                vm.visualState.compositionCaretIndex = modalInput.GetDisplayCaret();
+            }
+        }
     }
     return vm;
 }
@@ -1010,35 +1050,7 @@ HubRenderViewModel App::BuildHubRenderViewModel() {
     if (isContextMenuOpen || contextMenuClosing) {
         PopulateContextMenuViewModel(vm.contextMenu);
     }
-    // Modal
-    if (activeModal != ModalType::None) {
-        vm.modal.type = activeModal;
-        vm.modal.title = modalTitle;
-        vm.modal.prompt = modalPrompt;
-        vm.modal.message = modalMessage;
-        vm.modal.confirmText = modalConfirmText;
-        vm.modal.isDestructive = modalIsDestructive;
-        const bool confirmation = activeModal == ModalType::Confirmation || activeModal == ModalType::DeletePlaylist;
-        vm.modal.isOkHovered = isModalOkHovered || modalKeyboardFocus == (confirmation ? 0 : 1);
-        vm.modal.isCancelHovered = isModalCancelHovered || modalKeyboardFocus == (confirmation ? 1 : 2);
-        vm.modal.isOkPressed = isModalOkPressed;
-        vm.modal.isCancelPressed = isModalCancelPressed;
-        if (activeModal == ModalType::NewPlaylist || activeModal == ModalType::NewSmartPlaylist || activeModal == ModalType::EditSmartPlaylist || activeModal == ModalType::SeekStepInput || activeModal == ModalType::FrameSeekInput || activeModal == ModalType::CustomSettingInput || activeModal == ModalType::BookmarkInput || activeModal == ModalType::EditMetadataOverrides || activeModal == ModalType::SaveSubtitleProfile || activeModal == ModalType::RenameSubtitleProfile) {
-            vm.modal.visualState.displayText = Text16ToWideString(modalInput.GetDisplayText());
-            vm.modal.visualState.selectionStart = modalInput.GetSelection().start;
-            vm.modal.visualState.selectionEnd = modalInput.GetSelection().end;
-            vm.modal.visualState.caretIndex = modalInput.GetCaret();
-            vm.modal.visualState.focused = (activeTextInputField == TextInputField::Modal);
-            vm.modal.visualState.caretVisible = vm.modal.visualState.focused && textInputCaretVisible;
-            if (modalInput.IsComposing()) {
-                const auto compositionRange = modalInput.GetCompositionRange();
-                vm.modal.visualState.hasCompositionRange = true;
-                vm.modal.visualState.compositionStart = compositionRange.start;
-                vm.modal.visualState.compositionEnd = compositionRange.end;
-                vm.modal.visualState.compositionCaretIndex = modalInput.GetDisplayCaret();
-            }
-        }
-    }
+    vm.modal = BuildModalViewModel();
     // Global Search Surface
     if (globalSearchModel.IsOpen()) {
         vm.globalSearch.isOpen = true;

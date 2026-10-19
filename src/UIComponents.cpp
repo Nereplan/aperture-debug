@@ -1,6 +1,7 @@
 #include "Presentation.h"
 #include "SplitIrisMenuLayout.h"
 #include "UIComponents.h"
+#include "PlaybackFlyoutLayout.h"
 #include "AppLayout.h"
 #include "BuildInfo.h"
 #include "ChannelPolicy.h"
@@ -128,12 +129,12 @@ static size_t SafeUtf16Boundary(const std::wstring& text, size_t index) {
     return index;
 }
 
-static float MeasureUtf16Prefix(Renderer& r, const std::wstring& text, FontType font, size_t index) {
+template<class DrawContext> static float MeasureUtf16Prefix(DrawContext& r, const std::wstring& text, FontType font, size_t index) {
     index = SafeUtf16Boundary(text, index);
     return text.empty() || index == 0 ? 0.0f : r.MeasureString(text.substr(0, index), font).width;
 }
 
-static std::wstring FitVisualText(Renderer& r, const std::wstring& value, FontType font, float maxWidth) {
+template<class DrawContext> static std::wstring FitVisualText(DrawContext& r, const std::wstring& value, FontType font, float maxWidth) {
     if (maxWidth <= 1.0f || value.empty() || r.MeasureString(value, font).width <= maxWidth) return value;
     const std::wstring ellipsis = L"\x2026";
     if (r.MeasureString(ellipsis, font).width > maxWidth) return L"";
@@ -158,7 +159,7 @@ static std::wstring FitVisualText(Renderer& r, const std::wstring& value, FontTy
     return value.substr(0, boundaries[lo]) + ellipsis;
 }
 
-void UIComponents::DrawTextInput( Renderer& r, const Settings& s, const D2D1_RECT_F& bounds, const TextInputVisualState& state,
+template<class DrawContext> void DrawTextInputImpl(DrawContext& r, const Settings& s, const D2D1_RECT_F& bounds, const TextInputVisualState& state,
     const std::wstring& placeholder, FontType font, float paddingX ) {
     const float dp = r.GetDpiScale();
     const auto& th = s.currentTheme;
@@ -216,6 +217,9 @@ void UIComponents::DrawTextInput( Renderer& r, const Settings& s, const D2D1_REC
     }
     r.PopClip();
 }
+
+void UIComponents::DrawTextInput(Renderer& r, const Settings& s, const D2D1_RECT_F& b, const TextInputVisualState& v, const std::wstring& p, FontType f, float x) { DrawTextInputImpl(r, s, b, v, p, f, x); }
+void UIComponents::DrawTextInput(OverlayRenderer& r, const Settings& s, const D2D1_RECT_F& b, const TextInputVisualState& v, const std::wstring& p, FontType f, float x) { DrawTextInputImpl(r, s, b, v, p, f, x); }
 
 void UIComponents::DrawNavBar(Renderer& r, const Settings& s, const NavBarViewModel& vm) {
     (void)vm.hoveredTab; (void)vm.isSettingsHovered; (void)vm.isOpenHovered;
@@ -2097,27 +2101,21 @@ void UIComponents::DrawSettingsFlyout(OverlayRenderer& r, const Settings& s, con
     if (alpha <= 0.001f) return;
     float dp = r.GetDpiScale();
     const auto& th = s.currentTheme;
-    // Entrance scale animation matching overlay context menu language (0.94 -> 1.0)
-    const float scale = 0.94f + 0.06f * alpha;
-    const float w = RectWidth(vm.bounds);
-    const float h = RectHeight(vm.bounds);
-    const float scaledW = w * scale, scaledH = h * scale;
-    const D2D1_RECT_F flyoutRect = D2D1::RectF(vm.bounds.right - scaledW, vm.bounds.bottom - scaledH, vm.bounds.right, vm.bounds.bottom);
-    // Surface fill, border, and elevation shadow matching overlay context menu
+    const D2D1_RECT_F flyoutRect = vm.bounds;
     SurfaceStyle mStyle;
     mStyle.radius = 10.0f * dp;
     mStyle.fill = ColorWithAlpha(th.surfaceFloating, 0.98f * alpha);
     mStyle.border = ColorWithAlpha(th.border, 0.75f * alpha);
     mStyle.borderWidth = 1.0f;
-    mStyle.shadowColor = D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.55f * alpha);
-    mStyle.shadowBlur = 18.0f * dp;
-    mStyle.shadowOffsetY = 6.0f * dp;
+    mStyle.shadowColor = D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.0f);
+    mStyle.shadowBlur = 0.0f;
+    mStyle.hasInnerHighlight = false;
     r.DrawSurface(flyoutRect, mStyle);
     const float inset = 4.0f * dp, rowH = 40.0f * dp, rowGap = 2.0f * dp, headerH = 36.0f * dp;
     float curY = flyoutRect.top + 8.0f * dp;
     auto drawBackHeader = [&](const wchar_t* title) {
-        D2D1_RECT_F header = D2D1::RectF(flyoutRect.left + inset, curY, flyoutRect.right - inset, curY + headerH);
-        bool backHover = (vm.hoveredOptionIndex < 0);
+        D2D1_RECT_F header = PlaybackFlyoutLayout::Header(flyoutRect, dp);
+        bool backHover = (vm.hoveredOptionIndex == PlaybackFlyoutLayout::Back);
         if (backHover) { r.FillRoundedRect(header, 6.0f * dp, ColorWithAlpha(th.accent, 0.12f * alpha)); }
         float iconSz = 14.0f * dp;
         D2D1_RECT_F backRect = D2D1::RectF(header.left + 8.0f * dp, header.top + (headerH - iconSz) * 0.5f, header.left + 8.0f * dp + iconSz, header.top + (headerH + iconSz) * 0.5f);
@@ -2218,12 +2216,17 @@ void UIComponents::DrawSettingsFlyout(OverlayRenderer& r, const Settings& s, con
         }
     } else if (vm.currentMenu == "speed") {
         drawBackHeader(L"Playback Speed");
-        double speeds[] = { 0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 3.0 };
+        const auto& speeds = PlaybackFlyoutLayout::Speeds;
         const wchar_t* speedLabels[] = { L"0.25x", L"0.5x", L"0.75x", L"1x", L"1.25x", L"1.5x", L"1.75x", L"2x", L"3x" };
         wchar_t speedDisplay[32];
         swprintf_s(speedDisplay, L"%.2fx", vm.currentSpeed);
         D2D1_RECT_F display = D2D1::RectF(flyoutRect.left + 14.0f * dp, curY, flyoutRect.right - 14.0f * dp, curY + 32.0f * dp);
-        r.DrawString(speedDisplay, display, ColorWithAlpha(th.text, alpha), FontType::Hero, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+        if (vm.speedInput.focused) {
+            const auto editor = PlaybackFlyoutLayout::SpeedInput(flyoutRect, dp);
+            r.FillRoundedRect(editor, 5 * dp, ColorWithAlpha(th.surfaceElevated, alpha));
+            r.DrawRoundedRect(editor, 5 * dp, ColorWithAlpha(th.accent, alpha), dp);
+            DrawTextInput(r, s, editor, vm.speedInput, L"", FontType::Title, 10 * dp);
+        } else r.DrawString(speedDisplay, display, ColorWithAlpha(th.text, alpha), FontType::Hero, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
         curY += 37.0f * dp;
         float sliderLeft = flyoutRect.left + 24.0f * dp, sliderRight = flyoutRect.right - 24.0f * dp, sliderY = curY + 8.0f * dp;
         r.DrawLine(sliderLeft, sliderY, sliderRight, sliderY, ColorWithAlpha(th.trackBg, alpha), 4.0f * dp);
@@ -2233,15 +2236,8 @@ void UIComponents::DrawSettingsFlyout(OverlayRenderer& r, const Settings& s, con
         r.FillCircle(sliderX, sliderY, 6.0f * dp, ColorWithAlpha(th.accent, alpha));
         r.DrawCircle(sliderX, sliderY, 7.5f * dp, ColorWithAlpha(th.border, 0.6f * alpha), 1.0f * dp);
         curY += 21.0f * dp;
-        const int cols = 3;
-        float pillGap = 5.0f * dp;
-        float pillW = (RectWidth(flyoutRect) - 2.0f * 14.0f * dp - pillGap * (cols - 1)) / (float)cols;
-        float pillH = 30.0f * dp;
         for (int i = 0; i < 9; ++i) {
-            int col = i % cols, row = i / cols;
-            float x = flyoutRect.left + 14.0f * dp + col * (pillW + pillGap);
-            float y = curY + row * (pillH + pillGap);
-            D2D1_RECT_F pill = D2D1::RectF(x, y, x + pillW, y + pillH);
+            D2D1_RECT_F pill = PlaybackFlyoutLayout::Option("speed", i, flyoutRect, dp);
             bool selected = std::abs(vm.currentSpeed - speeds[i]) < 0.01;
             bool hover = (vm.hoveredOptionIndex == i);
             drawHoverRow(pill, hover, selected);
@@ -2582,9 +2578,9 @@ static void DrawContextMenuImpl( R& r, const Settings& s, const D2D1_POINT_2F& o
     mStyle.fill = ColorWithAlpha(th.surfaceFloating, 0.98f * alpha);
     mStyle.border = ColorWithAlpha(th.border, 0.75f * alpha);
     mStyle.borderWidth = 1.0f;
-    mStyle.shadowColor = D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.55f * alpha);
-    mStyle.shadowBlur = 18.0f * dp;
-    mStyle.shadowOffsetY = 6.0f * dp;
+    mStyle.shadowColor = D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.0f);
+    mStyle.shadowBlur = 0.0f;
+    mStyle.hasInnerHighlight = false;
     r.DrawSurface(menuRect, mStyle);
     float curY = menuRect.top + padV;
     for (size_t i = 0; i < items.size(); ++i) {
@@ -2632,7 +2628,7 @@ void UIComponents::DrawOverlayContextMenu(OverlayRenderer& r, const Settings& s,
     DrawContextMenuImpl<false>(r, s, origin, items, hoveredIndex, animProgress);
 }
 
-void UIComponents::DrawInputModal(Renderer& r, const Settings& s, const D2D1_RECT_F& bounds, const ModalViewModel& vm) {
+template<class DrawContext> void DrawInputModalImpl(DrawContext& r, const Settings& s, const D2D1_RECT_F& bounds, const ModalViewModel& vm) {
     float dp = r.GetDpiScale();
     const auto& th = s.currentTheme;
     r.FillRect(bounds, th.scrim);
@@ -2656,7 +2652,7 @@ void UIComponents::DrawInputModal(Renderer& r, const Settings& s, const D2D1_REC
     D2D1_RECT_F inputRect = D2D1::RectF(box.left + 24.0f * dp, box.top + 64.0f * dp, box.right - 24.0f * dp, box.top + 106.0f * dp);
     r.FillRoundedRect(inputRect, 8.0f * dp, ColorWithAlpha(th.surfaceElevated, 0.95f));
     r.DrawRoundedRect(inputRect, 8.0f * dp, th.accent, 1.5f);
-    DrawTextInput(r, s, inputRect, vm.visualState, vm.prompt, FontType::Medium, 12.0f * dp);
+    UIComponents::DrawTextInput(r, s, inputRect, vm.visualState, vm.prompt, FontType::Medium, 12.0f * dp);
     // Buttons
     float btnW = 92.0f * dp, btnH = 36.0f * dp, btnY = box.bottom - 20.0f * dp - btnH;
     D2D1_RECT_F okBtn = D2D1::RectF(box.right - 24.0f * dp - btnW, btnY, box.right - 24.0f * dp, btnY + btnH);
@@ -2670,7 +2666,10 @@ void UIComponents::DrawInputModal(Renderer& r, const Settings& s, const D2D1_REC
     r.DrawString(Loc::Tr("modal.cancel"), cancelBtn, cancelColors.text, FontType::Medium, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
 }
 
-void UIComponents::DrawConfirmModal(Renderer& r, const Settings& s, const D2D1_RECT_F& bounds, const ModalViewModel& vm) {
+void UIComponents::DrawInputModal(Renderer& r, const Settings& s, const D2D1_RECT_F& b, const ModalViewModel& v) { DrawInputModalImpl(r, s, b, v); }
+void UIComponents::DrawInputModal(OverlayRenderer& r, const Settings& s, const D2D1_RECT_F& b, const ModalViewModel& v) { DrawInputModalImpl(r, s, b, v); }
+
+template<class DrawContext> void DrawConfirmModalImpl(DrawContext& r, const Settings& s, const D2D1_RECT_F& bounds, const ModalViewModel& vm) {
     float dp = r.GetDpiScale();
     const auto& th = s.currentTheme;
     r.FillRect(bounds, th.scrim);
@@ -2706,6 +2705,9 @@ void UIComponents::DrawConfirmModal(Renderer& r, const Settings& s, const D2D1_R
     r.DrawRoundedRect(cancelBtn, Presentation::ButtonRadius * dp, cancelColors.border, dp);
     r.DrawString(Loc::Tr("modal.cancel"), cancelBtn, cancelColors.text, FontType::Medium, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
 }
+
+void UIComponents::DrawConfirmModal(Renderer& r, const Settings& s, const D2D1_RECT_F& b, const ModalViewModel& v) { DrawConfirmModalImpl(r, s, b, v); }
+void UIComponents::DrawConfirmModal(OverlayRenderer& r, const Settings& s, const D2D1_RECT_F& b, const ModalViewModel& v) { DrawConfirmModalImpl(r, s, b, v); }
 
 void UIComponents::DrawAutoscrollAnchor(Renderer& r, const Settings& s, const AutoscrollViewModel& vm) {
     if (!vm.isActive) return;
@@ -3883,6 +3885,10 @@ void UIComponents::DrawPlayerOverlay(OverlayRenderer& r, const Settings& s, cons
     DrawOSDBadge(r, s, vm.osdBadge);
     DrawPlaybackDiagnostics(r, s, vm.diagnosticsOverlay);
     DrawOverlayContextMenu(r, s, vm.contextMenu);
+    if (vm.modal.type == ModalType::Confirmation || vm.modal.type == ModalType::DeletePlaylist)
+        DrawConfirmModal(r, s, vm.winBounds, vm.modal);
+    else if (vm.modal.type != ModalType::None)
+        DrawInputModal(r, s, vm.winBounds, vm.modal);
 }
 
 void UIComponents::DrawHub(Renderer& r, const Settings& s, const HubRenderViewModel& vm) {

@@ -26,6 +26,8 @@ public:
     // horizontally scrolled to keep the caret visible while focused, and unfocused long values receive Unicode-safe ellipsis treatment.
     static void DrawTextInput( Renderer& r, const Settings& s, const D2D1_RECT_F& bounds, const TextInputVisualState& state,
         const std::wstring& placeholder = L"", FontType font = FontType::Regular, float paddingX = 0.0f );
+    static void DrawTextInput(OverlayRenderer& r, const Settings& s, const D2D1_RECT_F& bounds, const TextInputVisualState& state,
+        const std::wstring& placeholder = L"", FontType font = FontType::Regular, float paddingX = 0.0f);
     static void DrawOSDBadge( Renderer& r, const Settings& s, const D2D1_RECT_F& bounds, IconType icon, const std::wstring& text,
         float opacity, bool compact = false );
     static void DrawOSDBadge( OverlayRenderer& r, const Settings& s, const D2D1_RECT_F& bounds, IconType icon, const std::wstring& text,
@@ -58,7 +60,9 @@ public:
     static void DrawContextMenu(Renderer& r, const Settings& s, const ContextMenuViewModel& vm);
     static void DrawOverlayContextMenu(OverlayRenderer& r, const Settings& s, const ContextMenuViewModel& vm);
     static void DrawInputModal(Renderer& r, const Settings& s, const D2D1_RECT_F& bounds, const ModalViewModel& vm);
+    static void DrawInputModal(OverlayRenderer& r, const Settings& s, const D2D1_RECT_F& bounds, const ModalViewModel& vm);
     static void DrawConfirmModal(Renderer& r, const Settings& s, const D2D1_RECT_F& bounds, const ModalViewModel& vm);
+    static void DrawConfirmModal(OverlayRenderer& r, const Settings& s, const D2D1_RECT_F& bounds, const ModalViewModel& vm);
     static void DrawAutoscrollAnchor(Renderer& r, const Settings& s, const AutoscrollViewModel& vm);
     static void DrawImportProgress(Renderer& r, const Settings& s, const ImportProgressViewModel& vm);
     static void DrawGlobalSearchSurface(Renderer& r, const Settings& s, const GlobalSearchSurfaceViewModel& vm);

@@ -1,0 +1,10 @@
+{
+  "recordedUtc": "2026-10-19T15:44:12.4376190Z",
+  "sourceCommit": "bd81ac67c38b34d41305d2c2bd503468ea65166a",
+  "dirty": true,
+  "mediaPath": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\media\\h264_1080p_60s.mp4",
+  "mediaSha256": "83F5D78682964B3A6E2C75EED3AE73DEBBF676AB8A314813DAB0A1B60E7D6759",
+  "nativeSha256": "E91032CBCE1DA22AEC5903468E814D4DF2494E74FE508A371EAF3446C7408DAE",
+  "sourceSha256": "6FAD045B99DD4D0424A8838E3EE8A7055CDD7944F2AB8DA765FC2B57793A54FD",
+  "scope": "Hidden native App interaction/render correctness only. No visible windows or VLC launch; no performance claims."
+}

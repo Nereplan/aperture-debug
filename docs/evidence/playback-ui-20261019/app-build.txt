@@ -1,0 +1,24 @@
+========================================
+  Building Aperture Native (Release)
+========================================
+Incremental build cache: C:\Users\Alperen\Desktop\Antigravity\Aperture Final\scratch\build\ninja-Release (use -Clean for an isolated rebuild)
+Configuring CMake (Ninja toolchain, Release)...
+**********************************************************************
+** Visual Studio 2022 Developer Command Prompt v17.14.37
+** Copyright (c) 2025 Microsoft Corporation
+**********************************************************************
+[vcvarsall.bat] Environment initialized for: 'x64'
+-- Configuring done (0.1s)
+-- Generating done (0.1s)
+-- Build files have been written to: C:/Users/Alperen/Desktop/Antigravity/Aperture Final/scratch/build/ninja-Release
+Building target Aperture (Release)...
+**********************************************************************
+** Visual Studio 2022 Developer Command Prompt v17.14.37
+** Copyright (c) 2025 Microsoft Corporation
+**********************************************************************
+[vcvarsall.bat] Environment initialized for: 'x64'
+ninja: no work to do.
+
+SUCCESS! Built native binary: C:\Users\Alperen\AppData\Local\Codex\tools\scratch\aperture-playback-cleanup-20261019\interaction-05\runtime\Aperture.exe
+Binary size: 3,464,192 bytes (3.30 MB)
+PDB size:    49,836,032 bytes (47.53 MB) -> C:\Users\Alperen\AppData\Local\Codex\tools\scratch\aperture-playback-cleanup-20261019\interaction-05\Aperture.pdb

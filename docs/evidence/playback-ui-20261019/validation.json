@@ -1,0 +1,29 @@
+{
+  "recordedUtc": "2026-10-19T15:45:03.306608+00:00",
+  "commit": "bd81ac67c38b34d41305d2c2bd503468ea65166a",
+  "dirty": true,
+  "scope": "UI interaction/render correctness; no performance measurement or VLC launch. Existing unrelated worktree edits retained. Initial visibility failure preserved; visibility guards fixed and final run checked 22 cases with no visible owned windows.",
+  "sourceSha256": {
+    "src/App.cpp": "13f9ad1b0135de1f5bcad2d8d09552ef51c599970058639cac8c04f0c3db41a3",
+    "src/App.h": "a95c32a2e40dacb656a72cecd710de7a19593c067e736e382f309d55ad84237f",
+    "src/AppAccessibility.cpp": "64c64a11f8641be6ea0870ef45c96e9a38a45eb053ab917b12a0f00d8d1cac53",
+    "src/AppKeyboard.cpp": "8e54b0236d6b33d67739eace183f70e68db8668199c2589a3cfe7222c4052346",
+    "src/AppMenus.cpp": "c2a9eaf0b7ac242849f566c02ec93afd3a7bc7374314e4e0d28916f35cce08ac",
+    "src/AppModals.cpp": "b5be8de97d2506049be2c7e017a73fb216ff17166fc505ec6c55aefd45f5791d",
+    "src/AppPlayback.cpp": "6a7c4b3ff0cde2beb7dfe42c0a3f5cce5e99e474d47f350c768d52041ef9167d",
+    "src/AppSelection.cpp": "c4f3ab96787bcba99468c7d8bf7ee6f03a9d25b3ddc5fba3928a8bd11f10780b",
+    "src/AppTooltips.cpp": "401d26c312adb8744170262b34293e4c3d2e713a631f8e9bcc5c178e21afa710",
+    "src/AppViewModels.cpp": "d4900e16e0df88e71eb2dc0bb6da10e3757cd91b78d0a593049bff7dacd0d15b",
+    "src/CommandDispatcher.cpp": "474e891e7c0f2dacc15633dc2c0c13c8e01073469abb3bd3922831053e8ad072",
+    "src/OverlayRenderer.cpp": "58ff2c8cdd7e09e02a7bf27dd2c184e2f1ccd920b94a087981fa6d2557708493",
+    "src/OverlayRenderer.h": "703a8b5414b4804f037929019486b219651942959b13eaeef1fabc5af252201b",
+    "src/RenderViewModel.h": "c7ad9df86d4eb3967caf5d34856d8011a43ac01beb61d41ba69136954a3c6f86",
+    "src/UIComponents.cpp": "b829b42d77844349c999b252a1c3a814d393e38e6428709dcc983741d9ce9510",
+    "src/UIComponents.h": "a8c83cab0a4bc04b9f44c76f42d65ee54735229118bfe4e4f6bcc661d04f6f6c",
+    "tests/unit/main.cpp": "7534ab717b5811049a7c0803ebb2a1855830712e9eb02d70ce2f96c7e16b8fa4",
+    "src/PlaybackFlyoutLayout.h": "e2243ef89abc8a7602abc1ab5c436157b47a199883d241614597d3ff1b96efc5",
+    "tests/playback_ui/main.cpp": "6fad045b99dd4d0424a8838e3ee8a7055cdd7944f2ab8da765fc2b57793a54fd",
+    "tests/playback_ui/run_tests.ps1": "b2b793dd1277bdbc9f343192c014695de573dc07a2b29a502545440a8dcd241a",
+    "tests/unit/TestPlaybackFlyout.h": "f401c96f35df5510d11fed644256126ce5523576f78f213ca3a1c7f53a587b46"
+  }
+}

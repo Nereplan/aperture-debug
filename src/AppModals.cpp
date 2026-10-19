@@ -206,7 +206,7 @@ void App::ShowDeleteSubtitleProfileModal(const std::string& profileName) {
 }
 
 
-void App::ToggleSubtitles() { TriggerShortcut("cycleSubtitles"); }
+void App::ToggleSubtitles() { commandDispatcher.Execute(AppCommand::ToggleSubtitles); }
 
 
 void App::ApplyTrackPreferences() {
@@ -404,7 +404,7 @@ void App::ShowNewPlaylistModal() {
     modalOnConfirm = [this]() {
         std::string createdPlaylistId;
         const std::wstring value = Text16ToWideString(modalInput.GetText());
-        if (!value.empty()) { Playlist* pl = library.CreatePlaylist(Utf16ToUtf8(value)); if (pl) createdPlaylistId = pl->id; }
+        if (!value.empty()) { Playlist* pl = library.CreatePlaylist(Utf16ToUtf8(value)); if (pl) { createdPlaylistId = pl->id; ArmCreatedPlaylistUndo(pl->id); } }
         activeModal = ModalType::None;
         BlurTextInput();
         PopAndRestoreFocus(TransientSurfaceType::Modal);
@@ -436,7 +436,15 @@ void App::ShowEditSmartPlaylistModal(const std::string& playlistId) {
         }
         Playlist* p = library.FindPlaylist(playlistId);
         std::string name = p ? p->name : "Smart Playlist";
-        if (library.UpdateSmartPlaylist(playlistId, name, criteria)) { ShowOSD(IconType::FolderPlaylist, L"Rules Updated!"); }
+        const auto before = p ? p->smartCriteria : SmartPlaylistCriteria{};
+        if (library.UpdateSmartPlaylist(playlistId, name, criteria)) {
+            ArmLibraryUndo(L"Smart playlist rules", [this, playlistId, name, before, expected = criteria.ToRuleString()]() {
+                const auto* item = library.FindPlaylist(playlistId);
+                if (!item || item->smartCriteria.ToRuleString() != expected) return false;
+                return library.UpdateSmartPlaylist(playlistId, name, before);
+            });
+            ShowOSD(IconType::FolderPlaylist, L"Rules Updated!");
+        }
         SaveLibrary();
         activeModal = ModalType::None;
         editingSmartPlaylistId.clear();
@@ -470,7 +478,20 @@ void App::CommitInlinePlaylistRename() {
     if (!isInlineRenaming) return;
     Playlist* pl = library.FindPlaylist(inlineRenamePlaylistId);
     std::wstring value = Text16ToWideString(inlineRenameInput.GetText());
-    if (pl && !value.empty()) { pl->name = Utf16ToUtf8(value); library.NotifyPlaylistEdited(); SaveLibrary(); ShowOSD(IconType::FolderPlaylist, L"Playlist Renamed"); }
+    if (pl && !value.empty() && pl->name != Utf16ToUtf8(value)) {
+        const auto id = pl->id, before = pl->name, after = Utf16ToUtf8(value);
+        ArmLibraryUndo(L"Playlist rename", [this, id, before, after]() {
+            auto* item = library.FindPlaylist(id);
+            if (!item || item->name != after) return false;
+            item->name = before;
+            library.NotifyPlaylistEdited();
+            return true;
+        });
+        pl->name = after;
+        library.NotifyPlaylistEdited();
+        SaveLibrary();
+        ShowOSD(IconType::FolderPlaylist, L"Playlist Renamed");
+    }
     isInlineRenaming = false;
     inlineRenamePlaylistId.clear();
     activeTextInputField = TextInputField::None;
@@ -741,6 +762,7 @@ void App::ImportStandardPlaylist() {
         PopAndRestoreFocus(TransientSurfaceType::SystemDialog);
         return;
     }
+    ArmCreatedPlaylistUndo(playlist->id);
     playlist->itemPaths.clear();
     for (const auto& entry : result.entries) playlist->itemPaths.push_back(entry.location);
     activePlaylistId = playlist->id;

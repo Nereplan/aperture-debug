@@ -29,6 +29,7 @@ TextInputModel* App::ActiveTextInputModel() {
     if (activeTextInputField == TextInputField::PlaylistSearch) return &playlistSearchInput;
     if (activeTextInputField == TextInputField::MediaSearch) return &mediaSearchInput;
     if (activeTextInputField == TextInputField::Modal) return &modalInput;
+    if (activeTextInputField == TextInputField::PlaybackSpeed) return &playbackSpeedInput;
     if (activeTextInputField == TextInputField::InlineRename) return &inlineRenameInput;
     if (activeTextInputField == TextInputField::GlobalSearch) return &globalSearchModel.GetTextInputModel();
     return nullptr;
@@ -39,6 +40,7 @@ const TextInputModel* App::ActiveTextInputModel() const {
     if (activeTextInputField == TextInputField::PlaylistSearch) return &playlistSearchInput;
     if (activeTextInputField == TextInputField::MediaSearch) return &mediaSearchInput;
     if (activeTextInputField == TextInputField::Modal) return &modalInput;
+    if (activeTextInputField == TextInputField::PlaybackSpeed) return &playbackSpeedInput;
     if (activeTextInputField == TextInputField::InlineRename) return &inlineRenameInput;
     if (activeTextInputField == TextInputField::GlobalSearch) return &globalSearchModel.GetTextInputModel();
     return nullptr;
@@ -57,7 +59,7 @@ void App::FocusTextInput(TextInputField field) {
     pendingImeEcho.clear();
     if (hWnd) KillTimer(hWnd, kTextInputImeEchoTimer);
     textInputCaretVisible = true;
-    if (hWnd) { SetFocus(hWnd); SetTimer(hWnd, kTextInputCaretTimer, 530, nullptr); }
+    if (hWnd) { if (IsWindowVisible(hWnd)) SetFocus(hWnd); SetTimer(hWnd, kTextInputCaretTimer, 530, nullptr); }
     UpdateImeCandidateWindow();
     MarkAccessibilityDirty();
     InvalidateRect(hWnd, NULL, FALSE);
@@ -68,6 +70,7 @@ void App::StopTextInputCaretTimer() { if (hWnd) KillTimer(hWnd, kTextInputCaretT
 
 
 void App::BlurTextInput() {
+    if (activeTextInputField == TextInputField::PlaybackSpeed) CommitPlaybackSpeedInput();
     if (TextInputModel* input = ActiveTextInputModel()) input->EndComposition();
     if (isInlineRenaming) { CommitInlinePlaylistRename(); }
     activeTextInputField = TextInputField::None;
@@ -166,6 +169,9 @@ bool App::HandleTextInputKeyDown(WPARAM wParam, LPARAM) {
     const bool ctrl = (GetKeyState(VK_CONTROL) & 0x8000) != 0;
     const bool shift = (GetKeyState(VK_SHIFT) & 0x8000) != 0;
     const bool alt = (GetKeyState(VK_MENU) & 0x8000) != 0;
+    // WM_CHAR inserts printable spaces; do not activate a modal or playback
+    // shortcut from the corresponding key-down while an editor owns focus.
+    if (wParam == VK_SPACE && !ctrl && !alt) return true;
     if (ctrl && !alt) {
         if (wParam == 'A' || wParam == 'a' || wParam == 'C' || wParam == 'c' || wParam == 'X' || wParam == 'x' || wParam == 'V' ||
             wParam == 'v' || wParam == 'Z' || wParam == 'z' || wParam == 'Y' || wParam == 'y') {
@@ -194,6 +200,11 @@ bool App::HandleTextInputKeyDown(WPARAM wParam, LPARAM) {
         return true;
     }
     if (wParam == VK_ESCAPE) {
+        if (activeTextInputField == TextInputField::PlaybackSpeed && !input->IsComposing()) {
+            activeTextInputField = TextInputField::None;
+            BlurTextInput();
+            return true;
+        }
         if (input->IsComposing()) { input->CancelComposition(); MarkTextInputEdit(false); return true; }
         if (activeTextInputField == TextInputField::InlineRename) { CancelInlinePlaylistRename(); return true; }
         if (activeTextInputField == TextInputField::PlaylistSearch || activeTextInputField == TextInputField::MediaSearch) {
@@ -207,7 +218,18 @@ bool App::HandleTextInputKeyDown(WPARAM wParam, LPARAM) {
         }
         if (activeTextInputField == TextInputField::Modal) { DismissActiveModal(false); return true; }
     }
+    if (wParam == VK_TAB && activeTextInputField == TextInputField::PlaybackSpeed) {
+        if (!CommitPlaybackSpeedInput()) return true;
+        activeTextInputField = TextInputField::None;
+        BlurTextInput();
+        return false;
+    }
     if (wParam == VK_RETURN) {
+        if (activeTextInputField == TextInputField::PlaybackSpeed) {
+            input->EndComposition();
+            if (CommitPlaybackSpeedInput()) { activeTextInputField = TextInputField::None; BlurTextInput(); }
+            return true;
+        }
         if (activeTextInputField == TextInputField::InlineRename) { CommitInlinePlaylistRename(); return true; }
         if (activeTextInputField == TextInputField::Modal) {
             const auto confirm = modalOnConfirm;
@@ -321,12 +343,16 @@ void App::UpdateImeCandidateWindow() {
     const float dp = std::max(0.5f, renderer.GetDpiScale());
     float left = 0.0f, right = winW, bottom = winH;
     FontType font = FontType::Regular;
-    if (activeTextInputField == TextInputField::Modal) {
-        const float boxW = 400.0f * dp, boxH = 200.0f * dp, cx = winW * 0.5f, cy = winH * 0.5f;
+    if (activeTextInputField == TextInputField::PlaybackSpeed) {
+        const auto box = PlaybackSpeedEditorBounds();
+        left = box.left + 10 * dp; right = box.right - 10 * dp; bottom = box.bottom;
+        font = FontType::Title;
+    } else if (activeTextInputField == TextInputField::Modal) {
+        const float boxW = std::min(460.0f * dp, std::max(320.0f * dp, winW - 48.0f * dp)), boxH = 204.0f * dp, cx = winW * 0.5f, cy = winH * 0.5f;
         const D2D1_RECT_F box = D2D1::RectF(cx - boxW * 0.5f, cy - boxH * 0.5f, cx + boxW * 0.5f, cy + boxH * 0.5f);
         left = box.left + 36.0f * dp;
         right = box.right - 36.0f * dp;
-        bottom = box.top + 104.0f * dp;
+        bottom = box.top + 106.0f * dp;
         font = FontType::Medium;
     } else if (activeTextInputField == TextInputField::MediaSearch) {
         if (currentTab != TabView::Media) return;
@@ -378,14 +404,18 @@ bool App::HitTestTextInput(float x, float y, std::size_t& outIndex) {
     const float dp = std::max(0.5f, renderer.GetDpiScale());
     float left = 0.0f, right = winW, top = 0.0f, bottom = winH;
     FontType font = FontType::Regular;
-    if (activeTextInputField == TextInputField::Modal) {
+    if (activeTextInputField == TextInputField::PlaybackSpeed) {
+        const auto box = PlaybackSpeedEditorBounds();
+        left = box.left + 10 * dp; right = box.right - 10 * dp; top = box.top; bottom = box.bottom;
+        font = FontType::Title;
+    } else if (activeTextInputField == TextInputField::Modal) {
         if (activeModal != ModalType::NewPlaylist && activeModal != ModalType::NewSmartPlaylist && activeModal != ModalType::EditSmartPlaylist && activeModal != ModalType::BookmarkInput && activeModal != ModalType::EditMetadataOverrides && activeModal != ModalType::SaveSubtitleProfile && activeModal != ModalType::RenameSubtitleProfile) return false;
-        const float boxW = 400.0f * dp, boxH = 200.0f * dp, cx = winW * 0.5f, cy = winH * 0.5f;
+        const float boxW = std::min(460.0f * dp, std::max(320.0f * dp, winW - 48.0f * dp)), boxH = 204.0f * dp, cx = winW * 0.5f, cy = winH * 0.5f;
         const D2D1_RECT_F box = D2D1::RectF(cx - boxW * 0.5f, cy - boxH * 0.5f, cx + boxW * 0.5f, cy + boxH * 0.5f);
         left = box.left + 36.0f * dp;
         right = box.right - 36.0f * dp;
         top = box.top + 64.0f * dp;
-        bottom = box.top + 104.0f * dp;
+        bottom = box.top + 106.0f * dp;
         font = FontType::Medium;
     } else if (activeTextInputField == TextInputField::InlineRename) {
         if (currentTab != TabView::Playlists) return false;
@@ -512,6 +542,7 @@ bool App::HandleModalKeyDown(WPARAM wParam) {
 
 bool App::HandleGlobalKeyDown(WPARAM wParam, LPARAM lParam) {
     if (activeTextInputField != TextInputField::None && HandleTextInputKeyDown(wParam, lParam)) { return true; }
+    if (activeTextInputField == TextInputField::PlaybackSpeed && !(GetKeyState(VK_CONTROL) & 0x8000) && !(GetKeyState(VK_MENU) & 0x8000)) return true;
     if ((GetKeyState(VK_CONTROL) & 0x8000) != 0 && (GetKeyState(VK_SHIFT) & 0x8000) != 0 && (wParam == 'O' || wParam == 'o')) {
         OpenFolderDialog();
         return true;
@@ -553,24 +584,10 @@ bool App::HandleGlobalKeyDown(WPARAM wParam, LPARAM lParam) {
         ExportActivePlaylist();
         return true;
     }
-    if (playbackSession.IsOpen() && wParam == VK_OEM_4) {
-        abLoopA = player.GetCurrentTime();
-        abLoopB = -1.0;
-        player.SetABLoopA(abLoopA);
-        ShowOSD(IconType::Refresh, L"A-B repeat start set");
-        return true;
-    }
-    if (playbackSession.IsOpen() && wParam == VK_OEM_6) {
-        const double point = player.GetCurrentTime();
-        if (abLoopA < 0.0 || point <= abLoopA) {
-            ShowOSD(IconType::VolumeMuted, L"Set A before B");
-        } else { abLoopB = point; player.SetABLoopB(abLoopB); ShowOSD(IconType::Refresh, L"A-B repeat active"); }
-        return true;
-    }
-    if (playbackSession.IsOpen() && wParam == VK_OEM_5) {
-        abLoopA = abLoopB = -1.0;
-        player.ClearABLoop();
-        ShowOSD(IconType::Refresh, L"A-B repeat cleared");
+    if (activeModal == ModalType::None && playbackSession.IsOpen() && wParam == 'A' &&
+        (GetKeyState(VK_SHIFT) & 0x8000) && !(GetKeyState(VK_CONTROL) & 0x8000) && !(GetKeyState(VK_MENU) & 0x8000)) {
+        if (!(lParam & (1LL << 30))) CycleABRepeat();
+        if (isContextMenuOpen) OpenPlayerAdvancedContextMenu(contextMenuOrigin.x, contextMenuOrigin.y);
         return true;
     }
     if (activeModal != ModalType::None) return HandleModalKeyDown(wParam);
@@ -706,6 +723,10 @@ bool App::HandleGlobalKeyDown(WPARAM wParam, LPARAM lParam) {
         controlsIdleTimer = 0.0f;
         controlsOpacity = 1.0f;
         if (isCursorHidden) { isCursorHidden = false; SetCursor(LoadCursor(NULL, IDC_ARROW)); }
+        if (wParam == VK_SPACE && !(GetKeyState(VK_CONTROL) & 0x8000) && !(GetKeyState(VK_MENU) & 0x8000) && !(GetKeyState(VK_SHIFT) & 0x8000)) {
+            commandDispatcher.Execute(AppCommand::TogglePlay);
+            return true;
+        }
         if (isSettingsFlyoutOpen) {
             const int optionCount = GetFlyoutOptionCount();
             if (wParam == VK_ESCAPE) { CloseSettingsFlyout(); Render(); return true; }
@@ -766,26 +787,17 @@ bool App::HandleGlobalKeyDown(WPARAM wParam, LPARAM lParam) {
                     return true;
                 }
             }
-            if ((wParam == VK_RETURN || wParam == VK_SPACE) && hoveredFlyoutOption >= 0 && hoveredFlyoutOption < optionCount) {
+            if (wParam == VK_RETURN && hoveredFlyoutOption == PlaybackFlyoutLayout::Back) {
+                currentFlyoutMenu = "main";
+                hoveredFlyoutOption = PlaybackFlyoutLayout::None;
+                Render();
+                return true;
+            }
+            if (wParam == VK_RETURN && hoveredFlyoutOption >= 0 && hoveredFlyoutOption < optionCount) {
                 const float dp = std::max(0.5f, overlayRenderer.GetDpiScale());
-                float localX = 140.0f * dp, localY = 0.0f;
-                if (currentFlyoutMenu == "main") {
-                    localY = 8.0f * dp + hoveredFlyoutOption * 42.0f * dp + 20.0f * dp;
-                } else if (currentFlyoutMenu == "speed") {
-                    const float pillGap = 5.0f * dp;
-                    const float pillW = (280.0f * dp - 28.0f * dp - 2.0f * pillGap) / 3.0f;
-                    int col = hoveredFlyoutOption % 3, row = hoveredFlyoutOption / 3;
-                    localX = 14.0f * dp + col * (pillW + pillGap) + pillW * 0.5f;
-                    localY = 108.0f * dp + row * (30.0f * dp + pillGap) + 15.0f * dp;
-                } else if (currentFlyoutMenu == "audiodelay" || currentFlyoutMenu == "subdelay") {
-                    const float buttonGap = 6.0f * dp;
-                    const float buttonW = (280.0f * dp - 28.0f * dp - 2.0f * buttonGap) / 3.0f;
-                    localX = 14.0f * dp + hoveredFlyoutOption * (buttonW + buttonGap) + buttonW * 0.5f;
-                    localY = 96.0f * dp + 17.0f * dp;
-                } else if (currentFlyoutMenu == "queue") {
-                    localY = 78.0f * dp + hoveredFlyoutOption * 36.0f * dp + 17.0f * dp;
-                } else { localY = 50.0f * dp + hoveredFlyoutOption * 36.0f * dp + 17.0f * dp; }
-                HandleFlyoutClick(localX, localY);
+                const auto bounds = D2D1::RectF(0, 0, 280.0f * dp, GetFlyoutHeight());
+                const auto row = PlaybackFlyoutLayout::Option(currentFlyoutMenu, hoveredFlyoutOption, bounds, dp);
+                HandleFlyoutClick((row.left + row.right) * 0.5f, (row.top + row.bottom) * 0.5f);
                 Render();
                 return true;
             }
@@ -884,7 +896,7 @@ bool App::HandleGlobalKeyDown(WPARAM wParam, LPARAM lParam) {
             case 9002: commandDispatcher.Execute(AppCommand::TogglePlay); break;
             case 9011: commandDispatcher.Execute(AppCommand::PlayNext); break;
             case 9004: commandDispatcher.Execute(AppCommand::ToggleMute); break;
-            case 9005: commandDispatcher.Execute(AppCommand::CycleSubtitles); break;
+            case 9005: commandDispatcher.Execute(AppCommand::ToggleSubtitles); break;
             case 9006:
                 PushFocusSnapshot(TransientSurfaceType::SettingsFlyout);
                 isSettingsFlyoutOpen = true;

@@ -104,29 +104,110 @@ void App::ClearSelectionInCurrentPane() {
 }
 
 
-void App::ArmLibraryUndo(const std::wstring& actionLabel) {
-    try {
-        undoLibrarySnapshot = std::make_unique<MediaLibrary>(library);
-        undoLibraryActionLabel = actionLabel;
-    } catch (...) { undoLibrarySnapshot.reset(); undoLibraryActionLabel.clear(); }
+void App::PushLibraryUndo(LibraryUndoEntry entry) {
+    // Keep at most one whole-library fallback. Small edits keep only their
+    // changed fields; history is bounded independently of library size.
+    if (entry.snapshot) {
+        const auto previous = std::find_if(libraryUndoHistory.begin(), libraryUndoHistory.end(), [](const auto& item) { return item.snapshot != nullptr; });
+        if (previous != libraryUndoHistory.end()) libraryUndoHistory.erase(libraryUndoHistory.begin(), std::next(previous));
+    }
+    libraryUndoHistory.push_back(std::move(entry));
+    size_t bytes = 0;
+    for (const auto& item : libraryUndoHistory) bytes += item.retainedBytes;
+    while (libraryUndoHistory.size() > 1 && (libraryUndoHistory.size() > 32 || bytes > 8 * 1024 * 1024)) {
+        bytes -= libraryUndoHistory.front().retainedBytes;
+        libraryUndoHistory.pop_front();
+    }
 }
 
+void App::ArmLibraryUndo(const std::wstring& label) {
+    try { PushLibraryUndo({ label, {}, std::make_unique<MediaLibrary>(library), 0 }); }
+    catch (...) { libraryUndoHistory.clear(); }
+}
+
+void App::ArmLibraryUndo(const std::wstring& label, std::function<bool()> edit, size_t retainedBytes) {
+    PushLibraryUndo({ label, std::move(edit), {}, retainedBytes });
+}
 
 bool App::UndoLastLibraryAction() {
-    if (!undoLibrarySnapshot) return false;
-    library = std::move(*undoLibrarySnapshot);
-    undoLibrarySnapshot.reset();
-    const std::wstring action = std::move(undoLibraryActionLabel);
-    undoLibraryActionLabel.clear();
-    selectedMediaIndices.clear();
-    selectedPlaylistIndices.clear();
-    selectedEpisodeIndices.clear();
-    selectedHistoryIndices.clear();
+    if (libraryUndoHistory.empty()) return false;
+    auto entry = std::move(libraryUndoHistory.back());
+    libraryUndoHistory.pop_back();
+    if (entry.apply) {
+        if (!entry.apply()) {
+            libraryUndoHistory.clear();
+            ShowOSD(IconType::Refresh, L"This item has changed; undo is no longer available");
+            return true;
+        }
+    } else if (entry.snapshot) library = std::move(*entry.snapshot);
+    else return false;
+    selectedMediaIndices.clear(); selectedMediaIndex = -1;
+    selectedPlaylistIndices.clear(); selectedEpisodeIndices.clear(); selectedHistoryIndices.clear();
+    if (!library.FindPlaylist(activePlaylistId)) activePlaylistId = library.playlists.empty() ? "" : library.playlists.front().id;
     InvalidateLibraryDerivedState();
     SaveLibrary();
-    ShowOSD(IconType::Refresh, action.empty() ? L"Change undone" : action + L" undone");
+    ShowOSD(IconType::Refresh, entry.label.empty() ? L"Change undone" : entry.label + L" undone");
     InvalidateRect(hWnd, NULL, FALSE);
     return true;
+}
+
+size_t App::SetWatchedWithUndo(const std::vector<std::wstring>& paths, bool watched, size_t* skipped) {
+    struct Progress {
+        std::wstring path;
+        std::string status;
+        double position;
+        int64_t timestamp;
+        double afterPosition = 0;
+        int64_t afterTimestamp = 0;
+    };
+    std::vector<Progress> before;
+    for (const auto& path : paths) if (const auto* item = library.FindByPath(path))
+        before.push_back({ item->filePath, item->status, item->lastPosSec, item->lastWatchedTimestamp });
+    const auto count = library.SetWatched(paths, watched, skipped);
+    if (!count || before.empty()) return count;
+    size_t bytes = before.capacity() * sizeof(Progress);
+    for (auto& state : before) {
+        const auto* item = library.FindByPath(state.path);
+        state.afterPosition = item->lastPosSec; state.afterTimestamp = item->lastWatchedTimestamp;
+        bytes += state.path.capacity() * sizeof(wchar_t) + state.status.capacity();
+    }
+    ArmLibraryUndo(L"Watched state", [this, watched, before = std::move(before)]() {
+        for (const auto& state : before) {
+            const auto* item = library.FindByPath(state.path);
+            if (!item || item->status != (watched ? "done" : "new") || item->lastPosSec != state.afterPosition ||
+                item->lastWatchedTimestamp != state.afterTimestamp) return false;
+        }
+        for (const auto& state : before) {
+            auto* item = library.FindByPath(state.path);
+            item->status = state.status; item->lastPosSec = state.position; item->lastWatchedTimestamp = state.timestamp;
+        }
+        library.RebuildPathIndex();
+        return true;
+    }, bytes);
+    return count;
+}
+
+size_t App::AddToPlaylistWithUndo(const std::string& id, const std::vector<std::wstring>& paths, size_t* skipped) {
+    const auto* playlist = library.FindPlaylist(id);
+    const auto before = playlist ? playlist->itemPaths : std::vector<std::wstring>{};
+    const auto count = library.AddToPlaylist(id, paths, skipped);
+    if (!count) return count;
+    const auto after = library.FindPlaylist(id)->itemPaths;
+    size_t bytes = (before.capacity() + after.capacity()) * sizeof(std::wstring);
+    for (const auto& path : before) bytes += path.capacity() * sizeof(wchar_t);
+    for (const auto& path : after) bytes += path.capacity() * sizeof(wchar_t);
+    ArmLibraryUndo(L"Playlist addition", [this, id, before, after]() {
+        auto* item = library.FindPlaylist(id);
+        if (!item || item->itemPaths != after) return false;
+        item->itemPaths = before;
+        library.NotifyPlaylistEdited();
+        return true;
+    }, bytes);
+    return count;
+}
+
+void App::ArmCreatedPlaylistUndo(const std::string& id) {
+    ArmLibraryUndo(L"Playlist creation", [this, id]() { return library.DeletePlaylist(id); });
 }
 
 
@@ -210,7 +291,7 @@ void App::BulkSetWatched(bool watched) {
     }
     if (paths.empty()) return;
     size_t skipped = 0;
-    size_t completed = library.SetWatched(paths, watched, &skipped);
+    size_t completed = SetWatchedWithUndo(paths, watched, &skipped);
     SaveLibrary();
     if (watched) {
         if (completed > 0 && skipped == 0) {
@@ -249,7 +330,7 @@ void App::BulkAddToPlaylist(const std::string& playlistId) {
     }
     if (paths.empty()) return;
     size_t skipped = 0;
-    size_t added = library.AddToPlaylist(playlistId, paths, &skipped);
+    size_t added = AddToPlaylistWithUndo(playlistId, paths, &skipped);
     SaveLibrary();
     if (added > 0 && skipped == 0) {
         ShowOSD(IconType::FolderPlaylist, L"Added " + std::to_wstring(added) + L" item" + (added == 1 ? L"" : L"s") + L" to " + plName);

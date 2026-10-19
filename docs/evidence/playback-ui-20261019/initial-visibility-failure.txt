@@ -1,0 +1,6 @@
+PASS hidden owner, overlay and muted native player
+PASS Space remains play/pause with settings open and after closing
+PASS blank flyout areas stay inert on all five pages
+PASS speed presets apply while retaining the speed page
+FAIL A test window became visible
+4 hidden interaction checks passed

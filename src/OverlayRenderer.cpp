@@ -209,10 +209,10 @@ void OverlayRenderer::DrawStringSized(const std::wstring& text, const D2D1_RECT_
 }
 
 ComPtr<IDWriteTextLayout> OverlayRenderer::GetOrCreateTextLayout( const std::wstring& text, FontType font, float maxW, float maxH,
-    DWRITE_TEXT_ALIGNMENT align, DWRITE_PARAGRAPH_ALIGNMENT valign ) {
+    DWRITE_TEXT_ALIGNMENT align, DWRITE_PARAGRAPH_ALIGNMENT valign, bool wrapped ) {
     if (!dwriteFactory || text.empty()) return nullptr;
     const LayoutKeyProbe probe{ std::wstring_view(text), font,
-        (int)std::lround(maxW * 4.0f), (int)std::lround(maxH * 4.0f), align, valign };
+        (int)std::lround(maxW * 4.0f), (int)std::lround(maxH * 4.0f), align, valign, wrapped };
     auto it = layoutCache.find(probe);
     if (it != layoutCache.end()) {
         layoutLru.splice(layoutLru.begin(), layoutLru, it->second.lruIt);
@@ -229,6 +229,7 @@ ComPtr<IDWriteTextLayout> OverlayRenderer::GetOrCreateTextLayout( const std::wst
     layout->SetFlowDirection(DWRITE_FLOW_DIRECTION_TOP_TO_BOTTOM);
     layout->SetTextAlignment(align);
     layout->SetParagraphAlignment(valign);
+    if (wrapped) layout->SetWordWrapping(DWRITE_WORD_WRAPPING_WRAP);
     // Long titles and labels must yield to neighboring controls, including
     // the queue-position badge. The layout cache amortizes the trimming sign.
     DWRITE_TRIMMING trimming{};
@@ -240,7 +241,7 @@ ComPtr<IDWriteTextLayout> OverlayRenderer::GetOrCreateTextLayout( const std::wst
         layoutCache.erase(oldKey);
         layoutLru.pop_back();
     }
-    LayoutKey key{ std::wstring(text), font, probe.maxW, probe.maxH, probe.align, probe.valign };
+    LayoutKey key{ std::wstring(text), font, probe.maxW, probe.maxH, probe.align, probe.valign, wrapped };
     layoutLru.push_front(key);
     LayoutCacheEntry entry;
     entry.layout = layout;
@@ -435,6 +436,19 @@ void OverlayRenderer::DrawString(const std::wstring& text, const D2D1_RECT_F& re
         layout.Get(), solidBrush.Get(), D2D1_DRAW_TEXT_OPTIONS_ENABLE_COLOR_FONT );
     if (menuText) dcRenderTarget->SetTextRenderingParams(textRenderingParams.Get());
 }
+
+void OverlayRenderer::DrawStringWrapped(const std::wstring& text, const D2D1_RECT_F& rect, const D2D1_COLOR_F& color, FontType font, DWRITE_TEXT_ALIGNMENT align, DWRITE_PARAGRAPH_ALIGNMENT valign) {
+    if (!dcRenderTarget || !solidBrush || text.empty()) return;
+    D2D1_RECT_F snappedRect = SnapRect(rect);
+    ComPtr<IDWriteTextLayout> layout = GetOrCreateTextLayout(
+        text, font, std::max(1.0f, RectWidth(snappedRect)), std::max(1.0f, RectHeight(snappedRect)), align, valign,
+        true );
+    if (!layout) return;
+    solidBrush->SetColor(color);
+    dcRenderTarget->DrawTextLayout( D2D1::Point2F(snappedRect.left, snappedRect.top), layout.Get(), solidBrush.Get(),
+        D2D1_DRAW_TEXT_OPTIONS_ENABLE_COLOR_FONT | D2D1_DRAW_TEXT_OPTIONS_CLIP );
+}
+
 
 D2D1_SIZE_F OverlayRenderer::MeasureString(const std::wstring& text, FontType font) {
     if (text.empty() || !dwriteFactory) return D2D1::SizeF(0.0f, 0.0f);

@@ -192,6 +192,7 @@ struct SettingsFlyoutViewModel {
     std::vector<MpvTrackInfo> audioTracks;
     int activeAudioIndex = -1;
     double currentSpeed = 1.0;
+    TextInputVisualState speedInput;
     std::string currentAspect = "auto";
     bool isLoop = false, isAutoplay = false, isPrivateMode = false;
     // Borrowed for synchronous UI-thread rendering, like visible media rows.

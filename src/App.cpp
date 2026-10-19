@@ -136,6 +136,7 @@ App::App() {
     playlistSearchInput.SetMaxLength(512);
     mediaSearchInput.SetMaxLength(512);
     modalInput.SetMaxLength(256);
+    playbackSpeedInput.SetMaxLength(32);
     inlineRenameInput.SetMaxLength(256);
 }
 
@@ -1753,6 +1754,7 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
     // take the GDI bootstrap branch below; everything else defers to the
     // guarded switch (paint/close/size) or DefWindowProc.
     const bool bootstrapping = !appInitialized;
+    if (!bootstrapping && HandlePlaybackSpeedDragMessage(uMsg, lParam)) return 0;
     if (!bootstrapping && taskbarController.HandleWindowMessage(hwnd, uMsg, wParam, lParam, commandDispatcher)) { return 0; }
     const bool relayTooltipMouse = !bootstrapping && (uMsg == WM_MOUSEMOVE || uMsg == WM_MOUSELEAVE ||
         uMsg == WM_LBUTTONDOWN || uMsg == WM_LBUTTONUP || uMsg == WM_LBUTTONDBLCLK ||
@@ -2329,7 +2331,12 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
             const int oldHoveredContextMenuItem = hoveredContextMenuItem;
             const int oldHoveredIrisShoulder = hoveredIrisShoulder;
             const int oldActiveIrisDialIndex = activeIrisDialIndex;
-            if (playbackSession.IsOpen()) {
+            if (playbackSession.IsOpen() && activeModal == ModalType::None) {
+                if (activeTextInputField == TextInputField::PlaybackSpeed && textInputDragging) {
+                    SetTextInputCaretFromMouse(x, y, true);
+                    Render();
+                    return 0;
+                }
                 if (!isMouseTracking) {
                     TRACKMOUSEEVENT tme = { sizeof(TRACKMOUSEEVENT), TME_LEAVE, hWnd, 0 };
                     TrackMouseEvent(&tme);
@@ -3052,7 +3059,7 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                 if (hoveredPlayerButtonId == 1) TriggerShortcut("togglePlay");
                 else if (hoveredPlayerButtonId == 2) TriggerShortcut("playNext");
                 else if (hoveredPlayerButtonId == 3) TriggerShortcut("toggleMute");
-                else if (hoveredPlayerButtonId == 4) TriggerShortcut("cycleSubtitles");
+                else if (hoveredPlayerButtonId == 4) commandDispatcher.Execute(AppCommand::ToggleSubtitles);
                 else if (hoveredPlayerButtonId == 5) { isSettingsFlyoutOpen = !isSettingsFlyoutOpen; currentFlyoutMenu = "main"; }
                 else if (hoveredPlayerButtonId == 6) TogglePiP();
                 else if (hoveredPlayerButtonId == 7) ToggleFullscreen();
@@ -4042,6 +4049,7 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                                 newPl.name = "Favorites";
                                 library.playlists.push_back(newPl);
                                 activePlaylistId = newPl.id;
+                                ArmCreatedPlaylistUndo(newPl.id);
                             }
                             Playlist* pActivePl = library.FindPlaylist(activePlaylistId);
                             if (!pActivePl && !library.playlists.empty()) {
@@ -4049,11 +4057,7 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                                 activePlaylistId = pActivePl->id;
                             }
                             if (pActivePl && !pActivePl->IsSmart()) {
-                                bool exists = false;
-                                for (const auto& path : pActivePl->itemPaths) {
-                                    if (path == item.filePath) { exists = true; break; }
-                                }
-                                if (!exists) { pActivePl->itemPaths.push_back(item.filePath); library.NotifyPlaylistEdited(); }
+                                AddToPlaylistWithUndo(pActivePl->id, { item.filePath });
                                 SaveLibrary();
                                 currentTab = TabView::Playlists;
                                 ShowOSD(IconType::FolderPlaylist, L"Added to \"" + Utf8ToUtf16(pActivePl->name) + L"\"");
@@ -4065,7 +4069,29 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                         for (size_t index : visible) currentPaths.push_back(library.mediaItems[index].filePath);
                         if (currentPaths == dragPathSnapshot && visible.size() == library.mediaItems.size()) {
                             auto order = visible;
+                            const bool manualOrder = settings.manualMediaOrder;
                             Reorder::Move(order, dragFromIndex, dragToIndex);
+                            std::vector<uint64_t> expected;
+                            expected.reserve(order.size());
+                            for (auto index : order) {
+                                const auto& path = library.mediaItems[index].filePath;
+                                expected.push_back(Fnv1a64(path.data(), path.size() * sizeof(wchar_t)));
+                            }
+                            const size_t undoBytes = order.capacity() * sizeof(size_t) + expected.capacity() * sizeof(uint64_t);
+                            ArmLibraryUndo(L"Media order", [this, order, expected = std::move(expected), manualOrder]() {
+                                if (library.mediaItems.size() != order.size()) return false;
+                                for (size_t i = 0; i < order.size(); ++i) {
+                                    const auto& path = library.mediaItems[i].filePath;
+                                    if (Fnv1a64(path.data(), path.size() * sizeof(wchar_t)) != expected[i]) return false;
+                                }
+                                std::vector<MediaItem> restored(order.size());
+                                for (size_t i = 0; i < order.size(); ++i) restored[order[i]] = std::move(library.mediaItems[i]);
+                                library.mediaItems = std::move(restored);
+                                library.RebuildPathIndex();
+                                settings.manualMediaOrder = manualOrder;
+                                SaveSettings();
+                                return true;
+                            }, undoBytes);
                             std::vector<MediaItem> reordered;
                             reordered.reserve(order.size());
                             for (size_t index : order) reordered.push_back(std::move(library.mediaItems[index]));
@@ -4089,6 +4115,14 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                         std::wstring movedKey = currentKeys[dragFromIndex];
                         currentKeys.erase(currentKeys.begin() + dragFromIndex);
                         currentKeys.insert(currentKeys.begin() + dragToIndex, movedKey);
+                        const auto previousOrder = settings.customFolderOrder;
+                        ArmLibraryUndo(L"Folder order", [this, previousOrder, currentKeys]() {
+                            if (settings.customFolderOrder != currentKeys) return false;
+                            settings.customFolderOrder = previousOrder;
+                            m_folderOrderSnapshot.reset();
+                            SaveSettings();
+                            return true;
+                        });
                         settings.customFolderOrder = currentKeys;
                         m_folderOrderSnapshot.reset();
                         settings.Save();
@@ -4100,6 +4134,14 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                         std::vector<std::string> ids;
                         for (const auto& pl : library.playlists) ids.push_back(pl.id);
                         if (ids == dragRailSnapshot) {
+                            const int from = dragFromIndex, to = dragToIndex;
+                            const auto id = library.playlists[from].id;
+                            ArmLibraryUndo(L"Playlist order", [this, from, to, id]() {
+                                if (to >= (int)library.playlists.size() || library.playlists[to].id != id ||
+                                    !Reorder::Move(library.playlists, to, from)) return false;
+                                library.NotifyPlaylistEdited();
+                                return true;
+                            });
                             Reorder::Move(library.playlists, dragFromIndex, dragToIndex);
                             selectedPlaylistIndices.clear();
                             selectedPlaylistIndices.insert(static_cast<size_t>(dragToIndex));
@@ -4111,7 +4153,19 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                     } else if (activeDragType == DragType::PlaylistItem && playlistSearchInput.GetText().empty()) {
                     Playlist* pl = library.FindPlaylist(activePlaylistId);
                     if (pl && !pl->IsSmart() && pl->id == dragPlaylistId && pl->itemPaths == dragPathSnapshot &&
-                        Reorder::Move(pl->itemPaths, dragFromIndex, dragToIndex)) {
+                        dragFromIndex != dragToIndex && dragFromIndex >= 0 && dragToIndex >= 0 &&
+                        dragFromIndex < (int)pl->itemPaths.size() && dragToIndex < (int)pl->itemPaths.size()) {
+                        const int from = dragFromIndex, to = dragToIndex;
+                        const auto id = pl->id;
+                        const auto path = pl->itemPaths[from];
+                        ArmLibraryUndo(L"Playlist item order", [this, from, to, id, path]() {
+                            auto* item = library.FindPlaylist(id);
+                            if (!item || to >= (int)item->itemPaths.size() || item->itemPaths[to] != path ||
+                                !Reorder::Move(item->itemPaths, to, from)) return false;
+                            library.NotifyPlaylistEdited();
+                            return true;
+                        });
+                        Reorder::Move(pl->itemPaths, dragFromIndex, dragToIndex);
                         selectedEpisodeIndices.clear();
                         selectedEpisodeIndices.insert(static_cast<size_t>(dragToIndex));
                         keyboardFocusedIndex = dragToIndex;
@@ -4178,7 +4232,7 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                 if (hoveredPlayerButtonId == 1) commandDispatcher.Execute(AppCommand::TogglePlay);
                 else if (hoveredPlayerButtonId == 2) commandDispatcher.Execute(AppCommand::PlayNext);
                 else if (hoveredPlayerButtonId == 3) commandDispatcher.Execute(AppCommand::ToggleMute);
-                else if (hoveredPlayerButtonId == 4) commandDispatcher.Execute(AppCommand::CycleSubtitles);
+                else if (hoveredPlayerButtonId == 4) commandDispatcher.Execute(AppCommand::ToggleSubtitles);
                 else if (hoveredPlayerButtonId == 5) { isSettingsFlyoutOpen = !isSettingsFlyoutOpen; currentFlyoutMenu = "main"; }
                 else if (hoveredPlayerButtonId == 6) commandDispatcher.Execute(AppCommand::TogglePiP);
                 else if (hoveredPlayerButtonId == 7) commandDispatcher.Execute(AppCommand::ToggleFullscreen);
@@ -4220,6 +4274,7 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
             float x = (float)GET_X_LPARAM(lParam);
             float y = (float)GET_Y_LPARAM(lParam);
             if (IsAutoscrolling()) { StopAutoscroll(true); autoscroll.suppressNextClick = true; return 0; }
+            if (isContextMenuOpen) { RepositionContextMenu(x, y); return 0; }
             if (playbackSession.IsOpen()) { RefreshOverlayHitTargets(x, y); OpenPlayerContextMenu(x, y); } else {
                 RefreshHubHitTargets(x, y);
                 if (currentTab == TabView::Media) {
@@ -4285,6 +4340,7 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 }
 
 LRESULT App::HandleOverlayMessage(HWND hOverlay, UINT uMsg, WPARAM wParam, LPARAM lParam) {
+    if (HandlePlaybackSpeedDragMessage(uMsg, lParam)) return 0;
     float dp = overlayRenderer.GetDpiScale();
     float x = (float)GET_X_LPARAM(lParam);
     float y = (float)GET_Y_LPARAM(lParam);
@@ -4293,6 +4349,11 @@ LRESULT App::HandleOverlayMessage(HWND hOverlay, UINT uMsg, WPARAM wParam, LPARA
     float winW = (float)(rc.right - rc.left);
     float winH = (float)(rc.bottom - rc.top);
     float topBarH = 64.0f * dp, bottomBarH = 76.0f * dp, padX = Presentation::PlayerPadding * dp, btnSize = 36.0f * dp;
+    if (activeModal != ModalType::None || activeTextInputField == TextInputField::PlaybackSpeed) {
+        if (uMsg == WM_MOUSEMOVE || uMsg == WM_LBUTTONDOWN || uMsg == WM_LBUTTONUP || uMsg == WM_LBUTTONDBLCLK)
+            return SendMessageW(hWnd, uMsg, wParam, lParam);
+        if (uMsg == WM_RBUTTONDOWN || uMsg == WM_RBUTTONUP || uMsg == WM_MOUSEWHEEL) return 0;
+    }
     const bool relayTooltipMouse = uMsg == WM_MOUSEMOVE || uMsg == WM_MOUSELEAVE ||
         uMsg == WM_LBUTTONDOWN || uMsg == WM_LBUTTONUP || uMsg == WM_LBUTTONDBLCLK ||
         uMsg == WM_RBUTTONDOWN || uMsg == WM_RBUTTONUP || uMsg == WM_MBUTTONDOWN || uMsg == WM_MBUTTONUP;
@@ -4622,7 +4683,7 @@ LRESULT App::HandleOverlayMessage(HWND hOverlay, UINT uMsg, WPARAM wParam, LPARA
             if (hoveredPlayerButtonId == 1) { commandDispatcher.Execute(AppCommand::TogglePlay); }
             else if (hoveredPlayerButtonId == 2) { commandDispatcher.Execute(AppCommand::PlayNext); }
             else if (hoveredPlayerButtonId == 3) { commandDispatcher.Execute(AppCommand::ToggleMute); }
-            else if (hoveredPlayerButtonId == 4) { commandDispatcher.Execute(AppCommand::CycleSubtitles); }
+            else if (hoveredPlayerButtonId == 4) { commandDispatcher.Execute(AppCommand::ToggleSubtitles); }
             else if (hoveredPlayerButtonId == 5) {
                 if (isSettingsFlyoutOpen) { CloseSettingsFlyout(); } else {
                     PushFocusSnapshot(TransientSurfaceType::SettingsFlyout);
@@ -4783,7 +4844,7 @@ LRESULT App::HandleOverlayMessage(HWND hOverlay, UINT uMsg, WPARAM wParam, LPARA
             if (hoveredPlayerButtonId == 1) { commandDispatcher.Execute(AppCommand::TogglePlay); }
             else if (hoveredPlayerButtonId == 2) { commandDispatcher.Execute(AppCommand::PlayNext); }
             else if (hoveredPlayerButtonId == 3) { commandDispatcher.Execute(AppCommand::ToggleMute); }
-            else if (hoveredPlayerButtonId == 4) { commandDispatcher.Execute(AppCommand::CycleSubtitles); }
+            else if (hoveredPlayerButtonId == 4) { commandDispatcher.Execute(AppCommand::ToggleSubtitles); }
             else if (hoveredPlayerButtonId == 5) {
                 if (isSettingsFlyoutOpen) { CloseSettingsFlyout(); } else {
                     PushFocusSnapshot(TransientSurfaceType::SettingsFlyout);
@@ -4806,7 +4867,12 @@ LRESULT App::HandleOverlayMessage(HWND hOverlay, UINT uMsg, WPARAM wParam, LPARA
             Render();
             return 0;
         }
-        case WM_RBUTTONDOWN: { RefreshOverlayHitTargets(x, y); OpenPlayerContextMenu(x, y); Render(); return 0; }
+        case WM_RBUTTONDOWN: {
+            if (isContextMenuOpen) RepositionContextMenu(x, y);
+            else { RefreshOverlayHitTargets(x, y); OpenPlayerContextMenu(x, y); }
+            Render();
+            return 0;
+        }
         case WM_MOUSEWHEEL: {
             controlsIdleTimer = 0.0f;
             if (isCursorHidden) { isCursorHidden = false; SetCursor(LoadCursor(NULL, IDC_ARROW)); }
