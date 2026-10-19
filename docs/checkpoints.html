@@ -96,7 +96,7 @@ git diff --check</pre>
 <script id="checkpoint-data" type="application/json">
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-10-19T16:06:27+00:00",
+  "updatedAt": "2026-10-19T18:08:55+00:00",
   "metrics": {
     "visible-ms": {
       "label": "Visible window",
@@ -17588,6 +17588,58 @@ git diff --check</pre>
           "durationSeconds": null,
           "evidence": "docs/evidence/workspace-cleanup-20261019/cleanup-contracts.txt",
           "scope": "Dry run, retained data, idempotence, junction rejection and active-native-build lock."
+        }
+      ]
+    },
+    {
+      "id": "polish-20261019",
+      "label": "Storage, dead code and hub polish",
+      "measuredAt": "2026-10-19T21:08:54+03:00",
+      "commit": "94f5d208be1f19386d061288a9a5f5a542056e67",
+      "dirty": false,
+      "sourceNote": "Reviewed cleanup commits 814165f and 42cba23; source/evidence reference 94f5d208be1f19386d061288a9a5f5a542056e67. No uncommitted production changes. Compiled on-disk source manifest SHA-256: 63c584fd223c488b5d64ac4730e84ef5d13e76a8950f867fa68246fef35c64fd. Build hash and exact audit scope are in docs/evidence/polish-20261019/summary.json.",
+      "notes": "Validation-only checkpoint. Removed 696 production lines and 10,109 net source/test lines, removed 34 redundant tracked files, and reclaimed 541783586 bytes across 87 generated files. Retained real cancellation, path, gesture and persistence regressions. Removed unused backend APIs and network dialog state; avoided repeated whole-query URL copies; shared navigation geometry and indicator updates; respected system reduced motion; fixed orphan text-cache LRU nodes. Profiles, backups, vendored runtime/SDK/fonts and historical evidence were preserved. No new playback performance, VLC or image-quality measurements.",
+      "results": [],
+      "tests": [
+        {
+          "name": "Local PR regression gate",
+          "status": "pass",
+          "passed": 22,
+          "total": 22,
+          "durationSeconds": 458.41,
+          "evidence": "docs/evidence/polish-20261019/regression.txt"
+        },
+        {
+          "name": "Backend mutations rejected by their intended assertions",
+          "status": "pass",
+          "passed": 3,
+          "total": 3,
+          "durationSeconds": null,
+          "evidence": "docs/evidence/polish-20261019/backend-mutations.txt"
+        },
+        {
+          "name": "Fitted-text cache lifetime and mutation probe",
+          "status": "pass",
+          "passed": 2000,
+          "total": 2000,
+          "durationSeconds": null,
+          "evidence": "docs/evidence/polish-20261019/fit-cache.txt"
+        },
+        {
+          "name": "Optimized Release compilation",
+          "status": "pass",
+          "passed": null,
+          "total": null,
+          "durationSeconds": null,
+          "evidence": "docs/evidence/polish-20261019/build.txt"
+        },
+        {
+          "name": "Visible-window geometry and fresh playback measurements",
+          "status": "not-run",
+          "passed": null,
+          "total": null,
+          "durationSeconds": null,
+          "evidence": "docs/evidence/polish-20261019/summary.json"
         }
       ]
     }

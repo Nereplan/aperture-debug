@@ -1,0 +1,251 @@
+{
+  "baseCommit": "41b0735996da16482bec7974e33765c88cf12386",
+  "sourceCommit": "94f5d208be1f19386d061288a9a5f5a542056e67",
+  "sourceDirty": false,
+  "sourceManifestSha256": "63c584fd223c488b5d64ac4730e84ef5d13e76a8950f867fa68246fef35c64fd",
+  "sourceAndTestLines": {
+    "added": 2934,
+    "deleted": 13043,
+    "netRemoved": 10109
+  },
+  "productionSourceLines": {
+    "added": 388,
+    "deleted": 1084,
+    "netRemoved": 696
+  },
+  "removedTrackedFiles": [
+    "tests/fixtures/history_with_unknown_fields.json",
+    "tests/fixtures/library_with_unknown_fields.json",
+    "tests/fixtures/playlists_with_unknown_fields.json",
+    "tests/fixtures/settings_with_unknown_fields.json",
+    "tests/persistence/TestAbsoluteProfile.h",
+    "tests/persistence/TestBulkRelocation.h",
+    "tests/persistence/TestCacheBudget.h",
+    "tests/persistence/TestCacheIsolation.h",
+    "tests/persistence/TestFileIdentity.h",
+    "tests/persistence/TestFolderWatcher.h",
+    "tests/persistence/TestMediaPreferences.h",
+    "tests/persistence/TestMetadataBackfill.h",
+    "tests/persistence/TestPartialRecovery.h",
+    "tests/persistence/TestPathRelocation.h",
+    "tests/persistence/TestUnknownFields.h",
+    "tests/stress/TestDiagnosticsStress.h",
+    "tests/stress/TestFolderWatcherStress.h",
+    "tests/stress/TestMediaBackfillStress.h",
+    "tests/stress/TestNetworkStreamLoaderStress.h",
+    "tests/stress/TestOnlineSubtitlesStress.h",
+    "tests/stress/TestPlayerCallbacksStress.h",
+    "tests/stress/TestUpdaterServiceStress.h",
+    "tests/unit/TestBookmarks.h",
+    "tests/unit/TestEvaluationFixes.h",
+    "tests/unit/TestFolderOperations.h",
+    "tests/unit/TestSubtitleProfiles.h",
+    "tests/unit/TestVideoAdjustments.h",
+    "tests/updater/TestAsyncUpdateCancellation.h",
+    "tests/updater/TestAuthenticodePe.h",
+    "tests/updater/TestChannelPolicy.h",
+    "tests/updater/TestHelperValidation.h",
+    "tests/updater/TestNetworkBounds.h",
+    "tests/updater/TestPrivateModeIsolation.h",
+    "tests/updater/TestTempCleanup.h"
+  ],
+  "sourceAtTaskStart": {
+    "files": 146,
+    "bytes": 3313929,
+    "lines": 61006,
+    "dirty": true
+  },
+  "sourceAfter": {
+    "files": 146,
+    "bytes": 3269116,
+    "lines": 60210
+  },
+  "sourceInventory": {
+    "cpp": 50,
+    "headers": 93,
+    "missingCMakeSources": [],
+    "unlistedCppSources": [],
+    "duplicateTrackedNonHistoricalFiles": []
+  },
+  "releaseBuild": {
+    "configuration": "Release",
+    "bytes": 3462144,
+    "sha256": "cfaad05ef520eae08dcaa96cc3e4c754328c91dca300164c6fb7054153782dff"
+  },
+  "fitCacheProbe": {
+    "iterations": 2000,
+    "entries": 512,
+    "lruNodes": 512,
+    "status": "pass",
+    "mutationWithoutLruRemoval": {
+      "exitCode": 1,
+      "firstIteration": 0,
+      "entries": 1,
+      "lruNodes": 2
+    },
+    "source": "Exact FitMemo namespace and FitSingleLineMemo template extracted from src/UIComponents.cpp; deterministic fake width measurement, no desktop rendering or playback.",
+    "probeSha256": "5d16a7f640b7af22b4bb26d0e6a53e7dd570c0fa3fc7e1bba82155acf68234ea"
+  },
+  "limitations": [
+    "Visible-window presentation geometry remains opt-in and was skipped.",
+    "No fresh playback, FPS, CPU, VLC or image-quality measurements were taken.",
+    "Historical reports and evidence, vendored runtime/SDK/fonts, profiles and backups were preserved."
+  ],
+  "changes": [
+    "Removed uncalled backend APIs and the unused network dialog/async coordinator.",
+    "Kept real persistence/cancellation/path/input regressions and replaced copied store simulations with production round trips.",
+    "Made queue persistence independent of visible-window checks.",
+    "Built redacted network URLs without repeated whole-query lowercase copies.",
+    "Shared hub navigation geometry; bounded narrow layouts; consolidated indicator updates and respected system reduced motion.",
+    "Repaired orphan LRU nodes on fitted-text invalidation."
+  ],
+  "recordedAt": "2026-10-19T21:08:54+03:00",
+  "validation": {
+    "prSuites": [
+      {
+        "id": "loading",
+        "status": "pass",
+        "durationSeconds": 33.25
+      },
+      {
+        "id": "backend",
+        "status": "pass",
+        "durationSeconds": 6.91
+      },
+      {
+        "id": "local_release",
+        "status": "pass",
+        "durationSeconds": 3.36
+      },
+      {
+        "id": "github_update",
+        "status": "pass",
+        "durationSeconds": 2.93
+      },
+      {
+        "id": "update_retention",
+        "status": "pass",
+        "durationSeconds": 3.6
+      },
+      {
+        "id": "workspace_cleanup",
+        "status": "pass",
+        "durationSeconds": 2.84
+      },
+      {
+        "id": "workflows",
+        "status": "pass",
+        "durationSeconds": 20.06
+      },
+      {
+        "id": "unit",
+        "status": "pass",
+        "durationSeconds": 66.75
+      },
+      {
+        "id": "corpus",
+        "status": "pass",
+        "durationSeconds": 52.77
+      },
+      {
+        "id": "persistence",
+        "status": "pass",
+        "durationSeconds": 9.6
+      },
+      {
+        "id": "ipc",
+        "status": "pass",
+        "durationSeconds": 3.85
+      },
+      {
+        "id": "loader",
+        "status": "pass",
+        "durationSeconds": 25.0
+      },
+      {
+        "id": "diagnostics",
+        "status": "pass",
+        "durationSeconds": 25.35
+      },
+      {
+        "id": "updater",
+        "status": "pass",
+        "durationSeconds": 14.95
+      },
+      {
+        "id": "channel_policy",
+        "status": "pass",
+        "durationSeconds": 0.43
+      },
+      {
+        "id": "dependencies",
+        "status": "pass",
+        "durationSeconds": 1.02
+      },
+      {
+        "id": "runtime_layout",
+        "status": "pass",
+        "durationSeconds": 0.95
+      },
+      {
+        "id": "threat_boundaries",
+        "status": "pass",
+        "durationSeconds": 0.15
+      },
+      {
+        "id": "static_analysis",
+        "status": "pass",
+        "durationSeconds": 72.88
+      },
+      {
+        "id": "stress",
+        "status": "pass",
+        "durationSeconds": 73.86
+      },
+      {
+        "id": "media_probe_isolation",
+        "status": "pass",
+        "durationSeconds": 12.8
+      },
+      {
+        "id": "thumbnail_cache",
+        "status": "pass",
+        "durationSeconds": 25.04
+      }
+    ],
+    "total": 22,
+    "passed": 22,
+    "failed": 0,
+    "durationSeconds": 458.41,
+    "nativeRegistered": 213,
+    "nativePassed": 212,
+    "nativeSkipped": 1,
+    "skip": "PlaybackSession::WindowPresentationGeometry requires explicitly authorized visible windows.",
+    "backendMutations": {
+      "passed": 3,
+      "total": 3,
+      "evidence": "backend-mutations.txt"
+    },
+    "checkpointMaintenance": {
+      "schemaCheck": "pass",
+      "checkpointCount": 58,
+      "observationCount": 1299,
+      "pythonTestsPassed": 18,
+      "chartChecksPassed": 16
+    }
+  },
+  "storageCleanup": {
+    "bytesRemoved": 541783586,
+    "filesRemoved": 87,
+    "targets": 3,
+    "mibRemoved": 516.6850910186768,
+    "evidence": "cleanup.json",
+    "postValidationDryRun": {
+      "files": 0,
+      "targets": 0,
+      "bytes": 0
+    }
+  },
+  "archivedPrototype": "Unused iris wheel context menu.html moved to the external task scratch directory; no application or build references.",
+  "evidenceFormat": "Captured text output has trailing whitespace and line endings normalized for repository storage; test results and messages are unchanged."
+}

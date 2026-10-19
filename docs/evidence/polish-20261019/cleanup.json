@@ -1,0 +1,26 @@
+{
+  "recordedUtc": "2026-10-19T18:07:56.1816783Z",
+  "applied": true,
+  "bytes": 541783586,
+  "files": 87,
+  "targets": [
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\build\\ninja-Release",
+      "directory": true,
+      "files": 79,
+      "bytes": 538263366
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\debug\\Aperture.Release.exe",
+      "directory": false,
+      "files": 1,
+      "bytes": 3465728
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\release\\cache",
+      "directory": true,
+      "files": 7,
+      "bytes": 54492
+    }
+  ]
+}

@@ -1,0 +1,3 @@
+PASS: bookmark-extensions rejected by its behavioral assertion.
+PASS: settings-extensions rejected by its behavioral assertion.
+PASS: cache-budget rejected by its behavioral assertion.
