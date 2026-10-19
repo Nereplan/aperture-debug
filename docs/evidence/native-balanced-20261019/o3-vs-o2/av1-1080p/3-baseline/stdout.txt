@@ -1,0 +1,1 @@
+{"kind":"video","decoder":"libdav1d","threads":1,"hardware":false,"frames":120,"packets":120,"units":248832000,"decodedSha256":"4412e2adc80a4e6a67119ffa7298cb954f2fd212dc4bce74e9ef357314c13967","elapsedSeconds":0.651244300,"processCpuSeconds":0.640625000,"processCycles":2451777860,"avcodecVersion":4066148,"windowsCreated":0}

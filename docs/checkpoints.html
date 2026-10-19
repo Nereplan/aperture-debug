@@ -96,7 +96,7 @@ git diff --check</pre>
 <script id="checkpoint-data" type="application/json">
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-10-19T07:49:07+00:00",
+  "updatedAt": "2026-10-19T08:21:57+00:00",
   "metrics": {
     "visible-ms": {
       "label": "Visible window",
@@ -16649,6 +16649,723 @@ git diff --check</pre>
         }
       ],
       "report": "native-speed-visible-once-20261019"
+    },
+    {
+      "id": "native-o2-decode-comparison-20261019-size",
+      "label": "Native decode / size / size comparison",
+      "measuredAt": "2026-10-19T08:15:29.065374+00:00",
+      "commit": "c0e1b2df5003beade46381b545a80cf35630837e",
+      "dirty": true,
+      "sourceNote": "CPU-only static probe with exact executable, prefix/archive/source identities in docs/evidence/native-balanced-20261019/source-identity.json. size compiler profile. Runs interleaved; date is batch completion, raw per-run timestamps retained. Not a clean App rebuild or a visible player result.",
+      "notes": "Prefer O2 as the next isolated full-App candidate: it is 5.78 MiB smaller than O3, with close decoder timings in their direct paired comparison. All five direct timing ranges overlap; no stable O2 CPU lead is established. Versus size, H264 and AAC measured ranges separate; HEVC/VP9/AV1 overlap. No adoption until full-App evidence supports it. Static probe final LTO link differs from full libmpv. Software component improvements are not full-App CPU/RAM or VLC comparisons.",
+      "report": "native-balanced-20261019",
+      "results": [
+        {
+          "metric": "elapsed-ms",
+          "protocol": "native-software-demux-decode-profile-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "CPU-only video demux/decode / h264-1080p / 180 frames / one thread",
+          "session": "native-o2-decode-comparison-20261019",
+          "value": 688.0585,
+          "samples": 5,
+          "evidence": "docs/evidence/native-balanced-20261019/decode-comparison/results.json",
+          "runRange": {
+            "min": 685.9342,
+            "max": 724.8679999999999,
+            "runs": 5,
+            "scope": "Five rotated fresh-process measurements per variant; one discarded process per case/variant. Separate hash warmup; software demux/decode only, not whole-player performance. All measured runs retained."
+          }
+        },
+        {
+          "metric": "cpu-cycles",
+          "protocol": "native-software-demux-decode-profile-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "CPU-only video demux/decode / h264-1080p / 180 frames / one thread",
+          "session": "native-o2-decode-comparison-20261019",
+          "value": 2605235540,
+          "samples": 5,
+          "evidence": "docs/evidence/native-balanced-20261019/decode-comparison/results.json",
+          "runRange": {
+            "min": 2597155980,
+            "max": 2744117180,
+            "runs": 5,
+            "scope": "Five rotated fresh-process measurements per variant; one discarded process per case/variant. Separate hash warmup; software demux/decode only, not whole-player performance. All measured runs retained."
+          }
+        },
+        {
+          "metric": "elapsed-ms",
+          "protocol": "native-software-demux-decode-profile-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "CPU-only video demux/decode / hevc-720p / 240 frames / one thread",
+          "session": "native-o2-decode-comparison-20261019",
+          "value": 726.1525,
+          "samples": 5,
+          "evidence": "docs/evidence/native-balanced-20261019/decode-comparison/results.json",
+          "runRange": {
+            "min": 714.5334,
+            "max": 746.0347,
+            "runs": 5,
+            "scope": "Five rotated fresh-process measurements per variant; one discarded process per case/variant. Separate hash warmup; software demux/decode only, not whole-player performance. All measured runs retained."
+          }
+        },
+        {
+          "metric": "cpu-cycles",
+          "protocol": "native-software-demux-decode-profile-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "CPU-only video demux/decode / hevc-720p / 240 frames / one thread",
+          "session": "native-o2-decode-comparison-20261019",
+          "value": 2748000780,
+          "samples": 5,
+          "evidence": "docs/evidence/native-balanced-20261019/decode-comparison/results.json",
+          "runRange": {
+            "min": 2706627140,
+            "max": 2826446840,
+            "runs": 5,
+            "scope": "Five rotated fresh-process measurements per variant; one discarded process per case/variant. Separate hash warmup; software demux/decode only, not whole-player performance. All measured runs retained."
+          }
+        },
+        {
+          "metric": "elapsed-ms",
+          "protocol": "native-software-demux-decode-profile-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "CPU-only video demux/decode / vp9-360p / 240 frames / one thread",
+          "session": "native-o2-decode-comparison-20261019",
+          "value": 98.0112,
+          "samples": 5,
+          "evidence": "docs/evidence/native-balanced-20261019/decode-comparison/results.json",
+          "runRange": {
+            "min": 97.5118,
+            "max": 100.0547,
+            "runs": 5,
+            "scope": "Five rotated fresh-process measurements per variant; one discarded process per case/variant. Separate hash warmup; software demux/decode only, not whole-player performance. All measured runs retained."
+          }
+        },
+        {
+          "metric": "cpu-cycles",
+          "protocol": "native-software-demux-decode-profile-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "CPU-only video demux/decode / vp9-360p / 240 frames / one thread",
+          "session": "native-o2-decode-comparison-20261019",
+          "value": 371657860,
+          "samples": 5,
+          "evidence": "docs/evidence/native-balanced-20261019/decode-comparison/results.json",
+          "runRange": {
+            "min": 369786360,
+            "max": 378542700,
+            "runs": 5,
+            "scope": "Five rotated fresh-process measurements per variant; one discarded process per case/variant. Separate hash warmup; software demux/decode only, not whole-player performance. All measured runs retained."
+          }
+        },
+        {
+          "metric": "elapsed-ms",
+          "protocol": "native-software-demux-decode-profile-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "CPU-only video demux/decode / av1-1080p / 120 frames / one thread",
+          "session": "native-o2-decode-comparison-20261019",
+          "value": 606.444,
+          "samples": 5,
+          "evidence": "docs/evidence/native-balanced-20261019/decode-comparison/results.json",
+          "runRange": {
+            "min": 579.9212,
+            "max": 636.0862000000001,
+            "runs": 5,
+            "scope": "Five rotated fresh-process measurements per variant; one discarded process per case/variant. Separate hash warmup; software demux/decode only, not whole-player performance. All measured runs retained."
+          }
+        },
+        {
+          "metric": "cpu-cycles",
+          "protocol": "native-software-demux-decode-profile-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "CPU-only video demux/decode / av1-1080p / 120 frames / one thread",
+          "session": "native-o2-decode-comparison-20261019",
+          "value": 2292190400,
+          "samples": 5,
+          "evidence": "docs/evidence/native-balanced-20261019/decode-comparison/results.json",
+          "runRange": {
+            "min": 2190936360,
+            "max": 2391766360,
+            "runs": 5,
+            "scope": "Five rotated fresh-process measurements per variant; one discarded process per case/variant. Separate hash warmup; software demux/decode only, not whole-player performance. All measured runs retained."
+          }
+        },
+        {
+          "metric": "elapsed-ms",
+          "protocol": "native-software-demux-decode-profile-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "CPU-only audio demux/decode / aac-stereo / 3000 frames / one thread",
+          "session": "native-o2-decode-comparison-20261019",
+          "value": 44.3994,
+          "samples": 5,
+          "evidence": "docs/evidence/native-balanced-20261019/decode-comparison/results.json",
+          "runRange": {
+            "min": 43.7076,
+            "max": 44.57,
+            "runs": 5,
+            "scope": "Five rotated fresh-process measurements per variant; one discarded process per case/variant. Separate hash warmup; software demux/decode only, not whole-player performance. All measured runs retained."
+          }
+        },
+        {
+          "metric": "cpu-cycles",
+          "protocol": "native-software-demux-decode-profile-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "CPU-only audio demux/decode / aac-stereo / 3000 frames / one thread",
+          "session": "native-o2-decode-comparison-20261019",
+          "value": 168311500,
+          "samples": 5,
+          "evidence": "docs/evidence/native-balanced-20261019/decode-comparison/results.json",
+          "runRange": {
+            "min": 165646180,
+            "max": 168515180,
+            "runs": 5,
+            "scope": "Five rotated fresh-process measurements per variant; one discarded process per case/variant. Separate hash warmup; software demux/decode only, not whole-player performance. All measured runs retained."
+          }
+        }
+      ]
+    },
+    {
+      "id": "native-o2-decode-comparison-20261019-balanced",
+      "label": "Native decode / balanced / size comparison",
+      "measuredAt": "2026-10-19T08:15:29.065374+00:00",
+      "commit": "c0e1b2df5003beade46381b545a80cf35630837e",
+      "dirty": true,
+      "sourceNote": "CPU-only static probe with exact executable, prefix/archive/source identities in docs/evidence/native-balanced-20261019/source-identity.json. balanced compiler profile. Runs interleaved; date is batch completion, raw per-run timestamps retained. Not a clean App rebuild or a visible player result.",
+      "notes": "Prefer O2 as the next isolated full-App candidate: it is 5.78 MiB smaller than O3, with close decoder timings in their direct paired comparison. All five direct timing ranges overlap; no stable O2 CPU lead is established. Versus size, H264 and AAC measured ranges separate; HEVC/VP9/AV1 overlap. No adoption until full-App evidence supports it. Static probe final LTO link differs from full libmpv. Software component improvements are not full-App CPU/RAM or VLC comparisons.",
+      "report": "native-balanced-20261019",
+      "results": [
+        {
+          "metric": "elapsed-ms",
+          "protocol": "native-software-demux-decode-profile-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "CPU-only video demux/decode / h264-1080p / 180 frames / one thread",
+          "session": "native-o2-decode-comparison-20261019",
+          "value": 654.9587,
+          "samples": 5,
+          "evidence": "docs/evidence/native-balanced-20261019/decode-comparison/results.json",
+          "runRange": {
+            "min": 654.3735,
+            "max": 658.3489,
+            "runs": 5,
+            "scope": "Five rotated fresh-process measurements per variant; one discarded process per case/variant. Separate hash warmup; software demux/decode only, not whole-player performance. All measured runs retained."
+          }
+        },
+        {
+          "metric": "cpu-cycles",
+          "protocol": "native-software-demux-decode-profile-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "CPU-only video demux/decode / h264-1080p / 180 frames / one thread",
+          "session": "native-o2-decode-comparison-20261019",
+          "value": 2481871200,
+          "samples": 5,
+          "evidence": "docs/evidence/native-balanced-20261019/decode-comparison/results.json",
+          "runRange": {
+            "min": 2478851340,
+            "max": 2495319400,
+            "runs": 5,
+            "scope": "Five rotated fresh-process measurements per variant; one discarded process per case/variant. Separate hash warmup; software demux/decode only, not whole-player performance. All measured runs retained."
+          }
+        },
+        {
+          "metric": "elapsed-ms",
+          "protocol": "native-software-demux-decode-profile-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "CPU-only video demux/decode / hevc-720p / 240 frames / one thread",
+          "session": "native-o2-decode-comparison-20261019",
+          "value": 729.9229,
+          "samples": 5,
+          "evidence": "docs/evidence/native-balanced-20261019/decode-comparison/results.json",
+          "runRange": {
+            "min": 693.7832999999999,
+            "max": 766.8289000000001,
+            "runs": 5,
+            "scope": "Five rotated fresh-process measurements per variant; one discarded process per case/variant. Separate hash warmup; software demux/decode only, not whole-player performance. All measured runs retained."
+          }
+        },
+        {
+          "metric": "cpu-cycles",
+          "protocol": "native-software-demux-decode-profile-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "CPU-only video demux/decode / hevc-720p / 240 frames / one thread",
+          "session": "native-o2-decode-comparison-20261019",
+          "value": 2765029720,
+          "samples": 5,
+          "evidence": "docs/evidence/native-balanced-20261019/decode-comparison/results.json",
+          "runRange": {
+            "min": 2628856340,
+            "max": 2906224420,
+            "runs": 5,
+            "scope": "Five rotated fresh-process measurements per variant; one discarded process per case/variant. Separate hash warmup; software demux/decode only, not whole-player performance. All measured runs retained."
+          }
+        },
+        {
+          "metric": "elapsed-ms",
+          "protocol": "native-software-demux-decode-profile-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "CPU-only video demux/decode / vp9-360p / 240 frames / one thread",
+          "session": "native-o2-decode-comparison-20261019",
+          "value": 97.8227,
+          "samples": 5,
+          "evidence": "docs/evidence/native-balanced-20261019/decode-comparison/results.json",
+          "runRange": {
+            "min": 93.9173,
+            "max": 101.3677,
+            "runs": 5,
+            "scope": "Five rotated fresh-process measurements per variant; one discarded process per case/variant. Separate hash warmup; software demux/decode only, not whole-player performance. All measured runs retained."
+          }
+        },
+        {
+          "metric": "cpu-cycles",
+          "protocol": "native-software-demux-decode-profile-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "CPU-only video demux/decode / vp9-360p / 240 frames / one thread",
+          "session": "native-o2-decode-comparison-20261019",
+          "value": 362148740,
+          "samples": 5,
+          "evidence": "docs/evidence/native-balanced-20261019/decode-comparison/results.json",
+          "runRange": {
+            "min": 356150440,
+            "max": 373618660,
+            "runs": 5,
+            "scope": "Five rotated fresh-process measurements per variant; one discarded process per case/variant. Separate hash warmup; software demux/decode only, not whole-player performance. All measured runs retained."
+          }
+        },
+        {
+          "metric": "elapsed-ms",
+          "protocol": "native-software-demux-decode-profile-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "CPU-only video demux/decode / av1-1080p / 120 frames / one thread",
+          "session": "native-o2-decode-comparison-20261019",
+          "value": 589.1943,
+          "samples": 5,
+          "evidence": "docs/evidence/native-balanced-20261019/decode-comparison/results.json",
+          "runRange": {
+            "min": 572.4101,
+            "max": 644.4324,
+            "runs": 5,
+            "scope": "Five rotated fresh-process measurements per variant; one discarded process per case/variant. Separate hash warmup; software demux/decode only, not whole-player performance. All measured runs retained."
+          }
+        },
+        {
+          "metric": "cpu-cycles",
+          "protocol": "native-software-demux-decode-profile-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "CPU-only video demux/decode / av1-1080p / 120 frames / one thread",
+          "session": "native-o2-decode-comparison-20261019",
+          "value": 2221146360,
+          "samples": 5,
+          "evidence": "docs/evidence/native-balanced-20261019/decode-comparison/results.json",
+          "runRange": {
+            "min": 2164629720,
+            "max": 2418650980,
+            "runs": 5,
+            "scope": "Five rotated fresh-process measurements per variant; one discarded process per case/variant. Separate hash warmup; software demux/decode only, not whole-player performance. All measured runs retained."
+          }
+        },
+        {
+          "metric": "elapsed-ms",
+          "protocol": "native-software-demux-decode-profile-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "CPU-only audio demux/decode / aac-stereo / 3000 frames / one thread",
+          "session": "native-o2-decode-comparison-20261019",
+          "value": 40.1886,
+          "samples": 5,
+          "evidence": "docs/evidence/native-balanced-20261019/decode-comparison/results.json",
+          "runRange": {
+            "min": 39.7008,
+            "max": 42.0345,
+            "runs": 5,
+            "scope": "Five rotated fresh-process measurements per variant; one discarded process per case/variant. Separate hash warmup; software demux/decode only, not whole-player performance. All measured runs retained."
+          }
+        },
+        {
+          "metric": "cpu-cycles",
+          "protocol": "native-software-demux-decode-profile-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "CPU-only audio demux/decode / aac-stereo / 3000 frames / one thread",
+          "session": "native-o2-decode-comparison-20261019",
+          "value": 151981760,
+          "samples": 5,
+          "evidence": "docs/evidence/native-balanced-20261019/decode-comparison/results.json",
+          "runRange": {
+            "min": 150451500,
+            "max": 158387420,
+            "runs": 5,
+            "scope": "Five rotated fresh-process measurements per variant; one discarded process per case/variant. Separate hash warmup; software demux/decode only, not whole-player performance. All measured runs retained."
+          }
+        }
+      ],
+      "tests": [
+        {
+          "name": "Hidden native functionality",
+          "status": "pass",
+          "passed": 80,
+          "total": 80,
+          "durationSeconds": null,
+          "evidence": "docs/evidence/native-balanced-20261019/native-functional/result.json",
+          "scope": "Hidden owner windows and observed null audio output; hardware/software codecs, controls, filters, local HTTP. Initial reviewer phrase assertion was corrected from authoritative PASS logs without rerunning; original reviewer result retained."
+        },
+        {
+          "name": "App bundled-engine lifecycle",
+          "status": "pass",
+          "passed": 1,
+          "total": 1,
+          "durationSeconds": 0.38015,
+          "evidence": "docs/evidence/native-balanced-20261019/app-lifecycle-driver.log",
+          "scope": "MpvInitialization.ExportPolicyAndBundledLifecycle only; 52 other App tests filtered, not claimed as passed."
+        },
+        {
+          "name": "Paired SDR output",
+          "status": "pass",
+          "passed": 13,
+          "total": 13,
+          "durationSeconds": null,
+          "evidence": "docs/evidence/native-balanced-20261019/frame-quality/results.json",
+          "scope": "Thirteen paired SDR cases match exactly. HDR fallback separately observed with maximum error 1/255; no strict HDR parity claim."
+        }
+      ]
+    },
+    {
+      "id": "native-o2-o3-vs-o2-20261019-performance",
+      "label": "Native decode / performance / O3 comparison",
+      "measuredAt": "2026-10-19T08:19:04.204326+00:00",
+      "commit": "c0e1b2df5003beade46381b545a80cf35630837e",
+      "dirty": true,
+      "sourceNote": "CPU-only static probe with exact executable, prefix/archive/source identities in docs/evidence/native-balanced-20261019/source-identity.json. performance compiler profile. Runs interleaved; date is batch completion, raw per-run timestamps retained. Not a clean App rebuild or a visible player result.",
+      "notes": "Prefer O2 as the next isolated full-App candidate: it is 5.78 MiB smaller than O3, with close decoder timings in their direct paired comparison. All five direct timing ranges overlap; no stable O2 CPU lead is established. Versus size, H264 and AAC measured ranges separate; HEVC/VP9/AV1 overlap. No adoption until full-App evidence supports it. Static probe final LTO link differs from full libmpv. Software component improvements are not full-App CPU/RAM or VLC comparisons.",
+      "report": "native-balanced-20261019",
+      "results": [
+        {
+          "metric": "elapsed-ms",
+          "protocol": "native-software-demux-decode-profile-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "CPU-only video demux/decode / h264-1080p / 180 frames / one thread",
+          "session": "native-o2-o3-vs-o2-20261019",
+          "value": 638.5596999999999,
+          "samples": 5,
+          "evidence": "docs/evidence/native-balanced-20261019/o3-vs-o2/results.json",
+          "runRange": {
+            "min": 611.6357,
+            "max": 705.7117000000001,
+            "runs": 5,
+            "scope": "Five rotated fresh-process measurements per variant; one discarded process per case/variant. Separate hash warmup; software demux/decode only, not whole-player performance. All measured runs retained."
+          }
+        },
+        {
+          "metric": "cpu-cycles",
+          "protocol": "native-software-demux-decode-profile-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "CPU-only video demux/decode / h264-1080p / 180 frames / one thread",
+          "session": "native-o2-o3-vs-o2-20261019",
+          "value": 2419155620,
+          "samples": 5,
+          "evidence": "docs/evidence/native-balanced-20261019/o3-vs-o2/results.json",
+          "runRange": {
+            "min": 2317350580,
+            "max": 2674328660,
+            "runs": 5,
+            "scope": "Five rotated fresh-process measurements per variant; one discarded process per case/variant. Separate hash warmup; software demux/decode only, not whole-player performance. All measured runs retained."
+          }
+        },
+        {
+          "metric": "elapsed-ms",
+          "protocol": "native-software-demux-decode-profile-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "CPU-only video demux/decode / hevc-720p / 240 frames / one thread",
+          "session": "native-o2-o3-vs-o2-20261019",
+          "value": 723.3526,
+          "samples": 5,
+          "evidence": "docs/evidence/native-balanced-20261019/o3-vs-o2/results.json",
+          "runRange": {
+            "min": 702.2751000000001,
+            "max": 1213.8963,
+            "runs": 5,
+            "scope": "Five rotated fresh-process measurements per variant; one discarded process per case/variant. Separate hash warmup; software demux/decode only, not whole-player performance. All measured runs retained."
+          }
+        },
+        {
+          "metric": "cpu-cycles",
+          "protocol": "native-software-demux-decode-profile-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "CPU-only video demux/decode / hevc-720p / 240 frames / one thread",
+          "session": "native-o2-o3-vs-o2-20261019",
+          "value": 2743066100,
+          "samples": 5,
+          "evidence": "docs/evidence/native-balanced-20261019/o3-vs-o2/results.json",
+          "runRange": {
+            "min": 2662934360,
+            "max": 3381855220,
+            "runs": 5,
+            "scope": "Five rotated fresh-process measurements per variant; one discarded process per case/variant. Separate hash warmup; software demux/decode only, not whole-player performance. All measured runs retained."
+          }
+        },
+        {
+          "metric": "elapsed-ms",
+          "protocol": "native-software-demux-decode-profile-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "CPU-only video demux/decode / vp9-360p / 240 frames / one thread",
+          "session": "native-o2-o3-vs-o2-20261019",
+          "value": 104.6801,
+          "samples": 5,
+          "evidence": "docs/evidence/native-balanced-20261019/o3-vs-o2/results.json",
+          "runRange": {
+            "min": 98.653,
+            "max": 110.1395,
+            "runs": 5,
+            "scope": "Five rotated fresh-process measurements per variant; one discarded process per case/variant. Separate hash warmup; software demux/decode only, not whole-player performance. All measured runs retained."
+          }
+        },
+        {
+          "metric": "cpu-cycles",
+          "protocol": "native-software-demux-decode-profile-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "CPU-only video demux/decode / vp9-360p / 240 frames / one thread",
+          "session": "native-o2-o3-vs-o2-20261019",
+          "value": 390879780,
+          "samples": 5,
+          "evidence": "docs/evidence/native-balanced-20261019/o3-vs-o2/results.json",
+          "runRange": {
+            "min": 374246800,
+            "max": 408406140,
+            "runs": 5,
+            "scope": "Five rotated fresh-process measurements per variant; one discarded process per case/variant. Separate hash warmup; software demux/decode only, not whole-player performance. All measured runs retained."
+          }
+        },
+        {
+          "metric": "elapsed-ms",
+          "protocol": "native-software-demux-decode-profile-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "CPU-only video demux/decode / av1-1080p / 120 frames / one thread",
+          "session": "native-o2-o3-vs-o2-20261019",
+          "value": 630.1351,
+          "samples": 5,
+          "evidence": "docs/evidence/native-balanced-20261019/o3-vs-o2/results.json",
+          "runRange": {
+            "min": 578.9984000000001,
+            "max": 651.2443,
+            "runs": 5,
+            "scope": "Five rotated fresh-process measurements per variant; one discarded process per case/variant. Separate hash warmup; software demux/decode only, not whole-player performance. All measured runs retained."
+          }
+        },
+        {
+          "metric": "cpu-cycles",
+          "protocol": "native-software-demux-decode-profile-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "CPU-only video demux/decode / av1-1080p / 120 frames / one thread",
+          "session": "native-o2-o3-vs-o2-20261019",
+          "value": 2388464920,
+          "samples": 5,
+          "evidence": "docs/evidence/native-balanced-20261019/o3-vs-o2/results.json",
+          "runRange": {
+            "min": 2193222440,
+            "max": 2451777860,
+            "runs": 5,
+            "scope": "Five rotated fresh-process measurements per variant; one discarded process per case/variant. Separate hash warmup; software demux/decode only, not whole-player performance. All measured runs retained."
+          }
+        },
+        {
+          "metric": "elapsed-ms",
+          "protocol": "native-software-demux-decode-profile-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "CPU-only audio demux/decode / aac-stereo / 3000 frames / one thread",
+          "session": "native-o2-o3-vs-o2-20261019",
+          "value": 41.3208,
+          "samples": 5,
+          "evidence": "docs/evidence/native-balanced-20261019/o3-vs-o2/results.json",
+          "runRange": {
+            "min": 41.0422,
+            "max": 44.2383,
+            "runs": 5,
+            "scope": "Five rotated fresh-process measurements per variant; one discarded process per case/variant. Separate hash warmup; software demux/decode only, not whole-player performance. All measured runs retained."
+          }
+        },
+        {
+          "metric": "cpu-cycles",
+          "protocol": "native-software-demux-decode-profile-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "CPU-only audio demux/decode / aac-stereo / 3000 frames / one thread",
+          "session": "native-o2-o3-vs-o2-20261019",
+          "value": 156672480,
+          "samples": 5,
+          "evidence": "docs/evidence/native-balanced-20261019/o3-vs-o2/results.json",
+          "runRange": {
+            "min": 155546160,
+            "max": 164611820,
+            "runs": 5,
+            "scope": "Five rotated fresh-process measurements per variant; one discarded process per case/variant. Separate hash warmup; software demux/decode only, not whole-player performance. All measured runs retained."
+          }
+        }
+      ]
+    },
+    {
+      "id": "native-o2-o3-vs-o2-20261019-balanced",
+      "label": "Native decode / balanced / O3 comparison",
+      "measuredAt": "2026-10-19T08:19:04.204326+00:00",
+      "commit": "c0e1b2df5003beade46381b545a80cf35630837e",
+      "dirty": true,
+      "sourceNote": "CPU-only static probe with exact executable, prefix/archive/source identities in docs/evidence/native-balanced-20261019/source-identity.json. balanced compiler profile. Runs interleaved; date is batch completion, raw per-run timestamps retained. Not a clean App rebuild or a visible player result.",
+      "notes": "Prefer O2 as the next isolated full-App candidate: it is 5.78 MiB smaller than O3, with close decoder timings in their direct paired comparison. All five direct timing ranges overlap; no stable O2 CPU lead is established. Versus size, H264 and AAC measured ranges separate; HEVC/VP9/AV1 overlap. No adoption until full-App evidence supports it. Static probe final LTO link differs from full libmpv. Software component improvements are not full-App CPU/RAM or VLC comparisons.",
+      "report": "native-balanced-20261019",
+      "results": [
+        {
+          "metric": "elapsed-ms",
+          "protocol": "native-software-demux-decode-profile-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "CPU-only video demux/decode / h264-1080p / 180 frames / one thread",
+          "session": "native-o2-o3-vs-o2-20261019",
+          "value": 629.8194,
+          "samples": 5,
+          "evidence": "docs/evidence/native-balanced-20261019/o3-vs-o2/results.json",
+          "runRange": {
+            "min": 619.7192,
+            "max": 678.8279,
+            "runs": 5,
+            "scope": "Five rotated fresh-process measurements per variant; one discarded process per case/variant. Separate hash warmup; software demux/decode only, not whole-player performance. All measured runs retained."
+          }
+        },
+        {
+          "metric": "cpu-cycles",
+          "protocol": "native-software-demux-decode-profile-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "CPU-only video demux/decode / h264-1080p / 180 frames / one thread",
+          "session": "native-o2-o3-vs-o2-20261019",
+          "value": 2386346420,
+          "samples": 5,
+          "evidence": "docs/evidence/native-balanced-20261019/o3-vs-o2/results.json",
+          "runRange": {
+            "min": 2347051000,
+            "max": 2571879140,
+            "runs": 5,
+            "scope": "Five rotated fresh-process measurements per variant; one discarded process per case/variant. Separate hash warmup; software demux/decode only, not whole-player performance. All measured runs retained."
+          }
+        },
+        {
+          "metric": "elapsed-ms",
+          "protocol": "native-software-demux-decode-profile-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "CPU-only video demux/decode / hevc-720p / 240 frames / one thread",
+          "session": "native-o2-o3-vs-o2-20261019",
+          "value": 725.7171999999999,
+          "samples": 5,
+          "evidence": "docs/evidence/native-balanced-20261019/o3-vs-o2/results.json",
+          "runRange": {
+            "min": 716.7943,
+            "max": 746.4294,
+            "runs": 5,
+            "scope": "Five rotated fresh-process measurements per variant; one discarded process per case/variant. Separate hash warmup; software demux/decode only, not whole-player performance. All measured runs retained."
+          }
+        },
+        {
+          "metric": "cpu-cycles",
+          "protocol": "native-software-demux-decode-profile-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "CPU-only video demux/decode / hevc-720p / 240 frames / one thread",
+          "session": "native-o2-o3-vs-o2-20261019",
+          "value": 2746186660,
+          "samples": 5,
+          "evidence": "docs/evidence/native-balanced-20261019/o3-vs-o2/results.json",
+          "runRange": {
+            "min": 2718982460,
+            "max": 2830668640,
+            "runs": 5,
+            "scope": "Five rotated fresh-process measurements per variant; one discarded process per case/variant. Separate hash warmup; software demux/decode only, not whole-player performance. All measured runs retained."
+          }
+        },
+        {
+          "metric": "elapsed-ms",
+          "protocol": "native-software-demux-decode-profile-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "CPU-only video demux/decode / vp9-360p / 240 frames / one thread",
+          "session": "native-o2-o3-vs-o2-20261019",
+          "value": 104.03750000000001,
+          "samples": 5,
+          "evidence": "docs/evidence/native-balanced-20261019/o3-vs-o2/results.json",
+          "runRange": {
+            "min": 101.62599999999999,
+            "max": 109.9994,
+            "runs": 5,
+            "scope": "Five rotated fresh-process measurements per variant; one discarded process per case/variant. Separate hash warmup; software demux/decode only, not whole-player performance. All measured runs retained."
+          }
+        },
+        {
+          "metric": "cpu-cycles",
+          "protocol": "native-software-demux-decode-profile-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "CPU-only video demux/decode / vp9-360p / 240 frames / one thread",
+          "session": "native-o2-o3-vs-o2-20261019",
+          "value": 394551720,
+          "samples": 5,
+          "evidence": "docs/evidence/native-balanced-20261019/o3-vs-o2/results.json",
+          "runRange": {
+            "min": 385330640,
+            "max": 414480820,
+            "runs": 5,
+            "scope": "Five rotated fresh-process measurements per variant; one discarded process per case/variant. Separate hash warmup; software demux/decode only, not whole-player performance. All measured runs retained."
+          }
+        },
+        {
+          "metric": "elapsed-ms",
+          "protocol": "native-software-demux-decode-profile-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "CPU-only video demux/decode / av1-1080p / 120 frames / one thread",
+          "session": "native-o2-o3-vs-o2-20261019",
+          "value": 613.6875,
+          "samples": 5,
+          "evidence": "docs/evidence/native-balanced-20261019/o3-vs-o2/results.json",
+          "runRange": {
+            "min": 584.6221,
+            "max": 631.3062,
+            "runs": 5,
+            "scope": "Five rotated fresh-process measurements per variant; one discarded process per case/variant. Separate hash warmup; software demux/decode only, not whole-player performance. All measured runs retained."
+          }
+        },
+        {
+          "metric": "cpu-cycles",
+          "protocol": "native-software-demux-decode-profile-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "CPU-only video demux/decode / av1-1080p / 120 frames / one thread",
+          "session": "native-o2-o3-vs-o2-20261019",
+          "value": 2315578640,
+          "samples": 5,
+          "evidence": "docs/evidence/native-balanced-20261019/o3-vs-o2/results.json",
+          "runRange": {
+            "min": 2214754000,
+            "max": 2392935620,
+            "runs": 5,
+            "scope": "Five rotated fresh-process measurements per variant; one discarded process per case/variant. Separate hash warmup; software demux/decode only, not whole-player performance. All measured runs retained."
+          }
+        },
+        {
+          "metric": "elapsed-ms",
+          "protocol": "native-software-demux-decode-profile-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "CPU-only audio demux/decode / aac-stereo / 3000 frames / one thread",
+          "session": "native-o2-o3-vs-o2-20261019",
+          "value": 41.1782,
+          "samples": 5,
+          "evidence": "docs/evidence/native-balanced-20261019/o3-vs-o2/results.json",
+          "runRange": {
+            "min": 40.4811,
+            "max": 42.1452,
+            "runs": 5,
+            "scope": "Five rotated fresh-process measurements per variant; one discarded process per case/variant. Separate hash warmup; software demux/decode only, not whole-player performance. All measured runs retained."
+          }
+        },
+        {
+          "metric": "cpu-cycles",
+          "protocol": "native-software-demux-decode-profile-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "CPU-only audio demux/decode / aac-stereo / 3000 frames / one thread",
+          "session": "native-o2-o3-vs-o2-20261019",
+          "value": 155758960,
+          "samples": 5,
+          "evidence": "docs/evidence/native-balanced-20261019/o3-vs-o2/results.json",
+          "runRange": {
+            "min": 153573200,
+            "max": 158827080,
+            "runs": 5,
+            "scope": "Five rotated fresh-process measurements per variant; one discarded process per case/variant. Separate hash warmup; software demux/decode only, not whole-player performance. All measured runs retained."
+          }
+        }
+      ]
     }
   ],
   "reports": [
@@ -16873,6 +17590,12 @@ git diff --check</pre>
       "title": "Native speed candidate: authorized H.264 playback",
       "source": "docs/evidence/native-performance-20261019/visible-once/review.json",
       "text": "{\n  \"recordedUtc\": \"2026-10-19T07:48:56.580635+00:00\",\n  \"batchCompletedUtc\": \"2026-10-19T07:45:02.4348196Z\",\n  \"status\": \"Single run: private RAM is lower than saved VLC, but full-window CPU is higher. Speed-profile native build remains experimental, not adopted.\",\n  \"method\": \"Exactly one human-authorized visible Aperture launch, no discarded warmup and no VLC launch. Same SHA256-verified 180s 1080p30 H264/AAC stereo fixture, clean owned portable profile, 1280x720 actual video canvas at 96 DPI. Seven process snapshots span 30.0075739 seconds after at least 10s media time and settling, with advancing media. No concurrent tests/builds/profilers during sampling. Full-window calibrated CPU = cycle delta / actual elapsed / fresh validated same-CPU invariant-TSC rate *100, percent of one logical processor; divide by 24 for whole-machine capacity. Raw process CPU-time delta is retained separately. Private RAM/working set/dedicated GPU allocation are medians of all seven snapshots; overlapping memory categories are not summed. Saved VLC retains its original date/session/calibration. Balanced Aperture versus linear VLC scaling, no equal-output or decoder equivalence claim.\",\n  \"sourceIdentity\": \"docs/evidence/native-performance-20261019/visible-once/source-identity.json\",\n  \"aperture\": {\n    \"values\": {\n      \"cpu-core\": 6.556720000914256,\n      \"visible-ms\": 101.8359,\n      \"runtime-mib\": 36.37646198272705,\n      \"private-mib\": 147.69921875,\n      \"working-set-mib\": 138.13671875,\n      \"gpu-mib\": 98.265625\n    },\n    \"sampledCpuOneLogicalPercent\": 6.248422502426962,\n    \"cpuTotalCapacityPercent\": 0.27319666670476067,\n    \"cycleDelta\": 7476544080,\n    \"sampledCpuSecondsDelta\": 1.875,\n    \"actualElapsedSeconds\": 30.0075739,\n    \"privateMiBSnapshotRange\": [\n      147.48828125,\n      150.7421875\n    ],\n    \"sharedGpuMiB\": 14.078125,\n    \"snapshotCount\": 7,\n    \"mediaIntervalSeconds\": [\n      10.0666666667,\n      40.0666666667\n    ],\n    \"intervals\": [\n      {\n        \"fromMediaSeconds\": 10.0666666667,\n        \"toMediaSeconds\": 15.0666666667,\n        \"elapsedSeconds\": 5.002002000000001,\n        \"cpuOneLogicalPercent\": 17.84185119183245\n      },\n      {\n        \"fromMediaSeconds\": 15.0666666667,\n        \"toMediaSeconds\": 20.0666666667,\n        \"elapsedSeconds\": 5.006833099999998,\n        \"cpuOneLogicalPercent\": 4.2730265705141806\n      },\n      {\n        \"fromMediaSeconds\": 20.0666666667,\n        \"toMediaSeconds\": 25.0666666667,\n        \"elapsedSeconds\": 5.0023321,\n        \"cpuOneLogicalPercent\": 4.110037085780625\n      },\n      {\n        \"fromMediaSeconds\": 25.0666666667,\n        \"toMediaSeconds\": 30.0666666667,\n        \"elapsedSeconds\": 5.004062900000001,\n        \"cpuOneLogicalPercent\": 4.152627769386066\n      },\n      {\n        \"fromMediaSeconds\": 30.0666666667,\n        \"toMediaSeconds\": 35.0666666667,\n        \"elapsedSeconds\": 4.9820218999999994,\n        \"cpuOneLogicalPercent\": 4.615734765051733\n      },\n      {\n        \"fromMediaSeconds\": 35.0666666667,\n        \"toMediaSeconds\": 40.0666666667,\n        \"elapsedSeconds\": 5.010321900000001,\n        \"cpuOneLogicalPercent\": 4.346323749098806\n      }\n    ]\n  },\n  \"savedVlc\": {\n    \"referenceId\": \"vlc-20261018-balanced-overlay-screen-h264\",\n    \"version\": \"3.0.23\",\n    \"originalBatchMeasuredAt\": \"2026-10-18T18:57:51.4393218Z\",\n    \"originalStartedUtc\": \"2026-10-18T18:57:02.2838411Z\",\n    \"originalSamplingEndedUtc\": \"2026-10-18T18:57:50.1329986Z\",\n    \"originalSession\": \"balanced-overlay-screen-h264-20261018\",\n    \"rawEvidence\": \"docs/evidence/balanced-memory-20261018/app/comparison.json\",\n    \"values\": {\n      \"cpu-core\": 5.091447168676399,\n      \"visible-ms\": 1639.955,\n      \"runtime-mib\": 182.99101448059082,\n      \"private-mib\": 150.8515625,\n      \"working-set-mib\": 146.0859375,\n      \"gpu-mib\": 118.4609375\n    },\n    \"sampledCpuOneLogicalPercent\": 4.529518017998671,\n    \"cpuTotalCapacityPercent\": 0.2121436320281833,\n    \"cycleDelta\": 5806467640,\n    \"sampledCpuSecondsDelta\": 1.359375,\n    \"actualElapsedSeconds\": 30.011471299999997,\n    \"privateMiBSnapshotRange\": [\n      150.58203125,\n      151.05859375\n    ],\n    \"sharedGpuMiB\": 15.28515625,\n    \"snapshotCount\": 7,\n    \"mediaIntervalSeconds\": [\n      11.0,\n      41.0\n    ],\n    \"intervals\": [\n      {\n        \"fromMediaSeconds\": 11.0,\n        \"toMediaSeconds\": 16.0,\n        \"elapsedSeconds\": 4.999637499999999,\n        \"cpuOneLogicalPercent\": 5.176952703767877\n      },\n      {\n        \"fromMediaSeconds\": 16.0,\n        \"toMediaSeconds\": 21.0,\n        \"elapsedSeconds\": 5.008760500000001,\n        \"cpuOneLogicalPercent\": 5.062243789346408\n      },\n      {\n        \"fromMediaSeconds\": 21.0,\n        \"toMediaSeconds\": 26.0,\n        \"elapsedSeconds\": 4.997666599999999,\n        \"cpuOneLogicalPercent\": 5.132364534200405\n      },\n      {\n        \"fromMediaSeconds\": 26.0,\n        \"toMediaSeconds\": 31.0,\n        \"elapsedSeconds\": 5.0125391000000015,\n        \"cpuOneLogicalPercent\": 5.00969990809355\n      },\n      {\n        \"fromMediaSeconds\": 31.0,\n        \"toMediaSeconds\": 36.0,\n        \"elapsedSeconds\": 4.994461999999999,\n        \"cpuOneLogicalPercent\": 5.110455696363643\n      },\n      {\n        \"fromMediaSeconds\": 36.0,\n        \"toMediaSeconds\": 41.0,\n        \"elapsedSeconds\": 4.998405599999998,\n        \"cpuOneLogicalPercent\": 5.05725800101339\n      }\n    ]\n  },\n  \"versusSavedVlc\": {\n    \"privateMiBDifference\": -3.15234375,\n    \"privateRelativePercent\": -2.089699104044751,\n    \"calibratedCpuRelativePercent\": 28.77910314482901,\n    \"calibratedCpuMachinePercentagePointDifference\": 0.061053034676577383,\n    \"sampledCpuOneLogicalPercentagePointDifference\": 1.7189044844282906,\n    \"dedicatedGpuMiBDifference\": -20.1953125,\n    \"suppliedRuntimeMiBDifference\": -146.61455249786377\n  },\n  \"previousAperture\": {\n    \"rawEvidence\": \"docs/evidence/direct-nv12-20261018/visible-once/comparison.json\",\n    \"values\": {\n      \"cpu-core\": 4.949772590381909,\n      \"visible-ms\": 109.8057,\n      \"runtime-mib\": 27.88720417022705,\n      \"private-mib\": 148.01171875,\n      \"working-set-mib\": 141.5390625,\n      \"gpu-mib\": 98.27734375\n    },\n    \"sampledCpuOneLogicalPercent\": 4.945508385418275,\n    \"cpuTotalCapacityPercent\": 0.20624052459924622,\n    \"cycleDelta\": 5645490140,\n    \"sampledCpuSecondsDelta\": 1.484375,\n    \"actualElapsedSeconds\": 30.0146089,\n    \"privateMiBSnapshotRange\": [\n      147.3984375,\n      148.1171875\n    ],\n    \"sharedGpuMiB\": 13.59765625,\n    \"snapshotCount\": 7,\n    \"mediaIntervalSeconds\": [\n      10.0666666667,\n      40.0666666667\n    ],\n    \"intervals\": [\n      {\n        \"fromMediaSeconds\": 10.0666666667,\n        \"toMediaSeconds\": 15.0666666667,\n        \"elapsedSeconds\": 5.014386900000002,\n        \"cpuOneLogicalPercent\": 4.920654028179538\n      },\n      {\n        \"fromMediaSeconds\": 15.0666666667,\n        \"toMediaSeconds\": 20.0666666667,\n        \"elapsedSeconds\": 4.9987979,\n        \"cpuOneLogicalPercent\": 4.859729017046116\n      },\n      {\n        \"fromMediaSeconds\": 20.0666666667,\n        \"toMediaSeconds\": 25.0333333333,\n        \"elapsedSeconds\": 4.989804299999999,\n        \"cpuOneLogicalPercent\": 5.076756800721741\n      },\n      {\n        \"fromMediaSeconds\": 25.0333333333,\n        \"toMediaSeconds\": 30.0666666667,\n        \"elapsedSeconds\": 5.010572700000001,\n        \"cpuOneLogicalPercent\": 4.9609564685291625\n      },\n      {\n        \"fromMediaSeconds\": 30.0666666667,\n        \"toMediaSeconds\": 35.0333333333,\n        \"elapsedSeconds\": 4.9913386999999965,\n        \"cpuOneLogicalPercent\": 4.978093963021227\n      },\n      {\n        \"fromMediaSeconds\": 35.0333333333,\n        \"toMediaSeconds\": 40.0666666667,\n        \"elapsedSeconds\": 5.009708400000001,\n        \"cpuOneLogicalPercent\": 4.90288279646727\n      }\n    ]\n  },\n  \"versusPreviousAperture\": {\n    \"privateMiBDifference\": -0.3125,\n    \"privateRelativePercent\": -0.2111319310654225,\n    \"calibratedCpuRelativePercent\": 32.46507554013425,\n    \"calibratedCpuMachinePercentagePointDifference\": 0.06695614210551445,\n    \"sampledCpuOneLogicalPercentagePointDifference\": 1.3029141170086866,\n    \"dedicatedGpuMiBDifference\": -0.01171875,\n    \"suppliedRuntimeMiBDifference\": 8.4892578125\n  },\n  \"cpuBurstReview\": {\n    \"finding\": \"The first sampled interval is 17.84185% of one logical processor; subsequent intervals are 4.11004–4.61573%. All intervals remain included in the official full-window CPU average.\",\n    \"cause\": \"Unknown. No thread/event/decoder trace was collected; these cumulative counters cannot attribute the burst to a component or the native profile. Separate historical sessions do not establish causality.\",\n    \"selection\": \"No interval trimmed, no replacement run, no alternative steady-state headline.\"\n  },\n  \"decision\": {\n    \"candidateAdopted\": false,\n    \"bundledNativeSha256\": \"8dd14629f574a04a1d6904104be8748e73954d9ac5aef07cc36f1a34ee752daa\",\n    \"reason\": \"Software-only decode gains remain valid component evidence, but this one full-App hardware-playback sample does not establish a CPU gain. Candidate adds 8.4892578125 MiB of native DLL; keep it isolated pending further evidence.\",\n    \"candidatePackage\": \"C:\\\\Users\\\\Alperen\\\\AppData\\\\Local\\\\Codex\\\\tools\\\\scratch\\\\aperture-vlc-performance-20261017\\\\native-performance-20261019\\\\portable-candidate\"\n  },\n  \"limits\": [\n    \"One measured launch; snapshot intervals/ranges are not independent repeat-run samples. No stable player ranking, general performance win or code-caused regression follows.\",\n    \"Original matching VLC baseline reused without running VLC, changing its timestamp/session or substituting the current calibration.\",\n    \"Process-to-visible-window is shell readiness, not first visible video. Runtime sizes are supplied distributions with differing feature inventories.\",\n    \"Media advancement and actual canvas verified; visible decoder/filter path, audio output activity and presented-frame cadence were not instrumented.\",\n    \"Earlier hidden functional and frame-quality checks remain separately dated validation, not new measurements of this visible run.\",\n    \"Source contains existing user changes. No install, restart, release, or adoption was performed.\"\n  ]\n}"
+    },
+    {
+      "id": "native-balanced-20261019",
+      "title": "Native O2 candidate: decoder comparisons and hidden checks",
+      "source": "docs/evidence/native-balanced-20261019/review.json",
+      "text": "{\n  \"recordedUtc\": \"2026-10-19T08:21:18.426786+00:00\",\n  \"status\": \"O2 is a smaller qualified candidate, not adopted and not a full-App/VLC performance win.\",\n  \"scope\": \"Two independent CPU-only paired software demux/decode comparisons. No player windows, renderer, hardware decoder or audio output in timing probes. Hidden rendering checks are correctness evidence only.\",\n  \"profileChange\": \"Balanced compiler profile uses O2 and FFmpeg disable-small; size remains default. Same pinned sources, maintained patches, installed packages, compiler, codec inventory, CPU target and normal floating-point semantics. Meson optimization=2 and FFmpeg CONFIG_SMALL=0 / CFLAGS O2 verified in actual build outputs. Shader chain remains Os without LTO. Independent of picture-scaling profiles.\",\n  \"batches\": {\n    \"sizeVsO2\": {\n      \"createdUtc\": \"2026-10-19T08:12:56.730890+00:00\",\n      \"completedUtc\": \"2026-10-19T08:15:29.065374+00:00\",\n      \"baselineProfile\": \"size\",\n      \"candidateProfile\": \"balanced\",\n      \"summary\": [\n        {\n          \"id\": \"h264-1080p\",\n          \"frames\": 180,\n          \"kind\": \"video\",\n          \"baseline\": {\n            \"elapsedSeconds\": {\n              \"median\": 0.6880585,\n              \"min\": 0.6859342,\n              \"max\": 0.724868,\n              \"runs\": 5\n            },\n            \"processCpuSeconds\": {\n              \"median\": 0.6875,\n              \"min\": 0.671875,\n              \"max\": 0.71875,\n              \"runs\": 5\n            },\n            \"processCycles\": {\n              \"median\": 2605235540,\n              \"min\": 2597155980,\n              \"max\": 2744117180,\n              \"runs\": 5\n            }\n          },\n          \"candidate\": {\n            \"elapsedSeconds\": {\n              \"median\": 0.6549587,\n              \"min\": 0.6543735,\n              \"max\": 0.6583489,\n              \"runs\": 5\n            },\n            \"processCpuSeconds\": {\n              \"median\": 0.65625,\n              \"min\": 0.65625,\n              \"max\": 0.65625,\n              \"runs\": 5\n            },\n            \"processCycles\": {\n              \"median\": 2481871200,\n              \"min\": 2478851340,\n              \"max\": 2495319400,\n              \"runs\": 5\n            }\n          },\n          \"elapsedRelativePercent\": -4.810608400303174,\n          \"cyclesRelativePercent\": -4.735247086334471,\n          \"elapsedRangesOverlap\": false\n        },\n        {\n          \"id\": \"hevc-720p\",\n          \"frames\": 240,\n          \"kind\": \"video\",\n          \"baseline\": {\n            \"elapsedSeconds\": {\n              \"median\": 0.7261525,\n              \"min\": 0.7145334,\n              \"max\": 0.7460347,\n              \"runs\": 5\n            },\n            \"processCpuSeconds\": {\n              \"median\": 0.734375,\n              \"min\": 0.703125,\n              \"max\": 0.734375,\n              \"runs\": 5\n            },\n            \"processCycles\": {\n              \"median\": 2748000780,\n              \"min\": 2706627140,\n              \"max\": 2826446840,\n              \"runs\": 5\n            }\n          },\n          \"candidate\": {\n            \"elapsedSeconds\": {\n              \"median\": 0.7299229,\n              \"min\": 0.6937833,\n              \"max\": 0.7668289,\n              \"runs\": 5\n            },\n            \"processCpuSeconds\": {\n              \"median\": 0.71875,\n              \"min\": 0.703125,\n              \"max\": 0.765625,\n              \"runs\": 5\n            },\n            \"processCycles\": {\n              \"median\": 2765029720,\n              \"min\": 2628856340,\n              \"max\": 2906224420,\n              \"runs\": 5\n            }\n          },\n          \"elapsedRelativePercent\": 0.5192297761145381,\n          \"cyclesRelativePercent\": 0.6196846858245841,\n          \"elapsedRangesOverlap\": true\n        },\n        {\n          \"id\": \"vp9-360p\",\n          \"frames\": 240,\n          \"kind\": \"video\",\n          \"baseline\": {\n            \"elapsedSeconds\": {\n              \"median\": 0.0980112,\n              \"min\": 0.0975118,\n              \"max\": 0.1000547,\n              \"runs\": 5\n            },\n            \"processCpuSeconds\": {\n              \"median\": 0.09375,\n              \"min\": 0.09375,\n              \"max\": 0.09375,\n              \"runs\": 5\n            },\n            \"processCycles\": {\n              \"median\": 371657860,\n              \"min\": 369786360,\n              \"max\": 378542700,\n              \"runs\": 5\n            }\n          },\n          \"candidate\": {\n            \"elapsedSeconds\": {\n              \"median\": 0.0978227,\n              \"min\": 0.0939173,\n              \"max\": 0.1013677,\n              \"runs\": 5\n            },\n            \"processCpuSeconds\": {\n              \"median\": 0.09375,\n              \"min\": 0.09375,\n              \"max\": 0.109375,\n              \"runs\": 5\n            },\n            \"processCycles\": {\n              \"median\": 362148740,\n              \"min\": 356150440,\n              \"max\": 373618660,\n              \"runs\": 5\n            }\n          },\n          \"elapsedRelativePercent\": -0.19232495878023226,\n          \"cyclesRelativePercent\": -2.558568248765136,\n          \"elapsedRangesOverlap\": true\n        },\n        {\n          \"id\": \"av1-1080p\",\n          \"frames\": 120,\n          \"kind\": \"video\",\n          \"baseline\": {\n            \"elapsedSeconds\": {\n              \"median\": 0.606444,\n              \"min\": 0.5799212,\n              \"max\": 0.6360862,\n              \"runs\": 5\n            },\n            \"processCpuSeconds\": {\n              \"median\": 0.609375,\n              \"min\": 0.59375,\n              \"max\": 0.625,\n              \"runs\": 5\n            },\n            \"processCycles\": {\n              \"median\": 2292190400,\n              \"min\": 2190936360,\n              \"max\": 2391766360,\n              \"runs\": 5\n            }\n          },\n          \"candidate\": {\n            \"elapsedSeconds\": {\n              \"median\": 0.5891943,\n              \"min\": 0.5724101,\n              \"max\": 0.6444324,\n              \"runs\": 5\n            },\n            \"processCpuSeconds\": {\n              \"median\": 0.578125,\n              \"min\": 0.578125,\n              \"max\": 0.625,\n              \"runs\": 5\n            },\n            \"processCycles\": {\n              \"median\": 2221146360,\n              \"min\": 2164629720,\n              \"max\": 2418650980,\n              \"runs\": 5\n            }\n          },\n          \"elapsedRelativePercent\": -2.844401131843999,\n          \"cyclesRelativePercent\": -3.0993952334849695,\n          \"elapsedRangesOverlap\": true\n        },\n        {\n          \"id\": \"aac-stereo\",\n          \"frames\": 3000,\n          \"kind\": \"audio\",\n          \"baseline\": {\n            \"elapsedSeconds\": {\n              \"median\": 0.0443994,\n              \"min\": 0.0437076,\n              \"max\": 0.04457,\n              \"runs\": 5\n            },\n            \"processCpuSeconds\": {\n              \"median\": 0.03125,\n              \"min\": 0.03125,\n              \"max\": 0.046875,\n              \"runs\": 5\n            },\n            \"processCycles\": {\n              \"median\": 168311500,\n              \"min\": 165646180,\n              \"max\": 168515180,\n              \"runs\": 5\n            }\n          },\n          \"candidate\": {\n            \"elapsedSeconds\": {\n              \"median\": 0.0401886,\n              \"min\": 0.0397008,\n              \"max\": 0.0420345,\n              \"runs\": 5\n            },\n            \"processCpuSeconds\": {\n              \"median\": 0.03125,\n              \"min\": 0.03125,\n              \"max\": 0.046875,\n              \"runs\": 5\n            },\n            \"processCycles\": {\n              \"median\": 151981760,\n              \"min\": 150451500,\n              \"max\": 158387420,\n              \"runs\": 5\n            }\n          },\n          \"elapsedRelativePercent\": -9.483911944756008,\n          \"cyclesRelativePercent\": -9.70209403397867,\n          \"elapsedRangesOverlap\": false\n        }\n      ]\n    },\n    \"o3VsO2\": {\n      \"createdUtc\": \"2026-10-19T08:16:37.372315+00:00\",\n      \"completedUtc\": \"2026-10-19T08:19:04.204326+00:00\",\n      \"baselineProfile\": \"performance\",\n      \"candidateProfile\": \"balanced\",\n      \"summary\": [\n        {\n          \"id\": \"h264-1080p\",\n          \"frames\": 180,\n          \"kind\": \"video\",\n          \"baseline\": {\n            \"elapsedSeconds\": {\n              \"median\": 0.6385597,\n              \"min\": 0.6116357,\n              \"max\": 0.7057117,\n              \"runs\": 5\n            },\n            \"processCpuSeconds\": {\n              \"median\": 0.625,\n              \"min\": 0.59375,\n              \"max\": 0.703125,\n              \"runs\": 5\n            },\n            \"processCycles\": {\n              \"median\": 2419155620,\n              \"min\": 2317350580,\n              \"max\": 2674328660,\n              \"runs\": 5\n            }\n          },\n          \"candidate\": {\n            \"elapsedSeconds\": {\n              \"median\": 0.6298194,\n              \"min\": 0.6197192,\n              \"max\": 0.6788279,\n              \"runs\": 5\n            },\n            \"processCpuSeconds\": {\n              \"median\": 0.625,\n              \"min\": 0.609375,\n              \"max\": 0.671875,\n              \"runs\": 5\n            },\n            \"processCycles\": {\n              \"median\": 2386346420,\n              \"min\": 2347051000,\n              \"max\": 2571879140,\n              \"runs\": 5\n            }\n          },\n          \"elapsedRelativePercent\": -1.3687522090729987,\n          \"cyclesRelativePercent\": -1.356225276652523,\n          \"elapsedRangesOverlap\": true\n        },\n        {\n          \"id\": \"hevc-720p\",\n          \"frames\": 240,\n          \"kind\": \"video\",\n          \"baseline\": {\n            \"elapsedSeconds\": {\n              \"median\": 0.7233526,\n              \"min\": 0.7022751,\n              \"max\": 1.2138963,\n              \"runs\": 5\n            },\n            \"processCpuSeconds\": {\n              \"median\": 0.71875,\n              \"min\": 0.703125,\n              \"max\": 0.890625,\n              \"runs\": 5\n            },\n            \"processCycles\": {\n              \"median\": 2743066100,\n              \"min\": 2662934360,\n              \"max\": 3381855220,\n              \"runs\": 5\n            }\n          },\n          \"candidate\": {\n            \"elapsedSeconds\": {\n              \"median\": 0.7257172,\n              \"min\": 0.7167943,\n              \"max\": 0.7464294,\n              \"runs\": 5\n            },\n            \"processCpuSeconds\": {\n              \"median\": 0.734375,\n              \"min\": 0.71875,\n              \"max\": 0.75,\n              \"runs\": 5\n            },\n            \"processCycles\": {\n              \"median\": 2746186660,\n              \"min\": 2718982460,\n              \"max\": 2830668640,\n              \"runs\": 5\n            }\n          },\n          \"elapsedRelativePercent\": 0.32689451866212416,\n          \"cyclesRelativePercent\": 0.11376175003583455,\n          \"elapsedRangesOverlap\": true\n        },\n        {\n          \"id\": \"vp9-360p\",\n          \"frames\": 240,\n          \"kind\": \"video\",\n          \"baseline\": {\n            \"elapsedSeconds\": {\n              \"median\": 0.1046801,\n              \"min\": 0.098653,\n              \"max\": 0.1101395,\n              \"runs\": 5\n            },\n            \"processCpuSeconds\": {\n              \"median\": 0.09375,\n              \"min\": 0.09375,\n              \"max\": 0.109375,\n              \"runs\": 5\n            },\n            \"processCycles\": {\n              \"median\": 390879780,\n              \"min\": 374246800,\n              \"max\": 408406140,\n              \"runs\": 5\n            }\n          },\n          \"candidate\": {\n            \"elapsedSeconds\": {\n              \"median\": 0.1040375,\n              \"min\": 0.101626,\n              \"max\": 0.1099994,\n              \"runs\": 5\n            },\n            \"processCpuSeconds\": {\n              \"median\": 0.109375,\n              \"min\": 0.09375,\n              \"max\": 0.109375,\n              \"runs\": 5\n            },\n            \"processCycles\": {\n              \"median\": 394551720,\n              \"min\": 385330640,\n              \"max\": 414480820,\n              \"runs\": 5\n            }\n          },\n          \"elapsedRelativePercent\": -0.6138702580528621,\n          \"cyclesRelativePercent\": 0.939403926189275,\n          \"elapsedRangesOverlap\": true\n        },\n        {\n          \"id\": \"av1-1080p\",\n          \"frames\": 120,\n          \"kind\": \"video\",\n          \"baseline\": {\n            \"elapsedSeconds\": {\n              \"median\": 0.6301351,\n              \"min\": 0.5789984,\n              \"max\": 0.6512443,\n              \"runs\": 5\n            },\n            \"processCpuSeconds\": {\n              \"median\": 0.625,\n              \"min\": 0.578125,\n              \"max\": 0.640625,\n              \"runs\": 5\n            },\n            \"processCycles\": {\n              \"median\": 2388464920,\n              \"min\": 2193222440,\n              \"max\": 2451777860,\n              \"runs\": 5\n            }\n          },\n          \"candidate\": {\n            \"elapsedSeconds\": {\n              \"median\": 0.6136875,\n              \"min\": 0.5846221,\n              \"max\": 0.6313062,\n              \"runs\": 5\n            },\n            \"processCpuSeconds\": {\n              \"median\": 0.609375,\n              \"min\": 0.59375,\n              \"max\": 0.625,\n              \"runs\": 5\n            },\n            \"processCycles\": {\n              \"median\": 2315578640,\n              \"min\": 2214754000,\n              \"max\": 2392935620,\n              \"runs\": 5\n            }\n          },\n          \"elapsedRelativePercent\": -2.610170422184055,\n          \"cyclesRelativePercent\": -3.051595164311649,\n          \"elapsedRangesOverlap\": true\n        },\n        {\n          \"id\": \"aac-stereo\",\n          \"frames\": 3000,\n          \"kind\": \"audio\",\n          \"baseline\": {\n            \"elapsedSeconds\": {\n              \"median\": 0.0413208,\n              \"min\": 0.0410422,\n              \"max\": 0.0442383,\n              \"runs\": 5\n            },\n            \"processCpuSeconds\": {\n              \"median\": 0.046875,\n              \"min\": 0.03125,\n              \"max\": 0.046875,\n              \"runs\": 5\n            },\n            \"processCycles\": {\n              \"median\": 156672480,\n              \"min\": 155546160,\n              \"max\": 164611820,\n              \"runs\": 5\n            }\n          },\n          \"candidate\": {\n            \"elapsedSeconds\": {\n              \"median\": 0.0411782,\n              \"min\": 0.0404811,\n              \"max\": 0.0421452,\n              \"runs\": 5\n            },\n            \"processCpuSeconds\": {\n              \"median\": 0.046875,\n              \"min\": 0.03125,\n              \"max\": 0.046875,\n              \"runs\": 5\n            },\n            \"processCycles\": {\n              \"median\": 155758960,\n              \"min\": 153573200,\n              \"max\": 158827080,\n              \"runs\": 5\n            }\n          },\n          \"elapsedRelativePercent\": -0.34510464463417545,\n          \"cyclesRelativePercent\": -0.5830762364902875,\n          \"elapsedRangesOverlap\": true\n        }\n      ]\n    }\n  },\n  \"method\": \"One discarded process per variant/case, followed by rotated measured processes. Each process first hashes decoded output in a separate warmup, then initializes a fresh decoder and times fixed-count demux/decode/frame release. Open, stream discovery and codec initialization excluded. One decoder thread, warm file cache, no affinity change; raw process cycles and CPU time retained without converting to CPU utilization. Exact decoded buffers and frame metadata must match across both variants and all launches.\",\n  \"validation\": {\n    \"nativeFunctional\": {\n      \"passed\": 80,\n      \"total\": 80,\n      \"evidence\": \"docs/evidence/native-balanced-20261019/native-functional/result.json\",\n      \"scope\": \"Hidden owner windows and observed null audio output; hardware/software codecs, controls, filters, local HTTP. Initial reviewer phrase assertion was corrected from authoritative PASS logs without rerunning; original reviewer result retained.\"\n    },\n    \"appLifecycle\": {\n      \"passed\": 1,\n      \"total\": 1,\n      \"evidence\": \"docs/evidence/native-balanced-20261019/app-lifecycle-driver.log\",\n      \"scope\": \"MpvInitialization.ExportPolicyAndBundledLifecycle only; 52 other App tests filtered, not claimed as passed.\"\n    },\n    \"sdrFrameParity\": {\n      \"passed\": 13,\n      \"total\": 13,\n      \"maximumChannelError\": 0,\n      \"evidence\": \"docs/evidence/native-balanced-20261019/frame-quality/results.json\"\n    },\n    \"hdrFallback\": {\n      \"observedMaximumChannelError\": 1,\n      \"scope\": \"Fallback verified; adaptive peak history prevents a claim of exact HDR parity.\"\n    },\n    \"decodedOutput\": {\n      \"launches\": 120,\n      \"measuredLaunches\": 100,\n      \"discardedProcesses\": 20,\n      \"allDecodedHashesMatchWithinEachPairedCase\": true\n    },\n    \"profileSelectionTests\": {\n      \"passed\": 5,\n      \"total\": 5\n    },\n    \"decoderHarnessTests\": {\n      \"passed\": 4,\n      \"total\": 4\n    },\n    \"cacheProfileMismatchGuard\": {\n      \"passed\": true,\n      \"artifactAndIdentityUnchanged\": true\n    },\n    \"package\": {\n      \"listedFiles\": 10,\n      \"candidateAndTrialHashesMatch\": true,\n      \"validator\": \"scripts/runtime_update.ps1:Read-AperturePackage\"\n    }\n  },\n  \"tradeoffs\": {\n    \"sizeProfileDllBytes\": 24561152,\n    \"o3DllBytes\": 33462784,\n    \"o2DllBytes\": 27401728,\n    \"o2MinusO3MiB\": -5.7802734375,\n    \"o2MinusSizeMiB\": 2.708984375\n  },\n  \"decision\": \"Prefer O2 as the next isolated full-App candidate: it is 5.78 MiB smaller than O3, with close decoder timings in their direct paired comparison. All five direct timing ranges overlap; no stable O2 CPU lead is established. Versus size, H264 and AAC measured ranges separate; HEVC/VP9/AV1 overlap. No adoption until full-App evidence supports it.\",\n  \"limits\": [\n    \"Historical O3/size percentages and this O2/size batch came from different sessions; they cannot establish which profile is faster. The fresh O3/O2 paired batch is retained for that comparison.\",\n    \"One O3 HEVC measured process took 1.214s; it remains included in the recorded range and all raw counters. No outlier trimming or invented cause.\",\n    \"Five fresh measured processes per variant/case plus one discarded process. Hashing uses a separate warmup decoder; codec initialization and player/render/audio costs are excluded.\",\n    \"Static probe final LTO link differs from full libmpv. Software component improvements are not full-App CPU/RAM or VLC comparisons.\",\n    \"Native frame checks do not verify visible presentation cadence, physical audio output, or all HDR adaptive states.\",\n    \"The prior full-App CPU burst remains unexplained. No new visible Aperture measurement or VLC session occurred. Existing installed/bundled DLL remains unchanged.\"\n  ]\n}"
     }
   ],
   "historySeries": {

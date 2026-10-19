@@ -1,0 +1,568 @@
+{
+  "recordedUtc": "2026-10-19T08:21:18.426786+00:00",
+  "status": "O2 is a smaller qualified candidate, not adopted and not a full-App/VLC performance win.",
+  "scope": "Two independent CPU-only paired software demux/decode comparisons. No player windows, renderer, hardware decoder or audio output in timing probes. Hidden rendering checks are correctness evidence only.",
+  "profileChange": "Balanced compiler profile uses O2 and FFmpeg disable-small; size remains default. Same pinned sources, maintained patches, installed packages, compiler, codec inventory, CPU target and normal floating-point semantics. Meson optimization=2 and FFmpeg CONFIG_SMALL=0 / CFLAGS O2 verified in actual build outputs. Shader chain remains Os without LTO. Independent of picture-scaling profiles.",
+  "batches": {
+    "sizeVsO2": {
+      "createdUtc": "2026-10-19T08:12:56.730890+00:00",
+      "completedUtc": "2026-10-19T08:15:29.065374+00:00",
+      "baselineProfile": "size",
+      "candidateProfile": "balanced",
+      "summary": [
+        {
+          "id": "h264-1080p",
+          "frames": 180,
+          "kind": "video",
+          "baseline": {
+            "elapsedSeconds": {
+              "median": 0.6880585,
+              "min": 0.6859342,
+              "max": 0.724868,
+              "runs": 5
+            },
+            "processCpuSeconds": {
+              "median": 0.6875,
+              "min": 0.671875,
+              "max": 0.71875,
+              "runs": 5
+            },
+            "processCycles": {
+              "median": 2605235540,
+              "min": 2597155980,
+              "max": 2744117180,
+              "runs": 5
+            }
+          },
+          "candidate": {
+            "elapsedSeconds": {
+              "median": 0.6549587,
+              "min": 0.6543735,
+              "max": 0.6583489,
+              "runs": 5
+            },
+            "processCpuSeconds": {
+              "median": 0.65625,
+              "min": 0.65625,
+              "max": 0.65625,
+              "runs": 5
+            },
+            "processCycles": {
+              "median": 2481871200,
+              "min": 2478851340,
+              "max": 2495319400,
+              "runs": 5
+            }
+          },
+          "elapsedRelativePercent": -4.810608400303174,
+          "cyclesRelativePercent": -4.735247086334471,
+          "elapsedRangesOverlap": false
+        },
+        {
+          "id": "hevc-720p",
+          "frames": 240,
+          "kind": "video",
+          "baseline": {
+            "elapsedSeconds": {
+              "median": 0.7261525,
+              "min": 0.7145334,
+              "max": 0.7460347,
+              "runs": 5
+            },
+            "processCpuSeconds": {
+              "median": 0.734375,
+              "min": 0.703125,
+              "max": 0.734375,
+              "runs": 5
+            },
+            "processCycles": {
+              "median": 2748000780,
+              "min": 2706627140,
+              "max": 2826446840,
+              "runs": 5
+            }
+          },
+          "candidate": {
+            "elapsedSeconds": {
+              "median": 0.7299229,
+              "min": 0.6937833,
+              "max": 0.7668289,
+              "runs": 5
+            },
+            "processCpuSeconds": {
+              "median": 0.71875,
+              "min": 0.703125,
+              "max": 0.765625,
+              "runs": 5
+            },
+            "processCycles": {
+              "median": 2765029720,
+              "min": 2628856340,
+              "max": 2906224420,
+              "runs": 5
+            }
+          },
+          "elapsedRelativePercent": 0.5192297761145381,
+          "cyclesRelativePercent": 0.6196846858245841,
+          "elapsedRangesOverlap": true
+        },
+        {
+          "id": "vp9-360p",
+          "frames": 240,
+          "kind": "video",
+          "baseline": {
+            "elapsedSeconds": {
+              "median": 0.0980112,
+              "min": 0.0975118,
+              "max": 0.1000547,
+              "runs": 5
+            },
+            "processCpuSeconds": {
+              "median": 0.09375,
+              "min": 0.09375,
+              "max": 0.09375,
+              "runs": 5
+            },
+            "processCycles": {
+              "median": 371657860,
+              "min": 369786360,
+              "max": 378542700,
+              "runs": 5
+            }
+          },
+          "candidate": {
+            "elapsedSeconds": {
+              "median": 0.0978227,
+              "min": 0.0939173,
+              "max": 0.1013677,
+              "runs": 5
+            },
+            "processCpuSeconds": {
+              "median": 0.09375,
+              "min": 0.09375,
+              "max": 0.109375,
+              "runs": 5
+            },
+            "processCycles": {
+              "median": 362148740,
+              "min": 356150440,
+              "max": 373618660,
+              "runs": 5
+            }
+          },
+          "elapsedRelativePercent": -0.19232495878023226,
+          "cyclesRelativePercent": -2.558568248765136,
+          "elapsedRangesOverlap": true
+        },
+        {
+          "id": "av1-1080p",
+          "frames": 120,
+          "kind": "video",
+          "baseline": {
+            "elapsedSeconds": {
+              "median": 0.606444,
+              "min": 0.5799212,
+              "max": 0.6360862,
+              "runs": 5
+            },
+            "processCpuSeconds": {
+              "median": 0.609375,
+              "min": 0.59375,
+              "max": 0.625,
+              "runs": 5
+            },
+            "processCycles": {
+              "median": 2292190400,
+              "min": 2190936360,
+              "max": 2391766360,
+              "runs": 5
+            }
+          },
+          "candidate": {
+            "elapsedSeconds": {
+              "median": 0.5891943,
+              "min": 0.5724101,
+              "max": 0.6444324,
+              "runs": 5
+            },
+            "processCpuSeconds": {
+              "median": 0.578125,
+              "min": 0.578125,
+              "max": 0.625,
+              "runs": 5
+            },
+            "processCycles": {
+              "median": 2221146360,
+              "min": 2164629720,
+              "max": 2418650980,
+              "runs": 5
+            }
+          },
+          "elapsedRelativePercent": -2.844401131843999,
+          "cyclesRelativePercent": -3.0993952334849695,
+          "elapsedRangesOverlap": true
+        },
+        {
+          "id": "aac-stereo",
+          "frames": 3000,
+          "kind": "audio",
+          "baseline": {
+            "elapsedSeconds": {
+              "median": 0.0443994,
+              "min": 0.0437076,
+              "max": 0.04457,
+              "runs": 5
+            },
+            "processCpuSeconds": {
+              "median": 0.03125,
+              "min": 0.03125,
+              "max": 0.046875,
+              "runs": 5
+            },
+            "processCycles": {
+              "median": 168311500,
+              "min": 165646180,
+              "max": 168515180,
+              "runs": 5
+            }
+          },
+          "candidate": {
+            "elapsedSeconds": {
+              "median": 0.0401886,
+              "min": 0.0397008,
+              "max": 0.0420345,
+              "runs": 5
+            },
+            "processCpuSeconds": {
+              "median": 0.03125,
+              "min": 0.03125,
+              "max": 0.046875,
+              "runs": 5
+            },
+            "processCycles": {
+              "median": 151981760,
+              "min": 150451500,
+              "max": 158387420,
+              "runs": 5
+            }
+          },
+          "elapsedRelativePercent": -9.483911944756008,
+          "cyclesRelativePercent": -9.70209403397867,
+          "elapsedRangesOverlap": false
+        }
+      ]
+    },
+    "o3VsO2": {
+      "createdUtc": "2026-10-19T08:16:37.372315+00:00",
+      "completedUtc": "2026-10-19T08:19:04.204326+00:00",
+      "baselineProfile": "performance",
+      "candidateProfile": "balanced",
+      "summary": [
+        {
+          "id": "h264-1080p",
+          "frames": 180,
+          "kind": "video",
+          "baseline": {
+            "elapsedSeconds": {
+              "median": 0.6385597,
+              "min": 0.6116357,
+              "max": 0.7057117,
+              "runs": 5
+            },
+            "processCpuSeconds": {
+              "median": 0.625,
+              "min": 0.59375,
+              "max": 0.703125,
+              "runs": 5
+            },
+            "processCycles": {
+              "median": 2419155620,
+              "min": 2317350580,
+              "max": 2674328660,
+              "runs": 5
+            }
+          },
+          "candidate": {
+            "elapsedSeconds": {
+              "median": 0.6298194,
+              "min": 0.6197192,
+              "max": 0.6788279,
+              "runs": 5
+            },
+            "processCpuSeconds": {
+              "median": 0.625,
+              "min": 0.609375,
+              "max": 0.671875,
+              "runs": 5
+            },
+            "processCycles": {
+              "median": 2386346420,
+              "min": 2347051000,
+              "max": 2571879140,
+              "runs": 5
+            }
+          },
+          "elapsedRelativePercent": -1.3687522090729987,
+          "cyclesRelativePercent": -1.356225276652523,
+          "elapsedRangesOverlap": true
+        },
+        {
+          "id": "hevc-720p",
+          "frames": 240,
+          "kind": "video",
+          "baseline": {
+            "elapsedSeconds": {
+              "median": 0.7233526,
+              "min": 0.7022751,
+              "max": 1.2138963,
+              "runs": 5
+            },
+            "processCpuSeconds": {
+              "median": 0.71875,
+              "min": 0.703125,
+              "max": 0.890625,
+              "runs": 5
+            },
+            "processCycles": {
+              "median": 2743066100,
+              "min": 2662934360,
+              "max": 3381855220,
+              "runs": 5
+            }
+          },
+          "candidate": {
+            "elapsedSeconds": {
+              "median": 0.7257172,
+              "min": 0.7167943,
+              "max": 0.7464294,
+              "runs": 5
+            },
+            "processCpuSeconds": {
+              "median": 0.734375,
+              "min": 0.71875,
+              "max": 0.75,
+              "runs": 5
+            },
+            "processCycles": {
+              "median": 2746186660,
+              "min": 2718982460,
+              "max": 2830668640,
+              "runs": 5
+            }
+          },
+          "elapsedRelativePercent": 0.32689451866212416,
+          "cyclesRelativePercent": 0.11376175003583455,
+          "elapsedRangesOverlap": true
+        },
+        {
+          "id": "vp9-360p",
+          "frames": 240,
+          "kind": "video",
+          "baseline": {
+            "elapsedSeconds": {
+              "median": 0.1046801,
+              "min": 0.098653,
+              "max": 0.1101395,
+              "runs": 5
+            },
+            "processCpuSeconds": {
+              "median": 0.09375,
+              "min": 0.09375,
+              "max": 0.109375,
+              "runs": 5
+            },
+            "processCycles": {
+              "median": 390879780,
+              "min": 374246800,
+              "max": 408406140,
+              "runs": 5
+            }
+          },
+          "candidate": {
+            "elapsedSeconds": {
+              "median": 0.1040375,
+              "min": 0.101626,
+              "max": 0.1099994,
+              "runs": 5
+            },
+            "processCpuSeconds": {
+              "median": 0.109375,
+              "min": 0.09375,
+              "max": 0.109375,
+              "runs": 5
+            },
+            "processCycles": {
+              "median": 394551720,
+              "min": 385330640,
+              "max": 414480820,
+              "runs": 5
+            }
+          },
+          "elapsedRelativePercent": -0.6138702580528621,
+          "cyclesRelativePercent": 0.939403926189275,
+          "elapsedRangesOverlap": true
+        },
+        {
+          "id": "av1-1080p",
+          "frames": 120,
+          "kind": "video",
+          "baseline": {
+            "elapsedSeconds": {
+              "median": 0.6301351,
+              "min": 0.5789984,
+              "max": 0.6512443,
+              "runs": 5
+            },
+            "processCpuSeconds": {
+              "median": 0.625,
+              "min": 0.578125,
+              "max": 0.640625,
+              "runs": 5
+            },
+            "processCycles": {
+              "median": 2388464920,
+              "min": 2193222440,
+              "max": 2451777860,
+              "runs": 5
+            }
+          },
+          "candidate": {
+            "elapsedSeconds": {
+              "median": 0.6136875,
+              "min": 0.5846221,
+              "max": 0.6313062,
+              "runs": 5
+            },
+            "processCpuSeconds": {
+              "median": 0.609375,
+              "min": 0.59375,
+              "max": 0.625,
+              "runs": 5
+            },
+            "processCycles": {
+              "median": 2315578640,
+              "min": 2214754000,
+              "max": 2392935620,
+              "runs": 5
+            }
+          },
+          "elapsedRelativePercent": -2.610170422184055,
+          "cyclesRelativePercent": -3.051595164311649,
+          "elapsedRangesOverlap": true
+        },
+        {
+          "id": "aac-stereo",
+          "frames": 3000,
+          "kind": "audio",
+          "baseline": {
+            "elapsedSeconds": {
+              "median": 0.0413208,
+              "min": 0.0410422,
+              "max": 0.0442383,
+              "runs": 5
+            },
+            "processCpuSeconds": {
+              "median": 0.046875,
+              "min": 0.03125,
+              "max": 0.046875,
+              "runs": 5
+            },
+            "processCycles": {
+              "median": 156672480,
+              "min": 155546160,
+              "max": 164611820,
+              "runs": 5
+            }
+          },
+          "candidate": {
+            "elapsedSeconds": {
+              "median": 0.0411782,
+              "min": 0.0404811,
+              "max": 0.0421452,
+              "runs": 5
+            },
+            "processCpuSeconds": {
+              "median": 0.046875,
+              "min": 0.03125,
+              "max": 0.046875,
+              "runs": 5
+            },
+            "processCycles": {
+              "median": 155758960,
+              "min": 153573200,
+              "max": 158827080,
+              "runs": 5
+            }
+          },
+          "elapsedRelativePercent": -0.34510464463417545,
+          "cyclesRelativePercent": -0.5830762364902875,
+          "elapsedRangesOverlap": true
+        }
+      ]
+    }
+  },
+  "method": "One discarded process per variant/case, followed by rotated measured processes. Each process first hashes decoded output in a separate warmup, then initializes a fresh decoder and times fixed-count demux/decode/frame release. Open, stream discovery and codec initialization excluded. One decoder thread, warm file cache, no affinity change; raw process cycles and CPU time retained without converting to CPU utilization. Exact decoded buffers and frame metadata must match across both variants and all launches.",
+  "validation": {
+    "nativeFunctional": {
+      "passed": 80,
+      "total": 80,
+      "evidence": "docs/evidence/native-balanced-20261019/native-functional/result.json",
+      "scope": "Hidden owner windows and observed null audio output; hardware/software codecs, controls, filters, local HTTP. Initial reviewer phrase assertion was corrected from authoritative PASS logs without rerunning; original reviewer result retained."
+    },
+    "appLifecycle": {
+      "passed": 1,
+      "total": 1,
+      "evidence": "docs/evidence/native-balanced-20261019/app-lifecycle-driver.log",
+      "scope": "MpvInitialization.ExportPolicyAndBundledLifecycle only; 52 other App tests filtered, not claimed as passed."
+    },
+    "sdrFrameParity": {
+      "passed": 13,
+      "total": 13,
+      "maximumChannelError": 0,
+      "evidence": "docs/evidence/native-balanced-20261019/frame-quality/results.json"
+    },
+    "hdrFallback": {
+      "observedMaximumChannelError": 1,
+      "scope": "Fallback verified; adaptive peak history prevents a claim of exact HDR parity."
+    },
+    "decodedOutput": {
+      "launches": 120,
+      "measuredLaunches": 100,
+      "discardedProcesses": 20,
+      "allDecodedHashesMatchWithinEachPairedCase": true
+    },
+    "profileSelectionTests": {
+      "passed": 5,
+      "total": 5
+    },
+    "decoderHarnessTests": {
+      "passed": 4,
+      "total": 4
+    },
+    "cacheProfileMismatchGuard": {
+      "passed": true,
+      "artifactAndIdentityUnchanged": true
+    },
+    "package": {
+      "listedFiles": 10,
+      "candidateAndTrialHashesMatch": true,
+      "validator": "scripts/runtime_update.ps1:Read-AperturePackage"
+    }
+  },
+  "tradeoffs": {
+    "sizeProfileDllBytes": 24561152,
+    "o3DllBytes": 33462784,
+    "o2DllBytes": 27401728,
+    "o2MinusO3MiB": -5.7802734375,
+    "o2MinusSizeMiB": 2.708984375
+  },
+  "decision": "Prefer O2 as the next isolated full-App candidate: it is 5.78 MiB smaller than O3, with close decoder timings in their direct paired comparison. All five direct timing ranges overlap; no stable O2 CPU lead is established. Versus size, H264 and AAC measured ranges separate; HEVC/VP9/AV1 overlap. No adoption until full-App evidence supports it.",
+  "limits": [
+    "Historical O3/size percentages and this O2/size batch came from different sessions; they cannot establish which profile is faster. The fresh O3/O2 paired batch is retained for that comparison.",
+    "One O3 HEVC measured process took 1.214s; it remains included in the recorded range and all raw counters. No outlier trimming or invented cause.",
+    "Five fresh measured processes per variant/case plus one discarded process. Hashing uses a separate warmup decoder; codec initialization and player/render/audio costs are excluded.",
+    "Static probe final LTO link differs from full libmpv. Software component improvements are not full-App CPU/RAM or VLC comparisons.",
+    "Native frame checks do not verify visible presentation cadence, physical audio output, or all HDR adaptive states.",
+    "The prior full-App CPU burst remains unexplained. No new visible Aperture measurement or VLC session occurred. Existing installed/bundled DLL remains unchanged."
+  ]
+}

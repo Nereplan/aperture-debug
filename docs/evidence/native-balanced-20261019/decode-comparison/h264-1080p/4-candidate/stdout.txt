@@ -1,0 +1,1 @@
+{"kind":"video","decoder":"h264","threads":1,"hardware":false,"frames":180,"packets":182,"units":373248000,"decodedSha256":"473fb7ebfc2afa1537164d975d00e4ee0a70e8040f4f3aa22165ac61a45d61a4","elapsedSeconds":0.654871700,"processCpuSeconds":0.656250000,"processCycles":2481871200,"avcodecVersion":4066148,"windowsCreated":0}

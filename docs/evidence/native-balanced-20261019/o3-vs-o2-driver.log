@@ -1,0 +1,5 @@
+h264-1080p: output matches; median decode time -1.4%
+hevc-720p: output matches; median decode time +0.3%
+vp9-360p: output matches; median decode time -0.6%
+av1-1080p: output matches; median decode time -2.6%
+aac-stereo: output matches; median decode time -0.3%

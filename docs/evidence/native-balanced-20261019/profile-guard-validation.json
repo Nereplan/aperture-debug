@@ -1,0 +1,11 @@
+{
+  "recordedUtc": "2026-10-19T08:12:32.3207966Z",
+  "passed": true,
+  "expectedNonzeroExitCode": 1,
+  "reason": "Different profile rejected before compilation",
+  "verifiedUnchanged": {
+    "prefix/.recipe-id": "EA48F4E3468564348AB8DD76610446260E75B696EEA5B41D73B9A8BAF87B9CA4",
+    "output/optimization-profile.txt": "82E4DBE76A1C3EAC500637965138B6B26D7950E4886143D29913F7CC18343D04",
+    "output/libmpv-2.dll": "E91032CBCE1DA22AEC5903468E814D4DF2494E74FE508A371EAF3446C7408DAE"
+  }
+}

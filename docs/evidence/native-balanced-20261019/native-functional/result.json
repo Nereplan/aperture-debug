@@ -1,0 +1,46 @@
+{
+  "startedUtc": "2026-10-19T08:08:42.529355+00:00",
+  "scope": "Hidden native functional correctness only, silent null audio sink. No player performance ranking and no VLC.",
+  "probe": {
+    "path": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\native-performance-20261019\\native-functional-harness\\mpv_playback_test.exe",
+    "sha256": "8643e7a2ac60afc8b43b517d667e630d916c81bc8ce92d93b798723032a8a363"
+  },
+  "library": {
+    "path": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\native-balanced-20261019\\build\\output\\libmpv-2.dll",
+    "sha256": "e91032cbce1da22aec5903468e814d4df2494e74fe508a371eaf3446c7408dae"
+  },
+  "mediaDir": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\media",
+  "port": 58425,
+  "arguments": [
+    "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\native-performance-20261019\\native-functional-harness\\mpv_playback_test.exe",
+    "--dll",
+    "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\native-balanced-20261019\\build\\output\\libmpv-2.dll",
+    "--media",
+    "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\media",
+    "--scenario",
+    "functional",
+    "--port",
+    "58425",
+    "--headless",
+    "--hwdec-threads",
+    "1",
+    "--gpu-timing",
+    "no",
+    "--vertex-cache-entries",
+    "4",
+    "--scaling",
+    "balanced",
+    "--scale-direct-nv12",
+    "yes"
+  ],
+  "exitCode": 0,
+  "passed": 80,
+  "failed": 0,
+  "status": "pass",
+  "completedUtc": "2026-10-19T08:09:34.552573+00:00",
+  "reviewCorrection": {
+    "recordedUtc": "2026-10-19T08:10:24.465521+00:00",
+    "initialFailure": "The review script incorrectly required the literal phrase null sink. The native harness had already exited 0 with 80/80 checks.",
+    "repair": "Checked the actual PASS hidden audio uses null output message, hidden-owner assertion, loaded module path and native summary. Original reviewer result preserved; no test process relaunched."
+  }
+}

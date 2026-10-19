@@ -1,0 +1,24 @@
+{
+  "recordedUtc": "2026-10-19T08:23:57.790531+00:00",
+  "nativeProfileTests": {
+    "passed": 5,
+    "total": 5
+  },
+  "decoderHarnessTests": {
+    "passed": 4,
+    "total": 4
+  },
+  "checkpointSchema": "53 checkpoints / 1293 observations / 38 embedded reports valid",
+  "checkpointTests": {
+    "passed": 18,
+    "total": 18
+  },
+  "chartTests": {
+    "passed": 16,
+    "total": 16
+  },
+  "historicalDataAndFrontendPreserved": true,
+  "evidenceHashesVerified": 348,
+  "captureAliasesVerified": 28,
+  "note": "MSVC and App unit processes now defer decoder timing. Both decoder batches ran after builds and correctness tests completed."
+}

@@ -1,0 +1,1 @@
+{"kind":"audio","decoder":"aac","threads":1,"hardware":false,"frames":3000,"packets":3001,"units":3072000,"decodedSha256":"18e63ed8c5e99d9c4f3a18b7b46136802664d6205e075afe0d135146265e408a","elapsedSeconds":0.044399400,"processCpuSeconds":0.031250000,"processCycles":168334300,"avcodecVersion":4066148,"windowsCreated":0}

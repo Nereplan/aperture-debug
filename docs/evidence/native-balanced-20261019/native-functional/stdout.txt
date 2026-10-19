@@ -1,0 +1,99 @@
+TEST_VISIBILITY hidden-correctness-only
+Loaded module: C:\Users\Alperen\AppData\Local\Codex\tools\scratch\aperture-vlc-performance-20261017\native-balanced-20261019\build\output\libmpv-2.dll
+Loaded module path matches requested: YES
+[PASS] loaded DLL is the requested absolute path
+    mpv_client_api_version=0x20005 (2.5)
+[PASS] client api version >= 2.5
+[PASS] h264+aac mp4: load+play (hwdec=d3d11va): started
+[PASS] h264+aac mp4: video format h264
+[PASS] h264+aac mp4: audio codec aac
+[PASS] h264+aac mp4: time advances
+[PASS] h264+aac mp4: hwdec active (d3d11va)
+    drops: vo=0 dec=0
+[PASS] h264+aac mp4: load+play (hwdec=no): started
+[PASS] h264+aac mp4: video format h264
+[PASS] h264+aac mp4: audio codec aac
+[PASS] h264+aac mp4: time advances
+    drops: vo=0 dec=0
+[PASS] hevc+aac mp4: load+play (hwdec=d3d11va): started
+[PASS] hevc+aac mp4: video format hevc
+[PASS] hevc+aac mp4: audio codec aac
+[PASS] hevc+aac mp4: time advances
+[PASS] hevc+aac mp4: hwdec active (d3d11va)
+    drops: vo=0 dec=0
+[PASS] hevc+aac mp4: load+play (hwdec=no): started
+[PASS] hevc+aac mp4: video format hevc
+[PASS] hevc+aac mp4: audio codec aac
+[PASS] hevc+aac mp4: time advances
+    drops: vo=0 dec=0
+[PASS] av1+opus mkv: load+play (hwdec=d3d11va): started
+[PASS] av1+opus mkv: video format av1
+[PASS] av1+opus mkv: audio codec opus
+[PASS] av1+opus mkv: time advances
+[PASS] av1+opus mkv: hwdec active (d3d11va)
+    drops: vo=0 dec=0
+[PASS] av1+opus mkv: load+play (hwdec=no): started
+[PASS] av1+opus mkv: video format av1
+[PASS] av1+opus mkv: audio codec opus
+[PASS] av1+opus mkv: time advances
+[PASS] AV1 libdav1d software fallback
+    drops: vo=0 dec=0
+[PASS] vp9+opus webm: load+play (hwdec=no): started
+[PASS] vp9+opus webm: video format vp9
+[PASS] vp9+opus webm: audio codec opus
+[PASS] vp9+opus webm: time advances
+    drops: vo=0 dec=0
+[PASS] mpeg4+mp3 avi: load+play (hwdec=no): started
+[PASS] mpeg4+mp3 avi: video format mpeg4
+[PASS] mpeg4+mp3 avi: audio codec mp3
+[PASS] mpeg4+mp3 avi: time advances
+    drops: vo=0 dec=0
+[PASS] wmv3+wma asf: load+play (hwdec=no): started
+[PASS] wmv3+wma asf: video format wmv2
+[PASS] wmv3+wma asf: audio codec wmav2
+[PASS] wmv3+wma asf: time advances
+    drops: vo=0 dec=0
+[PASS] HEVC 10-bit HDR/PQ: load+play (hwdec=d3d11va): started
+[PASS] HEVC 10-bit HDR/PQ: video format hevc
+[PASS] HEVC 10-bit HDR/PQ: time advances
+[PASS] HEVC 10-bit HDR/PQ: hwdec active (d3d11va)
+    drops: vo=0 dec=0
+[PASS] HEVC 10-bit HDR/PQ: load+play (hwdec=no): started
+[PASS] HEVC 10-bit HDR/PQ: video format hevc
+[PASS] HEVC 10-bit HDR/PQ: time advances
+    drops: vo=0 dec=0
+[PASS] pause holds position
+[PASS] resume advances
+[PASS] hr-seek to 8s
+[PASS] speed 1.5 advances faster
+[PASS] sub-add srt + select
+[PASS] sub-visibility
+[PASS] ASS subtitle decoded through libass
+[PASS] subtitles embedded mov_text
+[PASS] screenshot-to-file (thumbnail path)
+[PASS] geometry playback starts
+[PASS] geometry paused exact seek settles
+[PASS] geometry paused 640x360
+[PASS] geometry paused 960x540
+[PASS] geometry portrait window 384x512
+[PASS] geometry restored 640x360
+[PASS] geometry rotate accepts
+[PASS] geometry rotated 480x640
+[PASS] geometry unrotate accepts
+[PASS] geometry resume advances
+[PASS] geometry playing 800x450
+    [END_FILE reason=2 error=none]
+[PASS] geometry reconfigure H264 to HDR HEVC
+[PASS] geometry HDR reconfigure 640x360
+[PASS] software render API (SW) frames
+[PASS] hidden audio uses null output
+[PASS] af lavfi dynaudnorm active
+[PASS] af lavfi pan active
+[PASS] af combined night+map active
+[PASS] audio still playing with filters
+[INFO] balance property (internal pan): error=-8 (property not found), pan=0; unsupported on the original DLL too
+[PASS] audio-normalize-downmix accepted
+[PASS] network http playback
+[PASS] headless test owner windows remained hidden
+
+==== SUMMARY: 80 passed, 0 failed ====

@@ -1,0 +1,1 @@
+{"kind":"video","decoder":"hevc","threads":1,"hardware":false,"frames":240,"packets":242,"units":221184000,"decodedSha256":"e0fa54f67e56ae1fc100e4ca1fd3f7ab4f1a819eb0d750f0153cec625108a74a","elapsedSeconds":0.693783300,"processCpuSeconds":0.703125000,"processCycles":2628856340,"avcodecVersion":4066148,"windowsCreated":0}

@@ -1,0 +1,1 @@
+{"kind":"video","decoder":"vp9","threads":1,"hardware":false,"frames":240,"packets":240,"units":55296000,"decodedSha256":"b2f0508380353e2f0ce72c032d0efccf994c745ce62444a197a6db38b0930053","elapsedSeconds":0.098653000,"processCpuSeconds":0.093750000,"processCycles":374246800,"avcodecVersion":4066148,"windowsCreated":0}

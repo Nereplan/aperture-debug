@@ -1,0 +1,7 @@
+Build inputs changed; run the PowerShell wrapper with -Clean.
+Exception: C:\Users\Alperen\Desktop\Antigravity\Aperture Final\scripts\build_lean_libmpv.ps1:105
+Line |
+ 105 |  … DE -ne 0) { throw "libmpv build failed ($LASTEXITCODE); see $BuildRoo …
+     |                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+     | libmpv build failed (1); see
+     | C:\Users\Alperen\AppData\Local\Codex\tools\scratch\aperture-vlc-performance-20261017\native-balanced-20261019\build\build.log

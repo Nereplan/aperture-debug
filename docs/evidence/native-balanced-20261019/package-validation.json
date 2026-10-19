@@ -1,0 +1,9 @@
+{
+  "recordedUtc": "2026-10-19T08:12:03.3626144Z",
+  "status": "pass",
+  "validator": "scripts/runtime_update.ps1:Read-AperturePackage",
+  "version": "2.0.0.0",
+  "listedFiles": 10,
+  "candidateMatchesTrial": true,
+  "initialInvocationNote": "Initial shell invocation referenced a nonexistent helper; corrected to the existing runtime_update.ps1 validator. No install or player launch occurred."
+}

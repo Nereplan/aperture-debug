@@ -1,0 +1,32 @@
+[
+  {
+    "id": "h264-1080p",
+    "path": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\h264-1080p30-audio.mp4",
+    "kind": "video",
+    "frames": 180
+  },
+  {
+    "id": "hevc-720p",
+    "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\media\\hevc_aac_720p.mp4",
+    "kind": "video",
+    "frames": 240
+  },
+  {
+    "id": "vp9-360p",
+    "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\media\\vp9_opus.webm",
+    "kind": "video",
+    "frames": 240
+  },
+  {
+    "id": "av1-1080p",
+    "path": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\av1-1080p30-audio.mp4",
+    "kind": "video",
+    "frames": 120
+  },
+  {
+    "id": "aac-stereo",
+    "path": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\h264-1080p30-audio.mp4",
+    "kind": "audio",
+    "frames": 3000
+  }
+]

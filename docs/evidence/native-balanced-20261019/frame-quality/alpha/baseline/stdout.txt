@@ -1,0 +1,60 @@
+TEST_VISIBILITY hidden-correctness-only
+Loaded module: C:\Users\Alperen\Desktop\Antigravity\Aperture Final\libmpv-2.dll
+Loaded module path matches requested: YES
+[PASS] loaded DLL is the requested absolute path
+    mpv_client_api_version=0x20005 (2.5)
+[PASS] client api version >= 2.5
+[native:cplayer] mpv v0.41.0 Copyright © 2000-2025 mpv/MPlayer/mplayer2 projects
+    [log:cplayer] mpv v0.41.0 Copyright © 2000-2025 mpv/MPlayer/mplayer2 projects
+[native:cplayer] libplacebo version: v7.360.1
+    [log:cplayer] libplacebo version: v7.360.1
+[native:cplayer] FFmpeg version: 8.0
+    [log:cplayer] FFmpeg version: 8.0
+[native:cplayer] FFmpeg library versions:
+    [log:cplayer] FFmpeg library versions:
+[native:cplayer]    libavcodec      62.11.100
+    [log:cplayer]    libavcodec      62.11.100
+[native:cplayer]    libavfilter     11.4.100
+    [log:cplayer]    libavfilter     11.4.100
+[native:cplayer]    libavformat     62.3.100
+    [log:cplayer]    libavformat     62.3.100
+[PASS] frame check playback starts
+[PASS] frame check exact paused position
+[native:cplayer]    libavutil       60.8.100
+[native:cplayer]    libswresample   6.1.100
+[native:cplayer]    libswscale      9.1.100
+[native:cplayer] Configuration: -Dbuildtype=release -Dprefix=Q:/prefix -Dprefer_static=true -Db_lto=true -Doptimization=s -Db_ndebug=true -Dstrip=true -Dbuild-date=false -Dlibmpv=true -Dcplayer=false -Dtests=false -Dmanpage-build=disabled -Dlua=disabled -Djavascript=disabled -Dlibarchive=disabled -Ddvdnav=disabled -Dlibbluray=disabled -Dvapoursynth=disabled -Dvulkan=disabled -Dshaderc=enabled -Dspirv-cross=enabled -Dd3d11=enabled -Ddirect3d=disabled -Dd3d-hwaccel=enabled -Dd3d9-hwaccel=disabled -Duchardet=enabled -Drubberband=disabled -Dlcms2=enabled -Dcdda=disabled -Dzimg=disabled -Djpeg=disabled -Dwasapi=enabled -Dgl=disabled -Dplain-gl=disabled -Dgl-win32=disabled -Dgl-dxinterop=disabled -Dgl-dxinterop-d3d9=disabled -Degl=disabled -Degl-angle=disabled -Degl-angle-lib=disabled -Degl-angle-win32=disabled -Degl-drm=disabled -Degl-wayland=disabled -Degl-x11=disabled -Degl-android=disabled -Dcaca=disabled -Dsixel=disabled -Ddrm=disabled -Dvaapi=disabled -Dvdpau=disabled -Dvdpau-gl-x11=disabled -Dvaapi-drm=disabled -Dvaapi-wayland=disabled -Dvaapi-x11=disabled -Dvaapi-win32=disabled -Dxv=disabled -Dx11=disabled -Dwayland=disabled -Dcocoa=disabled -Dcuda-hwaccel=disabled -Dcuda-interop=disabled -Dalsa=disabled -Djack=disabled -Doss-audio=disabled -Dpipewire=disabled -Dpulse=disabled -Dsndio=disabled -Ddvbin=disabled
+[native:cplayer] List of enabled features: cplugins d3d-hwaccel d3d11 dos-paths dxgi-debug-d3d11 ffmpeg glob glob-win32 gpl iconv lcms2 libass libplacebo shaderc spirv-cross uchardet vector wasapi win32 win32-desktop win32-threads zlib
+[native:cplayer] Built with NDEBUG.
+[native:clipboard] Initialized win32 clipboard backend.
+[native:vo/gpu/d3d11] Initializing GPU context 'd3d11'
+[native:vo/gpu/d3d11] Using Direct3D 11 feature level 12_1
+[native:vo/gpu/d3d11] Device Name: NVIDIA GeForce RTX 4070 SUPER
+[native:vo/gpu/d3d11] Device ID: 10de:2783 (rev a1)
+[native:vo/gpu/d3d11] Subsystem ID: 1458:413b
+[native:vo/gpu/d3d11] LUID: 000000000000df98
+[native:vo/gpu/d3d11] Initializing SPIR-V compiler 'shaderc'
+[native:vo/gpu/d3d11] Using Direct3D 11.1 runtime
+[native:vo/gpu/d3d11] Maximum Texture2D size: 16384x16384
+[native:vo/gpu/d3d11] D3DCompiler version: 10.0.26100.9711
+[native:vo/gpu/win32] resize window: 1264:761
+[native:vo/gpu/win32] DPI detected from the new API: 96
+[native:vo/gpu/win32] display-fps: 164.995000
+[PASS] frame check rendered capture
+[native:vo/gpu/win32] color-profile: C:\WINDOWS\system32\spool\drivers\color\Y27-30.icm
+[native:vo/gpu/d3d11] Using DXGI 1.2+
+[native:vo/gpu/d3d11] Queried output: \\.\DISPLAY1, 1920x1080 @ 8 bits, colorspace: RGB_FULL_G22_NONE_P709 (0)
+[native:vo/gpu/d3d11] Selected swapchain format R8G8B8A8_UNORM (28), attempting to utilize it.
+[native:vo/gpu/d3d11] Using flip-model presentation
+[native:vo/gpu] Testing FBO format rgba16hf
+[native:vo/gpu] Using FBO format rgba16hf.
+FBO_FORMAT {"actual":"rgba16hf"}
+[PASS] frame check requested decoder
+RENDER_OPTIONS {"scale":"lanczos","dscale":"hermite","cscale":"bilinear","linear-downscaling":"no","correct-downscaling":"yes","sigmoid-upscaling":"no","dither-depth":"auto","dither":"fruit","target-colorspace-hint":"auto","fbo-format":"auto","d3d11-gpu-timing":"no","d3d11-vertex-cache-entries":"4","scale-direct-nv12":"yes","d3d11va-zero-copy":"no","video-zoom":"0.000000","video-rotate":"0","video-out-params/pixelformat":"bgra","video-params/primaries":"bt.709","video-params/gamma":"srgb","video-params/alpha":"straight"}
+[PASS] frame check effective options
+[PASS] frame check render pass data
+RENDER_PASSES {"fresh":[{"desc":"upload frame (naive)","last":0,"avg":0,"peak":0,"count":0,"samples":[]},{"desc":"combining planes + color conversion","last":0,"avg":0,"peak":0,"count":0,"samples":[]},{"desc":"scale=lanczos (rgb)","last":0,"avg":0,"peak":0,"count":0,"samples":[]},{"desc":"lanczos second pass + output to screen","last":0,"avg":0,"peak":0,"count":0,"samples":[]},{"desc":"drawing osd","last":0,"avg":0,"peak":0,"count":0,"samples":[]}],"redraw":[{"desc":"combining planes + color conversion","last":0,"avg":0,"peak":0,"count":0,"samples":[]},{"desc":"scale=lanczos (rgb)","last":0,"avg":0,"peak":0,"count":0,"samples":[]},{"desc":"lanczos second pass + output to screen","last":0,"avg":0,"peak":0,"count":0,"samples":[]},{"desc":"drawing osd","last":0,"avg":0,"peak":0,"count":0,"samples":[]}]}
+FRAME_CHECK {"headless":true,"position":2.000000,"hwdec":"no","selected_fbo":"rgba16hf","direct_filter":"no"}
+[PASS] headless test owner windows remained hidden
+
+==== SUMMARY: 9 passed, 0 failed ====
