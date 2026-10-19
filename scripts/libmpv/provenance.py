@@ -27,6 +27,7 @@ dll = root / "output/libmpv-2.dll"
 profile = (root / "output/optimization-profile.txt").read_text().strip()
 optimizations = {
     "size": "-Os; FFmpeg enable-small; LTO for mpv/FFmpeg/libplacebo; shader chain -Os without LTO",
+    "balanced": "-O2; FFmpeg disable-small; LTO for mpv/FFmpeg/libplacebo; shader chain -Os without LTO; no fast-math or CPU target change",
     "performance": "-O3; FFmpeg disable-small; LTO for mpv/FFmpeg/libplacebo; shader chain -Os without LTO; no fast-math or CPU target change",
 }
 if profile not in optimizations:

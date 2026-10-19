@@ -2,7 +2,7 @@
 param(
     [Parameter(Mandatory)][string]$PrefixPath,
     [Parameter(Mandatory)][string]$OutputPath,
-    [ValidateSet('size','performance')][string]$OptimizationProfile = 'size',
+    [ValidateSet('size','balanced','performance')][string]$OptimizationProfile = 'size',
     [string]$MsysRoot = 'C:\msys64'
 )
 $ErrorActionPreference = 'Stop'

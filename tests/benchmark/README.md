@@ -313,12 +313,15 @@ NV12 filter. An accepted option or correct return frame alone does not establish
 picture parity for intermediate HDR stages or a playback performance win.
 
 Native compiler-profile comparisons use `scripts/build_lean_libmpv.ps1
--OptimizationProfile size` or `performance`, with separate `-BuildRoot` paths.
+-OptimizationProfile size`, `balanced` or `performance`, with separate `-BuildRoot` paths.
+Size remains the default; the other compiler profiles are experimental.
 The default build/cache directory is under `%LOCALAPPDATA%/Codex/tools/scratch`;
 existing repository scratch builds remain supported. Profile selection is part
-of the recipe/cache identity and output provenance. Performance uses `-O3` and
-FFmpeg `--disable-small`; it keeps the decoder features, CPU target and normal
-floating-point semantics. It does not replace the bundled DLL automatically.
+of the recipe/cache identity and output provenance. Balanced uses `-O2` and
+performance uses `-O3`; both enable FFmpeg's faster `--disable-small` paths.
+All three keep the decoder features, CPU target and normal floating-point
+semantics. These compiler profiles are independent of picture-scaling profiles.
+They do not replace the bundled DLL automatically.
 
 For CPU-only decoder comparisons, build one probe per completed native prefix
 with `build_native_decode_probe.ps1 -PrefixPath <build>/prefix -OutputPath

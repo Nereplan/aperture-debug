@@ -6,6 +6,7 @@ source_file=$(cygpath -u "$2")
 output_file=$(cygpath -u "$3")
 case "$4" in
   size) optimization=-Os ;;
+  balanced) optimization=-O2 ;;
   performance) optimization=-O3 ;;
   *) echo 'Unknown optimization profile' >&2; exit 2 ;;
 esac

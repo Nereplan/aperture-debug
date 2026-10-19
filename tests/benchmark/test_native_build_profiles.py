@@ -36,6 +36,11 @@ class NativeBuildProfiles(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(result.stdout.splitlines(), ["performance", "--disable-small", "-O3", "3"])
 
+    def test_balanced_keeps_fast_decoder_paths_with_o2(self):
+        result = self.select("balanced")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout.splitlines(), ["balanced", "--disable-small", "-O2", "2"])
+
     def test_unknown_profile_stops_before_any_build(self):
         result = self.select("unknown")
         self.assertEqual(result.returncode, 2)
