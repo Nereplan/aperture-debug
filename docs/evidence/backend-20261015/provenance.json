@@ -1,0 +1,15 @@
+{
+  "baselineHead": "9a053d3292b66b9d6556ebea8f3138ae0d9116f9",
+  "baseline": "Initial source snapshot including existing local changes; unrelated modified files preserved byte-for-byte",
+  "localDate": "2026-10-15",
+  "toolchain": "MSVC x64 /O2 C++17; save harness /MD, cache/number harness /MT; same flags per comparison",
+  "sourceSha256": {
+    "src/CacheStorage.h": "8f98a632f4574d4e616d63ee90e71e130aa01042dc328a10a091937b36349171",
+    "src/Json.cpp": "573cede6adb24a7050f22ad9d7ee2a5b12bf6b8259dd03b41185ac4d67682d7e",
+    "src/MediaLibrary.cpp": "698d05910c317b2144c678f8dabf7cf563ccae24bcb8e59b0b546796dee8dff1",
+    "src/Settings.cpp": "09cc42469c7d16c89da63d68f81b1658b13812ab291b8cab413899d0c2c9f930",
+    "tests/benchmark/save_resource_benchmark.cpp": "9973b34408f98f6c720c86e625de1003f3a012b126e3f590da1000926dbf381e",
+    "tests/backend/benchmark.cpp": "887a834bcd2ab5667b7fa840b11cf74f0bc6e4d6887a54a06c4dd7b67ddd72f4"
+  },
+  "sampling": "One warmup and seven measured samples per workload. Save runs repeated in reversed version order. No simultaneous compilation during comparisons. Single logical processor affinity. Warm OS file cache."
+}

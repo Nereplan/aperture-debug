@@ -1,0 +1,186 @@
+[
+  {
+    "items": 500,
+    "mode": "first",
+    "before": {
+      "ms": 21.132,
+      "allocations": 14277.0,
+      "allocated_bytes": 2321102.0,
+      "peak_live_cpp_bytes": 826598.0,
+      "retained_cpp_bytes": 724029.0,
+      "json_bytes": "192318",
+      "content_hash": "6986250780404406989"
+    },
+    "after": {
+      "ms": 21.038,
+      "allocations": 11677.0,
+      "allocated_bytes": 2237252.0,
+      "peak_live_cpp_bytes": 826550.0,
+      "retained_cpp_bytes": 724029.0,
+      "json_bytes": "192318",
+      "content_hash": "6986250780404406989"
+    },
+    "elapsed_reduction_percent": 0.44
+  },
+  {
+    "items": 500,
+    "mode": "unchanged",
+    "before": {
+      "ms": 0.395,
+      "allocations": 19.0,
+      "allocated_bytes": 4218.0,
+      "peak_live_cpp_bytes": 1824.0,
+      "retained_cpp_bytes": 1824.0,
+      "json_bytes": "192318",
+      "content_hash": "6986250780404406989"
+    },
+    "after": {
+      "ms": 0.482,
+      "allocations": 19.0,
+      "allocated_bytes": 4186.0,
+      "peak_live_cpp_bytes": 1824.0,
+      "retained_cpp_bytes": 1824.0,
+      "json_bytes": "192318",
+      "content_hash": "6986250780404406989"
+    },
+    "elapsed_reduction_percent": -22.03
+  },
+  {
+    "items": 500,
+    "mode": "progress",
+    "before": {
+      "ms": 5.655,
+      "allocations": 158.0,
+      "allocated_bytes": 197593.0,
+      "peak_live_cpp_bytes": 180523.0,
+      "retained_cpp_bytes": 175549.0,
+      "json_bytes": "192323",
+      "content_hash": "5315837825685257211"
+    },
+    "after": {
+      "ms": 6.275,
+      "allocations": 146.0,
+      "allocated_bytes": 196963.0,
+      "peak_live_cpp_bytes": 180443.0,
+      "retained_cpp_bytes": 175549.0,
+      "json_bytes": "192323",
+      "content_hash": "5315837825685257211"
+    },
+    "elapsed_reduction_percent": -10.96
+  },
+  {
+    "items": 500,
+    "mode": "load",
+    "before": {
+      "ms": 5.623,
+      "allocations": 24478.0,
+      "allocated_bytes": 2804259.0,
+      "peak_live_cpp_bytes": 1202675.0,
+      "retained_cpp_bytes": 592972.0,
+      "json_bytes": "192318",
+      "content_hash": "6986250780404406989"
+    },
+    "after": {
+      "ms": 5.96,
+      "allocations": 22662.0,
+      "allocated_bytes": 2618915.0,
+      "peak_live_cpp_bytes": 1202131.0,
+      "retained_cpp_bytes": 529516.0,
+      "json_bytes": "192318",
+      "content_hash": "6986250780404406989"
+    },
+    "elapsed_reduction_percent": -5.99
+  },
+  {
+    "items": 25000,
+    "mode": "first",
+    "before": {
+      "ms": 159.758,
+      "allocations": 600825.0,
+      "allocated_bytes": 92821848.0,
+      "peak_live_cpp_bytes": 35749272.0,
+      "retained_cpp_bytes": 31016753.0,
+      "json_bytes": "9024568",
+      "content_hash": "13353129619659467689"
+    },
+    "after": {
+      "ms": 117.561,
+      "allocations": 490425.0,
+      "allocated_bytes": 89288398.0,
+      "peak_live_cpp_bytes": 35749224.0,
+      "retained_cpp_bytes": 31016753.0,
+      "json_bytes": "9024568",
+      "content_hash": "13353129619659467689"
+    },
+    "elapsed_reduction_percent": 26.41
+  },
+  {
+    "items": 25000,
+    "mode": "unchanged",
+    "before": {
+      "ms": 6.914,
+      "allocations": 19.0,
+      "allocated_bytes": 4218.0,
+      "peak_live_cpp_bytes": 1824.0,
+      "retained_cpp_bytes": 1824.0,
+      "json_bytes": "9024568",
+      "content_hash": "13353129619659467689"
+    },
+    "after": {
+      "ms": 6.902,
+      "allocations": 19.0,
+      "allocated_bytes": 4186.0,
+      "peak_live_cpp_bytes": 1824.0,
+      "retained_cpp_bytes": 1824.0,
+      "json_bytes": "9024568",
+      "content_hash": "13353129619659467689"
+    },
+    "elapsed_reduction_percent": 0.17
+  },
+  {
+    "items": 25000,
+    "mode": "progress",
+    "before": {
+      "ms": 29.854,
+      "allocations": 159.0,
+      "allocated_bytes": 20561839.0,
+      "peak_live_cpp_bytes": 20539083.0,
+      "retained_cpp_bytes": 12645580.0,
+      "json_bytes": "9024573",
+      "content_hash": "17246791759775021839"
+    },
+    "after": {
+      "ms": 25.654,
+      "allocations": 147.0,
+      "allocated_bytes": 20561209.0,
+      "peak_live_cpp_bytes": 20539035.0,
+      "retained_cpp_bytes": 12645580.0,
+      "json_bytes": "9024573",
+      "content_hash": "17246791759775021839"
+    },
+    "elapsed_reduction_percent": 14.07
+  },
+  {
+    "items": 25000,
+    "mode": "load",
+    "before": {
+      "ms": 236.275,
+      "allocations": 1077721.0,
+      "allocated_bytes": 123913627.0,
+      "peak_live_cpp_bytes": 55854786.0,
+      "retained_cpp_bytes": 28250723.0,
+      "json_bytes": "9024568",
+      "content_hash": "13353129619659467689"
+    },
+    "after": {
+      "ms": 225.751,
+      "allocations": 1008775.0,
+      "allocated_bytes": 116923163.0,
+      "peak_live_cpp_bytes": 55854242.0,
+      "retained_cpp_bytes": 25588307.0,
+      "json_bytes": "9024568",
+      "content_hash": "13353129619659467689"
+    },
+    "elapsed_reduction_percent": 4.45
+  }
+]

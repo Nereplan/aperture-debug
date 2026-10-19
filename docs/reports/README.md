@@ -9,7 +9,9 @@ Reports capture empirical observations on specific machines and source revisions
 ## Navigation by subsystem
 
 ### Backend, storage and persistence
+
 - [Backend performance balance (17 Oct 2026)](BACKEND_BALANCE_20261017.md) — Speed/resource/size measurements, all eight research dispositions, local build and regression evidence.
+- [Backend performance and behavioral tests (15 Oct 2026)](BACKEND_PERFORMANCE_20261015.md) — Saved paired measurements and real store/cache contracts; source evidence retained from that session.
 - [Thumbnail cache removal (14 Oct 2026)](THUMBNAIL_PURGE_20261014.md) — Bounded filename inventories, compatible key formatting, and removal latency/memory measurements.
 - [Library record memory (14 Oct 2026)](LIBRARY_RECORD_MEMORY_20261014.md) — On-demand playback preferences, independent snapshot ownership, and sparse/dense memory and CPU measurements.
 - [JSON array ownership during loading (14 Oct 2026)](JSON_ARRAY_GROWTH_20261014.md) — Explicit parser ownership transfer, library-load measurements and array-boundary regressions.
@@ -21,6 +23,8 @@ Reports capture empirical observations on specific machines and source revisions
 - [Backend optimization baseline (1 Oct 2026)](BACKEND_OPTIMIZATION_REPORT.md) — Initial backend pass covering JSON serialization, playlist membership caching, cache I/O, and player synchronization.
 
 ### UI, rendering and interaction
+
+- [Hit registration and keyboard audit (11–12 Oct 2026)](HIT_REGISTRATION_AUDIT_20261012.md) — Incomplete interaction audit, with its original scope and interruption limits.
 - [Library view pipeline redesign (7 Oct 2026)](LIBRARY_VIEW_PIPELINE.md) — Source `bef3068`. Compact UI projections (`LibraryViewItem`), reusable query plans, domain-specific refresh scoping, stable layout generations, and smart-playlist membership tracking.
 - [History and playlist optimization (7 Oct 2026)](HISTORY_AND_PLAYLIST_OPTIMIZATION.md) — Source `3fee131`. Virtualized visible history row lookup, empty-viewport handling, cached playlist resume selection with expiry.
 - [Scrolling and text optimization (7 Oct 2026)](SCROLL_AND_TEXT_OPTIMIZATION.md) — Source `508a96c`. Elimination of offscreen playlist work, group-header lookup caching, wrapped text layout reuse.
