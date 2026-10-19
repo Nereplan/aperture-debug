@@ -164,44 +164,6 @@ bool FolderWatcher::AddWatch(const std::wstring& folderPath) {
     return true;
 }
 
-bool FolderWatcher::RemoveWatch(const std::wstring& folderPath) {
-    if (folderPath.empty()) return false;
-    std::wstring resolved = ResolveAppPath(folderPath);
-    std::wstring key = NormalizePathKey(resolved);
-    if (key.empty()) return false;
-    std::lock_guard<std::mutex> lock(watchMutex);
-    auto it = watches.find(key);
-    if (it == watches.end()) return false;
-    it->second->retired = true;
-    if (it->second->hDirectory != INVALID_HANDLE_VALUE) {
-        it->second->retired = true;
-        CancelIoEx(it->second->hDirectory, &it->second->overlapped);
-        CloseHandle(it->second->hDirectory);
-        it->second->hDirectory = INVALID_HANDLE_VALUE;
-        it->second->active = false;
-    }
-    if (it->second->pendingRead) { retiredWatches.push_back(std::move(it->second)); }
-    watches.erase(it);
-    return true;
-}
-
-void FolderWatcher::ClearWatches() {
-    std::lock_guard<std::mutex> lock(watchMutex);
-    for (auto& pair : watches) {
-        if (!pair.second) continue;
-        pair.second->retired = true;
-        if (pair.second->hDirectory != INVALID_HANDLE_VALUE) {
-            pair.second->retired = true;
-            CancelIoEx(pair.second->hDirectory, &pair.second->overlapped);
-            CloseHandle(pair.second->hDirectory);
-            pair.second->hDirectory = INVALID_HANDLE_VALUE;
-            pair.second->active = false;
-        }
-        if (pair.second->pendingRead) { retiredWatches.push_back(std::move(pair.second)); }
-    }
-    watches.clear();
-}
-
 std::vector<std::wstring> FolderWatcher::GetWatchedFolders() const {
     std::lock_guard<std::mutex> lock(watchMutex);
     std::vector<std::wstring> result;

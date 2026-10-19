@@ -7,8 +7,7 @@
 #include <fstream>
 
 namespace Aperture::Test {
-
-TEST_CASE(SubtitleDiscovery, PathNormalization) {
+static void step_SubtitleDiscovery_PathNormalization() {
     // Forward slashes to backslashes
     std::wstring p1 = SubtitleDiscovery::NormalizePath(L"C:/media/movies/movie.srt");
     TEST_ASSERT_EQ(p1, std::wstring(L"C:\\media\\movies\\movie.srt"));
@@ -27,8 +26,7 @@ TEST_CASE(SubtitleDiscovery, PathNormalization) {
     TEST_ASSERT_EQ(SubtitleDiscovery::NormalizePath(L"C:\\video\\movie|test.srt"), std::wstring(L""));
     TEST_ASSERT_EQ(SubtitleDiscovery::NormalizePath(L"C:\\video\\movie\x01.srt"), std::wstring(L""));
 }
-
-TEST_CASE(SubtitleDiscovery, ReservedDeviceNameRejection) {
+static void step_SubtitleDiscovery_ReservedDeviceNameRejection() {
     TEST_ASSERT(SubtitleDiscovery::IsReservedDeviceName(L"CON"));
     TEST_ASSERT(SubtitleDiscovery::IsReservedDeviceName(L"con.srt"));
     TEST_ASSERT(SubtitleDiscovery::IsReservedDeviceName(L"PRN.vtt"));
@@ -46,8 +44,7 @@ TEST_CASE(SubtitleDiscovery, ReservedDeviceNameRejection) {
     TEST_ASSERT_EQ(SubtitleDiscovery::NormalizePath(L"C:\\media\\CON.srt"), std::wstring(L""));
     TEST_ASSERT_EQ(SubtitleDiscovery::NormalizePath(L"D:\\NUL"), std::wstring(L""));
 }
-
-TEST_CASE(SubtitleDiscovery, PathContainmentSafety) {
+static void step_SubtitleDiscovery_PathContainmentSafety() {
     std::wstring base = L"C:\\media";
 
     // Valid children
@@ -63,8 +60,7 @@ TEST_CASE(SubtitleDiscovery, PathContainmentSafety) {
     TEST_ASSERT(!SubtitleDiscovery::IsPathContained(base, L"C:\\media2\\movie.srt"));
     TEST_ASSERT(!SubtitleDiscovery::IsPathContained(base, L"C:\\media_files\\subs.srt"));
 }
-
-TEST_CASE(SubtitleDiscovery, FilenameMatchingAndScoring) {
+static void step_SubtitleDiscovery_FilenameMatchingAndScoring() {
     std::wstring media = L"Avatar.2009.mkv";
 
     // Exact stem match in same dir
@@ -91,8 +87,7 @@ TEST_CASE(SubtitleDiscovery, FilenameMatchingAndScoring) {
     int scoreOther = SubtitleDiscovery::CalculateMatchScore(media, L"Titanic.1997.srt", false);
     TEST_ASSERT_EQ(scoreOther, 20);
 }
-
-TEST_CASE(SubtitleDiscovery, LanguageTagParsing) {
+static void step_SubtitleDiscovery_LanguageTagParsing() {
     TEST_ASSERT_EQ(SubtitleDiscovery::ParseLanguageFromFileName(L"movie.en.srt"), std::wstring(L"English"));
     TEST_ASSERT_EQ(SubtitleDiscovery::ParseLanguageFromFileName(L"movie.eng.vtt"), std::wstring(L"English"));
     TEST_ASSERT_EQ(SubtitleDiscovery::ParseLanguageFromFileName(L"movie_spanish.ass"), std::wstring(L"Spanish"));
@@ -110,8 +105,7 @@ TEST_CASE(SubtitleDiscovery, LanguageTagParsing) {
     TEST_ASSERT_EQ(SubtitleDiscovery::ParseLanguageFromFileName(L"movie.en.cc.srt"), std::wstring(L"English (CC)"));
     TEST_ASSERT_EQ(SubtitleDiscovery::ParseLanguageFromFileName(L"movie.forced.srt"), std::wstring(L"Forced"));
 }
-
-TEST_CASE(SubtitleDiscovery, BOMAndEncodingDetection) {
+static void step_SubtitleDiscovery_BOMAndEncodingDetection() {
     // 1. UTF-8 BOM: 0xEF, 0xBB, 0xBF
     std::string utf8BomData = "\xEF\xBB\xBF" "1\r\n00:00:01,000 --> 00:00:04,000\r\nHello UTF-8 BOM\r\n";
     SubtitleEncoding enc1 = SubtitleDiscovery::DetectEncoding(utf8BomData);
@@ -154,8 +148,7 @@ TEST_CASE(SubtitleDiscovery, BOMAndEncodingDetection) {
     std::string dec4 = SubtitleDiscovery::DecodeSubtitleBytes(rawUtf8);
     TEST_ASSERT_EQ(dec4, rawUtf8);
 }
-
-TEST_CASE(SubtitleDiscovery, MalformedAndOversizedRejection) {
+static void step_SubtitleDiscovery_MalformedAndOversizedRejection() {
     // 1. Oversized rejection (> 32 MB)
     std::string oversized;
     oversized.resize(SubtitleDiscovery::kMaxSubtitleInputBytes + 1024, 'a');
@@ -189,8 +182,7 @@ TEST_CASE(SubtitleDiscovery, MalformedAndOversizedRejection) {
     std::wstring clean = SubtitleEngine::CleanSubtitleFormatting(nestedTags);
     TEST_ASSERT(clean.find(L"Nested") != std::wstring::npos);
 }
-
-TEST_CASE(SubtitleDiscovery, BoundedSubfolderDiscovery) {
+static void step_SubtitleDiscovery_BoundedSubfolderDiscovery() {
     ScopedTempDir temp(L"Aperture_SubDiscovery_");
     std::wstring tempRoot = temp.GetPath();
 
@@ -251,8 +243,7 @@ TEST_CASE(SubtitleDiscovery, BoundedSubfolderDiscovery) {
     engine.SelectSecondaryTrack(3);
     TEST_ASSERT_EQ(engine.GetSecondarySubtitleText(2.0), std::wstring(L"Spanish Subtitle"));
 }
-
-TEST_CASE(SubtitleDiscovery, RootRelativePathPersistence) {
+static void step_SubtitleDiscovery_RootRelativePathPersistence() {
     std::wstring rootDir = L"C:\\PortableApp";
 
     // Subpath under rootDir
@@ -268,6 +259,19 @@ TEST_CASE(SubtitleDiscovery, RootRelativePathPersistence) {
     std::wstring evilRel = L"..\\..\\Windows\\system32\\malicious.srt";
     std::wstring evilRestored = SubtitleDiscovery::FromRootRelativePath(evilRel, rootDir);
     TEST_ASSERT_EQ(evilRestored, std::wstring(L""));
+}
+
+
+TEST_CASE(SubtitleDiscovery, PathContainmentAndEncodingDiscovery) {
+    step_SubtitleDiscovery_PathNormalization();
+    step_SubtitleDiscovery_ReservedDeviceNameRejection();
+    step_SubtitleDiscovery_PathContainmentSafety();
+    step_SubtitleDiscovery_FilenameMatchingAndScoring();
+    step_SubtitleDiscovery_LanguageTagParsing();
+    step_SubtitleDiscovery_BOMAndEncodingDetection();
+    step_SubtitleDiscovery_MalformedAndOversizedRejection();
+    step_SubtitleDiscovery_BoundedSubfolderDiscovery();
+    step_SubtitleDiscovery_RootRelativePathPersistence();
 }
 
 } // namespace Aperture::Test

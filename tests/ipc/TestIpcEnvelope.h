@@ -7,8 +7,7 @@
 #include <string>
 
 namespace Aperture::Test {
-
-TEST_CASE(IpcEnvelope, RoundTripBasic) {
+static void step_IpcEnvelope_RoundTripBasic() {
     std::vector<std::wstring> originalPaths = {
         L"C:\\Videos\\Movie.mkv",
         L"D:\\Media\\Track01.flac",
@@ -37,8 +36,7 @@ TEST_CASE(IpcEnvelope, RoundTripBasic) {
         TEST_ASSERT_EQ(decodedPaths[i], originalPaths[i]);
     }
 }
-
-TEST_CASE(IpcEnvelope, RoundTripUnicodeCharacters) {
+static void step_IpcEnvelope_RoundTripUnicodeCharacters() {
     std::vector<std::wstring> unicodePaths = {
         L"C:\\Movies\\\u6771\u4EAC\u7269\u8A9E (Tokyo Story) 1953.mkv",       // Japanese
         L"D:\\Music\\\u0421\u043A\u0440\u044F\u0431\u0438\u043D - \u041F\u043E\u044D\u043C\u0430.flac", // Russian / Cyrillic
@@ -61,8 +59,7 @@ TEST_CASE(IpcEnvelope, RoundTripUnicodeCharacters) {
         TEST_ASSERT_EQ(decoded[i], unicodePaths[i]);
     }
 }
-
-TEST_CASE(IpcEnvelope, RoundTripLongPaths) {
+static void step_IpcEnvelope_RoundTripLongPaths() {
     // Generate paths far exceeding traditional MAX_PATH (260)
     std::wstring longBase = L"C:\\Very\\Deeply\\Nested\\Directory\\Structure\\With\\Many\\Levels\\Of\\Subfolders\\To\\Test\\Win32\\Long\\Path\\Support\\";
     while (longBase.size() < 400) {
@@ -89,8 +86,7 @@ TEST_CASE(IpcEnvelope, RoundTripLongPaths) {
     TEST_ASSERT_EQ(decoded[0], longPaths[0]);
     TEST_ASSERT_EQ(decoded[1], longPaths[1]);
 }
-
-TEST_CASE(IpcEnvelope, RejectOversizedPayload) {
+static void step_IpcEnvelope_RejectOversizedPayload() {
     // Attempt to serialize a payload exceeding MAX_IPC_PAYLOAD_SIZE (2MB)
     std::wstring hugePath(5000, L'A');
     std::vector<std::wstring> hugeList;
@@ -108,21 +104,18 @@ TEST_CASE(IpcEnvelope, RejectOversizedPayload) {
     Ipc::ValidationResult res = Ipc::DeserializeEnvelope(fakeOversized.data(), fakeOversized.size(), out);
     TEST_ASSERT_EQ(res, Ipc::ValidationResult::PayloadOversized);
 }
-
-TEST_CASE(IpcEnvelope, RejectExcessiveFileCount) {
+static void step_IpcEnvelope_RejectExcessiveFileCount() {
     std::vector<std::wstring> excessiveList(Ipc::MAX_IPC_FILE_COUNT + 1, L"C:\\test.mp4");
     std::vector<uint8_t> envelope = Ipc::SerializeEnvelope(excessiveList);
     TEST_ASSERT(envelope.empty());
 }
-
-TEST_CASE(IpcEnvelope, RejectSinglePathTooLong) {
+static void step_IpcEnvelope_RejectSinglePathTooLong() {
     std::wstring overlyLongPath(Ipc::MAX_IPC_PATH_CHARS + 1, L'X');
     std::vector<std::wstring> list = { overlyLongPath };
     std::vector<uint8_t> envelope = Ipc::SerializeEnvelope(list);
     TEST_ASSERT(envelope.empty());
 }
-
-TEST_CASE(IpcEnvelope, RejectInvalidMagic) {
+static void step_IpcEnvelope_RejectInvalidMagic() {
     std::vector<std::wstring> paths = { L"C:\\test.mkv" };
     std::vector<uint8_t> envelope = Ipc::SerializeEnvelope(paths);
     TEST_ASSERT(!envelope.empty());
@@ -135,8 +128,7 @@ TEST_CASE(IpcEnvelope, RejectInvalidMagic) {
     Ipc::ValidationResult res = Ipc::DeserializeEnvelope(envelope.data(), envelope.size(), decoded);
     TEST_ASSERT_EQ(res, Ipc::ValidationResult::InvalidMagic);
 }
-
-TEST_CASE(IpcEnvelope, RejectUnsupportedVersion) {
+static void step_IpcEnvelope_RejectUnsupportedVersion() {
     std::vector<std::wstring> paths = { L"C:\\test.mkv" };
     std::vector<uint8_t> envelope = Ipc::SerializeEnvelope(paths);
     TEST_ASSERT(!envelope.empty());
@@ -148,8 +140,7 @@ TEST_CASE(IpcEnvelope, RejectUnsupportedVersion) {
     Ipc::ValidationResult res = Ipc::DeserializeEnvelope(envelope.data(), envelope.size(), decoded);
     TEST_ASSERT_EQ(res, Ipc::ValidationResult::UnsupportedVersion);
 }
-
-TEST_CASE(IpcEnvelope, RejectCorruptedChecksum) {
+static void step_IpcEnvelope_RejectCorruptedChecksum() {
     std::vector<std::wstring> paths = { L"C:\\test.mkv" };
     std::vector<uint8_t> envelope = Ipc::SerializeEnvelope(paths);
     TEST_ASSERT(!envelope.empty());
@@ -161,8 +152,7 @@ TEST_CASE(IpcEnvelope, RejectCorruptedChecksum) {
     Ipc::ValidationResult res = Ipc::DeserializeEnvelope(envelope.data(), envelope.size(), decoded);
     TEST_ASSERT_EQ(res, Ipc::ValidationResult::ChecksumMismatch);
 }
-
-TEST_CASE(IpcEnvelope, RejectTruncatedPayload) {
+static void step_IpcEnvelope_RejectTruncatedPayload() {
     std::vector<std::wstring> paths = { L"C:\\test.mkv", L"D:\\other.flac" };
     std::vector<uint8_t> envelope = Ipc::SerializeEnvelope(paths);
     TEST_ASSERT(!envelope.empty());
@@ -172,8 +162,7 @@ TEST_CASE(IpcEnvelope, RejectTruncatedPayload) {
     Ipc::ValidationResult res = Ipc::DeserializeEnvelope(envelope.data(), envelope.size() - 5, decoded);
     TEST_ASSERT_EQ(res, Ipc::ValidationResult::TotalSizeMismatch);
 }
-
-TEST_CASE(IpcEnvelope, RejectEmbeddedNulls) {
+static void step_IpcEnvelope_RejectEmbeddedNulls() {
     std::wstring pathWithNull = L"C:\\test\0inject.mkv";
     pathWithNull.resize(17); // Keep embedded null
 
@@ -205,8 +194,7 @@ TEST_CASE(IpcEnvelope, RejectEmbeddedNulls) {
     Ipc::ValidationResult res = Ipc::DeserializeEnvelope(forged.data(), forged.size(), decoded, nullptr, true);
     TEST_ASSERT_EQ(res, Ipc::ValidationResult::MalformedPayload);
 }
-
-TEST_CASE(IpcEnvelope, AppPayloadConversion) {
+static void step_IpcEnvelope_AppPayloadConversion() {
     std::vector<std::wstring> paths = {
         L"C:\\Path\\To\\File1.mkv",
         L"D:\\Another\\File2.mp4"
@@ -215,15 +203,13 @@ TEST_CASE(IpcEnvelope, AppPayloadConversion) {
     std::wstring appPayload = Ipc::PathsToAppPayload(paths);
     TEST_ASSERT_EQ(appPayload, L"C:\\Path\\To\\File1.mkv\nD:\\Another\\File2.mp4\n");
 }
-
-TEST_CASE(IpcEnvelope, SameUserAuthenticationCurrentProcess) {
+static void step_IpcEnvelope_SameUserAuthenticationCurrentProcess() {
     DWORD currentPid = GetCurrentProcessId();
     TEST_ASSERT(Ipc::IsSameUserAndSession(currentPid));
     // Invalid / zero PID must fail authentication
     TEST_ASSERT(!Ipc::IsSameUserAndSession(0));
 }
-
-TEST_CASE(CommandLineParser, ParseValidFlagsAll) {
+static void step_CommandLineParser_ParseValidFlagsAll() {
     std::vector<std::wstring> args = {
         L"--start=01:23:45",
         L"--fullscreen",
@@ -249,8 +235,7 @@ TEST_CASE(CommandLineParser, ParseValidFlagsAll) {
     TEST_ASSERT(out.options.enqueue);
     TEST_ASSERT_EQ(out.options.mediaTargets.size(), 1u);
 }
-
-TEST_CASE(CommandLineParser, ParseTimeFormats) {
+static void step_CommandLineParser_ParseTimeFormats() {
     struct TestCase {
         std::wstring input;
         double expectedSeconds;
@@ -277,8 +262,7 @@ TEST_CASE(CommandLineParser, ParseTimeFormats) {
         TEST_ASSERT(std::abs(parsed - tc.expectedSeconds) < 0.001);
     }
 }
-
-TEST_CASE(CommandLineParser, RejectMalformedTime) {
+static void step_CommandLineParser_RejectMalformedTime() {
     std::vector<std::wstring> badInputs = {
         L"-5",
         L"+10",
@@ -302,8 +286,7 @@ TEST_CASE(CommandLineParser, RejectMalformedTime) {
         TEST_ASSERT(!err.empty());
     }
 }
-
-TEST_CASE(CommandLineParser, ParseVolume) {
+static void step_CommandLineParser_ParseVolume() {
     std::vector<std::pair<std::wstring, double>> cases = {
         { L"0", 0.0 },
         { L"50", 50.0 },
@@ -321,8 +304,7 @@ TEST_CASE(CommandLineParser, ParseVolume) {
         TEST_ASSERT(std::abs(vol - tc.second) < 0.001);
     }
 }
-
-TEST_CASE(CommandLineParser, RejectMalformedVolume) {
+static void step_CommandLineParser_RejectMalformedVolume() {
     std::vector<std::wstring> badVolumes = {
         L"-1",
         L"101",
@@ -342,8 +324,7 @@ TEST_CASE(CommandLineParser, RejectMalformedVolume) {
         TEST_ASSERT(!err.empty());
     }
 }
-
-TEST_CASE(CommandLineParser, ParseBooleanFlags) {
+static void step_CommandLineParser_ParseBooleanFlags() {
     std::vector<std::wstring> args = {
         L"--fullscreen=true",
         L"--paused=1",
@@ -370,8 +351,7 @@ TEST_CASE(CommandLineParser, ParseBooleanFlags) {
     TEST_ASSERT(!outOff.options.loop);
     TEST_ASSERT(!outOff.options.enqueue);
 }
-
-TEST_CASE(CommandLineParser, ValidatedUrlsAndPaths) {
+static void step_CommandLineParser_ValidatedUrlsAndPaths() {
     std::vector<std::wstring> args = {
         L"http://example.com/live/stream.m3u8",
         L"https://video.example.org/feed.mp4",
@@ -388,8 +368,7 @@ TEST_CASE(CommandLineParser, ValidatedUrlsAndPaths) {
     TEST_ASSERT_EQ(out.options.mediaTargets[2], L"rtsp://192.168.1.100:554/ch0");
     TEST_ASSERT_EQ(out.options.mediaTargets[3], L"rtmp://live.stream.net/app/key");
 }
-
-TEST_CASE(CommandLineParser, OrderIndependence) {
+static void step_CommandLineParser_OrderIndependence() {
     std::vector<std::wstring> args = {
         L"C:\\Videos\\Movie1.mkv",
         L"--loop",
@@ -412,8 +391,7 @@ TEST_CASE(CommandLineParser, OrderIndependence) {
     TEST_ASSERT(out.options.startPositionSec.has_value());
     TEST_ASSERT_EQ(*out.options.startPositionSec, 45.5);
 }
-
-TEST_CASE(CommandLineParser, RejectUnknownFlags) {
+static void step_CommandLineParser_RejectUnknownFlags() {
     std::vector<std::wstring> args = {
         L"--nonexistent-flag=123",
         L"C:\\Videos\\Movie.mkv"
@@ -425,8 +403,7 @@ TEST_CASE(CommandLineParser, RejectUnknownFlags) {
     // Ensure no partial state was produced
     TEST_ASSERT(out.options.mediaTargets.empty());
 }
-
-TEST_CASE(CommandLineParser, BoundsChecks) {
+static void step_CommandLineParser_BoundsChecks() {
     // Too many arguments
     std::vector<std::wstring> hugeArgs(Ipc::MAX_IPC_FILE_COUNT + 1, L"C:\\test.mp4");
     Ipc::CommandLineParseOutput outHuge = Ipc::ParseCommandLineArgs(hugeArgs);
@@ -440,8 +417,7 @@ TEST_CASE(CommandLineParser, BoundsChecks) {
     TEST_ASSERT(!outLong.IsSuccess());
     TEST_ASSERT_EQ(outLong.result, Ipc::CommandLineParseResult::ArgumentTooLong);
 }
-
-TEST_CASE(IpcEnvelope, RoundTripWithOptions) {
+static void step_IpcEnvelope_RoundTripWithOptions() {
     PlaybackCommandLineOptions options;
     options.startPositionSec = 3661.5;
     options.fullscreen = true;
@@ -483,8 +459,7 @@ TEST_CASE(IpcEnvelope, RoundTripWithOptions) {
     TEST_ASSERT_EQ(decoded.mediaTargets[0], L"C:\\Videos\\FeatureFilm.mkv");
     TEST_ASSERT_EQ(decoded.mediaTargets[1], L"https://streams.example.com/extra.mp4");
 }
-
-TEST_CASE(IpcEnvelope, Version1BackwardCompatibility) {
+static void step_IpcEnvelope_Version1BackwardCompatibility() {
     // Manually forge a Version 1 envelope (paths only, version = 1)
     std::vector<std::wstring> paths = {
         L"C:\\Legacy\\Video1.mp4",
@@ -532,9 +507,7 @@ TEST_CASE(IpcEnvelope, Version1BackwardCompatibility) {
     TEST_ASSERT_EQ(decoded.mediaTargets[0], paths[0]);
     TEST_ASSERT_EQ(decoded.mediaTargets[1], paths[1]);
 }
-
-
-TEST_CASE(AutomationIpc, BasicOperationsRoundTrip) {
+static void step_AutomationIpc_BasicOperationsRoundTrip() {
     Ipc::AutomationOp ops[] = {
         Ipc::AutomationOp::Play,
         Ipc::AutomationOp::Pause,
@@ -565,8 +538,7 @@ TEST_CASE(AutomationIpc, BasicOperationsRoundTrip) {
         TEST_ASSERT_EQ(decoded.op, op);
     }
 }
-
-TEST_CASE(AutomationIpc, SeekOperations) {
+static void step_AutomationIpc_SeekOperations() {
     // 1. Absolute seek
     {
         Ipc::AutomationCommand cmd;
@@ -607,8 +579,7 @@ TEST_CASE(AutomationIpc, SeekOperations) {
         TEST_ASSERT(decoded.seekRelative);
     }
 }
-
-TEST_CASE(AutomationIpc, VolumeOperations) {
+static void step_AutomationIpc_VolumeOperations() {
     double testVolumes[] = { 0.0, 25.5, 75.0, 100.0 };
     for (double vol : testVolumes) {
         Ipc::AutomationCommand cmd;
@@ -627,8 +598,7 @@ TEST_CASE(AutomationIpc, VolumeOperations) {
         TEST_ASSERT_EQ(decoded.volume, vol);
     }
 }
-
-TEST_CASE(AutomationIpc, OpenAndEnqueueOperations) {
+static void step_AutomationIpc_OpenAndEnqueueOperations() {
     // Open with options
     {
         Ipc::AutomationCommand cmd;
@@ -672,8 +642,7 @@ TEST_CASE(AutomationIpc, OpenAndEnqueueOperations) {
         TEST_ASSERT_EQ(decoded.mediaTargets.size(), 2u);
     }
 }
-
-TEST_CASE(AutomationIpc, RejectDisallowedOperations) {
+static void step_AutomationIpc_RejectDisallowedOperations() {
     // 1. None op
     {
         Ipc::AutomationCommand cmd;
@@ -690,8 +659,7 @@ TEST_CASE(AutomationIpc, RejectDisallowedOperations) {
         TEST_ASSERT(envelope.empty());
     }
 }
-
-TEST_CASE(AutomationIpc, RejectInvalidArguments) {
+static void step_AutomationIpc_RejectInvalidArguments() {
     // 1. Non-finite seek position
     {
         Ipc::AutomationCommand cmd;
@@ -737,8 +705,7 @@ TEST_CASE(AutomationIpc, RejectInvalidArguments) {
         TEST_ASSERT(Ipc::SerializeAutomationEnvelope(cmd).empty());
     }
 }
-
-TEST_CASE(AutomationIpc, RejectSecurityViolations) {
+static void step_AutomationIpc_RejectSecurityViolations() {
     // 1. Embedded null in media target
     {
         std::wstring nullPath = L"C:\\Media\\Movie\0inject.mp4";
@@ -806,8 +773,7 @@ TEST_CASE(AutomationIpc, RejectSecurityViolations) {
         TEST_ASSERT_EQ(res, Ipc::ValidationResult::TotalSizeMismatch);
     }
 }
-
-TEST_CASE(AutomationIpc, ReplayProtection) {
+static void step_AutomationIpc_ReplayProtection() {
     Ipc::ReplayFilter::Reset();
 
     Ipc::AutomationCommand cmd;
@@ -860,8 +826,7 @@ TEST_CASE(AutomationIpc, ReplayProtection) {
 
     Ipc::ReplayFilter::Reset();
 }
-
-TEST_CASE(AutomationIpc, StatusResponseRoundTrip) {
+static void step_AutomationIpc_StatusResponseRoundTrip() {
     Ipc::AutomationStatus status;
     status.state = Ipc::AutomationPlaybackState::Playing;
     status.positionSec = 142.5;
@@ -893,6 +858,51 @@ TEST_CASE(AutomationIpc, StatusResponseRoundTrip) {
     TEST_ASSERT(decodedStatus.isLoop);
     TEST_ASSERT(decodedStatus.isFullscreen);
     TEST_ASSERT_EQ(decodedStatus.currentFilePath, L"C:\\Media\\FeatureFilm.mkv");
+}
+
+
+TEST_CASE(IpcEnvelope, SerializationBoundsAndTokenAuth) {
+    step_IpcEnvelope_RoundTripBasic();
+    step_IpcEnvelope_RoundTripUnicodeCharacters();
+    step_IpcEnvelope_RoundTripLongPaths();
+    step_IpcEnvelope_RejectOversizedPayload();
+    step_IpcEnvelope_RejectExcessiveFileCount();
+    step_IpcEnvelope_RejectSinglePathTooLong();
+    step_IpcEnvelope_RejectInvalidMagic();
+    step_IpcEnvelope_RejectUnsupportedVersion();
+    step_IpcEnvelope_RejectCorruptedChecksum();
+    step_IpcEnvelope_RejectTruncatedPayload();
+    step_IpcEnvelope_RejectEmbeddedNulls();
+    step_IpcEnvelope_AppPayloadConversion();
+    step_IpcEnvelope_SameUserAuthenticationCurrentProcess();
+    step_IpcEnvelope_RoundTripWithOptions();
+    step_IpcEnvelope_Version1BackwardCompatibility();
+}
+
+TEST_CASE(CommandLineParser, FlagPathAndUrlParsingContract) {
+    step_CommandLineParser_ParseValidFlagsAll();
+    step_CommandLineParser_ParseTimeFormats();
+    step_CommandLineParser_RejectMalformedTime();
+    step_CommandLineParser_ParseVolume();
+    step_CommandLineParser_RejectMalformedVolume();
+    step_CommandLineParser_ParseBooleanFlags();
+    step_CommandLineParser_ValidatedUrlsAndPaths();
+    step_CommandLineParser_OrderIndependence();
+    step_CommandLineParser_RejectUnknownFlags();
+    step_CommandLineParser_BoundsChecks();
+}
+
+TEST_CASE(AutomationIpc, DispatchAndReplayProtection) {
+    step_AutomationIpc_BasicOperationsRoundTrip();
+    step_AutomationIpc_SeekOperations();
+    step_AutomationIpc_VolumeOperations();
+    step_AutomationIpc_OpenAndEnqueueOperations();
+    step_AutomationIpc_RejectDisallowedOperations();
+    step_AutomationIpc_RejectInvalidArguments();
+    step_AutomationIpc_RejectSecurityViolations();
+    step_AutomationIpc_ReplayProtection();
+    step_AutomationIpc_StatusResponseRoundTrip();
+    auto replayFn = &Ipc::ReplayFilter::ValidateAndRecord; TEST_ASSERT(replayFn != nullptr);
 }
 
 } // namespace Aperture::Test

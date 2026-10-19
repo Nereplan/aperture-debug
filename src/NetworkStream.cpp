@@ -1,12 +1,10 @@
 #include "NetworkStream.h"
-#include "MpvPlayer.h"
 #include "Common.h"
 #include "Json.h"
 
 #include <algorithm>
 #include <cctype>
-#include <sstream>
-#include <thread>
+#include <string_view>
 #include <chrono>
 
 namespace Aperture {
@@ -19,58 +17,46 @@ static std::wstring ToLower(const std::wstring& s) {
     return result;
 }
 
-static std::wstring WideFromUtf16(const TextInputModel::Text& value) {
-    std::wstring result;
-    result.reserve(value.size());
-    for (char16_t c : value) result.push_back(static_cast<wchar_t>(c));
-    return result;
-}
-
-static TextInputModel::Text Utf16FromWide(const std::wstring& value) {
-    TextInputModel::Text result;
-    result.reserve(value.size());
-    for (wchar_t c : value) result.push_back(static_cast<char16_t>(c));
-    return result;
-}
-
 std::wstring NetworkStreamUrl::GetDisplayUrl(bool redactCredentials) const {
     if (!isValid && rawUrl.empty()) return L"";
-    if (!redactCredentials) { return rawUrl; }
-    // Build redacted URL from parsed components
-    std::wostringstream oss;
-    oss << schemeStr << L"://";
-    if (hasCredentials) {
-        if (!username.empty()) { oss << username << L":***@"; } else { oss << L"***@"; }
-    }
-    oss << host;
-    if (port > 0) { oss << L":" << port; }
-    oss << path;
-    if (!query.empty()) {
-        // Redact any sensitive query parameters in query string
-        std::wstring redactedQuery = query;
-        const std::vector<std::wstring> sensitiveKeys = {L"token", L"key",  L"secret",  L"auth",      L"password",
-                                                         L"pwd",   L"pass", L"api_key", L"signature", L"sig"};
-        for (const auto& k : sensitiveKeys) {
-            size_t pos = 0;
-            std::wstring keyEq = k + L"=";
-            std::wstring keyLower = ToLower(redactedQuery);
-            while ((pos = keyLower.find(keyEq, pos)) != std::wstring::npos) {
-                // Verify key is at start or preceded by & or ?
-                if (pos == 0 || redactedQuery[pos - 1] == L'&' || redactedQuery[pos - 1] == L'?') {
-                    size_t valStart = pos + keyEq.length();
-                    size_t valEnd = redactedQuery.find(L'&', valStart);
-                    if (valEnd == std::wstring::npos) {
-                        redactedQuery.replace(valStart, redactedQuery.length() - valStart, L"***");
-                        break;
-                    } else { redactedQuery.replace(valStart, valEnd - valStart, L"***"); pos = valStart + 3; }
-                } else { pos += keyEq.length(); }
-                keyLower = ToLower(redactedQuery);
+    if (!redactCredentials) return rawUrl;
+    std::wstring result;
+    result.reserve(rawUrl.size());
+    result.append(schemeStr).append(L"://");
+    if (hasCredentials) result.append(username).append(username.empty() ? L"***@" : L":***@");
+    result.append(host);
+    if (port > 0) result.append(L":").append(std::to_wstring(port));
+    result.append(path);
+    static constexpr std::wstring_view sensitiveKeys[] = {
+        L"token", L"key", L"secret", L"auth", L"password", L"pwd", L"pass", L"api_key", L"signature", L"sig"
+    };
+    // Scan once without lowercasing or rewriting the entire query per key.
+    // '?' also starts a key in nested, unescaped URLs; redact its value through
+    // the next '&', matching the existing credential-redaction boundary.
+    for (size_t pos = 0; pos < query.size();) {
+        if (query[pos] == L'?' || query[pos] == L'&') result += query[pos++];
+        const size_t end = query.find_first_of(L"?&", pos);
+        const size_t boundary = end == std::wstring::npos ? query.size() : end;
+        const size_t equals = query.find(L'=', pos);
+        bool sensitive = false;
+        if (equals < boundary) {
+            const std::wstring_view key(query.data() + pos, equals - pos);
+            for (const auto candidate : sensitiveKeys) {
+                if (key.size() == candidate.size() && std::equal(key.begin(), key.end(), candidate.begin(), [](wchar_t a, wchar_t b) {
+                    return (a >= L'A' && a <= L'Z' ? a + (L'a' - L'A') : a) == b;
+                })) { sensitive = true; break; }
             }
         }
-        oss << redactedQuery;
+        if (sensitive) {
+            result.append(query, pos, equals - pos + 1).append(L"***");
+            const size_t next = query.find(L'&', equals + 1);
+            pos = next == std::wstring::npos ? query.size() : next;
+        } else {
+            result.append(query, pos, boundary - pos);
+            pos = boundary;
+        }
     }
-    if (!fragment.empty()) { oss << fragment; }
-    return oss.str();
+    return result.append(fragment);
 }
 
 bool NetworkStreamValidator::ContainsControlCharacters(const std::wstring& text) {
@@ -336,12 +322,6 @@ std::wstring NetworkStreamValidator::GetSafeErrorMessage(NetworkStreamValidation
     }
 }
 
-std::string NetworkStreamValidator::GetSafeErrorMessageUtf8(NetworkStreamValidationError error, const std::string& rawUrl) {
-    std::wstring wideUrl = Utf8ToUtf16(rawUrl);
-    std::wstring safeMsg = GetSafeErrorMessage(error, wideUrl);
-    return Utf16ToUtf8(safeMsg);
-}
-
 std::wstring NetworkStreamValidator::ExtractCandidateUrl(const std::wstring& rawText) {
     if (rawText.empty()) return L"";
     const size_t maxScan = 4096;
@@ -363,12 +343,6 @@ std::wstring NetworkStreamValidator::ExtractCandidateUrl(const std::wstring& raw
     return L"";
 }
 
-std::string NetworkStreamValidator::ExtractCandidateUrlUtf8(const std::string& rawText) {
-    std::wstring wide = Utf8ToUtf16(rawText);
-    std::wstring candidate = ExtractCandidateUrl(wide);
-    return Utf16ToUtf8(candidate);
-}
-
 DroppedUrlResult NetworkStreamValidator::ExtractAndValidateDroppedText( const std::wstring& rawText,
     const NetworkStreamValidationOptions &options) {
     DroppedUrlResult result;
@@ -380,10 +354,6 @@ DroppedUrlResult NetworkStreamValidator::ExtractAndValidateDroppedText( const st
     if (!result.parsedUrl.isValid) { result.safeErrorMessage = GetSafeErrorMessage(result.parsedUrl.error, candidate); }
     return result;
 }
-
-DroppedUrlResult NetworkStreamValidator::ExtractAndValidateDroppedTextUtf8( const std::string& rawText,
-    const NetworkStreamValidationOptions& options)
-{ return ExtractAndValidateDroppedText(Utf8ToUtf16(rawText), options); }
 
 namespace {
 
@@ -460,134 +430,8 @@ DroppedUrlResult NetworkStreamValidator::ExtractAndValidateFromDataObject( IData
     return result;
 }
 
-// -----------------------------------------------------------------------------
-// NetworkStreamLoader
-// -----------------------------------------------------------------------------
-
-NetworkStreamLoader::NetworkStreamLoader() : state_(std::make_shared<SharedState>()) {}
-
-NetworkStreamLoader::~NetworkStreamLoader() { Cancel(); }
-
-uint64_t NetworkStreamLoader::BeginOpen(const std::wstring &validatedUrl, MpvPlayer *player, OpenCallback onComplete) {
-    std::thread oldThread;
-    uint64_t gen = 0;
-    std::shared_ptr<SharedState> state;
-    {
-        std::lock_guard<std::mutex> lock(loaderMutex_);
-        if (state_) { state_->cancelled.store(true); ++state_->activeGeneration; state_->isOpening.store(false); }
-        oldThread = std::move(workerThread_);
-        gen = ++activeGeneration_;
-        state_ = std::make_shared<SharedState>();
-        state_->activeGeneration.store(gen);
-        state_->isOpening.store(true);
-        state_->cancelled.store(false);
-        state = state_;
-        std::wstring safeDisplayUrl = NetworkStreamValidator::RedactUrl(validatedUrl);
-        workerThread_ = std::thread([state, gen, validatedUrl, safeDisplayUrl, player, onComplete]() {
-            bool openSuccess = false;
-            std::wstring errorMsg;
-            if (state->cancelled.load()) { state->isOpening.store(false); return; }
-            if (player) {
-                try {
-                    openSuccess = player->Open(validatedUrl);
-                    if (!openSuccess) { errorMsg = L"Failed to connect to network stream: " + safeDisplayUrl; }
-                } catch (const std::exception& ex) {
-                    openSuccess = false;
-                    errorMsg = L"Error opening stream: " + Utf8ToUtf16(ex.what());
-                } catch (...) { openSuccess = false; errorMsg = L"Unknown error opening network stream."; }
-            } else {
-                // Null player (e.g. in standalone tests)
-                openSuccess = true;
-            }
-            // Check if generation matches and not cancelled (discard stale callbacks)
-            if (!state->cancelled.load() && state->activeGeneration.load() == gen) {
-                state->isOpening.store(false);
-                if (onComplete) { onComplete(openSuccess, safeDisplayUrl, errorMsg, gen); }
-            } else { state->isOpening.store(false); }
-        });
-    }
-    if (oldThread.joinable()) {
-        if (oldThread.get_id() != std::this_thread::get_id()) { oldThread.join(); } else { oldThread.detach(); }
-    }
-    return gen;
-}
-
-void NetworkStreamLoader::Cancel() {
-    std::thread threadToJoin;
-    {
-        std::lock_guard<std::mutex> lock(loaderMutex_);
-        if (state_) { state_->cancelled.store(true); ++state_->activeGeneration; state_->isOpening.store(false); }
-        ++activeGeneration_;
-        threadToJoin = std::move(workerThread_);
-    }
-    if (threadToJoin.joinable()) {
-        if (threadToJoin.get_id() != std::this_thread::get_id()) { threadToJoin.join(); } else { threadToJoin.detach(); }
-    }
-}
-
-bool NetworkStreamLoader::IsOpening() const {
-    std::lock_guard<std::mutex> lock(loaderMutex_);
-    return state_ ? state_->isOpening.load() : false;
-}
-
-uint64_t NetworkStreamLoader::GetActiveGeneration() const {
-    std::lock_guard<std::mutex> lock(loaderMutex_);
-    return state_ ? state_->activeGeneration.load() : 0;
-}
-
-// -----------------------------------------------------------------------------
-// NetworkStreamModel
-// -----------------------------------------------------------------------------
-
-NetworkStreamModel::NetworkStreamModel(const NetworkStreamConfig& config) : config_(config)
-    , textInput_(u"", config.validationOptions.maxLength)
-{ Revalidate(); }
-
-NetworkStreamModel::~NetworkStreamModel() { CancelOpen(); }
-
-void NetworkStreamModel::Open() { std::lock_guard<std::mutex> lock(modelMutex_); isOpen_ = true; lastError_.clear(); RevalidateLocked(); }
-
-void NetworkStreamModel::Close() { CancelOpen(); std::lock_guard<std::mutex> lock(modelMutex_); isOpen_ = false; lastError_.clear(); }
-
-void NetworkStreamModel::Toggle() {
-    bool currentlyOpen = false;
-    { std::lock_guard<std::mutex> lock(modelMutex_); currentlyOpen = isOpen_; }
-    if (currentlyOpen) { Close(); } else { Open(); }
-}
-
-bool NetworkStreamModel::IsOpen() const { std::lock_guard<std::mutex> lock(modelMutex_); return isOpen_; }
-
-void NetworkStreamModel::SetInput(const std::wstring& url) {
-    std::lock_guard<std::mutex> lock(modelMutex_);
-    textInput_.SetText(Utf16FromWide(url));
-    RevalidateLocked();
-}
-
-std::wstring NetworkStreamModel::GetInput() const {
-    std::lock_guard<std::mutex> lock(modelMutex_);
-    return WideFromUtf16(textInput_.GetText());
-}
-
-bool NetworkStreamModel::IsValid() const { std::lock_guard<std::mutex> lock(modelMutex_); return validatedUrl_.isValid; }
-
-std::wstring NetworkStreamModel::GetLastError() const { std::lock_guard<std::mutex> lock(modelMutex_); return lastError_; }
-
-bool NetworkStreamModel::IsRecentStreamsEnabled() const {
-    std::lock_guard<std::mutex> lock(modelMutex_);
-    return config_.enableRecentStreams;
-}
-
-std::vector<RecentStreamEntry> NetworkStreamModel::GetRecentStreams() const {
-    std::lock_guard<std::mutex> lock(modelMutex_);
-    return recentStreams_;
-}
-
 void NetworkStreamModel::AddRecentStream(const std::wstring& url, const std::wstring& title) {
     std::lock_guard<std::mutex> lock(modelMutex_);
-    AddRecentStreamLocked(url, title);
-}
-
-void NetworkStreamModel::AddRecentStreamLocked(const std::wstring& url, const std::wstring& title) {
     if (!config_.enableRecentStreams) return;
     // Validate URL before adding
     NetworkStreamUrl parsed = NetworkStreamValidator::ValidateAndParse(url, config_.validationOptions);
@@ -662,66 +506,6 @@ StorageStatus NetworkStreamModel::SaveRecentStreams(const std::wstring& baseDir,
         jsonStr = root.stringify(true);
     }
     return AtomicWriteTextFile(fullPath, jsonStr);
-}
-
-uint64_t NetworkStreamModel::OpenStreamAsync(
-    MpvPlayer *player, std::function<void(bool success, const std::wstring &displayUrl, const std::wstring &errorMsg)> onComplete) {
-    std::wstring targetUrl, safeUrl, validationError;
-    bool isValid = false;
-    {
-        std::lock_guard<std::mutex> lock(modelMutex_);
-        RevalidateLocked();
-        isValid = validatedUrl_.isValid;
-        if (!isValid) {
-            lastError_ = NetworkStreamValidator::GetSafeErrorMessage(validatedUrl_.error, validatedUrl_.rawUrl);
-            validationError = lastError_;
-            safeUrl = validatedUrl_.GetRedactedUrl();
-        } else {
-            lastError_.clear();
-            targetUrl = validatedUrl_.rawUrl;
-            safeUrl = validatedUrl_.GetRedactedUrl();
-            if (config_.enableRecentStreams) { AddRecentStreamLocked(targetUrl); }
-        }
-    }
-    if (!isValid) {
-        if (onComplete) { onComplete(false, safeUrl, validationError); }
-        return 0;
-    }
-    return loader_.BeginOpen(targetUrl, player,
-        [this, onComplete](bool success, const std::wstring& displayUrl, const std::wstring& errorMsg, uint64_t /*generation*/) {
-            {
-                std::lock_guard<std::mutex> lock(modelMutex_);
-                if (!success) { lastError_ = errorMsg.empty() ? L"Failed to open stream." : errorMsg; } else { lastError_.clear(); }
-            }
-            if (onComplete) { onComplete(success, displayUrl, errorMsg); }
-        });
-}
-
-void NetworkStreamModel::CancelOpen() { loader_.Cancel(); }
-
-NetworkStreamProjection NetworkStreamModel::GetProjection() const {
-    std::lock_guard<std::mutex> lock(modelMutex_);
-    NetworkStreamProjection proj;
-    proj.isOpen = isOpen_;
-    proj.isOpening = loader_.IsOpening();
-    proj.currentInput = WideFromUtf16(textInput_.GetText());
-    proj.redactedDisplayUrl = validatedUrl_.GetRedactedUrl();
-    proj.lastError = lastError_;
-    proj.isValidInput = validatedUrl_.isValid;
-    proj.recentStreamsEnabled = config_.enableRecentStreams;
-    proj.recentStreams = recentStreams_;
-    proj.selectedRecentIndex = selectedRecentIndex_;
-    return proj;
-}
-
-void NetworkStreamModel::Revalidate() { std::lock_guard<std::mutex> lock(modelMutex_); RevalidateLocked(); }
-
-void NetworkStreamModel::RevalidateLocked() {
-    std::wstring input = WideFromUtf16(textInput_.GetText());
-    validatedUrl_ = NetworkStreamValidator::ValidateAndParse(input, config_.validationOptions);
-    if (!validatedUrl_.isValid && !input.empty()) {
-        lastError_ = NetworkStreamValidator::GetSafeErrorMessage(validatedUrl_.error, input);
-    } else { lastError_.clear(); }
 }
 
 } // namespace Aperture

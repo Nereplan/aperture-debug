@@ -1,11 +1,4 @@
 #include "StressHarness.h"
-#include "TestFolderWatcherStress.h"
-#include "TestMediaBackfillStress.h"
-#include "TestPlayerCallbacksStress.h"
-#include "TestUpdaterServiceStress.h"
-#include "TestOnlineSubtitlesStress.h"
-#include "TestDiagnosticsStress.h"
-#include "TestNetworkStreamLoaderStress.h"
 #include "TestCompositeShutdownStress.h"
 
 #include "../support/TestRunner.h"

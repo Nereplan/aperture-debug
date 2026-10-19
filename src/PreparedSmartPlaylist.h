@@ -51,7 +51,6 @@ public:
     int SortField() const { return sortField; }
     int SortDirection() const { return sortDirection; }
     size_t Limit() const { return limit; }
-    int64_t EvaluatedAtSec() const { return evaluatedAtSec; }
 
     Possibilities MatchWithoutDisk(const MediaItem& item) const {
         if (!valid) return {false, false};

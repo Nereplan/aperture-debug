@@ -46,8 +46,6 @@ public:
     uint64_t GetAppliedConfigurationGeneration() const { return appliedConfiguration.load(std::memory_order_acquire); }
     // Dynamic watch list management
     bool AddWatch(const std::wstring& folderPath);
-    bool RemoveWatch(const std::wstring& folderPath);
-    void ClearWatches();
     std::vector<std::wstring> GetWatchedFolders() const;
     size_t GetRetiredWatchCount() const;
     // Coalescing configuration

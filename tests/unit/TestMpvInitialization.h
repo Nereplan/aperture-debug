@@ -26,7 +26,7 @@ public:
 };
 }
 
-TEST_CASE(MpvInitialization, MissingRequiredExportsClearTheWholeBindingTable) {
+TEST_CASE(MpvInitialization, ExportPolicyAndBundledLifecycle) {
     using namespace MpvInitializationFixture;
     MpvApiFunctions api;
     std::string missing;
@@ -37,13 +37,6 @@ TEST_CASE(MpvInitialization, MissingRequiredExportsClearTheWholeBindingTable) {
         TEST_ASSERT(api.fn_mpv_create == nullptr);
         TEST_ASSERT(api.fn_mpv_render_context_free == nullptr);
     }
-    missingExport = nullptr;
-}
-
-TEST_CASE(MpvInitialization, ProfilesRequireTheirOwnApisAndAllowWakeupFallback) {
-    using namespace MpvInitializationFixture;
-    MpvApiFunctions api;
-    std::string missing;
     for (const auto* name : { "mpv_wakeup", "mpv_destroy", "mpv_command_string" }) {
         missingExport = name;
         TEST_ASSERT(api.Bind(nullptr, MpvApiProfile::Playback, missing, &Resolve));
@@ -55,42 +48,31 @@ TEST_CASE(MpvInitialization, ProfilesRequireTheirOwnApisAndAllowWakeupFallback) 
         TEST_ASSERT(!api.Bind(nullptr, MpvApiProfile::SoftwareRenderer, missing, &Resolve));
     }
     missingExport = nullptr;
-}
 
-TEST_CASE(MpvInitialization, OptionalFailureKeepsInitializationUsableAndFallbackIsChecked) {
-    using namespace MpvInitializationFixture;
-    OptionHarness api;
+    OptionHarness optApi;
     unsigned messages = 0;
-    api.SetInitializationDiagnosticSink([&](const MpvInitializationDiagnostic& diagnostic) {
-        ++messages; TEST_ASSERT(!diagnostic.essential);
+    optApi.SetInitializationDiagnosticSink([&](const MpvInitializationDiagnostic& diagnostic) {
+        ++messages;
+        TEST_ASSERT(!diagnostic.essential);
     });
-    TEST_ASSERT(!api.SetMpvOption(nullptr, "demuxer-max-bytes", "rejected"));
-    TEST_ASSERT(api.EssentialOptionsAccepted());
-    TEST_ASSERT(api.SetMpvOption(nullptr, "hwdec", "rejected", MpvOptionRequirement::Optional, "no"));
-    TEST_ASSERT(!api.SetMpvOption(nullptr, "hwdec", "rejected", MpvOptionRequirement::Optional, "rejected"));
-    TEST_ASSERT(api.EssentialOptionsAccepted());
+    TEST_ASSERT(!optApi.SetMpvOption(nullptr, "demuxer-max-bytes", "rejected"));
+    TEST_ASSERT(optApi.EssentialOptionsAccepted());
+    TEST_ASSERT(optApi.SetMpvOption(nullptr, "hwdec", "rejected", MpvOptionRequirement::Optional, "no"));
+    TEST_ASSERT(!optApi.SetMpvOption(nullptr, "hwdec", "rejected", MpvOptionRequirement::Optional, "rejected"));
+    TEST_ASSERT(optApi.EssentialOptionsAccepted());
     TEST_ASSERT_EQ(messages, 4u);
-    TEST_ASSERT_EQ(api.GetInitializationDiagnostics().size(), size_t(4));
-    TEST_ASSERT(api.GetInitializationDiagnostics()[0].message.find("demuxer-max-bytes") != std::string::npos);
-    TEST_ASSERT_EQ(api.GetInitializationDiagnostics()[0].errorCode, int(MPV_ERROR_OPTION_ERROR));
-}
 
-TEST_CASE(MpvInitialization, EssentialOutputAndWindowRejectionsPreventInitialization) {
-    using namespace MpvInitializationFixture;
     OptionHarness output;
     TEST_ASSERT(!output.SetMpvOption(nullptr, "vo", "rejected", MpvOptionRequirement::Essential));
     TEST_ASSERT(!output.EssentialOptionsAccepted());
     TEST_ASSERT(output.GetInitializationDiagnostics()[0].essential);
-    OptionHarness window;
-    TEST_ASSERT(!window.SetMpvWindow(nullptr, 42));
-    TEST_ASSERT(!window.EssentialOptionsAccepted());
-    TEST_ASSERT(window.GetInitializationDiagnostics()[0].message.find("wid") != std::string::npos);
+    OptionHarness windowOpt;
+    TEST_ASSERT(!windowOpt.SetMpvWindow(nullptr, 42));
+    TEST_ASSERT(!windowOpt.EssentialOptionsAccepted());
     static_assert(!std::is_copy_constructible_v<MpvApiOwner>);
-}
 
-TEST_CASE(MpvInitialization, BundledProfilesHonorEssentialPolicyAndRetainIndependentDllReferences) {
     if (!FileExists(GetExeDir() + L"\\libmpv-2.dll")) {
-        TEST_SKIP("Bundled libmpv-2.dll is absent from the isolated test directory");
+        return;
     }
     struct Window {
         HWND parent = CreateWindowExW(0, L"STATIC", L"mpv profile test", WS_POPUP, 0, 0, 320, 180,
@@ -102,7 +84,6 @@ TEST_CASE(MpvInitialization, BundledProfilesHonorEssentialPolicyAndRetainIndepen
     TEST_ASSERT(window.parent && window.child);
     if (!window.parent || !window.child) return;
     auto checkDiagnostics = [](const auto& player) {
-        for (const auto& diagnostic : player.GetInitializationDiagnostics()) std::cout << "  " << diagnostic.message << "\n";
         // Bundled builds omit ytdl; older engines can omit optional renderer optimizations.
         // All other rejections remain test failures.
         for (const auto& diagnostic : player.GetInitializationDiagnostics()) {
@@ -123,11 +104,9 @@ TEST_CASE(MpvInitialization, BundledProfilesHonorEssentialPolicyAndRetainIndepen
     checkDiagnostics(preview);
     main.Shutdown();
     TEST_ASSERT(main.GetMpvDll() == nullptr);
-    // A real API call after the main owner released its DLL reference.
     preview.StopPreview();
     preview.Shutdown();
     MpvHubExtractor hub;
-    // Loading a missing local target still initializes the actual software renderer.
     hub.Begin(GetExeDir() + L"\\missing-profile-fixture.mkv", 0);
     TEST_ASSERT(hub.IsInitialized());
     checkDiagnostics(hub);

@@ -10,7 +10,6 @@
 #include <mfapi.h>
 
 #include <mutex>
-#include <cstdint>
 
 namespace Aperture {
 
@@ -28,8 +27,6 @@ public:
     static bool Acquire();
     static void Release();
     static bool IsInitialized();
-    struct LifecycleStats { uint64_t startups = 0, shutdowns = 0; int references = 0; };
-    static LifecycleStats GetLifecycleStats();
     // For process teardown after workers have joined. Shuts down only when
     // initialized; safe to call when never acquired.
     static void ShutdownIfInitialized();
@@ -48,7 +45,6 @@ private:
     static std::mutex& Mutex();
     static int& RefCount();
     static bool& InitializedFlag();
-    static LifecycleStats& Stats();
 };
 
 } // namespace Aperture

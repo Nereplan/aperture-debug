@@ -9,21 +9,15 @@
 
 namespace Aperture::Test {
 
-TEST_CASE(UnwritableRoot, CheckDirectoryWritabilityNormal) {
-    // Current data dir should be writable
+TEST_CASE(UnwritableRoot, ReadOnlyFailureAndNoExternalFallback) {
     StorageStatus status = CheckDataDirectoryWritability();
     TEST_ASSERT(status.is_ok());
     TEST_ASSERT_EQ(status.code, StorageErrorCode::Success);
-}
 
-TEST_CASE(UnwritableRoot, AtomicWriteToInvalidPath) {
-    std::wstring invalidPath = L"";
-    StorageStatus status = AtomicWriteTextFile(invalidPath, "test");
-    TEST_ASSERT(!status.is_ok());
-    TEST_ASSERT_EQ(status.code, StorageErrorCode::InvalidPath);
+    StorageStatus invalidStatus = AtomicWriteTextFile(L"", "test");
+    TEST_ASSERT(!invalidStatus.is_ok());
+    TEST_ASSERT_EQ(invalidStatus.code, StorageErrorCode::InvalidPath);
 
-    // Choose an absent drive instead of assuming Q: is absent. Build aliases
-    // and user mappings can legitimately occupy any particular drive letter.
     std::wstring nonExistentDrive;
     const DWORD drives = GetLogicalDrives();
     for (wchar_t letter = L'Z'; letter >= L'A'; --letter) {
@@ -36,30 +30,20 @@ TEST_CASE(UnwritableRoot, AtomicWriteToInvalidPath) {
     StorageStatus status2 = AtomicWriteTextFile(nonExistentDrive, "test");
     TEST_ASSERT(!status2.is_ok());
     TEST_ASSERT(status2.code == StorageErrorCode::DirectoryCreationFailed || status2.code == StorageErrorCode::FileOpenFailed);
-}
 
-TEST_CASE(UnwritableRoot, AtomicWriteToReadonlyFile) {
     ScopedTempDir tempDir;
     std::wstring roFile = tempDir.SubPath(L"locked_file.json");
     tempDir.WriteFile(L"locked_file.json", "initial");
-
-    // Set file to read-only
     TEST_ASSERT(SetFileAttributesW(roFile.c_str(), FILE_ATTRIBUTE_READONLY));
 
-    // Atomic write creates a .tmp file and tries to MoveFileEx with REPLACE_EXISTING.
-    // Overwriting a readonly destination may fail with ACCESS_DENIED or AtomicRenameFailed.
-    StorageStatus status = AtomicWriteTextFile(roFile, "new_content");
-    TEST_ASSERT(!status.is_ok());
-    TEST_ASSERT_EQ(status.code, StorageErrorCode::AtomicRenameFailed);
+    StorageStatus roStatus = AtomicWriteTextFile(roFile, "new_content");
+    TEST_ASSERT(!roStatus.is_ok());
+    TEST_ASSERT_EQ(roStatus.code, StorageErrorCode::AtomicRenameFailed);
     std::string preserved;
     TEST_ASSERT(ReadTextFile(roFile, preserved).is_ok());
     TEST_ASSERT_EQ(preserved, std::string("initial"));
-
-    // Restore file attributes for clean teardown
     SetFileAttributesW(roFile.c_str(), FILE_ATTRIBUTE_NORMAL);
-}
 
-TEST_CASE(UnwritableRoot, StorageStatusErrorFormatting) {
     StorageStatus err = StorageStatus::Error(StorageErrorCode::DirectoryNotWritable, ERROR_ACCESS_DENIED, L"C:\\Aperture\\data", "Access denied to data dir");
     TEST_ASSERT(!err.is_ok());
     TEST_ASSERT(!static_cast<bool>(err));

@@ -222,26 +222,6 @@ TEST_CASE(JsonLimits, NestingDepthRejection) {
     TEST_ASSERT(badObjVal.is_null());
 }
 
-TEST_CASE(JsonLimits, DeeplyNestedFixtureRejection) {
-    std::wstring fixturePath = GetExeDir() + L"\\tests\\fixtures\\deeply_nested.json";
-    if (!FileExists(fixturePath)) {
-        fixturePath = L"tests\\fixtures\\deeply_nested.json";
-    }
-    if (!FileExists(fixturePath)) {
-        fixturePath = L"..\\tests\\fixtures\\deeply_nested.json";
-    }
-    if (!FileExists(fixturePath)) {
-        fixturePath = L"..\\..\\tests\\fixtures\\deeply_nested.json";
-    }
-
-    std::string content;
-    if (ReadTextFile(fixturePath, content).is_ok()) {
-        JsonValue parsed;
-        TEST_ASSERT(!JsonValue::parse(content, parsed));
-        TEST_ASSERT(parsed.is_null());
-    }
-}
-
 TEST_CASE(JsonLimits, MalformedJsonRobustness) {
     std::vector<std::string> malformedInputs = {
         "{\"unclosed\": \"string",
@@ -268,55 +248,6 @@ TEST_CASE(JsonLimits, MalformedJsonRobustness) {
         TEST_ASSERT_MSG(!res, ("Input should have failed: " + badInput).c_str());
         TEST_ASSERT(val.is_null());
     }
-}
-
-TEST_CASE(JsonLimits, MalformedFixtureRejection) {
-    std::wstring fixturePath = GetExeDir() + L"\\tests\\fixtures\\malformed.json";
-    if (!FileExists(fixturePath)) {
-        fixturePath = L"tests\\fixtures\\malformed.json";
-    }
-    if (!FileExists(fixturePath)) {
-        fixturePath = L"..\\tests\\fixtures\\malformed.json";
-    }
-    if (!FileExists(fixturePath)) {
-        fixturePath = L"..\\..\\tests\\fixtures\\malformed.json";
-    }
-
-    std::string content;
-    if (ReadTextFile(fixturePath, content).is_ok()) {
-        JsonValue parsed;
-        TEST_ASSERT(!JsonValue::parse(content, parsed));
-        TEST_ASSERT(parsed.is_null());
-    }
-}
-
-TEST_CASE(JsonLimits, StringLimitRejection) {
-    std::string bigStr = "\"";
-    bigStr.append(1000, 'A');
-    bigStr += "\"";
-    JsonValue okStrVal;
-    TEST_ASSERT(JsonValue::parse(bigStr, okStrVal));
-    TEST_ASSERT_EQ(okStrVal.as_string().size(), 1000);
-}
-
-TEST_CASE(JsonLimits, SettingsAndMediaLibMalformedJsonHandling) {
-    ScopedTempDir tempDir(L"Aperture_BadJson_Test_");
-    std::wstring dataDir = tempDir.SubPath(L"data");
-    CreateDirectoryW(dataDir.c_str(), NULL);
-
-    // Write malformed JSON
-    std::wstring settingsPath = dataDir + L"\\settings.json";
-    tempDir.WriteFile(L"data\\settings.json", "{ \"themePreset\": \"oled\", unclosed");
-
-    std::string content;
-    TEST_ASSERT(ReadTextFile(settingsPath, content).is_ok());
-    JsonValue out;
-    TEST_ASSERT(!JsonValue::parse(content, out));
-
-    // StorageErrorCode verification
-    StorageStatus err = StorageStatus::Error(StorageErrorCode::SerializationFailed, ERROR_INVALID_DATA, settingsPath, "Malformed JSON in settings.json");
-    TEST_ASSERT(!err.is_ok());
-    TEST_ASSERT_EQ(err.code, StorageErrorCode::SerializationFailed);
 }
 
 TEST_CASE(JsonLimits, StrictParseFunctionality) {

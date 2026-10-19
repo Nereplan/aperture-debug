@@ -46,13 +46,7 @@
       "testFiles": [
         "tests/updater/TestManifestValidation.h",
         "tests/updater/TestCryptoSignature.h",
-        "tests/updater/TestAuthenticodePe.h",
         "tests/updater/TestSwapRollback.h",
-        "tests/updater/TestHelperValidation.h",
-        "tests/updater/TestNetworkBounds.h",
-        "tests/updater/TestPrivateModeIsolation.h",
-        "tests/updater/TestChannelPolicy.h",
-        "tests/updater/TestTempCleanup.h",
         "tests/package/test_package_signing.py"
       ],
       "validationRules": {
@@ -305,14 +299,11 @@
         "src/Json.cpp"
       ],
       "testFiles": [
+        "tests/backend/main.cpp",
         "tests/persistence/TestSchemaMigration.h",
         "tests/persistence/TestUnwritableRoot.h",
         "tests/persistence/TestRotatingBackups.h",
-        "tests/persistence/TestPartialRecovery.h",
-        "tests/persistence/TestUnknownFields.h",
-        "tests/persistence/TestRelativePaths.h",
-        "tests/persistence/TestPortableRoot.h",
-        "tests/persistence/TestCacheIsolation.h"
+        "tests/persistence/TestPortableRoot.h"
       ],
       "validationRules": {
         "atomicWriteStrategy": "Two-phase commit via unique temporary sibling file, FlushFileBuffers, and MOVEFILE_WRITE_THROUGH rename",

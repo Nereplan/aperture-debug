@@ -59,6 +59,38 @@
       "description": "Two isolated production defects must fail the exact parser or heap assertion; build failures do not count."
     },
     {
+      "id": "backend_mutations",
+      "name": "Backend Mutation Verification",
+      "category": "hardening",
+      "tier": "manual",
+      "platform": "windows-x64",
+      "script": "tests/backend/verify_mutations.ps1",
+      "command": "powershell",
+      "arguments": [],
+      "prerequisites": [
+        "msvc_x64"
+      ],
+      "artifactPolicy": "isolated_temp",
+      "timeoutSeconds": 600,
+      "description": "Three isolated production mutations must fail the exact settings, bookmark or cache-budget behavioral assertion; build failures do not count."
+    },
+    {
+      "id": "backend",
+      "name": "Backend Behavior and Resource Contracts",
+      "category": "persistence",
+      "tier": "pr",
+      "platform": "windows-x64",
+      "script": "tests/backend/run_tests.ps1",
+      "command": "powershell",
+      "arguments": [],
+      "prerequisites": [
+        "msvc_x64"
+      ],
+      "artifactPolicy": "isolated_temp",
+      "timeoutSeconds": 180,
+      "description": "Real settings/library restart and relocation, nested extension preservation, bounded history, filesystem cache eviction, portable containment and allocation-free JSON numeric formatting."
+    },
+    {
       "id": "local_release",
       "name": "Local Release Publishing",
       "category": "package",

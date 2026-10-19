@@ -12,8 +12,7 @@
 #include <cwctype>
 
 namespace Aperture::Test {
-
-TEST_CASE(LibraryQuery, BorrowedSearchMatchesOwningReference) {
+static void step_LibraryQuery_BorrowedSearchMatchesOwningReference() {
     // Frozen owning traversal: display title, raw title, filename, full path, series.
     const auto reference = [](const MediaItem& item, const std::wstring& query) {
         if (query.empty()) return true;
@@ -38,8 +37,7 @@ TEST_CASE(LibraryQuery, BorrowedSearchMatchesOwningReference) {
         }
     }
 }
-
-TEST_CASE(LibraryQuery, CappedGroupedProjectionKeepsVisiblePrefixAndSummaries) {
+static void step_LibraryQuery_CappedGroupedProjectionKeepsVisiblePrefixAndSummaries() {
     MediaLibrary library;
     for (size_t i = 0; i < 320; ++i) {
         const size_t ordinal = 319 - i;
@@ -79,8 +77,7 @@ TEST_CASE(LibraryQuery, CappedGroupedProjectionKeepsVisiblePrefixAndSummaries) {
         }
     }
 }
-
-TEST_CASE(LibraryQuery, GroupingParserRetainsEpisodeKeysAndPublicSourceFields) {
+static void step_LibraryQuery_GroupingParserRetainsEpisodeKeysAndPublicSourceFields() {
     const std::vector<std::wstring> paths = {
         LR"(C:\Shows\Dr.Who\S01E03.mkv)", LR"(C:\Shows\Dr.Who\S01E01.mkv)",
         L"C:/Shows/Dr.Who/S02E02.MKV", LR"(C:\Shows\[Subs] New Show.2x04 [1080p].mp4)",
@@ -117,8 +114,7 @@ TEST_CASE(LibraryQuery, GroupingParserRetainsEpisodeKeysAndPublicSourceFields) {
 // ============================================================================
 // 1. Episode Token & Pattern Extraction Tests
 // ============================================================================
-
-TEST_CASE(LibraryQuery, SupportedMediaExtensionPathSemantics) {
+static void step_LibraryQuery_SupportedMediaExtensionPathSemantics() {
     const auto supported = [](const std::wstring& path) {
         return MediaLibrary::IsSupportedMediaExtension(path);
     };
@@ -172,8 +168,7 @@ TEST_CASE(LibraryQuery, SupportedMediaExtensionPathSemantics) {
         for (const auto& name : names) assertMatchesFilesystem(prefix + name);
     }
 }
-
-TEST_CASE(LibraryQuery, EpisodeParsingPatterns) {
+static void step_LibraryQuery_EpisodeParsingPatterns() {
     // Standard SxxExx
     {
         auto info = LibraryQueryEngine::ParseEpisodeInfo(L"C:\\Anime\\Steins Gate\\Steins.Gate.S01E05.1080p.mkv");
@@ -260,8 +255,7 @@ TEST_CASE(LibraryQuery, EpisodeParsingPatterns) {
 // ============================================================================
 // 2. Deterministic Sorting & Stable Ties Tests
 // ============================================================================
-
-TEST_CASE(LibraryQuery, SortingByAllFields) {
+static void step_LibraryQuery_SortingByAllFields() {
     MediaLibrary lib;
 
     MediaItem itemA;
@@ -366,8 +360,7 @@ TEST_CASE(LibraryQuery, SortingByAllFields) {
         TEST_ASSERT_EQ(proj.items[2].title, std::wstring(L"Gamma"));
     }
 }
-
-TEST_CASE(LibraryQuery, StableDeterministicTieBreaking) {
+static void step_LibraryQuery_StableDeterministicTieBreaking() {
     MediaLibrary lib;
 
     // Create 3 items with identical duration and date added
@@ -418,8 +411,7 @@ TEST_CASE(LibraryQuery, StableDeterministicTieBreaking) {
 // ============================================================================
 // 3. Status Filters Tests
 // ============================================================================
-
-TEST_CASE(LibraryQuery, StatusFilters) {
+static void step_LibraryQuery_StatusFilters() {
     MediaLibrary lib;
 
     MediaItem itemNew;
@@ -512,8 +504,7 @@ TEST_CASE(LibraryQuery, StatusFilters) {
 // ============================================================================
 // 4. Bounded Projections & Cache Invalidation Tests
 // ============================================================================
-
-TEST_CASE(LibraryQuery, BoundedProjectionAndCache) {
+static void step_LibraryQuery_BoundedProjectionAndCache() {
     MediaLibrary lib;
     for (int i = 0; i < 20; ++i) {
         MediaItem item;
@@ -560,8 +551,7 @@ TEST_CASE(LibraryQuery, BoundedProjectionAndCache) {
 // ============================================================================
 // 5. Conservative Next-Episode Sequence Tests
 // ============================================================================
-
-TEST_CASE(LibraryQuery, NextEpisodeDetection) {
+static void step_LibraryQuery_NextEpisodeDetection() {
     std::wstring ep1 = L"C:\\Videos\\Anime\\Frieren\\Frieren.S01E01.1080p.mkv";
     std::wstring ep2 = L"C:\\Videos\\Anime\\Frieren\\Frieren.S01E02.1080p.mkv";
     std::wstring ep3 = L"C:\\Videos\\Anime\\Frieren\\Frieren.S01E03.1080p.mkv";
@@ -613,8 +603,7 @@ TEST_CASE(LibraryQuery, NextEpisodeDetection) {
 // ============================================================================
 // 6. Safe Action Projection & Autoplay Integration Tests
 // ============================================================================
-
-TEST_CASE(LibraryQuery, SafeActionProjection) {
+static void step_LibraryQuery_SafeActionProjection() {
     std::wstring ep1 = L"C:\\Shows\\Dark\\Dark.S01E01.mkv";
     std::wstring ep2 = L"C:\\Shows\\Dark\\Dark.S01E02.mkv";
     std::vector<std::wstring> candidates = { ep1, ep2 };
@@ -686,8 +675,7 @@ TEST_CASE(LibraryQuery, SafeActionProjection) {
         TEST_ASSERT(!action.canExecuteAuto);
     }
 }
-
-TEST_CASE(LibraryQuery, FolderGrouping) {
+static void step_LibraryQuery_FolderGrouping() {
     MediaLibrary lib;
 
     MediaItem item1;
@@ -725,8 +713,7 @@ TEST_CASE(LibraryQuery, FolderGrouping) {
     TEST_ASSERT_EQ(proj.groups[1].count, 1);
     TEST_ASSERT_EQ(proj.groups[1].startIndex, 2);
 }
-
-TEST_CASE(LibraryQuery, SeriesGrouping) {
+static void step_LibraryQuery_SeriesGrouping() {
     MediaLibrary lib;
 
     MediaItem ep2;
@@ -769,8 +756,7 @@ TEST_CASE(LibraryQuery, SeriesGrouping) {
     TEST_ASSERT_EQ(proj.groups[1].startIndex, 2);
     TEST_ASSERT_EQ(proj.items[2].id, "movie1");
 }
-
-TEST_CASE(LibraryQuery, PinLastWatchedToTop) {
+static void step_LibraryQuery_PinLastWatchedToTop() {
     MediaLibrary lib;
     MediaItem a;
     a.id = "itemA";
@@ -815,8 +801,7 @@ TEST_CASE(LibraryQuery, PinLastWatchedToTop) {
     TEST_ASSERT_EQ(projPinned.items[1].id, "itemA");
     TEST_ASSERT_EQ(projPinned.items[2].id, "itemC");
 }
-
-TEST_CASE(LibraryQuery, CollapsedFolderGroups) {
+static void step_LibraryQuery_CollapsedFolderGroups() {
     MediaLibrary lib;
     MediaItem item1;
     item1.id = "f1_item1";
@@ -854,8 +839,7 @@ TEST_CASE(LibraryQuery, CollapsedFolderGroups) {
     TEST_ASSERT_EQ(projCol.items.size(), 1);
     TEST_ASSERT_EQ(projCol.items[0].id, "f1_item1");
 }
-
-TEST_CASE(LibraryQuery, SearchQueryFiltering) {
+static void step_LibraryQuery_SearchQueryFiltering() {
     MediaLibrary lib;
     MediaItem item1;
     item1.id = "item1";
@@ -906,8 +890,7 @@ TEST_CASE(LibraryQuery, SearchQueryFiltering) {
     auto projMultiple = engine.Query(lib, opt);
     TEST_ASSERT_EQ(projMultiple.items.size(), 2);
 }
-
-TEST_CASE(LibraryQuery, SearchQueryInSeriesAndFolders) {
+static void step_LibraryQuery_SearchQueryInSeriesAndFolders() {
     MediaLibrary lib;
     MediaItem item1;
     item1.id = "ep1";
@@ -938,8 +921,7 @@ TEST_CASE(LibraryQuery, SearchQueryInSeriesAndFolders) {
     TEST_ASSERT_EQ(projAllSeries.items.size(), 2);
     TEST_ASSERT_EQ(projAllSeries.groups.size(), 2);
 }
-
-TEST_CASE(LibraryQuery, StandaloneFiltersOutPlaylistItems) {
+static void step_LibraryQuery_StandaloneFiltersOutPlaylistItems() {
     MediaLibrary lib;
 
     MediaItem item1;
@@ -988,8 +970,7 @@ TEST_CASE(LibraryQuery, StandaloneFiltersOutPlaylistItems) {
     auto projSeries = engine.Query(lib, opt);
     TEST_ASSERT_EQ(projSeries.items.size(), 3);
 }
-
-TEST_CASE(LibraryQuery, DuplicateFilteringProbesEachFileOnce) {
+static void step_LibraryQuery_DuplicateFilteringProbesEachFileOnce() {
     MediaLibrary library;
     for (int i = 0; i < 3; ++i) {
         MediaItem item;
@@ -1011,8 +992,7 @@ TEST_CASE(LibraryQuery, DuplicateFilteringProbesEachFileOnce) {
     TEST_ASSERT_EQ(projection.filteredCount, size_t(3));
     TEST_ASSERT_EQ(projection.groups.size(), size_t(1));
 }
-
-TEST_CASE(LibraryQuery, FolderOrderNormalizesOnceAndKeepsFirstDuplicate) {
+static void step_LibraryQuery_FolderOrderNormalizesOnceAndKeepsFirstDuplicate() {
     MediaLibrary library;
     for (int i = 0; i < 500; ++i) {
         MediaItem item;
@@ -1034,8 +1014,7 @@ TEST_CASE(LibraryQuery, FolderOrderNormalizesOnceAndKeepsFirstDuplicate) {
         TEST_ASSERT_EQ(projection.items[i].originalLibraryIndex, size_t(499) - i);
     }
 }
-
-TEST_CASE(LibraryQuery, CappedSortPreservesStablePrefixAndPinning) {
+static void step_LibraryQuery_CappedSortPreservesStablePrefixAndPinning() {
     MediaLibrary library;
     for (int i = 199; i >= 0; --i) {
         MediaItem item;
@@ -1073,8 +1052,7 @@ TEST_CASE(LibraryQuery, CappedSortPreservesStablePrefixAndPinning) {
         }
     }
 }
-
-TEST_CASE(LibraryQuery, SharedGroupLabelsRetainFirstSpellingAndOverrides) {
+static void step_LibraryQuery_SharedGroupLabelsRetainFirstSpellingAndOverrides() {
     MediaLibrary library;
     for (const auto& path : {L"C:\\Media\\Mixed\\Show S01E02.mkv", L"c:/media/mixed/Show S01E01.mkv",
                             L"Root.mkv", L"C:\\Other\\Standalone.mkv"}) {
@@ -1115,9 +1093,7 @@ TEST_CASE(LibraryQuery, SharedGroupLabelsRetainFirstSpellingAndOverrides) {
     TEST_ASSERT_EQ(overridden.groups[0].subtitle, std::wstring(L"Series"));
     TEST_ASSERT_EQ(overridden.groups[0].count, size_t(2));
 }
-
-
-TEST_CASE(LibraryQuery, ViewReusesOrderingAndSearchAcrossInteractionAndUnrelatedEdits) {
+static void step_LibraryQuery_ViewReusesOrderingAndSearchAcrossInteractionAndUnrelatedEdits() {
     MediaLibrary library;
     library.SetSaveRequestHandler([] { return MediaLibrarySaveResult{}; });
     for (int i = 0; i < 6; ++i) {
@@ -1168,8 +1144,7 @@ TEST_CASE(LibraryQuery, ViewReusesOrderingAndSearchAcrossInteractionAndUnrelated
     TEST_ASSERT_EQ(engine.GetPlanBuildCount(), 2ull);
     TEST_ASSERT_EQ(engine.GetSearchTextBuildCount(), 2ull);
 }
-
-TEST_CASE(LibraryQuery, PreparedViewsMatchDirectProjectionWithFilteringGroupsAndCaps) {
+static void step_LibraryQuery_PreparedViewsMatchDirectProjectionWithFilteringGroupsAndCaps() {
     MediaLibrary library;
     for (int i = 0; i < 12; ++i) {
         MediaItem item;
@@ -1220,8 +1195,7 @@ TEST_CASE(LibraryQuery, PreparedViewsMatchDirectProjectionWithFilteringGroupsAnd
         }
     }
 }
-
-TEST_CASE(LibraryQuery, RelevantChangesInvalidateAndUnchangedOrderRetainsLayoutGeneration) {
+static void step_LibraryQuery_RelevantChangesInvalidateAndUnchangedOrderRetainsLayoutGeneration() {
     MediaLibrary library;
     library.SetSaveRequestHandler([] { return MediaLibrarySaveResult{}; });
     for (int i = 0; i < 2; ++i) {
@@ -1251,9 +1225,7 @@ TEST_CASE(LibraryQuery, RelevantChangesInvalidateAndUnchangedOrderRetainsLayoutG
     TEST_ASSERT((reordered.indices == std::vector<size_t>{1, 0}));
     TEST_ASSERT(reordered.generation != oldGeneration);
 }
-
-
-TEST_CASE(LibraryQuery, ColdCappedViewDoesNotPrepareUnlimitedOrder) {
+static void step_LibraryQuery_ColdCappedViewDoesNotPrepareUnlimitedOrder() {
     MediaLibrary library;
     for (int i = 9; i >= 0; --i) {
         MediaItem item; item.id = std::to_string(i); item.title = std::to_wstring(i);
@@ -1267,8 +1239,7 @@ TEST_CASE(LibraryQuery, ColdCappedViewDoesNotPrepareUnlimitedOrder) {
     TEST_ASSERT_EQ(engine.QueryView(library, options).indices.size(), size_t(2));
     TEST_ASSERT_EQ(engine.GetPlanBuildCount(), 1ull);
 }
-
-TEST_CASE(LibraryQuery, SeriesOverrideCanShareStandaloneKeyWhenFiltering) {
+static void step_LibraryQuery_SeriesOverrideCanShareStandaloneKeyWhenFiltering() {
     MediaLibrary library;
     MediaItem ordinary; ordinary.id = "ordinary"; ordinary.title = L"Ordinary"; ordinary.filePath = LR"(C:\Media\film.mkv)";
     library.mediaItems.push_back(ordinary);
@@ -1282,6 +1253,37 @@ TEST_CASE(LibraryQuery, SeriesOverrideCanShareStandaloneKeyWhenFiltering) {
     TEST_ASSERT(!filtered.groups.front().isSpecial);
     TEST_ASSERT_EQ(filtered.groups.front().title, std::wstring(L"__standalone__"));
     TEST_ASSERT_EQ(filtered.indices.front(), size_t(1));
+}
+
+
+TEST_CASE(LibraryQuery, SortingGroupingAndCappedProjection) {
+    step_LibraryQuery_BorrowedSearchMatchesOwningReference();
+    step_LibraryQuery_CappedGroupedProjectionKeepsVisiblePrefixAndSummaries();
+    step_LibraryQuery_GroupingParserRetainsEpisodeKeysAndPublicSourceFields();
+    step_LibraryQuery_SupportedMediaExtensionPathSemantics();
+    step_LibraryQuery_EpisodeParsingPatterns();
+    step_LibraryQuery_SortingByAllFields();
+    step_LibraryQuery_StableDeterministicTieBreaking();
+    step_LibraryQuery_StatusFilters();
+    step_LibraryQuery_BoundedProjectionAndCache();
+    step_LibraryQuery_NextEpisodeDetection();
+    step_LibraryQuery_SafeActionProjection();
+    step_LibraryQuery_FolderGrouping();
+    step_LibraryQuery_SeriesGrouping();
+    step_LibraryQuery_PinLastWatchedToTop();
+    step_LibraryQuery_CollapsedFolderGroups();
+    step_LibraryQuery_SearchQueryFiltering();
+    step_LibraryQuery_SearchQueryInSeriesAndFolders();
+    step_LibraryQuery_StandaloneFiltersOutPlaylistItems();
+    step_LibraryQuery_DuplicateFilteringProbesEachFileOnce();
+    step_LibraryQuery_FolderOrderNormalizesOnceAndKeepsFirstDuplicate();
+    step_LibraryQuery_CappedSortPreservesStablePrefixAndPinning();
+    step_LibraryQuery_SharedGroupLabelsRetainFirstSpellingAndOverrides();
+    step_LibraryQuery_ViewReusesOrderingAndSearchAcrossInteractionAndUnrelatedEdits();
+    step_LibraryQuery_PreparedViewsMatchDirectProjectionWithFilteringGroupsAndCaps();
+    step_LibraryQuery_RelevantChangesInvalidateAndUnchangedOrderRetainsLayoutGeneration();
+    step_LibraryQuery_ColdCappedViewDoesNotPrepareUnlimitedOrder();
+    step_LibraryQuery_SeriesOverrideCanShareStandaloneKeyWhenFiltering();
 }
 
 } // namespace Aperture::Test

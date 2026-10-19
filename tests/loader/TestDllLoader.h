@@ -8,13 +8,11 @@
 #include <vector>
 
 namespace Aperture::Test {
-
-TEST_CASE(DllLoader, ProcessDllSearchHardening) {
+static void step_DllLoader_ProcessDllSearchHardening() {
     bool ok = DllLoader::HardenProcessDllSearch();
     TEST_ASSERT(ok);
 }
-
-TEST_CASE(DllLoader, ResolvePackageDllPath) {
+static void step_DllLoader_ResolvePackageDllPath() {
     std::wstring exeDir = GetExeDir();
     TEST_ASSERT(!exeDir.empty());
 
@@ -27,8 +25,7 @@ TEST_CASE(DllLoader, ResolvePackageDllPath) {
     std::wstring mpvPath2 = DllLoader::ResolvePackageDllPath(L"\\libmpv-2.dll");
     TEST_ASSERT_EQ(mpvPath, mpvPath2);
 }
-
-TEST_CASE(DllLoader, CwdSearchOrderBlocked) {
+static void step_DllLoader_CwdSearchOrderBlocked() {
     // 1. Ensure process DLL search hardening is active
     DllLoader::HardenProcessDllSearch();
 
@@ -73,8 +70,7 @@ TEST_CASE(DllLoader, CwdSearchOrderBlocked) {
     DeleteFileW(dummyDllPath.c_str());
     RemoveDirectoryW(testDir.c_str());
 }
-
-TEST_CASE(DllLoader, PackageLocalLibmpvLoads) {
+static void step_DllLoader_PackageLocalLibmpvLoads() {
     HMODULE hMpv = DllLoader::LoadPackageLocalDll(L"libmpv-2.dll");
     TEST_ASSERT(hMpv != NULL);
 
@@ -95,8 +91,7 @@ TEST_CASE(DllLoader, PackageLocalLibmpvLoads) {
         FreeLibrary(hMpv);
     }
 }
-
-TEST_CASE(DllLoader, MpvPlayerLifecycleWithHardenedLoading) {
+static void step_DllLoader_MpvPlayerLifecycleWithHardenedLoading() {
     // Create a dummy hidden message-only window for testing
     WNDCLASSEX wc = { sizeof(WNDCLASSEX) };
     wc.lpfnWndProc = DefWindowProc;
@@ -130,6 +125,16 @@ TEST_CASE(DllLoader, MpvPlayerLifecycleWithHardenedLoading) {
 
     if (hParent) DestroyWindow(hParent);
     UnregisterClass(wc.lpszClassName, wc.hInstance);
+}
+
+
+TEST_CASE(DllLoader, SearchOrderHardeningAndPackageLocalMpv) {
+    step_DllLoader_ProcessDllSearchHardening();
+    step_DllLoader_ResolvePackageDllPath();
+    step_DllLoader_CwdSearchOrderBlocked();
+    step_DllLoader_PackageLocalLibmpvLoads();
+    step_DllLoader_MpvPlayerLifecycleWithHardenedLoading();
+    TEST_ASSERT(DllLoader::IsAbsolutePath(L"C:\\Aperture\\libmpv-2.dll")); TEST_ASSERT(!DllLoader::IsAbsolutePath(L"libmpv-2.dll"));
 }
 
 } // namespace Aperture::Test

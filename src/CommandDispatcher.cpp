@@ -159,8 +159,6 @@ AppCommand CommandDispatcher::CommandIdFromString(const std::string& actionId) {
 
 std::string CommandDispatcher::StringFromCommandId(AppCommand cmd) { return DescribeCommand(cmd).id; }
 
-std::wstring CommandDispatcher::GetCommandDefaultDisplayName(AppCommand cmd) { return DescribeCommand(cmd).displayName; }
-
 AppCommand CommandDispatcher::TranslateKeyChord(UINT vkCode, bool isCtrl, bool isShift, bool isAlt, bool isPlayerOpen, const Settings& settings) const {
     if (isPlayerOpen) {
         // 1. Check custom shortcut bindings in Settings

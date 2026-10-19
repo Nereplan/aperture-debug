@@ -16,8 +16,7 @@
 #include <unordered_set>
 
 namespace Aperture::Test {
-
-TEST_CASE(RtlComplexScripts, DirectionMetadataParsingAndValidation) {
+static void step_RtlComplexScripts_DirectionMetadataParsingAndValidation() {
     // 1. Valid LTR
     std::string validLtrJson = "{\n"
         "  \"schemaVersion\": 1,\n"
@@ -93,8 +92,7 @@ TEST_CASE(RtlComplexScripts, DirectionMetadataParsingAndValidation) {
         "}";
     TEST_ASSERT(!Localization::ParseCatalogJson(malformedDir3, info, strings, plurals, err));
 }
-
-TEST_CASE(RtlComplexScripts, FallbackOnMalformedOrMissingRtlCatalog) {
+static void step_RtlComplexScripts_FallbackOnMalformedOrMissingRtlCatalog() {
     ScopedTempDir tempDir(L"Aperture_Rtl_Fallback_Test_");
     tempDir.CreateSubDir(L"locales");
 
@@ -125,8 +123,7 @@ inline void WriteRtlCatalogFixtures(ScopedTempDir& root) {
     TEST_ASSERT(root.WriteFile(LR"(locales\ar-SA.json)", u8R"({"schemaVersion":1,"tag":"ar-SA","displayName":"العربية","direction":"rtl","strings":{"nav.media":"الوسائط","nav.settings":"الإعدادات","nav.playlists":"قوائم التشغيل","playlist.drop_banner":"إضافة إلى {0}"}})"));
     TEST_ASSERT(root.WriteFile(LR"(locales\he-IL.json)", u8R"({"schemaVersion":1,"tag":"he-IL","displayName":"עברית","direction":"rtl","strings":{"nav.media":"מדיה"}})"));
 }
-
-TEST_CASE(RtlComplexScripts, NoManualUnicodeReversalInvariant) {
+static void step_RtlComplexScripts_NoManualUnicodeReversalInvariant() {
     ScopedTempDir root(L"Aperture_Rtl_Order_");
     WriteRtlCatalogFixtures(root);
     auto& loc = Localization::Instance();
@@ -141,8 +138,7 @@ TEST_CASE(RtlComplexScripts, NoManualUnicodeReversalInvariant) {
     TEST_ASSERT_EQ(loc.Get("nav.media"), std::wstring(L"מדיה"));
     loc.Initialize(GetExeDir(), "en-US");
 }
-
-TEST_CASE(RtlComplexScripts, DirectWriteComplexScriptShapingAndMetrics) {
+static void step_RtlComplexScripts_DirectWriteComplexScriptShapingAndMetrics() {
     Microsoft::WRL::ComPtr<IDWriteFactory> dwriteFactory;
     HRESULT hr = DWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory), &dwriteFactory);
     TEST_ASSERT(SUCCEEDED(hr));
@@ -208,8 +204,7 @@ TEST_CASE(RtlComplexScripts, DirectWriteComplexScriptShapingAndMetrics) {
     TEST_ASSERT(heTm.width > 0.0f);
     TEST_ASSERT(heTm.height > 0.0f);
 }
-
-TEST_CASE(RtlComplexScripts, MixedBidiAndUnicodeIsolation) {
+static void step_RtlComplexScripts_MixedBidiAndUnicodeIsolation() {
     // Validate Bidi isolation helpers
     std::wstring path = L"C:\\Media\\Cosmos_4K.mkv";
     std::wstring isolatedPath = Localization::BidiIsolateLtr(path);
@@ -249,8 +244,7 @@ TEST_CASE(RtlComplexScripts, MixedBidiAndUnicodeIsolation) {
 
     loc.Initialize(GetExeDir(), "en-US");
 }
-
-TEST_CASE(RtlComplexScripts, DirectWriteRasterizationEvidence) {
+static void step_RtlComplexScripts_DirectWriteRasterizationEvidence() {
     Microsoft::WRL::ComPtr<ID2D1Factory> d2dFactory;
     HRESULT hr = D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, __uuidof(ID2D1Factory), nullptr, &d2dFactory);
     TEST_ASSERT(SUCCEEDED(hr));
@@ -315,6 +309,16 @@ TEST_CASE(RtlComplexScripts, DirectWriteRasterizationEvidence) {
 
     // Must have rendered text glyph pixels
     TEST_ASSERT(nonZeroPixels > 50);
+}
+
+
+TEST_CASE(RtlComplexScripts, BidiIsolationAndDirectWriteShaping) {
+    step_RtlComplexScripts_DirectionMetadataParsingAndValidation();
+    step_RtlComplexScripts_FallbackOnMalformedOrMissingRtlCatalog();
+    step_RtlComplexScripts_NoManualUnicodeReversalInvariant();
+    step_RtlComplexScripts_DirectWriteComplexScriptShapingAndMetrics();
+    step_RtlComplexScripts_MixedBidiAndUnicodeIsolation();
+    step_RtlComplexScripts_DirectWriteRasterizationEvidence();
 }
 
 } // namespace Aperture::Test

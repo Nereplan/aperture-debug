@@ -15,8 +15,7 @@ inline MediaItem File(const std::string& id, const std::wstring& path) {
     return item;
 }
 }
-
-TEST_CASE(FolderRediscovery, PreparedMovesPreserveConcurrentUserEditsAndReferences) {
+static void step_FolderRediscovery_PreparedMovesPreserveConcurrentUserEditsAndReferences() {
     ScopedTempDir temp;
     TEST_ASSERT(temp.WriteFile(LR"(Old\episode.mkv)", "video"));
     MediaLibrary library;
@@ -46,8 +45,7 @@ TEST_CASE(FolderRediscovery, PreparedMovesPreserveConcurrentUserEditsAndReferenc
     TEST_ASSERT_EQ(library.GetRevisions().catalog, before.catalog + 1);
     TEST_ASSERT_EQ(saves, size_t(0));
 }
-
-TEST_CASE(FolderRediscovery, DuplicateMergeUsesLiveStateAndNeverSavesWhenDisabled) {
+static void step_FolderRediscovery_DuplicateMergeUsesLiveStateAndNeverSavesWhenDisabled() {
     ScopedTempDir temp;
     TEST_ASSERT(temp.WriteFile(LR"(New\movie.mkv)", "video"));
     MediaLibrary library;
@@ -69,8 +67,7 @@ TEST_CASE(FolderRediscovery, DuplicateMergeUsesLiveStateAndNeverSavesWhenDisable
     TEST_ASSERT_EQ(library.mediaItems[0].bookmarks[0].id, std::string("keep"));
     TEST_ASSERT_EQ(saves, size_t(0));
 }
-
-TEST_CASE(FolderRediscovery, StaleFileFactsAndAmbiguousCandidatesAreRetained) {
+static void step_FolderRediscovery_StaleFileFactsAndAmbiguousCandidatesAreRetained() {
     ScopedTempDir temp;
     TEST_ASSERT(temp.WriteFile(LR"(ChoiceA\movie.mkv)", "video"));
     TEST_ASSERT(temp.WriteFile(LR"(ChoiceB\movie.mkv)", "video"));
@@ -88,8 +85,7 @@ TEST_CASE(FolderRediscovery, StaleFileFactsAndAmbiguousCandidatesAreRetained) {
     TEST_ASSERT_EQ(result.relocatedItemsCount, size_t(0));
     TEST_ASSERT_EQ(library.mediaItems[0].filePath, old.filePath);
 }
-
-TEST_CASE(FolderRediscovery, CandidateListingsAreReusedAcrossMissingFolders) {
+static void step_FolderRediscovery_CandidateListingsAreReusedAcrossMissingFolders() {
     ScopedTempDir temp;
     TEST_ASSERT(temp.WriteFile(LR"(NewA\a.mkv)", "one"));
     TEST_ASSERT(temp.WriteFile(LR"(NewB\b.mkv)", "two"));
@@ -106,8 +102,7 @@ TEST_CASE(FolderRediscovery, CandidateListingsAreReusedAcrossMissingFolders) {
     TEST_ASSERT(canceled.moves.empty());
     TEST_ASSERT_EQ(canceled.directoryScans, size_t(0));
 }
-
-TEST_CASE(FolderRediscovery, CompetingSourcesCannotClaimTheSameDestination) {
+static void step_FolderRediscovery_CompetingSourcesCannotClaimTheSameDestination() {
     ScopedTempDir temp;
     TEST_ASSERT(temp.WriteFile(LR"(New\movie.mkv)", "video"));
     MediaLibrary library;
@@ -118,6 +113,15 @@ TEST_CASE(FolderRediscovery, CompetingSourcesCannotClaimTheSameDestination) {
     TEST_ASSERT(prepared.moves.empty());
     TEST_ASSERT_EQ(library.ApplyFolderRediscovery(prepared, false).removedGhostCount, size_t(0));
     TEST_ASSERT_EQ(library.mediaItems.size(), size_t(2));
+}
+
+
+TEST_CASE(FolderRediscovery, MovePreservationAndGhostMerge) {
+    step_FolderRediscovery_PreparedMovesPreserveConcurrentUserEditsAndReferences();
+    step_FolderRediscovery_DuplicateMergeUsesLiveStateAndNeverSavesWhenDisabled();
+    step_FolderRediscovery_StaleFileFactsAndAmbiguousCandidatesAreRetained();
+    step_FolderRediscovery_CandidateListingsAreReusedAcrossMissingFolders();
+    step_FolderRediscovery_CompetingSourcesCannotClaimTheSameDestination();
 }
 
 } // namespace Aperture::Test

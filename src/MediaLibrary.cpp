@@ -530,10 +530,6 @@ MediaRelocationResult MediaLibrary::RelocateMissingMediaToRoot(const std::wstrin
     return result;
 }
 
-FolderRediscoveryResult MediaLibrary::RediscoverFolderChanges(bool saveChanges) {
-    return ApplyFolderRediscovery(PrepareFolderRediscovery(FolderRediscoverySnapshot::Capture(*this)), saveChanges);
-}
-
 FolderRediscoveryResult MediaLibrary::ApplyFolderRediscovery(const PreparedFolderRediscovery& prepared, bool saveChanges) {
     FolderRediscoveryResult result;
     if (prepared.canceled) return result;
@@ -642,33 +638,6 @@ FolderRediscoveryResult MediaLibrary::ApplyFolderRediscovery(const PreparedFolde
     InvalidatePlaylistStatsCache();
     if (saveChanges) Save();
     return result;
-}
-
-size_t MediaLibrary::RemoveFolder(const std::wstring& folderPath, bool saveChanges) {
-    if (folderPath.empty()) return 0;
-    std::wstring norm = NormalizeDirectoryPath(folderPath);
-    if (!norm.empty() && norm.back() != L'\\' && norm.back() != L'/') { norm += L'\\'; }
-    std::vector<std::string> idsToRemove;
-    for (const auto& item : mediaItems) {
-        std::wstring itemDir = NormalizeDirectoryPath(ExtractDirectory(item.filePath));
-        if (!itemDir.empty() && itemDir.back() != L'\\' && itemDir.back() != L'/') { itemDir += L'\\'; }
-        if (itemDir.size() >= norm.size() && _wcsnicmp(itemDir.c_str(), norm.c_str(), norm.size()) == 0) { idsToRemove.push_back(item.id); }
-    }
-    size_t removed = 0;
-    if (!idsToRemove.empty()) { removed = RemoveMedia(idsToRemove); }
-    auto it = std::remove_if(watchedFolders.begin(), watchedFolders.end(), [&](const std::wstring& wf) {
-        std::wstring wfNorm = NormalizeDirectoryPath(wf);
-        if (!wfNorm.empty() && wfNorm.back() != L'\\' && wfNorm.back() != L'/') { wfNorm += L'\\'; }
-        return (wfNorm == norm || (wfNorm.size() >= norm.size() && _wcsnicmp(wfNorm.c_str(), norm.c_str(), norm.size()) == 0));
-    });
-    if (it != watchedFolders.end()) { watchedFolders.erase(it, watchedFolders.end()); }
-    if (removed > 0 || it != watchedFolders.end()) {
-        RebuildPathIndex();
-        libraryVersion++;
-        InvalidatePlaylistStatsCache();
-        if (saveChanges) { Save(); }
-    }
-    return removed;
 }
 
 size_t MediaLibrary::RemoveFolders(const std::vector<std::wstring>& folderPaths, bool saveChanges) {
@@ -803,23 +772,11 @@ const MediaItem* MediaLibrary::FindById(const std::string& id) const {
     return nullptr;
 }
 
-const MediaPlaybackPreferences* MediaLibrary::GetMediaPreferences(const std::wstring& path) const {
-    const MediaItem* item = FindByPath(path);
-    if (item && item->preferences.has_value()) { return &(*item->preferences); }
-    return nullptr;
-}
-
 bool MediaLibrary::SetMediaPreferences(const std::wstring& path, const MediaPlaybackPreferences& prefs) {
     MediaItem* item = FindByPath(path);
     if (!item) item = AddOrUpdateMedia(path);
     if (item) { item->preferences = prefs; libraryVersion++; return true; }
     return false;
-}
-
-const std::vector<MediaBookmark>* MediaLibrary::GetBookmarks(const std::wstring& path) const {
-    const MediaItem* item = FindByPath(path);
-    if (!item) return nullptr;
-    return &item->bookmarks;
 }
 
 bool MediaLibrary::AddBookmark(const std::wstring& path, const MediaBookmark& bookmark) {
@@ -856,12 +813,6 @@ bool MediaLibrary::ClearBookmarks(const std::wstring& path) {
     libraryVersion++;
     return true;
 }
-const MediaMetadataOverrides* MediaLibrary::GetMetadataOverrides(const std::wstring& path) const {
-    const MediaItem* item = FindByPath(path);
-    if (!item || !item->overrides.has_value() || !item->overrides->HasAnyOverride()) { return nullptr; }
-    return &(*item->overrides);
-}
-
 bool MediaLibrary::SetMetadataOverrides(const std::wstring& path, const MediaMetadataOverrides& overrides) {
     MediaItem* item = FindByPath(path);
     if (!item) item = AddOrUpdateMedia(path);
@@ -872,17 +823,6 @@ bool MediaLibrary::SetMetadataOverrides(const std::wstring& path, const MediaMet
         libraryVersion++; ++revisions.catalog;
         InvalidatePlaylistStatsCache();
         return true;
-    }
-    return false;
-}
-
-bool MediaLibrary::ClearMetadataOverrides(const std::wstring& path) {
-    MediaItem* item = FindByPath(path);
-    if (item && item->overrides.has_value()) {
-        const auto oldTitle = item->GetDisplayTitle();
-        item->overrides.reset();
-        if (oldTitle != item->GetDisplayTitle()) ++searchContentVersion;
-        libraryVersion++; ++revisions.catalog; InvalidatePlaylistStatsCache(); return true;
     }
     return false;
 }
@@ -1594,245 +1534,6 @@ WatchReconcileResult MediaLibrary::ApplyPreparedWatchDelta(const PreparedWatchDe
     ++libraryVersion;
     InvalidatePlaylistStatsCache();
     if (saveChanges) Save();
-    return result;
-}
-
-WatchReconcileResult MediaLibrary::ReconcileWatchBatch(const WatchChangeBatch& batch, bool saveChanges, bool probeMetadata) {
-    WatchReconcileResult result;
-    // Removals accumulate into one batched RemoveMedia call: the vector
-    // overload rebuilds the path index and saves once for the whole batch.
-    std::vector<std::string> batchedRemovedIds;
-    if (batch.overflowOrRescan) { return ReconcileRescan(batch.rootFolder, saveChanges, probeMetadata); }
-    bool libraryModified = false;
-    for (const auto& item : batch.items) {
-        switch (item.action) {
-        case WatchAction::RescanRequired: {
-            WatchReconcileResult subRes = ReconcileRescan(item.rootFolder, false, probeMetadata);
-            result.addedCount += subRes.addedCount;
-            result.updatedCount += subRes.updatedCount;
-            result.removedCount += subRes.removedCount;
-            result.renamedCount += subRes.renamedCount;
-            result.rescanCount += subRes.rescanCount;
-            if (!subRes.status.is_ok()) result.status = subRes.status;
-            if (subRes.addedCount > 0 || subRes.updatedCount > 0 || subRes.removedCount > 0 || subRes.renamedCount > 0)
-                libraryModified = true;
-            break;
-        }
-        case WatchAction::Added: {
-            if (item.path.empty()) break;
-            std::wstring resolved = ResolveAppPath(item.path);
-            if (!IsSupportedMediaExtension(resolved)) break;
-            if (!FileExists(resolved)) break;
-            bool changed = false, probeFailed = false;
-            MediaItem* existing = FindByPath(resolved);
-            if (!existing) {
-                AddOrUpdateMediaCore(resolved, changed, probeFailed, probeMetadata);
-                if (changed) { result.addedCount++; libraryModified = true; }
-            } else {
-                uint64_t size = GetFileSizeInBytes(resolved);
-                if (existing->fileSizeBytes != size || existing->durationSec <= 0) {
-                    AddOrUpdateMediaCore(resolved, changed, probeFailed, probeMetadata);
-                    if (changed) { result.updatedCount++; libraryModified = true; }
-                }
-            }
-            break;
-        }
-        case WatchAction::Removed: {
-            if (item.path.empty()) break;
-            std::wstring resolved = ResolveAppPath(item.path);
-            MediaItem* mi = FindByPath(resolved);
-            const std::wstring root = item.rootFolder.empty() ? batch.rootFolder : item.rootFolder;
-            if ((!root.empty() && QueryPathAvailability(root) != PathAvailability::Present) ||
-                QueryPathAvailability(resolved) != PathAvailability::Missing) break;
-            if (mi) {
-                batchedRemovedIds.push_back(mi->id);
-            } else {
-                std::wstring dirPrefix = resolved;
-                if (!dirPrefix.empty() && dirPrefix.back() != L'\\' && dirPrefix.back() != L'/') { dirPrefix += L'\\'; }
-                std::vector<std::string> idsToRemove;
-                for (const auto& m : mediaItems) {
-                    if (m.filePath.size() >= dirPrefix.size() && _wcsnicmp(m.filePath.c_str(), dirPrefix.c_str(), dirPrefix.size()) == 0)
-                        idsToRemove.push_back(m.id);
-                }
-                if (!idsToRemove.empty()) { batchedRemovedIds.insert(batchedRemovedIds.end(), idsToRemove.begin(), idsToRemove.end()); }
-            }
-            break;
-        }
-        case WatchAction::Modified: {
-            if (item.path.empty()) break;
-            std::wstring resolved = ResolveAppPath(item.path);
-            if (!IsSupportedMediaExtension(resolved)) break;
-            if (!FileExists(resolved)) break;
-            MediaItem* mi = FindByPath(resolved);
-            if (mi) {
-                uint64_t size = GetFileSizeInBytes(resolved);
-                if (mi->fileSizeBytes != size || mi->durationSec <= 0) {
-                    bool changed = false, probeFailed = false;
-                    AddOrUpdateMediaCore(resolved, changed, probeFailed, probeMetadata);
-                    if (changed) { result.updatedCount++; libraryModified = true; }
-                }
-            } else {
-                bool changed = false, probeFailed = false;
-                AddOrUpdateMediaCore(resolved, changed, probeFailed, probeMetadata);
-                if (changed) { result.addedCount++; libraryModified = true; }
-            }
-            break;
-        }
-        case WatchAction::Renamed: {
-            std::wstring oldResolved = ResolveAppPath(item.oldPath);
-            std::wstring newResolved = ResolveAppPath(item.path);
-            if (oldResolved.empty() && newResolved.empty()) break;
-            MediaItem* mi = FindByPath(oldResolved);
-            if (mi) {
-                if (IsSupportedMediaExtension(newResolved) && FileExists(newResolved)) {
-                    mi->filePath = newResolved;
-                    mi->title = GetFileNameFromPath(newResolved);
-                    mi->fileSizeBytes = GetFileSizeInBytes(newResolved);
-                    WindowsFileIdentity fid = GetWindowsFileIdentity(newResolved);
-                    if (fid.valid) { mi->fileIndex = fid.fileIndex; mi->volumeSerialNumber = fid.volumeSerialNumber; }
-                    mi->metadataFileWriteTime = 0;
-                    for (auto& pl : playlists) {
-                        for (auto& p : pl.itemPaths) {
-                            if (NormalizePathKey(p) == NormalizePathKey(oldResolved)) { p = newResolved; }
-                        }
-                    }
-                    for (auto& hr : history) {
-                        if (NormalizePathKey(hr.filePath) == NormalizePathKey(oldResolved)) {
-                            hr.filePath = newResolved;
-                            hr.title = mi->title;
-                        }
-                    }
-                    RebuildPathIndex();
-                    libraryVersion++;
-                    InvalidatePlaylistStatsCache();
-                    result.renamedCount++;
-                    libraryModified = true;
-                } else {
-                    if (QueryPathAvailability(newResolved) == PathAvailability::Missing && RemoveMedia(std::vector<std::string>{mi->id}, nullptr, false)) {
-                        result.removedCount++; libraryModified = true;
-                    }
-                }
-            } else {
-                std::wstring oldDirPrefix = oldResolved;
-                if (!oldDirPrefix.empty() && oldDirPrefix.back() != L'\\' && oldDirPrefix.back() != L'/') { oldDirPrefix += L'\\'; }
-                std::wstring newDirPrefix = newResolved;
-                if (!newDirPrefix.empty() && newDirPrefix.back() != L'\\' && newDirPrefix.back() != L'/') { newDirPrefix += L'\\'; }
-                bool anyDirectoryItemRenamed = false;
-                for (auto& m : mediaItems) {
-                    if (m.filePath.size() >= oldDirPrefix.size() &&
-                        _wcsnicmp(m.filePath.c_str(), oldDirPrefix.c_str(), oldDirPrefix.size()) == 0) {
-                        std::wstring sub = m.filePath.substr(oldDirPrefix.size());
-                        std::wstring updatedPath = newDirPrefix + sub;
-                        std::wstring oldPath = m.filePath;
-                        m.filePath = updatedPath;
-                        m.title = GetFileNameFromPath(updatedPath);
-                        for (auto& pl : playlists) {
-                            for (auto& p : pl.itemPaths) {
-                                if (NormalizePathKey(p) == NormalizePathKey(oldPath)) { p = updatedPath; }
-                            }
-                        }
-                        for (auto& hr : history) {
-                            if (NormalizePathKey(hr.filePath) == NormalizePathKey(oldPath)) {
-                                hr.filePath = updatedPath;
-                                hr.title = m.title;
-                            }
-                        }
-                        anyDirectoryItemRenamed = true;
-                    }
-                }
-                if (anyDirectoryItemRenamed) {
-                    RebuildPathIndex();
-                    libraryVersion++;
-                    InvalidatePlaylistStatsCache();
-                    result.renamedCount++;
-                    libraryModified = true;
-                } else if (IsSupportedMediaExtension(newResolved) && FileExists(newResolved)) {
-                    bool changed = false, probeFailed = false;
-                    AddOrUpdateMediaCore(newResolved, changed, probeFailed, probeMetadata);
-                    if (changed) { result.addedCount++; libraryModified = true; }
-                }
-            }
-            break;
-        }
-        }
-    }
-    if (!batchedRemovedIds.empty()) {
-        // One batched removal: a single path-index rebuild and a single save
-        // instead of one full JSON save per deleted file.
-        const size_t removed = RemoveMedia(batchedRemovedIds, nullptr, false);
-        result.removedCount += removed;
-        if (removed > 0) libraryModified = true;
-    }
-    if (libraryModified && saveChanges) { Save(); }
-    return result;
-}
-
-WatchReconcileResult MediaLibrary::ReconcileRescan(const std::wstring& rootFolder, bool saveChanges, bool probeMetadata) {
-    WatchReconcileResult result;
-    result.rescanCount = 1;
-    std::wstring resolvedRoot = ResolveAppPath(rootFolder);
-    if (resolvedRoot.empty()) return result;
-    DWORD attr = GetFileAttributesW(resolvedRoot.c_str());
-    if (attr == INVALID_FILE_ATTRIBUTES || !(attr & FILE_ATTRIBUTE_DIRECTORY)) {
-        // Even PATH_NOT_FOUND can mean a disconnected volume/share. A rescan
-        // may remove entries only after enumerating an available root.
-        const DWORD err = attr == INVALID_FILE_ATTRIBUTES ? GetLastError() : ERROR_DIRECTORY;
-        result.status = StorageStatus::Error(StorageErrorCode::FileReadFailed, err, resolvedRoot, "Watched folder is unavailable; records retained");
-        return result;
-    }
-    std::unordered_set<std::wstring> diskFiles;
-    std::error_code ec;
-    std::filesystem::recursive_directory_iterator it(resolvedRoot, std::filesystem::directory_options::none, ec), end;
-    bool changedAny = false;
-    bool scanComplete = !ec;
-    for (; it != end && !ec; it.increment(ec)) {
-        if (ec) { ec.clear(); continue; }
-        const auto& entry = *it;
-        std::error_code entryEc;
-        if (entry.is_regular_file(entryEc)) {
-            std::wstring filePath = entry.path().wstring();
-            if (IsSupportedMediaExtension(filePath)) {
-                std::wstring key = NormalizePathKey(filePath);
-                diskFiles.insert(key);
-                MediaItem* existing = FindByPath(filePath);
-                if (!existing) {
-                    bool changed = false, probeFailed = false;
-                    AddOrUpdateMediaCore(filePath, changed, probeFailed, probeMetadata);
-                    if (changed) { result.addedCount++; changedAny = true; }
-                } else {
-                    uint64_t size = GetFileSizeInBytes(filePath);
-                    if (existing->fileSizeBytes != size || existing->durationSec <= 0) {
-                        bool changed = false, probeFailed = false;
-                        AddOrUpdateMediaCore(filePath, changed, probeFailed, probeMetadata);
-                        if (changed) { result.updatedCount++; changedAny = true; }
-                    }
-                }
-            }
-        }
-        if (entryEc) scanComplete = false;
-    }
-    const DWORD finalRootAttributes = GetFileAttributesW(resolvedRoot.c_str());
-    scanComplete = scanComplete && !ec && finalRootAttributes != INVALID_FILE_ATTRIBUTES &&
-        (finalRootAttributes & FILE_ATTRIBUTE_DIRECTORY);
-    if (!scanComplete) {
-        result.status = StorageStatus::Error(StorageErrorCode::FileReadFailed, ec ? static_cast<DWORD>(ec.value()) : ERROR_READ_FAULT,
-            resolvedRoot, "Watched folder scan was incomplete; removals deferred");
-        if (changedAny && saveChanges) Save();
-        return result;
-    }
-    std::wstring dirPrefix = resolvedRoot;
-    if (!dirPrefix.empty() && dirPrefix.back() != L'\\' && dirPrefix.back() != L'/') { dirPrefix += L'\\'; }
-    std::vector<std::string> idsToRemove;
-    for (const auto& m : mediaItems) {
-        if (m.filePath.size() >= dirPrefix.size() && _wcsnicmp(m.filePath.c_str(), dirPrefix.c_str(), dirPrefix.size()) == 0) {
-            std::wstring key = NormalizePathKey(m.filePath);
-            if (diskFiles.find(key) == diskFiles.end() && QueryPathAvailability(m.filePath) == PathAvailability::Missing) {
-                idsToRemove.push_back(m.id);
-            }
-        }
-    }
-    if (!idsToRemove.empty()) { size_t count = RemoveMedia(idsToRemove, nullptr, false); result.removedCount += count; changedAny = true; }
-    if (changedAny && saveChanges) { Save(); }
     return result;
 }
 

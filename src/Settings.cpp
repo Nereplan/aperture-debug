@@ -136,11 +136,13 @@ void Settings::ResetToDefaults() {
     pipY = -1;
     pipWidth = 0;
     pipHeight = 0;
-    cacheTotalBudgetMB = 512;
-    cacheThumbnailBudgetMB = 128;
-    cacheShaderBudgetMB = 128;
-    cacheSubtitleBudgetMB = 64;
-    cacheGenericBudgetMB = 64;
+    const CacheBudgetConfig cacheDefaults;
+    constexpr uint64_t mib = 1024ULL * 1024ULL;
+    cacheTotalBudgetMB = static_cast<int>(cacheDefaults.totalCeilingBytes / mib);
+    cacheThumbnailBudgetMB = static_cast<int>(cacheDefaults.thumbnailBudgetBytes / mib);
+    cacheShaderBudgetMB = static_cast<int>(cacheDefaults.shaderBudgetBytes / mib);
+    cacheSubtitleBudgetMB = static_cast<int>(cacheDefaults.subtitleBudgetBytes / mib);
+    cacheGenericBudgetMB = static_cast<int>(cacheDefaults.genericBudgetBytes / mib);
     SetGlobalCacheBudgets(GetCacheBudgets());
     ResetShortcuts();
     UpdateThemeColors();
@@ -1183,24 +1185,6 @@ std::string Settings::NormalizeProfilePosition(const std::string& pos) {
 
 int Settings::NormalizeSafeAreaPercent(int percent) { return std::clamp(percent, 0, 30); }
 
-std::vector<SubtitleSafeAreaPreset> Settings::GetSubtitleSafeAreaPresets() {
-    return {
-        { "none", "Off (0%)", 0, 0 }, { "action", "Action Safe (5%)", 5, 5 }, { "title", "Title Safe (10%)", 10, 10 },
-        { "wide", "Wide (15%)", 15, 15 }, { "cinema", "Cinema (20%)", 20, 20 }
-    };
-}
-
-bool Settings::GetSubtitleSafeAreaPreset(const std::string& id, int& outX, int& outY) {
-    std::string target = LowerAscii(TrimAscii(id));
-    if (target.empty()) return false;
-    auto presets = GetSubtitleSafeAreaPresets();
-    for (const auto& p : presets) {
-        if (LowerAscii(p.id) == target || LowerAscii(p.displayName) == target) { outX = p.x; outY = p.y; return true; }
-    }
-    return false;
-}
-
-void Settings::ResetSubtitleSafeArea() { subSafeAreaX = 0; subSafeAreaY = 0; }
 const SubtitleStyleProfile* Settings::FindSubtitleProfile(const std::string& name) const {
     std::string target = LowerAscii(TrimAscii(name));
     if (target.empty()) return nullptr;

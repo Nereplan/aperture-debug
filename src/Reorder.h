@@ -11,12 +11,6 @@ inline int Slot(int index, int from, int to) {
     if (from > to && index >= to && index < from) return index + 1;
     return index;
 }
-inline int GridTarget(float x, float y, float pitchX, float pitchY, int columns, int count) {
-    if (count <= 0 || columns <= 0 || pitchX <= 0 || pitchY <= 0) return -1;
-    int column = std::clamp(static_cast<int>(std::floor(x / pitchX)), 0, columns - 1);
-    int row = std::max(0, static_cast<int>(std::floor(y / pitchY)));
-    return std::min(count - 1, row * columns + column);
-}
 // Returns the logical slot whose center is nearest to the dragged item's center. Using centers makes the destination change only after the
 // item crosses the midpoint between neighboring slots, independent of where the user grabbed it.
 inline int LinearTargetFromCenter(float center, float firstCenter, float pitch, int count) {

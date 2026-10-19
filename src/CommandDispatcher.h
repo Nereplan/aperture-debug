@@ -79,7 +79,6 @@ public:
     // String / Enum Conversions
     static AppCommand CommandIdFromString(const std::string& actionId);
     static std::string StringFromCommandId(AppCommand cmd);
-    static std::wstring GetCommandDefaultDisplayName(AppCommand cmd);
 
 private:
     ICommandContext* context = nullptr;

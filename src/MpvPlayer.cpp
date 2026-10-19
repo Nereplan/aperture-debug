@@ -1337,7 +1337,6 @@ CustomMpvApplyResult MpvPlayer::LoadAndApplyCustomMpvConfig(const std::wstring& 
     if (!readStatus.is_ok()) {
         result.success = false;
         result.errorMessage = "Failed to read configuration file: " + Utf16ToUtf8(targetPath);
-        lastCustomMpvResult = result;
         return result;
     }
     CustomMpvParseResult parseRes = ParseCustomMpvConfig(content);
@@ -1346,7 +1345,6 @@ CustomMpvApplyResult MpvPlayer::LoadAndApplyCustomMpvConfig(const std::wstring& 
         result.errorMessage = parseRes.errors.empty() ? "Parse error in configuration" : parseRes.errors.front();
         result.disabled = true;
         result.recovered = true;
-        lastCustomMpvResult = result;
         return result;
     }
     for (const auto& opt : parseRes.options) {
@@ -1367,7 +1365,6 @@ CustomMpvApplyResult MpvPlayer::LoadAndApplyCustomMpvConfig(const std::wstring& 
         // Save current valid configuration as last known good
         Settings::SaveMpvConfigLastKnownGood(targetPath, content);
     }
-    lastCustomMpvResult = result;
     return result;
 }
 
@@ -1473,8 +1470,6 @@ std::vector<AudioPropertyResult> MpvPlayer::SetAudioChannelMap(const std::string
         plan.requestedChannelMix.empty() ? "auto" : plan.requestedChannelMix, plan.requestedNormalizeDownmix,
         plan.requestedNightMode.empty() ? "off" : plan.requestedNightMode, plan.requestedBalance, channelMap );
 }
-
-AudioManagementPlan MpvPlayer::GetLastAudioPlan() const { std::lock_guard<std::mutex> lock(stateMutex); return lastAudioPlan; }
 
 void MpvPlayer::SelectAudioTrack(int trackId) {
     std::string val = trackId <= 0 ? "no" : std::to_string(trackId);

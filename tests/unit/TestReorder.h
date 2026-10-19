@@ -20,15 +20,6 @@ TEST_CASE(Reorder, EveryMoveMatchesTheDisplayedSlots) {
     TEST_ASSERT(!Reorder::Move(items, 0, 3));
     TEST_ASSERT_EQ(items[0], 0);
 }
-TEST_CASE(Reorder, GridWrapsAndClampsAtEveryDpi) {
-    for (float scale : {1.0f, 1.25f, 1.5f, 2.0f}) {
-        TEST_ASSERT_EQ(Reorder::GridTarget(210*scale, 20*scale, 200*scale, 176*scale, 3, 8), 1);
-        TEST_ASSERT_EQ(Reorder::GridTarget(20*scale, 180*scale, 200*scale, 176*scale, 3, 8), 3);
-        TEST_ASSERT_EQ(Reorder::GridTarget(590*scale, 400*scale, 200*scale, 176*scale, 3, 8), 7);
-        TEST_ASSERT_EQ(Reorder::GridTarget(-20*scale, -20*scale, 200*scale, 176*scale, 3, 8), 0);
-        TEST_ASSERT_EQ(Reorder::GridTarget(0, 0, 200*scale, 176*scale, 3, 0), -1);
-    }
-}
 TEST_CASE(Reorder, CenterTargetsChangeAtSlotMidpoints) {
     for (float scale : {1.0f, 1.25f, 1.5f, 2.0f}) {
         const float pitch = 68.0f * scale;

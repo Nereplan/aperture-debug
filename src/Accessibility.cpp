@@ -375,48 +375,6 @@ void AccessibilityTree::NotifyNodeChanges(const AccessibilityNode& old, const Ac
     }
 }
 
-bool AccessibilityTree::UpdateNode(const AccessibilityNode& node) {
-    if (node.id <= 0) return false;
-    AccessibilityNode old;
-    {
-        std::lock_guard<std::mutex> lock(mutex_);
-        const auto it =
-            std::find_if(nodes_.begin(), nodes_.end(), [id = node.id](const AccessibilityNode &value) { return value.id == id; });
-        if (it == nodes_.end()) return false;
-        old = *it;
-        *it = node;
-    }
-    HWND hwnd = nullptr;
-    { std::lock_guard<std::mutex> lock(mutex_); hwnd = hwnd_; }
-    const bool uiaListening = (hwnd && IsWindow(hwnd) && AreUiaClientsListening());
-    NotifyNodeChanges(old, node, uiaListening);
-    return true;
-}
-
-bool AccessibilityTree::RemoveNode(LONG childId) {
-    if (childId <= 0) return false;
-    bool removed = false;
-    AccessibilityChildProvider* providerToDisconnect = nullptr;
-    HWND hwnd = nullptr;
-    {
-        std::lock_guard<std::mutex> lock(mutex_);
-        hwnd = hwnd_;
-        const auto it = std::find_if(nodes_.begin(), nodes_.end(), [childId](const AccessibilityNode& node) { return node.id == childId; });
-        if (it != nodes_.end()) { nodes_.erase(it); removed = true; }
-        auto provIt = childProviders_.find(childId);
-        if (provIt != childProviders_.end()) {
-            if (provIt->second) { providerToDisconnect = provIt->second; }
-            childProviders_.erase(provIt);
-        }
-    }
-    if (providerToDisconnect) {
-        std::vector<AccessibilityChildProvider*> providers{ providerToDisconnect };
-        DisconnectChildProviders(hwnd, providers);
-    }
-    if (removed) { NotifyReorder(); RaiseUiaStructureChanged(StructureChangeType_ChildRemoved, childId); }
-    return removed;
-}
-
 void AccessibilityTree::ClearNodes() {
     bool hadNodes = false;
     { std::lock_guard<std::mutex> lock(mutex_); hadNodes = !nodes_.empty(); nodes_.clear(); }

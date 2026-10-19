@@ -18,8 +18,7 @@ struct ReleaseOnExit {
     ~ReleaseOnExit() { Release(); }
 };
 }
-
-TEST_CASE(FolderWatchConfiguration, LatestListWinsWhileWorkerOwnsTheWatchMutex) {
+static void step_FolderWatchConfiguration_LatestListWinsWhileWorkerOwnsTheWatchMutex() {
     using namespace FolderWatchConfigurationFixture;
     ScopedTempDir temp;
     TEST_ASSERT(temp.CreateSubDir(L"first") && temp.CreateSubDir(L"second") && temp.CreateSubDir(L"third"));
@@ -61,8 +60,7 @@ TEST_CASE(FolderWatchConfiguration, LatestListWinsWhileWorkerOwnsTheWatchMutex) 
     watcher.Stop();
     TEST_ASSERT(watcher.IsWorkerDone() && !watcher.IsRunning());
 }
-
-TEST_CASE(FolderWatchConfiguration, StopRequestDoesNotWaitForTheWorkerMutex) {
+static void step_FolderWatchConfiguration_StopRequestDoesNotWaitForTheWorkerMutex() {
     using namespace FolderWatchConfigurationFixture;
     ScopedTempDir temp;
     std::promise<void> entered, release;
@@ -89,16 +87,14 @@ TEST_CASE(FolderWatchConfiguration, StopRequestDoesNotWaitForTheWorkerMutex) {
     TEST_ASSERT(watcher.Start()); watcher.Stop();
     TEST_ASSERT(watcher.IsWorkerDone());
 }
-
-TEST_CASE(FolderWatchConfiguration, EmptyProfileDoesNotStartAWorker) {
+static void step_FolderWatchConfiguration_EmptyProfileDoesNotStartAWorker() {
     FolderWatcher watcher;
     const auto generation = watcher.SetWatchedFoldersAsync({});
     TEST_ASSERT(generation != 0 && watcher.GetAppliedConfigurationGeneration() == generation);
     TEST_ASSERT(!watcher.IsRunning() && watcher.IsWorkerDone());
     watcher.Stop();
 }
-
-TEST_CASE(FolderWatchConfiguration, MissingRootsRegisterWhenTheyBecomeAvailable) {
+static void step_FolderWatchConfiguration_MissingRootsRegisterWhenTheyBecomeAvailable() {
     using namespace FolderWatchConfigurationFixture;
     ScopedTempDir temp;
     const auto path = temp.SubPath(L"late-folder");
@@ -113,6 +109,14 @@ TEST_CASE(FolderWatchConfiguration, MissingRootsRegisterWhenTheyBecomeAvailable)
     TEST_ASSERT(temp.CreateSubDir(L"late-folder"));
     TEST_ASSERT(Wait([&] { return rescanned.load(); }));
     watcher.Stop();
+}
+
+
+TEST_CASE(FolderWatchConfiguration, NonBlockingWorkerLifecycle) {
+    step_FolderWatchConfiguration_LatestListWinsWhileWorkerOwnsTheWatchMutex();
+    step_FolderWatchConfiguration_StopRequestDoesNotWaitForTheWorkerMutex();
+    step_FolderWatchConfiguration_EmptyProfileDoesNotStartAWorker();
+    step_FolderWatchConfiguration_MissingRootsRegisterWhenTheyBecomeAvailable();
 }
 
 } // namespace Aperture::Test

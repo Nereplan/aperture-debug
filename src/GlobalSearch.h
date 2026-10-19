@@ -181,7 +181,6 @@ public:
     GlobalSearchProjection GetProjection() const;
     // Borrowed results remain valid until the next query executes.
     const std::vector<GlobalSearchResultItem>& GetResults() const { return currentResults; }
-    size_t GetTotalMatchCount() const { return currentTotalMatches; }
     GlobalSearchIndex& GetIndex() { return index; }
     const GlobalSearchIndex& GetIndex() const { return index; }
 

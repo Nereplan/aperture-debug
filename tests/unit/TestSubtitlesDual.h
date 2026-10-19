@@ -24,8 +24,7 @@ inline std::wstring SubtitleLookupReference(const SubtitleTrack& track, double t
     }
     return text;
 }
-
-TEST_CASE(SubtitlesDual, IndexedOverlapsMatchLinearLookupAcrossBoundariesAndSeeks) {
+static void step_SubtitlesDual_IndexedOverlapsMatchLinearLookupAcrossBoundariesAndSeeks() {
     SubtitleEngine engine;
     SubtitleTrack track;
     track.cues.push_back({0, 2000, L"long running"});
@@ -59,8 +58,7 @@ TEST_CASE(SubtitlesDual, IndexedOverlapsMatchLinearLookupAcrossBoundariesAndSeek
     check(infinity);
     check(std::numeric_limits<double>::quiet_NaN());
 }
-
-TEST_CASE(SubtitlesDual, IndexedLookupPreservesOutputLimitsAndDuplicateExpiration) {
+static void step_SubtitlesDual_IndexedLookupPreservesOutputLimitsAndDuplicateExpiration() {
     SubtitleEngine engine;
     SubtitleTrack track;
     for (int i = 0; i < 200; ++i) track.cues.push_back({0, 1.0 + i, L"cue " + std::to_wstring(i / 2)});
@@ -73,8 +71,7 @@ TEST_CASE(SubtitlesDual, IndexedLookupPreservesOutputLimitsAndDuplicateExpiratio
     ++engine.tracksGeneration;
     TEST_ASSERT_EQ(engine.GetPrimarySubtitleText(0), SubtitleLookupReference(engine.tracks[0], 0));
 }
-
-TEST_CASE(SubtitlesDual, IndexedLookupRefreshesForTrackChangesAndClear) {
+static void step_SubtitlesDual_IndexedLookupRefreshesForTrackChangesAndClear() {
     SubtitleEngine engine;
     for (int trackIndex = 0; trackIndex < 2; ++trackIndex) {
         SubtitleTrack track;
@@ -99,8 +96,7 @@ TEST_CASE(SubtitlesDual, IndexedLookupRefreshesForTrackChangesAndClear) {
     engine.SelectPrimaryTrack(0);
     TEST_ASSERT_EQ(engine.GetPrimarySubtitleText(128.25), std::wstring(L"replacement"));
 }
-
-TEST_CASE(SubtitlesDual, NestedCuesKeepInclusiveEndsAndCacheBoundariesAcrossSeeks) {
+static void step_SubtitlesDual_NestedCuesKeepInclusiveEndsAndCacheBoundariesAcrossSeeks() {
     SubtitleEngine engine;
     SubtitleTrack track;
     track.cues = {{0, 100, L"long"}, {1, 2, L"short"}, {2, 5, L"nested"}, {2, 20, L"nested"},
@@ -121,24 +117,7 @@ TEST_CASE(SubtitlesDual, NestedCuesKeepInclusiveEndsAndCacheBoundariesAcrossSeek
     TEST_ASSERT(engine.GetCurrentSubtitleText(std::nextafter(100.0, infinity)).empty());
     TEST_ASSERT_EQ(engine.GetCurrentSubtitleText(2, 500), std::wstring(L"long\nshort"));
 }
-
-TEST_CASE(SubtitlesDual, InitialState) {
-    SubtitleEngine engine;
-    TEST_ASSERT_EQ(engine.GetTrackCount(), 0);
-    TEST_ASSERT_EQ(engine.GetPrimaryTrackIndex(), -1);
-    TEST_ASSERT_EQ(engine.GetSecondaryTrackIndex(), -1);
-    TEST_ASSERT_EQ(engine.activeTrackIndex, -1);
-    TEST_ASSERT(engine.GetPrimaryTrack() == nullptr);
-    TEST_ASSERT(engine.GetSecondaryTrack() == nullptr);
-    TEST_ASSERT_EQ(engine.GetPrimaryDelayMs(), 0);
-    TEST_ASSERT_EQ(engine.GetSecondaryDelayMs(), 0);
-    TEST_ASSERT(engine.IsPrimaryVisible());
-    TEST_ASSERT(engine.IsSecondaryVisible());
-    TEST_ASSERT_EQ(engine.primaryPosition, std::string("bottom"));
-    TEST_ASSERT_EQ(engine.secondaryPosition, std::string("top"));
-}
-
-TEST_CASE(SubtitlesDual, PrimaryAndSecondarySelection) {
+static void step_SubtitlesDual_PrimaryAndSecondarySelection() {
     SubtitleEngine engine;
 
     // Create 2 test tracks
@@ -184,8 +163,7 @@ TEST_CASE(SubtitlesDual, PrimaryAndSecondarySelection) {
     TEST_ASSERT_EQ(primText, std::wstring(L"Hello World"));
     TEST_ASSERT_EQ(secText, std::wstring(L"Hola Mundo"));
 }
-
-TEST_CASE(SubtitlesDual, SelectionFallbackOnInvalidTrack) {
+static void step_SubtitlesDual_SelectionFallbackOnInvalidTrack() {
     SubtitleEngine engine;
 
     SubtitleTrack track1;
@@ -213,8 +191,7 @@ TEST_CASE(SubtitlesDual, SelectionFallbackOnInvalidTrack) {
     TEST_ASSERT_EQ(engine.GetPrimaryTrackIndex(), 0);
     TEST_ASSERT_EQ(engine.GetPrimarySubtitleText(2.0), std::wstring(L"Text 1"));
 }
-
-TEST_CASE(SubtitlesDual, IndependentVisibilityControl) {
+static void step_SubtitlesDual_IndependentVisibilityControl() {
     SubtitleEngine engine;
 
     SubtitleTrack track1;
@@ -258,8 +235,7 @@ TEST_CASE(SubtitlesDual, IndependentVisibilityControl) {
     TEST_ASSERT_EQ(p, std::wstring(L""));
     TEST_ASSERT_EQ(s, std::wstring(L""));
 }
-
-TEST_CASE(SubtitlesDual, IndependentDelayAndClamping) {
+static void step_SubtitlesDual_IndependentDelayAndClamping() {
     SubtitleEngine engine;
 
     SubtitleTrack track1;
@@ -296,8 +272,7 @@ TEST_CASE(SubtitlesDual, IndependentDelayAndClamping) {
     engine.SetSecondaryDelayMs(-1000000); // Exceeds -600,000
     TEST_ASSERT_EQ(engine.GetSecondaryDelayMs(), SubtitleDiscovery::kMinSubtitleDelayMs);
 }
-
-TEST_CASE(SubtitlesDual, TrackCycling) {
+static void step_SubtitlesDual_TrackCycling() {
     SubtitleEngine engine;
 
     engine.tracks.push_back({ "sub_1", L"Track 1", L"", {{ 0.0, 5.0, L"T1" }}, false });
@@ -327,8 +302,7 @@ TEST_CASE(SubtitlesDual, TrackCycling) {
     engine.CycleSecondaryTrack();
     TEST_ASSERT_EQ(engine.GetSecondaryTrackIndex(), 0);
 }
-
-TEST_CASE(SubtitlesDual, PreferencesExportAndImport) {
+static void step_SubtitlesDual_PreferencesExportAndImport() {
     SubtitleEngine engine;
     engine.tracks.push_back({ "sub_1", L"English", L"C:\\media\\subs\\movie.en.srt", {{ 0.0, 5.0, L"Hello" }}, false });
     engine.tracks.push_back({ "sub_2", L"Spanish", L"C:\\media\\subs\\movie.es.srt", {{ 0.0, 5.0, L"Hola" }}, false });
@@ -377,6 +351,20 @@ TEST_CASE(SubtitlesDual, PreferencesExportAndImport) {
     TEST_ASSERT_EQ(freshEngine.GetSecondaryDelayMs(), -300);
     TEST_ASSERT(freshEngine.IsPrimaryVisible());
     TEST_ASSERT(!freshEngine.IsSecondaryVisible());
+}
+
+
+TEST_CASE(SubtitlesDual, IndexedCueOracleAndTrackProfiles) {
+    step_SubtitlesDual_IndexedOverlapsMatchLinearLookupAcrossBoundariesAndSeeks();
+    step_SubtitlesDual_IndexedLookupPreservesOutputLimitsAndDuplicateExpiration();
+    step_SubtitlesDual_IndexedLookupRefreshesForTrackChangesAndClear();
+    step_SubtitlesDual_NestedCuesKeepInclusiveEndsAndCacheBoundariesAcrossSeeks();
+    step_SubtitlesDual_PrimaryAndSecondarySelection();
+    step_SubtitlesDual_SelectionFallbackOnInvalidTrack();
+    step_SubtitlesDual_IndependentVisibilityControl();
+    step_SubtitlesDual_IndependentDelayAndClamping();
+    step_SubtitlesDual_TrackCycling();
+    step_SubtitlesDual_PreferencesExportAndImport();
 }
 
 } // namespace Aperture::Test

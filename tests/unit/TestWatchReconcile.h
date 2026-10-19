@@ -5,8 +5,7 @@
 #include "../../src/WatchReconcile.h"
 
 namespace Aperture::Test {
-
-TEST_CASE(WatchReconcile, MailboxOverflowBecomesCurrentRootRescan) {
+static void step_WatchReconcile_MailboxOverflowBecomesCurrentRootRescan() {
     WatchChangeQueue queue;
     const std::wstring root = LR"(C:\Watch)";
     WatchChangeBatch batch{false, root, {}};
@@ -24,8 +23,7 @@ TEST_CASE(WatchReconcile, MailboxOverflowBecomesCurrentRootRescan) {
     queue.Push({true, root, {}});
     TEST_ASSERT(queue.Take({LR"(D:\Current)"}).empty());
 }
-
-TEST_CASE(WatchReconcile, BulkAddMovesCatalogAndRebuildsIndexOnce) {
+static void step_WatchReconcile_BulkAddMovesCatalogAndRebuildsIndexOnce() {
     MediaLibrary library;
     library.watchedFolders = {LR"(C:\Watch)"};
     MediaItem old; old.id = "old"; old.filePath = LR"(C:\Watch\old.mkv)";
@@ -48,8 +46,7 @@ TEST_CASE(WatchReconcile, BulkAddMovesCatalogAndRebuildsIndexOnce) {
     TEST_ASSERT_EQ(library.GetRevisions().catalog, before.catalog + 1);
     for (const auto& change : delta.changes) TEST_ASSERT(library.FindByPath(change.path) != nullptr);
 }
-
-TEST_CASE(WatchReconcile, MergeRetainsUserEditsAndRejectsStaleFileFacts) {
+static void step_WatchReconcile_MergeRetainsUserEditsAndRejectsStaleFileFacts() {
     MediaLibrary library;
     const std::wstring root = LR"(C:\Watch)";
     library.watchedFolders = {root};
@@ -92,8 +89,7 @@ TEST_CASE(WatchReconcile, MergeRetainsUserEditsAndRejectsStaleFileFacts) {
     TEST_ASSERT(library.playlists[0].itemPaths.empty());
     TEST_ASSERT_EQ(library.history.size(), size_t(1));
 }
-
-TEST_CASE(WatchReconcile, RescanRecoversRenameByUniqueFileIdentity) {
+static void step_WatchReconcile_RescanRecoversRenameByUniqueFileIdentity() {
     ScopedTempDir temp;
     TEST_ASSERT(temp.WriteFile(L"old.mkv", "unchanged media"));
     MediaLibrary library; library.watchedFolders = {temp.GetPath()};
@@ -121,8 +117,7 @@ TEST_CASE(WatchReconcile, RescanRecoversRenameByUniqueFileIdentity) {
     TEST_ASSERT_EQ(library.ApplyPreparedWatchDelta(modified, false).updatedCount, size_t(1));
     TEST_ASSERT(library.mediaItems[0].metadataProbeFailed);
 }
-
-TEST_CASE(WatchReconcile, UnavailableRootAndCancellationKeepRecords) {
+static void step_WatchReconcile_UnavailableRootAndCancellationKeepRecords() {
     ScopedTempDir temp;
     const auto root = temp.SubPath(L"absent");
     MediaLibrary library; library.watchedFolders = {root};
@@ -139,6 +134,15 @@ TEST_CASE(WatchReconcile, UnavailableRootAndCancellationKeepRecords) {
     delta = WatchReconcileWorker::Prepare(batches, WatchReconcileWorker::Capture(library, batches), canceled);
     TEST_ASSERT(delta.canceled);
     TEST_ASSERT(delta.changes.empty());
+}
+
+
+TEST_CASE(WatchReconcile, BulkReconcileAndRenameIdentity) {
+    step_WatchReconcile_MailboxOverflowBecomesCurrentRootRescan();
+    step_WatchReconcile_BulkAddMovesCatalogAndRebuildsIndexOnce();
+    step_WatchReconcile_MergeRetainsUserEditsAndRejectsStaleFileFacts();
+    step_WatchReconcile_RescanRecoversRenameByUniqueFileIdentity();
+    step_WatchReconcile_UnavailableRootAndCancellationKeepRecords();
 }
 
 } // namespace Aperture::Test

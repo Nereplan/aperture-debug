@@ -4,17 +4,14 @@
 #include "../../src/AppLayout.h"
 
 namespace Aperture::Test {
-TEST_CASE(AnimationPerformance, CompletionRequestsOneFinalPaint) {
+TEST_CASE(AnimationPerformance, CurvesAndVirtualLayoutReuse) {
     AnimatedFloat value;
     value.AnimateTo(160.0f, 0.32f);
     TEST_ASSERT(value.Tick(value.startTime + value.duration + 0.01f));
     TEST_ASSERT_EQ(value.current, 160.0f);
     TEST_ASSERT(!value.animating);
     TEST_ASSERT(!value.Tick());
-}
 
-TEST_CASE(AnimationPerformance, SettledHoverDoesNotRestartAnimation) {
-    AnimatedFloat value;
     value.SnapTo(160.0f);
     for (int frame = 0; frame < 120; ++frame) {
         value.AnimateTo(160.0f, 0.32f);
@@ -29,9 +26,7 @@ TEST_CASE(AnimationPerformance, SettledHoverDoesNotRestartAnimation) {
     TEST_ASSERT_EQ(value.from, intermediate);
     TEST_ASSERT(value.Tick(value.startTime + value.duration + 0.01f));
     TEST_ASSERT_EQ(value.current, 160.0f);
-}
 
-TEST_CASE(AnimationPerformance, LargeListReusesPrefixWithoutLayoutDrift) {
     std::vector<float> heights(25000, kMediaRestHeight);
     heights[0] = kMediaPinnedRestHeight;
     std::vector<float> partial, full;

@@ -29,19 +29,13 @@ std::mutex& MediaFoundation::Mutex() { static std::mutex mtx; return mtx; }
 int& MediaFoundation::RefCount() { static int count = 0; return count; }
 
 bool& MediaFoundation::InitializedFlag() { static bool initialized = false; return initialized; }
-MediaFoundation::LifecycleStats& MediaFoundation::Stats() { static LifecycleStats stats; return stats; }
-MediaFoundation::LifecycleStats MediaFoundation::GetLifecycleStats() {
-    std::lock_guard<std::mutex> lock(Mutex());
-    auto stats = Stats(); stats.references = RefCount(); return stats;
-}
-
 bool MediaFoundation::Acquire() {
     // The delay-load SEH gate is a separate function and cannot reenter this
     // owner. Keep its whole transition serialized with the last Release.
     std::lock_guard<std::mutex> lock(Mutex());
     if (InitializedFlag()) { ++RefCount(); return true; }
     const HRESULT hr = DelaySafeMFStartup();
-    if (SUCCEEDED(hr)) { InitializedFlag() = true; ++RefCount(); ++Stats().startups; return true; }
+    if (SUCCEEDED(hr)) { InitializedFlag() = true; ++RefCount(); return true; }
     return false;
 }
 
@@ -50,7 +44,6 @@ void MediaFoundation::Release() {
     if (RefCount() > 0) { --RefCount(); }
     if (RefCount() == 0 && InitializedFlag()) {
         DelaySafeMFShutdown();
-        ++Stats().shutdowns;
         InitializedFlag() = false;
     }
 }
@@ -61,7 +54,6 @@ void MediaFoundation::ShutdownIfInitialized() {
     std::lock_guard<std::mutex> lock(Mutex());
     if (InitializedFlag()) {
         DelaySafeMFShutdown();
-        ++Stats().shutdowns;
         InitializedFlag() = false;
         RefCount() = 0;
     }

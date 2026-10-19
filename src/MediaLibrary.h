@@ -477,19 +477,13 @@ public:
     uint64_t GetVersion() const { return libraryVersion; }
     uint64_t GetSearchContentVersion() const { return searchContentVersion; }
     MediaRelocationResult RelocateMissingMediaToRoot(const std::wstring& searchRoot);
-    FolderRediscoveryResult RediscoverFolderChanges(bool saveChanges = true);
     FolderRediscoveryResult ApplyFolderRediscovery(const PreparedFolderRediscovery& prepared, bool saveChanges = true);
-    size_t RemoveFolder(const std::wstring& folderPath, bool saveChanges = true);
     size_t RemoveFolders(const std::vector<std::wstring>& folderPaths, bool saveChanges = true);
-    const MediaPlaybackPreferences* GetMediaPreferences(const std::wstring& path) const;
     bool SetMediaPreferences(const std::wstring& path, const MediaPlaybackPreferences& prefs);
-    const std::vector<MediaBookmark>* GetBookmarks(const std::wstring& path) const;
     bool AddBookmark(const std::wstring& path, const MediaBookmark& bookmark);
     bool RemoveBookmark(const std::wstring& path, const std::string& bookmarkId);
     bool ClearBookmarks(const std::wstring& path);
-    const MediaMetadataOverrides* GetMetadataOverrides(const std::wstring& path) const;
     bool SetMetadataOverrides(const std::wstring& path, const MediaMetadataOverrides& overrides);
-    bool ClearMetadataOverrides(const std::wstring& path);
     bool RefreshMediaMetadata(const std::wstring& path, bool saveChanges = true, const MediaProbeFunction& probeFn = {});
     void UpdateProgress(const std::wstring& path, double currentPosSec, double totalDurationSec);
     void SetWatched(const std::wstring& path, bool watched);
@@ -500,8 +494,6 @@ public:
     const std::vector<std::wstring>& GetWatchedFolders() const { return watchedFolders; }
     bool AddWatchedFolder(const std::wstring& path, bool saveChanges = true);
     bool RemoveWatchedFolder(const std::wstring& path, bool saveChanges = true);
-    WatchReconcileResult ReconcileWatchBatch(const WatchChangeBatch& batch, bool saveChanges = true, bool probeMetadata = true);
-    WatchReconcileResult ReconcileRescan(const std::wstring& rootFolder, bool saveChanges = true, bool probeMetadata = true);
     // Apply worker-observed file changes in one transaction, without filesystem
     // calls. Baseline checks protect edits made while the worker was running.
     WatchReconcileResult ApplyPreparedWatchDelta(const PreparedWatchDelta& delta, bool saveChanges = true);

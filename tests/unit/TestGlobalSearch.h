@@ -141,8 +141,7 @@ int Score(const Entry& entry, const std::wstring& normalizedQuery,
 }
 
 } // namespace GlobalSearchReference
-
-TEST_CASE(GlobalSearch, CompactIndexMatchesReferenceScoresAndOrdering) {
+static void step_GlobalSearch_CompactIndexMatchesReferenceScoresAndOrdering() {
     MediaLibrary library;
     const std::vector<std::wstring> words = {
         L"Alpha Beta", L"alpha.beta", L"Sci-Fi (2024)", L" ALPHA\tGamma ",
@@ -209,15 +208,13 @@ TEST_CASE(GlobalSearch, CompactIndexMatchesReferenceScoresAndOrdering) {
     const auto results = index.Query(library, L"short", options);
     TEST_ASSERT(!results.empty());
 }
-
-TEST_CASE(GlobalSearch, TokenDelimitersMatchReferenceForEveryWideCharacter) {
+static void step_GlobalSearch_TokenDelimitersMatchReferenceForEveryWideCharacter() {
     std::wstring text;
     text.reserve(65536);
     for (unsigned int c = 0; c <= 65535; ++c) text.push_back(static_cast<wchar_t>(c));
     TEST_ASSERT(GlobalSearchIndex::Tokenize(text) == GlobalSearchReference::Tokenize(text));
 }
-
-TEST_CASE(GlobalSearch, HistoryMergeRetainsLastMediaAlias) {
+static void step_GlobalSearch_HistoryMergeRetainsLastMediaAlias() {
     MediaLibrary library;
     MediaItem first; first.id = "first"; first.filePath = LR"(C:\Aliased\clip.mkv)"; first.title = L"Target first";
     MediaItem second = first; second.id = "second"; second.filePath = L"c:/aliased/clip.mkv"; second.title = L"Target second";
@@ -241,9 +238,7 @@ TEST_CASE(GlobalSearch, HistoryMergeRetainsLastMediaAlias) {
     TEST_ASSERT_EQ(merged->lastPosSec, 42.0);
     TEST_ASSERT_EQ(merged->durationSec, 900.0);
 }
-
-
-TEST_CASE(GlobalSearch, PlaybackProgressRefreshesStatisticsWithoutRebuildingText) {
+static void step_GlobalSearch_PlaybackProgressRefreshesStatisticsWithoutRebuildingText() {
     MediaLibrary library;
     MediaItem item; item.id = "stable_id"; item.filePath = L"C:\\Media\\episode.mkv";
     item.title = L"Episode"; item.durationSec = 100;
@@ -266,8 +261,7 @@ TEST_CASE(GlobalSearch, PlaybackProgressRefreshesStatisticsWithoutRebuildingText
     TEST_ASSERT_EQ(index.Query(library, L"Renamed", options).front().title, std::wstring(L"Renamed Episode"));
     TEST_ASSERT_EQ(index.GetTextRebuildCount(), 2ull);
 }
-
-TEST_CASE(GlobalSearch, PlaylistEditsPreserveWarmTextAndMetadata) {
+static void step_GlobalSearch_PlaylistEditsPreserveWarmTextAndMetadata() {
     MediaLibrary library;
     library.SetSaveRequestHandler([] { return MediaLibrarySaveResult{}; });
     MediaItem item; item.id = "media"; item.title = L"Episode"; item.filePath = LR"(C:\Media\episode.mkv)";
@@ -286,8 +280,7 @@ TEST_CASE(GlobalSearch, PlaylistEditsPreserveWarmTextAndMetadata) {
     TEST_ASSERT_EQ(library.GetRevisions().history, before.history);
     TEST_ASSERT(library.GetRevisions().playlists > before.playlists);
 }
-
-TEST_CASE(GlobalSearch, HistoryMembershipInvalidatesCachedSearch) {
+static void step_GlobalSearch_HistoryMembershipInvalidatesCachedSearch() {
     MediaLibrary library; GlobalSearchIndex index; GlobalSearchQueryOptions options; options.checkFileExists = false;
     TEST_ASSERT(index.Query(library, L"history", options).empty());
     library.AddToHistory(L"C:\\Media\\history-only.mkv", 10, 100);
@@ -300,8 +293,7 @@ TEST_CASE(GlobalSearch, HistoryMembershipInvalidatesCachedSearch) {
     TEST_ASSERT_EQ(index.Query(library, L"history", options).size(), 1ull);
     library.ClearHistory(); TEST_ASSERT(index.Query(library, L"history", options).empty());
 }
-
-TEST_CASE(GlobalSearch, DirectMediaInsertionInvalidatesWarmIndex) {
+static void step_GlobalSearch_DirectMediaInsertionInvalidatesWarmIndex() {
     MediaLibrary library;
     MediaItem seed; seed.id = "seed"; seed.filePath = L"C:\\Media\\existing.mkv";
     seed.title = L"Existing";
@@ -324,8 +316,7 @@ TEST_CASE(GlobalSearch, DirectMediaInsertionInvalidatesWarmIndex) {
 // ============================================================================
 // 1. Normalization & Tokenization Tests
 // ============================================================================
-
-TEST_CASE(GlobalSearch, NormalizationBasics) {
+static void step_GlobalSearch_NormalizationBasics() {
     // Leading and trailing whitespace trimming
     TEST_ASSERT_EQ(GlobalSearchIndex::NormalizeText(L"   hello world   "), std::wstring(L"hello world"));
 
@@ -346,8 +337,7 @@ TEST_CASE(GlobalSearch, NormalizationBasics) {
     TEST_ASSERT_EQ(GlobalSearchIndex::NormalizeText(L" \t C:/Videos/Anime/Episode 01.MKV \n "),
                    std::wstring(L"c:\\videos\\anime\\episode 01.mkv"));
 }
-
-TEST_CASE(GlobalSearch, Tokenization) {
+static void step_GlobalSearch_Tokenization() {
     auto tokens = GlobalSearchIndex::Tokenize(L"Big_Buck.Bunny-2024 [1080p] (HEVC).mkv");
     std::vector<std::wstring> expected = {
         L"big", L"buck", L"bunny", L"2024", L"1080p", L"hevc", L"mkv"
@@ -371,8 +361,7 @@ TEST_CASE(GlobalSearch, Tokenization) {
     auto emptyTokens = GlobalSearchIndex::Tokenize(L"");
     TEST_ASSERT(emptyTokens.empty());
 }
-
-TEST_CASE(GlobalSearch, ExtractFileName) {
+static void step_GlobalSearch_ExtractFileName() {
     TEST_ASSERT_EQ(GlobalSearchIndex::ExtractFileName(L"C:\\Videos\\Movie.mp4"), std::wstring(L"Movie.mp4"));
     TEST_ASSERT_EQ(GlobalSearchIndex::ExtractFileName(L"D:/Downloads/Clip.mkv"), std::wstring(L"Clip.mkv"));
     TEST_ASSERT_EQ(GlobalSearchIndex::ExtractFileName(L"Standalone.avi"), std::wstring(L"Standalone.avi"));
@@ -382,8 +371,7 @@ TEST_CASE(GlobalSearch, ExtractFileName) {
 // ============================================================================
 // 2. Relevance & Recency Deterministic Tie-Breaking
 // ============================================================================
-
-TEST_CASE(GlobalSearch, RelevanceOrdering) {
+static void step_GlobalSearch_RelevanceOrdering() {
     MediaLibrary lib;
     GlobalSearchIndex index;
 
@@ -433,8 +421,7 @@ TEST_CASE(GlobalSearch, RelevanceOrdering) {
     // Path-only match must be #4
     TEST_ASSERT_EQ(results[3].title, std::wstring(L"Animatrix"));
 }
-
-TEST_CASE(GlobalSearch, RecencyAndDeterministicTieBreaking) {
+static void step_GlobalSearch_RecencyAndDeterministicTieBreaking() {
     MediaLibrary lib;
     GlobalSearchIndex index;
 
@@ -488,8 +475,7 @@ TEST_CASE(GlobalSearch, RecencyAndDeterministicTieBreaking) {
     TEST_ASSERT_EQ(results[2].filePath, std::wstring(L"C:\\Media\\Alpha 0.mp4"));
     TEST_ASSERT_EQ(results[3].filePath, std::wstring(L"C:\\Media\\Alpha 1.mp4"));
 }
-
-TEST_CASE(GlobalSearch, MultiTokenSearch) {
+static void step_GlobalSearch_MultiTokenSearch() {
     MediaLibrary lib;
     GlobalSearchIndex index;
 
@@ -518,8 +504,7 @@ TEST_CASE(GlobalSearch, MultiTokenSearch) {
 // ============================================================================
 // 3. Result Bounding & Caps
 // ============================================================================
-
-TEST_CASE(GlobalSearch, ResultCapsAndBounding) {
+static void step_GlobalSearch_ResultCapsAndBounding() {
     MediaLibrary lib;
     GlobalSearchIndex index;
 
@@ -560,8 +545,7 @@ TEST_CASE(GlobalSearch, ResultCapsAndBounding) {
 // ============================================================================
 // 4. Cache Invalidation & Version Tracking
 // ============================================================================
-
-TEST_CASE(GlobalSearch, CacheInvalidationAndRebuild) {
+static void step_GlobalSearch_CacheInvalidationAndRebuild() {
     MediaLibrary lib;
     GlobalSearchIndex index;
 
@@ -600,8 +584,7 @@ TEST_CASE(GlobalSearch, CacheInvalidationAndRebuild) {
     TEST_ASSERT(index.IsDirty(lib));
     TEST_ASSERT_EQ(index.GetEntryCount(), 0);
 }
-
-TEST_CASE(GlobalSearch, DeduplicationAndSourceMerging) {
+static void step_GlobalSearch_DeduplicationAndSourceMerging() {
     MediaLibrary lib;
     GlobalSearchIndex index;
 
@@ -640,8 +623,7 @@ TEST_CASE(GlobalSearch, DeduplicationAndSourceMerging) {
 // ============================================================================
 // 5. Missing History Targets & Action Resolution
 // ============================================================================
-
-TEST_CASE(GlobalSearch, MissingHistoryTargetHandling) {
+static void step_GlobalSearch_MissingHistoryTargetHandling() {
     MediaLibrary lib;
     GlobalSearchModel model(0); // 0ms debounce for unit test
 
@@ -678,8 +660,7 @@ TEST_CASE(GlobalSearch, MissingHistoryTargetHandling) {
 // ============================================================================
 // 6. Keyboard Selection & Navigation
 // ============================================================================
-
-TEST_CASE(GlobalSearch, KeyboardNavigationAndClamping) {
+static void step_GlobalSearch_KeyboardNavigationAndClamping() {
     MediaLibrary lib;
     GlobalSearchModel model(0);
 
@@ -756,8 +737,7 @@ TEST_CASE(GlobalSearch, KeyboardNavigationAndClamping) {
 // ============================================================================
 // 7. Empty Query & Whitespace Handling
 // ============================================================================
-
-TEST_CASE(GlobalSearch, EmptyQueryBehavior) {
+static void step_GlobalSearch_EmptyQueryBehavior() {
     MediaLibrary lib;
     GlobalSearchModel model(0);
 
@@ -786,8 +766,7 @@ TEST_CASE(GlobalSearch, EmptyQueryBehavior) {
 // ============================================================================
 // 8. Immutable Projection & State Isolation
 // ============================================================================
-
-TEST_CASE(GlobalSearch, ImmutableProjectionSnapshot) {
+static void step_GlobalSearch_ImmutableProjectionSnapshot() {
     MediaLibrary lib;
     GlobalSearchModel model(0);
 
@@ -832,8 +811,7 @@ TEST_CASE(GlobalSearch, ImmutableProjectionSnapshot) {
 // ============================================================================
 // 9. Debounce Behavior
 // ============================================================================
-
-TEST_CASE(GlobalSearch, DebounceTiming) {
+static void step_GlobalSearch_DebounceTiming() {
     MediaLibrary lib;
     GlobalSearchModel model(150); // 150ms debounce
 
@@ -872,8 +850,7 @@ TEST_CASE(GlobalSearch, DebounceTiming) {
 // ============================================================================
 // 10. Source Filtering & Formatted Helpers
 // ============================================================================
-
-TEST_CASE(GlobalSearch, SourceFilteringAndFormatting) {
+static void step_GlobalSearch_SourceFilteringAndFormatting() {
     MediaLibrary lib;
     GlobalSearchIndex index;
 
@@ -911,8 +888,7 @@ TEST_CASE(GlobalSearch, SourceFilteringAndFormatting) {
     TEST_ASSERT_EQ(results[0].GetFormattedDuration(), std::wstring(L"2:05"));
     TEST_ASSERT_EQ(results[0].GetSourceDisplayName(), std::wstring(L"History"));
 }
-
-TEST_CASE(GlobalSearch, BoundedRankingMatchesFullOrdering) {
+static void step_GlobalSearch_BoundedRankingMatchesFullOrdering() {
     MediaLibrary lib;
     // Reverse input order and vary relevance and both recency tie-breakers.
     for (int i = 399; i >= 0; --i) {
@@ -944,8 +920,7 @@ TEST_CASE(GlobalSearch, BoundedRankingMatchesFullOrdering) {
     TEST_ASSERT(index.Query(lib, L"no such match", options, total).empty());
     TEST_ASSERT_EQ(total, size_t(0));
 }
-
-TEST_CASE(GlobalSearch, EmptyQueryDefersIndexBuild) {
+static void step_GlobalSearch_EmptyQueryDefersIndexBuild() {
     MediaLibrary lib;
     MediaItem item;
     item.filePath = L"C:\\Search\\Clip.mkv";
@@ -962,8 +937,7 @@ TEST_CASE(GlobalSearch, EmptyQueryDefersIndexBuild) {
     TEST_ASSERT_EQ(index.Query(lib, L"clip", options, total).size(), size_t(1));
     TEST_ASSERT(!index.IsDirty(lib));
 }
-
-TEST_CASE(GlobalSearch, SelectiveIndexAndLazyMetadataKeepResultsCurrent) {
+static void step_GlobalSearch_SelectiveIndexAndLazyMetadataKeepResultsCurrent() {
     MediaLibrary library;
     library.SetSaveRequestHandler([] { return MediaLibrarySaveResult{}; });
     for (int i = 0; i < 2048; ++i) {
@@ -1007,6 +981,35 @@ TEST_CASE(GlobalSearch, SelectiveIndexAndLazyMetadataKeepResultsCurrent) {
     results = index.Query(library, L"routine", options, total);
     TEST_ASSERT_EQ(total, size_t(2046));
     TEST_ASSERT_EQ(results.size(), size_t(50));
+}
+
+
+TEST_CASE(GlobalSearch, CompactIndexScoringAndInvalidation) {
+    step_GlobalSearch_CompactIndexMatchesReferenceScoresAndOrdering();
+    step_GlobalSearch_TokenDelimitersMatchReferenceForEveryWideCharacter();
+    step_GlobalSearch_HistoryMergeRetainsLastMediaAlias();
+    step_GlobalSearch_PlaybackProgressRefreshesStatisticsWithoutRebuildingText();
+    step_GlobalSearch_PlaylistEditsPreserveWarmTextAndMetadata();
+    step_GlobalSearch_HistoryMembershipInvalidatesCachedSearch();
+    step_GlobalSearch_DirectMediaInsertionInvalidatesWarmIndex();
+    step_GlobalSearch_NormalizationBasics();
+    step_GlobalSearch_Tokenization();
+    step_GlobalSearch_ExtractFileName();
+    step_GlobalSearch_RelevanceOrdering();
+    step_GlobalSearch_RecencyAndDeterministicTieBreaking();
+    step_GlobalSearch_MultiTokenSearch();
+    step_GlobalSearch_ResultCapsAndBounding();
+    step_GlobalSearch_CacheInvalidationAndRebuild();
+    step_GlobalSearch_DeduplicationAndSourceMerging();
+    step_GlobalSearch_MissingHistoryTargetHandling();
+    step_GlobalSearch_KeyboardNavigationAndClamping();
+    step_GlobalSearch_EmptyQueryBehavior();
+    step_GlobalSearch_ImmutableProjectionSnapshot();
+    step_GlobalSearch_DebounceTiming();
+    step_GlobalSearch_SourceFilteringAndFormatting();
+    step_GlobalSearch_BoundedRankingMatchesFullOrdering();
+    step_GlobalSearch_EmptyQueryDefersIndexBuild();
+    step_GlobalSearch_SelectiveIndexAndLazyMetadataKeepResultsCurrent();
 }
 
 } // namespace Aperture::Test

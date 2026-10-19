@@ -166,10 +166,7 @@ public:
     CustomMpvApplyResult ApplyCustomMpvOptions(const std::vector<CustomMpvOption>& options);
     CustomMpvApplyResult LoadAndApplyCustomMpvConfig(const std::wstring& configPath = L"");
     void SetCustomMpvConfigEnabled(bool enabled) { customMpvConfigEnabled = enabled; }
-    bool IsCustomMpvConfigEnabled() const { return customMpvConfigEnabled; }
     void SetCustomMpvConfigPath(const std::string& path) { customMpvConfigPath = path; }
-    std::string GetCustomMpvConfigPath() const { return customMpvConfigPath; }
-    CustomMpvApplyResult GetLastCustomMpvResult() const { return lastCustomMpvResult; }
     // Audio device enumeration, surround layouts, and dynamic range compression
     std::vector<AudioDeviceInfo> GetAudioDevices() const;
     void RefreshAudioDevices();
@@ -183,7 +180,6 @@ public:
         const std::string& channelMap = "auto" );
     std::vector<AudioPropertyResult> SetAudioBalance(double balance);
     std::vector<AudioPropertyResult> SetAudioChannelMap(const std::string& channelMap);
-    AudioManagementPlan GetLastAudioPlan() const;
     void SelectAudioTrack(int trackId);
     void SelectSubtitleTrack(int trackId);
     void SelectSecondarySubtitleTrack(int trackId);
@@ -292,7 +288,6 @@ private:
     int gamma = 0, hue = 0;
     bool customMpvConfigEnabled = false;
     std::string customMpvConfigPath = "mpv.conf";
-    CustomMpvApplyResult lastCustomMpvResult;
 
 };
 

@@ -10,8 +10,7 @@
 #include <windows.h>
 
 namespace Aperture::Test {
-
-TEST_CASE(DeferredServices, RendererConstructionAndUnusedShutdownStayLazy) {
+static void step_DeferredServices_RendererConstructionAndUnusedShutdownStayLazy() {
     Renderer renderer;
     TEST_ASSERT(renderer.GetD2DFactory() == nullptr);
     TEST_ASSERT(renderer.GetDWriteFactory() == nullptr);
@@ -23,8 +22,7 @@ TEST_CASE(DeferredServices, RendererConstructionAndUnusedShutdownStayLazy) {
     renderer.Shutdown();
     renderer.Shutdown();
 }
-
-TEST_CASE(DeferredServices, RendererInitializesAndDrawsAfterDeferredConstruction) {
+static void step_DeferredServices_RendererInitializesAndDrawsAfterDeferredConstruction() {
     struct Window {
         HWND handle = CreateWindowExW(0, L"STATIC", L"Renderer startup test", WS_POPUP,
             0, 0, 320, 240, nullptr, nullptr, GetModuleHandleW(nullptr), nullptr);
@@ -41,10 +39,10 @@ TEST_CASE(DeferredServices, RendererInitializesAndDrawsAfterDeferredConstruction
     TEST_ASSERT(renderer.EndDraw(false));
 }
 
+
 // deferred cold-path services must initialize exactly once when
 // requested and shut down safely when never initialized (idle hub path).
-
-TEST_CASE(DeferredServices, MediaFoundationLazyRefcount) {
+static void step_DeferredServices_MediaFoundationLazyRefcount() {
     // Safe to shut down when never acquired (idle hub teardown path).
     MediaFoundation::ShutdownIfInitialized();
     TEST_ASSERT(!MediaFoundation::IsInitialized());
@@ -78,8 +76,7 @@ TEST_CASE(DeferredServices, MediaFoundationLazyRefcount) {
     MediaFoundation::Release();
     TEST_ASSERT(!MediaFoundation::IsInitialized());
 }
-
-TEST_CASE(DeferredServices, TaskbarNeverInitializedShutdownSafe) {
+static void step_DeferredServices_TaskbarNeverInitializedShutdownSafe() {
     TaskbarController controller;
     TEST_ASSERT(!controller.IsInitialized());
     // Idle hub: Clear/Shutdown with no window must not create COM objects.
@@ -93,8 +90,7 @@ TEST_CASE(DeferredServices, TaskbarNeverInitializedShutdownSafe) {
     controller.Shutdown();
     TEST_ASSERT(!controller.IsInitialized());
 }
-
-TEST_CASE(DeferredServices, MediaTransportNeverInitializedShutdownSafe) {
+static void step_DeferredServices_MediaTransportNeverInitializedShutdownSafe() {
     MediaTransport transport;
     TEST_ASSERT(!transport.IsInitialized());
     // Idle hub: Clear/Shutdown with no SMTC must be safe no-ops.
@@ -107,8 +103,7 @@ TEST_CASE(DeferredServices, MediaTransportNeverInitializedShutdownSafe) {
     transport.Shutdown();
     TEST_ASSERT(!transport.IsInitialized());
 }
-
-TEST_CASE(DeferredServices, TooltipNeverCreatedShutdownSafe) {
+static void step_DeferredServices_TooltipNeverCreatedShutdownSafe() {
     TooltipManager manager;
     TEST_ASSERT(!manager.IsCreated());
     // All entry points must tolerate a never-created manager (hub with no
@@ -128,8 +123,7 @@ TEST_CASE(DeferredServices, TooltipNeverCreatedShutdownSafe) {
     manager.Destroy();
     TEST_ASSERT(!manager.IsCreated());
 }
-
-TEST_CASE(DeferredServices, TooltipCreateIdempotentSingleWindow) {
+static void step_DeferredServices_TooltipCreateIdempotentSingleWindow() {
     // A console-host window belongs to another process and may be a pseudoconsole
     // placeholder. Test with a real window owned by this thread, as the app does.
     struct Window {
@@ -155,6 +149,17 @@ TEST_CASE(DeferredServices, TooltipCreateIdempotentSingleWindow) {
     // Double destroy is a safe no-op.
     manager.Destroy();
     TEST_ASSERT(!manager.IsCreated());
+}
+
+
+TEST_CASE(DeferredServices, LazySubsystemInitAndSafeShutdown) {
+    step_DeferredServices_RendererConstructionAndUnusedShutdownStayLazy();
+    step_DeferredServices_RendererInitializesAndDrawsAfterDeferredConstruction();
+    step_DeferredServices_MediaFoundationLazyRefcount();
+    step_DeferredServices_TaskbarNeverInitializedShutdownSafe();
+    step_DeferredServices_MediaTransportNeverInitializedShutdownSafe();
+    step_DeferredServices_TooltipNeverCreatedShutdownSafe();
+    step_DeferredServices_TooltipCreateIdempotentSingleWindow();
 }
 
 } // namespace Aperture::Test

@@ -53,7 +53,7 @@ struct RendererCacheTestAccess {
 }
 
 namespace Aperture::Test {
-TEST_CASE(RendererCache, UploadBatchesPrioritizeViewportAndRetainDeferredWork) {
+static void step_RendererCache_UploadBatchesPrioritizeViewportAndRetainDeferredWork() {
     Renderer r;
     RendererCacheTestAccess::Frame(r, 10);
     constexpr size_t bytes = 320 * 180 * 4;
@@ -72,8 +72,7 @@ TEST_CASE(RendererCache, UploadBatchesPrioritizeViewportAndRetainDeferredWork) {
     TEST_ASSERT_EQ(RendererCacheTestAccess::CompletedBytes(r), uint64_t(0));
     TEST_ASSERT(RendererCacheTestAccess::TakeBatch(r).empty());
 }
-
-TEST_CASE(RendererCache, UploadByteBudgetMakesProgressAndClearCancelsRemainder) {
+static void step_RendererCache_UploadByteBudgetMakesProgressAndClearCancelsRemainder() {
     Renderer r;
     constexpr size_t mib = 1024 * 1024;
     RendererCacheTestAccess::Complete(r, 0, 3 * mib);
@@ -90,8 +89,7 @@ TEST_CASE(RendererCache, UploadByteBudgetMakesProgressAndClearCancelsRemainder) 
     TEST_ASSERT_EQ(RendererCacheTestAccess::CompletedBytes(r), uint64_t(0));
     TEST_ASSERT(RendererCacheTestAccess::TakeBatch(r).empty());
 }
-
-TEST_CASE(RendererCache, VisibleImagesSurviveRepeatedCompletionPressure) {
+static void step_RendererCache_VisibleImagesSurviveRepeatedCompletionPressure() {
     Renderer r;
     RendererCacheTestAccess::Frame(r, 1);
     for (int i = 0; i < 20; ++i) {
@@ -109,8 +107,7 @@ TEST_CASE(RendererCache, VisibleImagesSurviveRepeatedCompletionPressure) {
         TEST_ASSERT(RendererCacheTestAccess::Bytes(r) <= 64ull * 1024 * 1024);
     }
 }
-
-TEST_CASE(RendererCache, FullVisibleCacheRejectsBackgroundUntilViewportExpires) {
+static void step_RendererCache_FullVisibleCacheRejectsBackgroundUntilViewportExpires() {
     Renderer r;
     RendererCacheTestAccess::Frame(r, 1);
     TEST_ASSERT(RendererCacheTestAccess::Admit(r, 1, 64ull * 1024 * 1024));
@@ -122,8 +119,7 @@ TEST_CASE(RendererCache, FullVisibleCacheRejectsBackgroundUntilViewportExpires) 
     TEST_ASSERT(RendererCacheTestAccess::Admit(r, 2));
     TEST_ASSERT(!RendererCacheTestAccess::Contains(r, 1));
 }
-
-TEST_CASE(RendererCache, BitmapIndexTracksInjectionEvictionAndClear) {
+static void step_RendererCache_BitmapIndexTracksInjectionEvictionAndClear() {
     struct Window {
         HWND handle = CreateWindowExW(0, L"STATIC", L"Thumbnail index test", WS_POPUP,
             0, 0, 320, 240, nullptr, nullptr, GetModuleHandleW(nullptr), nullptr);
@@ -157,6 +153,15 @@ TEST_CASE(RendererCache, BitmapIndexTracksInjectionEvictionAndClear) {
     RendererCacheTestAccess::Clear(r);
     TEST_ASSERT_EQ(RendererCacheTestAccess::IndexedCount(r), size_t(0));
 }
+
+TEST_CASE(RendererCache, ViewportUploadBudgetAndBitmapEviction) {
+    step_RendererCache_UploadBatchesPrioritizeViewportAndRetainDeferredWork();
+    step_RendererCache_UploadByteBudgetMakesProgressAndClearCancelsRemainder();
+    step_RendererCache_VisibleImagesSurviveRepeatedCompletionPressure();
+    step_RendererCache_FullVisibleCacheRejectsBackgroundUntilViewportExpires();
+    step_RendererCache_BitmapIndexTracksInjectionEvictionAndClear();
+}
+
 TEST_CASE(RendererCache, HiddenLibraryRetainsRecentBitmapsAndDropsQueuedPixels) {
     struct Window {
         HWND handle = CreateWindowExW(0, L"STATIC", L"Hidden cache test", WS_POPUP,
@@ -186,6 +191,5 @@ TEST_CASE(RendererCache, HiddenLibraryRetainsRecentBitmapsAndDropsQueuedPixels) 
     TEST_ASSERT_EQ(RendererCacheTestAccess::Bytes(renderer), uint64_t(0));
     TEST_ASSERT_EQ(RendererCacheTestAccess::IndexedCount(renderer), size_t(0));
 }
-
 
 }

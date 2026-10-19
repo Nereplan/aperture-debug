@@ -211,7 +211,6 @@ $srcFiles = @(
     "`"$rootDir\src\OnlineSubtitles.cpp`"",
     "`"$rootDir\src\LibraryQuery.cpp`"",
     "`"$rootDir\src\PlaylistIO.cpp`"",
-    "`"$rootDir\src\NetworkStream.cpp`"",
     "`"$rootDir\src\TaskbarController.cpp`"",
     "`"$rootDir\src\Accessibility.cpp`"",
     "`"$rootDir\src\Diagnostics.cpp`"",

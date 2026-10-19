@@ -11,8 +11,7 @@
 #include <random>
 
 namespace Aperture::Test {
-
-TEST_CASE(DuplicateDetection, ContentClustersMatchIndependentPairwiseOracle) {
+static void step_DuplicateDetection_ContentClustersMatchIndependentPairwiseOracle() {
     std::mt19937 random(0xA9E274);
     const double durations[] = {0.0, 0.5, 0.75, 1.0, 1.25, 4.5, 4.75, 4.999, 5.0, 5.25, 5.5, 5.5001, 8.0, 8.5, 9.0};
     for (int sample = 0; sample < 128; ++sample) {
@@ -90,8 +89,7 @@ TEST_CASE(DuplicateDetection, ContentClustersMatchIndependentPairwiseOracle) {
         TEST_ASSERT_EQ(result.totalReclaimableBytes, duplicateBytes);
     }
 }
-
-TEST_CASE(DuplicateDetection, UnknownResolutionBridgesBothDurationNeighbors) {
+static void step_DuplicateDetection_UnknownResolutionBridgesBothDurationNeighbors() {
     std::vector<MediaItem> items(4);
     for (size_t i = 0; i < items.size(); ++i) {
         items[i].id = std::to_string(i);
@@ -108,8 +106,7 @@ TEST_CASE(DuplicateDetection, UnknownResolutionBridgesBothDurationNeighbors) {
     items.erase(items.begin(), items.begin() + 2);
     TEST_ASSERT_EQ(LibraryQueryEngine::DetectDuplicates(items).totalDuplicateGroups, 0);
 }
-
-TEST_CASE(DuplicateDetection, MetadataChainsAndFiveSecondInputOrder) {
+static void step_DuplicateDetection_MetadataChainsAndFiveSecondInputOrder() {
     std::vector<MediaItem> items(3);
     for (size_t i = 0; i < items.size(); ++i) {
         items[i].id = std::to_string(i);
@@ -146,8 +143,7 @@ TEST_CASE(DuplicateDetection, MetadataChainsAndFiveSecondInputOrder) {
     TEST_ASSERT_EQ(result.totalDuplicateGroups, 2);
     TEST_ASSERT_EQ(result.groups.front().items.front()->filePath, firstKeeper);
 }
-
-TEST_CASE(DuplicateDetection, RepeatedComparisonsAndMetadataChanges) {
+static void step_DuplicateDetection_RepeatedComparisonsAndMetadataChanges() {
     std::vector<MediaItem> items(24);
     for (size_t i = 0; i < items.size(); ++i) {
         auto& item = items[i];
@@ -170,8 +166,7 @@ TEST_CASE(DuplicateDetection, RepeatedComparisonsAndMetadataChanges) {
     result = LibraryQueryEngine::DetectDuplicates(items);
     TEST_ASSERT_EQ(result.totalDuplicateGroups, 0);
 }
-
-TEST_CASE(DuplicateDetection, LargeDistinctSizeLibraryKeepsOnlyMatchingPair) {
+static void step_DuplicateDetection_LargeDistinctSizeLibraryKeepsOnlyMatchingPair() {
     std::vector<MediaItem> items(25000);
     for (size_t i = 0; i < items.size(); ++i) {
         items[i].id = std::to_string(i);
@@ -190,8 +185,7 @@ TEST_CASE(DuplicateDetection, LargeDistinctSizeLibraryKeepsOnlyMatchingPair) {
 // ============================================================================
 // 1. Exact Windows File Identity Tests
 // ============================================================================
-
-TEST_CASE(DuplicateDetection, ExactFileIdentityDetection) {
+static void step_DuplicateDetection_ExactFileIdentityDetection() {
     std::vector<MediaItem> items;
     
     // Item 1: Original played movie
@@ -250,8 +244,7 @@ TEST_CASE(DuplicateDetection, ExactFileIdentityDetection) {
 // ============================================================================
 // 2. Exact Path Alias Duplicate Detection Tests
 // ============================================================================
-
-TEST_CASE(DuplicateDetection, ExactPathAliasDetection) {
+static void step_DuplicateDetection_ExactPathAliasDetection() {
     std::vector<MediaItem> items;
 
     // Item 1: Backslash path
@@ -292,8 +285,7 @@ TEST_CASE(DuplicateDetection, ExactPathAliasDetection) {
 // ============================================================================
 // 3. Conservative Content Duplicate Detection Tests
 // ============================================================================
-
-TEST_CASE(DuplicateDetection, ConservativeContentMatching) {
+static void step_DuplicateDetection_ConservativeContentMatching() {
     std::vector<MediaItem> items;
 
     // Item 1: Video file in Downloads
@@ -340,8 +332,7 @@ TEST_CASE(DuplicateDetection, ConservativeContentMatching) {
 // ============================================================================
 // 4. Ambiguity Safety & Rejection Tests
 // ============================================================================
-
-TEST_CASE(DuplicateDetection, AmbiguitySafetyAndRejection) {
+static void step_DuplicateDetection_AmbiguitySafetyAndRejection() {
     std::vector<MediaItem> items;
 
     // Two zero-byte / unprobed items with distinct paths must NOT be grouped as content duplicates
@@ -399,8 +390,7 @@ TEST_CASE(DuplicateDetection, AmbiguitySafetyAndRejection) {
 // ============================================================================
 // 5. LibraryQueryEngine Query with LibraryGroupMode::Duplicates
 // ============================================================================
-
-TEST_CASE(DuplicateDetection, LibraryQueryProjectionDuplicatesMode) {
+static void step_DuplicateDetection_LibraryQueryProjectionDuplicatesMode() {
     MediaLibrary lib;
     LibraryQueryEngine engine;
 
@@ -448,8 +438,7 @@ TEST_CASE(DuplicateDetection, LibraryQueryProjectionDuplicatesMode) {
 // ============================================================================
 // 6. Safe Removal Preserves Disk Files and Reference Integrity
 // ============================================================================
-
-TEST_CASE(DuplicateDetection, SafeRemovalPreservesIntegrity) {
+static void step_DuplicateDetection_SafeRemovalPreservesIntegrity() {
     MediaLibrary lib;
 
     const std::wstring pathOriginal = L"C:\\Media\\Original.mp4";
@@ -488,6 +477,21 @@ TEST_CASE(DuplicateDetection, SafeRemovalPreservesIntegrity) {
     // Verify history retained
     TEST_ASSERT_EQ(lib.history.size(), 1);
     TEST_ASSERT_EQ(lib.history[0].filePath, pathOriginal);
+}
+
+
+TEST_CASE(DuplicateDetection, ClusteringOracleAndSafeRemoval) {
+    step_DuplicateDetection_ContentClustersMatchIndependentPairwiseOracle();
+    step_DuplicateDetection_UnknownResolutionBridgesBothDurationNeighbors();
+    step_DuplicateDetection_MetadataChainsAndFiveSecondInputOrder();
+    step_DuplicateDetection_RepeatedComparisonsAndMetadataChanges();
+    step_DuplicateDetection_LargeDistinctSizeLibraryKeepsOnlyMatchingPair();
+    step_DuplicateDetection_ExactFileIdentityDetection();
+    step_DuplicateDetection_ExactPathAliasDetection();
+    step_DuplicateDetection_ConservativeContentMatching();
+    step_DuplicateDetection_AmbiguitySafetyAndRejection();
+    step_DuplicateDetection_LibraryQueryProjectionDuplicatesMode();
+    step_DuplicateDetection_SafeRemovalPreservesIntegrity();
 }
 
 } // namespace Aperture::Test

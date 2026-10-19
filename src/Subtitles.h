@@ -22,7 +22,6 @@ public:
     static constexpr size_t kMaxSubtitleInputBytes = SubtitleDiscovery::kMaxSubtitleInputBytes; // 32 MB
     static constexpr size_t kMaxSubtitleCueCount = 250000;                                     // Max 250,000 cues per track
     static constexpr size_t kMaxCueTextBytes = 128 * 1024;                                     // Max 128 KB per cue text
-    static constexpr size_t kMaxFormattingNestingDepth = 32;                                   // Max tag nesting depth
     static constexpr size_t kMaxFormattingWorkUnits = 65536;                                   // Work limit for clean/entity operations per cue
     std::vector<SubtitleTrack> tracks;
     // Bump whenever tracks or their cues change, so text and lookup indexes

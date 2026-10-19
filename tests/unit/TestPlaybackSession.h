@@ -9,27 +9,7 @@
 #include <commctrl.h>
 
 namespace Aperture::Test {
-
-TEST_CASE(PlaybackSession, InitialState) {
-    PlaybackSession session;
-    TEST_ASSERT_EQ(session.GetState(), PlaybackState::Closed);
-    TEST_ASSERT_EQ(session.GetPresentationMode(), PresentationMode::Windowed);
-    TEST_ASSERT_EQ(session.GetQueueMode(), QueueMode::DirectOpen);
-    TEST_ASSERT(session.IsClosed());
-    TEST_ASSERT(!session.IsOpen());
-    TEST_ASSERT(!session.IsPlaying());
-    TEST_ASSERT(!session.IsPaused());
-    TEST_ASSERT(!session.IsError());
-    TEST_ASSERT(!session.IsFullscreen());
-    TEST_ASSERT(!session.IsPiP());
-    TEST_ASSERT(session.IsWindowed());
-    TEST_ASSERT(!session.IsQueuePlayback());
-    TEST_ASSERT(session.GetQueue().empty());
-    TEST_ASSERT_EQ(session.GetQueueIndex(), 0ull);
-    TEST_ASSERT(session.GetCurrentFilePath().empty());
-}
-
-TEST_CASE(PlaybackSession, DirectOpenTransitions) {
+static void step_PlaybackSession_DirectOpenTransitions() {
     PlaybackSession session;
 
     // Direct open transitions to Initializing and clears queue
@@ -79,8 +59,7 @@ TEST_CASE(PlaybackSession, DirectOpenTransitions) {
     TEST_ASSERT(session.GetCurrentFilePath().empty());
     TEST_ASSERT(session.GetCurrentError().empty());
 }
-
-TEST_CASE(PlaybackSession, QueueOpenAndNavigation) {
+static void step_PlaybackSession_QueueOpenAndNavigation() {
     PlaybackSession session;
 
     std::vector<std::wstring> playlist = {
@@ -132,8 +111,7 @@ TEST_CASE(PlaybackSession, QueueOpenAndNavigation) {
     TEST_ASSERT(session.GetQueue().empty());
     TEST_ASSERT_EQ(session.GetQueueIndex(), 0ull);
 }
-
-TEST_CASE(PlaybackSession, PreserveQueueLogic) {
+static void step_PlaybackSession_PreserveQueueLogic() {
     PlaybackSession session;
 
     std::vector<std::wstring> playlist = {
@@ -161,8 +139,7 @@ TEST_CASE(PlaybackSession, PreserveQueueLogic) {
     TEST_ASSERT_EQ(session.GetQueueIndex(), 0ull);
     TEST_ASSERT_EQ(session.GetCurrentFilePath(), std::wstring(L"C:\\media\\other.mp4"));
 }
-
-TEST_CASE(PlaybackSession, EofAndAutoplayTransitions) {
+static void step_PlaybackSession_EofAndAutoplayTransitions() {
     PlaybackSession session;
 
     std::vector<std::wstring> playlist = {
@@ -195,8 +172,7 @@ TEST_CASE(PlaybackSession, EofAndAutoplayTransitions) {
     TEST_ASSERT(!eofNoAutoplay);
     TEST_ASSERT(session.IsPaused());
 }
-
-TEST_CASE(PlaybackSession, FourItemQueueEofProgressionWithoutSkips) {
+static void step_PlaybackSession_FourItemQueueEofProgressionWithoutSkips() {
     PlaybackSession session;
 
     std::vector<std::wstring> playlist = {
@@ -285,8 +261,7 @@ TEST_CASE(PlaybackSession, FourItemQueueEofProgressionWithoutSkips) {
     TEST_ASSERT_EQ(manualPrevWrap, std::wstring(L"C:\\media\\item4.mp4"));
     TEST_ASSERT_EQ(session.GetQueueIndex(), 3ull);
 }
-
-TEST_CASE(PlaybackSession, TrackStateAndUnmutedVolume) {
+static void step_PlaybackSession_TrackStateAndUnmutedVolume() {
     PlaybackSession session;
 
     session.SetLastActiveSubtitleTrackId(2);
@@ -314,8 +289,7 @@ TEST_CASE(PlaybackSession, TrackStateAndUnmutedVolume) {
     TEST_ASSERT_EQ(session.GetCurrentFilePath(), std::wstring(L"D:\\new_media\\renamed.mp4"));
     TEST_ASSERT_EQ(session.GetQueue()[0], std::wstring(L"D:\\new_media\\renamed.mp4"));
 }
-
-TEST_CASE(PlaybackSession, QueueIndexPositionRoundTrip) {
+static void step_PlaybackSession_QueueIndexPositionRoundTrip() {
     ScopedTempDir tempDir(L"Aperture_Session_RoundTrip_");
     std::wstring f1 = tempDir.SubPath(L"ep1.mp4");
     std::wstring f2 = tempDir.SubPath(L"ep2.mp4");
@@ -350,8 +324,7 @@ TEST_CASE(PlaybackSession, QueueIndexPositionRoundTrip) {
     TEST_ASSERT_EQ(loadedSession.GetState(), PlaybackState::Closed);
     TEST_ASSERT(!loadedSession.IsOpen());
 }
-
-TEST_CASE(PlaybackSession, MissingEntryRecovery) {
+static void step_PlaybackSession_MissingEntryRecovery() {
     ScopedTempDir tempDir(L"Aperture_Session_Missing_");
     std::wstring f1 = tempDir.SubPath(L"ep1.mp4");
     std::wstring f2 = tempDir.SubPath(L"ep2.mp4");
@@ -405,8 +378,7 @@ TEST_CASE(PlaybackSession, MissingEntryRecovery) {
     TEST_ASSERT_EQ(s3.GetState(), PlaybackState::Closed);
     TEST_ASSERT_EQ(s3.GetQueueMode(), QueueMode::DirectOpen);
 }
-
-TEST_CASE(PlaybackSession, DirectMediaState) {
+static void step_PlaybackSession_DirectMediaState() {
     ScopedTempDir tempDir(L"Aperture_Session_Direct_");
     std::wstring directFile = tempDir.SubPath(L"single_movie.mp4");
     tempDir.WriteFile(L"single_movie.mp4", "movie data");
@@ -446,8 +418,7 @@ TEST_CASE(PlaybackSession, DirectMediaState) {
     TEST_ASSERT_EQ(sMissing.GetQueueMode(), QueueMode::DirectOpen);
     TEST_ASSERT_EQ(sMissing.GetState(), PlaybackState::Closed);
 }
-
-TEST_CASE(PlaybackSession, BoundsAndValidation) {
+static void step_PlaybackSession_BoundsAndValidation() {
     ScopedTempDir tempDir(L"Aperture_Session_Bounds_");
     std::wstring mediaFile = tempDir.SubPath(L"item.mp4");
     tempDir.WriteFile(L"item.mp4", "data");
@@ -515,8 +486,7 @@ TEST_CASE(PlaybackSession, BoundsAndValidation) {
         TEST_ASSERT_EQ(s.GetState(), PlaybackState::Closed);
     }
 }
-
-TEST_CASE(PlaybackSession, RootRelativePortability) {
+static void step_PlaybackSession_RootRelativePortability() {
     ScopedTempDir rootDirA(L"Aperture_RootA_");
     rootDirA.CreateSubDir(L"media");
     rootDirA.CreateSubDir(L"media\\sub");
@@ -564,8 +534,7 @@ TEST_CASE(PlaybackSession, RootRelativePortability) {
     TEST_ASSERT_EQ(sessionB.GetQueueIndex(), 1ull);
     TEST_ASSERT_EQ(sessionB.GetPlaybackPosition(), 33.0);
 }
-
-TEST_CASE(PlaybackSession, SessionSchemaMigrationAndUnknownFields) {
+static void step_PlaybackSession_SessionSchemaMigrationAndUnknownFields() {
     ScopedTempDir tempDir(L"Aperture_Session_Migrate_");
     std::wstring mediaFile = tempDir.SubPath(L"video.mp4");
     tempDir.WriteFile(L"video.mp4", "data");
@@ -600,8 +569,7 @@ TEST_CASE(PlaybackSession, SessionSchemaMigrationAndUnknownFields) {
     TEST_ASSERT_EQ(savedRoot.get("customSessionMetadata").get("chapter").as_int(), 3);
     TEST_ASSERT_EQ(savedRoot.get("customSessionMetadata").get("notes").as_string(), "resumed from external");
 }
-
-TEST_CASE(PlaybackSession, SessionBackupRecovery) {
+static void step_PlaybackSession_SessionBackupRecovery() {
     ScopedTempDir tempDir(L"Aperture_Session_Backup_");
     std::wstring mediaFile = tempDir.SubPath(L"video.mp4");
     tempDir.WriteFile(L"video.mp4", "data");
@@ -624,8 +592,7 @@ TEST_CASE(PlaybackSession, SessionBackupRecovery) {
     TEST_ASSERT_EQ(recoveredSession.GetCurrentFilePath(), mediaFile);
     TEST_ASSERT(recoveredSession.GetPlaybackPosition() >= 77.0);
 }
-
-TEST_CASE(PlaybackSession, ActivePreferencesTracking) {
+static void step_PlaybackSession_ActivePreferencesTracking() {
     PlaybackSession session;
     TEST_ASSERT(!session.GetActivePreferences().has_value());
 
@@ -654,7 +621,7 @@ TEST_CASE(PlaybackSession, ActivePreferencesTracking) {
     session.ClearActivePreferences();
     TEST_ASSERT(!session.GetActivePreferences().has_value());
 }
-TEST_CASE(PlaybackSession, ActivePreferencesOwnCopyOfLibraryRecord) {
+static void step_PlaybackSession_ActivePreferencesOwnCopyOfLibraryRecord() {
     MediaItem item;
     item.preferences.emplace();
     item.preferences->playbackSpeed = 1.5;
@@ -675,8 +642,7 @@ TEST_CASE(PlaybackSession, ActivePreferencesOwnCopyOfLibraryRecord) {
     session.SetActivePreferences(std::nullopt);
     TEST_ASSERT(!session.GetActivePreferences());
 }
-
-TEST_CASE(PlaybackSession, PiPTransitionsAndGeometry) {
+static void step_PlaybackSession_PiPTransitionsAndGeometry() {
     PlaybackSession session;
     HWND testWnd = CreateWindowExW(
         WS_EX_OVERLAPPEDWINDOW, L"STATIC", L"PiPTest",
@@ -742,8 +708,7 @@ TEST_CASE(PlaybackSession, PiPTransitionsAndGeometry) {
 
     DestroyWindow(testWnd);
 }
-TEST_CASE(PlaybackSession, MaximizedWindowedPiPRoundTrip) {
-    if (!g_allowVisibleTestWindows) TEST_SKIP("requires an explicitly requested visible-window test");
+static void step_PlaybackSession_MaximizedWindowedPiPRoundTrip() {
     PlaybackSession session;
     HWND testWnd = CreateWindowExW(
         WS_EX_OVERLAPPEDWINDOW, L"STATIC", L"PiPMaximizedTest",
@@ -820,9 +785,7 @@ TEST_CASE(PlaybackSession, MaximizedWindowedPiPRoundTrip) {
 
     DestroyWindow(testWnd);
 }
-
-TEST_CASE(PlaybackSession, NormalWindowedPiPRoundTrip) {
-    if (!g_allowVisibleTestWindows) TEST_SKIP("requires an explicitly requested visible-window test");
+static void step_PlaybackSession_NormalWindowedPiPRoundTrip() {
     PlaybackSession session;
     HWND testWnd = CreateWindowExW(
         WS_EX_OVERLAPPEDWINDOW, L"STATIC", L"PiPNormalTest",
@@ -860,9 +823,7 @@ TEST_CASE(PlaybackSession, NormalWindowedPiPRoundTrip) {
 
     DestroyWindow(testWnd);
 }
-
-TEST_CASE(PlaybackSession, FullscreenPiPRoundTrip) {
-    if (!g_allowVisibleTestWindows) TEST_SKIP("requires an explicitly requested visible-window test");
+static void step_PlaybackSession_FullscreenPiPRoundTrip() {
     PlaybackSession session;
     HWND testWnd = CreateWindowExW(
         WS_EX_OVERLAPPEDWINDOW, L"STATIC", L"PiPFullscreenTest",
@@ -930,9 +891,7 @@ TEST_CASE(PlaybackSession, FullscreenPiPRoundTrip) {
 
     DestroyWindow(testWnd);
 }
-
-TEST_CASE(PlaybackSession, FullscreenExitRestoresPlacementWithoutIntermediateSize) {
-    if (!g_allowVisibleTestWindows) TEST_SKIP("requires an explicitly requested visible-window test");
+static void step_PlaybackSession_FullscreenExitRestoresPlacementWithoutIntermediateSize() {
     struct WindowProbe {
         HWND window = CreateWindowExW(0, L"STATIC", L"Fullscreen restore test",
             WS_OVERLAPPEDWINDOW | WS_VISIBLE, 140, 120, 800, 600,
@@ -983,9 +942,7 @@ TEST_CASE(PlaybackSession, FullscreenExitRestoresPlacementWithoutIntermediateSiz
         }
     }
 }
-
-TEST_CASE(PlaybackSession, PiPFullscreenGeometryPreservation) {
-    if (!g_allowVisibleTestWindows) TEST_SKIP("requires an explicitly requested visible-window test");
+static void step_PlaybackSession_PiPFullscreenGeometryPreservation() {
     PlaybackSession session;
     HWND testWnd = CreateWindowExW(
         WS_EX_OVERLAPPEDWINDOW, L"STATIC", L"PiPGeomPreserveTest",
@@ -1040,9 +997,7 @@ TEST_CASE(PlaybackSession, PiPFullscreenGeometryPreservation) {
     TEST_ASSERT(session.IsWindowed());
     DestroyWindow(testWnd);
 }
-
-TEST_CASE(PlaybackSession, PiPOverlayFollowsClientOriginAfterDrag) {
-    if (!g_allowVisibleTestWindows) TEST_SKIP("requires an explicitly requested visible-window test");
+static void step_PlaybackSession_PiPOverlayFollowsClientOriginAfterDrag() {
     HWND owner = CreateWindowExW(
         0, L"STATIC", L"PiPOverlayOwnerTest",
         WS_POPUP | WS_THICKFRAME | WS_VISIBLE, 160, 140, 520, 320,
@@ -1085,8 +1040,7 @@ TEST_CASE(PlaybackSession, PiPOverlayFollowsClientOriginAfterDrag) {
     DestroyWindow(overlay);
     DestroyWindow(owner);
 }
-
-TEST_CASE(PlaybackSession, SettingsPiPPersistence) {
+static void step_PlaybackSession_SettingsPiPPersistence() {
     Settings settings;
     // Default sentinels
     TEST_ASSERT_EQ(settings.pipX, -1);
@@ -1105,9 +1059,7 @@ TEST_CASE(PlaybackSession, SettingsPiPPersistence) {
     TEST_ASSERT_EQ(settings.pipWidth, 0);
     TEST_ASSERT_EQ(settings.pipHeight, 0);
 }
-
-TEST_CASE(PlaybackSession, PiPToFullscreenTransitionUsesAtomicTargetBounds) {
-    if (!g_allowVisibleTestWindows) TEST_SKIP("requires an explicitly requested visible-window test");
+static void step_PlaybackSession_PiPToFullscreenTransitionUsesAtomicTargetBounds() {
     PlaybackSession session;
     HWND testWnd = CreateWindowExW(
         WS_EX_OVERLAPPEDWINDOW, L"STATIC", L"PiPTransitionTest",
@@ -1141,4 +1093,36 @@ TEST_CASE(PlaybackSession, PiPToFullscreenTransitionUsesAtomicTargetBounds) {
 
     DestroyWindow(testWnd);
 }
+
+TEST_CASE(PlaybackSession, QueueProgressionAndPersistence) {
+    step_PlaybackSession_DirectOpenTransitions();
+    step_PlaybackSession_QueueOpenAndNavigation();
+    step_PlaybackSession_PreserveQueueLogic();
+    step_PlaybackSession_EofAndAutoplayTransitions();
+    step_PlaybackSession_FourItemQueueEofProgressionWithoutSkips();
+    step_PlaybackSession_TrackStateAndUnmutedVolume();
+    step_PlaybackSession_QueueIndexPositionRoundTrip();
+    step_PlaybackSession_MissingEntryRecovery();
+    step_PlaybackSession_DirectMediaState();
+    step_PlaybackSession_BoundsAndValidation();
+    step_PlaybackSession_RootRelativePortability();
+    step_PlaybackSession_SessionSchemaMigrationAndUnknownFields();
+    step_PlaybackSession_SessionBackupRecovery();
+    step_PlaybackSession_ActivePreferencesTracking();
+    step_PlaybackSession_ActivePreferencesOwnCopyOfLibraryRecord();
+    step_PlaybackSession_SettingsPiPPersistence();
+}
+
+TEST_CASE(PlaybackSession, WindowPresentationGeometry) {
+    if (!g_allowVisibleTestWindows) TEST_SKIP("requires an explicitly requested visible-window test");
+    step_PlaybackSession_PiPTransitionsAndGeometry();
+    step_PlaybackSession_MaximizedWindowedPiPRoundTrip();
+    step_PlaybackSession_NormalWindowedPiPRoundTrip();
+    step_PlaybackSession_FullscreenPiPRoundTrip();
+    step_PlaybackSession_FullscreenExitRestoresPlacementWithoutIntermediateSize();
+    step_PlaybackSession_PiPFullscreenGeometryPreservation();
+    step_PlaybackSession_PiPOverlayFollowsClientOriginAfterDrag();
+    step_PlaybackSession_PiPToFullscreenTransitionUsesAtomicTargetBounds();
+}
+
 } // namespace Aperture::Test

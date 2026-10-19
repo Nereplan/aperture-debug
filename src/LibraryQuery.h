@@ -40,7 +40,6 @@ struct DuplicateGroup {
     std::vector<size_t> originalIndices;
     uint64_t individualSizeBytes = 0, totalDuplicateSizeBytes = 0;
     double durationSec = 0.0;
-    size_t suggestedKeepIndex = 0;
 };
 
 struct DuplicateDetectionResult {

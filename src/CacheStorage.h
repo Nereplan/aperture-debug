@@ -89,30 +89,6 @@ inline void SetGlobalCacheBudgets(const CacheBudgetConfig& config) {
     Detail::GetGlobalCacheBudgetsInternal() = config;
 }
 
-inline StorageStatus CheckCacheDirectoryWritability(const std::wstring& root = GetExeDir(), std::optional<CacheClass> c = std::nullopt) {
-    if (root.empty()) { return StorageStatus::Error(StorageErrorCode::InvalidPath, ERROR_INVALID_PARAMETER, L"", "Root path is empty"); }
-    std::wstring dir = c.has_value() ? (root + L"\\cache\\" + GetCacheClassSubDirName(*c)) : (root + L"\\cache");
-    DWORD attr = GetFileAttributesW(dir.c_str());
-    if (attr == INVALID_FILE_ATTRIBUTES || !(attr & FILE_ATTRIBUTE_DIRECTORY)) {
-        int res = SHCreateDirectoryExW(NULL, dir.c_str(), NULL);
-        if (res != ERROR_SUCCESS && res != ERROR_ALREADY_EXISTS && res != ERROR_FILE_EXISTS) {
-            DWORD err = GetLastError();
-            return StorageStatus::Error(StorageErrorCode::DirectoryCreationFailed, err ? err : (DWORD)res, dir, "Failed to create cache directory");
-        }
-        attr = GetFileAttributesW(dir.c_str());
-    }
-    if (attr != INVALID_FILE_ATTRIBUTES && (attr & FILE_ATTRIBUTE_READONLY))
-        return StorageStatus::Error(StorageErrorCode::DirectoryNotWritable, ERROR_ACCESS_DENIED, dir, "Cache directory has read-only attribute");
-    std::wstring probe = dir + L"\\.writetest_" + std::to_wstring(GetCurrentProcessId()) + L"_" + std::to_wstring(GetCurrentThreadId()) + L".tmp";
-    HANDLE hFile = CreateFileW(probe.c_str(), GENERIC_READ | GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_TEMPORARY | FILE_FLAG_DELETE_ON_CLOSE, NULL);
-    if (hFile == INVALID_HANDLE_VALUE) {
-        DWORD err = GetLastError();
-        return StorageStatus::Error(StorageErrorCode::DirectoryNotWritable, err, dir, "Cache directory is read-only or not writable");
-    }
-    CloseHandle(hFile);
-    return StorageStatus::Ok(dir);
-}
-
 struct CacheFileInfo {
     std::wstring path;
     uint64_t sizeBytes = 0;
@@ -159,11 +135,15 @@ inline CacheClass ClassifyCachePath(const std::wstring& path, const std::wstring
 
 template<typename Visitor>
 inline void VisitCacheFiles(const std::wstring& root, std::optional<CacheClass> filterClass, size_t maxScanEntries, Visitor&& visit) {
+    if (root.empty() || maxScanEntries == 0) return;
     size_t count = 0;
     std::wstring baseDir = GetFullPathDynamic(root + L"\\cache");
+    const DWORD cacheAttributes = GetFileAttributesW(baseDir.c_str());
+    if (cacheAttributes == INVALID_FILE_ATTRIBUTES || !(cacheAttributes & FILE_ATTRIBUTE_DIRECTORY) ||
+        (cacheAttributes & FILE_ATTRIBUTE_REPARSE_POINT)) return;
     if (filterClass.has_value()) { baseDir = baseDir + L"\\" + GetCacheClassSubDirName(*filterClass); }
     DWORD attr = GetFileAttributesW(baseDir.c_str());
-    if (attr == INVALID_FILE_ATTRIBUTES || !(attr & FILE_ATTRIBUTE_DIRECTORY)) { return; }
+    if (attr == INVALID_FILE_ATTRIBUTES || !(attr & FILE_ATTRIBUTE_DIRECTORY) || (attr & FILE_ATTRIBUTE_REPARSE_POINT)) { return; }
     std::vector<std::wstring> dirQueue;
     dirQueue.push_back(baseDir);
     while (!dirQueue.empty() && count < maxScanEntries) {
@@ -174,6 +154,9 @@ inline void VisitCacheFiles(const std::wstring& root, std::optional<CacheClass> 
         HANDLE hFind = FindFirstFileW(searchPattern.c_str(), &fd);
         if (hFind == INVALID_HANDLE_VALUE) continue;
         struct FindGuard { HANDLE value; ~FindGuard() { FindClose(value); } } guard{hFind};
+        // Every ordinary file in this directory has the same class. Resolve
+        // the directory once instead of resolving four roots for every file.
+        const CacheClass directoryClass = ClassifyCachePath(curDir, root);
         do {
             if (wcscmp(fd.cFileName, L".") == 0 || wcscmp(fd.cFileName, L"..") == 0) continue;
             std::wstring fullPath = curDir + L"\\" + fd.cFileName;
@@ -186,7 +169,7 @@ inline void VisitCacheFiles(const std::wstring& root, std::optional<CacheClass> 
                     info.lastAccessTime = fd.ftLastAccessTime;
                     info.lastWriteTime = fd.ftLastWriteTime;
                     info.creationTime = fd.ftCreationTime;
-                    info.cacheClass = ClassifyCachePath(info.path, root);
+                    info.cacheClass = !filterClass && curDir == baseDir ? ClassifyCachePath(info.path, root) : directoryClass;
                     visit(std::move(info));
                     ++count;
                     if (count >= maxScanEntries) break;
@@ -521,19 +504,23 @@ inline StorageStatus ClearDisposableCache(const std::wstring& root = GetExeDir()
         return StorageStatus::Error(StorageErrorCode::InvalidPath, ERROR_INVALID_PARAMETER, L"", "Invalid root path for cache cleanup");
     std::wstring cacheDir = root + L"\\cache";
     std::wstring dataDir = root + L"\\data";
+    const DWORD cacheAttributes = GetFileAttributesW(cacheDir.c_str());
+    if (cacheAttributes != INVALID_FILE_ATTRIBUTES && (cacheAttributes & FILE_ATTRIBUTE_REPARSE_POINT))
+        return StorageStatus::Error(StorageErrorCode::InvalidPath, ERROR_INVALID_PARAMETER, cacheDir, "Cache cleanup cannot follow a directory link");
     if (!IsPathUnderRoot(cacheDir, root) || _wcsicmp(cacheDir.c_str(), dataDir.c_str()) == 0 ||
         _wcsicmp(cacheDir.c_str(), root.c_str()) == 0) {
         return StorageStatus::Error(StorageErrorCode::InvalidPath, ERROR_INVALID_PARAMETER, cacheDir, "Invalid cache directory for cleanup");
     }
     auto removeDirContents = [](const std::wstring& dirPath, const auto& selfRef) -> bool {
         DWORD attr = GetFileAttributesW(dirPath.c_str());
-        if (attr == INVALID_FILE_ATTRIBUTES || !(attr & FILE_ATTRIBUTE_DIRECTORY)) return true;
+        if (attr == INVALID_FILE_ATTRIBUTES || !(attr & FILE_ATTRIBUTE_DIRECTORY) || (attr & FILE_ATTRIBUTE_REPARSE_POINT)) return true;
         std::wstring searchPattern = dirPath + L"\\*";
         WIN32_FIND_DATAW fd;
         HANDLE hFind = FindFirstFileW(searchPattern.c_str(), &fd);
         if (hFind == INVALID_HANDLE_VALUE) return true;
         do {
             if (wcscmp(fd.cFileName, L".") == 0 || wcscmp(fd.cFileName, L"..") == 0) continue;
+            if (fd.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) continue;
             std::wstring itemPath = dirPath + L"\\" + fd.cFileName;
             if (fd.dwFileAttributes & FILE_ATTRIBUTE_READONLY) { SetFileAttributesW(itemPath.c_str(), FILE_ATTRIBUTE_NORMAL); }
             if (fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {

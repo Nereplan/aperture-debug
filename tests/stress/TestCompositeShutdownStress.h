@@ -8,7 +8,6 @@
 #include "HttpTransport.h"
 #include "OnlineSubtitles.h"
 #include "Diagnostics.h"
-#include "NetworkStream.h"
 #include "Settings.h"
 #include <atomic>
 #include <thread>
@@ -120,15 +119,7 @@ TEST_CASE(Stress, CompositeMultiSubsystemConcurrentShutdown) {
             DownloadAndStageUpdate(manifest, uConfig, &mockTransport, nullptr, rootDir);
         });
 
-        // 6. NetworkStreamLoader Subsystem
-        NetworkStreamLoader nsLoader;
-        CallbackLifecycleFence nsFence;
-        nsLoader.BeginOpen(L"https://stream.aperture.local/live.m3u8", nullptr,
-            [&nsFence](bool, const std::wstring&, const std::wstring&, uint64_t) {
-                nsFence.OnCallbackInvoked("Composite.NetworkStreamLoader");
-            });
-
-        // 7. Active Disk Mutations Thread
+        // 6. Active Disk Mutations Thread
         std::atomic<bool> stopDiskMutator{false};
         std::thread diskMutator([&tempDir, &stopDiskMutator]() {
             uint32_t idx = 0;
@@ -153,22 +144,19 @@ TEST_CASE(Stress, CompositeMultiSubsystemConcurrentShutdown) {
         if (playerProducer.joinable()) playerProducer.join();
         playerFence.SetShutdown();
 
-        // 2. Cancel and join NetworkStreamLoader
-        nsLoader.Cancel();
-        nsFence.SetShutdown();
-        // 3. Cancel and join MediaLibrary backfill
+        // 2. Cancel and join MediaLibrary backfill
         backfillCancel.store(true, std::memory_order_release);
         if (backfillWorker.joinable()) backfillWorker.join();
 
-        // 4. Unblock / cancel and join Updater
+        // 3. Unblock / cancel and join Updater
         updaterBlocked.store(false, std::memory_order_release);
         if (updaterWorker.joinable()) updaterWorker.join();
 
-        // 5. Stop disk mutator
+        // 4. Stop disk mutator
         stopDiskMutator.store(true, std::memory_order_release);
         if (diskMutator.joinable()) diskMutator.join();
 
-        // 6. Fence and stop FolderWatcher
+        // 5. Fence and stop FolderWatcher
         folderWatcher->Stop();
         fwFence.SetShutdown();
         folderWatcher.reset();

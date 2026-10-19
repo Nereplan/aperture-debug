@@ -247,7 +247,7 @@ The system defines twelve distinct security boundaries spanning external data, i
 - **Failure Behavior**: Returns typed `StorageStatus`; existing target files remain unmodified if write/flush/rename fails.
 - **Residual Risk**: Hardware disk failure, power loss mid-rename, or unauthorized external process modification of files in `<rootDir>\data\`.
 - **Authoritative Code References**: `src/Common.h`, `src/Settings.h`, `src/Settings.cpp`, `src/MediaLibrary.h`, `src/MediaLibrary.cpp`, `src/Json.h`, `src/Json.cpp`.
-- **Authoritative Test References**: `tests/persistence/TestSchemaMigration.h`, `tests/persistence/TestUnwritableRoot.h`, `tests/persistence/TestRotatingBackups.h`, `tests/persistence/TestPartialRecovery.h`, `tests/persistence/TestUnknownFields.h`, `tests/persistence/TestRelativePaths.h`, `tests/persistence/TestPortableRoot.h`, `tests/persistence/TestCacheIsolation.h`.
+- **Authoritative Test References**: `tests/persistence/TestSchemaMigration.h`, `tests/persistence/TestUnwritableRoot.h`, `tests/persistence/TestRotatingBackups.h`, `tests/persistence/TestPartialRecovery.h`, `tests/backend/main.cpp`, `tests/persistence/TestRelativePaths.h`, `tests/persistence/TestPortableRoot.h`, `tests/persistence/TestCacheIsolation.h`.
 
 ---
 

@@ -112,7 +112,7 @@ public:
 };
 
 // 1. Command Mapping Tests
-TEST_CASE(TaskbarController, CommandMapping) {
+static void step_TaskbarController_CommandMapping() {
     TEST_ASSERT_EQ(static_cast<int>(TaskbarController::MapButtonToCommand(kTaskbarButtonPrev)),
                    static_cast<int>(AppCommand::PlayPrevious));
     TEST_ASSERT_EQ(static_cast<int>(TaskbarController::MapButtonToCommand(kTaskbarButtonPlayPause)),
@@ -126,7 +126,7 @@ TEST_CASE(TaskbarController, CommandMapping) {
 }
 
 // 2. Capability and State Projection Tests
-TEST_CASE(TaskbarController, CapabilityAndStateProjection) {
+static void step_TaskbarController_CapabilityAndStateProjection() {
     PlaybackSession session;
     MediaLibrary library;
     Settings settings;
@@ -240,7 +240,7 @@ TEST_CASE(TaskbarController, CapabilityAndStateProjection) {
 }
 
 // 3. Progress Projection and Bounds Testing
-TEST_CASE(TaskbarController, ProgressProjectionAndBounds) {
+static void step_TaskbarController_ProgressProjectionAndBounds() {
     // Closed / Stopped
     {
         TaskbarProgress p = TaskbarController::ProjectProgress(PlaybackState::Closed, 10.0, 100.0);
@@ -318,7 +318,7 @@ TEST_CASE(TaskbarController, ProgressProjectionAndBounds) {
 }
 
 // 4. Failed Initialization and Degradation
-TEST_CASE(TaskbarController, FailedInitializationAndDegradation) {
+static void step_TaskbarController_FailedInitializationAndDegradation() {
     TaskbarController controller;
     TEST_ASSERT(!controller.IsInitialized());
     TEST_ASSERT(!controller.AreButtonsAdded());
@@ -343,7 +343,7 @@ TEST_CASE(TaskbarController, FailedInitializationAndDegradation) {
 }
 
 // 5. Mock ITaskbarList3 Integration (Add, Update, Progress)
-TEST_CASE(TaskbarController, MockTaskbarListIntegration) {
+static void step_TaskbarController_MockTaskbarListIntegration() {
     TaskbarController controller;
     Microsoft::WRL::ComPtr<MockTaskbarList3> mock = new MockTaskbarList3();
     HWND fakeHwnd = reinterpret_cast<HWND>(0x12345);
@@ -405,7 +405,7 @@ TEST_CASE(TaskbarController, MockTaskbarListIntegration) {
 }
 
 // 6. Window Message WM_COMMAND Dispatching Tests
-TEST_CASE(TaskbarController, WindowMessageHandling) {
+static void step_TaskbarController_WindowMessageHandling() {
     TaskbarController controller;
     MockCommandContext context;
     CommandDispatcher dispatcher(&context);
@@ -449,7 +449,7 @@ TEST_CASE(TaskbarController, WindowMessageHandling) {
 }
 
 // 7. Icon Creation and Destruction Lifecycle
-TEST_CASE(TaskbarController, IconLifecycle) {
+static void step_TaskbarController_IconLifecycle() {
     TaskbarController controller;
     Microsoft::WRL::ComPtr<MockTaskbarList3> mock;
     mock.Attach(new MockTaskbarList3());
@@ -486,8 +486,7 @@ TEST_CASE(TaskbarController, IconLifecycle) {
         if (valid) { DeleteObject(info.hbmColor); DeleteObject(info.hbmMask); }
     }
 }
-
-TEST_CASE(TaskbarController, IdleClearAndProgressOnlyUpdatesAvoidExplorerCalls) {
+static void step_TaskbarController_IdleClearAndProgressOnlyUpdatesAvoidExplorerCalls() {
     TaskbarController controller;
     Microsoft::WRL::ComPtr<MockTaskbarList3> mock;
     mock.Attach(new MockTaskbarList3());
@@ -518,6 +517,18 @@ TEST_CASE(TaskbarController, IdleClearAndProgressOnlyUpdatesAvoidExplorerCalls) 
     controller.OnTaskbarButtonCreated(hwnd);
     TEST_ASSERT_EQ(mock->thumbBarAddButtonsCount, 2);
     TEST_ASSERT_EQ(mock->setProgressStateCount, clears + 1);
+}
+
+
+TEST_CASE(TaskbarController, MockTaskbarAndExplorerThrottling) {
+    step_TaskbarController_CommandMapping();
+    step_TaskbarController_CapabilityAndStateProjection();
+    step_TaskbarController_ProgressProjectionAndBounds();
+    step_TaskbarController_FailedInitializationAndDegradation();
+    step_TaskbarController_MockTaskbarListIntegration();
+    step_TaskbarController_WindowMessageHandling();
+    step_TaskbarController_IconLifecycle();
+    step_TaskbarController_IdleClearAndProgressOnlyUpdatesAvoidExplorerCalls();
 }
 
 } // namespace Aperture::Test

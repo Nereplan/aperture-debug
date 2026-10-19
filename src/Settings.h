@@ -36,7 +36,6 @@ struct ThemePalette {
 
 struct ShortcutBinding { std::string actionId, displayName; UINT vkCode = 0; bool ctrl = false, shift = false, alt = false; };
 
-struct SubtitleSafeAreaPreset { std::string id; std::string displayName; int x = 0; int y = 0; };
 
 struct SubtitleStyleProfile {
     std::string name;
@@ -210,9 +209,6 @@ public:
     static std::string NormalizeProfileBgStyle(const std::string& style);
     static std::string NormalizeProfilePosition(const std::string& pos);
     static int NormalizeSafeAreaPercent(int percent);
-    static std::vector<SubtitleSafeAreaPreset> GetSubtitleSafeAreaPresets();
-    static bool GetSubtitleSafeAreaPreset(const std::string& id, int& outX, int& outY);
-    void ResetSubtitleSafeArea();
     const SubtitleStyleProfile* FindSubtitleProfile(const std::string& name) const;
     SubtitleStyleProfile* FindSubtitleProfile(const std::string& name);
     bool AddOrUpdateSubtitleProfile(const SubtitleStyleProfile& profile);

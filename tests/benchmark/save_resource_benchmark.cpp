@@ -28,7 +28,7 @@ int main(int argc, char** argv) {
     DWORD_PTR processMask = 0, systemMask = 0;
     if (GetProcessAffinityMask(GetCurrentProcess(), &processMask, &systemMask))
         SetProcessAffinityMask(GetCurrentProcess(), processMask & (~processMask + 1));
-    std::puts("items,mode,sample,ms,allocations,allocated_bytes,peak_live_cpp_bytes,json_bytes,content_hash");
+    std::puts("items,mode,sample,ms,allocations,allocated_bytes,peak_live_cpp_bytes,json_bytes,content_hash,retained_cpp_bytes");
     bool captureOnly = false, playbackCapture = false;
     for (int i = 1; i < argc; ++i) {
         captureOnly |= std::string(argv[i]) == "--capture-only";
@@ -134,9 +134,9 @@ int main(int argc, char** argv) {
             Check(reloaded.mediaItems.front().lastPosSec == library.mediaItems.front().lastPosSec);
             Check(reloaded.mediaItems.front().extraFields.get("plugin").get("escaped").as_string() == "tab\tline\ncontrol\x01");
             const auto& reported = mode == 3 ? loadStats : measured;
-            if (sample > 0) std::printf("%d,%d,%d,%.3f,%zu,%zu,%zu,%zu,%llu\n", count, mode, sample,
+            if (sample > 0) std::printf("%d,%d,%d,%.3f,%zu,%zu,%zu,%zu,%llu,%zu\n", count, mode, sample,
                 mode == 3 ? loadMs : std::chrono::duration<double, std::milli>(end - start).count(), reported.calls,
-                reported.bytes, reported.peak, bytes, hash);
+                reported.bytes, reported.peak, bytes, hash, reported.live);
         }
     }
 }

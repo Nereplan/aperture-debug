@@ -132,8 +132,6 @@ public:
     // a control. The tree is normally a member/borrowed provider owned by App, so its owner must keep it alive for the HWND lifetime and
     // release COM clients before destroying the tree.
     bool ReplaceNodes(const std::vector<AccessibilityNode>& nodes);
-    bool UpdateNode(const AccessibilityNode& node);
-    bool RemoveNode(LONG childId);
     void ClearNodes();
     std::vector<AccessibilityNode> GetNodes() const;
     bool GetNodeCopy(LONG childId, AccessibilityNode& outNode) const;
