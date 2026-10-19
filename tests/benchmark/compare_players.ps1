@@ -30,6 +30,7 @@ param(
     [ValidateRange(0,3840)][int]$VideoWidth = 0,
     [ValidateRange(0,2160)][int]$VideoHeight = 0,
     [switch]$ForceD3D11Linear,
+    [switch]$CaptureThreadCounters,
     [string]$ApertureVariantsFile = '',
     [ValidateRange(0,120)][int]$SamplingSeconds = 0,
     [ValidateRange(0,86400)][int]$LaunchMediaStartSeconds = 0,
@@ -110,6 +111,11 @@ foreach ($player in $players) {
     if (Get-Process -Name ([IO.Path]::GetFileNameWithoutExtension($player.exeName)) -ErrorAction SilentlyContinue) { throw "Close existing $($player.name) instances before comparing; nothing was closed." }
 }
 if (-not ('PlayerBenchmarkWindow' -as [type])) { Add-Type -Path (Join-Path $PSScriptRoot 'PlayerBenchmarkWindow.cs') }
+if ($CaptureThreadCounters) {
+    $threadCounterSourceHash = (Get-FileHash -LiteralPath (Join-Path $PSScriptRoot 'PlayerThreadCounters.cs') -Algorithm SHA256).Hash
+    if (-not ('PlayerThreadCounters' -as [type])) { Add-Type -Path (Join-Path $PSScriptRoot 'PlayerThreadCounters.cs') }
+    [void][PlayerThreadCounters]::Capture($PID) # JIT the observer before starting a player.
+}
 if ($MpcHcPath) { Add-Type -Path (Join-Path $PSScriptRoot 'MpcStatusObserver.cs') }
 function Bytes([string]$Path) { [int64]((Get-ChildItem -LiteralPath $Path -File -Recurse | Measure-Object Length -Sum).Sum) }
 function Cycles([Diagnostics.Process]$OwnedProcess) {
@@ -257,6 +263,7 @@ for ($round=0; $round -lt ($WarmupIterations+$Iterations); $round++) {
             } while($window -eq [IntPtr]::Zero -and $timer.ElapsedMilliseconds -lt 15000)
             if($window -eq [IntPtr]::Zero) { throw 'Visible owned window timeout.' }
             $record.processToVisibleWindowMs=$timer.Elapsed.TotalMilliseconds
+            if ($CaptureThreadCounters) { $record.uiThreadId = [PlayerBenchmarkWindow]::OwnerThread($window,[uint32]$process.Id) }
             if(-not [PlayerBenchmarkWindow]::Resize($window,[uint32]$process.Id,$WindowWidth,$WindowHeight)) { throw 'Owned-window resize failed.' }
             Start-Sleep -Seconds 8
             # Some players resize again when the decoder announces video size.
@@ -292,14 +299,19 @@ for ($round=0; $round -lt ($WarmupIterations+$Iterations); $round++) {
                     $elapsed = $timer.Elapsed.TotalSeconds; $cpu = $process.TotalProcessorTime.TotalSeconds
                     $cycles = Cycles $process
                     $workingSet = $process.WorkingSet64; $private = $process.PrivateMemorySize64
+                    $threadSnapshot = if ($CaptureThreadCounters) { [PlayerThreadCounters]::Capture($process.Id) } else { $null }
                     $playback = Playback $player.name $process.Id $port $envOverride
                     $gpu = Gpu $process.Id
-                    $samples.Add([pscustomobject]@{elapsedSeconds=$elapsed;workingSetBytes=$workingSet;privateBytes=$private;cpuSeconds=$cpu;cpuCycles=$cycles;dedicatedGpuBytes=$gpu.dedicatedBytes;sharedGpuBytes=$gpu.sharedBytes;gpuUnavailableReason=$gpu.unavailableReason;playback=$playback})
+                    $sampleRecord = [ordered]@{elapsedSeconds=$elapsed;workingSetBytes=$workingSet;privateBytes=$private;cpuSeconds=$cpu;cpuCycles=$cycles;dedicatedGpuBytes=$gpu.dedicatedBytes;sharedGpuBytes=$gpu.sharedBytes;gpuUnavailableReason=$gpu.unavailableReason;playback=$playback}
+                    if ($CaptureThreadCounters) { $sampleRecord.threadCounters = $threadSnapshot }
+                    $samples.Add([pscustomobject]$sampleRecord)
                     continue
                 }
                 $gpu=Gpu $process.Id
                 $process.Refresh()
-                $samples.Add([pscustomobject]@{elapsedSeconds=$timer.Elapsed.TotalSeconds;workingSetBytes=$process.WorkingSet64;privateBytes=$process.PrivateMemorySize64;cpuSeconds=$process.TotalProcessorTime.TotalSeconds;cpuCycles=(Cycles $process);dedicatedGpuBytes=$gpu.dedicatedBytes;sharedGpuBytes=$gpu.sharedBytes;gpuUnavailableReason=$gpu.unavailableReason;playback=(Playback $player.name $process.Id $port $envOverride)})
+                $sampleRecord = [ordered]@{elapsedSeconds=$timer.Elapsed.TotalSeconds;workingSetBytes=$process.WorkingSet64;privateBytes=$process.PrivateMemorySize64;cpuSeconds=$process.TotalProcessorTime.TotalSeconds;cpuCycles=(Cycles $process);dedicatedGpuBytes=$gpu.dedicatedBytes;sharedGpuBytes=$gpu.sharedBytes;gpuUnavailableReason=$gpu.unavailableReason;playback=(Playback $player.name $process.Id $port $envOverride)}
+                if ($CaptureThreadCounters) { $sampleRecord.threadCounters = [PlayerThreadCounters]::Capture($process.Id) }
+                $samples.Add([pscustomobject]$sampleRecord)
             }
             $record.samplingEndedUtc = [DateTime]::UtcNow.ToString('o')
             $record.samples=$samples.ToArray(); $record.windowDimensions=[PlayerBenchmarkWindow]::Size($window)
@@ -344,6 +356,10 @@ for ($round=0; $round -lt ($WarmupIterations+$Iterations); $round++) {
 }
 $report=[ordered]@{schemaVersion=1;createdUtc=[DateTime]::UtcNow.ToString('o');mediaPath=$MediaPath;mediaSha256=$mediaHash;mediaBytes=(Get-Item -LiteralPath $MediaPath).Length;iterations=$Iterations;warmupIterations=$WarmupIterations;windowTarget=@($WindowWidth,$WindowHeight);startupMetric='Process launch to first visible unowned top-level window (not first frame)';sampling='8s after visible window plus 2s after post-load resize; 3 samples separated by at least 2s (counter/status overhead included)';apertureStatusProbe=$ApertureStatusProbe;limitations=@('Warm OS caches; no cold-cache claim.','Window outer rectangles match; video viewport and default decoder may differ.','Samples cover owned root process only; inspect unexpected child processes separately.','Playback status does not prove pixels are visible or decoder hardware equivalence.','Child environment redirects ordinary profile/temp writes; Windows Known Folder APIs may bypass environment variables (VLC additionally uses portable/).','VLC RC verification adds a control-interface overhead.','MPC-HC uses a hidden /slave window to verify position; no decoder equivalence claim.');players=$players;results=$results.ToArray()}
 if ($SamplingSeconds) { $report.sampling = "CPU window requested ${SamplingSeconds}s with counter samples every ~5s; actual CPU/wall deltas retained; launch media position ${LaunchMediaStartSeconds}s, sampling begins after at least ${SamplingStartMediaSeconds}s media time and ten seconds settling. VLC media times are integer-quantized. Ordered variants rotate each round." }
+if ($CaptureThreadCounters) {
+    $report.threadCounterCapture = [ordered]@{sourceSha256=$threadCounterSourceHash;method='Observer warmed against its own host before player launch. Passive cumulative thread cycles/CPU times/descriptions at each ordinary sample, with per-thread QPC timestamps and creation identities. No stacks or thread suspension. Collection bounds retained; process CPU remains the primary total.'}
+    $report.limitations += 'Thread snapshots can miss exited or inaccessible threads. Match both ID and creation time; never treat the sum of surviving threads as complete process CPU or infer a code cause from a thread name.'
+}
 if ($VideoWidth) { $report.videoCanvasTarget=@($VideoWidth,$VideoHeight); $report.limitations[1]='Video canvases match; actual child window dimensions/DPI are retained. Equal filter choices do not establish identical decoder or output pixels.' }
 $report.forcedVlcD3D11Linear=[bool]$ForceD3D11Linear
 $report | ConvertTo-Json -Depth 14 | Set-Content -LiteralPath (Join-Path $OutputDir 'comparison.json') -Encoding utf8

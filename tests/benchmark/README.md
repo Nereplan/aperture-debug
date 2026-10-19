@@ -282,6 +282,16 @@ owned process; optional `--pause`, `--play`, `--stop`, or `--open <file>` suppor
 lifecycle checks, including Unicode paths. Stop can clear a direct-launch queue;
 use an explicit open when checking return from the library.
 
+For an explicitly authorized visible run, `compare_players.ps1
+-CaptureThreadCounters` adds passive thread counters to the ordinary samples.
+It records thread descriptions, cycles, CPU times, creation identities, collection
+bounds and the owner-window thread ID, without stacks or thread suspension.
+Match both thread ID and creation time. Exited/inaccessible threads can be
+missing; surviving-thread sums are not complete process CPU, and names do not
+prove a code-level cause. Primary process counters and the full time window stay
+intact. Validate the collector without a player using
+`pwsh -NoProfile -File tests/benchmark/test_player_thread_counters.ps1`.
+
 Native correctness runs now default to hidden parent windows. `-VisiblePlayback`
 under `tests/libmpv/run_tests.ps1` is an explicit desktop-test opt-in; resource,
 startup and decode-speed scenarios refuse headless operation. The native probe
