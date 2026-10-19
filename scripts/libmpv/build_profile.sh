@@ -1,6 +1,6 @@
 # Sourced before fetching or building anything. Keep all profiles portable;
-# neither changes CPU requirements, floating-point semantics or decoder features.
-NATIVE_PROFILE="${APERTURE_NATIVE_PROFILE:-size}"
+# none changes CPU requirements, floating-point semantics or decoder features.
+NATIVE_PROFILE="${APERTURE_NATIVE_PROFILE:-balanced}"
 case "$NATIVE_PROFILE" in
   size)
     FFMPEG_SMALL_FLAG=--enable-small

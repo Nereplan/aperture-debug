@@ -1,0 +1,55 @@
+{
+  "recordedUtc": "2026-10-19T08:45:51.207314+00:00",
+  "authorizedVisibleLaunches": 1,
+  "measuredLaunches": 1,
+  "discardedWarmupLaunches": 0,
+  "vlcLaunches": 0,
+  "sampledAndAdvancing": true,
+  "videoCanvas": [
+    1280,
+    720
+  ],
+  "dpi": 96,
+  "snapshotCount": 7,
+  "seconds": 29.998462900000003,
+  "ownedWindowClosed": true,
+  "ownedRuntimeAndProfileRemoved": true,
+  "threadCounterSnapshots": 7,
+  "threadCounterErrors": 0,
+  "fullWindowMatchedThreadIdentities": 76,
+  "calibrationSupported": true,
+  "calibrationInvariantTsc": true,
+  "calibrationRateSpread": 4.168e-06,
+  "calibrationBusyRatio": 0.997797014,
+  "calibrationLogicalProcessors": 24,
+  "packageManifestVerifiedFiles": 10,
+  "appSourceHashesStillMatch": true,
+  "bundleAdoptedSha256": "e91032cbce1da22aec5903468e814d4df2494e74fe508a371eaf3446c7408dae",
+  "bundledDependencyValidation": "pass",
+  "profileSelectionChecks": {
+    "passed": 5,
+    "total": 5
+  },
+  "wrapperDefaultAndParseChecks": {
+    "passed": 2,
+    "total": 2
+  },
+  "scope": "Root process/playback status/canvas and passive thread counters. No presentation trace, decoder equivalence or all-workload conclusion. Prior hidden correctness evidence separately dated.",
+  "recordChecks": {
+    "checkpointSchema": "55 checkpoints / 1299 observations / 39 embedded reports valid",
+    "checkpointTests": {
+      "passed": 18,
+      "total": 18
+    },
+    "chartTests": {
+      "passed": 16,
+      "total": 16
+    },
+    "rawAuditRecomputed": true,
+    "independentPowerShellCountersMatch": true,
+    "historicalDataPreserved": true,
+    "frontendBytesPreserved": true,
+    "savedVlcUnchanged": true,
+    "bundledNativeMatchesValidatedCandidate": true
+  }
+}

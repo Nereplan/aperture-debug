@@ -1,0 +1,137 @@
+{
+  "checkpoints": [
+    {
+      "id": "native-o2-20261019-visible-once",
+      "label": "Native O2 / H.264 playback",
+      "measuredAt": "2026-10-19T08:41:05.6507973Z",
+      "commit": "0847e37cd047c0e6237af9aab854bceecec52915",
+      "dirty": true,
+      "sourceNote": "Reused dirty-worktree EXE 3f63a5577e6c56b17441c88c28d8cbed2734a71738be165a44443243a04ae8b0; O2 DLL e91032cbce1da22aec5903468e814d4df2494e74fe508a371eaf3446c7408dae (recipe fee03c780932f461a8680d4c063767b8716d116ae0f70a20dd9d8a291d904eef, built from a760b1b). All 143 original App source hashes still match. Recording commit is not a clean rebuild. Bundled/default engine adopted after measurement; desktop installation untouched. See docs/evidence/native-balanced-20261019/visible-once/source-identity.json.",
+      "notes": "One authorized Aperture launch; VLC not rerun. Full-window calibrated CPU 4.21461 versus saved VLC 5.09145% of one logical processor (0.17561 versus 0.21214% total machine capacity), 17.22% relatively lower or 0.03653 machine percentage points. Raw CPU-time 4.47940 versus 4.52952%, nearly tied. Private RAM 145.60 versus 150.85 MiB; dedicated GPU allocation 94.54 versus 118.46 MiB. All six intervals retained; earlier O3 burst did not recur, cause unknown. Native O2 adds 2.709 MiB versus size; bundled for future builds after existing functional/image validation. One observation, not a universal player ranking.",
+      "results": [
+        {
+          "metric": "cpu-core",
+          "protocol": "playback-balanced-saved-vlc-replay-30s-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "1080p30 H.264 + AAC stereo / 1280x720 canvas / Aperture balanced, VLC linear / D3D11",
+          "historySeries": "balanced-h264-canvas-observations",
+          "samples": 1,
+          "value": 4.214609489250331,
+          "session": "native-o2-visible-once-h264-20261019",
+          "evidence": "docs/evidence/native-balanced-20261019/visible-once/review.json",
+          "runRange": {
+            "min": 4.214609489250331,
+            "max": 4.214609489250331,
+            "runs": 1,
+            "scope": "One authorized launch; no repeat-run distribution. Memory medians use all seven snapshots; CPU includes all six intervals over 29.9984629 seconds. Passive thread counters enabled. Saved VLC remains its historical session and original calibration."
+          }
+        },
+        {
+          "metric": "visible-ms",
+          "protocol": "playback-balanced-saved-vlc-replay-30s-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "1080p30 H.264 + AAC stereo / 1280x720 canvas / Aperture balanced, VLC linear / D3D11",
+          "historySeries": "balanced-h264-canvas-observations",
+          "samples": 1,
+          "value": 103.3892,
+          "session": "native-o2-visible-once-h264-20261019",
+          "evidence": "docs/evidence/native-balanced-20261019/visible-once/review.json",
+          "runRange": {
+            "min": 103.3892,
+            "max": 103.3892,
+            "runs": 1,
+            "scope": "One authorized launch; no repeat-run distribution. Memory medians use all seven snapshots; CPU includes all six intervals over 29.9984629 seconds. Passive thread counters enabled. Saved VLC remains its historical session and original calibration."
+          }
+        },
+        {
+          "metric": "runtime-mib",
+          "protocol": "playback-balanced-saved-vlc-replay-30s-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "1080p30 H.264 + AAC stereo / 1280x720 canvas / Aperture balanced, VLC linear / D3D11",
+          "historySeries": "balanced-h264-canvas-observations",
+          "samples": 1,
+          "value": 30.59618854522705,
+          "session": "native-o2-visible-once-h264-20261019",
+          "evidence": "docs/evidence/native-balanced-20261019/visible-once/review.json",
+          "runRange": {
+            "min": 30.59618854522705,
+            "max": 30.59618854522705,
+            "runs": 1,
+            "scope": "One authorized launch; no repeat-run distribution. Memory medians use all seven snapshots; CPU includes all six intervals over 29.9984629 seconds. Passive thread counters enabled. Saved VLC remains its historical session and original calibration."
+          }
+        },
+        {
+          "metric": "private-mib",
+          "protocol": "playback-balanced-saved-vlc-replay-30s-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "1080p30 H.264 + AAC stereo / 1280x720 canvas / Aperture balanced, VLC linear / D3D11",
+          "historySeries": "balanced-h264-canvas-observations",
+          "samples": 1,
+          "value": 145.6015625,
+          "session": "native-o2-visible-once-h264-20261019",
+          "evidence": "docs/evidence/native-balanced-20261019/visible-once/review.json",
+          "runRange": {
+            "min": 145.6015625,
+            "max": 145.6015625,
+            "runs": 1,
+            "scope": "One authorized launch; no repeat-run distribution. Memory medians use all seven snapshots; CPU includes all six intervals over 29.9984629 seconds. Passive thread counters enabled. Saved VLC remains its historical session and original calibration."
+          }
+        },
+        {
+          "metric": "working-set-mib",
+          "protocol": "playback-balanced-saved-vlc-replay-30s-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "1080p30 H.264 + AAC stereo / 1280x720 canvas / Aperture balanced, VLC linear / D3D11",
+          "historySeries": "balanced-h264-canvas-observations",
+          "samples": 1,
+          "value": 137.7734375,
+          "session": "native-o2-visible-once-h264-20261019",
+          "evidence": "docs/evidence/native-balanced-20261019/visible-once/review.json",
+          "runRange": {
+            "min": 137.7734375,
+            "max": 137.7734375,
+            "runs": 1,
+            "scope": "One authorized launch; no repeat-run distribution. Memory medians use all seven snapshots; CPU includes all six intervals over 29.9984629 seconds. Passive thread counters enabled. Saved VLC remains its historical session and original calibration."
+          }
+        },
+        {
+          "metric": "gpu-mib",
+          "protocol": "playback-balanced-saved-vlc-replay-30s-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "1080p30 H.264 + AAC stereo / 1280x720 canvas / Aperture balanced, VLC linear / D3D11",
+          "historySeries": "balanced-h264-canvas-observations",
+          "samples": 1,
+          "value": 94.5390625,
+          "session": "native-o2-visible-once-h264-20261019",
+          "evidence": "docs/evidence/native-balanced-20261019/visible-once/review.json",
+          "runRange": {
+            "min": 94.5390625,
+            "max": 94.5390625,
+            "runs": 1,
+            "scope": "One authorized launch; no repeat-run distribution. Memory medians use all seven snapshots; CPU includes all six intervals over 29.9984629 seconds. Passive thread counters enabled. Saved VLC remains its historical session and original calibration."
+          }
+        }
+      ],
+      "tests": [
+        {
+          "name": "Authorized Aperture playback with passive thread counters",
+          "status": "pass",
+          "passed": 1,
+          "total": 1,
+          "durationSeconds": 29.998462900000003,
+          "evidence": "docs/evidence/native-balanced-20261019/visible-once/validation.json",
+          "scope": "Exactly one visible launch; no warmup or VLC launch. Advancing media, 1280x720 canvas at 96 DPI, seven process and thread snapshots, original CPU calibrations and owned cleanup. Not decoder/presentation equivalence."
+        }
+      ],
+      "report": "native-o2-visible-once-20261019"
+    }
+  ],
+  "reports": [
+    {
+      "id": "native-o2-visible-once-20261019",
+      "title": "O2 H.264/AAC observation, passive thread counters and bundled-engine adoption",
+      "source": "docs/evidence/native-balanced-20261019/visible-once/review.json",
+      "text": "{\n  \"recordedUtc\": \"2026-10-19T08:41:23.663155+00:00\",\n  \"batchCompletedUtc\": \"2026-10-19T08:41:06.0666735Z\",\n  \"aperture\": {\n    \"values\": {\n      \"cpu-core\": 4.214609489250331,\n      \"visible-ms\": 103.3892,\n      \"runtime-mib\": 30.59618854522705,\n      \"private-mib\": 145.6015625,\n      \"working-set-mib\": 137.7734375,\n      \"gpu-mib\": 94.5390625\n    },\n    \"sampledCpuOneLogicalPercent\": 4.4793961759954035,\n    \"cpuTotalCapacityPercent\": 0.1756087287187638,\n    \"cycleDelta\": 4804409540,\n    \"sampledCpuSecondsDelta\": 1.34375,\n    \"actualElapsedSeconds\": 29.998462900000003,\n    \"privateMiBSnapshotRange\": [\n      145.17578125,\n      145.8828125\n    ],\n    \"sharedGpuMiB\": 14.078125,\n    \"snapshotCount\": 7,\n    \"mediaIntervalSeconds\": [\n      10.2333333333,\n      40.2\n    ],\n    \"intervals\": [\n      {\n        \"fromMediaSeconds\": 10.2333333333,\n        \"toMediaSeconds\": 15.2333333333,\n        \"elapsedSeconds\": 5.0100356999999995,\n        \"cpuOneLogicalPercent\": 4.41444476571466\n      },\n      {\n        \"fromMediaSeconds\": 15.2333333333,\n        \"toMediaSeconds\": 20.2333333333,\n        \"elapsedSeconds\": 5.002336800000002,\n        \"cpuOneLogicalPercent\": 4.302752262210532\n      },\n      {\n        \"fromMediaSeconds\": 20.2333333333,\n        \"toMediaSeconds\": 25.2333333333,\n        \"elapsedSeconds\": 4.989633099999999,\n        \"cpuOneLogicalPercent\": 4.162906511699895\n      },\n      {\n        \"fromMediaSeconds\": 25.2333333333,\n        \"toMediaSeconds\": 30.2333333333,\n        \"elapsedSeconds\": 5.010870499999999,\n        \"cpuOneLogicalPercent\": 4.135178933962642\n      },\n      {\n        \"fromMediaSeconds\": 30.2333333333,\n        \"toMediaSeconds\": 35.2333333333,\n        \"elapsedSeconds\": 4.999616300000003,\n        \"cpuOneLogicalPercent\": 4.153287948157572\n      },\n      {\n        \"fromMediaSeconds\": 35.2333333333,\n        \"toMediaSeconds\": 40.2,\n        \"elapsedSeconds\": 4.9859705000000005,\n        \"cpuOneLogicalPercent\": 4.118435150632376\n      }\n    ]\n  },\n  \"savedVlc\": {\n    \"rawEvidence\": \"docs/evidence/balanced-memory-20261018/app/comparison.json\",\n    \"originalBatchDate\": \"2026-10-18T18:57:51.4393218Z\",\n    \"values\": {\n      \"cpu-core\": 5.091447168676399,\n      \"visible-ms\": 1639.955,\n      \"runtime-mib\": 182.99101448059082,\n      \"private-mib\": 150.8515625,\n      \"working-set-mib\": 146.0859375,\n      \"gpu-mib\": 118.4609375\n    },\n    \"sampledCpuOneLogicalPercent\": 4.529518017998671,\n    \"cpuTotalCapacityPercent\": 0.2121436320281833,\n    \"cycleDelta\": 5806467640,\n    \"sampledCpuSecondsDelta\": 1.359375,\n    \"actualElapsedSeconds\": 30.011471299999997,\n    \"privateMiBSnapshotRange\": [\n      150.58203125,\n      151.05859375\n    ],\n    \"sharedGpuMiB\": 15.28515625,\n    \"snapshotCount\": 7,\n    \"mediaIntervalSeconds\": [\n      11.0,\n      41.0\n    ],\n    \"intervals\": [\n      {\n        \"fromMediaSeconds\": 11.0,\n        \"toMediaSeconds\": 16.0,\n        \"elapsedSeconds\": 4.999637499999999,\n        \"cpuOneLogicalPercent\": 5.176952703767877\n      },\n      {\n        \"fromMediaSeconds\": 16.0,\n        \"toMediaSeconds\": 21.0,\n        \"elapsedSeconds\": 5.008760500000001,\n        \"cpuOneLogicalPercent\": 5.062243789346408\n      },\n      {\n        \"fromMediaSeconds\": 21.0,\n        \"toMediaSeconds\": 26.0,\n        \"elapsedSeconds\": 4.997666599999999,\n        \"cpuOneLogicalPercent\": 5.132364534200405\n      },\n      {\n        \"fromMediaSeconds\": 26.0,\n        \"toMediaSeconds\": 31.0,\n        \"elapsedSeconds\": 5.0125391000000015,\n        \"cpuOneLogicalPercent\": 5.00969990809355\n      },\n      {\n        \"fromMediaSeconds\": 31.0,\n        \"toMediaSeconds\": 36.0,\n        \"elapsedSeconds\": 4.994461999999999,\n        \"cpuOneLogicalPercent\": 5.110455696363643\n      },\n      {\n        \"fromMediaSeconds\": 36.0,\n        \"toMediaSeconds\": 41.0,\n        \"elapsedSeconds\": 4.998405599999998,\n        \"cpuOneLogicalPercent\": 5.05725800101339\n      }\n    ]\n  },\n  \"versusSavedVlc\": {\n    \"privateMiBDifference\": -5.25,\n    \"privateRelativePercent\": -3.4802423740224797,\n    \"calibratedCpuRelativePercent\": -17.22177703857065,\n    \"calibratedCpuMachinePercentagePointDifference\": -0.0365349033094195,\n    \"dedicatedGpuMiBDifference\": -23.921875,\n    \"suppliedRuntimeMiBDifference\": -152.39482593536377,\n    \"sampledCpuTimeRelativePercent\": -1.106560163887238\n  },\n  \"previousO3Aperture\": {\n    \"rawEvidence\": \"docs/evidence/native-performance-20261019/visible-once/comparison.json\",\n    \"values\": {\n      \"cpu-core\": 6.556720000914256,\n      \"visible-ms\": 101.8359,\n      \"runtime-mib\": 36.37646198272705,\n      \"private-mib\": 147.69921875,\n      \"working-set-mib\": 138.13671875,\n      \"gpu-mib\": 98.265625\n    },\n    \"sampledCpuOneLogicalPercent\": 6.248422502426962,\n    \"cpuTotalCapacityPercent\": 0.27319666670476067,\n    \"cycleDelta\": 7476544080,\n    \"sampledCpuSecondsDelta\": 1.875,\n    \"actualElapsedSeconds\": 30.0075739,\n    \"privateMiBSnapshotRange\": [\n      147.48828125,\n      150.7421875\n    ],\n    \"sharedGpuMiB\": 14.078125,\n    \"snapshotCount\": 7,\n    \"mediaIntervalSeconds\": [\n      10.0666666667,\n      40.0666666667\n    ],\n    \"intervals\": [\n      {\n        \"fromMediaSeconds\": 10.0666666667,\n        \"toMediaSeconds\": 15.0666666667,\n        \"elapsedSeconds\": 5.002002000000001,\n        \"cpuOneLogicalPercent\": 17.84185119183245\n      },\n      {\n        \"fromMediaSeconds\": 15.0666666667,\n        \"toMediaSeconds\": 20.0666666667,\n        \"elapsedSeconds\": 5.006833099999998,\n        \"cpuOneLogicalPercent\": 4.2730265705141806\n      },\n      {\n        \"fromMediaSeconds\": 20.0666666667,\n        \"toMediaSeconds\": 25.0666666667,\n        \"elapsedSeconds\": 5.0023321,\n        \"cpuOneLogicalPercent\": 4.110037085780625\n      },\n      {\n        \"fromMediaSeconds\": 25.0666666667,\n        \"toMediaSeconds\": 30.0666666667,\n        \"elapsedSeconds\": 5.004062900000001,\n        \"cpuOneLogicalPercent\": 4.152627769386066\n      },\n      {\n        \"fromMediaSeconds\": 30.0666666667,\n        \"toMediaSeconds\": 35.0666666667,\n        \"elapsedSeconds\": 4.9820218999999994,\n        \"cpuOneLogicalPercent\": 4.615734765051733\n      },\n      {\n        \"fromMediaSeconds\": 35.0666666667,\n        \"toMediaSeconds\": 40.0666666667,\n        \"elapsedSeconds\": 5.010321900000001,\n        \"cpuOneLogicalPercent\": 4.346323749098806\n      }\n    ]\n  },\n  \"versusPreviousO3Aperture\": {\n    \"privateMiBDifference\": -2.09765625,\n    \"privateRelativePercent\": -1.4202216286265945,\n    \"calibratedCpuRelativePercent\": -35.72076451849927,\n    \"calibratedCpuMachinePercentagePointDifference\": -0.09758793798599688,\n    \"dedicatedGpuMiBDifference\": -3.7265625,\n    \"suppliedRuntimeMiBDifference\": -5.7802734375\n  },\n  \"threadDiagnosticsEvidence\": \"thread-review.json\",\n  \"status\": \"One H264/AAC observation beats the saved VLC baseline in calibrated cycles, private RAM and dedicated GPU allocation. Raw CPU-time is nearly tied. O2 engine adopted for future repository builds.\",\n  \"method\": \"Exactly one human-authorized visible Aperture launch, no discarded warmup and no VLC process. Fresh owned portable profile, SHA256-verified 180s 1080p30 H264/AAC stereo fixture, actual 1280x720 canvas at 96 DPI. Seven snapshots span the complete 29.9984629-second window after >=10s media time. Each baseline uses its own validated original calibration; CPU percent is one logical processor, divided by verified 24 for machine capacity. RAM and GPU allocations are snapshot medians; dedicated GPU memory is not GPU time. Passive thread counters are auxiliary; no intervals or observations were discarded.\",\n  \"cpuBurstReview\": {\n    \"finding\": \"The earlier O3 burst did not recur: all six new intervals are 4.11844\\u20134.41444% of one logical processor. The full mean is 4.21460949%.\",\n    \"cause\": \"The old burst remains unexplained: its original run did not collect thread counters. A different profile/session without a burst cannot identify its cause or establish an O3 regression.\",\n    \"threadFinding\": \"76 identities survive both endpoints; their cycle deltas equal 99.908% of the process delta with non-atomic timestamps. Largest observed threads: core, unnamed thread27472, vo. Window-owner UI thread is 0.18738 logical-processor percentage points of process-window CPU. Names are not stack attribution. Three identities disappear during the fourth interval; no counter-query errors.\",\n    \"observerCost\": \"Seven capture bounds are 3.6442\\u20134.6493 ms. Observer runs in the host; process CPU totals remain primary. Instrumentation differs from the older VLC session.\"\n  },\n  \"decision\": {\n    \"recordedUtc\": \"2026-10-19T08:44:28.780118+00:00\",\n    \"bundledNativeSha256\": \"e91032cbce1da22aec5903468e814d4df2494e74fe508a371eaf3446c7408dae\",\n    \"bundledNativeBytes\": 27401728,\n    \"previousBundledNativeSha256\": \"8dd14629f574a04a1d6904104be8748e73954d9ac5aef07cc36f1a34ee752daa\",\n    \"previousBundledNativeBackup\": \"C:\\\\Users\\\\Alperen\\\\AppData\\\\Local\\\\Codex\\\\tools\\\\scratch\\\\aperture-vlc-performance-20261017\\\\native-balanced-20261019\\\\bundled-size-before-o2.dll\",\n    \"optimizationProfile\": \"balanced\",\n    \"actualArtifactBuildRecipeId\": \"fee03c780932f461a8680d4c063767b8716d116ae0f70a20dd9d8a291d904eef\",\n    \"actualArtifactBuildRecipeCommit\": \"a760b1b\",\n    \"newDefaultProfile\": \"balanced\",\n    \"note\": \"Validated O2 binary adopted in the repository for future builds. No new compilation claimed from the later default-profile edits. Desktop installation not touched, no app restarted, no release or upload. Existing features, CPU target, floating-point semantics and picture settings unchanged.\",\n    \"reason\": \"One explicitly authorized visible H264/AAC observation beat saved VLC in calibrated cycles and private RAM; raw CPU-time nearly tied. Earlier hidden native correctness and image checks passed. O2 is 2.709 MiB larger than size but 5.780 MiB smaller than O3. This is a practical bundle choice, not causal proof or a universal player ranking.\"\n  },\n  \"limits\": [\n    \"One run per retained player session; six time intervals and seven RAM snapshots are not independent repeat runs. No stable cross-workload player ranking follows.\",\n    \"Calibrated cycles report 17.22% less CPU, but raw CPU-time accounting is 4.47940 versus 4.52952% of one logical processor, only 1.11% lower. Both retained; different counters and historical sessions limit confidence in the size of the CPU gain.\",\n    \"Saved VLC 3.0.23 from 2026-10-18T18:57:51.4393218Z reused unchanged; no new VLC measurement or baseline timestamp.\",\n    \"Aperture balanced filters differ from VLC linear; neither this visible run nor matching options prove identical decoder/pixels/presented-frame cadence or physical audio output.\",\n    \"Visible-window timing measures the bootstrap shell, not first visible video. Supplied runtime sizes differ in feature inventory; memory categories overlap and are not summed.\",\n    \"Earlier 80/80 native functional checks, 13 exact SDR frame cases and HDR fallback checks apply to this exact DLL hash, but retain their earlier dates and hidden-correctness scope.\",\n    \"The reused App EXE includes existing user changes; recording commit does not claim a clean rebuild. Only bundled native DLL/default build profile adopted. No install, restart, release or upload.\"\n  ]\n}\n"
+    }
+  ]
+}

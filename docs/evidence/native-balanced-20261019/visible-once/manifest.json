@@ -1,0 +1,115 @@
+{
+  "recordedUtc": "2026-10-19T08:47:26.581793+00:00",
+  "files": [
+    {
+      "path": ".gitattributes",
+      "bytes": 29,
+      "sha256": "730a35ae3d558080083c3103d9ac8100c3f6561678092abe341701dfa331eb1d"
+    },
+    {
+      "path": "adoption.json",
+      "bytes": 1361,
+      "sha256": "2d853158bb809cbb67d7eddf0bed364af06e6a81c67a1843b13f1d5421b825c1"
+    },
+    {
+      "path": "audit.py",
+      "bytes": 8303,
+      "sha256": "201dab714cd88019ad362799496e9df8750ca80961b16e334b64591586fe81c2"
+    },
+    {
+      "path": "chart-checks.log",
+      "bytes": 1102,
+      "sha256": "662083389f4983458dbd58dc7ce9b223d7e52dbf6ce5e8a9f833d78e5dd87c90"
+    },
+    {
+      "path": "checkpoint-bundle.json",
+      "bytes": 20016,
+      "sha256": "61e5459c77ea79bfc0a343ffe47be03dba7a0082a56fcd44941af4f18caba3f6"
+    },
+    {
+      "path": "checkpoint-schema.log",
+      "bytes": 63,
+      "sha256": "b6eb08d71078edba04199ef647bc1505e5533e20656c82a9e21a78ab6be31322"
+    },
+    {
+      "path": "checkpoint-tests.log",
+      "bytes": 122,
+      "sha256": "b48a0926bbb3ec256590ab48e0fc67380caeddf417bfcc993891888df757ee28"
+    },
+    {
+      "path": "comparison.json",
+      "bytes": 235943,
+      "sha256": "15f85dbbae6683ef7d3b44d5612437543a3325a25a1522fcfb09bde18d5f39b7"
+    },
+    {
+      "path": "cpu-calibration.json",
+      "bytes": 812,
+      "sha256": "992c6ce7de4ce675d60ccc0376cd2b86f27652d86851c270cd1561d42cba173e"
+    },
+    {
+      "path": "dependencies.json",
+      "bytes": 10998,
+      "sha256": "29e911d6a6a75acf239dd89b46810b2d87d4ece5b7de5b085659727284456ff0"
+    },
+    {
+      "path": "driver.log",
+      "bytes": 294,
+      "sha256": "821fa5798f2eb48c56be348a2aa50fdaf085dac792a06449fb50bbc5a70262e1"
+    },
+    {
+      "path": "independent-audit.json",
+      "bytes": 142,
+      "sha256": "f438ae211985fceea2cbd3b986aa86e1de52e2ae87b9477b5dcab4323761458c"
+    },
+    {
+      "path": "launch-attempt.json",
+      "bytes": 195,
+      "sha256": "aaefd344e2ab1fde1284f609d50672390eb63357e1e187cf6ea870caaeccdd42"
+    },
+    {
+      "path": "package-manifest.json",
+      "bytes": 2200,
+      "sha256": "a09add0b5f79e9a3f2b9b44a0fb1a7d3fdfedb2d80f1b6819fa5aefc7e7374a2"
+    },
+    {
+      "path": "preflight.json",
+      "bytes": 2272,
+      "sha256": "25ac4c773adee9894b9ef5c78cf24bc56cb2908bfa8e0877f73f363a28713163"
+    },
+    {
+      "path": "profile-checks.log",
+      "bytes": 108,
+      "sha256": "0e08149f1c35c341ad94c6d5187965d8d41d0676c8a7d22a2a18132d0cdeb0dc"
+    },
+    {
+      "path": "review.json",
+      "bytes": 11417,
+      "sha256": "8edc44985ef195e2a8fc080da1cbfb1fb2121f9e1afdc1ba58988433afcf21b2"
+    },
+    {
+      "path": "run-result.json",
+      "bytes": 208185,
+      "sha256": "3a9c69b48792bcd6f615645e2ed5c6a855ff93da4d2a271c513892e5cca5410e"
+    },
+    {
+      "path": "source-identity.json",
+      "bytes": 2147,
+      "sha256": "383888a7cd05f303187d1139fd3194a6bbed6512280943cff71befb5c5de1b4b"
+    },
+    {
+      "path": "thread-review.json",
+      "bytes": 227911,
+      "sha256": "fb787ae44c8a42234639979f4ac2d5205e5023d1b55e988665bb03a1af9ba7f5"
+    },
+    {
+      "path": "validation.json",
+      "bytes": 1753,
+      "sha256": "4c43b86bd495d32e86cb0bb4a5d7ce95477dde0919bdaf80f398a58f26ce37d3"
+    },
+    {
+      "path": "wrapper-checks.json",
+      "bytes": 103,
+      "sha256": "74e3776106395e946ca0036f88047b50369a6312ffe5e64af51da583ba1fb574"
+    }
+  ]
+}

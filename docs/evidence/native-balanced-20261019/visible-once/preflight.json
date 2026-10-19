@@ -1,0 +1,22 @@
+{
+  "recordedUtc": "2026-10-19T08:40:20.597937+00:00",
+  "humanAuthorization": "Run one Aperture test; exactly one visible launch with passive thread counters, zero discarded warmups and no VLC launch.",
+  "recordingCommit": "0847e37cd047c0e6237af9aab854bceecec52915",
+  "dirty": true,
+  "verifiedFiles": {
+    "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\tests\\benchmark\\compare_players.ps1": "0663ffa157a220452921120e9ebea705875f3c2f5c1a2de9833e07934412929c",
+    "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\tests\\benchmark\\PlayerThreadCounters.cs": "eafd9a01e2d0251180f0bb115bbcdc32fd1621b92e822ea727312767d2babece",
+    "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\native-balanced-20261019\\trial-input\\Aperture.exe": "3f63a5577e6c56b17441c88c28d8cbed2734a71738be165a44443243a04ae8b0",
+    "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\native-balanced-20261019\\trial-input\\libmpv-2.dll": "e91032cbce1da22aec5903468e814d4df2494e74fe508a371eaf3446c7408dae",
+    "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\h264-1080p30-audio.mp4": "86c249a196158ca2479bb9dd6e0045f24cbcbd2e04a80a41e37c2f6b78f70e68",
+    "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\docs\\evidence\\balanced-memory-20261018\\app\\comparison.json": "79fc292142a6374fe6f76d436f9b33b9f092da4162b708d2c8b67d6366a40aa2",
+    "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\libmpv-2.dll": "8dd14629f574a04a1d6904104be8748e73954d9ac5aef07cc36f1a34ee752daa",
+    "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\calibrate_cpu_cycles.exe": "1ef42419188a13b80e81f769bdac0bf1dd3149c5c1fd58961b726c711b868ac5"
+  },
+  "packageManifestVerifiedFiles": 10,
+  "appSourceSnapshot": "docs/evidence/direct-nv12-20261018/source-identity.json",
+  "appSourceFileCount": 143,
+  "appSourceMismatches": [],
+  "savedVlcOriginalBatchDate": "2026-10-18T18:57:51.4393218Z",
+  "note": "Existing installed Aperture detected by the first guard before any launch; nothing was closed. This preflight is created only after the player/build/test guard clears."
+}

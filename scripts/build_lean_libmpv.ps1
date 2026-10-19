@@ -11,7 +11,7 @@ param(
     [string]$MsysRoot = 'C:\msys64',
     [string]$BuildRoot = '',
     [string]$OutputDir = '',
-    [ValidateSet('size','balanced','performance')][string]$OptimizationProfile = 'size',
+    [ValidateSet('size','balanced','performance')][string]$OptimizationProfile = 'balanced',
     [ValidateRange(0, 256)][int]$Jobs = 0,
     [switch]$Clean
 )

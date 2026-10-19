@@ -1,0 +1,29 @@
+{
+  "recordedUtc": "2026-10-19T08:45:51.207314+00:00",
+  "recordingCommit": "0847e37cd047c0e6237af9aab854bceecec52915",
+  "dirty": true,
+  "nativeArtifactBuildRecipeCommit": "a760b1b",
+  "nativeArtifactRecipeId": "fee03c780932f461a8680d4c063767b8716d116ae0f70a20dd9d8a291d904eef",
+  "reusedAppBuildSourceRecord": "docs/evidence/direct-nv12-20261018/source-identity.json",
+  "nativeBuildSourceRecord": "docs/evidence/native-balanced-20261019/source-identity.json",
+  "appSha256": "3f63a5577e6c56b17441c88c28d8cbed2734a71738be165a44443243a04ae8b0",
+  "nativeSha256": "e91032cbce1da22aec5903468e814d4df2494e74fe508a371eaf3446c7408dae",
+  "nativeBytes": 27401728,
+  "optimizationProfile": "balanced",
+  "allRecordedAppSourcesStillMatch": true,
+  "recordedAppSourceFileCount": 143,
+  "fixtureSha256": "86c249a196158ca2479bb9dd6e0045f24cbcbd2e04a80a41e37c2f6b78f70e68",
+  "runnerSha256": "0663ffa157a220452921120e9ebea705875f3c2f5c1a2de9833e07934412929c",
+  "threadCounterSourceSha256": "eafd9a01e2d0251180f0bb115bbcdc32fd1621b92e822ea727312767d2babece",
+  "calibratorSourceSha256": "4c5c1e508f7094a844d9e0c6b5632e8d9c0531aa093b3a90793d756f8ee51d9f",
+  "calibratorExeSha256": "1ef42419188a13b80e81f769bdac0bf1dd3149c5c1fd58961b726c711b868ac5",
+  "statusProbeSha256": "dd2d16e17b783f19de74d91755d1644c4278d3ebfcaa24c84b3a99760f0773b7",
+  "savedVlcComparisonSha256": "79fc292142a6374fe6f76d436f9b33b9f092da4162b708d2c8b67d6366a40aa2",
+  "adoptedSourceHashes": {
+    "scripts/build_lean_libmpv.ps1": "dcc5bc657a546c7dcd49476924a4b5a0a5ede6183a58910b7080ade0c42b1558",
+    "scripts/libmpv/build_profile.sh": "36322adcc93c32b6129443c747ee1d1d984f7f41437bb039c54676f5d2a6e27b",
+    "tests/benchmark/build_native_decode_probe.ps1": "d25fa0c3290a2eb69cade493daeeefe943a27c2e5bbe38dda97f210442bc661c",
+    "scripts/dependencies.json": "6c985b51d115caba9cdc114f09f1edc0d1379d96ceec0a584354fa6bbc024613"
+  },
+  "note": "Measured binary built from the earlier explicitly balanced recipe, not rebuilt from the later default-profile selection edits. Old size engine retained in Git and external backup. Desktop installation untouched."
+}

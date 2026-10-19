@@ -1,0 +1,13 @@
+{
+  "recordedUtc": "2026-10-19T08:44:28.780118+00:00",
+  "bundledNativeSha256": "e91032cbce1da22aec5903468e814d4df2494e74fe508a371eaf3446c7408dae",
+  "bundledNativeBytes": 27401728,
+  "previousBundledNativeSha256": "8dd14629f574a04a1d6904104be8748e73954d9ac5aef07cc36f1a34ee752daa",
+  "previousBundledNativeBackup": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\native-balanced-20261019\\bundled-size-before-o2.dll",
+  "optimizationProfile": "balanced",
+  "actualArtifactBuildRecipeId": "fee03c780932f461a8680d4c063767b8716d116ae0f70a20dd9d8a291d904eef",
+  "actualArtifactBuildRecipeCommit": "a760b1b",
+  "newDefaultProfile": "balanced",
+  "note": "Validated O2 binary adopted in the repository for future builds. No new compilation claimed from the later default-profile edits. Desktop installation not touched, no app restarted, no release or upload. Existing features, CPU target, floating-point semantics and picture settings unchanged.",
+  "reason": "One explicitly authorized visible H264/AAC observation beat saved VLC in calibrated cycles and private RAM; raw CPU-time nearly tied. Earlier hidden native correctness and image checks passed. O2 is 2.709 MiB larger than size but 5.780 MiB smaller than O3. This is a practical bundle choice, not causal proof or a universal player ranking."
+}

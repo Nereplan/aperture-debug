@@ -23,13 +23,15 @@ class NativeBuildProfiles(unittest.TestCase):
         return subprocess.run([BASH, "--noprofile", "--norc", "-c", script],
                               env=env, text=True, capture_output=True, timeout=10)
 
-    def test_default_preserves_size_profile(self):
+    def test_default_selects_bundled_balanced_profile(self):
         result = self.select()
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(result.stdout.splitlines(), ["size", "--enable-small", "-Os", "s"])
+        self.assertEqual(result.stdout.splitlines(), ["balanced", "--disable-small", "-O2", "2"])
 
-    def test_explicit_size_matches_default(self):
-        self.assertEqual(self.select("size").stdout, self.select().stdout)
+    def test_explicit_size_remains_available(self):
+        result = self.select("size")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout.splitlines(), ["size", "--enable-small", "-Os", "s"])
 
     def test_performance_changes_optimization_without_fast_math(self):
         result = self.select("performance")

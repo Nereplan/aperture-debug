@@ -324,7 +324,8 @@ picture parity for intermediate HDR stages or a playback performance win.
 
 Native compiler-profile comparisons use `scripts/build_lean_libmpv.ps1
 -OptimizationProfile size`, `balanced` or `performance`, with separate `-BuildRoot` paths.
-Size remains the default; the other compiler profiles are experimental.
+Balanced is the bundled/default compiler profile. Size remains available for
+smaller binaries, while performance is an experimental O3 alternative.
 The default build/cache directory is under `%LOCALAPPDATA%/Codex/tools/scratch`;
 existing repository scratch builds remain supported. Profile selection is part
 of the recipe/cache identity and output provenance. Balanced uses `-O2` and
@@ -332,6 +333,12 @@ performance uses `-O3`; both enable FFmpeg's faster `--disable-small` paths.
 All three keep the decoder features, CPU target and normal floating-point
 semantics. These compiler profiles are independent of picture-scaling profiles.
 They do not replace the bundled DLL automatically.
+
+The 19 October O2 playback observation and passive thread counters are retained
+in `docs/evidence/native-balanced-20261019/visible-once/`. It beat the saved VLC
+baseline in calibrated CPU and private RAM for the recorded H.264/AAC fixture;
+raw CPU-time accounting was nearly tied. This single observation neither proves
+a general player ranking nor explains the previous O3 run's CPU burst.
 
 For CPU-only decoder comparisons, build one probe per completed native prefix
 with `build_native_decode_probe.ps1 -PrefixPath <build>/prefix -OutputPath

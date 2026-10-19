@@ -1,0 +1,17 @@
+PASS Validation records leave the latest actual measurement selected
+PASS Aperture playback is a dated history, not just the latest pair
+PASS empty-profile startup spans seven actual recordings
+PASS startup and playback endpoints are not merged
+PASS an old Aperture checkpoint uses the latest recorded VLC reference
+PASS recorded one-processor CPU agrees with roughly one percent total capacity
+PASS new playback protocols get their own map history and CPU summary source
+PASS an older VLC version cannot displace the newest version
+PASS compatible replays connect saved history and retain the original VLC date
+PASS ambiguous inferred history groups leave observations separate
+PASS 1, 5, 10 and 200 retain detail without reserving the empty gap
+PASS only two widely separated readings still produce a cut
+PASS VLC cannot compress Aperture on either resource axis
+PASS two Aperture readings and one distant VLC point keep local detail
+PASS linear axes do not imply breaks and log axes reject zero
+PASS every recorded metric maps to a finite monotonic position
+16 chart checks passed.
