@@ -242,6 +242,15 @@ void App::RefreshHubHitTargets(float mouseX, float mouseY) {
 }
 
 
+bool App::IsPlaybackDiagnosticsCloseHit(float x, float y) const {
+    if (!showPlaybackDiagnostics || !playbackSession.IsOpen() || isContextMenuOpen || activeModal != ModalType::None) return false;
+    RECT bounds{};
+    if (!GetClientRect(hWnd, &bounds)) return false;
+    const auto layout = Presentation::PlaybackDiagnostics(D2D1::RectF(0, 0, static_cast<float>(bounds.right),
+        static_cast<float>(bounds.bottom)), overlayRenderer.GetDpiScale());
+    return layout.visible && PtInRectF(layout.close, x, y);
+}
+
 void App::RefreshOverlayHitTargets(float mouseX, float mouseY) {
     if (!hWnd || !playbackSession.IsOpen()) return;
     float dp = std::max(0.5f, overlayRenderer.GetDpiScale());

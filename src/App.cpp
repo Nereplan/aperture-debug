@@ -2273,6 +2273,7 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
         }
         case WM_SETCURSOR: {
             if (playbackSession.IsOpen() && controlsOpacity <= 0.02f && !isSettingsFlyoutOpen && !isContextMenuOpen && !isScrubbing && !isVolumeScrubbing) {
+                if (IsPlaybackDiagnosticsCloseHit(lastPlayerMouseX, lastPlayerMouseY)) { SetCursor(LoadCursor(NULL, IDC_HAND)); return TRUE; }
                 SetCursor(NULL);
                 return TRUE;
             }
@@ -2829,6 +2830,7 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
             // modal/menu dispatch; cached hover is only a visual aid.
             if (playbackSession.IsOpen()) RefreshOverlayHitTargets(x, y);
             else RefreshHubHitTargets(x, y);
+            if (IsPlaybackDiagnosticsCloseHit(x, y)) { TogglePlaybackDiagnostics(); return 0; }
             if (!playbackSession.IsOpen() && globalSearchModel.IsOpen()) {
                 const float searchW = std::min(440.0f * dp, winW - 36.0f * dp);
                 const float searchH = std::min(390.0f * dp, winH - 106.0f * dp);
@@ -4395,6 +4397,7 @@ LRESULT App::HandleOverlayMessage(HWND hOverlay, UINT uMsg, WPARAM wParam, LPARA
             return 0;
         }
         case WM_SETCURSOR: {
+            if (IsPlaybackDiagnosticsCloseHit(lastPlayerMouseX, lastPlayerMouseY)) { SetCursor(LoadCursor(NULL, IDC_HAND)); return TRUE; }
             if (playbackSession.IsOpen() && controlsOpacity <= 0.02f && !isSettingsFlyoutOpen && !isContextMenuOpen && !isScrubbing && !isVolumeScrubbing && !isJumpAheadVisible) {
                 SetCursor(NULL);
                 return TRUE;
@@ -4521,6 +4524,7 @@ LRESULT App::HandleOverlayMessage(HWND hOverlay, UINT uMsg, WPARAM wParam, LPARA
         case WM_LBUTTONDOWN: {
             isKeyboardNavActive = false;
             RefreshOverlayHitTargets(x, y);
+            if (IsPlaybackDiagnosticsCloseHit(x, y)) { TogglePlaybackDiagnostics(); Render(); return 0; }
             controlsIdleTimer = 0.0f;
             lastPlayerMouseX = x;
             lastPlayerMouseY = y;

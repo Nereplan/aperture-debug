@@ -35,6 +35,16 @@ inline ButtonColors Button(const ThemePalette& theme, bool primary, bool danger,
             pressed ? theme.focusRing : theme.border, theme.text};
 }
 
+struct PlaybackDiagnosticsLayout { D2D1_RECT_F card{}, close{}; bool visible = false; };
+inline PlaybackDiagnosticsLayout PlaybackDiagnostics(const D2D1_RECT_F& bounds, float dp) {
+    const float width = std::min(420.0f * dp, RectWidth(bounds) - 32.0f * dp);
+    const float height = std::min(450.0f * dp, RectHeight(bounds) - 80.0f * dp);
+    if (width < 200.0f || height < 150.0f) return {};
+    const auto card = D2D1::RectF(bounds.left + 20.0f * dp, bounds.top + 70.0f * dp,
+        bounds.left + 20.0f * dp + width, bounds.top + 70.0f * dp + height);
+    return {card, D2D1::RectF(card.right - 38.0f * dp, card.top, card.right - 2.0f * dp, card.top + 36.0f * dp), true};
+}
+
 struct PlayerLayout {
     D2D1_RECT_F back, prev, play, next, mute, volume, subtitles, settings, pip, fullscreen;
     bool showVolume, showSubtitles, showPip;

@@ -107,6 +107,37 @@ struct PlaybackUiTestAccess {
         NoVisibleWindows();
         Pass("hidden owner, overlay and muted native player");
     }
+    static void DiagnosticsClose(App& a) {
+        Key(a, 'I'); Require(a.showPlaybackDiagnostics, "Diagnostics keyboard toggle did not open panel");
+        const float dp = a.overlayRenderer.GetDpiScale();
+        const auto layout = Presentation::PlaybackDiagnostics(D2D1::RectF(0, 0, 1024, 640), dp);
+        Require(layout.visible && std::abs(RectWidth(layout.close) - 36 * dp) < 0.01f &&
+            std::abs(RectHeight(layout.close) - 36 * dp) < 0.01f, "Diagnostics close target is not touch sized");
+        const int x = static_cast<int>(layout.close.left + 2 * dp), y = static_cast<int>(layout.close.top + 2 * dp);
+        Require(a.IsPlaybackDiagnosticsCloseHit(static_cast<float>(x), static_cast<float>(y)), "Close padding is not tappable");
+        a.activeModal = ModalType::Confirmation;
+        Require(!a.IsPlaybackDiagnosticsCloseHit(static_cast<float>(x), static_cast<float>(y)), "Diagnostics close stole modal input");
+        a.activeModal = ModalType::None;
+        a.isContextMenuOpen = true;
+        Require(!a.IsPlaybackDiagnosticsCloseHit(static_cast<float>(x), static_cast<float>(y)), "Diagnostics close stole context menu input");
+        a.isContextMenuOpen = false;
+        Capture(a, L"diagnostics-close");
+        const bool playing = a.player.IsPlaying();
+        a.HandleOverlayMessage(a.hOverlayWnd, WM_LBUTTONDOWN, MK_LBUTTON, Point(x, y));
+        a.HandleOverlayMessage(a.hOverlayWnd, WM_LBUTTONUP, 0, Point(x, y));
+        Pump(60);
+        Require(!a.showPlaybackDiagnostics && a.player.IsPlaying() == playing, "Diagnostics close fell through to playback");
+        Key(a, 'I'); a.HandleMessage(a.hWnd, WM_LBUTTONDOWN, MK_LBUTTON, Point(x, y));
+        a.HandleMessage(a.hWnd, WM_LBUTTONUP, 0, Point(x, y));
+        Pump(60);
+        Require(!a.showPlaybackDiagnostics && a.player.IsPlaying() == playing, "Host close fell through to playback");
+        for (float scale : {0.75f, 1.0f, 1.5f, 2.0f}) {
+            const auto scaled = Presentation::PlaybackDiagnostics(D2D1::RectF(0, 0, 1024 * scale, 640 * scale), scale);
+            Require(scaled.visible && std::abs(RectWidth(scaled.close) - 36 * scale) < 0.01f, "Diagnostics close DPI layout mismatch");
+        }
+        Require(!Presentation::PlaybackDiagnostics(D2D1::RectF(0, 0, 180, 120), 1).visible, "Invisible panel retained a close target");
+        Pass("diagnostics close accepts padded taps without changing playback and respects higher surfaces/DPI");
+    }
     static void Controls(App& a) {
         a.playerKeyboardFocusId = 9006; a.isKeyboardNavActive = true;
         Key(a, VK_RETURN); Require(a.isSettingsFlyoutOpen, "Enter did not open focused settings");
@@ -351,7 +382,7 @@ struct PlaybackUiTestAccess {
         Pass("Undo history bounds entry count and retained payload");
     }
     static void Run(App& a, const std::wstring& media) {
-        Setup(a, media); Controls(a); Subtitles(a); Bookmark(a); RepeatAndMenu(a); RenameUndo(a); MoveUndo(a); MediaAndFolderUndo(a); EditHistory(a); NoVisibleWindows();
+        Setup(a, media); DiagnosticsClose(a); Controls(a); Subtitles(a); Bookmark(a); RepeatAndMenu(a); RenameUndo(a); MoveUndo(a); MediaAndFolderUndo(a); EditHistory(a); NoVisibleWindows();
     }
     static void Release(App& a) {
         if (a.hWnd) SetWindowLongPtrW(a.hWnd, GWLP_USERDATA, 0);

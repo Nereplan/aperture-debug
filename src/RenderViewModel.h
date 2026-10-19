@@ -216,6 +216,7 @@ struct OsdBadgeViewModel {
 
 struct DiagnosticsOverlayViewModel {
     bool visible = false;
+    bool closeHovered = false;
     D2D1_RECT_F bounds = { 0, 0, 0, 0 };
     PlayerDiagnostics diagnostics;
     int audioDelayMs = 0, subDelayMs = 0;

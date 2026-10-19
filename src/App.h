@@ -794,6 +794,7 @@ private:
     void ProcessPendingAnnouncements();
     void RefreshHubHitTargets(float mouseX, float mouseY);
     void RefreshOverlayHitTargets(float mouseX, float mouseY);
+    bool IsPlaybackDiagnosticsCloseHit(float x, float y) const;
     void ClampScrollOffsets();
     void PersistWindowPlacement();
     void PersistPiPGeometry();

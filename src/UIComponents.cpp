@@ -1936,11 +1936,9 @@ void UIComponents::DrawPlaybackDiagnostics(OverlayRenderer& r, const Settings& s
     if (!vm.visible) return;
     float dp = r.GetDpiScale();
     const auto& th = s.currentTheme;
-    float cardW = std::min(420.0f * dp, RectWidth(vm.bounds) - 32.0f * dp);
-    float cardH = std::min(450.0f * dp, RectHeight(vm.bounds) - 80.0f * dp);
-    if (cardW < 200.0f || cardH < 150.0f) return;
-    float cardLeft = vm.bounds.left + 20.0f * dp, cardTop = vm.bounds.top + 70.0f * dp;
-    D2D1_RECT_F cardRect = D2D1::RectF(cardLeft, cardTop, cardLeft + cardW, cardTop + cardH);
+    const auto layout = Presentation::PlaybackDiagnostics(vm.bounds, dp);
+    if (!layout.visible) return;
+    const auto& cardRect = layout.card;
     SurfaceStyle style;
     style.radius = 8.0f * dp;
     style.fill = ColorWithAlpha(th.surfaceFloating, 0.92f);
@@ -1956,10 +1954,16 @@ void UIComponents::DrawPlaybackDiagnostics(OverlayRenderer& r, const Settings& s
     float iconSz = 14.0f * dp;
     D2D1_RECT_F iconRect = D2D1::RectF(headerRect.left, headerRect.top + (headerH - iconSz) * 0.5f, headerRect.left + iconSz, headerRect.top + (headerH + iconSz) * 0.5f);
     r.DrawIcon(IconType::SettingsGear, iconRect, th.accent, 1.4f * dp);
-    D2D1_RECT_F titleRect = D2D1::RectF(iconRect.right + 6.0f * dp, headerRect.top, headerRect.right - 70.0f * dp, headerRect.bottom);
+    const bool showShortcut = RectWidth(cardRect) >= 340.0f * dp;
+    const float titleRight = layout.close.left - (showShortcut ? 75.0f : 6.0f) * dp;
+    D2D1_RECT_F titleRect = D2D1::RectF(iconRect.right + 6.0f * dp, headerRect.top, titleRight, headerRect.bottom);
     r.DrawString(L"PLAYBACK DIAGNOSTICS", titleRect, th.accent, FontType::Caption, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-    D2D1_RECT_F badgeRect = D2D1::RectF(headerRect.right - 65.0f * dp, headerRect.top, headerRect.right, headerRect.bottom);
-    r.DrawString(L"[I] Toggle", badgeRect, th.textMuted, FontType::MonoSmall, DWRITE_TEXT_ALIGNMENT_TRAILING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+    if (showShortcut) {
+        D2D1_RECT_F badgeRect = D2D1::RectF(layout.close.left - 69.0f * dp, headerRect.top, layout.close.left - 4.0f * dp, headerRect.bottom);
+        r.DrawString(L"[I] Toggle", badgeRect, th.textMuted, FontType::MonoSmall, DWRITE_TEXT_ALIGNMENT_TRAILING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+    }
+    if (vm.closeHovered) r.FillRoundedRect(layout.close, 5.0f * dp, ColorWithAlpha(th.text, 0.08f));
+    r.DrawIcon(IconType::CloseX, InsetRectF(layout.close, 11.0f * dp, 11.0f * dp), vm.closeHovered ? th.text : th.textMuted, 1.4f * dp);
     r.DrawLine(cardRect.left + 10.0f * dp, cardRect.top + 34.0f * dp, cardRect.right - 10.0f * dp, cardRect.top + 34.0f * dp, ColorWithAlpha(th.borderSubtle, 0.7f), 1.0f);
     float curY = cardRect.top + 38.0f * dp;
     const float rowH = 17.5f * dp, labelW = 100.0f * dp;

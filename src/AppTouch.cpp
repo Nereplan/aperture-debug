@@ -198,6 +198,11 @@ bool App::HandlePlayerTouchPointer(HWND hTarget, UINT uMsg, WPARAM wParam, LPARA
                 DeliverTouchMouse(hTarget, WM_LBUTTONDOWN, MK_LBUTTON, ev.xPx, ev.yPx);
                 return true;
             }
+            if (IsPlaybackDiagnosticsCloseHit(ev.xPx, ev.yPx)) {
+                playerTouch.onVideo = false;
+                DeliverTouchMouse(hTarget, WM_LBUTTONDOWN, MK_LBUTTON, ev.xPx, ev.yPx);
+                return true;
+            }
             if (isSettingsFlyoutOpen) {
                 const float flyoutW = 280.0f * dp;
                 const float flyoutH = GetFlyoutHeight();

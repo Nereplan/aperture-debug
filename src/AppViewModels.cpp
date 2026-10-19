@@ -255,6 +255,7 @@ PlayerRenderViewModel App::BuildPlayerRenderViewModel() const {
     // 7b. Diagnostics
     if (showPlaybackDiagnostics) {
         vm.diagnosticsOverlay.visible = true;
+        vm.diagnosticsOverlay.closeHovered = IsPlaybackDiagnosticsCloseHit(lastPlayerMouseX, lastPlayerMouseY);
         vm.diagnosticsOverlay.bounds = vm.winBounds;
         vm.diagnosticsOverlay.diagnostics = player.GetDiagnostics();
         vm.diagnosticsOverlay.audioDelayMs = settings.audioDelayMs;
