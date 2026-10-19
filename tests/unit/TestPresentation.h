@@ -3,6 +3,25 @@
 #include "../../src/Presentation.h"
 
 namespace Aperture::Test {
+TEST_CASE(Presentation, NavigationFitsAndMirrorsAtMinimumHubWidth) {
+    for (float dp : {1.0f, 1.25f, 1.5f, 2.0f}) {
+        for (float glyphWidth : {8.0f, 20.0f}) {
+            const float width = 640.0f * dp;
+            const auto measure = [=](const std::wstring& text) { return text.size() * glyphWidth * dp; };
+            const auto ltr = Presentation::Nav(width, dp, false, measure);
+            const auto rtl = Presentation::Nav(width, dp, true, measure);
+            TEST_ASSERT(ltr.track.right < ltr.settings.left);
+            TEST_ASSERT(ltr.settings.right < ltr.open.left);
+            for (int i = 0; i < 3; ++i) {
+                TEST_ASSERT(ltr.tabs[i].left < ltr.tabs[i].right);
+                TEST_ASSERT(std::abs(rtl.tabs[i].left - (width - ltr.tabs[i].right)) < 0.001f);
+                TEST_ASSERT(std::abs(rtl.tabs[i].right - (width - ltr.tabs[i].left)) < 0.001f);
+                if (i) TEST_ASSERT(ltr.tabs[i - 1].right < ltr.tabs[i].left);
+            }
+        }
+    }
+}
+
 TEST_CASE(Presentation, ResponsiveControlsDoNotOverlapAtSupportedWidths) {
     for (float dp : {1.0f, 1.25f, 1.5f, 2.0f}) {
         for (float width : {400.0f, 519.0f, 520.0f, 640.0f, 719.0f, 720.0f, 1024.0f}) {

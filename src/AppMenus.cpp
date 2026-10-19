@@ -473,14 +473,8 @@ void App::OpenMediaSortContextMenu(float x, float y) {
             [this]() { SetLibrarySort(librarySortField, SortDirection::Descending); } });
         contextMenuItems.back().showCheckedIndicator = true;
     }
-    contextMenuOrigin = D2D1::Point2F(x, y);
-    hoveredContextMenuItem = -1;
-    isContextMenuOpen = true;
-    contextMenuClosing = false;
-    contextMenuAnim.SnapTo(0.0f);
-    AnimateVisual(contextMenuAnim, 1.0f, MotionTokens::kFast, MotionTokens::Standard());
+    PresentHubContextMenu(x, y, 220.0f);
     MarkAccessibilityDirty();
-    InvalidateRect(hWnd, NULL, FALSE);
 }
 
 void App::UpdateFlyoutHitTarget(float mouseX, float mouseY, float winW, float winH, float dp, float bottomBarH) {

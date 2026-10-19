@@ -356,6 +356,7 @@ HubRenderViewModel App::BuildHubRenderViewModel() {
     vm.navBar.settingsHoverMix = navSettingsTabHover.current;
     vm.navBar.openHoverMix = navOpenFileLift.current;
     vm.navBar.pressedNavIndex = pressedNavIndex;
+    vm.navBar.indicatorPos = navIndicator.current;
     // 2. Main Content View Area
     vm.viewBounds = Presentation::HubView(winW, winH, dp);
     switch (currentTab) {
@@ -378,6 +379,7 @@ HubRenderViewModel App::BuildHubRenderViewModel() {
             vm.mediaTab.seriesBtnBounds = toolbarGeometry.series;
             mediaSeriesBtnBounds = vm.mediaTab.seriesBtnBounds;
             vm.mediaTab.activeGroupMode = static_cast<int>(libraryGroupMode);
+            vm.mediaTab.groupModeIndicatorPos = groupModeIndicator.current;
             vm.mediaTab.hoveredGroupBtn = hoveredGroupBtn;
             vm.mediaTab.searchHovered = hoveredMediaToolbarAction == 0;
             vm.mediaTab.sortHovered = hoveredMediaToolbarAction == 1;
@@ -652,6 +654,7 @@ HubRenderViewModel App::BuildHubRenderViewModel() {
             vm.playlistsTab.detail.listClipBounds = D2D1::RectF(vm.viewBounds.left + railW + 16.0f * dp, vm.viewBounds.top, vm.viewBounds.right, vm.viewBounds.bottom);
             // Rail view model
             vm.playlistsTab.rail.activePlaylistId = activePlaylistId;
+            vm.playlistsTab.rail.railIndicatorPos = playlistRailIndicator.current;
             vm.playlistsTab.rail.hoveredIndex = hoveredPlaylistRailIndex;
             vm.playlistsTab.rail.isFolderDropActive = isRailFolderDropActive;
             vm.playlistsTab.rail.isAddHovered = isPlaylistAddHovered;
@@ -761,6 +764,7 @@ HubRenderViewModel App::BuildHubRenderViewModel() {
                     vm.playlistsTab.detail.resumeCard.cardRect = D2D1::RectF(vm.playlistsTab.detail.listClipBounds.left, curDetY, paneRight, curDetY + resumeH);
                     vm.playlistsTab.detail.resumeCard.isResumeFocused = isKeyboardNavActive && (activeFocusPane == FocusPane::PlaylistDetail && keyboardFocusedIndex == -1);
                     vm.playlistsTab.detail.resumeCard.isResumeHovered = isPlaylistResumeHovered;
+                    vm.playlistsTab.detail.resumeCard.filePath = pResumePath ? *pResumePath : L"";
                     if (previewPlayer.IsActive() && previewPlayer.GetCurrentPreviewPath() == vm.playlistsTab.detail.resumeCard.filePath) {
                         vm.playlistsTab.detail.resumeCard.pLivePreviewBitmap = previewPlayer.GetPreviewBitmap();
                         vm.playlistsTab.detail.resumeCard.previewOpacity = resumePreviewAnim.current;
@@ -770,7 +774,6 @@ HubRenderViewModel App::BuildHubRenderViewModel() {
                     float thumbX = vm.playlistsTab.detail.resumeCard.cardRect.left + 16.0f * dp;
                     float thumbY = vm.playlistsTab.detail.resumeCard.cardRect.top + (resumeH - thumbH) * 0.5f;
                     vm.playlistsTab.detail.resumeCard.thumbRect = D2D1::RectF(thumbX, thumbY, thumbX + thumbW, thumbY + thumbH);
-                    vm.playlistsTab.detail.resumeCard.filePath = pResumePath ? *pResumePath : L"";
                     vm.playlistsTab.detail.resumeCard.progressRatio = pResumeMedia ? pResumeMedia->GetProgressRatio() : 0.0;
                     // Cache for the Update()-side hover-preview driver.
                     resumePreviewPath = vm.playlistsTab.detail.resumeCard.filePath;
@@ -785,6 +788,7 @@ HubRenderViewModel App::BuildHubRenderViewModel() {
                     // Search Visual
                     vm.playlistsTab.detail.filterQuery = Text16ToWideString(playlistSearchInput.GetText());
                     vm.playlistsTab.detail.gridView = playlistGridView;
+                    vm.playlistsTab.detail.viewModeIndicatorPos = playlistViewModeIndicator.current;
                     vm.playlistsTab.detail.searchFocused = isPlaylistSearchFocused;
                     vm.playlistsTab.detail.searchVisual.displayText = Text16ToWideString(playlistSearchInput.GetDisplayText());
                     vm.playlistsTab.detail.searchVisual.selectionStart = playlistSearchInput.GetSelection().start;
@@ -981,6 +985,7 @@ HubRenderViewModel App::BuildHubRenderViewModel() {
         case TabView::Settings: {
             vm.settingsTab.bounds = vm.viewBounds;
             vm.settingsTab.activeCat = currentSettingsCat;
+            vm.settingsTab.categoryIndicatorPos = settingsCatIndicator.current;
             vm.settingsTab.hoveredCat = hoveredSettingsCat;
             vm.settingsTab.hoveredRowIndex = hoveredSettingsRow;
             vm.settingsTab.scrollY = settingsScrollY;

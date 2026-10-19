@@ -59,9 +59,7 @@ SystemVisualPreferencesSnapshot SystemVisualPreferences::Normalize( const System
     if (overrides.overrideTextScaleFactor) result.textScaleFactor = overrides.textScaleFactor;
     result.textScaleFactor = std::clamp(result.textScaleFactor, 0.75f, 2.25f);
     if (overrides.overrideColors) result.colors = overrides.colors;
-    // Windows exposes separate client/menu motion preferences. Treat any
-    // disabled animation/fade preference as a request to avoid decorative
-    // motion; callers can still use the individual fields for fine control.
+    // Respect every system animation preference when choosing decorative motion.
     result.reduceMotion = !result.clientAreaAnimation || !result.menuAnimation || !result.menuFade;
     return result;
 }

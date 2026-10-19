@@ -69,42 +69,17 @@ bool App::UpdateHoverStates(float mouseX, float mouseY) {
         SetNavHoverTargets(false, false, false, false, false);
         return changed;
     }
-    float pad = 18.0f * dp, padY = 14.0f * dp, navH = 48.0f * dp;
-    // Check Top Nav Bar tabs with exact pixel-matching bounds (NO LOGO)
-    float tabH = 32.0f * dp, tabY = padY + 4.0f * dp, iconSz = 14.0f * dp, gap = 7.0f * dp;
-    float padPillX = 14.0f * dp, tabGap = 8.0f * dp, actionGap = 10.0f * dp;
-    bool isRtl = Localization::Instance().IsRtl();
-    float mediaW = iconSz + gap + renderer.MeasureString(Loc::Tr("nav.media"), FontType::Medium).width + padPillX * 2.0f;
-    float playlistsW = iconSz + gap + renderer.MeasureString(Loc::Tr("nav.playlists"), FontType::Medium).width + padPillX * 2.0f;
-    float historyW = iconSz + gap + renderer.MeasureString(Loc::Tr("nav.history"), FontType::Medium).width + padPillX * 2.0f;
-    float settingsW = iconSz + gap + renderer.MeasureString(Loc::Tr("nav.settings"), FontType::Medium).width + padPillX * 2.0f;
-    float openW = renderer.MeasureString(Loc::Tr("nav.open_file"), FontType::Medium).width + 32.0f * dp;
-    float openX = isRtl ? pad : (winW - pad - openW);
-    float settingsX = isRtl ? (openX + openW + actionGap) : (openX - actionGap - settingsW);
+    const bool isRtl = Localization::Instance().IsRtl();
+    const auto nav = Presentation::Nav(winW, dp, isRtl, [&](const std::wstring& t) { return renderer.MeasureString(t, FontType::Medium).width; });
     TabView newHoveredTab = (TabView)-1;
     bool newNavOpenHovered = false, newNavSettingsHovered = false;
-    if (mouseY >= tabY && mouseY <= tabY + tabH) {
-        if (!isRtl) {
-            float curX = pad;
-            if (mouseX >= curX && mouseX <= curX + mediaW) {
-                newHoveredTab = TabView::Media;
-            } else if (mouseX >= curX + mediaW + tabGap && mouseX <= curX + mediaW + tabGap + playlistsW) {
-                newHoveredTab = TabView::Playlists;
-            } else if (mouseX >= curX + mediaW + tabGap + playlistsW + tabGap && mouseX <= curX + mediaW + tabGap + playlistsW + tabGap + historyW) {
-                newHoveredTab = TabView::History;
-            }
-        } else {
-            float curX = winW - pad;
-            if (mouseX >= curX - mediaW && mouseX <= curX) {
-                newHoveredTab = TabView::Media;
-            } else if (mouseX >= curX - mediaW - tabGap - playlistsW && mouseX <= curX - mediaW - tabGap) {
-                newHoveredTab = TabView::Playlists;
-            } else if (mouseX >= curX - mediaW - tabGap - playlistsW - tabGap - historyW && mouseX <= curX - mediaW - tabGap - playlistsW - tabGap) {
-                newHoveredTab = TabView::History;
-            }
-        }
-        newNavOpenHovered = (mouseX >= openX && mouseX <= openX + openW);
-        newNavSettingsHovered = (mouseX >= settingsX && mouseX <= settingsX + settingsW);
+    if (mouseY >= nav.tabY && mouseY <= nav.tabY + nav.tabH) {
+        const auto inX = [&](const D2D1_RECT_F& r) { return mouseX >= r.left && mouseX <= r.right; };
+        if (inX(nav.tabs[0])) newHoveredTab = TabView::Media;
+        else if (inX(nav.tabs[1])) newHoveredTab = TabView::Playlists;
+        else if (inX(nav.tabs[2])) newHoveredTab = TabView::History;
+        newNavOpenHovered = inX(nav.open);
+        newNavSettingsHovered = inX(nav.settings);
     }
     setIfChanged(hoveredTab, newHoveredTab);
     setIfChanged(isNavOpenHovered, newNavOpenHovered);
@@ -204,7 +179,7 @@ bool App::UpdateHoverStates(float mouseX, float mouseY) {
                 if (!row.isHovering) {
                     row.isHovering = true;
                     row.hoverEnterTime = NowSeconds();
-                    row.liftY.SnapTo(2.0f);
+                    AnimateVisual(row.liftY, 2.0f, MotionTokens::kReveal, MotionTokens::Spring());
                     EnqueueActiveRowAnimation((size_t)newHoveredIndex);
                 }
             }

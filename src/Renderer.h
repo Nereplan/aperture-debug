@@ -104,6 +104,7 @@ public:
     using DrawingPrimitives::FillRect;
     void FillGradientRect(const D2D1_RECT_F& rect, const D2D1_COLOR_F& startColor, const D2D1_COLOR_F& endColor, bool vertical = true);
     using DrawingPrimitives::FillRoundedRect;
+    using DrawingPrimitives::FillRoundedGradientRect;
     using DrawingPrimitives::DrawRoundedRect;
     using DrawingPrimitives::FillCircle;
     using DrawingPrimitives::DrawCircle;
@@ -177,7 +178,6 @@ private:
     friend struct RendererCacheTestAccess;
     float SnapPixel(float value) const;
     D2D1_RECT_F SnapRect(const D2D1_RECT_F& rect) const;
-    using DrawingPrimitives::FillRoundedGradientRect;
     struct ShadowKey {
         int widthPx = 0, heightPx = 0, radiusQ = 0, blurQ = 0;
         int offsetYQ = 0;

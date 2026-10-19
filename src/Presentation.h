@@ -18,6 +18,49 @@ inline D2D1_RECT_F HubView(float width, float height, float dp) {
                        std::max(viewTop + 1.0f * dp, height - padY));
 }
 
+// Canonical top-nav geometry (client coordinates). Layout: segmented tab track
+// on the leading edge, "Settings" and the primary "Open File" action on the
+// trailing edge. RTL mirrors every rect. `measure(text)` returns the Medium
+// font text width in pixels. Tab widths are constant (the Playlists tab is
+// sized for its drag-drop label) so nothing shifts while dragging.
+struct NavLayout {
+    D2D1_RECT_F tabs[3];
+    D2D1_RECT_F track, settings, open;
+    float tabY = 0, tabH = 0, iconSize = 0, iconGap = 0;
+};
+template <class Measure>
+inline NavLayout Nav(float winW, float dp, bool rtl, Measure&& measure) {
+    NavLayout l{};
+    const float pad = 18.0f * dp, padY = 14.0f * dp;
+    l.tabH = 32.0f * dp; l.tabY = padY + 4.0f * dp; l.iconSize = 14.0f * dp; l.iconGap = 8.0f * dp;
+    const float tabPad = 16.0f * dp, tabGap = 2.0f * dp, actionGap = 10.0f * dp, inset = 3.0f * dp;
+    float w[3] = {
+        measure(Loc::Tr("nav.media")),
+        std::max(measure(Loc::Tr("nav.playlists")), measure(Loc::Tr("nav.drop_to_playlist"))),
+        measure(Loc::Tr("nav.history")) };
+    float total = tabGap * 2.0f;
+    for (float& v : w) { v += l.iconSize + l.iconGap + tabPad * 2.0f; total += v; }
+    const float openW = measure(Loc::Tr("nav.open_file")) + 36.0f * dp;
+    const float settingsW = l.iconSize + l.iconGap + measure(Loc::Tr("nav.settings")) + 28.0f * dp;
+    const float openX = winW - pad - openW, settingsX = openX - actionGap - settingsW;
+    const float available = std::max(0.0f, settingsX - actionGap - pad - inset - tabGap * 2.0f);
+    const float scale = std::min(1.0f, available / (total - tabGap * 2.0f));
+    total = tabGap * 2.0f;
+    for (float& width : w) { width *= scale; total += width; }
+    float x = pad;
+    const float startX = x;
+    for (int i = 0; i < 3; ++i) { l.tabs[i] = D2D1::RectF(x, l.tabY, x + w[i], l.tabY + l.tabH); x += w[i] + tabGap; }
+    l.track = D2D1::RectF(startX - inset, l.tabY - inset, startX + total + inset, l.tabY + l.tabH + inset);
+    l.settings = D2D1::RectF(settingsX, l.tabY, settingsX + settingsW, l.tabY + l.tabH);
+    l.open = D2D1::RectF(openX, l.tabY, openX + openW, l.tabY + l.tabH);
+    if (rtl) {
+        const auto mirror = [winW](D2D1_RECT_F& r) { const float left = winW - r.right; r.right = winW - r.left; r.left = left; };
+        for (auto& t : l.tabs) mirror(t);
+        mirror(l.track); mirror(l.settings); mirror(l.open);
+    }
+    return l;
+}
+
 inline D2D1_COLOR_F ForegroundOn(D2D1_COLOR_F background) {
     const auto linear = [](float v) { return v <= 0.04045f ? v / 12.92f : std::pow((v + 0.055f) / 1.055f, 2.4f); };
     const float luminance = 0.2126f * linear(background.r) + 0.7152f * linear(background.g) + 0.0722f * linear(background.b);

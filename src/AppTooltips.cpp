@@ -72,21 +72,13 @@ void App::RefreshHubTooltips(bool force) {
         hubTooltips.AddOrUpdate(id, text, rect);
     };
     const std::wstring tabNames[] = { L"Media", L"Playlists", L"History" };
-    float cursorX = pad;
-    for (int i = 0; i < 3; ++i) {
-        const float width = iconSize + gap + renderer.MeasureString(tabNames[i], FontType::Medium).width + pillPad * 2.0f;
-        add(1001 + static_cast<TooltipManager::ToolId>(i), tabNames[i],
-            TooltipClientRect(cursorX, padY + 4.0f * dp, cursorX + width, padY + 4.0f * dp + tabH));
-        cursorX += width + tabGap;
-    }
-    bool isRtl = Localization::Instance().IsRtl();
-    const float openW = renderer.MeasureString(Loc::Tr("nav.open_file"), FontType::Medium).width + 32.0f * dp;
-    const float settingsW = iconSize + gap + renderer.MeasureString(Loc::Tr("nav.settings"), FontType::Medium).width + pillPad * 2.0f;
-    const float openX = isRtl ? pad : (winW - pad - openW);
-    const float settingsX = isRtl ? (openX + openW + actionGap) : (openX - actionGap - settingsW);
-    add(1004, Loc::Tr("nav.settings"), TooltipClientRect(settingsX, padY + 4.0f * dp, settingsX + settingsW, padY + 4.0f * dp + tabH));
+    const bool isRtl = Localization::Instance().IsRtl();
+    const auto nav = Presentation::Nav(winW, dp, isRtl, [&](const std::wstring& t) { return renderer.MeasureString(t, FontType::Medium).width; });
+    for (int i = 0; i < 3; ++i)
+        add(1001 + static_cast<TooltipManager::ToolId>(i), tabNames[i], TooltipClientRect(nav.tabs[i].left, nav.tabY, nav.tabs[i].right, nav.tabY + nav.tabH));
+    add(1004, Loc::Tr("nav.settings"), TooltipClientRect(nav.settings.left, nav.tabY, nav.settings.right, nav.tabY + nav.tabH));
     add(1005, TooltipActionLabel(settings, Loc::Tr("nav.open_file"), "openFile"),
-        TooltipClientRect(openX, padY + 4.0f * dp, openX + openW, padY + 4.0f * dp + tabH));
+        TooltipClientRect(nav.open.left, nav.tabY, nav.open.right, nav.tabY + nav.tabH));
     const D2D1_RECT_F view = Presentation::HubView(winW, winH, dp);
     if (currentTab == TabView::Media) {
         const auto toolbar = ComputeMediaToolbarGeometry(D2D1::RectF(view.left, view.top, view.right, view.top + 32.0f * dp), dp);

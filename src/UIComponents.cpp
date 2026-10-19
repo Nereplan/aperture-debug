@@ -18,9 +18,6 @@ namespace Aperture {
 // DirectWrite formats are deliberately configured as single-line text.  Keep
 // long user supplied names inside their layout columns instead of allowing the
 // native renderer to paint over neighboring controls at narrow widths.
-// DirectWrite formats are deliberately configured as single-line text.  Keep
-// long user supplied names inside their layout columns instead of allowing the
-// native renderer to paint over neighboring controls at narrow widths.
 //
 // Fit results are memoized: without this, every truncated title paid O(log n) full text-layout creations per frame (each binary-search
 // candidate is a distinct string that pollutes the shared layout LRU), churning the layout cache on every playlist scroll. Memo hits verify
@@ -69,6 +66,7 @@ static std::wstring FitSingleLineMemo(R& r, std::map<FitMemo::Key, FitMemo::Entr
             it->second.lruIt = lru.begin();
             return it->second.fitted;
         }
+        lru.erase(it->second.lruIt);
         cache.erase(it);
     }
     const std::wstring ellipsis = L"\x2026";
@@ -223,145 +221,104 @@ void UIComponents::DrawTextInput(OverlayRenderer& r, const Settings& s, const D2
 
 void UIComponents::DrawNavBar(Renderer& r, const Settings& s, const NavBarViewModel& vm) {
     (void)vm.hoveredTab; (void)vm.isSettingsHovered; (void)vm.isOpenHovered;
-    float dp = r.GetDpiScale();
+    const float dp = r.GetDpiScale();
     const auto& th = s.currentTheme;
-    bool isRtl = Localization::Instance().IsRtl();
-    // Crisp bottom dividing line
-    r.DrawLine(vm.bounds.left, vm.bounds.bottom - 1.0f * dp, vm.bounds.right, vm.bounds.bottom - 1.0f * dp, th.border, 1.0f);
-    float tabH = 32.0f * dp, tabY = vm.bounds.top + 4.0f * dp, iconSz = 14.0f * dp, gap = 7.0f * dp;
-    float padPillX = 14.0f * dp, tabGap = 8.0f * dp, actionGap = 10.0f * dp;
-    // 1. Navigation Tabs (Media, Playlists, History)
-    struct TabDef {
-        TabView tab;
-        std::wstring name;
-        IconType icon;
-        int navIdx;
-        float hoverMix;
-    };
-    TabDef tabs[] = {
-        { TabView::Media, Loc::Tr("nav.media"), IconType::MediaFilm, 0, std::clamp(vm.mediaHoverMix, 0.0f, 1.0f) },
-        { TabView::Playlists, Loc::Tr("nav.playlists"), IconType::FolderPlaylist, 1, std::clamp(vm.playlistHoverMix, 0.0f, 1.0f) },
-        {TabView::History, Loc::Tr("nav.history"), IconType::HistoryClock, 2, std::clamp(vm.historyHoverMix, 0.0f, 1.0f)}};
-    bool isOpenFocused = (vm.focusedNavIndex == 4);
-    D2D1_SIZE_F openStrSize = r.MeasureString(Loc::Tr("nav.open_file"), FontType::Medium);
-    float openW = openStrSize.width + 32.0f * dp;
-    bool isSettingsActive = (vm.activeTab == TabView::Settings);
-    bool isSettingsFocused = (vm.focusedNavIndex == 3);
-    FontType setFont = FontType::Medium;
-    D2D1_SIZE_F setStrSize = r.MeasureString(Loc::Tr("nav.settings"), setFont);
-    float settingsW = iconSz + gap + setStrSize.width + padPillX * 2.0f;
-    float openX = isRtl ? vm.bounds.left : (vm.bounds.right - openW);
-    float settingsX = isRtl ? (openX + openW + actionGap) : (openX - actionGap - settingsW);
-    float curX = isRtl ? vm.bounds.right : vm.bounds.left;
-    for (const auto& t : tabs) {
-        bool isActive = (vm.activeTab == t.tab);
-        bool isFocused = (vm.focusedNavIndex == t.navIdx);
-        bool isPressed = (vm.pressedNavIndex == t.navIdx);
-        bool isNavDrop = (t.tab == TabView::Playlists && vm.isPlaylistsNavDropHovered);
-        float mix = t.hoverMix;
-        if (isPressed) mix = 1.0f;
-        FontType fType = FontType::Medium;
-        std::wstring label = isNavDrop ? Loc::Tr("nav.drop_to_playlist") : t.name;
-        D2D1_SIZE_F strSize = r.MeasureString(label, fType);
-        float tabW = iconSz + gap + strSize.width + padPillX * 2.0f;
-        D2D1_RECT_F tabRect = isRtl ? D2D1::RectF(curX - tabW, tabY, curX, tabY + tabH) : D2D1::RectF(curX, tabY, curX + tabW, tabY + tabH);
-        SurfaceStyle tabStyle;
-        tabStyle.radius = 6.0f * dp;
-        tabStyle.hasInnerHighlight = false;
-        if (isFocused) {
-            tabStyle.fill = D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.05f);
-            tabStyle.border = th.focusRing;
-            tabStyle.borderWidth = 1.5f;
-            r.DrawSurface(tabRect, tabStyle);
-        } else if (isNavDrop) {
-            tabStyle.fill = ColorWithAlpha(th.accent, 0.16f);
-            tabStyle.border = th.accent;
-            tabStyle.borderWidth = 1.5f;
-            r.DrawSurface(tabRect, tabStyle);
-        } else {
-            // Neutral fills: active sits slightly lighter than hover; the
-            // hover mix interpolates so the state change reads as motion.
-            float fillA = isActive ? 0.06f : (0.045f * mix);
-            float borderA = isActive ? 0.12f : (0.10f * mix);
-            if (isPressed) fillA = 0.025f;
-            tabStyle.fill = D2D1::ColorF(1.0f, 1.0f, 1.0f, fillA);
-            if (fillA > 0.001f) { tabStyle.border = D2D1::ColorF(1.0f, 1.0f, 1.0f, borderA); tabStyle.borderWidth = 1.0f; }
-            r.DrawSurface(tabRect, tabStyle);
-        }
-        D2D1_COLOR_F tabCol = (isActive || isNavDrop) ? th.text : isFocused ? th.text
-                            : ColorWithAlpha(th.text, 1.0f - 0.35f * (1.0f - mix));
-        if (!isActive && !isFocused && !isNavDrop && mix < 0.01f) tabCol = th.textMuted;
-        float contentW = iconSz + gap + strSize.width, contentShiftY = isPressed ? 1.0f * dp : 0.0f;
+    const bool isRtl = Localization::Instance().IsRtl();
+    // Bounds are inset symmetrically, so the window width is recoverable here.
+    const float winW = vm.bounds.left + vm.bounds.right;
+    const auto nav = Presentation::Nav(winW, dp, isRtl, [&](const std::wstring& t) { return r.MeasureString(t, FontType::Medium).width; });
+    const float iconSz = nav.iconSize, gap = nav.iconGap, tabH = nav.tabH;
+    // Icon + label centered inside a rect (mirrored for RTL).
+    const auto drawContent = [&](const D2D1_RECT_F& rect, IconType icon, const std::wstring& label, D2D1_COLOR_F iconCol,
+                                 D2D1_COLOR_F textCol, float shiftY, float rotation) {
+        const float strW = r.MeasureString(label, FontType::Medium).width;
+        const float contentW = iconSz + gap + strW;
+        const float top = rect.top + (tabH - iconSz) * 0.5f + shiftY;
         if (!isRtl) {
-            float startX = tabRect.left + (tabW - contentW) * 0.5f;
-            D2D1_RECT_F iconRect = D2D1::RectF(startX, tabRect.top + (tabH - iconSz) * 0.5f + contentShiftY, startX + iconSz, tabRect.top + (tabH + iconSz) * 0.5f + contentShiftY);
-            r.DrawIcon(t.icon, iconRect, tabCol, 1.3f * dp);
-            D2D1_RECT_F textRect = D2D1::RectF(startX + iconSz + gap, tabRect.top + contentShiftY, tabRect.right, tabRect.bottom + contentShiftY);
-            r.DrawString(label, textRect, tabCol, fType, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-            curX += tabW + tabGap;
+            const float x0 = rect.left + (RectWidth(rect) - contentW) * 0.5f;
+            r.DrawIconRotated(icon, D2D1::RectF(x0, top, x0 + iconSz, top + iconSz), iconCol, rotation, 1.4f * dp);
+            r.DrawString(label, D2D1::RectF(x0 + iconSz + gap, rect.top + shiftY, rect.right, rect.bottom + shiftY), textCol, FontType::Medium,
+                         DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
         } else {
-            float startX = tabRect.right - (tabW - contentW) * 0.5f;
-            D2D1_RECT_F iconRect = D2D1::RectF(startX - iconSz, tabRect.top + (tabH - iconSz) * 0.5f + contentShiftY, startX, tabRect.top + (tabH + iconSz) * 0.5f + contentShiftY);
-            r.DrawIcon(t.icon, iconRect, tabCol, 1.3f * dp);
-            D2D1_RECT_F textRect = D2D1::RectF(tabRect.left, tabRect.top + contentShiftY, startX - iconSz - gap, tabRect.bottom + contentShiftY);
-            r.DrawString(label, textRect, tabCol, fType, DWRITE_TEXT_ALIGNMENT_TRAILING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-            curX -= (tabW + tabGap);
+            const float x0 = rect.right - (RectWidth(rect) - contentW) * 0.5f;
+            r.DrawIconRotated(icon, D2D1::RectF(x0 - iconSz, top, x0, top + iconSz), iconCol, rotation, 1.4f * dp);
+            r.DrawString(label, D2D1::RectF(rect.left, rect.top + shiftY, x0 - iconSz - gap, rect.bottom + shiftY), textCol, FontType::Medium,
+                         DWRITE_TEXT_ALIGNMENT_TRAILING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
         }
+    };
+    // 1. Segmented track with a sliding selection pill.
+    const float trackR = RectHeight(nav.track) * 0.5f;
+    r.FillRoundedRect(nav.track, trackR, LerpColor(th.bg, th.text, 0.045f));
+    r.DrawRoundedRect(nav.track, trackR, th.borderSubtle, 1.0f * dp);
+    const bool tabActive = vm.activeTab != TabView::Settings;
+    const float pos = std::clamp(vm.indicatorPos, 0.0f, 2.0f);
+    if (tabActive) {
+        const int i0 = std::min(2, static_cast<int>(std::floor(pos)));
+        const int i1 = std::min(2, i0 + 1);
+        const float f = pos - static_cast<float>(i0);
+        const auto lerp = [f](float a, float b) { return a + (b - a) * f; };
+        const D2D1_RECT_F pill = D2D1::RectF(lerp(nav.tabs[i0].left, nav.tabs[i1].left), nav.tabs[0].top,
+                                             lerp(nav.tabs[i0].right, nav.tabs[i1].right), nav.tabs[0].bottom);
+        SurfaceStyle ps;
+        ps.radius = tabH * 0.5f;
+        ps.fill = LerpColor(th.cardBg, th.text, 0.10f);
+        ps.border = ColorWithAlpha(th.accent, 0.38f);
+        ps.borderWidth = 1.0f;
+        ps.hasInnerHighlight = false;
+        ps.shadowColor = D2D1::ColorF(0, 0, 0, 0.35f);
+        ps.shadowBlur = 8.0f * dp;
+        ps.shadowOffsetY = 2.0f * dp;
+        r.DrawSurface(pill, ps);
     }
-    // 2. Open File button — a plain, standard button (no accent glow).
-    float openMix = std::clamp(vm.openHoverMix, 0.0f, 1.0f);
-    bool isOpenPressed = (vm.pressedNavIndex == 4);
-    if (isOpenPressed) openMix = 1.0f;
-    float openFillA = isOpenPressed ? 0.03f : (0.06f + 0.05f * openMix);
-    float openBorderA = isOpenPressed ? 0.10f : (0.14f + 0.06f * openMix);
-    float openShiftY = isOpenPressed ? 1.0f * dp : 0.0f;
-    D2D1_RECT_F openRect = D2D1::RectF(openX, tabY + openShiftY, openX + openW, tabY + tabH + openShiftY);
-    SurfaceStyle openStyle;
-    openStyle.radius = 6.0f * dp;
-    openStyle.fill = D2D1::ColorF(1.0f, 1.0f, 1.0f, openFillA);
-    openStyle.border = D2D1::ColorF(1.0f, 1.0f, 1.0f, openBorderA);
-    openStyle.borderWidth = 1.0f;
-    openStyle.hasInnerHighlight = false;
-    if (isOpenFocused) { openStyle.border = th.focusRing; openStyle.borderWidth = 1.5f; }
-    r.DrawSurface(openRect, openStyle);
-    D2D1_COLOR_F openTextCol = th.text;
-    r.DrawString(Loc::Tr("nav.open_file"), openRect, openTextCol, FontType::Medium, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-    // 3. Settings button
-    D2D1_RECT_F settingsRect = D2D1::RectF(settingsX, tabY, settingsX + settingsW, tabY + tabH);
-    float setMix = std::clamp(vm.settingsHoverMix, 0.0f, 1.0f);
-    bool isSettingsPressed = (vm.pressedNavIndex == 3);
-    if (isSettingsPressed) setMix = 1.0f;
-    SurfaceStyle setStyle;
-    setStyle.radius = 6.0f * dp;
-    setStyle.hasInnerHighlight = false;
-    if (isSettingsFocused) {
-        setStyle.fill = D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.05f);
-        setStyle.border = th.focusRing;
-        setStyle.borderWidth = 1.5f;
-        r.DrawSurface(settingsRect, setStyle);
-    } else {
-        float setFillA = isSettingsActive ? 0.06f : (0.045f * setMix);
-        float setBorderA = isSettingsActive ? 0.12f : (0.10f * setMix);
-        if (isSettingsPressed) setFillA = 0.025f;
-        setStyle.fill = D2D1::ColorF(1.0f, 1.0f, 1.0f, setFillA);
-        if (setFillA > 0.001f) { setStyle.border = D2D1::ColorF(1.0f, 1.0f, 1.0f, setBorderA); setStyle.borderWidth = 1.0f; }
-        r.DrawSurface(settingsRect, setStyle);
+    const struct { IconType icon; std::wstring name; float mix; } tabs[3] = {
+        { IconType::MediaFilm, Loc::Tr("nav.media"), std::clamp(vm.mediaHoverMix, 0.0f, 1.0f) },
+        { IconType::FolderPlaylist, Loc::Tr("nav.playlists"), std::clamp(vm.playlistHoverMix, 0.0f, 1.0f) },
+        { IconType::HistoryClock, Loc::Tr("nav.history"), std::clamp(vm.historyHoverMix, 0.0f, 1.0f) } };
+    for (int i = 0; i < 3; ++i) {
+        const bool isFocused = (vm.focusedNavIndex == i), isPressed = (vm.pressedNavIndex == i);
+        const bool isNavDrop = (i == 1 && vm.isPlaylistsNavDropHovered);
+        const float mix = isPressed ? 1.0f : tabs[i].mix;
+        const float weight = tabActive ? std::clamp(1.0f - std::abs(pos - static_cast<float>(i)), 0.0f, 1.0f) : 0.0f;
+        const D2D1_RECT_F rect = nav.tabs[i];
+        if (isNavDrop) {
+            r.FillRoundedRect(rect, tabH * 0.5f, ColorWithAlpha(th.accent, 0.20f));
+            r.DrawRoundedRect(rect, tabH * 0.5f, th.accent, 1.5f * dp);
+        } else if (weight < 0.5f && mix > 0.01f) {
+            r.FillRoundedRect(rect, tabH * 0.5f, D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.06f * mix));
+        }
+        if (isFocused) r.DrawRoundedRect(InsetRectF(rect, -2.0f * dp, -2.0f * dp), tabH * 0.5f + 2.0f * dp, th.focusRing, 1.5f * dp);
+        const float emphasis = std::max(weight, mix * 0.85f);
+        const D2D1_COLOR_F textCol = isNavDrop ? th.text : LerpColor(th.textMuted, th.text, isFocused ? 1.0f : emphasis);
+        const D2D1_COLOR_F iconCol = isNavDrop ? th.accent : LerpColor(LerpColor(th.textMuted, th.text, emphasis), th.accent, weight);
+        drawContent(rect, tabs[i].icon, isNavDrop ? Loc::Tr("nav.drop_to_playlist") : tabs[i].name, iconCol, textCol,
+                    isPressed ? 1.0f * dp : 0.0f, 0.0f);
     }
-    D2D1_COLOR_F setCol = (isSettingsActive || isSettingsFocused) ? th.text : ColorWithAlpha(th.text, 1.0f - 0.35f * (1.0f - setMix));
-    if (!isSettingsActive && !isSettingsFocused && setMix < 0.01f) setCol = th.textMuted;
-    float setContentW = iconSz + gap + setStrSize.width, setShiftY = isSettingsPressed ? 1.0f * dp : 0.0f;
-    if (!isRtl) {
-        float setStartX = settingsRect.left + (settingsW - setContentW) * 0.5f;
-        D2D1_RECT_F sIconRect = D2D1::RectF(setStartX, settingsRect.top + (tabH - iconSz) * 0.5f + setShiftY, setStartX + iconSz, settingsRect.top + (tabH + iconSz) * 0.5f + setShiftY);
-        r.DrawIconRotated(IconType::SettingsGear, sIconRect, setCol, vm.settingsRotationDegrees, 1.3f * dp);
-        D2D1_RECT_F sTextRect = D2D1::RectF(setStartX + iconSz + gap, settingsRect.top + setShiftY, settingsRect.right, settingsRect.bottom + setShiftY);
-        r.DrawString(Loc::Tr("nav.settings"), sTextRect, setCol, setFont, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-    } else {
-        float setStartX = settingsRect.right - (settingsW - setContentW) * 0.5f;
-        D2D1_RECT_F sIconRect = D2D1::RectF(setStartX - iconSz, settingsRect.top + (tabH - iconSz) * 0.5f, setStartX, settingsRect.top + (tabH + iconSz) * 0.5f);
-        r.DrawIconRotated(IconType::SettingsGear, sIconRect, setCol, vm.settingsRotationDegrees, 1.3f * dp);
-        D2D1_RECT_F sTextRect = D2D1::RectF(settingsRect.left, settingsRect.top, setStartX - iconSz - gap, settingsRect.bottom);
-        r.DrawString(Loc::Tr("nav.settings"), sTextRect, setCol, setFont, DWRITE_TEXT_ALIGNMENT_TRAILING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+    // 2. Settings: quiet ghost pill; accent-tinted while its page is open.
+    {
+        const bool active = (vm.activeTab == TabView::Settings), focused = (vm.focusedNavIndex == 3), pressed = (vm.pressedNavIndex == 3);
+        const float mix = pressed ? 1.0f : std::clamp(vm.settingsHoverMix, 0.0f, 1.0f);
+        const float rad = tabH * 0.5f;
+        if (active) {
+            r.FillRoundedRect(nav.settings, rad, th.surfaceSelected);
+            r.DrawRoundedRect(nav.settings, rad, ColorWithAlpha(th.accent, 0.38f), 1.0f * dp);
+        } else if (mix > 0.01f) {
+            r.FillRoundedRect(nav.settings, rad, D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.06f * mix));
+        }
+        if (focused) r.DrawRoundedRect(InsetRectF(nav.settings, -2.0f * dp, -2.0f * dp), rad + 2.0f * dp, th.focusRing, 1.5f * dp);
+        const D2D1_COLOR_F col = LerpColor(th.textMuted, th.text, (active || focused) ? 1.0f : mix * 0.85f);
+        drawContent(nav.settings, IconType::SettingsGear, Loc::Tr("nav.settings"), active ? th.accent : col, col,
+                    pressed ? 1.0f * dp : 0.0f, vm.settingsRotationDegrees);
+    }
+    // 3. Open File: the one filled, accent-colored call to action.
+    {
+        const bool focused = (vm.focusedNavIndex == 4), pressed = (vm.pressedNavIndex == 4);
+        const float mix = pressed ? 1.0f : std::clamp(vm.openHoverMix, 0.0f, 1.0f);
+        const auto colors = Presentation::Button(th, true, false, true, pressed);
+        const float shift = pressed ? 1.0f * dp : 0.0f, rad = tabH * 0.5f;
+        const D2D1_RECT_F rect = D2D1::RectF(nav.open.left, nav.open.top + shift, nav.open.right, nav.open.bottom + shift);
+        if (focused) r.DrawRoundedRect(InsetRectF(rect, -3.0f * dp, -3.0f * dp), rad + 3.0f * dp, th.focusRing, 1.5f * dp);
+        r.FillRoundedRect(rect, rad, LerpColor(th.accent, colors.fill, mix));
+        r.DrawString(Loc::Tr("nav.open_file"), rect, colors.text, FontType::Medium, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
     }
 }
 void UIComponents::DrawMediaItemCard( Renderer& r, const Settings& s, const D2D1_RECT_F& bounds, const MediaItem& item, bool isHovered,
@@ -639,6 +596,25 @@ void UIComponents::DrawSettingsView(Renderer& r, const Settings& s, const Settin
         { SettingsCategory::Shortcuts, Loc::Tr("settings.category.shortcuts"), IconType::SpeedGauge },
         {SettingsCategory::System, Loc::Tr("settings.category.system"), IconType::SettingsGear}};
     float catH = SettingsLayout::kSidebarItemHeight * dp, curCatY = sideBounds.top + SettingsLayout::kSidebarTopInset * dp;
+    const float catPos = std::clamp(vm.categoryIndicatorPos, 0.0f, 4.0f);
+    const float itemStep = catH + SettingsLayout::kSidebarItemGap * dp;
+    const float pillTop = (sideBounds.top + SettingsLayout::kSidebarTopInset * dp) + catPos * itemStep;
+    const D2D1_RECT_F slidingPill = D2D1::RectF(sideBounds.left + 8.0f * dp, pillTop, sideBounds.right - 8.0f * dp, pillTop + catH);
+    SurfaceStyle pillStyle;
+    pillStyle.radius = 8.0f * dp;
+    pillStyle.fill = surfaceSelected;
+    pillStyle.border = ColorWithAlpha(accentCol, 0.35f);
+    pillStyle.borderWidth = 1.0f * dp;
+    pillStyle.shadowColor = D2D1::ColorF(0, 0, 0, 0.25f);
+    pillStyle.shadowBlur = 6.0f * dp;
+    pillStyle.shadowOffsetY = 1.0f * dp;
+    r.DrawSurface(slidingPill, pillStyle);
+    const float barW = 3.0f * dp, barInset = 8.0f * dp;
+    if (isRtl) {
+        r.FillRoundedRect(D2D1::RectF(slidingPill.right - barW, slidingPill.top + barInset, slidingPill.right, slidingPill.bottom - barInset), barW * 0.5f, accentCol);
+    } else {
+        r.FillRoundedRect(D2D1::RectF(slidingPill.left, slidingPill.top + barInset, slidingPill.left + barW, slidingPill.bottom - barInset), barW * 0.5f, accentCol);
+    }
     for (int i = 0; i < 5; ++i) {
         const auto& c = cats[i];
         bool isActive = (vm.activeCat == c.cat);
@@ -652,27 +628,20 @@ void UIComponents::DrawSettingsView(Renderer& r, const Settings& s, const Settin
             cStyle.border = clearColor;
             r.DrawSurface(catRect, cStyle);
         } else if (isFocused) {
-            cStyle.fill = surfaceSelected;
-            cStyle.border = clearColor;
+            r.DrawRoundedRect(InsetRectF(catRect, -1.0f * dp, -1.0f * dp), 8.0f * dp + 1.0f * dp, th.focusRing, 1.5f * dp);
+        } else if (isHover && std::abs(catPos - static_cast<float>(i)) > 0.5f) {
+            cStyle.fill = surfaceHover;
             r.DrawSurface(catRect, cStyle);
-        } else if (isActive) {
-            cStyle.fill = surfaceSelected;
-            r.DrawSurface(catRect, cStyle);
-        } else if (isHover) { cStyle.fill = surfaceHover; r.DrawSurface(catRect, cStyle); }
-        if (isActive || isFocused || isPressed) {
-            const float barW = 3.0f * dp, barInset = 8.0f * dp;
-            if (isRtl) {
-                r.FillRoundedRect(D2D1::RectF(catRect.right - barW, catRect.top + barInset, catRect.right, catRect.bottom - barInset), barW * 0.5f, accentCol);
-            } else {
-                r.FillRoundedRect(D2D1::RectF(catRect.left, catRect.top + barInset, catRect.left + barW, catRect.bottom - barInset), barW * 0.5f, accentCol);
-            }
         }
+
+        const float catWeight = std::clamp(1.0f - std::abs(catPos - static_cast<float>(i)), 0.0f, 1.0f);
+        const D2D1_COLOR_F catIconCol = LerpColor(isHover ? textNorm : textMute, accentCol, catWeight);
+        const D2D1_COLOR_F catTextCol = LerpColor(isHover ? textPri : textNorm, textPri, catWeight);
+
         float iconSz = 16.0f * dp;
         D2D1_RECT_F iconRect = D2D1::RectF(catRect.left + 12.0f * dp, catRect.top + (catH - iconSz) * 0.5f, catRect.left + 12.0f * dp + iconSz, catRect.top + (catH + iconSz) * 0.5f);
-        D2D1_COLOR_F catIconCol = (isFocused || isActive) ? accentCol : (isHover ? textNorm : textMute);
         r.DrawIcon(c.icon, iconRect, catIconCol, 1.4f * dp);
         D2D1_RECT_F textRect = D2D1::RectF(iconRect.right + 10.0f * dp, catRect.top, catRect.right - 10.0f * dp, catRect.bottom);
-        D2D1_COLOR_F catTextCol = (isFocused || isActive) ? textPri : (isHover ? textPri : textNorm);
         r.DrawString(c.name, textRect, catTextCol, (isFocused || isActive) ? FontType::Medium : FontType::Regular, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
         curCatY += catH + SettingsLayout::kSidebarItemGap * dp;
     }
@@ -2835,23 +2804,20 @@ void UIComponents::DrawMediaToolbar(Renderer& r, const Settings& s, const MediaT
     // 4. Compact grouping control: the library is either a flat list or series.
     r.FillRoundedRect(vm.groupControlBounds, 7.0f * dp, D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.03f));
     r.DrawRoundedRect(vm.groupControlBounds, 7.0f * dp, D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.08f), 1.0f);
-    // Flat button
-    bool isFlatActive = (vm.activeGroupMode == 0);
+    // Sliding selection pill
+    const float gPos = std::clamp(vm.groupModeIndicatorPos, 0.0f, 1.0f);
+    const float gLeft = vm.flatBtnBounds.left + gPos * (vm.seriesBtnBounds.left - vm.flatBtnBounds.left);
+    const float gRight = vm.flatBtnBounds.right + gPos * (vm.seriesBtnBounds.right - vm.flatBtnBounds.right);
+    const D2D1_RECT_F gPill = D2D1::RectF(gLeft, vm.flatBtnBounds.top, gRight, vm.flatBtnBounds.bottom);
+    r.FillRoundedRect(gPill, 5.0f * dp, LerpColor(th.cardBg, th.text, 0.10f));
+    r.DrawRoundedRect(gPill, 5.0f * dp, ColorWithAlpha(th.accent, 0.38f), 1.0f);
+
     bool isFlatHover = (vm.hoveredGroupBtn == 0);
-    if (isFlatActive) {
-        r.FillRoundedRect(vm.flatBtnBounds, 5.0f * dp, D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.12f));
-        r.DrawRoundedRect(vm.flatBtnBounds, 5.0f * dp, D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.22f), 1.0f);
-    } else if (isFlatHover) { r.FillRoundedRect(vm.flatBtnBounds, 5.0f * dp, D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.05f)); }
-    D2D1_COLOR_F flatCol = isFlatActive ? th.text : (isFlatHover ? th.text : th.textMuted);
+    D2D1_COLOR_F flatCol = LerpColor(th.textMuted, th.text, std::max(1.0f - gPos, isFlatHover ? 0.7f : 0.0f));
     r.DrawString(L"Standalone", vm.flatBtnBounds, flatCol, FontType::Small, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-    // Grouped button (Folders or Series depending on setting)
-    bool isGroupedActive = (vm.activeGroupMode == 1 || vm.activeGroupMode == 2);
+
     bool isGroupedHover = (vm.hoveredGroupBtn == 1);
-    if (isGroupedActive) {
-        r.FillRoundedRect(vm.seriesBtnBounds, 5.0f * dp, D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.12f));
-        r.DrawRoundedRect(vm.seriesBtnBounds, 5.0f * dp, D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.22f), 1.0f);
-    } else if (isGroupedHover) { r.FillRoundedRect(vm.seriesBtnBounds, 5.0f * dp, D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.05f)); }
-    D2D1_COLOR_F seriesCol = isGroupedActive ? th.text : (isGroupedHover ? th.text : th.textMuted);
+    D2D1_COLOR_F seriesCol = LerpColor(th.textMuted, th.text, std::max(gPos, isGroupedHover ? 0.7f : 0.0f));
     r.DrawString(s.smartSeriesDetection ? L"Series" : L"Folders", vm.seriesBtnBounds, seriesCol, FontType::Small, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
 }
 
@@ -2952,30 +2918,45 @@ void UIComponents::DrawPlaylistsRail(Renderer& r, const Settings& s, const Playl
         r.DrawRoundedRect(addBtnRect, 6.0f * dp, th.accent, 1.0f);
     } else { r.FillRoundedRect(addBtnRect, 6.0f * dp, D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.04f)); }
     r.DrawIcon(IconType::Plus, InsetRectF(addBtnRect, 5.0f * dp, 5.0f * dp), vm.isAddHovered ? th.accent : th.textMuted);
-    r.DrawLine(vm.bounds.left + 8.0f * dp, vm.bounds.top + headerH, vm.bounds.right - 8.0f * dp, vm.bounds.top + headerH, D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.06f), 1.0f);
     r.PushClip(D2D1::RectF(vm.bounds.left + 2.0f * dp, vm.bounds.top + headerH - 4.0f * dp, vm.bounds.right - 2.0f * dp, vm.bounds.bottom - 8.0f * dp));
+    if (!vm.items.empty()) {
+        const float itemH = 52.0f * dp;
+        const float itemGap = 6.0f * dp;
+        const float curRailY = vm.bounds.top + headerH - 2.0f * dp - vm.scrollY;
+        const float railPos = std::clamp(vm.railIndicatorPos, 0.0f, static_cast<float>(std::max(0, (int)vm.items.size() - 1)));
+        const float pillY = curRailY + railPos * (itemH + itemGap);
+        const D2D1_RECT_F slidingPill = D2D1::RectF(vm.bounds.left + 8.0f * dp, pillY, vm.bounds.right - 8.0f * dp, pillY + itemH);
+
+        SurfaceStyle pillStyle;
+        pillStyle.radius = 8.0f * dp;
+        pillStyle.fill = ColorWithAlpha(th.accent, 0.14f);
+        pillStyle.border = ColorWithAlpha(th.accent, 0.45f);
+        pillStyle.borderWidth = 1.0f * dp;
+        pillStyle.leftAccentBarAlpha = 1.0f;
+        pillStyle.leftAccentBarColor = th.accent;
+        pillStyle.leftAccentBarWidth = 3.0f * dp;
+        pillStyle.glowColor = ColorWithAlpha(th.accent, 0.20f);
+        pillStyle.glowBlur = 8.0f * dp;
+        r.DrawSurface(slidingPill, pillStyle);
+        r.FillRoundedGradientRect(slidingPill, 8.0f * dp, ColorWithAlpha(th.accent, 0.20f), ColorWithAlpha(th.accent, 0.0f), false);
+    }
     for (const auto& item : vm.items) {
         SurfaceStyle pStyle;
-        pStyle.radius = 7.0f * dp;
+        pStyle.radius = 8.0f * dp;
         pStyle.hasInnerHighlight = false;
         pStyle.hasGradient = false;
         pStyle.glowBlur = 0.0f;
         pStyle.leftAccentBarAlpha = 0.0f;
         pStyle.leftAccentBarWidth = 0.0f;
-        if (item.isActive) {
-            pStyle.fill = D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.045f);
-            pStyle.border = item.isFocused ? ColorWithAlpha(th.accent, 0.60f) : D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.06f);
-            pStyle.borderWidth = 1.0f;
+        if (item.isFocused) {
+            pStyle.fill = ColorWithAlpha(th.surfaceElevated, 0.40f);
+            pStyle.border = ColorWithAlpha(th.accent, 0.50f);
+            pStyle.borderWidth = 1.0f * dp;
             r.DrawSurface(item.itemRect, pStyle);
-        } else if (item.isHovered) {
-            pStyle.fill = D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.025f);
-            pStyle.border = D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.04f);
-            pStyle.borderWidth = 1.0f;
-            r.DrawSurface(item.itemRect, pStyle);
-        } else if (item.isFocused) {
-            pStyle.fill = D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.02f);
-            pStyle.border = ColorWithAlpha(th.accent, 0.40f);
-            pStyle.borderWidth = 1.0f;
+        } else if (item.isHovered && !item.isActive) {
+            pStyle.fill = ColorWithAlpha(th.surfaceElevated, 0.50f);
+            pStyle.border = ColorWithAlpha(th.borderSubtle, 0.60f);
+            pStyle.borderWidth = 1.0f * dp;
             r.DrawSurface(item.itemRect, pStyle);
         }
         float dotRadius = 1.4f * dp, dotCX1 = item.itemRect.left + 10.0f * dp, dotCX2 = item.itemRect.left + 15.0f * dp;
@@ -3187,28 +3168,46 @@ void UIComponents::DrawPlaylistDetailPane(Renderer& r, const Settings& s, const 
     if (vm.resumeCard.hasResumeCard) {
         SurfaceStyle resStyle;
         resStyle.radius = 12.0f * dp;
+        resStyle.backdropFile = vm.resumeCard.filePath;
+        resStyle.pLivePreviewBitmap = vm.resumeCard.pLivePreviewBitmap;
+        resStyle.livePreviewOpacity = vm.resumeCard.previewOpacity;
+        resStyle.backdropOpacity = vm.resumeCard.isResumeHovered ? 0.35f : 0.18f;
+        resStyle.hasInnerHighlight = true;
+        resStyle.innerHighlight = D2D1::ColorF(1.0f, 1.0f, 1.0f, vm.resumeCard.isResumeHovered ? 0.15f : 0.07f);
         if (vm.resumeCard.isResumeFocused) {
-            resStyle.fill = D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.04f);
+            resStyle.fill = ColorWithAlpha(th.surfaceElevated, 0.85f);
             resStyle.border = th.accent;
-            resStyle.borderWidth = 1.5f;
-            resStyle.glowColor = ColorWithAlpha(th.accent, 0.22f);
+            resStyle.borderWidth = 1.5f * dp;
+            resStyle.glowColor = ColorWithAlpha(th.accent, 0.25f);
             resStyle.glowBlur = 8.0f * dp;
             r.DrawSurface(vm.resumeCard.cardRect, resStyle);
         } else if (vm.resumeCard.isResumeHovered) {
-            resStyle.fill = D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.04f);
-            resStyle.border = th.accent;
-            resStyle.borderWidth = 1.0f;
-            resStyle.glowColor = ColorWithAlpha(th.accent, 0.16f);
+            resStyle.fill = ColorWithAlpha(th.surfaceElevated, 0.80f);
+            resStyle.border = ColorWithAlpha(th.accent, 0.70f);
+            resStyle.borderWidth = 1.0f * dp;
+            resStyle.glowColor = ColorWithAlpha(th.accent, 0.18f);
             resStyle.glowBlur = 6.0f * dp;
             r.DrawSurface(vm.resumeCard.cardRect, resStyle);
         } else {
-            resStyle.fill = D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.025f);
-            resStyle.border = D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.06f);
-            resStyle.borderWidth = 1.0f;
+            resStyle.fill = ColorWithAlpha(th.surfaceElevated, 0.50f);
+            resStyle.border = th.borderSubtle;
+            resStyle.borderWidth = 1.0f * dp;
             r.DrawSurface(vm.resumeCard.cardRect, resStyle);
         }
-        r.FillRoundedRect(vm.resumeCard.thumbRect, 8.0f * dp, D2D1::ColorF(0.08f, 0.10f, 0.13f, 0.90f));
+        // Backdrop and live preview wash on the entire card surface (matching Media cards)
         ComPtr<ID2D1Bitmap> bm = r.GetOrCreateVideoThumbnail(vm.resumeCard.filePath, 320, 180);
+        if (bm) {
+            const D2D1_RECT_F& cr = vm.resumeCard.cardRect;
+            r.DrawBitmapRounded(cr, 12.0f * dp, bm.Get(), vm.resumeCard.isResumeHovered ? 0.32f : 0.16f, true);
+            r.FillRoundedGradientRect(cr, 12.0f * dp, D2D1::ColorF(0.02f, 0.02f, 0.03f, 0.35f), D2D1::ColorF(0.02f, 0.02f, 0.03f, 0.92f), false);
+            r.FillRoundedGradientRect(cr, 12.0f * dp, ColorWithAlpha(th.accent, 0.0f), ColorWithAlpha(th.accent, 0.10f), true);
+            r.DrawRoundedRect(cr, 12.0f * dp, vm.resumeCard.isResumeHovered || vm.resumeCard.isResumeFocused ? th.accent : ColorWithAlpha(th.accent, 0.30f), 1.0f * dp);
+        }
+        if (vm.resumeCard.pLivePreviewBitmap && vm.resumeCard.previewOpacity > 0.01f) {
+            r.DrawBitmapRounded(vm.resumeCard.cardRect, 12.0f * dp, vm.resumeCard.pLivePreviewBitmap, vm.resumeCard.previewOpacity * 0.45f, true);
+        }
+        r.DrawDropShadow(vm.resumeCard.thumbRect, 8.0f * dp, 14.0f * dp, 4.0f * dp, D2D1::ColorF(0, 0, 0, 0.55f));
+        r.FillRoundedRect(vm.resumeCard.thumbRect, 8.0f * dp, D2D1::ColorF(0.08f, 0.10f, 0.13f, 0.90f));
         if (bm) {
             r.DrawBitmapRounded(vm.resumeCard.thumbRect, 8.0f * dp, bm.Get(), 1.0f, true);
         } else { r.DrawIcon(IconType::MediaFilm, InsetRectF(vm.resumeCard.thumbRect, 60.0f * dp, 30.0f * dp), th.accentSubtle); }
@@ -3250,11 +3249,16 @@ void UIComponents::DrawPlaylistDetailPane(Renderer& r, const Settings& s, const 
     r.FillRoundedRect(toggleRect, 7.0f * dp, D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.03f));
     r.DrawRoundedRect(toggleRect, 7.0f * dp, D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.08f), 1.0f);
     D2D1_RECT_F listBtnRect = D2D1::RectF(toggleRect.left + 2.0f * dp, toggleRect.top + 2.0f * dp, toggleRect.left + toggleW * 0.5f - 1.0f * dp, toggleRect.bottom - 2.0f * dp);
-    if (!vm.gridView) r.FillRoundedRect(listBtnRect, 5.0f * dp, D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.08f));
-    r.DrawIcon(IconType::FolderPlaylist, InsetRectF(listBtnRect, 6.0f * dp, 6.0f * dp), th.text);
     D2D1_RECT_F gridBtnRect = D2D1::RectF(toggleRect.left + toggleW * 0.5f + 1.0f * dp, toggleRect.top + 2.0f * dp, toggleRect.right - 2.0f * dp, toggleRect.bottom - 2.0f * dp);
-    if (vm.gridView) r.FillRoundedRect(gridBtnRect, 5.0f * dp, D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.08f));
-    r.DrawIcon(IconType::MediaFilm, InsetRectF(gridBtnRect, 6.0f * dp, 6.0f * dp), vm.gridView ? th.text : th.textMuted);
+    // Sliding selection pill for List vs Grid
+    const float vPos = std::clamp(vm.viewModeIndicatorPos, 0.0f, 1.0f);
+    const float vLeft = listBtnRect.left + vPos * (gridBtnRect.left - listBtnRect.left);
+    const float vRight = listBtnRect.right + vPos * (gridBtnRect.right - listBtnRect.right);
+    const D2D1_RECT_F vPill = D2D1::RectF(vLeft, listBtnRect.top, vRight, listBtnRect.bottom);
+    r.FillRoundedRect(vPill, 5.0f * dp, LerpColor(th.cardBg, th.text, 0.10f));
+    r.DrawRoundedRect(vPill, 5.0f * dp, ColorWithAlpha(th.accent, 0.38f), 1.0f);
+    r.DrawIcon(IconType::FolderPlaylist, InsetRectF(listBtnRect, 6.0f * dp, 6.0f * dp), (1.0f - vPos) > 0.5f ? th.accent : th.textMuted);
+    r.DrawIcon(IconType::MediaFilm, InsetRectF(gridBtnRect, 6.0f * dp, 6.0f * dp), vPos > 0.5f ? th.accent : th.textMuted);
     curY += tbH + 12.0f * dp;
     r.PushClip(D2D1::RectF(vm.listClipBounds.left, curY, vm.listClipBounds.right, vm.listClipBounds.bottom));
     if (vm.hasDragClone) {

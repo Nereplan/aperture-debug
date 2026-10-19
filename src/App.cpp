@@ -558,6 +558,11 @@ void App::SnapVisualAnimations() {
     navSettingsTabHover.SnapTo(navSettingsTabHover.to);
     navSettingsRotation.SnapTo(navSettingsRotation.to);
     navOpenFileLift.SnapTo(navOpenFileLift.to);
+    navIndicator.SnapTo(navIndicator.to);
+    settingsCatIndicator.SnapTo(settingsCatIndicator.to);
+    playlistRailIndicator.SnapTo(playlistRailIndicator.to);
+    groupModeIndicator.SnapTo(groupModeIndicator.to);
+    playlistViewModeIndicator.SnapTo(playlistViewModeIndicator.to);
     contextMenuAnim.SnapTo(contextMenuAnim.to);
     flyoutAnim.SnapTo(flyoutAnim.to);
     resumePreviewAnim.SnapTo(resumePreviewAnim.to);
@@ -1434,7 +1439,7 @@ bool App::Update(float dt) {
                 if (!IsAutoscrolling() && activeDragType == DragType::None && !touchPressSuppressesHoverExpand &&
                     row.isHovering && row.hoverEnterTime >= 0.0f) {
                     if ((NowSeconds() - row.hoverEnterTime) >= MotionTokens::kHoverRevealDelay) {
-                        const float expandedH = isPinned ? kMediaPinnedRestHeight : 160.0f;
+                        const float expandedH = isPinned ? kMediaPinnedRestHeight : 180.0f;
                         if (!isPinned && std::abs(row.height.to - expandedH) > 0.01f) {
                             AnimateVisual(row.height, expandedH, MotionTokens::kPreview, MotionTokens::Standard());
                             InvalidateMediaLayoutCache(idx);
@@ -1553,6 +1558,31 @@ bool App::Update(float dt) {
         // No unconditional idle prewarm: an idle hub must not load libmpv or create main/preview mpv instances merely to make the first
         // hover faster. The preview initializes on first hover-intent (see hover path calling EnsurePreviewInitialized), where it loads its
         // own DLL mapping independently of the main player.
+        const auto updateIndicator = [&](AnimatedFloat& indicator, bool& ready, float target) {
+            if (!ready) { indicator.SnapTo(target); ready = true; }
+            else if (std::abs(indicator.to - target) > 0.001f) {
+                AnimateVisual(indicator, target, 0.34f, &kEaseSpring);
+                needsRedraw = true;
+            }
+        };
+        if (currentTab != TabView::Settings)
+            updateIndicator(navIndicator, navIndicatorReady, static_cast<float>(currentTab));
+        if (currentTab == TabView::Settings)
+            updateIndicator(settingsCatIndicator, settingsCatIndicatorReady, static_cast<float>(currentSettingsCat));
+        if (currentTab == TabView::Media)
+            updateIndicator(groupModeIndicator, groupModeIndicatorReady, libraryGroupMode == LibraryGroupMode::Flat ? 0.0f : 1.0f);
+        if (currentTab == TabView::Playlists) {
+            size_t selected = static_cast<size_t>(playlistRailIndicator.to);
+            if (selected >= library.playlists.size() || library.playlists[selected].id != activePlaylistId) {
+                const auto active = std::find_if(library.playlists.begin(), library.playlists.end(),
+                    [&](const Playlist& playlist) { return playlist.id == activePlaylistId; });
+                selected = active == library.playlists.end() ? 0 : static_cast<size_t>(active - library.playlists.begin());
+            }
+            updateIndicator(playlistRailIndicator, playlistRailIndicatorReady, static_cast<float>(selected));
+            updateIndicator(playlistViewModeIndicator, playlistViewModeIndicatorReady, playlistGridView ? 1.0f : 0.0f);
+        }
+        for (auto* indicator : {&navIndicator, &settingsCatIndicator, &playlistRailIndicator, &groupModeIndicator, &playlistViewModeIndicator})
+            if (indicator->Tick()) needsRedraw = true;
         if (navMediaTabHover.Tick()) needsRedraw = true;
         if (navPlaylistTabHover.Tick()) needsRedraw = true;
         if (navHistoryTabHover.Tick()) needsRedraw = true;
@@ -2487,11 +2517,8 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                     float pad = 18.0f * dp, padY = 14.0f * dp, navH = 48.0f * dp;
                     D2D1_RECT_F viewBounds = Presentation::HubView(winW, winH, dp);
                     if (activeDragType == DragType::MediaList) {
-                        D2D1_RECT_F navBounds = D2D1::RectF(pad, padY, winW - pad, padY + navH);
-                        float tabH = 32.0f * dp, tabY = navBounds.top + 4.0f * dp;
-                        float tab1W = 14.0f * dp + 7.0f * dp + renderer.MeasureString(L"Media", FontType::Medium).width + 28.0f * dp;
-                        float tab2W = 14.0f * dp + 7.0f * dp + renderer.MeasureString(L"+ Drop to Playlist", FontType::Medium).width + 28.0f * dp;
-                        D2D1_RECT_F plTabRect = D2D1::RectF(navBounds.left + tab1W + 8.0f * dp, tabY, navBounds.left + tab1W + 8.0f * dp + tab2W + 20.0f * dp, tabY + tabH);
+                        const auto navLayout = Presentation::Nav(winW, dp, Localization::Instance().IsRtl(), [&](const std::wstring& s) { return renderer.MeasureString(s, FontType::Medium).width; });
+                        const D2D1_RECT_F plTabRect = navLayout.tabs[1];
                         isPlaylistsNavDropHovered = PtInRectF(plTabRect, x, y);
                         const auto& visible = GetVisibleMediaIndices();
                         int targetIdx = dragFromIndex;

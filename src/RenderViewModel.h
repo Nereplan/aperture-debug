@@ -287,6 +287,8 @@ struct NavBarViewModel {
     // mirrors App::pressedNavIndex (0..2 tabs, 3 settings, 4 open file).
     float mediaHoverMix = 0.0f, playlistHoverMix = 0.0f, historyHoverMix = 0.0f, settingsHoverMix = 0.0f;
     float openHoverMix = 0.0f;
+    // Animated position of the sliding tab pill (tab index, fractional while moving).
+    float indicatorPos = 0.0f;
     int pressedNavIndex = -1;
 };
 
@@ -345,6 +347,7 @@ struct MediaTabViewModel {
     D2D1_RECT_F flatBtnBounds = { 0, 0, 0, 0 };
     D2D1_RECT_F seriesBtnBounds = { 0, 0, 0, 0 };
     int activeGroupMode = 0; // 0: Flat, 1: Folders, 2: Series, 3: Duplicates
+    float groupModeIndicatorPos = 0.0f;
     int hoveredGroupBtn = -1; // -1: None, 0: Flat, 1: Folders, 2: Series, 3: Duplicates
     bool searchHovered = false, searchFocused = false, searchClearHovered = false, hasSearchQuery = false;
     D2D1_RECT_F searchClearBounds = { 0, 0, 0, 0 };
@@ -381,6 +384,7 @@ struct PlaylistRailItemViewModel {
 struct PlaylistsRailViewModel {
     D2D1_RECT_F bounds = { 0, 0, 0, 0 };
     std::string activePlaylistId;
+    float railIndicatorPos = 0.0f;
     int hoveredIndex = -1;
     bool isAddHovered = false;
     float scrollY = 0.0f;
@@ -437,6 +441,7 @@ struct PlaylistDetailViewModel {
     std::wstring filterQuery;
     bool gridView = false, searchFocused = false;
     TextInputVisualState searchVisual;
+    float viewModeIndicatorPos = 0.0f;
     size_t visibleCount = 0;
     D2D1_RECT_F listClipBounds = { 0, 0, 0, 0 };
     float scrollY = 0.0f;
@@ -582,6 +587,7 @@ struct HistoryTabViewModel {
 struct SettingsTabViewModel {
     D2D1_RECT_F bounds = { 0, 0, 0, 0 };
     SettingsCategory activeCat = SettingsCategory::Appearance;
+    float categoryIndicatorPos = 0.0f;
     SettingsCategory hoveredCat = (SettingsCategory)-1;
     int hoveredRowIndex = -1;
     // System & Storage rows: eased 0..1 hover/press progress per row. Press

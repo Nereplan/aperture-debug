@@ -642,6 +642,21 @@ private:
     AnimatedFloat navSettingsTabHover;
     AnimatedFloat navSettingsRotation;
     AnimatedFloat navOpenFileLift;
+    // Sliding selection pill of the segmented nav: tab index as a float (0..2).
+    AnimatedFloat navIndicator;
+    bool navIndicatorReady = false;
+    // Sliding selection pill of the Settings sidebar category: category index as a float (0..4).
+    AnimatedFloat settingsCatIndicator;
+    bool settingsCatIndicatorReady = false;
+    // Sliding selection pill of the Playlist left rail: playlist index as a float.
+    AnimatedFloat playlistRailIndicator;
+    bool playlistRailIndicatorReady = false;
+    // Sliding selection pill of the Media grouping mode: (0.0 = Standalone, 1.0 = Folders/Series).
+    AnimatedFloat groupModeIndicator;
+    bool groupModeIndicatorReady = false;
+    // Sliding selection pill of the Playlist view mode: (0.0 = List, 1.0 = Grid).
+    AnimatedFloat playlistViewModeIndicator;
+    bool playlistViewModeIndicatorReady = false;
     // 0..2 = nav tabs, 3 = settings, 4 = open file; -1 = none.
     // Set on mouse-down, dispatched on mouse-up so the click has a visible press and release.
     int pressedNavIndex = -1;
