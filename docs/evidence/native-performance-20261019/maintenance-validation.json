@@ -1,0 +1,22 @@
+{
+  "recordedUtc": "2026-10-19T01:21:00.215716+00:00",
+  "checkpointData": {
+    "checkpoints": 48,
+    "observations": 1247,
+    "embeddedReports": 36,
+    "status": "pass"
+  },
+  "checkpointTests": {
+    "passed": 18,
+    "total": 18
+  },
+  "chartTests": {
+    "passed": 16,
+    "total": 16,
+    "scope": "Includes actual resource-map coordinates across compatible protocols and historical value/order preservation."
+  },
+  "historyPreservation": "All 46 prior checkpoint objects, all prior definitions/reports and every VLC reference compared unchanged after append.",
+  "productionDll": "8dd14629f574a04a1d6904104be8748e73954d9ac5aef07cc36f1a34ee752daa unchanged",
+  "visibility": "No Aperture/VLC/native playback process remained after hidden checks. No visible playback benchmark performed.",
+  "candidatePackage": "Ten manifest files verified; trial input uses the identical files with a fresh data directory deferred to the harness."
+}

@@ -1,0 +1,45 @@
+TEST_VISIBILITY hidden-correctness-only
+Loaded module: C:\Users\Alperen\AppData\Local\Codex\tools\scratch\aperture-vlc-performance-20261017\native-performance-20261019\build\output\libmpv-2.dll
+Loaded module path matches requested: YES
+[PASS] loaded DLL is the requested absolute path
+    mpv_client_api_version=0x20005 (2.5)
+[PASS] client api version >= 2.5
+[PASS] transition initial
+TRANSITION_FRAME {"stage":"initial","headless":true,"position":2.000000,"hwdec":"d3d11va","direct_filter":true,"expected_direct":true}
+[PASS] transition option video-zoom=0.5
+[PASS] transition zoom
+TRANSITION_FRAME {"stage":"zoom","headless":true,"position":2.000000,"hwdec":"d3d11va","direct_filter":false,"expected_direct":false}
+[PASS] transition option video-zoom=0
+[PASS] transition unzoom
+TRANSITION_FRAME {"stage":"unzoom","headless":true,"position":2.000000,"hwdec":"d3d11va","direct_filter":true,"expected_direct":true}
+[PASS] transition option video-rotate=90
+[PASS] transition rotate
+TRANSITION_FRAME {"stage":"rotate","headless":true,"position":2.000000,"hwdec":"d3d11va","direct_filter":false,"expected_direct":false}
+[PASS] transition option video-rotate=0
+[PASS] transition unrotate
+TRANSITION_FRAME {"stage":"unrotate","headless":true,"position":2.000000,"hwdec":"d3d11va","direct_filter":true,"expected_direct":true}
+[PASS] transition option fbo-format=rgba8
+[PASS] transition rgba8
+TRANSITION_FRAME {"stage":"rgba8","headless":true,"position":2.000000,"hwdec":"d3d11va","direct_filter":false,"expected_direct":false}
+[PASS] transition option fbo-format=auto
+[PASS] transition auto-fbo
+TRANSITION_FRAME {"stage":"auto-fbo","headless":true,"position":2.000000,"hwdec":"d3d11va","direct_filter":true,"expected_direct":true}
+[PASS] transition option hwdec=no
+[PASS] transition software
+TRANSITION_FRAME {"stage":"software","headless":true,"position":2.000000,"hwdec":"no","direct_filter":false,"expected_direct":false}
+[PASS] transition option hwdec=d3d11va
+[PASS] transition hardware
+TRANSITION_FRAME {"stage":"hardware","headless":true,"position":2.000000,"hwdec":"d3d11va","direct_filter":true,"expected_direct":true}
+[PASS] transition hdr
+TRANSITION_FRAME {"stage":"hdr","headless":true,"position":2.000000,"hwdec":"d3d11va","direct_filter":false,"expected_direct":false}
+[PASS] transition sdr-return
+TRANSITION_FRAME {"stage":"sdr-return","headless":true,"position":2.000000,"hwdec":"d3d11va","direct_filter":true,"expected_direct":true}
+[PASS] transition stop becomes idle
+[PASS] transition reopen
+TRANSITION_FRAME {"stage":"reopen","headless":true,"position":2.000000,"hwdec":"d3d11va","direct_filter":true,"expected_direct":true}
+[PASS] transition sequence completes
+RENDER_OPTIONS {"scale":"lanczos","dscale":"hermite","cscale":"bilinear","linear-downscaling":"no","correct-downscaling":"yes","sigmoid-upscaling":"no","dither-depth":"auto","dither":"fruit","target-colorspace-hint":"auto","fbo-format":"auto","d3d11-gpu-timing":"no","d3d11-vertex-cache-entries":"4","scale-direct-nv12":"yes","d3d11va-zero-copy":"no","video-zoom":"0.000000","video-rotate":"0","video-params/hw-pixelformat":"nv12","video-out-params/pixelformat":"d3d11","video-params/primaries":"bt.709","video-params/gamma":"bt.1886","video-params/alpha":"none"}
+[PASS] transition effective options
+[PASS] headless test owner windows remained hidden
+
+==== SUMMARY: 26 passed, 0 failed ====

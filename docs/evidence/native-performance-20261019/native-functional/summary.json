@@ -1,0 +1,10 @@
+{
+  "scenario": "functional",
+  "sourceDll": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\native-performance-20261019\\build\\output\\libmpv-2.dll",
+  "loadedDll": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-298ddc964386407cae4f0fa675199361\\libmpv-2.dll",
+  "sha256": "0EB2A7EA41231DB97FB4D10D0125675247B5FAB3B9B068D0617D3F320C016B82",
+  "bytes": 33462784,
+  "exitCode": 0,
+  "visibility": "hidden-correctness-only",
+  "logs": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-298ddc964386407cae4f0fa675199361"
+}

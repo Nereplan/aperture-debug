@@ -1,0 +1,33 @@
+Q:/src/ffmpeg/libavcodec/wmadec.c: In function 'wma_decode_block':
+Q:/src/ffmpeg/libavcodec/wmadec.c:521:30: warning: writing 1 byte into a region of size 0 [-Wstringop-overflow=]
+  521 |         s->channel_coded[ch] = a;
+      |                              ^
+Q:/src/ffmpeg/libavcodec/wma.h:112:13: note: at offset 2 into destination object 'channel_coded' of size 2
+  112 |     uint8_t channel_coded[MAX_CHANNELS];    ///< true if channel is coded
+      |             ^
+Q:/src/ffmpeg/libavcodec/aacsbr_template.c: In function 'read_sbr_grid':
+Q:/src/ffmpeg/libavcodec/aacsbr_template.c:729:57: warning: writing 1 byte into a region of size 0 [-Wstringop-overflow=]
+  729 |             ch_data->t_env[ch_data->bs_num_env - 1 - i] =
+      |                                                         ^
+Q:/src/ffmpeg/libavcodec/sbr.h:106:24: note: at offset [2147483649, 4294967295] into destination object 't_env' of size 9
+  106 |     uint8_t            t_env[9];
+      |                        ^
+Q:/src/ffmpeg/libavcodec/aacsbr_template.c:729:57: warning: writing 1 byte into a region of size 0 [-Wstringop-overflow=]
+  729 |             ch_data->t_env[ch_data->bs_num_env - 1 - i] =
+      |                                                         ^
+Q:/src/ffmpeg/libavcodec/sbr.h:106:24: note: at offset [2147483649, 4294967294] into destination object 't_env' of size 9
+  106 |     uint8_t            t_env[9];
+      |                        ^
+Q:/src/ffmpeg/libavcodec/aacsbr_template.c:729:57: warning: writing 1 byte into a region of size 0 [-Wstringop-overflow=]
+  729 |             ch_data->t_env[ch_data->bs_num_env - 1 - i] =
+      |                                                         ^
+Q:/src/ffmpeg/libavcodec/sbr.h:106:24: note: at offset [2147483649, 4294967293] into destination object 't_env' of size 9
+  106 |     uint8_t            t_env[9];
+      |                        ^
+Q:/src/ffmpeg/libavcodec/aacsbr_template.c:729:57: warning: writing 1 byte into a region of size 0 [-Wstringop-overflow=]
+  729 |             ch_data->t_env[ch_data->bs_num_env - 1 - i] =
+      |                                                         ^
+Q:/src/ffmpeg/libavcodec/sbr.h:106:24: note: at offset [2147483649, 4294967292] into destination object 't_env' of size 9
+  106 |     uint8_t            t_env[9];
+      |                        ^
+C:\Users\Alperen\AppData\Local\Codex\tools\scratch\aperture-vlc-performance-20261017\native-performance-20261019\decode-performance-static.exe

@@ -1,0 +1,308 @@
+{
+  "recordedUtc": "2026-10-19T01:18:45.227725+00:00",
+  "batchCompletedUtc": "2026-10-19T01:05:06.543691+00:00",
+  "status": "Portable speed candidate ready. Four internal software-decode cases improved; AV1 effectively unchanged; decoded output matches exactly. Full-App CPU/RAM comparison with saved VLC has not been run, so the candidate is not adopted and an overall win is unproven.",
+  "method": "One discarded process per variant/case, followed by rotated measured processes. Each process first hashes decoded output in a separate warmup, then initializes a fresh decoder and times fixed-count demux/decode/frame release. Open, stream discovery and codec initialization excluded. One decoder thread, warm file cache, no affinity change; raw process cycles and CPU time retained without converting to CPU utilization. Exact decoded buffers and frame metadata must match across both variants and all launches.",
+  "scope": "CPU-only demux/software decode. No renderer, hardware decode, audio output or player windows. Not a whole-player benchmark.",
+  "profileChange": "FFmpeg enable-small/-Os versus disable-small/-O3, and mpv/libplacebo size versus -O3 optimization. Same pinned source revisions, four maintained patches and GCC version; shader dependencies stay -Os without LTO. No fast-math, CPU target, scaling profile or decoder-feature reduction. The probe statically links the corresponding FFmpeg prefix and uses a different final LTO root set from the full libmpv DLL; its gains are not App CPU percentages.",
+  "summary": [
+    {
+      "case": "h264-1080p",
+      "kind": "video",
+      "frames": 180,
+      "decodedSha256": "473fb7ebfc2afa1537164d975d00e4ee0a70e8040f4f3aa22165ac61a45d61a4",
+      "baseline": {
+        "elapsedSeconds": {
+          "median": 0.751186,
+          "min": 0.7155775,
+          "max": 0.7580109,
+          "runs": 5
+        },
+        "processCpuSeconds": {
+          "median": 0.734375,
+          "min": 0.703125,
+          "max": 0.75,
+          "runs": 5
+        },
+        "processCycles": {
+          "median": 2842355540,
+          "min": 2708236820,
+          "max": 2869015200,
+          "runs": 5
+        }
+      },
+      "candidate": {
+        "elapsedSeconds": {
+          "median": 0.675723,
+          "min": 0.6639098,
+          "max": 0.7098051,
+          "runs": 5
+        },
+        "processCpuSeconds": {
+          "median": 0.671875,
+          "min": 0.640625,
+          "max": 0.703125,
+          "runs": 5
+        },
+        "processCycles": {
+          "median": 2560314600,
+          "min": 2516192040,
+          "max": 2645420160,
+          "runs": 5
+        }
+      },
+      "elapsedRelativePercent": -10.045847499820294,
+      "cyclesRelativePercent": -9.922788899238133
+    },
+    {
+      "case": "hevc-720p",
+      "kind": "video",
+      "frames": 240,
+      "decodedSha256": "e0fa54f67e56ae1fc100e4ca1fd3f7ab4f1a819eb0d750f0153cec625108a74a",
+      "baseline": {
+        "elapsedSeconds": {
+          "median": 0.7543378,
+          "min": 0.7476689,
+          "max": 0.8617083,
+          "runs": 5
+        },
+        "processCpuSeconds": {
+          "median": 0.75,
+          "min": 0.734375,
+          "max": 0.859375,
+          "runs": 5
+        },
+        "processCycles": {
+          "median": 2852546380,
+          "min": 2828464640,
+          "max": 3233524880,
+          "runs": 5
+        }
+      },
+      "candidate": {
+        "elapsedSeconds": {
+          "median": 0.7198296,
+          "min": 0.7017157,
+          "max": 0.7538098,
+          "runs": 5
+        },
+        "processCpuSeconds": {
+          "median": 0.703125,
+          "min": 0.6875,
+          "max": 0.75,
+          "runs": 5
+        },
+        "processCycles": {
+          "median": 2722373200,
+          "min": 2657983340,
+          "max": 2845977320,
+          "runs": 5
+        }
+      },
+      "elapsedRelativePercent": -4.574634865175787,
+      "cyclesRelativePercent": -4.56340275175473
+    },
+    {
+      "case": "vp9-360p",
+      "kind": "video",
+      "frames": 240,
+      "decodedSha256": "b2f0508380353e2f0ce72c032d0efccf994c745ce62444a197a6db38b0930053",
+      "baseline": {
+        "elapsedSeconds": {
+          "median": 0.1038991,
+          "min": 0.1029128,
+          "max": 0.1053081,
+          "runs": 5
+        },
+        "processCpuSeconds": {
+          "median": 0.109375,
+          "min": 0.09375,
+          "max": 0.109375,
+          "runs": 5
+        },
+        "processCycles": {
+          "median": 393909900,
+          "min": 390084440,
+          "max": 398204660,
+          "runs": 5
+        }
+      },
+      "candidate": {
+        "elapsedSeconds": {
+          "median": 0.0975398,
+          "min": 0.0963631,
+          "max": 0.0981474,
+          "runs": 5
+        },
+        "processCpuSeconds": {
+          "median": 0.09375,
+          "min": 0.09375,
+          "max": 0.109375,
+          "runs": 5
+        },
+        "processCycles": {
+          "median": 369985860,
+          "min": 365389380,
+          "max": 371366400,
+          "runs": 5
+        }
+      },
+      "elapsedRelativePercent": -6.120649745762952,
+      "cyclesRelativePercent": -6.073480255256348
+    },
+    {
+      "case": "av1-1080p",
+      "kind": "video",
+      "frames": 120,
+      "decodedSha256": "4412e2adc80a4e6a67119ffa7298cb954f2fd212dc4bce74e9ef357314c13967",
+      "baseline": {
+        "elapsedSeconds": {
+          "median": 0.6138159,
+          "min": 0.6024299,
+          "max": 0.6259104,
+          "runs": 5
+        },
+        "processCpuSeconds": {
+          "median": 0.609375,
+          "min": 0.609375,
+          "max": 0.625,
+          "runs": 5
+        },
+        "processCycles": {
+          "median": 2323635400,
+          "min": 2283952760,
+          "max": 2363800640,
+          "runs": 5
+        }
+      },
+      "candidate": {
+        "elapsedSeconds": {
+          "median": 0.6150628,
+          "min": 0.6080129,
+          "max": 0.6196833,
+          "runs": 5
+        },
+        "processCpuSeconds": {
+          "median": 0.609375,
+          "min": 0.59375,
+          "max": 0.625,
+          "runs": 5
+        },
+        "processCycles": {
+          "median": 2325671820,
+          "min": 2305181460,
+          "max": 2341297800,
+          "runs": 5
+        }
+      },
+      "elapsedRelativePercent": 0.20313908453659657,
+      "cyclesRelativePercent": 0.08763939471743143
+    },
+    {
+      "case": "aac-stereo",
+      "kind": "audio",
+      "frames": 3000,
+      "decodedSha256": "18e63ed8c5e99d9c4f3a18b7b46136802664d6205e075afe0d135146265e408a",
+      "baseline": {
+        "elapsedSeconds": {
+          "median": 0.0442966,
+          "min": 0.0430977,
+          "max": 0.0450757,
+          "runs": 5
+        },
+        "processCpuSeconds": {
+          "median": 0.046875,
+          "min": 0.03125,
+          "max": 0.046875,
+          "runs": 5
+        },
+        "processCycles": {
+          "median": 167574680,
+          "min": 163317160,
+          "max": 170570600,
+          "runs": 5
+        }
+      },
+      "candidate": {
+        "elapsedSeconds": {
+          "median": 0.0400948,
+          "min": 0.0389727,
+          "max": 0.0404176,
+          "runs": 5
+        },
+        "processCpuSeconds": {
+          "median": 0.046875,
+          "min": 0.03125,
+          "max": 0.046875,
+          "runs": 5
+        },
+        "processCycles": {
+          "median": 151195920,
+          "min": 147692700,
+          "max": 152558220,
+          "runs": 5
+        }
+      },
+      "elapsedRelativePercent": -9.48560386124443,
+      "cyclesRelativePercent": -9.774006431043158
+    }
+  ],
+  "validation": {
+    "nativeFunctional": {
+      "passed": 80,
+      "total": 80,
+      "scope": "Hidden parent windows, null audio output; hardware/software AV1 and codec/control/filter/local-network cases. Physical WASAPI sink and visible cadence not validated."
+    },
+    "appUnits": {
+      "passed": 52,
+      "total": 53,
+      "skipped": 1,
+      "scope": "Desktop PlaybackSession geometry deferred; not counted as passed."
+    },
+    "pairedFrames": {
+      "cases": 14,
+      "isolatedRuns": 28,
+      "sdrCases": 13,
+      "sdrMaximumChannelError": 0,
+      "hdrMaximumChannelError": 1,
+      "scope": "Same direct filter settings both libraries; thirteen SDR cases exact. HDR fallback path/decoder verified and pixels reported, retaining adaptive peak-history limits."
+    },
+    "stateful": {
+      "checksPassed": 26,
+      "stageCaptures": 12,
+      "maximumChannelErrorVsSavedSizeProfile": 0,
+      "restoredFrameChecks": 6,
+      "restoredMaximumChannelError": 0,
+      "scope": "Crop/rotation, explicit FBO, software/hardware replacement, HDR/SDR return and stop/reopen in one hidden process. Saved control captures retain their original session."
+    },
+    "toolTests": {
+      "buildProfiles": 4,
+      "comparisonValidation": 3,
+      "pinnedPatches": 7,
+      "buildRootBoundaries": 4
+    },
+    "profileCacheGuard": "Opposite profile rejected before compilation; native DLL, recipe ID and completed profile marker unchanged.",
+    "timingGuard": "Active compilation refused before creating benchmark output or launching a probe.",
+    "package": "Read-AperturePackage verified ten listed files; portable candidate prepared without launching/installing it."
+  },
+  "tradeoffs": {
+    "baselineDllBytes": 24561152,
+    "candidateDllBytes": 33462784,
+    "dllIncreaseMiB": 8.4892578125,
+    "note": "Candidate DLL is about 8.49 MiB larger. Full-player private RAM, startup and hardware-playback CPU effect remain unmeasured."
+  },
+  "candidate": {
+    "runtime": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\native-performance-20261019\\portable-candidate",
+    "appSha256": "3f63a5577e6c56b17441c88c28d8cbed2734a71738be165a44443243a04ae8b0",
+    "nativeSha256": "0eb2a7ea41231db97fb4d10d0125675247b5fab3b9b068d0617d3f320c016b82",
+    "productionBundledDllChanged": false
+  },
+  "limits": [
+    "Five measured processes per variant/case after one discarded process; every process also uses a separate decoded-output hash warmup before its fresh timed decoder. Warm local files, one software decoder thread, no affinity change.",
+    "Internal software demux/decode excludes player startup, rendering, hardware decoding, audio output, and file-open/codec initialization. It is not a player/VLC ranking or proof of the same speedup in libmpv.",
+    "H264/VP9/AAC run ranges separate in this batch; HEVC ranges overlap. AV1 changes about +0.2 percent in wall time and +0.09 percent in cycles, within overlapping ranges.",
+    "Exact hashes validate the tested decoded buffers/metadata. Hidden rendered checks do not establish physical presentation cadence.",
+    "Saved VLC evidence/dates/sessions unchanged. Any fresh full-player comparison requires a separately authorized visible Aperture-only test under the project rule."
+  ],
+  "dashboardFix": "Resource-map point extraction now uses declared compatible history groups as the timeline does; the old per-protocol extraction was omitting compatible historical dots. Source readings are unchanged."
+}

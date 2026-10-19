@@ -1,0 +1,2024 @@
+{
+  "createdUtc": "2026-10-19T01:02:26.042456+00:00",
+  "status": "passed",
+  "scope": "CPU-only demux/software decode. No renderer, hardware decode, audio output or player windows. Not a whole-player benchmark.",
+  "method": "One discarded process per variant/case, followed by rotated measured processes. Each process first hashes decoded output in a separate warmup, then initializes a fresh decoder and times fixed-count demux/decode/frame release. Open, stream discovery and codec initialization excluded. One decoder thread, warm file cache, no affinity change; raw process cycles and CPU time retained without converting to CPU utilization. Exact decoded buffers and frame metadata must match across both variants and all launches.",
+  "environment": {
+    "platform": "Windows-11-10.0.26200-SP0",
+    "machine": "AMD64",
+    "logicalProcessors": 24
+  },
+  "probes": {
+    "baseline": {
+      "path": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\native-performance-20261019\\decode-size-static.exe",
+      "sha256": "bffbb7971b92c543bd9b0f991798ece8c3d205e73e230aa348829d2044c99e5c"
+    },
+    "candidate": {
+      "path": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\native-performance-20261019\\decode-performance-static.exe",
+      "sha256": "cbeb1bda9f7af941756cd8d44b1f2910dc4de5682d7d7d5acff51e9452e13013"
+    }
+  },
+  "cases": [
+    {
+      "id": "h264-1080p",
+      "path": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\h264-1080p30-audio.mp4",
+      "kind": "video",
+      "frames": 180,
+      "fixtureSha256": "86c249a196158ca2479bb9dd6e0045f24cbcbd2e04a80a41e37c2f6b78f70e68",
+      "runs": [
+        {
+          "variant": "baseline",
+          "round": 0,
+          "warmup": true,
+          "startedUtc": "2026-10-19T01:02:27.323560+00:00",
+          "arguments": [
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\native-performance-20261019\\decode-size-static.exe",
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\h264-1080p30-audio.mp4",
+            "video",
+            "180"
+          ],
+          "endedUtc": "2026-10-19T01:02:31.472802+00:00",
+          "exitCode": 0,
+          "result": {
+            "kind": "video",
+            "decoder": "h264",
+            "threads": 1,
+            "hardware": false,
+            "frames": 180,
+            "packets": 182,
+            "units": 373248000,
+            "decodedSha256": "473fb7ebfc2afa1537164d975d00e4ee0a70e8040f4f3aa22165ac61a45d61a4",
+            "elapsedSeconds": 0.7719435,
+            "processCpuSeconds": 0.765625,
+            "processCycles": 2919161140,
+            "avcodecVersion": 4066148,
+            "windowsCreated": 0
+          }
+        },
+        {
+          "variant": "candidate",
+          "round": 0,
+          "warmup": true,
+          "startedUtc": "2026-10-19T01:02:32.013697+00:00",
+          "arguments": [
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\native-performance-20261019\\decode-performance-static.exe",
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\h264-1080p30-audio.mp4",
+            "video",
+            "180"
+          ],
+          "endedUtc": "2026-10-19T01:02:35.368077+00:00",
+          "exitCode": 0,
+          "result": {
+            "kind": "video",
+            "decoder": "h264",
+            "threads": 1,
+            "hardware": false,
+            "frames": 180,
+            "packets": 182,
+            "units": 373248000,
+            "decodedSha256": "473fb7ebfc2afa1537164d975d00e4ee0a70e8040f4f3aa22165ac61a45d61a4",
+            "elapsedSeconds": 0.6837891,
+            "processCpuSeconds": 0.671875,
+            "processCycles": 2587791260,
+            "avcodecVersion": 4066148,
+            "windowsCreated": 0
+          }
+        },
+        {
+          "variant": "candidate",
+          "round": 1,
+          "warmup": false,
+          "startedUtc": "2026-10-19T01:02:36.376317+00:00",
+          "arguments": [
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\native-performance-20261019\\decode-performance-static.exe",
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\h264-1080p30-audio.mp4",
+            "video",
+            "180"
+          ],
+          "endedUtc": "2026-10-19T01:02:39.752507+00:00",
+          "exitCode": 0,
+          "result": {
+            "kind": "video",
+            "decoder": "h264",
+            "threads": 1,
+            "hardware": false,
+            "frames": 180,
+            "packets": 182,
+            "units": 373248000,
+            "decodedSha256": "473fb7ebfc2afa1537164d975d00e4ee0a70e8040f4f3aa22165ac61a45d61a4",
+            "elapsedSeconds": 0.7098051,
+            "processCpuSeconds": 0.6875,
+            "processCycles": 2643420600,
+            "avcodecVersion": 4066148,
+            "windowsCreated": 0
+          }
+        },
+        {
+          "variant": "baseline",
+          "round": 1,
+          "warmup": false,
+          "startedUtc": "2026-10-19T01:02:40.271972+00:00",
+          "arguments": [
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\native-performance-20261019\\decode-size-static.exe",
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\h264-1080p30-audio.mp4",
+            "video",
+            "180"
+          ],
+          "endedUtc": "2026-10-19T01:02:44.341125+00:00",
+          "exitCode": 0,
+          "result": {
+            "kind": "video",
+            "decoder": "h264",
+            "threads": 1,
+            "hardware": false,
+            "frames": 180,
+            "packets": 182,
+            "units": 373248000,
+            "decodedSha256": "473fb7ebfc2afa1537164d975d00e4ee0a70e8040f4f3aa22165ac61a45d61a4",
+            "elapsedSeconds": 0.7155775,
+            "processCpuSeconds": 0.703125,
+            "processCycles": 2708236820,
+            "avcodecVersion": 4066148,
+            "windowsCreated": 0
+          }
+        },
+        {
+          "variant": "baseline",
+          "round": 2,
+          "warmup": false,
+          "startedUtc": "2026-10-19T01:02:45.290620+00:00",
+          "arguments": [
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\native-performance-20261019\\decode-size-static.exe",
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\h264-1080p30-audio.mp4",
+            "video",
+            "180"
+          ],
+          "endedUtc": "2026-10-19T01:02:49.414339+00:00",
+          "exitCode": 0,
+          "result": {
+            "kind": "video",
+            "decoder": "h264",
+            "threads": 1,
+            "hardware": false,
+            "frames": 180,
+            "packets": 182,
+            "units": 373248000,
+            "decodedSha256": "473fb7ebfc2afa1537164d975d00e4ee0a70e8040f4f3aa22165ac61a45d61a4",
+            "elapsedSeconds": 0.7419926,
+            "processCpuSeconds": 0.734375,
+            "processCycles": 2807444180,
+            "avcodecVersion": 4066148,
+            "windowsCreated": 0
+          }
+        },
+        {
+          "variant": "candidate",
+          "round": 2,
+          "warmup": false,
+          "startedUtc": "2026-10-19T01:02:49.915884+00:00",
+          "arguments": [
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\native-performance-20261019\\decode-performance-static.exe",
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\h264-1080p30-audio.mp4",
+            "video",
+            "180"
+          ],
+          "endedUtc": "2026-10-19T01:02:53.185179+00:00",
+          "exitCode": 0,
+          "result": {
+            "kind": "video",
+            "decoder": "h264",
+            "threads": 1,
+            "hardware": false,
+            "frames": 180,
+            "packets": 182,
+            "units": 373248000,
+            "decodedSha256": "473fb7ebfc2afa1537164d975d00e4ee0a70e8040f4f3aa22165ac61a45d61a4",
+            "elapsedSeconds": 0.6755829,
+            "processCpuSeconds": 0.671875,
+            "processCycles": 2555677460,
+            "avcodecVersion": 4066148,
+            "windowsCreated": 0
+          }
+        },
+        {
+          "variant": "candidate",
+          "round": 3,
+          "warmup": false,
+          "startedUtc": "2026-10-19T01:02:54.072372+00:00",
+          "arguments": [
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\native-performance-20261019\\decode-performance-static.exe",
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\h264-1080p30-audio.mp4",
+            "video",
+            "180"
+          ],
+          "endedUtc": "2026-10-19T01:02:57.254866+00:00",
+          "exitCode": 0,
+          "result": {
+            "kind": "video",
+            "decoder": "h264",
+            "threads": 1,
+            "hardware": false,
+            "frames": 180,
+            "packets": 182,
+            "units": 373248000,
+            "decodedSha256": "473fb7ebfc2afa1537164d975d00e4ee0a70e8040f4f3aa22165ac61a45d61a4",
+            "elapsedSeconds": 0.6639098,
+            "processCpuSeconds": 0.640625,
+            "processCycles": 2516192040,
+            "avcodecVersion": 4066148,
+            "windowsCreated": 0
+          }
+        },
+        {
+          "variant": "baseline",
+          "round": 3,
+          "warmup": false,
+          "startedUtc": "2026-10-19T01:02:57.704895+00:00",
+          "arguments": [
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\native-performance-20261019\\decode-size-static.exe",
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\h264-1080p30-audio.mp4",
+            "video",
+            "180"
+          ],
+          "endedUtc": "2026-10-19T01:03:01.688439+00:00",
+          "exitCode": 0,
+          "result": {
+            "kind": "video",
+            "decoder": "h264",
+            "threads": 1,
+            "hardware": false,
+            "frames": 180,
+            "packets": 182,
+            "units": 373248000,
+            "decodedSha256": "473fb7ebfc2afa1537164d975d00e4ee0a70e8040f4f3aa22165ac61a45d61a4",
+            "elapsedSeconds": 0.751186,
+            "processCpuSeconds": 0.734375,
+            "processCycles": 2842355540,
+            "avcodecVersion": 4066148,
+            "windowsCreated": 0
+          }
+        },
+        {
+          "variant": "baseline",
+          "round": 4,
+          "warmup": false,
+          "startedUtc": "2026-10-19T01:03:02.589832+00:00",
+          "arguments": [
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\native-performance-20261019\\decode-size-static.exe",
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\h264-1080p30-audio.mp4",
+            "video",
+            "180"
+          ],
+          "endedUtc": "2026-10-19T01:03:06.615420+00:00",
+          "exitCode": 0,
+          "result": {
+            "kind": "video",
+            "decoder": "h264",
+            "threads": 1,
+            "hardware": false,
+            "frames": 180,
+            "packets": 182,
+            "units": 373248000,
+            "decodedSha256": "473fb7ebfc2afa1537164d975d00e4ee0a70e8040f4f3aa22165ac61a45d61a4",
+            "elapsedSeconds": 0.7580109,
+            "processCpuSeconds": 0.75,
+            "processCycles": 2869015200,
+            "avcodecVersion": 4066148,
+            "windowsCreated": 0
+          }
+        },
+        {
+          "variant": "candidate",
+          "round": 4,
+          "warmup": false,
+          "startedUtc": "2026-10-19T01:03:07.060432+00:00",
+          "arguments": [
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\native-performance-20261019\\decode-performance-static.exe",
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\h264-1080p30-audio.mp4",
+            "video",
+            "180"
+          ],
+          "endedUtc": "2026-10-19T01:03:10.282485+00:00",
+          "exitCode": 0,
+          "result": {
+            "kind": "video",
+            "decoder": "h264",
+            "threads": 1,
+            "hardware": false,
+            "frames": 180,
+            "packets": 182,
+            "units": 373248000,
+            "decodedSha256": "473fb7ebfc2afa1537164d975d00e4ee0a70e8040f4f3aa22165ac61a45d61a4",
+            "elapsedSeconds": 0.675723,
+            "processCpuSeconds": 0.671875,
+            "processCycles": 2560314600,
+            "avcodecVersion": 4066148,
+            "windowsCreated": 0
+          }
+        },
+        {
+          "variant": "candidate",
+          "round": 5,
+          "warmup": false,
+          "startedUtc": "2026-10-19T01:03:11.164196+00:00",
+          "arguments": [
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\native-performance-20261019\\decode-performance-static.exe",
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\h264-1080p30-audio.mp4",
+            "video",
+            "180"
+          ],
+          "endedUtc": "2026-10-19T01:03:14.401589+00:00",
+          "exitCode": 0,
+          "result": {
+            "kind": "video",
+            "decoder": "h264",
+            "threads": 1,
+            "hardware": false,
+            "frames": 180,
+            "packets": 182,
+            "units": 373248000,
+            "decodedSha256": "473fb7ebfc2afa1537164d975d00e4ee0a70e8040f4f3aa22165ac61a45d61a4",
+            "elapsedSeconds": 0.7010758,
+            "processCpuSeconds": 0.703125,
+            "processCycles": 2645420160,
+            "avcodecVersion": 4066148,
+            "windowsCreated": 0
+          }
+        },
+        {
+          "variant": "baseline",
+          "round": 5,
+          "warmup": false,
+          "startedUtc": "2026-10-19T01:03:14.864988+00:00",
+          "arguments": [
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\native-performance-20261019\\decode-size-static.exe",
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\h264-1080p30-audio.mp4",
+            "video",
+            "180"
+          ],
+          "endedUtc": "2026-10-19T01:03:18.878205+00:00",
+          "exitCode": 0,
+          "result": {
+            "kind": "video",
+            "decoder": "h264",
+            "threads": 1,
+            "hardware": false,
+            "frames": 180,
+            "packets": 182,
+            "units": 373248000,
+            "decodedSha256": "473fb7ebfc2afa1537164d975d00e4ee0a70e8040f4f3aa22165ac61a45d61a4",
+            "elapsedSeconds": 0.7514349,
+            "processCpuSeconds": 0.75,
+            "processCycles": 2842956700,
+            "avcodecVersion": 4066148,
+            "windowsCreated": 0
+          }
+        }
+      ],
+      "status": "passed",
+      "summary": {
+        "baseline": {
+          "elapsedSeconds": {
+            "median": 0.751186,
+            "min": 0.7155775,
+            "max": 0.7580109,
+            "runs": 5
+          },
+          "processCpuSeconds": {
+            "median": 0.734375,
+            "min": 0.703125,
+            "max": 0.75,
+            "runs": 5
+          },
+          "processCycles": {
+            "median": 2842355540,
+            "min": 2708236820,
+            "max": 2869015200,
+            "runs": 5
+          }
+        },
+        "candidate": {
+          "elapsedSeconds": {
+            "median": 0.675723,
+            "min": 0.6639098,
+            "max": 0.7098051,
+            "runs": 5
+          },
+          "processCpuSeconds": {
+            "median": 0.671875,
+            "min": 0.640625,
+            "max": 0.703125,
+            "runs": 5
+          },
+          "processCycles": {
+            "median": 2560314600,
+            "min": 2516192040,
+            "max": 2645420160,
+            "runs": 5
+          }
+        }
+      }
+    },
+    {
+      "id": "hevc-720p",
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\media\\hevc_aac_720p.mp4",
+      "kind": "video",
+      "frames": 240,
+      "fixtureSha256": "8f8ac1d8e72478937493b0d910d2f18d160f15eac5dbde07992c21f135eaba51",
+      "runs": [
+        {
+          "variant": "baseline",
+          "round": 0,
+          "warmup": true,
+          "startedUtc": "2026-10-19T01:03:19.801135+00:00",
+          "arguments": [
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\native-performance-20261019\\decode-size-static.exe",
+            "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\media\\hevc_aac_720p.mp4",
+            "video",
+            "240"
+          ],
+          "endedUtc": "2026-10-19T01:03:22.839428+00:00",
+          "exitCode": 0,
+          "result": {
+            "kind": "video",
+            "decoder": "hevc",
+            "threads": 1,
+            "hardware": false,
+            "frames": 240,
+            "packets": 242,
+            "units": 221184000,
+            "decodedSha256": "e0fa54f67e56ae1fc100e4ca1fd3f7ab4f1a819eb0d750f0153cec625108a74a",
+            "elapsedSeconds": 0.7485797,
+            "processCpuSeconds": 0.75,
+            "processCycles": 2835674000,
+            "avcodecVersion": 4066148,
+            "windowsCreated": 0
+          }
+        },
+        {
+          "variant": "candidate",
+          "round": 0,
+          "warmup": true,
+          "startedUtc": "2026-10-19T01:03:23.303223+00:00",
+          "arguments": [
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\native-performance-20261019\\decode-performance-static.exe",
+            "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\media\\hevc_aac_720p.mp4",
+            "video",
+            "240"
+          ],
+          "endedUtc": "2026-10-19T01:03:25.854100+00:00",
+          "exitCode": 0,
+          "result": {
+            "kind": "video",
+            "decoder": "hevc",
+            "threads": 1,
+            "hardware": false,
+            "frames": 240,
+            "packets": 242,
+            "units": 221184000,
+            "decodedSha256": "e0fa54f67e56ae1fc100e4ca1fd3f7ab4f1a819eb0d750f0153cec625108a74a",
+            "elapsedSeconds": 0.7303002,
+            "processCpuSeconds": 0.734375,
+            "processCycles": 2767312380,
+            "avcodecVersion": 4066148,
+            "windowsCreated": 0
+          }
+        },
+        {
+          "variant": "candidate",
+          "round": 1,
+          "warmup": false,
+          "startedUtc": "2026-10-19T01:03:26.788944+00:00",
+          "arguments": [
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\native-performance-20261019\\decode-performance-static.exe",
+            "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\media\\hevc_aac_720p.mp4",
+            "video",
+            "240"
+          ],
+          "endedUtc": "2026-10-19T01:03:29.380975+00:00",
+          "exitCode": 0,
+          "result": {
+            "kind": "video",
+            "decoder": "hevc",
+            "threads": 1,
+            "hardware": false,
+            "frames": 240,
+            "packets": 242,
+            "units": 221184000,
+            "decodedSha256": "e0fa54f67e56ae1fc100e4ca1fd3f7ab4f1a819eb0d750f0153cec625108a74a",
+            "elapsedSeconds": 0.7435139,
+            "processCpuSeconds": 0.703125,
+            "processCycles": 2802275040,
+            "avcodecVersion": 4066148,
+            "windowsCreated": 0
+          }
+        },
+        {
+          "variant": "baseline",
+          "round": 1,
+          "warmup": false,
+          "startedUtc": "2026-10-19T01:03:29.846301+00:00",
+          "arguments": [
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\native-performance-20261019\\decode-size-static.exe",
+            "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\media\\hevc_aac_720p.mp4",
+            "video",
+            "240"
+          ],
+          "endedUtc": "2026-10-19T01:03:33.058589+00:00",
+          "exitCode": 0,
+          "result": {
+            "kind": "video",
+            "decoder": "hevc",
+            "threads": 1,
+            "hardware": false,
+            "frames": 240,
+            "packets": 242,
+            "units": 221184000,
+            "decodedSha256": "e0fa54f67e56ae1fc100e4ca1fd3f7ab4f1a819eb0d750f0153cec625108a74a",
+            "elapsedSeconds": 0.8617083,
+            "processCpuSeconds": 0.859375,
+            "processCycles": 3233524880,
+            "avcodecVersion": 4066148,
+            "windowsCreated": 0
+          }
+        },
+        {
+          "variant": "baseline",
+          "round": 2,
+          "warmup": false,
+          "startedUtc": "2026-10-19T01:03:34.090381+00:00",
+          "arguments": [
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\native-performance-20261019\\decode-size-static.exe",
+            "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\media\\hevc_aac_720p.mp4",
+            "video",
+            "240"
+          ],
+          "endedUtc": "2026-10-19T01:03:37.144081+00:00",
+          "exitCode": 0,
+          "result": {
+            "kind": "video",
+            "decoder": "hevc",
+            "threads": 1,
+            "hardware": false,
+            "frames": 240,
+            "packets": 242,
+            "units": 221184000,
+            "decodedSha256": "e0fa54f67e56ae1fc100e4ca1fd3f7ab4f1a819eb0d750f0153cec625108a74a",
+            "elapsedSeconds": 0.7476689,
+            "processCpuSeconds": 0.734375,
+            "processCycles": 2833451000,
+            "avcodecVersion": 4066148,
+            "windowsCreated": 0
+          }
+        },
+        {
+          "variant": "candidate",
+          "round": 2,
+          "warmup": false,
+          "startedUtc": "2026-10-19T01:03:37.598979+00:00",
+          "arguments": [
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\native-performance-20261019\\decode-performance-static.exe",
+            "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\media\\hevc_aac_720p.mp4",
+            "video",
+            "240"
+          ],
+          "endedUtc": "2026-10-19T01:03:40.155165+00:00",
+          "exitCode": 0,
+          "result": {
+            "kind": "video",
+            "decoder": "hevc",
+            "threads": 1,
+            "hardware": false,
+            "frames": 240,
+            "packets": 242,
+            "units": 221184000,
+            "decodedSha256": "e0fa54f67e56ae1fc100e4ca1fd3f7ab4f1a819eb0d750f0153cec625108a74a",
+            "elapsedSeconds": 0.7538098,
+            "processCpuSeconds": 0.75,
+            "processCycles": 2845977320,
+            "avcodecVersion": 4066148,
+            "windowsCreated": 0
+          }
+        },
+        {
+          "variant": "candidate",
+          "round": 3,
+          "warmup": false,
+          "startedUtc": "2026-10-19T01:03:41.117900+00:00",
+          "arguments": [
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\native-performance-20261019\\decode-performance-static.exe",
+            "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\media\\hevc_aac_720p.mp4",
+            "video",
+            "240"
+          ],
+          "endedUtc": "2026-10-19T01:03:43.671682+00:00",
+          "exitCode": 0,
+          "result": {
+            "kind": "video",
+            "decoder": "hevc",
+            "threads": 1,
+            "hardware": false,
+            "frames": 240,
+            "packets": 242,
+            "units": 221184000,
+            "decodedSha256": "e0fa54f67e56ae1fc100e4ca1fd3f7ab4f1a819eb0d750f0153cec625108a74a",
+            "elapsedSeconds": 0.7076857,
+            "processCpuSeconds": 0.6875,
+            "processCycles": 2674915380,
+            "avcodecVersion": 4066148,
+            "windowsCreated": 0
+          }
+        },
+        {
+          "variant": "baseline",
+          "round": 3,
+          "warmup": false,
+          "startedUtc": "2026-10-19T01:03:44.132875+00:00",
+          "arguments": [
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\native-performance-20261019\\decode-size-static.exe",
+            "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\media\\hevc_aac_720p.mp4",
+            "video",
+            "240"
+          ],
+          "endedUtc": "2026-10-19T01:03:47.177253+00:00",
+          "exitCode": 0,
+          "result": {
+            "kind": "video",
+            "decoder": "hevc",
+            "threads": 1,
+            "hardware": false,
+            "frames": 240,
+            "packets": 242,
+            "units": 221184000,
+            "decodedSha256": "e0fa54f67e56ae1fc100e4ca1fd3f7ab4f1a819eb0d750f0153cec625108a74a",
+            "elapsedSeconds": 0.7762535,
+            "processCpuSeconds": 0.765625,
+            "processCycles": 2925175400,
+            "avcodecVersion": 4066148,
+            "windowsCreated": 0
+          }
+        },
+        {
+          "variant": "baseline",
+          "round": 4,
+          "warmup": false,
+          "startedUtc": "2026-10-19T01:03:48.090984+00:00",
+          "arguments": [
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\native-performance-20261019\\decode-size-static.exe",
+            "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\media\\hevc_aac_720p.mp4",
+            "video",
+            "240"
+          ],
+          "endedUtc": "2026-10-19T01:03:51.131420+00:00",
+          "exitCode": 0,
+          "result": {
+            "kind": "video",
+            "decoder": "hevc",
+            "threads": 1,
+            "hardware": false,
+            "frames": 240,
+            "packets": 242,
+            "units": 221184000,
+            "decodedSha256": "e0fa54f67e56ae1fc100e4ca1fd3f7ab4f1a819eb0d750f0153cec625108a74a",
+            "elapsedSeconds": 0.7543378,
+            "processCpuSeconds": 0.75,
+            "processCycles": 2852546380,
+            "avcodecVersion": 4066148,
+            "windowsCreated": 0
+          }
+        },
+        {
+          "variant": "candidate",
+          "round": 4,
+          "warmup": false,
+          "startedUtc": "2026-10-19T01:03:51.581660+00:00",
+          "arguments": [
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\native-performance-20261019\\decode-performance-static.exe",
+            "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\media\\hevc_aac_720p.mp4",
+            "video",
+            "240"
+          ],
+          "endedUtc": "2026-10-19T01:03:54.127520+00:00",
+          "exitCode": 0,
+          "result": {
+            "kind": "video",
+            "decoder": "hevc",
+            "threads": 1,
+            "hardware": false,
+            "frames": 240,
+            "packets": 242,
+            "units": 221184000,
+            "decodedSha256": "e0fa54f67e56ae1fc100e4ca1fd3f7ab4f1a819eb0d750f0153cec625108a74a",
+            "elapsedSeconds": 0.7198296,
+            "processCpuSeconds": 0.71875,
+            "processCycles": 2722373200,
+            "avcodecVersion": 4066148,
+            "windowsCreated": 0
+          }
+        },
+        {
+          "variant": "candidate",
+          "round": 5,
+          "warmup": false,
+          "startedUtc": "2026-10-19T01:03:55.015273+00:00",
+          "arguments": [
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\native-performance-20261019\\decode-performance-static.exe",
+            "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\media\\hevc_aac_720p.mp4",
+            "video",
+            "240"
+          ],
+          "endedUtc": "2026-10-19T01:03:57.564063+00:00",
+          "exitCode": 0,
+          "result": {
+            "kind": "video",
+            "decoder": "hevc",
+            "threads": 1,
+            "hardware": false,
+            "frames": 240,
+            "packets": 242,
+            "units": 221184000,
+            "decodedSha256": "e0fa54f67e56ae1fc100e4ca1fd3f7ab4f1a819eb0d750f0153cec625108a74a",
+            "elapsedSeconds": 0.7017157,
+            "processCpuSeconds": 0.6875,
+            "processCycles": 2657983340,
+            "avcodecVersion": 4066148,
+            "windowsCreated": 0
+          }
+        },
+        {
+          "variant": "baseline",
+          "round": 5,
+          "warmup": false,
+          "startedUtc": "2026-10-19T01:03:58.014565+00:00",
+          "arguments": [
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\native-performance-20261019\\decode-size-static.exe",
+            "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\media\\hevc_aac_720p.mp4",
+            "video",
+            "240"
+          ],
+          "endedUtc": "2026-10-19T01:04:01.066707+00:00",
+          "exitCode": 0,
+          "result": {
+            "kind": "video",
+            "decoder": "hevc",
+            "threads": 1,
+            "hardware": false,
+            "frames": 240,
+            "packets": 242,
+            "units": 221184000,
+            "decodedSha256": "e0fa54f67e56ae1fc100e4ca1fd3f7ab4f1a819eb0d750f0153cec625108a74a",
+            "elapsedSeconds": 0.7478593,
+            "processCpuSeconds": 0.734375,
+            "processCycles": 2828464640,
+            "avcodecVersion": 4066148,
+            "windowsCreated": 0
+          }
+        }
+      ],
+      "status": "passed",
+      "summary": {
+        "baseline": {
+          "elapsedSeconds": {
+            "median": 0.7543378,
+            "min": 0.7476689,
+            "max": 0.8617083,
+            "runs": 5
+          },
+          "processCpuSeconds": {
+            "median": 0.75,
+            "min": 0.734375,
+            "max": 0.859375,
+            "runs": 5
+          },
+          "processCycles": {
+            "median": 2852546380,
+            "min": 2828464640,
+            "max": 3233524880,
+            "runs": 5
+          }
+        },
+        "candidate": {
+          "elapsedSeconds": {
+            "median": 0.7198296,
+            "min": 0.7017157,
+            "max": 0.7538098,
+            "runs": 5
+          },
+          "processCpuSeconds": {
+            "median": 0.703125,
+            "min": 0.6875,
+            "max": 0.75,
+            "runs": 5
+          },
+          "processCycles": {
+            "median": 2722373200,
+            "min": 2657983340,
+            "max": 2845977320,
+            "runs": 5
+          }
+        }
+      }
+    },
+    {
+      "id": "vp9-360p",
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\media\\vp9_opus.webm",
+      "kind": "video",
+      "frames": 240,
+      "fixtureSha256": "528795a1a00230900f2ade0e62cfe4d789f5b093e817d2ef4a21cdac44428063",
+      "runs": [
+        {
+          "variant": "baseline",
+          "round": 0,
+          "warmup": true,
+          "startedUtc": "2026-10-19T01:04:01.951967+00:00",
+          "arguments": [
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\native-performance-20261019\\decode-size-static.exe",
+            "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\media\\vp9_opus.webm",
+            "video",
+            "240"
+          ],
+          "endedUtc": "2026-10-19T01:04:02.564409+00:00",
+          "exitCode": 0,
+          "result": {
+            "kind": "video",
+            "decoder": "vp9",
+            "threads": 1,
+            "hardware": false,
+            "frames": 240,
+            "packets": 240,
+            "units": 55296000,
+            "decodedSha256": "b2f0508380353e2f0ce72c032d0efccf994c745ce62444a197a6db38b0930053",
+            "elapsedSeconds": 0.1032397,
+            "processCpuSeconds": 0.09375,
+            "processCycles": 391423940,
+            "avcodecVersion": 4066148,
+            "windowsCreated": 0
+          }
+        },
+        {
+          "variant": "candidate",
+          "round": 0,
+          "warmup": true,
+          "startedUtc": "2026-10-19T01:04:03.003455+00:00",
+          "arguments": [
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\native-performance-20261019\\decode-performance-static.exe",
+            "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\media\\vp9_opus.webm",
+            "video",
+            "240"
+          ],
+          "endedUtc": "2026-10-19T01:04:03.497560+00:00",
+          "exitCode": 0,
+          "result": {
+            "kind": "video",
+            "decoder": "vp9",
+            "threads": 1,
+            "hardware": false,
+            "frames": 240,
+            "packets": 240,
+            "units": 55296000,
+            "decodedSha256": "b2f0508380353e2f0ce72c032d0efccf994c745ce62444a197a6db38b0930053",
+            "elapsedSeconds": 0.0983015,
+            "processCpuSeconds": 0.09375,
+            "processCycles": 372077760,
+            "avcodecVersion": 4066148,
+            "windowsCreated": 0
+          }
+        },
+        {
+          "variant": "candidate",
+          "round": 1,
+          "warmup": false,
+          "startedUtc": "2026-10-19T01:04:04.373826+00:00",
+          "arguments": [
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\native-performance-20261019\\decode-performance-static.exe",
+            "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\media\\vp9_opus.webm",
+            "video",
+            "240"
+          ],
+          "endedUtc": "2026-10-19T01:04:04.861931+00:00",
+          "exitCode": 0,
+          "result": {
+            "kind": "video",
+            "decoder": "vp9",
+            "threads": 1,
+            "hardware": false,
+            "frames": 240,
+            "packets": 240,
+            "units": 55296000,
+            "decodedSha256": "b2f0508380353e2f0ce72c032d0efccf994c745ce62444a197a6db38b0930053",
+            "elapsedSeconds": 0.0975398,
+            "processCpuSeconds": 0.09375,
+            "processCycles": 369985860,
+            "avcodecVersion": 4066148,
+            "windowsCreated": 0
+          }
+        },
+        {
+          "variant": "baseline",
+          "round": 1,
+          "warmup": false,
+          "startedUtc": "2026-10-19T01:04:05.292121+00:00",
+          "arguments": [
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\native-performance-20261019\\decode-size-static.exe",
+            "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\media\\vp9_opus.webm",
+            "video",
+            "240"
+          ],
+          "endedUtc": "2026-10-19T01:04:05.908221+00:00",
+          "exitCode": 0,
+          "result": {
+            "kind": "video",
+            "decoder": "vp9",
+            "threads": 1,
+            "hardware": false,
+            "frames": 240,
+            "packets": 240,
+            "units": 55296000,
+            "decodedSha256": "b2f0508380353e2f0ce72c032d0efccf994c745ce62444a197a6db38b0930053",
+            "elapsedSeconds": 0.1029128,
+            "processCpuSeconds": 0.09375,
+            "processCycles": 390398700,
+            "avcodecVersion": 4066148,
+            "windowsCreated": 0
+          }
+        },
+        {
+          "variant": "baseline",
+          "round": 2,
+          "warmup": false,
+          "startedUtc": "2026-10-19T01:04:06.796670+00:00",
+          "arguments": [
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\native-performance-20261019\\decode-size-static.exe",
+            "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\media\\vp9_opus.webm",
+            "video",
+            "240"
+          ],
+          "endedUtc": "2026-10-19T01:04:07.403331+00:00",
+          "exitCode": 0,
+          "result": {
+            "kind": "video",
+            "decoder": "vp9",
+            "threads": 1,
+            "hardware": false,
+            "frames": 240,
+            "packets": 240,
+            "units": 55296000,
+            "decodedSha256": "b2f0508380353e2f0ce72c032d0efccf994c745ce62444a197a6db38b0930053",
+            "elapsedSeconds": 0.1030355,
+            "processCpuSeconds": 0.09375,
+            "processCycles": 390084440,
+            "avcodecVersion": 4066148,
+            "windowsCreated": 0
+          }
+        },
+        {
+          "variant": "candidate",
+          "round": 2,
+          "warmup": false,
+          "startedUtc": "2026-10-19T01:04:07.843409+00:00",
+          "arguments": [
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\native-performance-20261019\\decode-performance-static.exe",
+            "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\media\\vp9_opus.webm",
+            "video",
+            "240"
+          ],
+          "endedUtc": "2026-10-19T01:04:08.332671+00:00",
+          "exitCode": 0,
+          "result": {
+            "kind": "video",
+            "decoder": "vp9",
+            "threads": 1,
+            "hardware": false,
+            "frames": 240,
+            "packets": 240,
+            "units": 55296000,
+            "decodedSha256": "b2f0508380353e2f0ce72c032d0efccf994c745ce62444a197a6db38b0930053",
+            "elapsedSeconds": 0.0963631,
+            "processCpuSeconds": 0.109375,
+            "processCycles": 365389380,
+            "avcodecVersion": 4066148,
+            "windowsCreated": 0
+          }
+        },
+        {
+          "variant": "candidate",
+          "round": 3,
+          "warmup": false,
+          "startedUtc": "2026-10-19T01:04:09.212939+00:00",
+          "arguments": [
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\native-performance-20261019\\decode-performance-static.exe",
+            "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\media\\vp9_opus.webm",
+            "video",
+            "240"
+          ],
+          "endedUtc": "2026-10-19T01:04:09.707091+00:00",
+          "exitCode": 0,
+          "result": {
+            "kind": "video",
+            "decoder": "vp9",
+            "threads": 1,
+            "hardware": false,
+            "frames": 240,
+            "packets": 240,
+            "units": 55296000,
+            "decodedSha256": "b2f0508380353e2f0ce72c032d0efccf994c745ce62444a197a6db38b0930053",
+            "elapsedSeconds": 0.0969966,
+            "processCpuSeconds": 0.109375,
+            "processCycles": 367155240,
+            "avcodecVersion": 4066148,
+            "windowsCreated": 0
+          }
+        },
+        {
+          "variant": "baseline",
+          "round": 3,
+          "warmup": false,
+          "startedUtc": "2026-10-19T01:04:10.154856+00:00",
+          "arguments": [
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\native-performance-20261019\\decode-size-static.exe",
+            "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\media\\vp9_opus.webm",
+            "video",
+            "240"
+          ],
+          "endedUtc": "2026-10-19T01:04:10.769482+00:00",
+          "exitCode": 0,
+          "result": {
+            "kind": "video",
+            "decoder": "vp9",
+            "threads": 1,
+            "hardware": false,
+            "frames": 240,
+            "packets": 240,
+            "units": 55296000,
+            "decodedSha256": "b2f0508380353e2f0ce72c032d0efccf994c745ce62444a197a6db38b0930053",
+            "elapsedSeconds": 0.1045053,
+            "processCpuSeconds": 0.109375,
+            "processCycles": 395236100,
+            "avcodecVersion": 4066148,
+            "windowsCreated": 0
+          }
+        },
+        {
+          "variant": "baseline",
+          "round": 4,
+          "warmup": false,
+          "startedUtc": "2026-10-19T01:04:11.673298+00:00",
+          "arguments": [
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\native-performance-20261019\\decode-size-static.exe",
+            "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\media\\vp9_opus.webm",
+            "video",
+            "240"
+          ],
+          "endedUtc": "2026-10-19T01:04:12.289724+00:00",
+          "exitCode": 0,
+          "result": {
+            "kind": "video",
+            "decoder": "vp9",
+            "threads": 1,
+            "hardware": false,
+            "frames": 240,
+            "packets": 240,
+            "units": 55296000,
+            "decodedSha256": "b2f0508380353e2f0ce72c032d0efccf994c745ce62444a197a6db38b0930053",
+            "elapsedSeconds": 0.1053081,
+            "processCpuSeconds": 0.109375,
+            "processCycles": 398204660,
+            "avcodecVersion": 4066148,
+            "windowsCreated": 0
+          }
+        },
+        {
+          "variant": "candidate",
+          "round": 4,
+          "warmup": false,
+          "startedUtc": "2026-10-19T01:04:12.727909+00:00",
+          "arguments": [
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\native-performance-20261019\\decode-performance-static.exe",
+            "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\media\\vp9_opus.webm",
+            "video",
+            "240"
+          ],
+          "endedUtc": "2026-10-19T01:04:13.218399+00:00",
+          "exitCode": 0,
+          "result": {
+            "kind": "video",
+            "decoder": "vp9",
+            "threads": 1,
+            "hardware": false,
+            "frames": 240,
+            "packets": 240,
+            "units": 55296000,
+            "decodedSha256": "b2f0508380353e2f0ce72c032d0efccf994c745ce62444a197a6db38b0930053",
+            "elapsedSeconds": 0.0979083,
+            "processCpuSeconds": 0.09375,
+            "processCycles": 370373460,
+            "avcodecVersion": 4066148,
+            "windowsCreated": 0
+          }
+        },
+        {
+          "variant": "candidate",
+          "round": 5,
+          "warmup": false,
+          "startedUtc": "2026-10-19T01:04:14.100966+00:00",
+          "arguments": [
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\native-performance-20261019\\decode-performance-static.exe",
+            "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\media\\vp9_opus.webm",
+            "video",
+            "240"
+          ],
+          "endedUtc": "2026-10-19T01:04:14.588337+00:00",
+          "exitCode": 0,
+          "result": {
+            "kind": "video",
+            "decoder": "vp9",
+            "threads": 1,
+            "hardware": false,
+            "frames": 240,
+            "packets": 240,
+            "units": 55296000,
+            "decodedSha256": "b2f0508380353e2f0ce72c032d0efccf994c745ce62444a197a6db38b0930053",
+            "elapsedSeconds": 0.0981474,
+            "processCpuSeconds": 0.09375,
+            "processCycles": 371366400,
+            "avcodecVersion": 4066148,
+            "windowsCreated": 0
+          }
+        },
+        {
+          "variant": "baseline",
+          "round": 5,
+          "warmup": false,
+          "startedUtc": "2026-10-19T01:04:15.030548+00:00",
+          "arguments": [
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\native-performance-20261019\\decode-size-static.exe",
+            "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\media\\vp9_opus.webm",
+            "video",
+            "240"
+          ],
+          "endedUtc": "2026-10-19T01:04:15.636736+00:00",
+          "exitCode": 0,
+          "result": {
+            "kind": "video",
+            "decoder": "vp9",
+            "threads": 1,
+            "hardware": false,
+            "frames": 240,
+            "packets": 240,
+            "units": 55296000,
+            "decodedSha256": "b2f0508380353e2f0ce72c032d0efccf994c745ce62444a197a6db38b0930053",
+            "elapsedSeconds": 0.1038991,
+            "processCpuSeconds": 0.109375,
+            "processCycles": 393909900,
+            "avcodecVersion": 4066148,
+            "windowsCreated": 0
+          }
+        }
+      ],
+      "status": "passed",
+      "summary": {
+        "baseline": {
+          "elapsedSeconds": {
+            "median": 0.1038991,
+            "min": 0.1029128,
+            "max": 0.1053081,
+            "runs": 5
+          },
+          "processCpuSeconds": {
+            "median": 0.109375,
+            "min": 0.09375,
+            "max": 0.109375,
+            "runs": 5
+          },
+          "processCycles": {
+            "median": 393909900,
+            "min": 390084440,
+            "max": 398204660,
+            "runs": 5
+          }
+        },
+        "candidate": {
+          "elapsedSeconds": {
+            "median": 0.0975398,
+            "min": 0.0963631,
+            "max": 0.0981474,
+            "runs": 5
+          },
+          "processCpuSeconds": {
+            "median": 0.09375,
+            "min": 0.09375,
+            "max": 0.109375,
+            "runs": 5
+          },
+          "processCycles": {
+            "median": 369985860,
+            "min": 365389380,
+            "max": 371366400,
+            "runs": 5
+          }
+        }
+      }
+    },
+    {
+      "id": "av1-1080p",
+      "path": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\av1-1080p30-audio.mp4",
+      "kind": "video",
+      "frames": 120,
+      "fixtureSha256": "84630e2bec31bbda663d634e2a7fc13cf1c81f983565d3942094e8dc9808fdd8",
+      "runs": [
+        {
+          "variant": "baseline",
+          "round": 0,
+          "warmup": true,
+          "startedUtc": "2026-10-19T01:04:16.646924+00:00",
+          "arguments": [
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\native-performance-20261019\\decode-size-static.exe",
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\av1-1080p30-audio.mp4",
+            "video",
+            "120"
+          ],
+          "endedUtc": "2026-10-19T01:04:19.549194+00:00",
+          "exitCode": 0,
+          "result": {
+            "kind": "video",
+            "decoder": "libdav1d",
+            "threads": 1,
+            "hardware": false,
+            "frames": 120,
+            "packets": 120,
+            "units": 248832000,
+            "decodedSha256": "4412e2adc80a4e6a67119ffa7298cb954f2fd212dc4bce74e9ef357314c13967",
+            "elapsedSeconds": 0.6086993,
+            "processCpuSeconds": 0.609375,
+            "processCycles": 2307736960,
+            "avcodecVersion": 4066148,
+            "windowsCreated": 0
+          }
+        },
+        {
+          "variant": "candidate",
+          "round": 0,
+          "warmup": true,
+          "startedUtc": "2026-10-19T01:04:19.993133+00:00",
+          "arguments": [
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\native-performance-20261019\\decode-performance-static.exe",
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\av1-1080p30-audio.mp4",
+            "video",
+            "120"
+          ],
+          "endedUtc": "2026-10-19T01:04:22.441548+00:00",
+          "exitCode": 0,
+          "result": {
+            "kind": "video",
+            "decoder": "libdav1d",
+            "threads": 1,
+            "hardware": false,
+            "frames": 120,
+            "packets": 120,
+            "units": 248832000,
+            "decodedSha256": "4412e2adc80a4e6a67119ffa7298cb954f2fd212dc4bce74e9ef357314c13967",
+            "elapsedSeconds": 0.6067965,
+            "processCpuSeconds": 0.578125,
+            "processCycles": 2300115300,
+            "avcodecVersion": 4066148,
+            "windowsCreated": 0
+          }
+        },
+        {
+          "variant": "candidate",
+          "round": 1,
+          "warmup": false,
+          "startedUtc": "2026-10-19T01:04:23.340890+00:00",
+          "arguments": [
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\native-performance-20261019\\decode-performance-static.exe",
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\av1-1080p30-audio.mp4",
+            "video",
+            "120"
+          ],
+          "endedUtc": "2026-10-19T01:04:25.784453+00:00",
+          "exitCode": 0,
+          "result": {
+            "kind": "video",
+            "decoder": "libdav1d",
+            "threads": 1,
+            "hardware": false,
+            "frames": 120,
+            "packets": 120,
+            "units": 248832000,
+            "decodedSha256": "4412e2adc80a4e6a67119ffa7298cb954f2fd212dc4bce74e9ef357314c13967",
+            "elapsedSeconds": 0.6150628,
+            "processCpuSeconds": 0.609375,
+            "processCycles": 2325671820,
+            "avcodecVersion": 4066148,
+            "windowsCreated": 0
+          }
+        },
+        {
+          "variant": "baseline",
+          "round": 1,
+          "warmup": false,
+          "startedUtc": "2026-10-19T01:04:26.225667+00:00",
+          "arguments": [
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\native-performance-20261019\\decode-size-static.exe",
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\av1-1080p30-audio.mp4",
+            "video",
+            "120"
+          ],
+          "endedUtc": "2026-10-19T01:04:29.135324+00:00",
+          "exitCode": 0,
+          "result": {
+            "kind": "video",
+            "decoder": "libdav1d",
+            "threads": 1,
+            "hardware": false,
+            "frames": 120,
+            "packets": 120,
+            "units": 248832000,
+            "decodedSha256": "4412e2adc80a4e6a67119ffa7298cb954f2fd212dc4bce74e9ef357314c13967",
+            "elapsedSeconds": 0.6062192,
+            "processCpuSeconds": 0.609375,
+            "processCycles": 2298182620,
+            "avcodecVersion": 4066148,
+            "windowsCreated": 0
+          }
+        },
+        {
+          "variant": "baseline",
+          "round": 2,
+          "warmup": false,
+          "startedUtc": "2026-10-19T01:04:30.023058+00:00",
+          "arguments": [
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\native-performance-20261019\\decode-size-static.exe",
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\av1-1080p30-audio.mp4",
+            "video",
+            "120"
+          ],
+          "endedUtc": "2026-10-19T01:04:32.913731+00:00",
+          "exitCode": 0,
+          "result": {
+            "kind": "video",
+            "decoder": "libdav1d",
+            "threads": 1,
+            "hardware": false,
+            "frames": 120,
+            "packets": 120,
+            "units": 248832000,
+            "decodedSha256": "4412e2adc80a4e6a67119ffa7298cb954f2fd212dc4bce74e9ef357314c13967",
+            "elapsedSeconds": 0.6024299,
+            "processCpuSeconds": 0.609375,
+            "processCycles": 2283952760,
+            "avcodecVersion": 4066148,
+            "windowsCreated": 0
+          }
+        },
+        {
+          "variant": "candidate",
+          "round": 2,
+          "warmup": false,
+          "startedUtc": "2026-10-19T01:04:33.350753+00:00",
+          "arguments": [
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\native-performance-20261019\\decode-performance-static.exe",
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\av1-1080p30-audio.mp4",
+            "video",
+            "120"
+          ],
+          "endedUtc": "2026-10-19T01:04:35.797313+00:00",
+          "exitCode": 0,
+          "result": {
+            "kind": "video",
+            "decoder": "libdav1d",
+            "threads": 1,
+            "hardware": false,
+            "frames": 120,
+            "packets": 120,
+            "units": 248832000,
+            "decodedSha256": "4412e2adc80a4e6a67119ffa7298cb954f2fd212dc4bce74e9ef357314c13967",
+            "elapsedSeconds": 0.6080129,
+            "processCpuSeconds": 0.609375,
+            "processCycles": 2305181460,
+            "avcodecVersion": 4066148,
+            "windowsCreated": 0
+          }
+        },
+        {
+          "variant": "candidate",
+          "round": 3,
+          "warmup": false,
+          "startedUtc": "2026-10-19T01:04:36.682616+00:00",
+          "arguments": [
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\native-performance-20261019\\decode-performance-static.exe",
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\av1-1080p30-audio.mp4",
+            "video",
+            "120"
+          ],
+          "endedUtc": "2026-10-19T01:04:39.166113+00:00",
+          "exitCode": 0,
+          "result": {
+            "kind": "video",
+            "decoder": "libdav1d",
+            "threads": 1,
+            "hardware": false,
+            "frames": 120,
+            "packets": 120,
+            "units": 248832000,
+            "decodedSha256": "4412e2adc80a4e6a67119ffa7298cb954f2fd212dc4bce74e9ef357314c13967",
+            "elapsedSeconds": 0.6196833,
+            "processCpuSeconds": 0.625,
+            "processCycles": 2340337540,
+            "avcodecVersion": 4066148,
+            "windowsCreated": 0
+          }
+        },
+        {
+          "variant": "baseline",
+          "round": 3,
+          "warmup": false,
+          "startedUtc": "2026-10-19T01:04:39.603112+00:00",
+          "arguments": [
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\native-performance-20261019\\decode-size-static.exe",
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\av1-1080p30-audio.mp4",
+            "video",
+            "120"
+          ],
+          "endedUtc": "2026-10-19T01:04:42.530188+00:00",
+          "exitCode": 0,
+          "result": {
+            "kind": "video",
+            "decoder": "libdav1d",
+            "threads": 1,
+            "hardware": false,
+            "frames": 120,
+            "packets": 120,
+            "units": 248832000,
+            "decodedSha256": "4412e2adc80a4e6a67119ffa7298cb954f2fd212dc4bce74e9ef357314c13967",
+            "elapsedSeconds": 0.6230606,
+            "processCpuSeconds": 0.625,
+            "processCycles": 2352598620,
+            "avcodecVersion": 4066148,
+            "windowsCreated": 0
+          }
+        },
+        {
+          "variant": "baseline",
+          "round": 4,
+          "warmup": false,
+          "startedUtc": "2026-10-19T01:04:43.399506+00:00",
+          "arguments": [
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\native-performance-20261019\\decode-size-static.exe",
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\av1-1080p30-audio.mp4",
+            "video",
+            "120"
+          ],
+          "endedUtc": "2026-10-19T01:04:46.340973+00:00",
+          "exitCode": 0,
+          "result": {
+            "kind": "video",
+            "decoder": "libdav1d",
+            "threads": 1,
+            "hardware": false,
+            "frames": 120,
+            "packets": 120,
+            "units": 248832000,
+            "decodedSha256": "4412e2adc80a4e6a67119ffa7298cb954f2fd212dc4bce74e9ef357314c13967",
+            "elapsedSeconds": 0.6259104,
+            "processCpuSeconds": 0.625,
+            "processCycles": 2363800640,
+            "avcodecVersion": 4066148,
+            "windowsCreated": 0
+          }
+        },
+        {
+          "variant": "candidate",
+          "round": 4,
+          "warmup": false,
+          "startedUtc": "2026-10-19T01:04:46.781278+00:00",
+          "arguments": [
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\native-performance-20261019\\decode-performance-static.exe",
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\av1-1080p30-audio.mp4",
+            "video",
+            "120"
+          ],
+          "endedUtc": "2026-10-19T01:04:49.235313+00:00",
+          "exitCode": 0,
+          "result": {
+            "kind": "video",
+            "decoder": "libdav1d",
+            "threads": 1,
+            "hardware": false,
+            "frames": 120,
+            "packets": 120,
+            "units": 248832000,
+            "decodedSha256": "4412e2adc80a4e6a67119ffa7298cb954f2fd212dc4bce74e9ef357314c13967",
+            "elapsedSeconds": 0.6142187,
+            "processCpuSeconds": 0.59375,
+            "processCycles": 2319221320,
+            "avcodecVersion": 4066148,
+            "windowsCreated": 0
+          }
+        },
+        {
+          "variant": "candidate",
+          "round": 5,
+          "warmup": false,
+          "startedUtc": "2026-10-19T01:04:50.121452+00:00",
+          "arguments": [
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\native-performance-20261019\\decode-performance-static.exe",
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\av1-1080p30-audio.mp4",
+            "video",
+            "120"
+          ],
+          "endedUtc": "2026-10-19T01:04:52.593232+00:00",
+          "exitCode": 0,
+          "result": {
+            "kind": "video",
+            "decoder": "libdav1d",
+            "threads": 1,
+            "hardware": false,
+            "frames": 120,
+            "packets": 120,
+            "units": 248832000,
+            "decodedSha256": "4412e2adc80a4e6a67119ffa7298cb954f2fd212dc4bce74e9ef357314c13967",
+            "elapsedSeconds": 0.6193815,
+            "processCpuSeconds": 0.609375,
+            "processCycles": 2341297800,
+            "avcodecVersion": 4066148,
+            "windowsCreated": 0
+          }
+        },
+        {
+          "variant": "baseline",
+          "round": 5,
+          "warmup": false,
+          "startedUtc": "2026-10-19T01:04:53.035547+00:00",
+          "arguments": [
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\native-performance-20261019\\decode-size-static.exe",
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\av1-1080p30-audio.mp4",
+            "video",
+            "120"
+          ],
+          "endedUtc": "2026-10-19T01:04:55.938588+00:00",
+          "exitCode": 0,
+          "result": {
+            "kind": "video",
+            "decoder": "libdav1d",
+            "threads": 1,
+            "hardware": false,
+            "frames": 120,
+            "packets": 120,
+            "units": 248832000,
+            "decodedSha256": "4412e2adc80a4e6a67119ffa7298cb954f2fd212dc4bce74e9ef357314c13967",
+            "elapsedSeconds": 0.6138159,
+            "processCpuSeconds": 0.609375,
+            "processCycles": 2323635400,
+            "avcodecVersion": 4066148,
+            "windowsCreated": 0
+          }
+        }
+      ],
+      "status": "passed",
+      "summary": {
+        "baseline": {
+          "elapsedSeconds": {
+            "median": 0.6138159,
+            "min": 0.6024299,
+            "max": 0.6259104,
+            "runs": 5
+          },
+          "processCpuSeconds": {
+            "median": 0.609375,
+            "min": 0.609375,
+            "max": 0.625,
+            "runs": 5
+          },
+          "processCycles": {
+            "median": 2323635400,
+            "min": 2283952760,
+            "max": 2363800640,
+            "runs": 5
+          }
+        },
+        "candidate": {
+          "elapsedSeconds": {
+            "median": 0.6150628,
+            "min": 0.6080129,
+            "max": 0.6196833,
+            "runs": 5
+          },
+          "processCpuSeconds": {
+            "median": 0.609375,
+            "min": 0.59375,
+            "max": 0.625,
+            "runs": 5
+          },
+          "processCycles": {
+            "median": 2325671820,
+            "min": 2305181460,
+            "max": 2341297800,
+            "runs": 5
+          }
+        }
+      }
+    },
+    {
+      "id": "aac-stereo",
+      "path": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\h264-1080p30-audio.mp4",
+      "kind": "audio",
+      "frames": 3000,
+      "fixtureSha256": "86c249a196158ca2479bb9dd6e0045f24cbcbd2e04a80a41e37c2f6b78f70e68",
+      "runs": [
+        {
+          "variant": "baseline",
+          "round": 0,
+          "warmup": true,
+          "startedUtc": "2026-10-19T01:04:56.922995+00:00",
+          "arguments": [
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\native-performance-20261019\\decode-size-static.exe",
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\h264-1080p30-audio.mp4",
+            "audio",
+            "3000"
+          ],
+          "endedUtc": "2026-10-19T01:04:57.168635+00:00",
+          "exitCode": 0,
+          "result": {
+            "kind": "audio",
+            "decoder": "aac",
+            "threads": 1,
+            "hardware": false,
+            "frames": 3000,
+            "packets": 3001,
+            "units": 3072000,
+            "decodedSha256": "18e63ed8c5e99d9c4f3a18b7b46136802664d6205e075afe0d135146265e408a",
+            "elapsedSeconds": 0.0446865,
+            "processCpuSeconds": 0.046875,
+            "processCycles": 169134200,
+            "avcodecVersion": 4066148,
+            "windowsCreated": 0
+          }
+        },
+        {
+          "variant": "candidate",
+          "round": 0,
+          "warmup": true,
+          "startedUtc": "2026-10-19T01:04:57.598574+00:00",
+          "arguments": [
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\native-performance-20261019\\decode-performance-static.exe",
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\h264-1080p30-audio.mp4",
+            "audio",
+            "3000"
+          ],
+          "endedUtc": "2026-10-19T01:04:57.805211+00:00",
+          "exitCode": 0,
+          "result": {
+            "kind": "audio",
+            "decoder": "aac",
+            "threads": 1,
+            "hardware": false,
+            "frames": 3000,
+            "packets": 3001,
+            "units": 3072000,
+            "decodedSha256": "18e63ed8c5e99d9c4f3a18b7b46136802664d6205e075afe0d135146265e408a",
+            "elapsedSeconds": 0.0399096,
+            "processCpuSeconds": 0.046875,
+            "processCycles": 151102440,
+            "avcodecVersion": 4066148,
+            "windowsCreated": 0
+          }
+        },
+        {
+          "variant": "candidate",
+          "round": 1,
+          "warmup": false,
+          "startedUtc": "2026-10-19T01:04:58.693918+00:00",
+          "arguments": [
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\native-performance-20261019\\decode-performance-static.exe",
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\h264-1080p30-audio.mp4",
+            "audio",
+            "3000"
+          ],
+          "endedUtc": "2026-10-19T01:04:58.896052+00:00",
+          "exitCode": 0,
+          "result": {
+            "kind": "audio",
+            "decoder": "aac",
+            "threads": 1,
+            "hardware": false,
+            "frames": 3000,
+            "packets": 3001,
+            "units": 3072000,
+            "decodedSha256": "18e63ed8c5e99d9c4f3a18b7b46136802664d6205e075afe0d135146265e408a",
+            "elapsedSeconds": 0.0389727,
+            "processCpuSeconds": 0.046875,
+            "processCycles": 147692700,
+            "avcodecVersion": 4066148,
+            "windowsCreated": 0
+          }
+        },
+        {
+          "variant": "baseline",
+          "round": 1,
+          "warmup": false,
+          "startedUtc": "2026-10-19T01:04:59.319363+00:00",
+          "arguments": [
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\native-performance-20261019\\decode-size-static.exe",
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\h264-1080p30-audio.mp4",
+            "audio",
+            "3000"
+          ],
+          "endedUtc": "2026-10-19T01:04:59.567536+00:00",
+          "exitCode": 0,
+          "result": {
+            "kind": "audio",
+            "decoder": "aac",
+            "threads": 1,
+            "hardware": false,
+            "frames": 3000,
+            "packets": 3001,
+            "units": 3072000,
+            "decodedSha256": "18e63ed8c5e99d9c4f3a18b7b46136802664d6205e075afe0d135146265e408a",
+            "elapsedSeconds": 0.0450757,
+            "processCpuSeconds": 0.046875,
+            "processCycles": 170570600,
+            "avcodecVersion": 4066148,
+            "windowsCreated": 0
+          }
+        },
+        {
+          "variant": "baseline",
+          "round": 2,
+          "warmup": false,
+          "startedUtc": "2026-10-19T01:05:00.446960+00:00",
+          "arguments": [
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\native-performance-20261019\\decode-size-static.exe",
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\h264-1080p30-audio.mp4",
+            "audio",
+            "3000"
+          ],
+          "endedUtc": "2026-10-19T01:05:00.691348+00:00",
+          "exitCode": 0,
+          "result": {
+            "kind": "audio",
+            "decoder": "aac",
+            "threads": 1,
+            "hardware": false,
+            "frames": 3000,
+            "packets": 3001,
+            "units": 3072000,
+            "decodedSha256": "18e63ed8c5e99d9c4f3a18b7b46136802664d6205e075afe0d135146265e408a",
+            "elapsedSeconds": 0.0448933,
+            "processCpuSeconds": 0.046875,
+            "processCycles": 169669620,
+            "avcodecVersion": 4066148,
+            "windowsCreated": 0
+          }
+        },
+        {
+          "variant": "candidate",
+          "round": 2,
+          "warmup": false,
+          "startedUtc": "2026-10-19T01:05:01.125799+00:00",
+          "arguments": [
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\native-performance-20261019\\decode-performance-static.exe",
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\h264-1080p30-audio.mp4",
+            "audio",
+            "3000"
+          ],
+          "endedUtc": "2026-10-19T01:05:01.330216+00:00",
+          "exitCode": 0,
+          "result": {
+            "kind": "audio",
+            "decoder": "aac",
+            "threads": 1,
+            "hardware": false,
+            "frames": 3000,
+            "packets": 3001,
+            "units": 3072000,
+            "decodedSha256": "18e63ed8c5e99d9c4f3a18b7b46136802664d6205e075afe0d135146265e408a",
+            "elapsedSeconds": 0.0404176,
+            "processCpuSeconds": 0.03125,
+            "processCycles": 152558220,
+            "avcodecVersion": 4066148,
+            "windowsCreated": 0
+          }
+        },
+        {
+          "variant": "candidate",
+          "round": 3,
+          "warmup": false,
+          "startedUtc": "2026-10-19T01:05:02.206152+00:00",
+          "arguments": [
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\native-performance-20261019\\decode-performance-static.exe",
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\h264-1080p30-audio.mp4",
+            "audio",
+            "3000"
+          ],
+          "endedUtc": "2026-10-19T01:05:02.409077+00:00",
+          "exitCode": 0,
+          "result": {
+            "kind": "audio",
+            "decoder": "aac",
+            "threads": 1,
+            "hardware": false,
+            "frames": 3000,
+            "packets": 3001,
+            "units": 3072000,
+            "decodedSha256": "18e63ed8c5e99d9c4f3a18b7b46136802664d6205e075afe0d135146265e408a",
+            "elapsedSeconds": 0.0401776,
+            "processCpuSeconds": 0.03125,
+            "processCycles": 152016720,
+            "avcodecVersion": 4066148,
+            "windowsCreated": 0
+          }
+        },
+        {
+          "variant": "baseline",
+          "round": 3,
+          "warmup": false,
+          "startedUtc": "2026-10-19T01:05:02.832170+00:00",
+          "arguments": [
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\native-performance-20261019\\decode-size-static.exe",
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\h264-1080p30-audio.mp4",
+            "audio",
+            "3000"
+          ],
+          "endedUtc": "2026-10-19T01:05:03.074870+00:00",
+          "exitCode": 0,
+          "result": {
+            "kind": "audio",
+            "decoder": "aac",
+            "threads": 1,
+            "hardware": false,
+            "frames": 3000,
+            "packets": 3001,
+            "units": 3072000,
+            "decodedSha256": "18e63ed8c5e99d9c4f3a18b7b46136802664d6205e075afe0d135146265e408a",
+            "elapsedSeconds": 0.0441575,
+            "processCpuSeconds": 0.046875,
+            "processCycles": 167014180,
+            "avcodecVersion": 4066148,
+            "windowsCreated": 0
+          }
+        },
+        {
+          "variant": "baseline",
+          "round": 4,
+          "warmup": false,
+          "startedUtc": "2026-10-19T01:05:03.959515+00:00",
+          "arguments": [
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\native-performance-20261019\\decode-size-static.exe",
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\h264-1080p30-audio.mp4",
+            "audio",
+            "3000"
+          ],
+          "endedUtc": "2026-10-19T01:05:04.206067+00:00",
+          "exitCode": 0,
+          "result": {
+            "kind": "audio",
+            "decoder": "aac",
+            "threads": 1,
+            "hardware": false,
+            "frames": 3000,
+            "packets": 3001,
+            "units": 3072000,
+            "decodedSha256": "18e63ed8c5e99d9c4f3a18b7b46136802664d6205e075afe0d135146265e408a",
+            "elapsedSeconds": 0.0442966,
+            "processCpuSeconds": 0.03125,
+            "processCycles": 167574680,
+            "avcodecVersion": 4066148,
+            "windowsCreated": 0
+          }
+        },
+        {
+          "variant": "candidate",
+          "round": 4,
+          "warmup": false,
+          "startedUtc": "2026-10-19T01:05:04.635764+00:00",
+          "arguments": [
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\native-performance-20261019\\decode-performance-static.exe",
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\h264-1080p30-audio.mp4",
+            "audio",
+            "3000"
+          ],
+          "endedUtc": "2026-10-19T01:05:04.840167+00:00",
+          "exitCode": 0,
+          "result": {
+            "kind": "audio",
+            "decoder": "aac",
+            "threads": 1,
+            "hardware": false,
+            "frames": 3000,
+            "packets": 3001,
+            "units": 3072000,
+            "decodedSha256": "18e63ed8c5e99d9c4f3a18b7b46136802664d6205e075afe0d135146265e408a",
+            "elapsedSeconds": 0.0400948,
+            "processCpuSeconds": 0.046875,
+            "processCycles": 151195920,
+            "avcodecVersion": 4066148,
+            "windowsCreated": 0
+          }
+        },
+        {
+          "variant": "candidate",
+          "round": 5,
+          "warmup": false,
+          "startedUtc": "2026-10-19T01:05:05.668056+00:00",
+          "arguments": [
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\native-performance-20261019\\decode-performance-static.exe",
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\h264-1080p30-audio.mp4",
+            "audio",
+            "3000"
+          ],
+          "endedUtc": "2026-10-19T01:05:05.868590+00:00",
+          "exitCode": 0,
+          "result": {
+            "kind": "audio",
+            "decoder": "aac",
+            "threads": 1,
+            "hardware": false,
+            "frames": 3000,
+            "packets": 3001,
+            "units": 3072000,
+            "decodedSha256": "18e63ed8c5e99d9c4f3a18b7b46136802664d6205e075afe0d135146265e408a",
+            "elapsedSeconds": 0.0396453,
+            "processCpuSeconds": 0.046875,
+            "processCycles": 150442000,
+            "avcodecVersion": 4066148,
+            "windowsCreated": 0
+          }
+        },
+        {
+          "variant": "baseline",
+          "round": 5,
+          "warmup": false,
+          "startedUtc": "2026-10-19T01:05:06.297227+00:00",
+          "arguments": [
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\native-performance-20261019\\decode-size-static.exe",
+            "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\h264-1080p30-audio.mp4",
+            "audio",
+            "3000"
+          ],
+          "endedUtc": "2026-10-19T01:05:06.540617+00:00",
+          "exitCode": 0,
+          "result": {
+            "kind": "audio",
+            "decoder": "aac",
+            "threads": 1,
+            "hardware": false,
+            "frames": 3000,
+            "packets": 3001,
+            "units": 3072000,
+            "decodedSha256": "18e63ed8c5e99d9c4f3a18b7b46136802664d6205e075afe0d135146265e408a",
+            "elapsedSeconds": 0.0430977,
+            "processCpuSeconds": 0.046875,
+            "processCycles": 163317160,
+            "avcodecVersion": 4066148,
+            "windowsCreated": 0
+          }
+        }
+      ],
+      "status": "passed",
+      "summary": {
+        "baseline": {
+          "elapsedSeconds": {
+            "median": 0.0442966,
+            "min": 0.0430977,
+            "max": 0.0450757,
+            "runs": 5
+          },
+          "processCpuSeconds": {
+            "median": 0.046875,
+            "min": 0.03125,
+            "max": 0.046875,
+            "runs": 5
+          },
+          "processCycles": {
+            "median": 167574680,
+            "min": 163317160,
+            "max": 170570600,
+            "runs": 5
+          }
+        },
+        "candidate": {
+          "elapsedSeconds": {
+            "median": 0.0400948,
+            "min": 0.0389727,
+            "max": 0.0404176,
+            "runs": 5
+          },
+          "processCpuSeconds": {
+            "median": 0.046875,
+            "min": 0.03125,
+            "max": 0.046875,
+            "runs": 5
+          },
+          "processCycles": {
+            "median": 151195920,
+            "min": 147692700,
+            "max": 152558220,
+            "runs": 5
+          }
+        }
+      }
+    }
+  ],
+  "completedUtc": "2026-10-19T01:05:06.543691+00:00"
+}

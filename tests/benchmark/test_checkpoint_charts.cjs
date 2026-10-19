@@ -119,6 +119,12 @@ test('compatible replays connect saved history and retain the original VLC date'
   assert.equal(context.baseline({...r, environment: 'different-machine'}), null);
   assert.equal(context.baseline({...r, workload: 'different-fixture'}), null);
   assert(context.resourceHistory(context.playerOrigin(cp)).some(c => c.id === 'balanced-overlay-20261018-released'));
+  const mapPoints = context.resourcePoints(context.playerOrigin(cp));
+  assert(mapPoints.length >= 5);
+  assert(mapPoints.some(p => p.id === 'balanced-overlay-20261018-released'));
+  assert.equal(mapPoints.at(-1).id, cp.id);
+  assert.equal(mapPoints.find(p => p.id === 'balanced-overlay-20261018-released').y, 174.515625);
+  for (let i = 1; i < mapPoints.length; i++) assert(Date.parse(mapPoints[i].date) >= Date.parse(mapPoints[i - 1].date));
 });
 
 test('ambiguous inferred history groups leave observations separate', () => {

@@ -1,0 +1,50 @@
+{
+  "recordedUtc": "2026-10-19T01:18:45.195709+00:00",
+  "recordingCommit": "f0797173a5a1b92d14e7e7fa9ba306c1a7639375",
+  "dirty": true,
+  "note": "Native build and CPU probes were built from the worktree before the descriptive tooling commit; exact source/archive/probe/library hashes identify actual artifacts. Current changes add silent headless audio and fix map history extraction. Existing user App changes remain untouched. No clean App rebuild is implied.",
+  "sourceHashes": {
+    "scripts/build_lean_libmpv.ps1": "bec9bb9a8e0f4a9371e40c6b84d5add553cf032900a37d59bcca7778e983ca7d",
+    "scripts/libmpv/build.sh": "64f64b19ea4bdef2556e0ca1b5c15c2858593e62d9ae78677a074fb7d0d4243d",
+    "scripts/libmpv/build_profile.sh": "84885879e32ddb2addfa7884dd214075a191b728c2adb34d58c69428dffd3a12",
+    "scripts/libmpv/provenance.py": "b71716cb7f08051dc3e51d7b2449970080a110fc577b5ae9db9dd517347eac19",
+    "tests/benchmark/ffmpeg_decode_probe.c": "be0c0d3e41d2764a254da3b3c02280a67ae38edf8d7e81e924a5adc69e796662",
+    "tests/benchmark/compare_native_decode.py": "85a846d568710e5aa50eeea7d6ef0e8eb179e9404b2860cec4d429e2461c278c",
+    "tests/benchmark/build_native_decode_probe.ps1": "ca6ca0ec33874475388ec5e7bf7883784ed3b98b7684703bae80b5196aeb9acf",
+    "tests/benchmark/build_native_decode_probe.sh": "ea2cff4d51d75b6705181b9412a1af3d2549360bac5a7c57bfb340273b57788d",
+    "tests/libmpv/mpv_playback_test.cpp": "9a0eb8440b9e8775047c1cfdd75cc9da50e11036670509b4423c7f940472a20a",
+    "tests/libmpv/playback_transition_check.h": "3f3267caf7bd7b158561f9b229b2c9999f2dfdb45bf83ad63096470fc304c39d"
+  },
+  "cpuProbes": {
+    "baseline": {
+      "path": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\native-performance-20261019\\decode-size-static.exe",
+      "sha256": "bffbb7971b92c543bd9b0f991798ece8c3d205e73e230aa348829d2044c99e5c"
+    },
+    "candidate": {
+      "path": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\native-performance-20261019\\decode-performance-static.exe",
+      "sha256": "cbeb1bda9f7af941756cd8d44b1f2910dc4de5682d7d7d5acff51e9452e13013"
+    }
+  },
+  "baselineNative": {
+    "sha256": "8dd14629f574a04a1d6904104be8748e73954d9ac5aef07cc36f1a34ee752daa",
+    "provenance": "docs/evidence/direct-nv12-20261018/build-provenance.json"
+  },
+  "candidateNative": {
+    "sha256": "0eb2a7ea41231db97fb4d10d0125675247b5fab3b9b068d0617d3f320c016b82",
+    "bytes": 33462784,
+    "recipeId": "64c2cdacba5d90eb138b4ffcfbe5cd4042a3a1b5fde97cbc5028ce49e1045570",
+    "profile": "performance",
+    "retainedPath": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\native-performance-20261019\\build\\output\\libmpv-2.dll"
+  },
+  "reusedAppExe": {
+    "sha256": "3f63a5577e6c56b17441c88c28d8cbed2734a71738be165a44443243a04ae8b0",
+    "retainedPath": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\native-performance-20261019\\portable-candidate\\Aperture.exe",
+    "originalBuildRecord": "docs/evidence/direct-nv12-20261018/source-identity.json",
+    "allRecordedAppSourceHashesStillMatch": true
+  },
+  "cacheRelocation": "After both native/probe compilers exited, the completed owned build was moved to Codex tools scratch; DLL bytes verified unchanged. Generated build files retain former absolute paths; use -Clean/new root for future full rebuilds. Archives/sources/artifacts preserved.",
+  "packagesMatch": true,
+  "noNewVisiblePlayerRun": true,
+  "noVlcRun": true,
+  "bundledDllUnchanged": true
+}

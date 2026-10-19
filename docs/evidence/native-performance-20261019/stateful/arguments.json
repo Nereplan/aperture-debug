@@ -1,0 +1,22 @@
+[
+  "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\run-298ddc964386407cae4f0fa675199361\\mpv_playback_test.exe",
+  "--dll",
+  "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\native-performance-20261019\\build\\output\\libmpv-2.dll",
+  "--media",
+  "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\scratch\\libmpv-tests\\media",
+  "--scenario",
+  "transitioncheck",
+  "--headless",
+  "--capture-window",
+  "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\native-performance-20261019\\stateful\\frame",
+  "--scaling",
+  "balanced",
+  "--scale-direct-nv12",
+  "yes",
+  "--gpu-timing",
+  "no",
+  "--vertex-cache-entries",
+  "4",
+  "--hwdec-threads",
+  "1"
+]

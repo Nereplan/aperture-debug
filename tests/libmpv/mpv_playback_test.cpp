@@ -216,6 +216,13 @@ static mpv_handle* NewPlayer(const std::vector<std::pair<std::string, std::strin
     const bool nativeVideo = std::any_of(opts.begin(), opts.end(), [](const auto& option) {
         return option.first == "vo" && (option.second == "gpu" || option.second == "gpu-next");
     });
+    // Hidden correctness still exercises demux/decode/filtering, but its
+    // generated tones must not reach the user's speakers. Visible, explicitly
+    // requested playback measurements retain the normal audio-device path.
+    if (g_headless && fn_set_property_string(mpv, "ao", "null") < 0) {
+        Report("hidden audio sink", false);
+        fn_terminate_destroy(mpv); return nullptr;
+    }
     if (nativeVideo && g_resourceScaling != "default") {
         const auto& scaling = g_resourceScaling == "balanced" ? Aperture::PlaybackScaling::kBalanced : Aperture::PlaybackScaling::kLinear;
         for (const auto& option : scaling) {
@@ -581,6 +588,7 @@ static void Scenario_AudioFeatures(const std::string& media) {
     if (!started) { Report(testName, false, "no start " + log); DestroyPlayer(mpv); DestroyWindow(hwnd); return; }
 
     // night mode: dynaudnorm (exact Aperture AudioConfig filter string)
+    if (g_headless) Report("hidden audio uses null output", GetStr(mpv, "ao") == "null");
     fn_command_string(mpv, "af set lavfi=[dynaudnorm=f=200:g=21:p=0.95:m=10.0]");
     Sleep(800);
     PumpMessages(50);

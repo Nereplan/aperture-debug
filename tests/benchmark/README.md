@@ -286,6 +286,9 @@ Native correctness runs now default to hidden parent windows. `-VisiblePlayback`
 under `tests/libmpv/run_tests.ps1` is an explicit desktop-test opt-in; resource,
 startup and decode-speed scenarios refuse headless operation. The native probe
 also defaults to `--headless`, and requires `--visible` for those measurements.
+Hidden correctness selects the null audio output, so generated tones stay off
+the speakers. Decoding and audio filters still run; this does not validate the
+physical WASAPI sink. Explicit visible measurements retain normal audio output.
 
 For output checks without opening a window, use `-Scenario framecheck` with
 `-ResourceFile`, a new `-FrameCapture` path, `-ScalingProfile balanced`,

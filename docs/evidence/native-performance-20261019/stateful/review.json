@@ -1,0 +1,190 @@
+{
+  "status": "passed",
+  "scope": "Hidden stateful compiler-profile validation. Same fixed fixture/probe semantics; saved size-profile captures retain their historical run. No resource/cadence measurement.",
+  "frames": [
+    {
+      "stage": "initial",
+      "headless": true,
+      "position": 2.0,
+      "hwdec": "d3d11va",
+      "direct_filter": true,
+      "expected_direct": true
+    },
+    {
+      "stage": "zoom",
+      "headless": true,
+      "position": 2.0,
+      "hwdec": "d3d11va",
+      "direct_filter": false,
+      "expected_direct": false
+    },
+    {
+      "stage": "unzoom",
+      "headless": true,
+      "position": 2.0,
+      "hwdec": "d3d11va",
+      "direct_filter": true,
+      "expected_direct": true
+    },
+    {
+      "stage": "rotate",
+      "headless": true,
+      "position": 2.0,
+      "hwdec": "d3d11va",
+      "direct_filter": false,
+      "expected_direct": false
+    },
+    {
+      "stage": "unrotate",
+      "headless": true,
+      "position": 2.0,
+      "hwdec": "d3d11va",
+      "direct_filter": true,
+      "expected_direct": true
+    },
+    {
+      "stage": "rgba8",
+      "headless": true,
+      "position": 2.0,
+      "hwdec": "d3d11va",
+      "direct_filter": false,
+      "expected_direct": false
+    },
+    {
+      "stage": "auto-fbo",
+      "headless": true,
+      "position": 2.0,
+      "hwdec": "d3d11va",
+      "direct_filter": true,
+      "expected_direct": true
+    },
+    {
+      "stage": "software",
+      "headless": true,
+      "position": 2.0,
+      "hwdec": "no",
+      "direct_filter": false,
+      "expected_direct": false
+    },
+    {
+      "stage": "hardware",
+      "headless": true,
+      "position": 2.0,
+      "hwdec": "d3d11va",
+      "direct_filter": true,
+      "expected_direct": true
+    },
+    {
+      "stage": "hdr",
+      "headless": true,
+      "position": 2.0,
+      "hwdec": "d3d11va",
+      "direct_filter": false,
+      "expected_direct": false
+    },
+    {
+      "stage": "sdr-return",
+      "headless": true,
+      "position": 2.0,
+      "hwdec": "d3d11va",
+      "direct_filter": true,
+      "expected_direct": true
+    },
+    {
+      "stage": "reopen",
+      "headless": true,
+      "position": 2.0,
+      "hwdec": "d3d11va",
+      "direct_filter": true,
+      "expected_direct": true
+    }
+  ],
+  "comparisons": [
+    {
+      "stage": "initial",
+      "maximumChannelError": 0,
+      "limit": 1
+    },
+    {
+      "stage": "zoom",
+      "maximumChannelError": 0,
+      "limit": 1
+    },
+    {
+      "stage": "unzoom",
+      "maximumChannelError": 0,
+      "limit": 1
+    },
+    {
+      "stage": "rotate",
+      "maximumChannelError": 0,
+      "limit": 1
+    },
+    {
+      "stage": "unrotate",
+      "maximumChannelError": 0,
+      "limit": 1
+    },
+    {
+      "stage": "rgba8",
+      "maximumChannelError": 0,
+      "limit": 1
+    },
+    {
+      "stage": "auto-fbo",
+      "maximumChannelError": 0,
+      "limit": 1
+    },
+    {
+      "stage": "software",
+      "maximumChannelError": 0,
+      "limit": 1
+    },
+    {
+      "stage": "hardware",
+      "maximumChannelError": 0,
+      "limit": 1
+    },
+    {
+      "stage": "hdr",
+      "maximumChannelError": 0,
+      "limit": null
+    },
+    {
+      "stage": "sdr-return",
+      "maximumChannelError": 0,
+      "limit": 1
+    },
+    {
+      "stage": "reopen",
+      "maximumChannelError": 0,
+      "limit": 1
+    }
+  ],
+  "returns": [
+    {
+      "stage": "unzoom",
+      "maximumChannelError": 0
+    },
+    {
+      "stage": "unrotate",
+      "maximumChannelError": 0
+    },
+    {
+      "stage": "auto-fbo",
+      "maximumChannelError": 0
+    },
+    {
+      "stage": "hardware",
+      "maximumChannelError": 0
+    },
+    {
+      "stage": "sdr-return",
+      "maximumChannelError": 0
+    },
+    {
+      "stage": "reopen",
+      "maximumChannelError": 0
+    }
+  ]
+}

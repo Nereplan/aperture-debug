@@ -1,0 +1,10 @@
+Traceback (most recent call last):
+  File "C:\Users\Alperen\Desktop\Antigravity\Aperture Final\tests\benchmark\compare_native_decode.py", line 136, in <module>
+    main()
+    ~~~~^^
+  File "C:\Users\Alperen\Desktop\Antigravity\Aperture Final\tests\benchmark\compare_native_decode.py", line 72, in main
+    no_competing_benchmarks()
+    ~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Alperen\Desktop\Antigravity\Aperture Final\tests\benchmark\compare_native_decode.py", line 34, in no_competing_benchmarks
+    raise RuntimeError("Timing deferred while these processes are active: " + ", ".join(active))
+RuntimeError: Timing deferred while these processes are active: make.exe

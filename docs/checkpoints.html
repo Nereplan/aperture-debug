@@ -96,7 +96,7 @@ git diff --check</pre>
 <script id="checkpoint-data" type="application/json">
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-10-18T23:50:54+00:00",
+  "updatedAt": "2026-10-19T01:18:45+00:00",
   "metrics": {
     "visible-ms": {
       "label": "Visible window",
@@ -221,6 +221,11 @@ git diff --check</pre>
     "startup-window-ms": {
       "label": "Startup window shown",
       "unit": "ms",
+      "direction": "lower"
+    },
+    "cpu-cycles": {
+      "label": "Process CPU cycles",
+      "unit": "count",
       "direction": "lower"
     }
   },
@@ -379,6 +384,11 @@ git diff --check</pre>
       "label": "Aperture replay / saved VLC / single launch",
       "category": "Playback",
       "method": "One explicitly authorized visible Aperture launch; no VLC launch and no discarded warmup. Same SHA256-verified 180s 1080p30 H264/AAC stereo fixture, fresh owned portable profile, actual 1280x720 video canvas at 96 DPI. Seven raw process/cycle/memory snapshots span 30.0146089 seconds after \u003e=10s media time and settling; media advances from 10.0667 to 40.0667s. No other builds, profilers or tests ran during timing. CPU = cycle delta / actual elapsed / independently validated same-CPU invariant-TSC rate *100, percent of one logical processor; whole-machine capacity divides by 24. Raw sampled CPU time is retained separately. Private RAM and working set are median snapshots; GPU value is dedicated allocation, not GPU time. The saved VLC reference retains its original 2026-10-18T18:57:51.4393218Z batch date/session and original calibration; it requests D3D11/D3D11VA/linear scaling. Aperture retains balanced Lanczos-up/Hermite-down/correct-downscaling, bilinear chroma, no linear-light/sigmoid passes, with guarded direct NV12 optimization. Filters differ between players. Memory categories overlap and are not summed."
+    },
+    "native-software-demux-decode-profile-v1": {
+      "label": "CPU-only decode / compiler profiles",
+      "category": "Playback",
+      "method": "One discarded process per variant/case, followed by rotated measured processes. Each process first hashes decoded output in a separate warmup, then initializes a fresh decoder and times fixed-count demux/decode/frame release. Open, stream discovery and codec initialization excluded. One decoder thread, warm file cache, no affinity change; raw process cycles and CPU time retained without converting to CPU utilization. Exact decoded buffers and frame metadata must match across both variants and all launches. Static probe links the corresponding FFmpeg libraries but has a different final LTO link from libmpv. Size and speed variants have the same decoded buffers/metadata in all 60 launches. No VLC counterpart or whole-App CPU/RAM inference."
     }
   },
   "environments": {
@@ -16132,6 +16142,388 @@ git diff --check</pre>
           "scope": "Existing output rejected before test-window creation; twelve saved PNG hashes unchanged."
         }
       ]
+    },
+    {
+      "id": "native-profile-20261019-size",
+      "label": "Native decode / size",
+      "measuredAt": "2026-10-19T01:05:06.543691+00:00",
+      "commit": "f0797173a5a1b92d14e7e7fa9ba306c1a7639375",
+      "dirty": true,
+      "sourceNote": "CPU-only probes from exact static-prefix archives and source hashes in docs/evidence/native-performance-20261019/source-identity.json. Runs were interleaved; checkpoint time is batch completion, with exact per-run times in raw JSON. These are component measurements, not clean App builds or visible playback sessions. Candidate artifact remains isolated; bundled App DLL is unchanged.",
+      "notes": "Software decode profile comparison, fixed frame counts and one thread. All decoded hashes match. H264/HEVC/VP9/AAC median decode times improve by about 10/4.6/6.1/9.5 percent; AV1 is effectively unchanged. Candidate DLL adds 8.49 MiB. Full-App CPU/RAM/VLC comparison is pending; no rendering-quality reduction or fresh VLC result is claimed.",
+      "results": [
+        {
+          "metric": "elapsed-ms",
+          "protocol": "native-software-demux-decode-profile-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "CPU-only video demux/decode / h264-1080p / 180 frames / one thread",
+          "session": "native-decode-profile-20261019",
+          "value": 751.186,
+          "samples": 5,
+          "evidence": "docs/evidence/native-performance-20261019/decode-comparison/results.json",
+          "runRange": {
+            "min": 715.5775,
+            "max": 758.0109,
+            "runs": 5,
+            "scope": "Five fresh probe processes; first process discarded per variant/case. Hashing is a separate per-process warmup, excluded from timing. Fixed-count demux/software decode, one thread, warm local cache; not whole-player performance."
+          }
+        },
+        {
+          "metric": "cpu-cycles",
+          "protocol": "native-software-demux-decode-profile-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "CPU-only video demux/decode / h264-1080p / 180 frames / one thread",
+          "session": "native-decode-profile-20261019",
+          "value": 2842355540,
+          "samples": 5,
+          "evidence": "docs/evidence/native-performance-20261019/decode-comparison/results.json",
+          "runRange": {
+            "min": 2708236820,
+            "max": 2869015200,
+            "runs": 5,
+            "scope": "Five fresh probe processes; first process discarded per variant/case. Hashing is a separate per-process warmup, excluded from timing. Fixed-count demux/software decode, one thread, warm local cache; not whole-player performance."
+          }
+        },
+        {
+          "metric": "elapsed-ms",
+          "protocol": "native-software-demux-decode-profile-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "CPU-only video demux/decode / hevc-720p / 240 frames / one thread",
+          "session": "native-decode-profile-20261019",
+          "value": 754.3377999999999,
+          "samples": 5,
+          "evidence": "docs/evidence/native-performance-20261019/decode-comparison/results.json",
+          "runRange": {
+            "min": 747.6689,
+            "max": 861.7083,
+            "runs": 5,
+            "scope": "Five fresh probe processes; first process discarded per variant/case. Hashing is a separate per-process warmup, excluded from timing. Fixed-count demux/software decode, one thread, warm local cache; not whole-player performance."
+          }
+        },
+        {
+          "metric": "cpu-cycles",
+          "protocol": "native-software-demux-decode-profile-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "CPU-only video demux/decode / hevc-720p / 240 frames / one thread",
+          "session": "native-decode-profile-20261019",
+          "value": 2852546380,
+          "samples": 5,
+          "evidence": "docs/evidence/native-performance-20261019/decode-comparison/results.json",
+          "runRange": {
+            "min": 2828464640,
+            "max": 3233524880,
+            "runs": 5,
+            "scope": "Five fresh probe processes; first process discarded per variant/case. Hashing is a separate per-process warmup, excluded from timing. Fixed-count demux/software decode, one thread, warm local cache; not whole-player performance."
+          }
+        },
+        {
+          "metric": "elapsed-ms",
+          "protocol": "native-software-demux-decode-profile-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "CPU-only video demux/decode / vp9-360p / 240 frames / one thread",
+          "session": "native-decode-profile-20261019",
+          "value": 103.89909999999999,
+          "samples": 5,
+          "evidence": "docs/evidence/native-performance-20261019/decode-comparison/results.json",
+          "runRange": {
+            "min": 102.9128,
+            "max": 105.3081,
+            "runs": 5,
+            "scope": "Five fresh probe processes; first process discarded per variant/case. Hashing is a separate per-process warmup, excluded from timing. Fixed-count demux/software decode, one thread, warm local cache; not whole-player performance."
+          }
+        },
+        {
+          "metric": "cpu-cycles",
+          "protocol": "native-software-demux-decode-profile-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "CPU-only video demux/decode / vp9-360p / 240 frames / one thread",
+          "session": "native-decode-profile-20261019",
+          "value": 393909900,
+          "samples": 5,
+          "evidence": "docs/evidence/native-performance-20261019/decode-comparison/results.json",
+          "runRange": {
+            "min": 390084440,
+            "max": 398204660,
+            "runs": 5,
+            "scope": "Five fresh probe processes; first process discarded per variant/case. Hashing is a separate per-process warmup, excluded from timing. Fixed-count demux/software decode, one thread, warm local cache; not whole-player performance."
+          }
+        },
+        {
+          "metric": "elapsed-ms",
+          "protocol": "native-software-demux-decode-profile-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "CPU-only video demux/decode / av1-1080p / 120 frames / one thread",
+          "session": "native-decode-profile-20261019",
+          "value": 613.8158999999999,
+          "samples": 5,
+          "evidence": "docs/evidence/native-performance-20261019/decode-comparison/results.json",
+          "runRange": {
+            "min": 602.4299,
+            "max": 625.9104,
+            "runs": 5,
+            "scope": "Five fresh probe processes; first process discarded per variant/case. Hashing is a separate per-process warmup, excluded from timing. Fixed-count demux/software decode, one thread, warm local cache; not whole-player performance."
+          }
+        },
+        {
+          "metric": "cpu-cycles",
+          "protocol": "native-software-demux-decode-profile-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "CPU-only video demux/decode / av1-1080p / 120 frames / one thread",
+          "session": "native-decode-profile-20261019",
+          "value": 2323635400,
+          "samples": 5,
+          "evidence": "docs/evidence/native-performance-20261019/decode-comparison/results.json",
+          "runRange": {
+            "min": 2283952760,
+            "max": 2363800640,
+            "runs": 5,
+            "scope": "Five fresh probe processes; first process discarded per variant/case. Hashing is a separate per-process warmup, excluded from timing. Fixed-count demux/software decode, one thread, warm local cache; not whole-player performance."
+          }
+        },
+        {
+          "metric": "elapsed-ms",
+          "protocol": "native-software-demux-decode-profile-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "CPU-only audio demux/decode / aac-stereo / 3000 frames / one thread",
+          "session": "native-decode-profile-20261019",
+          "value": 44.2966,
+          "samples": 5,
+          "evidence": "docs/evidence/native-performance-20261019/decode-comparison/results.json",
+          "runRange": {
+            "min": 43.0977,
+            "max": 45.075700000000005,
+            "runs": 5,
+            "scope": "Five fresh probe processes; first process discarded per variant/case. Hashing is a separate per-process warmup, excluded from timing. Fixed-count demux/software decode, one thread, warm local cache; not whole-player performance."
+          }
+        },
+        {
+          "metric": "cpu-cycles",
+          "protocol": "native-software-demux-decode-profile-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "CPU-only audio demux/decode / aac-stereo / 3000 frames / one thread",
+          "session": "native-decode-profile-20261019",
+          "value": 167574680,
+          "samples": 5,
+          "evidence": "docs/evidence/native-performance-20261019/decode-comparison/results.json",
+          "runRange": {
+            "min": 163317160,
+            "max": 170570600,
+            "runs": 5,
+            "scope": "Five fresh probe processes; first process discarded per variant/case. Hashing is a separate per-process warmup, excluded from timing. Fixed-count demux/software decode, one thread, warm local cache; not whole-player performance."
+          }
+        }
+      ],
+      "report": "native-performance-20261019"
+    },
+    {
+      "id": "native-profile-20261019-performance",
+      "label": "Native decode / speed candidate",
+      "measuredAt": "2026-10-19T01:05:06.543691+00:00",
+      "commit": "f0797173a5a1b92d14e7e7fa9ba306c1a7639375",
+      "dirty": true,
+      "sourceNote": "CPU-only probes from exact static-prefix archives and source hashes in docs/evidence/native-performance-20261019/source-identity.json. Runs were interleaved; checkpoint time is batch completion, with exact per-run times in raw JSON. These are component measurements, not clean App builds or visible playback sessions. Candidate artifact remains isolated; bundled App DLL is unchanged.",
+      "notes": "Software decode profile comparison, fixed frame counts and one thread. All decoded hashes match. H264/HEVC/VP9/AAC median decode times improve by about 10/4.6/6.1/9.5 percent; AV1 is effectively unchanged. Candidate DLL adds 8.49 MiB. Full-App CPU/RAM/VLC comparison is pending; no rendering-quality reduction or fresh VLC result is claimed.",
+      "results": [
+        {
+          "metric": "elapsed-ms",
+          "protocol": "native-software-demux-decode-profile-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "CPU-only video demux/decode / h264-1080p / 180 frames / one thread",
+          "session": "native-decode-profile-20261019",
+          "value": 675.723,
+          "samples": 5,
+          "evidence": "docs/evidence/native-performance-20261019/decode-comparison/results.json",
+          "runRange": {
+            "min": 663.9098,
+            "max": 709.8050999999999,
+            "runs": 5,
+            "scope": "Five fresh probe processes; first process discarded per variant/case. Hashing is a separate per-process warmup, excluded from timing. Fixed-count demux/software decode, one thread, warm local cache; not whole-player performance."
+          }
+        },
+        {
+          "metric": "cpu-cycles",
+          "protocol": "native-software-demux-decode-profile-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "CPU-only video demux/decode / h264-1080p / 180 frames / one thread",
+          "session": "native-decode-profile-20261019",
+          "value": 2560314600,
+          "samples": 5,
+          "evidence": "docs/evidence/native-performance-20261019/decode-comparison/results.json",
+          "runRange": {
+            "min": 2516192040,
+            "max": 2645420160,
+            "runs": 5,
+            "scope": "Five fresh probe processes; first process discarded per variant/case. Hashing is a separate per-process warmup, excluded from timing. Fixed-count demux/software decode, one thread, warm local cache; not whole-player performance."
+          }
+        },
+        {
+          "metric": "elapsed-ms",
+          "protocol": "native-software-demux-decode-profile-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "CPU-only video demux/decode / hevc-720p / 240 frames / one thread",
+          "session": "native-decode-profile-20261019",
+          "value": 719.8295999999999,
+          "samples": 5,
+          "evidence": "docs/evidence/native-performance-20261019/decode-comparison/results.json",
+          "runRange": {
+            "min": 701.7157000000001,
+            "max": 753.8098,
+            "runs": 5,
+            "scope": "Five fresh probe processes; first process discarded per variant/case. Hashing is a separate per-process warmup, excluded from timing. Fixed-count demux/software decode, one thread, warm local cache; not whole-player performance."
+          }
+        },
+        {
+          "metric": "cpu-cycles",
+          "protocol": "native-software-demux-decode-profile-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "CPU-only video demux/decode / hevc-720p / 240 frames / one thread",
+          "session": "native-decode-profile-20261019",
+          "value": 2722373200,
+          "samples": 5,
+          "evidence": "docs/evidence/native-performance-20261019/decode-comparison/results.json",
+          "runRange": {
+            "min": 2657983340,
+            "max": 2845977320,
+            "runs": 5,
+            "scope": "Five fresh probe processes; first process discarded per variant/case. Hashing is a separate per-process warmup, excluded from timing. Fixed-count demux/software decode, one thread, warm local cache; not whole-player performance."
+          }
+        },
+        {
+          "metric": "elapsed-ms",
+          "protocol": "native-software-demux-decode-profile-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "CPU-only video demux/decode / vp9-360p / 240 frames / one thread",
+          "session": "native-decode-profile-20261019",
+          "value": 97.5398,
+          "samples": 5,
+          "evidence": "docs/evidence/native-performance-20261019/decode-comparison/results.json",
+          "runRange": {
+            "min": 96.36309999999999,
+            "max": 98.14739999999999,
+            "runs": 5,
+            "scope": "Five fresh probe processes; first process discarded per variant/case. Hashing is a separate per-process warmup, excluded from timing. Fixed-count demux/software decode, one thread, warm local cache; not whole-player performance."
+          }
+        },
+        {
+          "metric": "cpu-cycles",
+          "protocol": "native-software-demux-decode-profile-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "CPU-only video demux/decode / vp9-360p / 240 frames / one thread",
+          "session": "native-decode-profile-20261019",
+          "value": 369985860,
+          "samples": 5,
+          "evidence": "docs/evidence/native-performance-20261019/decode-comparison/results.json",
+          "runRange": {
+            "min": 365389380,
+            "max": 371366400,
+            "runs": 5,
+            "scope": "Five fresh probe processes; first process discarded per variant/case. Hashing is a separate per-process warmup, excluded from timing. Fixed-count demux/software decode, one thread, warm local cache; not whole-player performance."
+          }
+        },
+        {
+          "metric": "elapsed-ms",
+          "protocol": "native-software-demux-decode-profile-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "CPU-only video demux/decode / av1-1080p / 120 frames / one thread",
+          "session": "native-decode-profile-20261019",
+          "value": 615.0628,
+          "samples": 5,
+          "evidence": "docs/evidence/native-performance-20261019/decode-comparison/results.json",
+          "runRange": {
+            "min": 608.0129,
+            "max": 619.6833,
+            "runs": 5,
+            "scope": "Five fresh probe processes; first process discarded per variant/case. Hashing is a separate per-process warmup, excluded from timing. Fixed-count demux/software decode, one thread, warm local cache; not whole-player performance."
+          }
+        },
+        {
+          "metric": "cpu-cycles",
+          "protocol": "native-software-demux-decode-profile-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "CPU-only video demux/decode / av1-1080p / 120 frames / one thread",
+          "session": "native-decode-profile-20261019",
+          "value": 2325671820,
+          "samples": 5,
+          "evidence": "docs/evidence/native-performance-20261019/decode-comparison/results.json",
+          "runRange": {
+            "min": 2305181460,
+            "max": 2341297800,
+            "runs": 5,
+            "scope": "Five fresh probe processes; first process discarded per variant/case. Hashing is a separate per-process warmup, excluded from timing. Fixed-count demux/software decode, one thread, warm local cache; not whole-player performance."
+          }
+        },
+        {
+          "metric": "elapsed-ms",
+          "protocol": "native-software-demux-decode-profile-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "CPU-only audio demux/decode / aac-stereo / 3000 frames / one thread",
+          "session": "native-decode-profile-20261019",
+          "value": 40.0948,
+          "samples": 5,
+          "evidence": "docs/evidence/native-performance-20261019/decode-comparison/results.json",
+          "runRange": {
+            "min": 38.972699999999996,
+            "max": 40.4176,
+            "runs": 5,
+            "scope": "Five fresh probe processes; first process discarded per variant/case. Hashing is a separate per-process warmup, excluded from timing. Fixed-count demux/software decode, one thread, warm local cache; not whole-player performance."
+          }
+        },
+        {
+          "metric": "cpu-cycles",
+          "protocol": "native-software-demux-decode-profile-v1",
+          "environment": "ryzen3900x-4070super",
+          "workload": "CPU-only audio demux/decode / aac-stereo / 3000 frames / one thread",
+          "session": "native-decode-profile-20261019",
+          "value": 151195920,
+          "samples": 5,
+          "evidence": "docs/evidence/native-performance-20261019/decode-comparison/results.json",
+          "runRange": {
+            "min": 147692700,
+            "max": 152558220,
+            "runs": 5,
+            "scope": "Five fresh probe processes; first process discarded per variant/case. Hashing is a separate per-process warmup, excluded from timing. Fixed-count demux/software decode, one thread, warm local cache; not whole-player performance."
+          }
+        }
+      ],
+      "report": "native-performance-20261019",
+      "tests": [
+        {
+          "name": "Hidden native functionality",
+          "status": "pass",
+          "passed": 80,
+          "total": 80,
+          "durationSeconds": null,
+          "evidence": "docs/evidence/native-performance-20261019/native-functional/summary.json",
+          "scope": "Hidden parent windows, null audio output; hardware/software AV1 and codec/control/filter/local-network cases. Physical WASAPI sink and visible cadence not validated."
+        },
+        {
+          "name": "Background App units",
+          "status": "partial",
+          "passed": 52,
+          "total": 53,
+          "durationSeconds": 5.02357,
+          "evidence": "docs/evidence/native-performance-20261019/app-unit-driver.log",
+          "scope": "Desktop PlaybackSession geometry deferred; not counted as passed."
+        },
+        {
+          "name": "Paired SDR output",
+          "status": "pass",
+          "passed": 13,
+          "total": 13,
+          "durationSeconds": null,
+          "evidence": "docs/evidence/native-performance-20261019/frame-quality/results.json",
+          "scope": "Twenty-six isolated SDR captures across thirteen cases match exactly; HDR is separately observed with max 1/255 and adaptive-history limits."
+        },
+        {
+          "name": "Stateful native controls",
+          "status": "pass",
+          "passed": 26,
+          "total": 26,
+          "durationSeconds": null,
+          "evidence": "docs/evidence/native-performance-20261019/stateful/review.json",
+          "scope": "Twelve stage images match saved size-profile controls exactly; six returns match the initial frame. No visible cadence or resource timing."
+        }
+      ]
     }
   ],
   "reports": [
@@ -16344,6 +16736,12 @@ git diff --check</pre>
       "title": "Filter fallback/restoration and rejected zero-copy candidate",
       "source": "docs/evidence/filter-state-20261019/review.json",
       "text": "{\n  \"recordedUtc\": \"2026-10-18T23:50:54.141162+00:00\",\n  \"status\": \"Current production mapping/filtering passed stateful controls and fixed-frame checks. Experimental zero-copy remains disabled; its HDR image equivalence is unproven. No new player performance result.\",\n  \"method\": \"Three separate native processes, each one long-lived player through twelve stages: initial H264, zoom/unzoom, rotate/unrotate, explicit rgba8/auto, software/hardware decode replacement, HDR replacement/SDR return, stop/reopen. Original pipeline = direct NV12 off and default copy mapping. Candidate = direct NV12 on and default copy mapping. Experimental = direct NV12 on and zero-copy mapping. Same bundled DLL, balanced scaling, GPU timing off, four vertex cache entries and one hardware decoder thread. Each capture is paused at exactly 2s; load events are drained/awaited to exclude stale properties. Actual decoder and redraw-path descriptions checked per stage; all owner windows stayed hidden. No CPU, RAM, startup, throughput or visible-cadence performance measurement. No VLC process.\",\n  \"nativeDllSha256\": \"8dd14629f574a04a1d6904104be8748e73954d9ac5aef07cc36f1a34ee752daa\",\n  \"validation\": {\n    \"transitionChecks\": {\n      \"candidate\": 26,\n      \"baseline\": 26,\n      \"zero-copy\": 26\n    },\n    \"pairedSdrCases\": {\n      \"passed\": 22,\n      \"total\": 22,\n      \"maximumChannelError\": 1,\n      \"scope\": \"Each SDR stage versus the original pipeline, including fallback and restoration. One channel level out of 255 maximum.\"\n    },\n    \"returnConsistency\": {\n      \"passed\": 18,\n      \"total\": 18,\n      \"maximumChannelError\": 0,\n      \"scope\": \"Six restored stages versus the initial H264 frame in each of three processes; exact pixels.\"\n    },\n    \"hdrObservedMaximumChannelError\": {\n      \"candidate\": 0,\n      \"zero-copy\": 40\n    },\n    \"captureProtection\": {\n      \"passed\": 1,\n      \"total\": 1,\n      \"scope\": \"Existing prefix intentionally rejected, expected failure exit and twelve unchanged PNG hashes.\"\n    }\n  },\n  \"experimentalZeroCopyDecision\": {\n    \"adopted\": false,\n    \"currentProductionSetting\": \"d3d11va-zero-copy=no (native default)\",\n    \"historicalScreen\": \"docs/evidence/filter-state-20261019/historical-video-view-screen.json\",\n    \"historicalDates\": \"2026-10-18T05:44:19.2459392Z through 2026-10-18T05:45:38.1893992Z\",\n    \"finding\": \"Earlier single-run linear-profile screen removed repeated view creation (745 hits, 12 created views) but still used more recorded CPU than the copy path. It is a different older DLL/profile and is not a fresh comparison of the balanced app. This validation also observes a 40-level HDR capture difference in the experimental zero-copy sequence. These data do not justify adoption.\",\n    \"hdrCause\": \"Unresolved. The observation does not isolate decoder-surface mapping/layout from adaptive HDR peak history. It must not be attributed to the direct NV12 filter, which was on its original fallback path for HDR.\"\n  },\n  \"captures\": {\n    \"count\": 36,\n    \"uniqueFiles\": 8,\n    \"mapping\": \"docs/evidence/filter-state-20261019/capture-manifest.json\",\n    \"note\": \"Byte-identical captures share one stored PNG; all original stage SHA256/size mappings are preserved. All original files remain in the external scratch directory.\"\n  },\n  \"limits\": [\n    \"Correctness validation does not prove a CPU/RAM win or visible presentation cadence. Existing performance history/VLC baseline are unchanged.\",\n    \"HDR was observed and reported, not subjected to an invented universal tolerance; current default mapping matched its baseline, experimental zero-copy did not.\",\n    \"The experimental native view cache was not rebuilt or enabled, and zero-copy is not enabled in App source.\",\n    \"This is not a new full app unit/regression gate. Previous validation remains separate evidence.\"\n  ],\n  \"nextPerformanceInvestigation\": \"The native recipe uses FFmpeg --enable-small and size-optimized mpv/libplacebo builds. Evaluate a separate reproducible compiler/codec performance candidate against matching software-decode correctness and internal CPU work before considering adoption; no benefit has been measured yet.\"\n}"
+    },
+    {
+      "id": "native-performance-20261019",
+      "title": "Native speed candidate: internal decode and hidden validation",
+      "source": "docs/evidence/native-performance-20261019/review.json",
+      "text": "{\n  \"recordedUtc\": \"2026-10-19T01:18:45.227725+00:00\",\n  \"batchCompletedUtc\": \"2026-10-19T01:05:06.543691+00:00\",\n  \"status\": \"Portable speed candidate ready. Four internal software-decode cases improved; AV1 effectively unchanged; decoded output matches exactly. Full-App CPU/RAM comparison with saved VLC has not been run, so the candidate is not adopted and an overall win is unproven.\",\n  \"method\": \"One discarded process per variant/case, followed by rotated measured processes. Each process first hashes decoded output in a separate warmup, then initializes a fresh decoder and times fixed-count demux/decode/frame release. Open, stream discovery and codec initialization excluded. One decoder thread, warm file cache, no affinity change; raw process cycles and CPU time retained without converting to CPU utilization. Exact decoded buffers and frame metadata must match across both variants and all launches.\",\n  \"scope\": \"CPU-only demux/software decode. No renderer, hardware decode, audio output or player windows. Not a whole-player benchmark.\",\n  \"profileChange\": \"FFmpeg enable-small/-Os versus disable-small/-O3, and mpv/libplacebo size versus -O3 optimization. Same pinned source revisions, four maintained patches and GCC version; shader dependencies stay -Os without LTO. No fast-math, CPU target, scaling profile or decoder-feature reduction. The probe statically links the corresponding FFmpeg prefix and uses a different final LTO root set from the full libmpv DLL; its gains are not App CPU percentages.\",\n  \"summary\": [\n    {\n      \"case\": \"h264-1080p\",\n      \"kind\": \"video\",\n      \"frames\": 180,\n      \"decodedSha256\": \"473fb7ebfc2afa1537164d975d00e4ee0a70e8040f4f3aa22165ac61a45d61a4\",\n      \"baseline\": {\n        \"elapsedSeconds\": {\n          \"median\": 0.751186,\n          \"min\": 0.7155775,\n          \"max\": 0.7580109,\n          \"runs\": 5\n        },\n        \"processCpuSeconds\": {\n          \"median\": 0.734375,\n          \"min\": 0.703125,\n          \"max\": 0.75,\n          \"runs\": 5\n        },\n        \"processCycles\": {\n          \"median\": 2842355540,\n          \"min\": 2708236820,\n          \"max\": 2869015200,\n          \"runs\": 5\n        }\n      },\n      \"candidate\": {\n        \"elapsedSeconds\": {\n          \"median\": 0.675723,\n          \"min\": 0.6639098,\n          \"max\": 0.7098051,\n          \"runs\": 5\n        },\n        \"processCpuSeconds\": {\n          \"median\": 0.671875,\n          \"min\": 0.640625,\n          \"max\": 0.703125,\n          \"runs\": 5\n        },\n        \"processCycles\": {\n          \"median\": 2560314600,\n          \"min\": 2516192040,\n          \"max\": 2645420160,\n          \"runs\": 5\n        }\n      },\n      \"elapsedRelativePercent\": -10.045847499820294,\n      \"cyclesRelativePercent\": -9.922788899238133\n    },\n    {\n      \"case\": \"hevc-720p\",\n      \"kind\": \"video\",\n      \"frames\": 240,\n      \"decodedSha256\": \"e0fa54f67e56ae1fc100e4ca1fd3f7ab4f1a819eb0d750f0153cec625108a74a\",\n      \"baseline\": {\n        \"elapsedSeconds\": {\n          \"median\": 0.7543378,\n          \"min\": 0.7476689,\n          \"max\": 0.8617083,\n          \"runs\": 5\n        },\n        \"processCpuSeconds\": {\n          \"median\": 0.75,\n          \"min\": 0.734375,\n          \"max\": 0.859375,\n          \"runs\": 5\n        },\n        \"processCycles\": {\n          \"median\": 2852546380,\n          \"min\": 2828464640,\n          \"max\": 3233524880,\n          \"runs\": 5\n        }\n      },\n      \"candidate\": {\n        \"elapsedSeconds\": {\n          \"median\": 0.7198296,\n          \"min\": 0.7017157,\n          \"max\": 0.7538098,\n          \"runs\": 5\n        },\n        \"processCpuSeconds\": {\n          \"median\": 0.703125,\n          \"min\": 0.6875,\n          \"max\": 0.75,\n          \"runs\": 5\n        },\n        \"processCycles\": {\n          \"median\": 2722373200,\n          \"min\": 2657983340,\n          \"max\": 2845977320,\n          \"runs\": 5\n        }\n      },\n      \"elapsedRelativePercent\": -4.574634865175787,\n      \"cyclesRelativePercent\": -4.56340275175473\n    },\n    {\n      \"case\": \"vp9-360p\",\n      \"kind\": \"video\",\n      \"frames\": 240,\n      \"decodedSha256\": \"b2f0508380353e2f0ce72c032d0efccf994c745ce62444a197a6db38b0930053\",\n      \"baseline\": {\n        \"elapsedSeconds\": {\n          \"median\": 0.1038991,\n          \"min\": 0.1029128,\n          \"max\": 0.1053081,\n          \"runs\": 5\n        },\n        \"processCpuSeconds\": {\n          \"median\": 0.109375,\n          \"min\": 0.09375,\n          \"max\": 0.109375,\n          \"runs\": 5\n        },\n        \"processCycles\": {\n          \"median\": 393909900,\n          \"min\": 390084440,\n          \"max\": 398204660,\n          \"runs\": 5\n        }\n      },\n      \"candidate\": {\n        \"elapsedSeconds\": {\n          \"median\": 0.0975398,\n          \"min\": 0.0963631,\n          \"max\": 0.0981474,\n          \"runs\": 5\n        },\n        \"processCpuSeconds\": {\n          \"median\": 0.09375,\n          \"min\": 0.09375,\n          \"max\": 0.109375,\n          \"runs\": 5\n        },\n        \"processCycles\": {\n          \"median\": 369985860,\n          \"min\": 365389380,\n          \"max\": 371366400,\n          \"runs\": 5\n        }\n      },\n      \"elapsedRelativePercent\": -6.120649745762952,\n      \"cyclesRelativePercent\": -6.073480255256348\n    },\n    {\n      \"case\": \"av1-1080p\",\n      \"kind\": \"video\",\n      \"frames\": 120,\n      \"decodedSha256\": \"4412e2adc80a4e6a67119ffa7298cb954f2fd212dc4bce74e9ef357314c13967\",\n      \"baseline\": {\n        \"elapsedSeconds\": {\n          \"median\": 0.6138159,\n          \"min\": 0.6024299,\n          \"max\": 0.6259104,\n          \"runs\": 5\n        },\n        \"processCpuSeconds\": {\n          \"median\": 0.609375,\n          \"min\": 0.609375,\n          \"max\": 0.625,\n          \"runs\": 5\n        },\n        \"processCycles\": {\n          \"median\": 2323635400,\n          \"min\": 2283952760,\n          \"max\": 2363800640,\n          \"runs\": 5\n        }\n      },\n      \"candidate\": {\n        \"elapsedSeconds\": {\n          \"median\": 0.6150628,\n          \"min\": 0.6080129,\n          \"max\": 0.6196833,\n          \"runs\": 5\n        },\n        \"processCpuSeconds\": {\n          \"median\": 0.609375,\n          \"min\": 0.59375,\n          \"max\": 0.625,\n          \"runs\": 5\n        },\n        \"processCycles\": {\n          \"median\": 2325671820,\n          \"min\": 2305181460,\n          \"max\": 2341297800,\n          \"runs\": 5\n        }\n      },\n      \"elapsedRelativePercent\": 0.20313908453659657,\n      \"cyclesRelativePercent\": 0.08763939471743143\n    },\n    {\n      \"case\": \"aac-stereo\",\n      \"kind\": \"audio\",\n      \"frames\": 3000,\n      \"decodedSha256\": \"18e63ed8c5e99d9c4f3a18b7b46136802664d6205e075afe0d135146265e408a\",\n      \"baseline\": {\n        \"elapsedSeconds\": {\n          \"median\": 0.0442966,\n          \"min\": 0.0430977,\n          \"max\": 0.0450757,\n          \"runs\": 5\n        },\n        \"processCpuSeconds\": {\n          \"median\": 0.046875,\n          \"min\": 0.03125,\n          \"max\": 0.046875,\n          \"runs\": 5\n        },\n        \"processCycles\": {\n          \"median\": 167574680,\n          \"min\": 163317160,\n          \"max\": 170570600,\n          \"runs\": 5\n        }\n      },\n      \"candidate\": {\n        \"elapsedSeconds\": {\n          \"median\": 0.0400948,\n          \"min\": 0.0389727,\n          \"max\": 0.0404176,\n          \"runs\": 5\n        },\n        \"processCpuSeconds\": {\n          \"median\": 0.046875,\n          \"min\": 0.03125,\n          \"max\": 0.046875,\n          \"runs\": 5\n        },\n        \"processCycles\": {\n          \"median\": 151195920,\n          \"min\": 147692700,\n          \"max\": 152558220,\n          \"runs\": 5\n        }\n      },\n      \"elapsedRelativePercent\": -9.48560386124443,\n      \"cyclesRelativePercent\": -9.774006431043158\n    }\n  ],\n  \"validation\": {\n    \"nativeFunctional\": {\n      \"passed\": 80,\n      \"total\": 80,\n      \"scope\": \"Hidden parent windows, null audio output; hardware/software AV1 and codec/control/filter/local-network cases. Physical WASAPI sink and visible cadence not validated.\"\n    },\n    \"appUnits\": {\n      \"passed\": 52,\n      \"total\": 53,\n      \"skipped\": 1,\n      \"scope\": \"Desktop PlaybackSession geometry deferred; not counted as passed.\"\n    },\n    \"pairedFrames\": {\n      \"cases\": 14,\n      \"isolatedRuns\": 28,\n      \"sdrCases\": 13,\n      \"sdrMaximumChannelError\": 0,\n      \"hdrMaximumChannelError\": 1,\n      \"scope\": \"Same direct filter settings both libraries; thirteen SDR cases exact. HDR fallback path/decoder verified and pixels reported, retaining adaptive peak-history limits.\"\n    },\n    \"stateful\": {\n      \"checksPassed\": 26,\n      \"stageCaptures\": 12,\n      \"maximumChannelErrorVsSavedSizeProfile\": 0,\n      \"restoredFrameChecks\": 6,\n      \"restoredMaximumChannelError\": 0,\n      \"scope\": \"Crop/rotation, explicit FBO, software/hardware replacement, HDR/SDR return and stop/reopen in one hidden process. Saved control captures retain their original session.\"\n    },\n    \"toolTests\": {\n      \"buildProfiles\": 4,\n      \"comparisonValidation\": 3,\n      \"pinnedPatches\": 7,\n      \"buildRootBoundaries\": 4\n    },\n    \"profileCacheGuard\": \"Opposite profile rejected before compilation; native DLL, recipe ID and completed profile marker unchanged.\",\n    \"timingGuard\": \"Active compilation refused before creating benchmark output or launching a probe.\",\n    \"package\": \"Read-AperturePackage verified ten listed files; portable candidate prepared without launching/installing it.\"\n  },\n  \"tradeoffs\": {\n    \"baselineDllBytes\": 24561152,\n    \"candidateDllBytes\": 33462784,\n    \"dllIncreaseMiB\": 8.4892578125,\n    \"note\": \"Candidate DLL is about 8.49 MiB larger. Full-player private RAM, startup and hardware-playback CPU effect remain unmeasured.\"\n  },\n  \"candidate\": {\n    \"runtime\": \"C:\\\\Users\\\\Alperen\\\\AppData\\\\Local\\\\Codex\\\\tools\\\\scratch\\\\aperture-vlc-performance-20261017\\\\native-performance-20261019\\\\portable-candidate\",\n    \"appSha256\": \"3f63a5577e6c56b17441c88c28d8cbed2734a71738be165a44443243a04ae8b0\",\n    \"nativeSha256\": \"0eb2a7ea41231db97fb4d10d0125675247b5fab3b9b068d0617d3f320c016b82\",\n    \"productionBundledDllChanged\": false\n  },\n  \"limits\": [\n    \"Five measured processes per variant/case after one discarded process; every process also uses a separate decoded-output hash warmup before its fresh timed decoder. Warm local files, one software decoder thread, no affinity change.\",\n    \"Internal software demux/decode excludes player startup, rendering, hardware decoding, audio output, and file-open/codec initialization. It is not a player/VLC ranking or proof of the same speedup in libmpv.\",\n    \"H264/VP9/AAC run ranges separate in this batch; HEVC ranges overlap. AV1 changes about +0.2 percent in wall time and +0.09 percent in cycles, within overlapping ranges.\",\n    \"Exact hashes validate the tested decoded buffers/metadata. Hidden rendered checks do not establish physical presentation cadence.\",\n    \"Saved VLC evidence/dates/sessions unchanged. Any fresh full-player comparison requires a separately authorized visible Aperture-only test under the project rule.\"\n  ],\n  \"dashboardFix\": \"Resource-map point extraction now uses declared compatible history groups as the timeline does; the old per-protocol extraction was omitting compatible historical dots. Source readings are unchanged.\"\n}"
     }
   ],
   "historySeries": {
@@ -16434,6 +16832,16 @@ function historyGroup(r){
 function sameWorkload(a,b){const group=historyGroup(a);return a.environment===b.environment&&a.workload===b.workload&&(a.protocol===b.protocol||(group&&group===historyGroup(b)))}
 function playerOrigin(c){return c.results.find(r=>r.metric==='visible-ms'&&DATA.protocols[r.protocol]?.category==='Playback'&&c.results.some(s=>s.metric==='private-mib'&&sameWorkload(s,r)))}
 function resourceHistory(origin){return ordered.filter(c=>c.results.some(r=>r.metric==='visible-ms'&&sameWorkload(r,origin)))}
+function resourcePoints(origin){
+ const points=[];
+ for(const c of resourceHistory(origin)){
+  if(!visible.has(c.id))continue;
+  const xr=c.results.find(r=>r.metric==='visible-ms'&&sameWorkload(r,origin)),yr=c.results.find(r=>r.metric==='private-mib'&&sameWorkload(r,origin));
+  if(xr?.value==null||yr?.value==null)continue;
+  points.push({id:c.id,date:recordedTime(c,xr),label:checkpointLabel(c),revision:c.commit,x:xr.value,y:yr.value,xr,yr})
+ }
+ return points.sort((a,b)=>Date.parse(a.date)-Date.parse(b.date)||ordered.findIndex(c=>c.id===a.id)-ordered.findIndex(c=>c.id===b.id))
+}
 function runRangeText(r){const q=r?.runRange;return q?'Run range: '+val({...r,value:q.min})+'–'+val({...r,value:q.max})+' (n = '+q.runs+')':''}
 function latestMeasured(orderedCheckpoints){
  return [...orderedCheckpoints].reverse().find(c=>c.results.some(r=>Number.isFinite(r.value)));
@@ -16618,16 +17026,8 @@ function renderResourceMap(){
  const origin=playerOrigin(getCP())||ordered.map(playerOrigin).filter(Boolean).at(-1);
  if(!origin){$('chart').innerHTML='<div class="empty">No player resource measurements recorded.</div>';return}
  const candidates=resourceHistory(origin);
- let points=[];
- for(const c of candidates){
-  if(!visible.has(c.id))continue;
-  const match=r=>r.protocol===origin.protocol&&r.environment===origin.environment&&r.workload===origin.workload;
-  const xr=c.results.find(r=>r.metric==='visible-ms'&&match(r)),yr=c.results.find(r=>r.metric==='private-mib'&&match(r));
-  if(xr?.value==null||yr?.value==null)continue;
-  points.push({id:c.id,date:recordedTime(c,xr),label:checkpointLabel(c),revision:c.commit,x:xr.value,y:yr.value,xr,yr})
- }
- points.sort((a,b)=>Date.parse(a.date)-Date.parse(b.date)||ordered.findIndex(c=>c.id===a.id)-ordered.findIndex(c=>c.id===b.id));
- const yOrigin=candidates.flatMap(c=>c.results).find(r=>r.metric==='private-mib'&&r.protocol===origin.protocol&&r.workload===origin.workload&&r.environment===origin.environment);
+ let points=resourcePoints(origin);
+ const yOrigin=candidates.flatMap(c=>c.results).find(r=>r.metric==='private-mib'&&sameWorkload(r,origin));
  const rx=baseline(origin),ry=yOrigin?baseline(yOrigin):null;
  const ref=rx?.value!=null&&ry?.value!=null?{reference:true,date:rx.measuredAt,label:rx.label,x:rx.value,y:ry.value,xr:rx,yr:ry}:null;
  if(axisMode==='log')points=points.filter(p=>p.x>0&&p.y>0);
@@ -16636,7 +17036,7 @@ function renderResourceMap(){
  const all=plottedRef?[...points,plottedRef]:points,g=plotFrame();g.H=Math.max(g.H,all.length*26+g.T+g.B+20);g.bottom=g.H-g.B;
  const xa=numericAxis(all.map(p=>p.x),g.L,g.R,axisMode),ya=numericAxis(all.map(p=>p.y),g.bottom,g.T,axisMode);
  const positions=all.map(p=>({x:xa.scale(p.x),y:ya.scale(p.y)})),labels=labelPositions(positions,g);
- const title='Opening speed × playback memory';$('chart-title').textContent=title;$('chart-title').title=protocol(origin).method;
+ const title='Opening speed × playback memory';$('chart-title').textContent=title;$('chart-title').title=historyGroup(origin)?DATA.historySeries[historyGroup(origin)].method:protocol(origin).method;
  let svg=svgFrame(g,title,'Aperture snapshots connected in measurement-date order. One fixed latest-version VLC reference. Marked breaks remove empty intervals on both numeric axes.')+numericAxes(xa,ya,g)+temporalPath(points,positions.slice(0,points.length));
  for(let i=0;i<all.length;i++){
   const p=all[i],label=labels.get(i);

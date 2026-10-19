@@ -1,0 +1,2749 @@
+Verified source: mpv v0.41.0
+Verified source: ffmpeg 140fd653aed8cad774f991ba083e2d01e86420c7
+Verified source: libplacebo cee9b076f2c63104ccfd497fa79c39a867293ec4
+Verified source: shaderc v2026.3
+Verified source: glslang 16.3.0
+Verified source: spirv-tools vulkan-sdk-1.4.357.0
+Verified source: spirv-headers vulkan-sdk-1.4.357.0
+Verified source: spirv-cross vulkan-sdk-1.4.357.0
+Applied source patch: ffmpeg-lazy-windows-transform-tables-v1
+Applied source patch: mpv-windows-positive-wait-v1
+Applied source patch: mpv-d3d11-frame-resources-v1
+Applied source patch: mpv-direct-nv12-filter-v1
+-- The C compiler identification is GNU 16.2.0
+-- The CXX compiler identification is GNU 16.2.0
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working C compiler: C:/msys64/mingw64/bin/cc.exe - skipped
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: C:/msys64/mingw64/bin/c++.exe - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Shaderc: build type is "Release".
+-- Configuring Shaderc to avoid building tests.
+-- Configuring Shaderc to avoid building examples.
+-- Configuring Shaderc to build executables.
+-- Configuring Shaderc to avoid checking copyrights.
+-- asciidoctor was not found - no documentation will be generated
+-- Found Python: C:/Users/Alperen/AppData/Local/Programs/Python/Python313/python.exe (found version "3.13.15") found components: Interpreter
+-- Performing Test COMPILER_SUPPORTS_FALLTHROUGH_WARNING
+-- Performing Test COMPILER_SUPPORTS_FALLTHROUGH_WARNING - Success
+-- Performing Test COMPILER_SUPPORTS_EXTRA_SEMI_WARNING
+-- Performing Test COMPILER_SUPPORTS_EXTRA_SEMI_WARNING - Success
+-- Performing Test COMPILER_SUPPORTS_PIC
+-- Performing Test COMPILER_SUPPORTS_PIC - Success
+-- Found Python3: C:/Users/Alperen/AppData/Local/Programs/Python/Python313/python.exe (found version "3.13.15") found components: Interpreter
+CMake Warning (deprecated) at third_party/glslang/CMakeLists.txt:111 (message):
+  ENABLE_HLSL is deprecated.  The HLSL front-end will be removed in a future
+  major release of glslang.  See
+  https://github.com/KhronosGroup/glslang/issues/4210 for details.
+This warning is for project developers.  Use -Wno-author or -Wno-deprecated
+to suppress it.
+
+Disabling PCH
+-- optimizer enabled
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+-- Found Threads: TRUE
+-- Configuring done (11.5s)
+-- Generating done (0.9s)
+CMake Warning (unused-cli):
+  Manually-specified variables were not used by the project:
+
+    ENABLERTSL
+    ENABLE_SPVREMAPPER
+
+
+-- Build files have been written to: Q:/build-shaderc
+ninja: Entering directory `build-shaderc'
+[1/416] C:\WINDOWS\system32\cmd.exe /C "cd /D Q:\build-shaderc && C:\msys64\mingw64\bin\cmake.exe -DCHANGES_FILE=Q:/shader-src/shaderc/CHANGES -DTEMPLATE_FILE=Q:/shader-src/shaderc/cmake/shaderc.pc.in -DOUT_FILE=Q:/build-shaderc/shaderc.pc -DCMAKE_INSTALL_PREFIX=Q:/prefix -DCMAKE_INSTALL_LIBDIR=lib -DCMAKE_INSTALL_INCLUDEDIR=include -DLIBS=-lshaderc_shared -P Q:/shader-src/shaderc/cmake/write_pkg_config.cmake"
+[2/416] C:\WINDOWS\system32\cmd.exe /C "cd /D Q:\build-shaderc && C:\msys64\mingw64\bin\cmake.exe -DCHANGES_FILE=Q:/shader-src/shaderc/CHANGES -DTEMPLATE_FILE=Q:/shader-src/shaderc/cmake/shaderc_static.pc.in -DOUT_FILE=Q:/build-shaderc/shaderc_static.pc -DCMAKE_INSTALL_PREFIX=Q:/prefix -DCMAKE_INSTALL_LIBDIR=lib -DCMAKE_INSTALL_INCLUDEDIR=include "-DLIBS=-lshaderc  -lshaderc_util" -P Q:/shader-src/shaderc/cmake/write_pkg_config.cmake"
+[3/416] C:\WINDOWS\system32\cmd.exe /C "cd /D Q:\build-shaderc && C:\msys64\mingw64\bin\cmake.exe -DCHANGES_FILE=Q:/shader-src/shaderc/CHANGES -DTEMPLATE_FILE=Q:/shader-src/shaderc/cmake/shaderc_combined.pc.in -DOUT_FILE=Q:/build-shaderc/shaderc_combined.pc -DCMAKE_INSTALL_PREFIX=Q:/prefix -DCMAKE_INSTALL_LIBDIR=lib -DCMAKE_INSTALL_INCLUDEDIR=include -DLIBS=-lshaderc_combined -P Q:/shader-src/shaderc/cmake/write_pkg_config.cmake"
+[4/416] Generate language specific header for DebugInfo.
+[5/416] Generate language specific header for OpenCLDebugInfo100.
+[6/416] Building CXX object third_party/glslang/glslang/CMakeFiles/MachineIndependent.dir/stub.cpp.obj
+[7/416] Building CXX object third_party/glslang/glslang/OSDependent/Windows/CMakeFiles/OSDependent.dir/__/__/stub.cpp.obj
+[8/416] Building CXX object third_party/glslang/glslang/CMakeFiles/GenericCodeGen.dir/stub.cpp.obj
+[9/416] Generating SPIRV-Tools-shared.pc
+[10/416] Generating SPIRV-Tools.pc
+[11/416] Update build-version.inc in the Shaderc build directory (if necessary).
+[12/416] Generate grammar tables
+[13/416] Linking CXX static library third_party\glslang\glslang\libMachineIndependent.a
+[14/416] Linking CXX static library third_party\glslang\glslang\OSDependent\Windows\libOSDependent.a
+[15/416] Linking CXX static library third_party\glslang\glslang\libGenericCodeGen.a
+[16/416] Building CXX object third_party/glslang/glslang/CMakeFiles/glslang-default-resource-limits.dir/ResourceLimits/resource_limits_c.cpp.obj
+[17/416] Generate tables based on the SPIR-V XML registry.
+[18/416] Building CXX object third_party/glslang/glslang/CMakeFiles/glslang-default-resource-limits.dir/ResourceLimits/ResourceLimits.cpp.obj
+[19/416] Linking CXX static library third_party\glslang\glslang\libglslang-default-resource-limits.a
+[20/416] Update build-version.inc in the SPIRV-Tools build directory (if necessary).
+[21/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-static.dir/util/bit_vector.cpp.obj
+[22/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-static.dir/util/string_utils.cpp.obj
+[23/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-static.dir/ext_inst.cpp.obj
+[24/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-static.dir/extensions.cpp.obj
+[25/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-static.dir/assembly_grammar.cpp.obj
+[26/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-static.dir/diagnostic.cpp.obj
+[27/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-static.dir/opcode.cpp.obj
+[28/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-static.dir/libspirv.cpp.obj
+[29/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-static.dir/software_version.cpp.obj
+[30/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-static.dir/spirv_endian.cpp.obj
+[31/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-static.dir/spirv_optimizer_options.cpp.obj
+[32/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-static.dir/spirv_validator_options.cpp.obj
+[33/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-static.dir/name_mapper.cpp.obj
+[34/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-static.dir/spirv_fuzzer_options.cpp.obj
+[35/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-static.dir/spirv_reducer_options.cpp.obj
+[36/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-static.dir/spirv_target_env.cpp.obj
+[37/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-static.dir/binary.cpp.obj
+[38/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-static.dir/parsed_operand.cpp.obj
+[39/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-static.dir/to_string.cpp.obj
+[40/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-static.dir/operand.cpp.obj
+[41/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-static.dir/table.cpp.obj
+[42/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-static.dir/disassemble.cpp.obj
+[43/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-static.dir/util/parse_number.cpp.obj
+[44/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-static.dir/table2.cpp.obj
+[45/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-static.dir/print.cpp.obj
+[46/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-static.dir/text.cpp.obj
+[47/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-static.dir/val/validate_adjacency.cpp.obj
+[48/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-static.dir/text_handler.cpp.obj
+[49/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-static.dir/val/validate_barriers.cpp.obj
+[50/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-static.dir/val/validate_atomics.cpp.obj
+[51/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-static.dir/val/validate_arithmetics.cpp.obj
+[52/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-static.dir/val/validate_annotation.cpp.obj
+[53/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-static.dir/val/validate_bitwise.cpp.obj
+[54/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-static.dir/val/validate_capability.cpp.obj
+[55/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-static.dir/val/validate.cpp.obj
+[56/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-static.dir/val/validate_debug.cpp.obj
+[57/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-static.dir/val/validate_constants.cpp.obj
+[58/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-static.dir/val/validate_composites.cpp.obj
+[59/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-static.dir/val/validate_conversion.cpp.obj
+[60/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-static.dir/val/validate_derivatives.cpp.obj
+[61/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-static.dir/val/validate_dot_product.cpp.obj
+[62/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-static.dir/val/validate_execution_limitations.cpp.obj
+[63/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-static.dir/val/validate_function.cpp.obj
+[64/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-static.dir/val/validate_cfg.cpp.obj
+[65/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-static.dir/val/validate_group.cpp.obj
+[66/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-static.dir/val/validate_graph.cpp.obj
+[67/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-static.dir/val/validate_id.cpp.obj
+[68/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-static.dir/val/validate_decorations.cpp.obj
+[69/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-static.dir/val/validate_layout.cpp.obj
+[70/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-static.dir/val/validate_instruction.cpp.obj
+[71/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-static.dir/val/validate_literals.cpp.obj
+[72/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-static.dir/val/validate_interfaces.cpp.obj
+[73/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-static.dir/val/validate_image.cpp.obj
+[74/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-static.dir/val/validate_logicals.cpp.obj
+[75/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-static.dir/val/validate_extensions.cpp.obj
+[76/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-static.dir/val/validate_builtins.cpp.obj
+[77/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-static.dir/val/validate_memory_semantics.cpp.obj
+[78/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-static.dir/val/validate_misc.cpp.obj
+[79/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-static.dir/val/validate_logical_pointers.cpp.obj
+[80/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-static.dir/val/validate_mesh_shading.cpp.obj
+[81/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-static.dir/val/validate_non_uniform.cpp.obj
+[82/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-static.dir/val/validate_primitives.cpp.obj
+[83/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-static.dir/val/validate_pipe.cpp.obj
+[84/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-static.dir/val/validate_ray_query.cpp.obj
+[85/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-static.dir/val/validate_ray_tracing.cpp.obj
+[86/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-static.dir/val/validate_mode_setting.cpp.obj
+[87/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-static.dir/val/validate_memory.cpp.obj
+[88/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-static.dir/val/validate_small_type_uses.cpp.obj
+[89/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-static.dir/val/basic_block.cpp.obj
+[90/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-static.dir/val/validate_tensor_layout.cpp.obj
+[91/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-static.dir/val/validate_scopes.cpp.obj
+[92/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-static.dir/val/validate_ray_tracing_reorder.cpp.obj
+[93/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-static.dir/val/validate_tensor.cpp.obj
+[94/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-static.dir/val/validate_invalid_type.cpp.obj
+[95/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-static.dir/val/instruction.cpp.obj
+[96/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-static.dir/val/construct.cpp.obj
+[97/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-static.dir/val/validate_type.cpp.obj
+[98/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-static.dir/val/function.cpp.obj
+[99/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/block_merge_pass.cpp.obj
+[100/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/analyze_live_input_pass.cpp.obj
+[101/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/fix_func_call_arguments.cpp.obj
+[102/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/basic_block.cpp.obj
+[103/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/block_merge_util.cpp.obj
+[104/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/cfg_cleanup_pass.cpp.obj
+[105/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-static.dir/val/validation_state.cpp.obj
+[106/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/ccp_pass.cpp.obj
+[107/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/build_module.cpp.obj
+[108/416] Linking CXX static library third_party\spirv-tools\source\libSPIRV-Tools.a
+[109/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/aggressive_dead_code_elim_pass.cpp.obj
+[110/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/amd_ext_to_khr.cpp.obj
+[111/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/control_dependence.cpp.obj
+[112/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/cfg.cpp.obj
+[113/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/compact_ids_pass.cpp.obj
+[114/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/composite.cpp.obj
+[115/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/code_sink.cpp.obj
+[116/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/combine_access_chains.cpp.obj
+[117/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/dataflow.cpp.obj
+[118/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/constants.cpp.obj
+[119/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/convert_to_sampled_image_pass.cpp.obj
+[120/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/convert_to_half_pass.cpp.obj
+[121/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/def_use_manager.cpp.obj
+[122/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/copy_prop_arrays.cpp.obj
+[123/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/const_folding_rules.cpp.obj
+[124/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/dead_insert_elim_pass.cpp.obj
+[125/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/dead_variable_elimination.cpp.obj
+[126/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/dead_branch_elim_pass.cpp.obj
+[127/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/decoration_manager.cpp.obj
+[128/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/debug_info_manager.cpp.obj
+[129/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/dominator_analysis.cpp.obj
+[130/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/desc_sroa_util.cpp.obj
+[131/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/eliminate_dead_constant_pass.cpp.obj
+[132/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/feature_manager.cpp.obj
+[133/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/eliminate_dead_functions_pass.cpp.obj
+[134/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/eliminate_dead_functions_util.cpp.obj
+[135/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/desc_sroa.cpp.obj
+[136/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/dominator_tree.cpp.obj
+[137/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/eliminate_dead_io_components_pass.cpp.obj
+[138/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/graph.cpp.obj
+[139/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/eliminate_dead_output_stores_pass.cpp.obj
+[140/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/eliminate_dead_members_pass.cpp.obj
+[141/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/flatten_decoration_pass.cpp.obj
+[142/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/fix_storage_class.cpp.obj
+[143/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/fold.cpp.obj
+[144/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/freeze_spec_constant_value_pass.cpp.obj
+[145/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/instruction_list.cpp.obj
+[146/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/fold_spec_constant_op_and_composite_pass.cpp.obj
+[147/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/function.cpp.obj
+[148/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/inline_exhaustive_pass.cpp.obj
+[149/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/inline_opaque_pass.cpp.obj
+[150/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/graphics_robust_access_pass.cpp.obj
+[151/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/if_conversion.cpp.obj
+[152/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/folding_rules.cpp.obj
+[153/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/inline_pass.cpp.obj
+[154/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/instruction.cpp.obj
+[155/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/opextinst_forward_ref_fixup_pass.cpp.obj
+[156/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/interp_fixup_pass.cpp.obj
+[157/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/interface_var_sroa.cpp.obj
+[158/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/invocation_interlock_placement_pass.cpp.obj
+[159/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/licm_pass.cpp.obj
+[160/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/ir_loader.cpp.obj
+[161/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/liveness.cpp.obj
+[162/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/legalize_multidim_array_pass.cpp.obj
+[163/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/ir_context.cpp.obj
+[164/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/local_redundancy_elimination.cpp.obj
+[165/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/local_single_store_elim_pass.cpp.obj
+[166/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/local_single_block_elim_pass.cpp.obj
+[167/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/local_access_chain_convert_pass.cpp.obj
+[168/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/loop_dependence_helpers.cpp.obj
+[169/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/loop_dependence.cpp.obj
+[170/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/loop_fusion_pass.cpp.obj
+[171/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/loop_fission.cpp.obj
+[172/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/loop_descriptor.cpp.obj
+[173/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/loop_fusion.cpp.obj
+[174/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/loop_peeling.cpp.obj
+[175/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/modify_maximal_reconvergence.cpp.obj
+[176/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/loop_utils.cpp.obj
+[177/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/loop_unroller.cpp.obj
+[178/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/mem_pass.cpp.obj
+[179/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/module.cpp.obj
+[180/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/pass_manager.cpp.obj
+[181/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/loop_unswitch_pass.cpp.obj
+[182/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/pass.cpp.obj
+[183/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/merge_return_pass.cpp.obj
+[184/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/private_to_local_pass.cpp.obj
+[185/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/redundancy_elimination.cpp.obj
+[186/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/relax_float_ops_pass.cpp.obj
+[187/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/reduce_load_size.cpp.obj
+[188/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/propagator.cpp.obj
+[189/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/remove_dontinline_pass.cpp.obj
+[190/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/register_pressure.cpp.obj
+[191/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/canonicalize_ids_pass.cpp.obj
+[192/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/remove_unused_interface_variables_pass.cpp.obj
+[193/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/remove_duplicates_pass.cpp.obj
+[194/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/scalar_analysis_simplification.cpp.obj
+[195/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/replace_invalid_opc.cpp.obj
+[196/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/optimizer.cpp.obj
+[197/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/replace_desc_array_access_using_var_index.cpp.obj
+[198/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/resolve_binding_conflicts_pass.cpp.obj
+[199/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/set_spec_constant_default_value_pass.cpp.obj
+[200/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/simplification_pass.cpp.obj
+[201/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/scalar_analysis.cpp.obj
+[202/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/scalar_replacement_pass.cpp.obj
+[203/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/strip_nonsemantic_info_pass.cpp.obj
+[204/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/strip_debug_info_pass.cpp.obj
+[205/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/strength_reduction_pass.cpp.obj
+[206/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/spread_volatile_semantics.cpp.obj
+[207/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/split_combined_image_sampler_pass.cpp.obj
+[208/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/ssa_rewrite_pass.cpp.obj
+[209/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/struct_cfg_analysis.cpp.obj
+[210/416] Building CXX object third_party/glslang/SPIRV/CMakeFiles/SPIRV.dir/__/glslang/stub.cpp.obj
+[211/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/switch_descriptorset_pass.cpp.obj
+[212/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/struct_packing_pass.cpp.obj
+[213/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/types.cpp.obj
+[214/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/trim_capabilities_pass.cpp.obj
+[215/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/unify_const_pass.cpp.obj
+[216/416] Building CXX object third_party/glslang/glslang/CMakeFiles/glslang.dir/GenericCodeGen/CodeGen.cpp.obj
+[217/416] Building CXX object third_party/glslang/glslang/CMakeFiles/glslang.dir/GenericCodeGen/Link.cpp.obj
+[218/416] Building CXX object third_party/glslang/glslang/CMakeFiles/glslang.dir/CInterface/glslang_c_interface.cpp.obj
+[219/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/vector_dce.cpp.obj
+[220/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/workaround1209.cpp.obj
+[221/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/value_number_table.cpp.obj
+[222/416] Building CXX object third_party/glslang/glslang/CMakeFiles/glslang.dir/OSDependent/Windows/ossource.cpp.obj
+[223/416] Building CXX object third_party/glslang/glslang/CMakeFiles/glslang.dir/MachineIndependent/InfoSink.cpp.obj
+[224/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/type_manager.cpp.obj
+[225/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/upgrade_memory_model.cpp.obj
+[226/416] Building CXX object third_party/spirv-tools/source/opt/CMakeFiles/SPIRV-Tools-opt.dir/wrap_opkill.cpp.obj
+[227/416] Building CXX object third_party/glslang/glslang/CMakeFiles/glslang.dir/MachineIndependent/attribute.cpp.obj
+[228/416] Building CXX object third_party/glslang/glslang/CMakeFiles/glslang.dir/MachineIndependent/IntermTraverse.cpp.obj
+[229/416] Building CXX object third_party/glslang/glslang/CMakeFiles/glslang.dir/MachineIndependent/PoolAlloc.cpp.obj
+[230/416] Linking CXX static library third_party\spirv-tools\source\opt\libSPIRV-Tools-opt.a
+[231/416] Building CXX object third_party/glslang/glslang/CMakeFiles/glslang.dir/MachineIndependent/Constant.cpp.obj
+[232/416] Building CXX object third_party/glslang/glslang/CMakeFiles/glslang.dir/MachineIndependent/RemoveTree.cpp.obj
+[233/416] Building CXX object third_party/glslang/glslang/CMakeFiles/glslang.dir/MachineIndependent/ParseContextBase.cpp.obj
+[234/416] Building CXX object third_party/glslang/glslang/CMakeFiles/glslang.dir/MachineIndependent/Scan.cpp.obj
+[235/416] Building CXX object third_party/glslang/glslang/CMakeFiles/glslang.dir/MachineIndependent/iomapper.cpp.obj
+[236/416] Building CXX object third_party/glslang/glslang/CMakeFiles/glslang.dir/MachineIndependent/Versions.cpp.obj
+[237/416] Building CXX object third_party/glslang/glslang/CMakeFiles/glslang.dir/MachineIndependent/SpirvIntrinsics.cpp.obj
+[238/416] Building CXX object third_party/glslang/glslang/CMakeFiles/glslang.dir/MachineIndependent/Intermediate.cpp.obj
+[239/416] Building CXX object third_party/glslang/glslang/CMakeFiles/glslang.dir/MachineIndependent/intermOut.cpp.obj
+[240/416] Building CXX object third_party/glslang/glslang/CMakeFiles/glslang.dir/MachineIndependent/SymbolTable.cpp.obj
+[241/416] Building CXX object third_party/glslang/glslang/CMakeFiles/glslang.dir/MachineIndependent/Initialize.cpp.obj
+[242/416] Building CXX object third_party/glslang/glslang/CMakeFiles/glslang.dir/MachineIndependent/limits.cpp.obj
+[243/416] Building CXX object third_party/glslang/glslang/CMakeFiles/glslang.dir/MachineIndependent/parseConst.cpp.obj
+[244/416] Building CXX object third_party/glslang/glslang/CMakeFiles/glslang.dir/MachineIndependent/ShaderLang.cpp.obj
+[245/416] Building CXX object third_party/glslang/glslang/CMakeFiles/glslang.dir/MachineIndependent/preprocessor/PpAtom.cpp.obj
+[246/416] Building CXX object third_party/glslang/glslang/CMakeFiles/glslang.dir/MachineIndependent/preprocessor/PpContext.cpp.obj
+[247/416] Building CXX object third_party/glslang/glslang/CMakeFiles/glslang.dir/MachineIndependent/reflection.cpp.obj
+[248/416] Building CXX object third_party/glslang/glslang/CMakeFiles/glslang.dir/MachineIndependent/preprocessor/PpTokens.cpp.obj
+[249/416] Building CXX object third_party/glslang/glslang/CMakeFiles/glslang.dir/MachineIndependent/preprocessor/PpScanner.cpp.obj
+[250/416] Building CXX object third_party/glslang/glslang/CMakeFiles/glslang.dir/MachineIndependent/propagateNoContraction.cpp.obj
+[251/416] Building CXX object third_party/glslang/glslang/CMakeFiles/glslang.dir/MachineIndependent/preprocessor/Pp.cpp.obj
+[252/416] Building CXX object third_party/glslang/glslang/CMakeFiles/glslang.dir/MachineIndependent/glslang_tab.cpp.obj
+[253/416] Building CXX object third_party/glslang/glslang/CMakeFiles/glslang.dir/HLSL/hlslAttributes.cpp.obj
+[254/416] Building CXX object third_party/glslang/glslang/CMakeFiles/glslang.dir/__/SPIRV/Logger.cpp.obj
+[255/416] Building CXX object third_party/glslang/glslang/CMakeFiles/glslang.dir/HLSL/hlslOpMap.cpp.obj
+[256/416] Building CXX object third_party/glslang/glslang/CMakeFiles/glslang.dir/__/SPIRV/InReadableOrder.cpp.obj
+[257/416] Building CXX object third_party/glslang/glslang/CMakeFiles/glslang.dir/HLSL/hlslTokenStream.cpp.obj
+[258/416] Building CXX object third_party/glslang/glslang/CMakeFiles/glslang.dir/MachineIndependent/linkValidate.cpp.obj
+[259/416] Building CXX object third_party/glslang/glslang/CMakeFiles/glslang.dir/HLSL/hlslScanContext.cpp.obj
+[260/416] Linking CXX static library third_party\glslang\SPIRV\libSPIRV.a
+[261/416] Building CXX object third_party/glslang/glslang/CMakeFiles/glslang.dir/HLSL/hlslParseables.cpp.obj
+[262/416] Building CXX object third_party/glslang/glslang/CMakeFiles/glslang.dir/__/SPIRV/CInterface/spirv_c_interface.cpp.obj
+[263/416] Building CXX object third_party/glslang/glslang/CMakeFiles/glslang.dir/__/SPIRV/disassemble.cpp.obj
+[264/416] Building CXX object libshaderc_util/CMakeFiles/shaderc_util.dir/src/args.cc.obj
+[265/416] Building CXX object third_party/glslang/glslang/CMakeFiles/glslang.dir/__/SPIRV/doc.cpp.obj
+[266/416] Building CXX object libshaderc_util/CMakeFiles/shaderc_util.dir/src/resources.cc.obj
+[267/416] Building CXX object third_party/glslang/glslang/CMakeFiles/glslang.dir/__/SPIRV/SpvTools.cpp.obj
+[268/416] Building CXX object libshaderc_util/CMakeFiles/shaderc_util.dir/src/file_finder.cc.obj
+[269/416] Building CXX object third_party/glslang/glslang/CMakeFiles/glslang.dir/__/SPIRV/SpvPostProcess.cpp.obj
+[270/416] Building CXX object libshaderc_util/CMakeFiles/shaderc_util.dir/src/io_shaderc.cc.obj
+[271/416] Building CXX object libshaderc_util/CMakeFiles/shaderc_util.dir/src/message.cc.obj
+[272/416] Building CXX object libshaderc_util/CMakeFiles/shaderc_util.dir/src/shader_stage.cc.obj
+[273/416] Building CXX object libshaderc_util/CMakeFiles/shaderc_util.dir/src/version_profile.cc.obj
+[274/416] Building CXX object glslc/CMakeFiles/glslc.dir/src/file.cc.obj
+[275/416] Building CXX object third_party/glslang/glslang/CMakeFiles/glslang.dir/HLSL/hlslGrammar.cpp.obj
+[276/416] Building CXX object third_party/glslang/glslang/CMakeFiles/glslang.dir/MachineIndependent/ParseHelper.cpp.obj
+[277/416] Building CXX object glslc/CMakeFiles/glslc.dir/src/resource_parse.cc.obj
+[278/416] Building CXX object glslc/CMakeFiles/glslc.dir/src/file_includer.cc.obj
+[279/416] Building CXX object glslc/CMakeFiles/glslc.dir/src/file_compiler.cc.obj
+[280/416] Building CXX object glslc/CMakeFiles/glslc.dir/src/shader_stage.cc.obj
+[281/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-shared.dir/util/bit_vector.cpp.obj
+[282/416] Building CXX object glslc/CMakeFiles/glslc.dir/src/dependency_info.cc.obj
+[283/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-shared.dir/util/string_utils.cpp.obj
+[284/416] Building CXX object third_party/glslang/glslang/CMakeFiles/glslang.dir/__/SPIRV/SpvBuilder.cpp.obj
+[285/416] Building CXX object libshaderc_util/CMakeFiles/shaderc_util.dir/src/spirv_tools_wrapper.cc.obj
+[286/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-shared.dir/assembly_grammar.cpp.obj
+[287/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-shared.dir/diagnostic.cpp.obj
+[288/416] Building CXX object libshaderc_util/CMakeFiles/shaderc_util.dir/src/compiler.cc.obj
+[289/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-shared.dir/ext_inst.cpp.obj
+[290/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-shared.dir/extensions.cpp.obj
+[291/416] Building CXX object libshaderc/CMakeFiles/shaderc.dir/src/shaderc.cc.obj
+[292/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-shared.dir/libspirv.cpp.obj
+[293/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-shared.dir/software_version.cpp.obj
+[294/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-shared.dir/binary.cpp.obj
+[295/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-shared.dir/spirv_endian.cpp.obj
+[296/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-shared.dir/opcode.cpp.obj
+[297/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-shared.dir/spirv_optimizer_options.cpp.obj
+[298/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-shared.dir/name_mapper.cpp.obj
+[299/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-shared.dir/spirv_validator_options.cpp.obj
+[300/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-shared.dir/spirv_fuzzer_options.cpp.obj
+[301/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-shared.dir/util/parse_number.cpp.obj
+[302/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-shared.dir/operand.cpp.obj
+[303/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-shared.dir/spirv_reducer_options.cpp.obj
+[304/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-shared.dir/parsed_operand.cpp.obj
+[305/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-shared.dir/disassemble.cpp.obj
+[306/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-shared.dir/spirv_target_env.cpp.obj
+[307/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-shared.dir/to_string.cpp.obj
+[308/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-shared.dir/table.cpp.obj
+[309/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-shared.dir/table2.cpp.obj
+[310/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-shared.dir/print.cpp.obj
+[311/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-shared.dir/val/validate_adjacency.cpp.obj
+[312/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-shared.dir/text_handler.cpp.obj
+[313/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-shared.dir/text.cpp.obj
+[314/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-shared.dir/val/validate_atomics.cpp.obj
+[315/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-shared.dir/val/validate_arithmetics.cpp.obj
+[316/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-shared.dir/val/validate_barriers.cpp.obj
+[317/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-shared.dir/val/validate_annotation.cpp.obj
+[318/416] Building CXX object third_party/glslang/glslang/CMakeFiles/glslang.dir/HLSL/hlslParseHelper.cpp.obj
+[319/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-shared.dir/val/validate.cpp.obj
+[320/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-shared.dir/val/validate_bitwise.cpp.obj
+[321/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-shared.dir/val/validate_capability.cpp.obj
+[322/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-shared.dir/val/validate_debug.cpp.obj
+[323/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-shared.dir/val/validate_composites.cpp.obj
+[324/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-shared.dir/val/validate_constants.cpp.obj
+[325/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-shared.dir/val/validate_derivatives.cpp.obj
+[326/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-shared.dir/val/validate_conversion.cpp.obj
+[327/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-shared.dir/val/validate_dot_product.cpp.obj
+[328/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-shared.dir/val/validate_execution_limitations.cpp.obj
+[329/416] Building CXX object third_party/glslang/glslang/CMakeFiles/glslang.dir/__/SPIRV/GlslangToSpv.cpp.obj
+[330/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-shared.dir/val/validate_cfg.cpp.obj
+[331/416] Linking CXX static library third_party\glslang\glslang\libglslang.a
+[332/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-shared.dir/val/validate_group.cpp.obj
+[333/416] Linking CXX static library libshaderc_util\libshaderc_util.a
+[334/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-shared.dir/val/validate_function.cpp.obj
+[335/416] Linking CXX static library libshaderc\libshaderc.a
+[336/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-shared.dir/val/validate_graph.cpp.obj
+[337/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-shared.dir/val/validate_id.cpp.obj
+[338/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-shared.dir/val/validate_decorations.cpp.obj
+[339/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-shared.dir/val/validate_interfaces.cpp.obj
+[340/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-shared.dir/val/validate_literals.cpp.obj
+[341/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-shared.dir/val/validate_layout.cpp.obj
+[342/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-shared.dir/val/validate_image.cpp.obj
+[343/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-shared.dir/val/validate_instruction.cpp.obj
+[344/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-shared.dir/val/validate_logicals.cpp.obj
+[345/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-shared.dir/val/validate_extensions.cpp.obj
+[346/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-shared.dir/val/validate_builtins.cpp.obj
+[347/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-shared.dir/val/validate_memory_semantics.cpp.obj
+[348/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-shared.dir/val/validate_logical_pointers.cpp.obj
+[349/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-shared.dir/val/validate_mesh_shading.cpp.obj
+[350/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-shared.dir/val/validate_primitives.cpp.obj
+[351/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-shared.dir/val/validate_misc.cpp.obj
+[352/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-shared.dir/val/validate_non_uniform.cpp.obj
+[353/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-shared.dir/val/validate_pipe.cpp.obj
+[354/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-shared.dir/val/validate_ray_query.cpp.obj
+[355/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-shared.dir/val/validate_ray_tracing.cpp.obj
+[356/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-shared.dir/val/validate_memory.cpp.obj
+[357/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-shared.dir/val/validate_mode_setting.cpp.obj
+[358/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-shared.dir/val/validate_small_type_uses.cpp.obj
+[359/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-shared.dir/val/validate_scopes.cpp.obj
+[360/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-shared.dir/val/validate_tensor_layout.cpp.obj
+[361/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-shared.dir/val/basic_block.cpp.obj
+[362/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-shared.dir/val/validate_ray_tracing_reorder.cpp.obj
+[363/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-shared.dir/val/validate_tensor.cpp.obj
+[364/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-shared.dir/val/validate_invalid_type.cpp.obj
+[365/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-shared.dir/val/instruction.cpp.obj
+[366/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-shared.dir/val/construct.cpp.obj
+[367/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-shared.dir/val/validate_type.cpp.obj
+[368/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-shared.dir/val/function.cpp.obj
+[369/416] Building CXX object third_party/spirv-tools/source/reduce/CMakeFiles/SPIRV-Tools-reduce.dir/reduction_opportunity.cpp.obj
+[370/416] Building CXX object third_party/spirv-tools/source/reduce/CMakeFiles/SPIRV-Tools-reduce.dir/change_operand_reduction_opportunity.cpp.obj
+[371/416] Building CXX object third_party/spirv-tools/source/reduce/CMakeFiles/SPIRV-Tools-reduce.dir/change_operand_to_undef_reduction_opportunity.cpp.obj
+[372/416] Building CXX object third_party/spirv-tools/source/reduce/CMakeFiles/SPIRV-Tools-reduce.dir/conditional_branch_to_simple_conditional_branch_opportunity_finder.cpp.obj
+[373/416] Building CXX object third_party/spirv-tools/source/reduce/CMakeFiles/SPIRV-Tools-reduce.dir/conditional_branch_to_simple_conditional_branch_reduction_opportunity.cpp.obj
+[374/416] Building CXX object third_party/spirv-tools/source/reduce/CMakeFiles/SPIRV-Tools-reduce.dir/merge_blocks_reduction_opportunity.cpp.obj
+[375/416] Building CXX object third_party/spirv-tools/source/reduce/CMakeFiles/SPIRV-Tools-reduce.dir/merge_blocks_reduction_opportunity_finder.cpp.obj
+[376/416] Building CXX object third_party/spirv-tools/source/reduce/CMakeFiles/SPIRV-Tools-reduce.dir/operand_to_const_reduction_opportunity_finder.cpp.obj
+[377/416] Building CXX object third_party/spirv-tools/source/reduce/CMakeFiles/SPIRV-Tools-reduce.dir/operand_to_undef_reduction_opportunity_finder.cpp.obj
+[378/416] Building CXX object third_party/spirv-tools/source/reduce/CMakeFiles/SPIRV-Tools-reduce.dir/operand_to_dominating_id_reduction_opportunity_finder.cpp.obj
+[379/416] Building CXX object third_party/spirv-tools/source/CMakeFiles/SPIRV-Tools-shared.dir/val/validation_state.cpp.obj
+[380/416] Building CXX object third_party/spirv-tools/source/reduce/CMakeFiles/SPIRV-Tools-reduce.dir/reducer.cpp.obj
+[381/416] Building CXX object third_party/spirv-tools/source/reduce/CMakeFiles/SPIRV-Tools-reduce.dir/reduction_opportunity_finder.cpp.obj
+[382/416] Building CXX object third_party/spirv-tools/source/reduce/CMakeFiles/SPIRV-Tools-reduce.dir/remove_block_reduction_opportunity.cpp.obj
+[383/416] Building CXX object third_party/spirv-tools/source/reduce/CMakeFiles/SPIRV-Tools-reduce.dir/reduction_util.cpp.obj
+[384/416] Building CXX object third_party/spirv-tools/source/reduce/CMakeFiles/SPIRV-Tools-reduce.dir/remove_function_reduction_opportunity.cpp.obj
+[385/416] Building CXX object third_party/spirv-tools/source/reduce/CMakeFiles/SPIRV-Tools-reduce.dir/remove_block_reduction_opportunity_finder.cpp.obj
+[386/416] Building CXX object third_party/spirv-tools/source/reduce/CMakeFiles/SPIRV-Tools-reduce.dir/remove_function_reduction_opportunity_finder.cpp.obj
+[387/416] Building CXX object third_party/spirv-tools/source/reduce/CMakeFiles/SPIRV-Tools-reduce.dir/remove_instruction_reduction_opportunity.cpp.obj
+[388/416] Building CXX object third_party/spirv-tools/source/reduce/CMakeFiles/SPIRV-Tools-reduce.dir/remove_selection_reduction_opportunity.cpp.obj
+[389/416] Building CXX object third_party/spirv-tools/source/reduce/CMakeFiles/SPIRV-Tools-reduce.dir/reduction_pass.cpp.obj
+[390/416] Building CXX object third_party/spirv-tools/source/reduce/CMakeFiles/SPIRV-Tools-reduce.dir/remove_selection_reduction_opportunity_finder.cpp.obj
+[391/416] Building CXX object third_party/spirv-tools/source/reduce/CMakeFiles/SPIRV-Tools-reduce.dir/remove_struct_member_reduction_opportunity.cpp.obj
+[392/416] Building CXX object third_party/spirv-tools/source/reduce/CMakeFiles/SPIRV-Tools-reduce.dir/remove_unused_instruction_reduction_opportunity_finder.cpp.obj
+[393/416] Building CXX object third_party/spirv-tools/source/reduce/CMakeFiles/SPIRV-Tools-reduce.dir/remove_unused_struct_member_reduction_opportunity_finder.cpp.obj
+[394/416] Building CXX object third_party/spirv-tools/source/reduce/CMakeFiles/SPIRV-Tools-reduce.dir/simple_conditional_branch_to_branch_opportunity_finder.cpp.obj
+[395/416] Building CXX object third_party/spirv-tools/source/reduce/CMakeFiles/SPIRV-Tools-reduce.dir/simple_conditional_branch_to_branch_reduction_opportunity.cpp.obj
+[396/416] Linking CXX static library glslc\libglslc.a
+[397/416] Building CXX object third_party/spirv-tools/source/reduce/CMakeFiles/SPIRV-Tools-reduce.dir/structured_construct_to_block_reduction_opportunity.cpp.obj
+[398/416] Building CXX object third_party/spirv-tools/source/reduce/CMakeFiles/SPIRV-Tools-reduce.dir/structured_loop_to_selection_reduction_opportunity_finder.cpp.obj
+[399/416] Building CXX object third_party/spirv-tools/source/reduce/CMakeFiles/SPIRV-Tools-reduce.dir/structured_construct_to_block_reduction_opportunity_finder.cpp.obj
+[400/416] Linking CXX shared library third_party\spirv-tools\source\libSPIRV-Tools-shared.dll
+[401/416] Building CXX object third_party/spirv-tools/source/reduce/CMakeFiles/SPIRV-Tools-reduce.dir/structured_loop_to_selection_reduction_opportunity.cpp.obj
+[402/416] Linking CXX static library libshaderc\libshaderc_combined.a
+[403/416] Linking CXX static library third_party\spirv-tools\source\reduce\libSPIRV-Tools-reduce.a
+[404/416] Building CXX object third_party/spirv-tools/source/lint/CMakeFiles/SPIRV-Tools-lint.dir/linter.cpp.obj
+[405/416] Building CXX object third_party/spirv-tools/source/lint/CMakeFiles/SPIRV-Tools-lint.dir/divergence_analysis.cpp.obj
+[406/416] Building CXX object third_party/spirv-tools/source/lint/CMakeFiles/SPIRV-Tools-lint.dir/lint_divergent_derivatives.cpp.obj
+[407/416] Linking CXX static library third_party\spirv-tools\source\lint\libSPIRV-Tools-lint.a
+[408/416] Building CXX object libshaderc/CMakeFiles/shaderc_shared.dir/src/shaderc.cc.obj
+[409/416] Building CXX object third_party/spirv-tools/source/link/CMakeFiles/SPIRV-Tools-link.dir/fnvar.cpp.obj
+[410/416] Building CXX object glslc/CMakeFiles/glslc_exe.dir/src/main.cc.obj
+[411/416] Building CXX object third_party/spirv-tools/source/link/CMakeFiles/SPIRV-Tools-link.dir/linker.cpp.obj
+[412/416] Linking CXX static library third_party\spirv-tools\source\link\libSPIRV-Tools-link.a
+[413/416] Linking CXX shared library libshaderc\libshaderc_shared.dll
+[414/416] Linking CXX executable glslc\glslc.exe
+[415/416] Building CXX object third_party/spirv-tools/source/diff/CMakeFiles/SPIRV-Tools-diff.dir/diff.cpp.obj
+[416/416] Linking CXX static library third_party\spirv-tools\source\diff\libSPIRV-Tools-diff.a
+-- Install configuration: "Release"
+-- Installing: Q:/prefix/lib/libSPIRV-Tools-opt.a
+-- Installing: Q:/prefix/lib/cmake/SPIRV-Tools-opt/SPIRV-Tools-optTargets.cmake
+-- Installing: Q:/prefix/lib/cmake/SPIRV-Tools-opt/SPIRV-Tools-optTargets-release.cmake
+-- Installing: Q:/prefix/lib/cmake/SPIRV-Tools-opt/SPIRV-Tools-optConfig.cmake
+-- Installing: Q:/prefix/lib/libSPIRV-Tools-reduce.a
+-- Installing: Q:/prefix/lib/cmake/SPIRV-Tools-reduce/SPIRV-Tools-reduceTarget.cmake
+-- Installing: Q:/prefix/lib/cmake/SPIRV-Tools-reduce/SPIRV-Tools-reduceTarget-release.cmake
+-- Installing: Q:/prefix/lib/cmake/SPIRV-Tools-reduce/SPIRV-Tools-reduceConfig.cmake
+-- Installing: Q:/prefix/lib/libSPIRV-Tools-link.a
+-- Installing: Q:/prefix/lib/cmake/SPIRV-Tools-link/SPIRV-Tools-linkTargets.cmake
+-- Installing: Q:/prefix/lib/cmake/SPIRV-Tools-link/SPIRV-Tools-linkTargets-release.cmake
+-- Installing: Q:/prefix/lib/cmake/SPIRV-Tools-link/SPIRV-Tools-linkConfig.cmake
+-- Installing: Q:/prefix/lib/libSPIRV-Tools-lint.a
+-- Installing: Q:/prefix/lib/cmake/SPIRV-Tools-lint/SPIRV-Tools-lintTargets.cmake
+-- Installing: Q:/prefix/lib/cmake/SPIRV-Tools-lint/SPIRV-Tools-lintTargets-release.cmake
+-- Installing: Q:/prefix/lib/cmake/SPIRV-Tools-lint/SPIRV-Tools-lintConfig.cmake
+-- Installing: Q:/prefix/lib/libSPIRV-Tools-diff.a
+-- Installing: Q:/prefix/lib/cmake/SPIRV-Tools-diff/SPIRV-Tools-diffTargets.cmake
+-- Installing: Q:/prefix/lib/cmake/SPIRV-Tools-diff/SPIRV-Tools-diffTargets-release.cmake
+-- Installing: Q:/prefix/lib/cmake/SPIRV-Tools-diff/SPIRV-Tools-diffConfig.cmake
+-- Installing: Q:/prefix/lib/libSPIRV-Tools.a
+-- Installing: Q:/prefix/lib/libSPIRV-Tools-shared.dll.a
+-- Installing: Q:/prefix/bin/libSPIRV-Tools-shared.dll
+-- Installing: Q:/prefix/lib/cmake/SPIRV-Tools/SPIRV-ToolsTarget.cmake
+-- Installing: Q:/prefix/lib/cmake/SPIRV-Tools/SPIRV-ToolsTarget-release.cmake
+-- Installing: Q:/prefix/lib/cmake/SPIRV-Tools/SPIRV-ToolsConfig.cmake
+-- Installing: Q:/prefix/include/spirv-tools/libspirv.h
+-- Installing: Q:/prefix/include/spirv-tools/libspirv.hpp
+-- Installing: Q:/prefix/include/spirv-tools/optimizer.hpp
+-- Installing: Q:/prefix/include/spirv-tools/linker.hpp
+-- Installing: Q:/prefix/lib/pkgconfig/SPIRV-Tools.pc
+-- Installing: Q:/prefix/lib/pkgconfig/SPIRV-Tools-shared.pc
+-- Installing: Q:/prefix/lib/libSPIRV.a
+-- Installing: Q:/prefix/include/glslang/SPIRV/GlslangToSpv.h
+-- Installing: Q:/prefix/include/glslang/SPIRV/disassemble.h
+-- Installing: Q:/prefix/include/glslang/SPIRV/Logger.h
+-- Installing: Q:/prefix/include/glslang/SPIRV/spirv.hpp11
+-- Installing: Q:/prefix/include/glslang/SPIRV/SpvTools.h
+-- Installing: Q:/prefix/lib/libOSDependent.a
+-- Installing: Q:/prefix/lib/libglslang.a
+-- Installing: Q:/prefix/lib/libMachineIndependent.a
+-- Installing: Q:/prefix/lib/libGenericCodeGen.a
+-- Installing: Q:/prefix/include/glslang/Public/ResourceLimits.h
+-- Installing: Q:/prefix/include/glslang/Public/ShaderLang.h
+-- Installing: Q:/prefix/include/glslang/Public/resource_limits_c.h
+-- Installing: Q:/prefix/include/glslang/Include/glslang_c_interface.h
+-- Installing: Q:/prefix/include/glslang/Include/glslang_c_shader_types.h
+-- Installing: Q:/prefix/include/glslang/Include/ResourceLimits.h
+-- Installing: Q:/prefix/include/glslang/Include/visibility.h
+-- Installing: Q:/prefix/include/glslang/MachineIndependent/Versions.h
+-- Installing: Q:/prefix/include/glslang/build_info.h
+-- Installing: Q:/prefix/lib/libglslang-default-resource-limits.a
+-- Installing: Q:/prefix/lib/cmake/glslang/glslang-targets.cmake
+-- Installing: Q:/prefix/lib/cmake/glslang/glslang-targets-release.cmake
+-- Installing: Q:/prefix/lib/cmake/glslang/glslang-config.cmake
+-- Installing: Q:/prefix/lib/cmake/glslang/glslang-config-version.cmake
+-- Installing: Q:/prefix/include/shaderc/env.h
+-- Installing: Q:/prefix/include/shaderc/status.h
+-- Installing: Q:/prefix/include/shaderc/visibility.h
+-- Installing: Q:/prefix/include/shaderc/shaderc.h
+-- Installing: Q:/prefix/include/shaderc/shaderc.hpp
+-- Installing: Q:/prefix/lib/libshaderc.a
+-- Installing: Q:/prefix/lib/libshaderc_shared.dll.a
+-- Installing: Q:/prefix/bin/libshaderc_shared.dll
+-- Installing: Q:/prefix/lib/libshaderc_combined.a
+-- Installing: Q:/prefix/bin/glslc.exe
+-- Installing: Q:/prefix/lib/pkgconfig/shaderc.pc
+-- Installing: Q:/prefix/lib/pkgconfig/shaderc_static.pc
+-- Installing: Q:/prefix/lib/pkgconfig/shaderc_combined.pc
+-- The CXX compiler identification is GNU 16.2.0
+-- The C compiler identification is GNU 16.2.0
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: C:/msys64/mingw64/bin/c++.exe - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working C compiler: C:/msys64/mingw64/bin/cc.exe - skipped
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- SPIRV-Cross: Finding Git version for SPIRV-Cross.
+-- Found Git: C:/msys64/usr/bin/git.exe (found version "2.55.0")
+-- SPIRV-Cross: Git hash: 
+-- Configuring done (3.4s)
+-- Generating done (0.1s)
+-- Build files have been written to: Q:/build-spirv-cross
+ninja: Entering directory `build-spirv-cross'
+[1/11] Building CXX object CMakeFiles/spirv-cross-core.dir/spirv_cfg.cpp.obj
+[2/11] Building CXX object CMakeFiles/spirv-cross-c.dir/spirv_cross_c.cpp.obj
+[3/11] Building CXX object CMakeFiles/spirv-cross-core.dir/spirv_cross_parsed_ir.cpp.obj
+[4/11] Building CXX object CMakeFiles/spirv-cross-core.dir/spirv_parser.cpp.obj
+[5/11] Building CXX object CMakeFiles/spirv-cross-core.dir/spirv_cross.cpp.obj
+[6/11] Linking CXX static library libspirv-cross-core.a
+[7/11] Building CXX object CMakeFiles/spirv-cross-hlsl.dir/spirv_hlsl.cpp.obj
+[8/11] Building CXX object CMakeFiles/spirv-cross-glsl.dir/spirv_glsl.cpp.obj
+[9/11] Linking CXX static library libspirv-cross-glsl.a
+[10/11] Linking CXX static library libspirv-cross-hlsl.a
+[11/11] Linking CXX static library libspirv-cross-c.a
+-- Install configuration: "Release"
+-- Installing: Q:/prefix/lib/pkgconfig/spirv-cross-c.pc
+-- Installing: Q:/prefix/lib/libspirv-cross-core.a
+-- Installing: Q:/prefix/include/spirv_cross/GLSL.std.450.h
+-- Installing: Q:/prefix/include/spirv_cross/spirv_common.hpp
+-- Installing: Q:/prefix/include/spirv_cross/spirv_cross_containers.hpp
+-- Installing: Q:/prefix/include/spirv_cross/spirv_cross_error_handling.hpp
+-- Installing: Q:/prefix/include/spirv_cross/spirv.hpp
+-- Installing: Q:/prefix/include/spirv_cross/spirv_cross.hpp
+-- Installing: Q:/prefix/include/spirv_cross/spirv_parser.hpp
+-- Installing: Q:/prefix/include/spirv_cross/spirv_cross_parsed_ir.hpp
+-- Installing: Q:/prefix/include/spirv_cross/spirv_cfg.hpp
+-- Installing: Q:/prefix/share/spirv_cross_core/cmake/spirv_cross_coreConfig.cmake
+-- Installing: Q:/prefix/share/spirv_cross_core/cmake/spirv_cross_coreConfig-release.cmake
+-- Installing: Q:/prefix/lib/libspirv-cross-glsl.a
+-- Installing: Q:/prefix/include/spirv_cross/spirv_glsl.hpp
+-- Installing: Q:/prefix/share/spirv_cross_glsl/cmake/spirv_cross_glslConfig.cmake
+-- Installing: Q:/prefix/share/spirv_cross_glsl/cmake/spirv_cross_glslConfig-release.cmake
+-- Installing: Q:/prefix/lib/libspirv-cross-hlsl.a
+-- Installing: Q:/prefix/include/spirv_cross/spirv_hlsl.hpp
+-- Installing: Q:/prefix/share/spirv_cross_hlsl/cmake/spirv_cross_hlslConfig.cmake
+-- Installing: Q:/prefix/share/spirv_cross_hlsl/cmake/spirv_cross_hlslConfig-release.cmake
+-- Installing: Q:/prefix/lib/libspirv-cross-c.a
+-- Installing: Q:/prefix/include/spirv_cross/spirv.h
+-- Installing: Q:/prefix/include/spirv_cross/spirv_cross_c.h
+-- Installing: Q:/prefix/share/spirv_cross_c/cmake/spirv_cross_cConfig.cmake
+-- Installing: Q:/prefix/share/spirv_cross_c/cmake/spirv_cross_cConfig-release.cmake
+install prefix            /q/prefix
+source path               /q/src/ffmpeg
+C compiler                gcc
+C library                 mingw64
+ARCH                      x86 (generic)
+big-endian                no
+runtime cpu detection     yes
+standalone assembly       yes
+x86 assembler             nasm
+MMX enabled               yes
+MMXEXT enabled            yes
+3DNow! enabled            yes
+3DNow! extended enabled   yes
+SSE enabled               yes
+SSSE3 enabled             yes
+AESNI enabled             yes
+AVX enabled               yes
+AVX2 enabled              yes
+AVX-512 enabled           yes
+AVX-512ICL enabled        yes
+XOP enabled               yes
+FMA3 enabled              yes
+FMA4 enabled              yes
+i686 features enabled     yes
+CMOV is fast              yes
+EBX available             yes
+EBP available             yes
+debug symbols             no
+strip symbols             yes
+optimize for size         no
+optimizations             yes
+static                    yes
+shared                    no
+network support           yes
+threading support         w32threads
+safe bitstream reader     yes
+texi2html enabled         no
+perl enabled              yes
+pod2man enabled           yes
+makeinfo enabled          no
+makeinfo supports HTML    no
+xmllint enabled           no
+
+External libraries:
+bzlib                   libdav1d                schannel
+iconv                   lzma                    zlib
+lcms2                   mediafoundation
+
+External libraries providing hardware acceleration:
+d3d11va
+
+Libraries:
+avcodec                 avformat                swresample
+avfilter                avutil                  swscale
+
+Programs:
+
+Enabled decoders:
+aac                     mlp                     pgssub
+aac_latm                movtext                 png
+ac3                     mp1                     prores
+adpcm_ima_qt            mp2                     qdm2
+adpcm_ima_wav           mp3float                qtrle
+adpcm_ms                mpeg1video              ra_144
+adpcm_yamaha            mpeg2video              realtext
+alac                    mpeg4                   rv10
+amrnb                   mpl2                    rv20
+amrwb                   msmpeg4v2               rv30
+ass                     msmpeg4v3               rv40
+av1                     msrle                   sami
+bmp                     msvideo1                sipr
+ccaption                nellymoser              speex
+cinepak                 on2avc                  subrip
+cook                    opus                    svq1
+dca                     pcm_alaw                svq3
+dvbsub                  pcm_f32le               theora
+dvdsub                  pcm_f64le               truehd
+dvvideo                 pcm_mulaw               vc1
+eac3                    pcm_s16be               vorbis
+ffv1                    pcm_s16be_planar        vp3
+flac                    pcm_s16le               vp6
+flv                     pcm_s16le_planar        vp6f
+fraps                   pcm_s24be               vp8
+g723_1                  pcm_s24le               vp9
+gif                     pcm_s24le_planar        webvtt
+h263                    pcm_s32be               wmav1
+h264                    pcm_s32le               wmav2
+hevc                    pcm_s32le_planar        wmavoice
+huffyuv                 pcm_s8                  wmv1
+libdav1d                pcm_s8_planar           wmv2
+mace3                   pcm_u16le               wmv3
+mace6                   pcm_u24le               xsub
+microdvd                pcm_u32le
+mjpeg                   pcm_u8
+
+Enabled encoders:
+png
+
+Enabled hwaccels:
+av1_d3d11va             hevc_d3d11va2           vp9_d3d11va
+av1_d3d11va2            mpeg2_d3d11va           vp9_d3d11va2
+h264_d3d11va            mpeg2_d3d11va2          wmv3_d3d11va
+h264_d3d11va2           vc1_d3d11va             wmv3_d3d11va2
+hevc_d3d11va            vc1_d3d11va2
+
+Enabled parsers:
+aac                     dvdsub                  mpegvideo
+aac_latm                evc                     opus
+ac3                     ffv1                    png
+adx                     flac                    pnm
+amr                     ftr                     prores_raw
+apv                     g723_1                  qoi
+av1                     g729                    rv34
+avs2                    gif                     sbc
+avs3                    gsm                     sipr
+bmp                     h261                    tak
+cavsvideo               h263                    vc1
+cook                    h264                    vorbis
+cri                     hdr                     vp3
+dca                     hevc                    vp8
+dirac                   ipu                     vp9
+dnxhd                   jpeg2000                vvc
+dnxuc                   jpegxl                  webp
+dolby_e                 misc4                   xbm
+dpx                     mjpeg                   xma
+dvaudio                 mlp                     xwd
+dvbsub                  mpeg4video
+dvd_nav                 mpegaudio
+
+Enabled demuxers:
+aac                     flac                    mpegvideo
+ac3                     flv                     mpl2
+aiff                    hls                     ogg
+amr                     matroska                rm
+asf                     microdvd                rtsp
+ass                     mov                     sdp
+avi                     mp3                     srt
+dts                     mpegps                  wav
+eac3                    mpegts                  webvtt
+
+Enabled muxers:
+image2
+
+Enabled protocols:
+concat                  hls                     rtp
+crypto                  http                    subfile
+data                    https                   tcp
+dtls                    pipe                    tls
+file                    rtmp                    udp
+
+Enabled filters:
+aformat                 format                  scale
+aresample               fps
+dynaudnorm              pan
+
+Enabled bsfs:
+aac_adtstoasc           h264_mp4toannexb        vp9_superframe
+av1_frame_merge         hevc_mp4toannexb        vp9_superframe_split
+extract_extradata       mpeg4_unpack_bframes
+
+Enabled indevs:
+
+Enabled outdevs:
+
+License: LGPL version 2.1 or later
+GEN	libavfilter/libavfilter.version
+GEN	libavformat/libavformat.version
+GEN	libavcodec/libavcodec.version
+GEN	libavutil/libavutil.version
+GEN	libswresample/libswresample.version
+GEN	libswscale/libswscale.version
+CC	libavfilter/af_aformat.o
+CC	libavfilter/af_aresample.o
+CC	libavfilter/af_dynaudnorm.o
+CC	libavfilter/af_pan.o
+CC	libavfilter/allfilters.o
+CC	libavfilter/audio.o
+CC	libavfilter/avfilter.o
+CC	libavfilter/avfiltergraph.o
+CC	libavfilter/buffersink.o
+CC	libavfilter/buffersrc.o
+CC	libavfilter/ccfifo.o
+CC	libavfilter/colorspace.o
+CC	libavfilter/drawutils.o
+CC	libavfilter/formats.o
+CC	libavfilter/framepool.o
+CC	libavfilter/framequeue.o
+CC	libavfilter/framesync.o
+CC	libavfilter/graphdump.o
+CC	libavfilter/graphparser.o
+CC	libavfilter/pthread.o
+CC	libavfilter/scale_eval.o
+CC	libavfilter/version.o
+CC	libavfilter/vf_format.o
+CC	libavfilter/vf_fps.o
+CC	libavfilter/vf_scale.o
+CC	libavfilter/video.o
+GEN	libavfilter/libavfilter.pc
+CC	libavformat/aacdec.o
+CC	libavformat/ac3dec.o
+CC	libavformat/aiff.o
+CC	libavformat/aiffdec.o
+CC	libavformat/allformats.o
+CC	libavformat/amr.o
+CC	libavformat/apetag.o
+CC	libavformat/asf.o
+CC	libavformat/asf_tags.o
+CC	libavformat/asfcrypt.o
+CC	libavformat/asfdec_f.o
+CC	libavformat/assdec.o
+CC	libavformat/avformat.o
+CC	libavformat/avidec.o
+CC	libavformat/avio.o
+CC	libavformat/aviobuf.o
+CC	libavformat/avlanguage.o
+CC	libavformat/data_uri.o
+CC	libavformat/concat.o
+CC	libavformat/crypto.o
+CC	libavformat/demux.o
+CC	libavformat/demux_utils.o
+CC	libavformat/dovi_isom.o
+CC	libavformat/dtsdec.o
+CC	libavformat/dump.o
+CC	libavformat/dv.o
+CC	libavformat/dvdclut.o
+CC	libavformat/file.o
+CC	libavformat/flac_picture.o
+CC	libavformat/flacdec.o
+CC	libavformat/flvdec.o
+CC	libavformat/format.o
+CC	libavformat/hls.o
+CC	libavformat/hls_sample_encryption.o
+CC	libavformat/hlsproto.o
+CC	libavformat/http.o
+CC	libavformat/httpauth.o
+CC	libavformat/iamf.o
+CC	libavformat/iamf_parse.o
+CC	libavformat/iamf_reader.o
+CC	libavformat/id3v1.o
+CC	libavformat/id3v2.o
+CC	libavformat/img2.o
+CC	libavformat/img2enc.o
+CC	libavformat/ip.o
+CC	libavformat/isom.o
+CC	libavformat/isom_tags.o
+Q:/src/ffmpeg/libavformat/img2enc.c:119:12: warning: 'write_packet_pipe' defined but not used [-Wunused-function]
+  119 | static int write_packet_pipe(AVFormatContext *s, AVPacket *pkt)
+      |            ^~~~~~~~~~~~~~~~~
+CC	libavformat/matroska.o
+CC	libavformat/matroskadec.o
+CC	libavformat/metadata.o
+CC	libavformat/microdvddec.o
+CC	libavformat/mov.o
+CC	libavformat/mov_chan.o
+CC	libavformat/mov_esds.o
+CC	libavformat/mp3dec.o
+CC	libavformat/mpeg.o
+CC	libavformat/mpegts.o
+CC	libavformat/mpegvideodec.o
+CC	libavformat/mpl2dec.o
+CC	libavformat/mux.o
+CC	libavformat/mux_utils.o
+CC	libavformat/network.o
+CC	libavformat/oggdec.o
+CC	libavformat/oggparsecelt.o
+CC	libavformat/oggparsedirac.o
+CC	libavformat/oggparseflac.o
+CC	libavformat/oggparseogm.o
+CC	libavformat/oggparseopus.o
+CC	libavformat/oggparseskeleton.o
+CC	libavformat/oggparsespeex.o
+CC	libavformat/oggparsetheora.o
+CC	libavformat/oggparsevorbis.o
+CC	libavformat/oggparsevp8.o
+CC	libavformat/options.o
+CC	libavformat/os_support.o
+CC	libavformat/pcm.o
+CC	libavformat/protocols.o
+CC	libavformat/qtpalette.o
+CC	libavformat/rawdec.o
+CC	libavformat/rdt.o
+CC	libavformat/replaygain.o
+CC	libavformat/riff.o
+Q:/src/ffmpeg/libavformat/rawdec.c:106:12: warning: 'raw_data_read_header' defined but not used [-Wunused-function]
+  106 | static int raw_data_read_header(AVFormatContext *s)
+      |            ^~~~~~~~~~~~~~~~~~~~
+CC	libavformat/riffdec.o
+CC	libavformat/rm.o
+CC	libavformat/rmdec.o
+CC	libavformat/rmsipr.o
+CC	libavformat/rtmpdigest.o
+CC	libavformat/rtmppkt.o
+CC	libavformat/rtmpproto.o
+CC	libavformat/rtp.o
+CC	libavformat/rtpdec.o
+CC	libavformat/rtpdec_ac3.o
+CC	libavformat/rtpdec_amr.o
+CC	libavformat/rtpdec_asf.o
+CC	libavformat/rtpdec_av1.o
+CC	libavformat/rtpdec_dv.o
+CC	libavformat/rtpdec_g726.o
+CC	libavformat/rtpdec_h261.o
+CC	libavformat/rtpdec_h263.o
+CC	libavformat/rtpdec_h263_rfc2190.o
+CC	libavformat/rtpdec_h264.o
+CC	libavformat/rtpdec_hevc.o
+CC	libavformat/rtpdec_ilbc.o
+CC	libavformat/rtpdec_jpeg.o
+CC	libavformat/rtpdec_latm.o
+CC	libavformat/rtpdec_mpa_robust.o
+CC	libavformat/rtpdec_mpeg12.o
+CC	libavformat/rtpdec_mpeg4.o
+CC	libavformat/rtpdec_mpegts.o
+CC	libavformat/rtpdec_opus.o
+CC	libavformat/rtpdec_qcelp.o
+CC	libavformat/rtpdec_qdm2.o
+CC	libavformat/rtpdec_qt.o
+CC	libavformat/rtpdec_rfc4175.o
+CC	libavformat/rtpdec_svq3.o
+CC	libavformat/rtpdec_vc2hq.o
+CC	libavformat/rtpdec_vp8.o
+CC	libavformat/rtpdec_vp9.o
+CC	libavformat/rtpdec_xiph.o
+CC	libavformat/rtpproto.o
+CC	libavformat/rtsp.o
+CC	libavformat/rtspdec.o
+CC	libavformat/sdp.o
+CC	libavformat/seek.o
+CC	libavformat/srtdec.o
+CC	libavformat/srtp.o
+CC	libavformat/subfile.o
+CC	libavformat/subtitles.o
+CC	libavformat/tcp.o
+CC	libavformat/tls.o
+CC	libavformat/tls_schannel.o
+CC	libavformat/udp.o
+CC	libavformat/url.o
+CC	libavformat/urldecode.o
+CC	libavformat/utils.o
+CC	libavformat/version.o
+CC	libavformat/vorbiscomment.o
+CC	libavformat/wavdec.o
+CC	libavformat/webvttdec.o
+GEN	libavformat/libavformat.pc
+GEN	libavcodec/libavcodec.pc
+GEN	libswresample/libswresample.pc
+GEN	libswscale/libswscale.pc
+CC	libavutil/half2float.o
+GEN	libavutil/libavutil.pc
+AR	libavfilter/libavfilter.a
+CC	libavcodec/aac/aacdec.o
+AR	libavformat/libavformat.a
+CC	libavcodec/aac/aacdec_ac.o
+CC	libavcodec/aac/aacdec_float.o
+CC	libavcodec/aac/aacdec_lpd.o
+CC	libavcodec/aac/aacdec_tab.o
+CC	libavcodec/aac/aacdec_usac.o
+CC	libavcodec/aac_ac3_parser.o
+CC	libavcodec/aac_parser.o
+CC	libavcodec/aacps_common.o
+CC	libavcodec/aacps_float.o
+CC	libavcodec/aacpsdsp_float.o
+CC	libavcodec/aacsbr.o
+CC	libavcodec/aactab.o
+CC	libavcodec/ac3.o
+CC	libavcodec/ac3_channel_layout_tab.o
+CC	libavcodec/ac3_parser.o
+CC	libavcodec/ac3dec_data.o
+CC	libavcodec/ac3dec_float.o
+CC	libavcodec/ac3dsp.o
+CC	libavcodec/ac3tab.o
+CC	libavcodec/acelp_filters.o
+CC	libavcodec/acelp_pitch_delay.o
+CC	libavcodec/acelp_vectors.o
+CC	libavcodec/adpcm.o
+CC	libavcodec/adpcm_data.o
+CC	libavcodec/adts_header.o
+CC	libavcodec/adts_parser.o
+CC	libavcodec/adx_parser.o
+CC	libavcodec/alac.o
+Q:/src/ffmpeg/libavcodec/adpcm.c:951:12: warning: 'adpcm_sanyo_expand5' defined but not used [-Wunused-function]
+  951 | static int adpcm_sanyo_expand5(ADPCMChannelStatus *c, int bits)
+      |            ^~~~~~~~~~~~~~~~~~~
+Q:/src/ffmpeg/libavcodec/adpcm.c:892:12: warning: 'adpcm_sanyo_expand4' defined but not used [-Wunused-function]
+  892 | static int adpcm_sanyo_expand4(ADPCMChannelStatus *c, int bits)
+      |            ^~~~~~~~~~~~~~~~~~~
+Q:/src/ffmpeg/libavcodec/adpcm.c:849:12: warning: 'adpcm_sanyo_expand3' defined but not used [-Wunused-function]
+  849 | static int adpcm_sanyo_expand3(ADPCMChannelStatus *c, int bits)
+      |            ^~~~~~~~~~~~~~~~~~~
+Q:/src/ffmpeg/libavcodec/adpcm.c:774:13: warning: 'adpcm_swf_decode' defined but not used [-Wunused-function]
+  774 | static void adpcm_swf_decode(AVCodecContext *avctx, const uint8_t *buf, int buf_size, int16_t *samples)
+      |             ^~~~~~~~~~~~~~~~
+Q:/src/ffmpeg/libavcodec/adpcm.c:686:12: warning: 'xa_decode' defined but not used [-Wunused-function]
+  686 | static int xa_decode(AVCodecContext *avctx, int16_t *out0, int16_t *out1,
+      |            ^~~~~~~~~
+CC	libavcodec/alac_data.o
+CC	libavcodec/alacdsp.o
+CC	libavcodec/allcodecs.o
+CC	libavcodec/amr_parser.o
+CC	libavcodec/amrnbdec.o
+CC	libavcodec/amrwbdec.o
+CC	libavcodec/aom_film_grain.o
+CC	libavcodec/apv_parser.o
+CC	libavcodec/ass.o
+CC	libavcodec/assdec.o
+CC	libavcodec/atsc_a53.o
+CC	libavcodec/audiodsp.o
+CC	libavcodec/av1_parse.o
+CC	libavcodec/av1_parser.o
+CC	libavcodec/av1dec.o
+CC	libavcodec/avcodec.o
+CC	libavcodec/avdct.o
+CC	libavcodec/avs2.o
+CC	libavcodec/avs2_parser.o
+CC	libavcodec/avs3_parser.o
+CC	libavcodec/bitstream.o
+CC	libavcodec/bitstream_filters.o
+CC	libavcodec/blockdsp.o
+CC	libavcodec/bmp.o
+CC	libavcodec/bmp_parser.o
+CC	libavcodec/bsf.o
+CC	libavcodec/bsf/aac_adtstoasc.o
+CC	libavcodec/bsf/av1_frame_merge.o
+CC	libavcodec/bsf/extract_extradata.o
+CC	libavcodec/bsf/h264_mp4toannexb.o
+CC	libavcodec/bsf/hevc_mp4toannexb.o
+CC	libavcodec/bsf/mpeg4_unpack_bframes.o
+CC	libavcodec/bsf/vp9_superframe.o
+CC	libavcodec/bsf/vp9_superframe_split.o
+CC	libavcodec/bswapdsp.o
+CC	libavcodec/cabac.o
+CC	libavcodec/cavs_parser.o
+CC	libavcodec/cbrt_data.o
+CC	libavcodec/cbs.o
+CC	libavcodec/cbs_apv.o
+CC	libavcodec/cbs_av1.o
+CC	libavcodec/cbs_bsf.o
+CC	libavcodec/cbs_h2645.o
+CC	libavcodec/cbs_sei.o
+CC	libavcodec/cbs_vp9.o
+CC	libavcodec/ccaption_dec.o
+CC	libavcodec/celp_filters.o
+CC	libavcodec/celp_math.o
+CC	libavcodec/cinepak.o
+CC	libavcodec/codec_desc.o
+CC	libavcodec/codec_par.o
+CC	libavcodec/cook.o
+CC	libavcodec/cook_parser.o
+CC	libavcodec/cri_parser.o
+CC	libavcodec/d3d11va.o
+CC	libavcodec/dca.o
+CC	libavcodec/dca_core.o
+CC	libavcodec/dca_exss.o
+CC	libavcodec/dca_lbr.o
+CC	libavcodec/dca_parser.o
+CC	libavcodec/dca_sample_rate_tab.o
+CC	libavcodec/dca_xll.o
+CC	libavcodec/dcadata.o
+CC	libavcodec/dcadct.o
+CC	libavcodec/dcadec.o
+CC	libavcodec/dcadsp.o
+CC	libavcodec/dcahuff.o
+CC	libavcodec/dct32_fixed.o
+CC	libavcodec/dct32_float.o
+CC	libavcodec/decode.o
+CC	libavcodec/dirac.o
+CC	libavcodec/dirac_parser.o
+CC	libavcodec/dnxhd_parser.o
+CC	libavcodec/dnxhddata.o
+CC	libavcodec/dnxuc_parser.o
+CC	libavcodec/dolby_e_parse.o
+CC	libavcodec/dolby_e_parser.o
+CC	libavcodec/dovi_rpu.o
+CC	libavcodec/dovi_rpudec.o
+CC	libavcodec/dpx_parser.o
+CC	libavcodec/dv.o
+CC	libavcodec/dv_profile.o
+CC	libavcodec/dvaudio_parser.o
+CC	libavcodec/dvbsub_parser.o
+CC	libavcodec/dvbsubdec.o
+CC	libavcodec/dvd_nav_parser.o
+CC	libavcodec/dvdata.o
+CC	libavcodec/dvdec.o
+CC	libavcodec/dvdsub.o
+CC	libavcodec/dvdsub_parser.o
+CC	libavcodec/dvdsubdec.o
+CC	libavcodec/dxva2.o
+CC	libavcodec/dxva2_av1.o
+CC	libavcodec/dxva2_h264.o
+CC	libavcodec/dxva2_hevc.o
+CC	libavcodec/dxva2_mpeg2.o
+CC	libavcodec/dxva2_vc1.o
+CC	libavcodec/dxva2_vp9.o
+CC	libavcodec/dynamic_hdr_vivid.o
+CC	libavcodec/eac3_data.o
+CC	libavcodec/encode.o
+CC	libavcodec/error_resilience.o
+CC	libavcodec/evc_parse.o
+CC	libavcodec/evc_parser.o
+CC	libavcodec/evc_ps.o
+CC	libavcodec/exif.o
+CC	libavcodec/faandct.o
+CC	libavcodec/faanidct.o
+Q:/src/ffmpeg/libavcodec/dxva2.c: In function 'ff_dxva2_get_surface_index':
+Q:/src/ffmpeg/libavcodec/dxva2.c:776:14: warning: unused variable 'i' [-Wunused-variable]
+  776 |     unsigned i;
+      |              ^
+CC	libavcodec/fdctdsp.o
+CC	libavcodec/fflcms2.o
+CC	libavcodec/ffv1.o
+CC	libavcodec/ffv1_parse.o
+CC	libavcodec/ffv1_parser.o
+CC	libavcodec/ffv1dec.o
+CC	libavcodec/flac.o
+CC	libavcodec/flac_parser.o
+CC	libavcodec/flacdata.o
+CC	libavcodec/flacdec.o
+CC	libavcodec/flacdsp.o
+CC	libavcodec/flvdec.o
+CC	libavcodec/fmtconvert.o
+CC	libavcodec/frame_thread_encoder.o
+CC	libavcodec/fraps.o
+CC	libavcodec/ftr_parser.o
+CC	libavcodec/g723_1.o
+CC	libavcodec/g723_1_parser.o
+CC	libavcodec/g723_1dec.o
+CC	libavcodec/g729_parser.o
+CC	libavcodec/get_buffer.o
+CC	libavcodec/gif_parser.o
+CC	libavcodec/gifdec.o
+CC	libavcodec/golomb.o
+CC	libavcodec/gsm_parser.o
+CC	libavcodec/h261_parser.o
+CC	libavcodec/h263.o
+CC	libavcodec/h263_parser.o
+CC	libavcodec/h263dsp.o
+CC	libavcodec/h263data.o
+CC	libavcodec/h2645_parse.o
+CC	libavcodec/h263dec.o
+CC	libavcodec/h2645_sei.o
+CC	libavcodec/h2645_vui.o
+CC	libavcodec/h2645data.o
+CC	libavcodec/h264_cabac.o
+CC	libavcodec/h264_cavlc.o
+CC	libavcodec/h264_direct.o
+CC	libavcodec/h264_loopfilter.o
+CC	libavcodec/h264_mb.o
+CC	libavcodec/h264_parse.o
+CC	libavcodec/h264_parser.o
+CC	libavcodec/h264_picture.o
+CC	libavcodec/h264_ps.o
+CC	libavcodec/h264_refs.o
+CC	libavcodec/h264_sei.o
+CC	libavcodec/h264_slice.o
+CC	libavcodec/h264chroma.o
+CC	libavcodec/h264data.o
+CC	libavcodec/h264dec.o
+CC	libavcodec/h264dsp.o
+CC	libavcodec/h264idct.o
+CC	libavcodec/h264pred.o
+CC	libavcodec/h264qpel.o
+CC	libavcodec/h274.o
+CC	libavcodec/hdr_parser.o
+CC	libavcodec/hevc/cabac.o
+CC	libavcodec/hevc/data.o
+CC	libavcodec/hevc/dsp.o
+CC	libavcodec/hevc/filter.o
+CC	libavcodec/hevc/hevcdec.o
+CC	libavcodec/hevc/mvs.o
+CC	libavcodec/hevc/parse.o
+CC	libavcodec/hevc/parser.o
+CC	libavcodec/hevc/pred.o
+CC	libavcodec/hevc/ps.o
+CC	libavcodec/hevc/refs.o
+CC	libavcodec/hevc/sei.o
+CC	libavcodec/hpeldsp.o
+CC	libavcodec/htmlsubtitles.o
+CC	libavcodec/huffman.o
+CC	libavcodec/huffyuv.o
+CC	libavcodec/huffyuvdec.o
+CC	libavcodec/huffyuvdsp.o
+CC	libavcodec/idctdsp.o
+CC	libavcodec/imgconvert.o
+CC	libavcodec/intrax8.o
+CC	libavcodec/intrax8dsp.o
+CC	libavcodec/ipu_parser.o
+CC	libavcodec/ituh263dec.o
+CC	libavcodec/jfdctfst.o
+CC	libavcodec/jfdctint.o
+CC	libavcodec/jni.o
+CC	libavcodec/jpeg2000_parser.o
+CC	libavcodec/jpegquanttables.o
+CC	libavcodec/jpegtables.o
+CC	libavcodec/jpegxl_parse.o
+CC	libavcodec/jpegxl_parser.o
+CC	libavcodec/jrevdct.o
+CC	libavcodec/kbdwin.o
+CC	libavcodec/latm_parser.o
+CC	libavcodec/lcevcdec.o
+CC	libavcodec/libdav1d.o
+CC	libavcodec/lossless_videodsp.o
+CC	libavcodec/lossless_videoencdsp.o
+CC	libavcodec/lsp.o
+CC	libavcodec/lzw.o
+CC	libavcodec/mace.o
+CC	libavcodec/mathtables.o
+CC	libavcodec/me_cmp.o
+CC	libavcodec/mediacodec.o
+CC	libavcodec/microdvddec.o
+CC	libavcodec/misc4_parser.o
+CC	libavcodec/mjpeg_parser.o
+CC	libavcodec/mjpegdec.o
+CC	libavcodec/mjpegdec_common.o
+CC	libavcodec/mlp.o
+CC	libavcodec/mlp_parse.o
+CC	libavcodec/mlp_parser.o
+CC	libavcodec/mlpdec.o
+CC	libavcodec/mlpdsp.o
+CC	libavcodec/movtextdec.o
+CC	libavcodec/mpeg12.o
+CC	libavcodec/mpeg12data.o
+CC	libavcodec/mpeg12dec.o
+CC	libavcodec/mpeg12framerate.o
+CC	libavcodec/mpeg4audio.o
+CC	libavcodec/mpeg4audio_sample_rates.o
+CC	libavcodec/mpeg4video.o
+CC	libavcodec/mpeg4video_parser.o
+CC	libavcodec/mpeg4videodec.o
+CC	libavcodec/mpeg4videodsp.o
+CC	libavcodec/mpeg_er.o
+CC	libavcodec/mpegaudio.o
+CC	libavcodec/mpegaudio_parser.o
+CC	libavcodec/mpegaudiodata.o
+CC	libavcodec/mpegaudiodec_common.o
+CC	libavcodec/mpegaudiodec_fixed.o
+CC	libavcodec/mpegaudiodec_float.o
+CC	libavcodec/mpegaudiodecheader.o
+CC	libavcodec/mpegaudiodsp.o
+CC	libavcodec/mpegaudiodsp_data.o
+CC	libavcodec/mpegaudiodsp_fixed.o
+CC	libavcodec/mpegaudiodsp_float.o
+CC	libavcodec/mpegaudiotabs.o
+CC	libavcodec/mpegpicture.o
+CC	libavcodec/mpegutils.o
+CC	libavcodec/mpegvideo.o
+CC	libavcodec/mpegvideo_dec.o
+CC	libavcodec/mpegvideo_motion.o
+CC	libavcodec/mpegvideo_parser.o
+CC	libavcodec/mpegvideo_unquantize.o
+CC	libavcodec/mpegvideodata.o
+CC	libavcodec/mpl2dec.o
+CC	libavcodec/msmpeg4.o
+CC	libavcodec/msmpeg4_vc1_data.o
+CC	libavcodec/msmpeg4data.o
+CC	libavcodec/msmpeg4dec.o
+CC	libavcodec/msrle.o
+CC	libavcodec/msrledec.o
+CC	libavcodec/msvideo1.o
+CC	libavcodec/nellymoser.o
+CC	libavcodec/nellymoserdec.o
+CC	libavcodec/on2avc.o
+CC	libavcodec/on2avcdata.o
+CC	libavcodec/options.o
+CC	libavcodec/opus/celt.o
+CC	libavcodec/opus/dec.o
+CC	libavcodec/opus/dec_celt.o
+CC	libavcodec/opus/dsp.o
+CC	libavcodec/opus/parse.o
+CC	libavcodec/opus/parser.o
+CC	libavcodec/opus/pvq.o
+CC	libavcodec/opus/rc.o
+CC	libavcodec/opus/silk.o
+CC	libavcodec/opus/tab.o
+CC	libavcodec/packet.o
+CC	libavcodec/parser.o
+CC	libavcodec/parsers.o
+CC	libavcodec/pcm.o
+CC	libavcodec/pgssubdec.o
+CC	libavcodec/png.o
+CC	libavcodec/png_parser.o
+CC	libavcodec/pngdec.o
+CC	libavcodec/pngdsp.o
+CC	libavcodec/pngenc.o
+CC	libavcodec/pnm.o
+CC	libavcodec/pnm_parser.o
+CC	libavcodec/profiles.o
+CC	libavcodec/prores_raw_parser.o
+CC	libavcodec/proresdata.o
+CC	libavcodec/proresdec.o
+CC	libavcodec/proresdsp.o
+CC	libavcodec/pthread.o
+CC	libavcodec/pthread_frame.o
+CC	libavcodec/pthread_slice.o
+CC	libavcodec/qdm2.o
+CC	libavcodec/qoi_parser.o
+CC	libavcodec/qpeldsp.o
+CC	libavcodec/qsv_api.o
+CC	libavcodec/qtrle.o
+CC	libavcodec/ra144.o
+CC	libavcodec/ra144dec.o
+CC	libavcodec/rangecoder.o
+CC	libavcodec/raw.o
+CC	libavcodec/realtextdec.o
+Q:/src/ffmpeg/libavcodec/pcm.c:96:12: warning: 'pcm_encode_frame' defined but not used [-Wunused-function]
+   96 | static int pcm_encode_frame(AVCodecContext *avctx, AVPacket *avpkt,
+      |            ^~~~~~~~~~~~~~~~
+Q:/src/ffmpeg/libavcodec/pcm.c:41:20: warning: 'pcm_encode_init' defined but not used [-Wunused-function]
+   41 | static av_cold int pcm_encode_init(AVCodecContext *avctx)
+      |                    ^~~~~~~~~~~~~~~
+CC	libavcodec/rl.o
+CC	libavcodec/rv10.o
+CC	libavcodec/rv30.o
+CC	libavcodec/rv30dsp.o
+CC	libavcodec/rv34.o
+CC	libavcodec/rv34_parser.o
+CC	libavcodec/rv34dsp.o
+CC	libavcodec/rv40.o
+CC	libavcodec/rv40dsp.o
+CC	libavcodec/samidec.o
+CC	libavcodec/sbc_parser.o
+CC	libavcodec/sbrdsp.o
+CC	libavcodec/simple_idct.o
+CC	libavcodec/sinewin.o
+CC	libavcodec/sipr.o
+CC	libavcodec/sipr16k.o
+CC	libavcodec/sipr_parser.o
+CC	libavcodec/speexdec.o
+CC	libavcodec/srtdec.o
+CC	libavcodec/startcode.o
+CC	libavcodec/svq1.o
+CC	libavcodec/svq1dec.o
+CC	libavcodec/svq3.o
+CC	libavcodec/synth_filter.o
+CC	libavcodec/tak.o
+CC	libavcodec/tak_parser.o
+CC	libavcodec/threadprogress.o
+CC	libavcodec/tiff_common.o
+CC	libavcodec/to_upper4.o
+CC	libavcodec/tpeldsp.o
+CC	libavcodec/utils.o
+CC	libavcodec/vc1.o
+CC	libavcodec/vc1_block.o
+CC	libavcodec/vc1_loopfilter.o
+CC	libavcodec/vc1_mc.o
+CC	libavcodec/vc1_parser.o
+CC	libavcodec/vc1_pred.o
+CC	libavcodec/vc1data.o
+CC	libavcodec/vc1dec.o
+CC	libavcodec/vc1dsp.o
+CC	libavcodec/version.o
+CC	libavcodec/videodsp.o
+CC	libavcodec/vlc.o
+CC	libavcodec/vorbis.o
+CC	libavcodec/vorbis_data.o
+CC	libavcodec/vorbis_parser.o
+CC	libavcodec/vorbisdec.o
+CC	libavcodec/vorbisdsp.o
+CC	libavcodec/vp3.o
+CC	libavcodec/vp3_parser.o
+CC	libavcodec/vp3dsp.o
+CC	libavcodec/vp56.o
+CC	libavcodec/vp56data.o
+CC	libavcodec/vp56dsp.o
+CC	libavcodec/vp6.o
+CC	libavcodec/vp6dsp.o
+CC	libavcodec/vp8.o
+CC	libavcodec/vp8_parser.o
+CC	libavcodec/vp8data.o
+CC	libavcodec/vp8dsp.o
+CC	libavcodec/vp9.o
+CC	libavcodec/vp9_parser.o
+CC	libavcodec/vp9block.o
+CC	libavcodec/vp9data.o
+CC	libavcodec/vp9dsp.o
+CC	libavcodec/vp9dsp_10bpp.o
+CC	libavcodec/vp9dsp_12bpp.o
+CC	libavcodec/vp9dsp_8bpp.o
+CC	libavcodec/vp9lpf.o
+CC	libavcodec/vp9mvs.o
+CC	libavcodec/vp9prob.o
+CC	libavcodec/vp9recon.o
+CC	libavcodec/vpx_rac.o
+Q:/src/ffmpeg/libavcodec/vp8.c: In function 'filter_mb_row':
+Q:/src/ffmpeg/libavcodec/vp8.c:2525:20: warning: variable 'mb' set but not used [-Wunused-but-set-variable=]
+ 2525 |     VP8Macroblock *mb;
+      |                    ^~
+CC	libavcodec/vvc_parser.o
+CC	libavcodec/webp_parser.o
+CC	libavcodec/webvttdec.o
+CC	libavcodec/wma.o
+CC	libavcodec/wma_common.o
+CC	libavcodec/wma_freqs.o
+CC	libavcodec/wmadec.o
+CC	libavcodec/wmv2data.o
+CC	libavcodec/wmv2.o
+CC	libavcodec/wmavoice.o
+CC	libavcodec/wmv2dec.o
+CC	libavcodec/wmv2dsp.o
+X86ASM	libavcodec/x86/aacpsdsp.o
+CC	libavcodec/x86/aacpsdsp_init.o
+X86ASM	libavcodec/x86/ac3dsp.o
+X86ASM	libavcodec/x86/ac3dsp_downmix.o
+CC	libavcodec/x86/ac3dsp_init.o
+X86ASM	libavcodec/x86/alacdsp.o
+CC	libavcodec/x86/alacdsp_init.o
+X86ASM	libavcodec/x86/audiodsp.o
+CC	libavcodec/x86/audiodsp_init.o
+X86ASM	libavcodec/x86/blockdsp.o
+STRIP	libavcodec/x86/ac3dsp.o
+CC	libavcodec/x86/blockdsp_init.o
+STRIP	libavcodec/x86/alacdsp.o
+X86ASM	libavcodec/x86/bswapdsp.o
+CC	libavcodec/x86/bswapdsp_init.o
+CC	libavcodec/x86/constants.o
+X86ASM	libavcodec/x86/dcadsp.o
+STRIP	libavcodec/x86/audiodsp.o
+STRIP	libavcodec/x86/aacpsdsp.o
+STRIP	libavcodec/x86/blockdsp.o
+CC	libavcodec/x86/dcadsp_init.o
+X86ASM	libavcodec/x86/dct32.o
+CC	libavcodec/x86/fdct.o
+CC	libavcodec/x86/fdctdsp_init.o
+X86ASM	libavcodec/x86/flacdsp.o
+CC	libavcodec/x86/flacdsp_init.o
+STRIP	libavcodec/x86/bswapdsp.o
+X86ASM	libavcodec/x86/fmtconvert.o
+CC	libavcodec/x86/fmtconvert_init.o
+X86ASM	libavcodec/x86/fpel.o
+X86ASM	libavcodec/x86/h263_loopfilter.o
+STRIP	libavcodec/x86/dcadsp.o
+CC	libavcodec/x86/h263dsp_init.o
+X86ASM	libavcodec/x86/h264_chromamc.o
+STRIP	libavcodec/x86/ac3dsp_downmix.o
+X86ASM	libavcodec/x86/h264_chromamc_10bit.o
+STRIP	libavcodec/x86/fmtconvert.o
+X86ASM	libavcodec/x86/h264_deblock.o
+X86ASM	libavcodec/x86/h264_deblock_10bit.o
+X86ASM	libavcodec/x86/h264_idct.o
+STRIP	libavcodec/x86/fpel.o
+STRIP	libavcodec/x86/dct32.o
+X86ASM	libavcodec/x86/h264_idct_10bit.o
+X86ASM	libavcodec/x86/h264_intrapred.o
+STRIP	libavcodec/x86/h263_loopfilter.o
+X86ASM	libavcodec/x86/h264_intrapred_10bit.o
+CC	libavcodec/x86/h264_intrapred_init.o
+CC	libavcodec/x86/h264_qpel.o
+X86ASM	libavcodec/x86/h264_qpel_10bit.o
+X86ASM	libavcodec/x86/h264_qpel_8bit.o
+STRIP	libavcodec/x86/h264_chromamc_10bit.o
+X86ASM	libavcodec/x86/h264_weight.o
+X86ASM	libavcodec/x86/h264_weight_10bit.o
+STRIP	libavcodec/x86/flacdsp.o
+CC	libavcodec/x86/h264chroma_init.o
+STRIP	libavcodec/x86/h264_weight.o
+CC	libavcodec/x86/h264dsp_init.o
+X86ASM	libavcodec/x86/h26x/h2656_inter.o
+STRIP	libavcodec/x86/h264_weight_10bit.o
+CC	libavcodec/x86/h26x/h2656dsp.o
+X86ASM	libavcodec/x86/hevc/add_res.o
+Q:/src/ffmpeg/libavcodec/x86/h264_idct.asm:764: warning: redefining multi-line macro `STORE_DIFFx2' [-w+pp-macro-redef-multi]
+STRIP	libavcodec/x86/h264_idct.o
+STRIP	libavcodec/x86/h264_chromamc.o
+X86ASM	libavcodec/x86/hevc/deblock.o
+CC	libavcodec/x86/hevc/dsp_init.o
+X86ASM	libavcodec/x86/hevc/idct.o
+STRIP	libavcodec/x86/h264_deblock_10bit.o
+STRIP	libavcodec/x86/hevc/add_res.o
+X86ASM	libavcodec/x86/hevc/mc.o
+X86ASM	libavcodec/x86/hevc/sao.o
+STRIP	libavcodec/x86/h264_intrapred_10bit.o
+X86ASM	libavcodec/x86/hevc/sao_10bit.o
+X86ASM	libavcodec/x86/hpeldsp.o
+STRIP	libavcodec/x86/h264_qpel_10bit.o
+STRIP	libavcodec/x86/h264_idct_10bit.o
+CC	libavcodec/x86/hpeldsp_init.o
+STRIP	libavcodec/x86/h264_qpel_8bit.o
+X86ASM	libavcodec/x86/huffyuvdsp.o
+CC	libavcodec/x86/huffyuvdsp_init.o
+X86ASM	libavcodec/x86/idctdsp.o
+CC	libavcodec/x86/idctdsp_init.o
+STRIP	libavcodec/x86/huffyuvdsp.o
+STRIP	libavcodec/x86/h264_intrapred.o
+STRIP	libavcodec/x86/idctdsp.o
+STRIP	libavcodec/x86/h264_deblock.o
+STRIP	libavcodec/x86/hpeldsp.o
+X86ASM	libavcodec/x86/imdct36.o
+X86ASM	libavcodec/x86/lossless_videodsp.o
+CC	libavcodec/x86/lossless_videodsp_init.o
+X86ASM	libavcodec/x86/lossless_videoencdsp.o
+CC	libavcodec/x86/lossless_videoencdsp_init.o
+X86ASM	libavcodec/x86/me_cmp.o
+STRIP	libavcodec/x86/hevc/sao.o
+CC	libavcodec/x86/me_cmp_init.o
+X86ASM	libavcodec/x86/mlpdsp.o
+CC	libavcodec/x86/mlpdsp_init.o
+STRIP	libavcodec/x86/lossless_videoencdsp.o
+CC	libavcodec/x86/mpeg4videodsp.o
+CC	libavcodec/x86/mpegaudiodsp.o
+STRIP	libavcodec/x86/mlpdsp.o
+CC	libavcodec/x86/mpegvideo.o
+X86ASM	libavcodec/x86/opusdsp.o
+CC	libavcodec/x86/opusdsp_init.o
+X86ASM	libavcodec/x86/pngdsp.o
+STRIP	libavcodec/x86/opusdsp.o
+STRIP	libavcodec/x86/lossless_videodsp.o
+CC	libavcodec/x86/pngdsp_init.o
+X86ASM	libavcodec/x86/proresdsp.o
+CC	libavcodec/x86/proresdsp_init.o
+STRIP	libavcodec/x86/pngdsp.o
+X86ASM	libavcodec/x86/qpel.o
+X86ASM	libavcodec/x86/qpeldsp.o
+CC	libavcodec/x86/qpeldsp_init.o
+STRIP	libavcodec/x86/imdct36.o
+STRIP	libavcodec/x86/qpel.o
+STRIP	libavcodec/x86/me_cmp.o
+X86ASM	libavcodec/x86/rv34dsp.o
+CC	libavcodec/x86/rv34dsp_init.o
+X86ASM	libavcodec/x86/rv40dsp.o
+CC	libavcodec/x86/rv40dsp_init.o
+X86ASM	libavcodec/x86/sbrdsp.o
+STRIP	libavcodec/x86/proresdsp.o
+CC	libavcodec/x86/sbrdsp_init.o
+X86ASM	libavcodec/x86/simple_idct10.o
+STRIP	libavcodec/x86/rv34dsp.o
+X86ASM	libavcodec/x86/synth_filter.o
+CC	libavcodec/x86/synth_filter_init.o
+CC	libavcodec/x86/vc1dsp_init.o
+X86ASM	libavcodec/x86/vc1dsp_loopfilter.o
+X86ASM	libavcodec/x86/vc1dsp_mc.o
+STRIP	libavcodec/x86/sbrdsp.o
+CC	libavcodec/x86/vc1dsp_mmx.o
+STRIP	libavcodec/x86/rv40dsp.o
+X86ASM	libavcodec/x86/videodsp.o
+STRIP	libavcodec/x86/synth_filter.o
+CC	libavcodec/x86/videodsp_init.o
+X86ASM	libavcodec/x86/vorbisdsp.o
+STRIP	libavcodec/x86/vc1dsp_mc.o
+CC	libavcodec/x86/vorbisdsp_init.o
+X86ASM	libavcodec/x86/vp3dsp.o
+STRIP	libavcodec/x86/vorbisdsp.o
+CC	libavcodec/x86/vp3dsp_init.o
+X86ASM	libavcodec/x86/vp6dsp.o
+STRIP	libavcodec/x86/qpeldsp.o
+CC	libavcodec/x86/vp6dsp_init.o
+STRIP	libavcodec/x86/vc1dsp_loopfilter.o
+STRIP	libavcodec/x86/vp6dsp.o
+X86ASM	libavcodec/x86/vp8dsp.o
+CC	libavcodec/x86/vp8dsp_init.o
+X86ASM	libavcodec/x86/vp8dsp_loopfilter.o
+STRIP	libavcodec/x86/videodsp.o
+STRIP	libavcodec/x86/hevc/idct.o
+CC	libavcodec/x86/vp9dsp_init.o
+CC	libavcodec/x86/vp9dsp_init_10bpp.o
+CC	libavcodec/x86/vp9dsp_init_12bpp.o
+CC	libavcodec/x86/vp9dsp_init_16bpp.o
+STRIP	libavcodec/x86/vp3dsp.o
+X86ASM	libavcodec/x86/vp9intrapred.o
+X86ASM	libavcodec/x86/vp9intrapred_16bpp.o
+X86ASM	libavcodec/x86/vp9itxfm.o
+X86ASM	libavcodec/x86/vp9itxfm_16bpp.o
+X86ASM	libavcodec/x86/vp9itxfm_16bpp_avx512.o
+STRIP	libavcodec/x86/hevc/sao_10bit.o
+X86ASM	libavcodec/x86/vp9itxfm_avx512.o
+STRIP	libavcodec/x86/vp8dsp.o
+STRIP	libavcodec/x86/hevc/mc.o
+X86ASM	libavcodec/x86/vp9lpf.o
+X86ASM	libavcodec/x86/vp9lpf_16bpp.o
+STRIP	libavcodec/x86/simple_idct10.o
+X86ASM	libavcodec/x86/vp9mc.o
+STRIP	libavcodec/x86/hevc/deblock.o
+STRIP	libavcodec/x86/vp9itxfm_16bpp_avx512.o
+X86ASM	libavcodec/x86/vp9mc_16bpp.o
+X86ASM	libavcodec/x86/xvididct.o
+STRIP	libavcodec/x86/vp9itxfm_avx512.o
+CC	libavcodec/x86/xvididct_init.o
+CC	libavcodec/xbm_parser.o
+CC	libavcodec/xiph.o
+CC	libavcodec/xma_parser.o
+STRIP	libavcodec/x86/vp9mc_16bpp.o
+CC	libavcodec/xsubdec.o
+CC	libavcodec/xvididct.o
+STRIP	libavcodec/x86/vp9intrapred.o
+STRIP	libavcodec/x86/vp8dsp_loopfilter.o
+CC	libavcodec/xwd_parser.o
+CC	libavcodec/zlib_wrapper.o
+CC	libswresample/audioconvert.o
+CC	libswresample/dither.o
+STRIP	libavcodec/x86/xvididct.o
+CC	libswresample/options.o
+CC	libswresample/rematrix.o
+CC	libswresample/resample.o
+STRIP	libavcodec/x86/vp9mc.o
+CC	libswresample/resample_dsp.o
+CC	libswresample/swresample.o
+CC	libswresample/swresample_frame.o
+CC	libswresample/version.o
+X86ASM	libswresample/x86/audio_convert.o
+CC	libswresample/x86/audio_convert_init.o
+X86ASM	libswresample/x86/rematrix.o
+STRIP	libavcodec/x86/vp9intrapred_16bpp.o
+CC	libswresample/x86/rematrix_init.o
+X86ASM	libswresample/x86/resample.o
+CC	libswresample/x86/resample_init.o
+CC	libswscale/alphablend.o
+CC	libswscale/cms.o
+CC	libswscale/csputils.o
+CC	libswscale/format.o
+CC	libswscale/gamma.o
+CC	libswscale/graph.o
+STRIP	libswresample/x86/rematrix.o
+CC	libswscale/hscale.o
+CC	libswscale/hscale_fast_bilinear.o
+CC	libswscale/input.o
+CC	libswscale/lut3d.o
+CC	libswscale/options.o
+CC	libswscale/output.o
+CC	libswscale/rgb2rgb.o
+CC	libswscale/slice.o
+CC	libswscale/swscale.o
+STRIP	libswresample/x86/resample.o
+CC	libswscale/swscale_unscaled.o
+CC	libswscale/utils.o
+CC	libswscale/version.o
+CC	libswscale/vscale.o
+CC	libswscale/x86/hscale_fast_bilinear_simd.o
+X86ASM	libswscale/x86/input.o
+X86ASM	libswscale/x86/output.o
+X86ASM	libswscale/x86/range_convert.o
+CC	libswscale/x86/rgb2rgb.o
+X86ASM	libswscale/x86/rgb_2_rgb.o
+STRIP	libswscale/x86/range_convert.o
+X86ASM	libswscale/x86/scale.o
+X86ASM	libswscale/x86/scale_avx2.o
+STRIP	libavcodec/x86/h26x/h2656_inter.o
+CC	libswscale/x86/swscale.o
+CC	libswscale/x86/yuv2rgb.o
+STRIP	libswscale/x86/scale_avx2.o
+X86ASM	libswscale/x86/yuv2yuvX.o
+X86ASM	libswscale/x86/yuv_2_rgb.o
+CC	libswscale/yuv2rgb.o
+Q:/src/ffmpeg/libswscale/x86/yuv2yuvX.asm:128: warning: $ prefix for hexadecimal is deprecated [-w+number-deprecated-hex]
+Q:/src/ffmpeg/libswscale/x86/yuv2yuvX.asm:57: ... from macro `YUV2YUVX_FUNC' defined here
+Q:/src/ffmpeg/libavutil/x86/x86inc.asm:1520: ... from macro `psrlq' defined here
+Q:/src/ffmpeg/libavutil/x86/x86inc.asm:1427: ... from macro `RUN_AVX_INSTR' defined here
+Q:/src/ffmpeg/libswscale/x86/yuv2yuvX.asm:128: warning: $ prefix for hexadecimal is deprecated [-w+number-deprecated-hex]
+Q:/src/ffmpeg/libswscale/x86/yuv2yuvX.asm:58: ... from macro `YUV2YUVX_FUNC' defined here
+Q:/src/ffmpeg/libavutil/x86/x86inc.asm:1520: ... from macro `psllq' defined here
+Q:/src/ffmpeg/libavutil/x86/x86inc.asm:1427: ... from macro `RUN_AVX_INSTR' defined here
+Q:/src/ffmpeg/libswscale/x86/yuv2yuvX.asm:128: warning: $ prefix for hexadecimal is deprecated [-w+number-deprecated-hex]
+Q:/src/ffmpeg/libswscale/x86/yuv2yuvX.asm:97: ... from macro `YUV2YUVX_FUNC' defined here
+Q:/src/ffmpeg/libavutil/x86/x86inc.asm:1293: ... from macro `add' defined here
+Q:/src/ffmpeg/libswscale/x86/yuv2yuvX.asm:128: warning: $ prefix for hexadecimal is deprecated [-w+number-deprecated-hex]
+Q:/src/ffmpeg/libswscale/x86/yuv2yuvX.asm:97: ... from macro `YUV2YUVX_FUNC' defined here
+Q:/src/ffmpeg/libavutil/x86/x86inc.asm:1296: ... from macro `add' defined here
+Q:/src/ffmpeg/libswscale/x86/yuv2yuvX.asm:130: warning: $ prefix for hexadecimal is deprecated [-w+number-deprecated-hex]
+Q:/src/ffmpeg/libswscale/x86/yuv2yuvX.asm:57: ... from macro `YUV2YUVX_FUNC' defined here
+Q:/src/ffmpeg/libavutil/x86/x86inc.asm:1520: ... from macro `psrlq' defined here
+Q:/src/ffmpeg/libavutil/x86/x86inc.asm:1427: ... from macro `RUN_AVX_INSTR' defined here
+Q:/src/ffmpeg/libswscale/x86/yuv2yuvX.asm:130: warning: $ prefix for hexadecimal is deprecated [-w+number-deprecated-hex]
+Q:/src/ffmpeg/libswscale/x86/yuv2yuvX.asm:58: ... from macro `YUV2YUVX_FUNC' defined here
+Q:/src/ffmpeg/libavutil/x86/x86inc.asm:1520: ... from macro `psllq' defined here
+Q:/src/ffmpeg/libavutil/x86/x86inc.asm:1427: ... from macro `RUN_AVX_INSTR' defined here
+Q:/src/ffmpeg/libswscale/x86/yuv2yuvX.asm:130: warning: $ prefix for hexadecimal is deprecated [-w+number-deprecated-hex]
+Q:/src/ffmpeg/libswscale/x86/yuv2yuvX.asm:97: ... from macro `YUV2YUVX_FUNC' defined here
+Q:/src/ffmpeg/libavutil/x86/x86inc.asm:1293: ... from macro `add' defined here
+Q:/src/ffmpeg/libswscale/x86/yuv2yuvX.asm:130: warning: $ prefix for hexadecimal is deprecated [-w+number-deprecated-hex]
+Q:/src/ffmpeg/libswscale/x86/yuv2yuvX.asm:97: ... from macro `YUV2YUVX_FUNC' defined here
+Q:/src/ffmpeg/libavutil/x86/x86inc.asm:1296: ... from macro `add' defined here
+Q:/src/ffmpeg/libswscale/x86/yuv2yuvX.asm:133: warning: $ prefix for hexadecimal is deprecated [-w+number-deprecated-hex]
+Q:/src/ffmpeg/libswscale/x86/yuv2yuvX.asm:57: ... from macro `YUV2YUVX_FUNC' defined here
+Q:/src/ffmpeg/libavutil/x86/x86inc.asm:1520: ... from macro `psrlq' defined here
+Q:/src/ffmpeg/libavutil/x86/x86inc.asm:1482: ... from macro `RUN_AVX_INSTR' defined here
+Q:/src/ffmpeg/libswscale/x86/yuv2yuvX.asm:133: warning: $ prefix for hexadecimal is deprecated [-w+number-deprecated-hex]
+Q:/src/ffmpeg/libswscale/x86/yuv2yuvX.asm:58: ... from macro `YUV2YUVX_FUNC' defined here
+Q:/src/ffmpeg/libavutil/x86/x86inc.asm:1520: ... from macro `psllq' defined here
+Q:/src/ffmpeg/libavutil/x86/x86inc.asm:1482: ... from macro `RUN_AVX_INSTR' defined here
+Q:/src/ffmpeg/libswscale/x86/yuv2yuvX.asm:133: warning: $ prefix for hexadecimal is deprecated [-w+number-deprecated-hex]
+Q:/src/ffmpeg/libswscale/x86/yuv2yuvX.asm:97: ... from macro `YUV2YUVX_FUNC' defined here
+Q:/src/ffmpeg/libavutil/x86/x86inc.asm:1293: ... from macro `add' defined here
+Q:/src/ffmpeg/libswscale/x86/yuv2yuvX.asm:133: warning: $ prefix for hexadecimal is deprecated [-w+number-deprecated-hex]
+Q:/src/ffmpeg/libswscale/x86/yuv2yuvX.asm:97: ... from macro `YUV2YUVX_FUNC' defined here
+Q:/src/ffmpeg/libavutil/x86/x86inc.asm:1296: ... from macro `add' defined here
+STRIP	libswscale/x86/yuv2yuvX.o
+STRIP	libswscale/x86/rgb_2_rgb.o
+STRIP	libswresample/x86/audio_convert.o
+CC	libavutil/adler32.o
+CC	libavutil/aes.o
+CC	libavutil/aes_ctr.o
+CC	libavutil/ambient_viewing_environment.o
+CC	libavutil/audio_fifo.o
+CC	libavutil/avsscanf.o
+CC	libavutil/avstring.o
+CC	libavutil/base64.o
+STRIP	libswscale/x86/yuv_2_rgb.o
+CC	libavutil/blowfish.o
+CC	libavutil/bprint.o
+CC	libavutil/buffer.o
+CC	libavutil/camellia.o
+CC	libavutil/cast5.o
+CC	libavutil/channel_layout.o
+CC	libavutil/container_fifo.o
+CC	libavutil/cpu.o
+CC	libavutil/crc.o
+CC	libavutil/csp.o
+CC	libavutil/des.o
+CC	libavutil/detection_bbox.o
+CC	libavutil/dict.o
+CC	libavutil/display.o
+CC	libavutil/dovi_meta.o
+CC	libavutil/downmix_info.o
+CC	libavutil/encryption_info.o
+CC	libavutil/error.o
+CC	libavutil/eval.o
+CC	libavutil/executor.o
+CC	libavutil/fifo.o
+CC	libavutil/file.o
+CC	libavutil/file_open.o
+CC	libavutil/film_grain_params.o
+CC	libavutil/fixed_dsp.o
+CC	libavutil/float_dsp.o
+CC	libavutil/float_scalarproduct.o
+CC	libavutil/frame.o
+CC	libavutil/hash.o
+STRIP	libswscale/x86/scale.o
+CC	libavutil/hdr_dynamic_metadata.o
+CC	libavutil/hdr_dynamic_vivid_metadata.o
+CC	libavutil/hmac.o
+CC	libavutil/hwcontext.o
+CC	libavutil/hwcontext_d3d11va.o
+CC	libavutil/hwcontext_stub.o
+CC	libavutil/imgutils.o
+CC	libavutil/iamf.o
+CC	libavutil/integer.o
+CC	libavutil/intmath.o
+CC	libavutil/lfg.o
+STRIP	libavcodec/x86/vp9lpf_16bpp.o
+CC	libavutil/lls.o
+CC	libavutil/log.o
+CC	libavutil/log2_tab.o
+CC	libavutil/lzo.o
+CC	libavutil/mastering_display_metadata.o
+CC	libavutil/mathematics.o
+CC	libavutil/md5.o
+CC	libavutil/mem.o
+CC	libavutil/murmur3.o
+CC	libavutil/opt.o
+CC	libavutil/parseutils.o
+CC	libavutil/pixdesc.o
+CC	libavutil/pixelutils.o
+CC	libavutil/random_seed.o
+CC	libavutil/rational.o
+CC	libavutil/rc4.o
+CC	libavutil/refstruct.o
+STRIP	libswscale/x86/input.o
+CC	libavutil/reverse.o
+CC	libavutil/ripemd.o
+CC	libavutil/samplefmt.o
+CC	libavutil/sha.o
+CC	libavutil/sha512.o
+CC	libavutil/side_data.o
+CC	libavutil/slicethread.o
+CC	libavutil/spherical.o
+CC	libavutil/stereo3d.o
+CC	libavutil/tdrdi.o
+CC	libavutil/tea.o
+CC	libavutil/threadmessage.o
+CC	libavutil/time.o
+CC	libavutil/timecode.o
+CC	libavutil/timecode_internal.o
+CC	libavutil/timestamp.o
+STRIP	libavcodec/x86/vp9itxfm_16bpp.o
+CC	libavutil/tree.o
+CC	libavutil/twofish.o
+CC	libavutil/tx.o
+CC	libavutil/tx_double.o
+CC	libavutil/tx_float.o
+CC	libavutil/tx_int32.o
+CC	libavutil/utils.o
+CC	libavutil/uuid.o
+CC	libavutil/version.o
+CC	libavutil/video_enc_params.o
+CC	libavutil/video_hint.o
+X86ASM	libavutil/x86/aes.o
+CC	libavutil/x86/aes_init.o
+CC	libavutil/x86/cpu.o
+X86ASM	libavutil/x86/cpuid.o
+X86ASM	libavutil/x86/fixed_dsp.o
+CC	libavutil/x86/fixed_dsp_init.o
+X86ASM	libavutil/x86/float_dsp.o
+STRIP	libavutil/x86/cpuid.o
+STRIP	libavutil/x86/fixed_dsp.o
+STRIP	libavutil/x86/aes.o
+CC	libavutil/x86/float_dsp_init.o
+X86ASM	libavutil/x86/imgutils.o
+CC	libavutil/x86/imgutils_init.o
+X86ASM	libavutil/x86/lls.o
+CC	libavutil/x86/lls_init.o
+X86ASM	libavutil/x86/tx_float.o
+CC	libavutil/x86/tx_float_init.o
+CC	libavutil/xga_font_data.o
+CC	libavutil/xtea.o
+STRIP	libavutil/x86/imgutils.o
+STRIP	libavutil/x86/lls.o
+AR	libswresample/libswresample.a
+STRIP	libavutil/x86/float_dsp.o
+STRIP	libavcodec/x86/vp9lpf.o
+STRIP	libswscale/x86/output.o
+AR	libswscale/libswscale.a
+STRIP	libavutil/x86/tx_float.o
+AR	libavutil/libavutil.a
+STRIP	libavcodec/x86/vp9itxfm.o
+AR	libavcodec/libavcodec.a
+INSTALL	q/src/ffmpeg/doc/examples/avio_http_serve_files.c
+INSTALL	q/src/ffmpeg/doc/examples/avio_list_dir.c
+INSTALL	q/src/ffmpeg/doc/examples/avio_read_callback.c
+INSTALL	q/src/ffmpeg/doc/examples/decode_audio.c
+INSTALL	q/src/ffmpeg/doc/examples/decode_filter_audio.c
+INSTALL	q/src/ffmpeg/doc/examples/decode_filter_video.c
+INSTALL	q/src/ffmpeg/doc/examples/decode_video.c
+INSTALL	q/src/ffmpeg/doc/examples/demux_decode.c
+INSTALL	q/src/ffmpeg/doc/examples/encode_audio.c
+INSTALL	q/src/ffmpeg/doc/examples/encode_video.c
+INSTALL	q/src/ffmpeg/doc/examples/extract_mvs.c
+INSTALL	q/src/ffmpeg/doc/examples/filter_audio.c
+INSTALL	q/src/ffmpeg/doc/examples/hw_decode.c
+INSTALL	q/src/ffmpeg/doc/examples/mux.c
+INSTALL	q/src/ffmpeg/doc/examples/qsv_decode.c
+INSTALL	q/src/ffmpeg/doc/examples/qsv_transcode.c
+INSTALL	q/src/ffmpeg/doc/examples/remux.c
+INSTALL	q/src/ffmpeg/doc/examples/resample_audio.c
+INSTALL	q/src/ffmpeg/doc/examples/scale_video.c
+INSTALL	q/src/ffmpeg/doc/examples/show_metadata.c
+INSTALL	q/src/ffmpeg/doc/examples/transcode.c
+INSTALL	q/src/ffmpeg/doc/examples/transcode_aac.c
+INSTALL	q/src/ffmpeg/doc/examples/vaapi_encode.c
+INSTALL	q/src/ffmpeg/doc/examples/vaapi_transcode.c
+INSTALL	q/src/ffmpeg/doc/examples/README
+INSTALL	q/src/ffmpeg/doc/examples/Makefile
+INSTALL	q/src/ffmpeg/doc/examples/avio_http_serve_files.c
+INSTALL	q/src/ffmpeg/doc/examples/avio_list_dir.c
+INSTALL	q/src/ffmpeg/doc/examples/avio_read_callback.c
+INSTALL	q/src/ffmpeg/doc/examples/decode_audio.c
+INSTALL	q/src/ffmpeg/doc/examples/decode_filter_audio.c
+INSTALL	q/src/ffmpeg/doc/examples/decode_filter_video.c
+INSTALL	q/src/ffmpeg/doc/examples/decode_video.c
+INSTALL	q/src/ffmpeg/doc/examples/demux_decode.c
+INSTALL	q/src/ffmpeg/doc/examples/encode_audio.c
+INSTALL	q/src/ffmpeg/doc/examples/encode_video.c
+INSTALL	q/src/ffmpeg/doc/examples/extract_mvs.c
+INSTALL	q/src/ffmpeg/doc/examples/filter_audio.c
+INSTALL	q/src/ffmpeg/doc/examples/hw_decode.c
+INSTALL	q/src/ffmpeg/doc/examples/mux.c
+INSTALL	q/src/ffmpeg/doc/examples/qsv_decode.c
+INSTALL	q/src/ffmpeg/doc/examples/qsv_transcode.c
+INSTALL	q/src/ffmpeg/doc/examples/remux.c
+INSTALL	q/src/ffmpeg/doc/examples/resample_audio.c
+INSTALL	q/src/ffmpeg/doc/examples/scale_video.c
+INSTALL	q/src/ffmpeg/doc/examples/show_metadata.c
+INSTALL	q/src/ffmpeg/doc/examples/transcode.c
+INSTALL	q/src/ffmpeg/doc/examples/transcode_aac.c
+INSTALL	q/src/ffmpeg/doc/examples/vaapi_encode.c
+INSTALL	q/src/ffmpeg/doc/examples/vaapi_transcode.c
+INSTALL	q/src/ffmpeg/doc/examples/README
+INSTALL	q/src/ffmpeg/doc/examples/Makefile
+INSTALL	libavfilter/libavfilter.a
+INSTALL	libavformat/libavformat.a
+INSTALL	libavcodec/libavcodec.a
+INSTALL	libswresample/libswresample.a
+INSTALL	libswscale/libswscale.a
+INSTALL	libavutil/libavutil.a
+INSTALL	q/src/ffmpeg/libavfilter/avfilter.h
+INSTALL	q/src/ffmpeg/libavfilter/buffersink.h
+INSTALL	q/src/ffmpeg/libavfilter/buffersrc.h
+INSTALL	q/src/ffmpeg/libavfilter/version.h
+INSTALL	q/src/ffmpeg/libavfilter/version_major.h
+INSTALL	libavfilter/libavfilter.pc
+INSTALL	q/src/ffmpeg/libavformat/avformat.h
+INSTALL	q/src/ffmpeg/libavformat/avio.h
+INSTALL	q/src/ffmpeg/libavformat/version.h
+INSTALL	q/src/ffmpeg/libavformat/version_major.h
+INSTALL	libavformat/libavformat.pc
+INSTALL	q/src/ffmpeg/libavcodec/ac3_parser.h
+INSTALL	q/src/ffmpeg/libavcodec/adts_parser.h
+INSTALL	q/src/ffmpeg/libavcodec/avcodec.h
+INSTALL	q/src/ffmpeg/libavcodec/avdct.h
+INSTALL	q/src/ffmpeg/libavcodec/bsf.h
+INSTALL	q/src/ffmpeg/libavcodec/codec.h
+INSTALL	q/src/ffmpeg/libavcodec/codec_desc.h
+INSTALL	q/src/ffmpeg/libavcodec/codec_id.h
+INSTALL	q/src/ffmpeg/libavcodec/codec_par.h
+INSTALL	q/src/ffmpeg/libavcodec/d3d11va.h
+INSTALL	q/src/ffmpeg/libavcodec/defs.h
+INSTALL	q/src/ffmpeg/libavcodec/dirac.h
+INSTALL	q/src/ffmpeg/libavcodec/dv_profile.h
+INSTALL	q/src/ffmpeg/libavcodec/dxva2.h
+INSTALL	q/src/ffmpeg/libavcodec/jni.h
+INSTALL	q/src/ffmpeg/libavcodec/mediacodec.h
+INSTALL	q/src/ffmpeg/libavcodec/packet.h
+INSTALL	q/src/ffmpeg/libavcodec/qsv.h
+INSTALL	q/src/ffmpeg/libavcodec/smpte_436m.h
+INSTALL	q/src/ffmpeg/libavcodec/vdpau.h
+INSTALL	q/src/ffmpeg/libavcodec/version.h
+INSTALL	q/src/ffmpeg/libavcodec/version_major.h
+INSTALL	q/src/ffmpeg/libavcodec/videotoolbox.h
+INSTALL	q/src/ffmpeg/libavcodec/vorbis_parser.h
+INSTALL	libavcodec/libavcodec.pc
+INSTALL	q/src/ffmpeg/libswresample/swresample.h
+INSTALL	q/src/ffmpeg/libswresample/version.h
+INSTALL	q/src/ffmpeg/libswresample/version_major.h
+INSTALL	libswresample/libswresample.pc
+INSTALL	q/src/ffmpeg/libswscale/swscale.h
+INSTALL	q/src/ffmpeg/libswscale/version.h
+INSTALL	q/src/ffmpeg/libswscale/version_major.h
+INSTALL	libswscale/libswscale.pc
+INSTALL	q/src/ffmpeg/libavutil/adler32.h
+INSTALL	q/src/ffmpeg/libavutil/aes.h
+INSTALL	q/src/ffmpeg/libavutil/aes_ctr.h
+INSTALL	q/src/ffmpeg/libavutil/ambient_viewing_environment.h
+INSTALL	q/src/ffmpeg/libavutil/attributes.h
+INSTALL	q/src/ffmpeg/libavutil/audio_fifo.h
+INSTALL	q/src/ffmpeg/libavutil/avassert.h
+INSTALL	q/src/ffmpeg/libavutil/avstring.h
+INSTALL	q/src/ffmpeg/libavutil/avutil.h
+INSTALL	q/src/ffmpeg/libavutil/base64.h
+INSTALL	q/src/ffmpeg/libavutil/blowfish.h
+INSTALL	q/src/ffmpeg/libavutil/bprint.h
+INSTALL	q/src/ffmpeg/libavutil/bswap.h
+INSTALL	q/src/ffmpeg/libavutil/buffer.h
+INSTALL	q/src/ffmpeg/libavutil/cast5.h
+INSTALL	q/src/ffmpeg/libavutil/camellia.h
+INSTALL	q/src/ffmpeg/libavutil/channel_layout.h
+INSTALL	q/src/ffmpeg/libavutil/common.h
+INSTALL	q/src/ffmpeg/libavutil/container_fifo.h
+INSTALL	q/src/ffmpeg/libavutil/cpu.h
+INSTALL	q/src/ffmpeg/libavutil/crc.h
+INSTALL	q/src/ffmpeg/libavutil/csp.h
+INSTALL	q/src/ffmpeg/libavutil/des.h
+INSTALL	q/src/ffmpeg/libavutil/detection_bbox.h
+INSTALL	q/src/ffmpeg/libavutil/dict.h
+INSTALL	q/src/ffmpeg/libavutil/display.h
+INSTALL	q/src/ffmpeg/libavutil/dovi_meta.h
+INSTALL	q/src/ffmpeg/libavutil/downmix_info.h
+INSTALL	q/src/ffmpeg/libavutil/encryption_info.h
+INSTALL	q/src/ffmpeg/libavutil/error.h
+INSTALL	q/src/ffmpeg/libavutil/eval.h
+INSTALL	q/src/ffmpeg/libavutil/executor.h
+INSTALL	q/src/ffmpeg/libavutil/fifo.h
+INSTALL	q/src/ffmpeg/libavutil/file.h
+INSTALL	q/src/ffmpeg/libavutil/film_grain_params.h
+INSTALL	q/src/ffmpeg/libavutil/frame.h
+INSTALL	q/src/ffmpeg/libavutil/hash.h
+INSTALL	q/src/ffmpeg/libavutil/hdr_dynamic_metadata.h
+INSTALL	q/src/ffmpeg/libavutil/hdr_dynamic_vivid_metadata.h
+INSTALL	q/src/ffmpeg/libavutil/hmac.h
+INSTALL	q/src/ffmpeg/libavutil/hwcontext.h
+INSTALL	q/src/ffmpeg/libavutil/hwcontext_cuda.h
+INSTALL	q/src/ffmpeg/libavutil/hwcontext_d3d11va.h
+INSTALL	q/src/ffmpeg/libavutil/hwcontext_d3d12va.h
+INSTALL	q/src/ffmpeg/libavutil/hwcontext_drm.h
+INSTALL	q/src/ffmpeg/libavutil/hwcontext_dxva2.h
+INSTALL	q/src/ffmpeg/libavutil/hwcontext_amf.h
+INSTALL	q/src/ffmpeg/libavutil/hwcontext_qsv.h
+INSTALL	q/src/ffmpeg/libavutil/hwcontext_mediacodec.h
+INSTALL	q/src/ffmpeg/libavutil/hwcontext_opencl.h
+INSTALL	q/src/ffmpeg/libavutil/hwcontext_oh.h
+INSTALL	q/src/ffmpeg/libavutil/hwcontext_vaapi.h
+INSTALL	q/src/ffmpeg/libavutil/hwcontext_videotoolbox.h
+INSTALL	q/src/ffmpeg/libavutil/hwcontext_vdpau.h
+INSTALL	q/src/ffmpeg/libavutil/hwcontext_vulkan.h
+INSTALL	q/src/ffmpeg/libavutil/iamf.h
+INSTALL	q/src/ffmpeg/libavutil/imgutils.h
+INSTALL	q/src/ffmpeg/libavutil/intfloat.h
+INSTALL	q/src/ffmpeg/libavutil/intreadwrite.h
+INSTALL	q/src/ffmpeg/libavutil/lfg.h
+INSTALL	q/src/ffmpeg/libavutil/log.h
+INSTALL	q/src/ffmpeg/libavutil/lzo.h
+INSTALL	q/src/ffmpeg/libavutil/macros.h
+INSTALL	q/src/ffmpeg/libavutil/mathematics.h
+INSTALL	q/src/ffmpeg/libavutil/mastering_display_metadata.h
+INSTALL	q/src/ffmpeg/libavutil/md5.h
+INSTALL	q/src/ffmpeg/libavutil/mem.h
+INSTALL	q/src/ffmpeg/libavutil/motion_vector.h
+INSTALL	q/src/ffmpeg/libavutil/murmur3.h
+INSTALL	q/src/ffmpeg/libavutil/opt.h
+INSTALL	q/src/ffmpeg/libavutil/parseutils.h
+INSTALL	q/src/ffmpeg/libavutil/pixdesc.h
+INSTALL	q/src/ffmpeg/libavutil/pixelutils.h
+INSTALL	q/src/ffmpeg/libavutil/pixfmt.h
+INSTALL	q/src/ffmpeg/libavutil/random_seed.h
+INSTALL	q/src/ffmpeg/libavutil/rc4.h
+INSTALL	q/src/ffmpeg/libavutil/rational.h
+INSTALL	q/src/ffmpeg/libavutil/refstruct.h
+INSTALL	q/src/ffmpeg/libavutil/replaygain.h
+INSTALL	q/src/ffmpeg/libavutil/ripemd.h
+INSTALL	q/src/ffmpeg/libavutil/samplefmt.h
+INSTALL	q/src/ffmpeg/libavutil/sha.h
+INSTALL	q/src/ffmpeg/libavutil/sha512.h
+INSTALL	q/src/ffmpeg/libavutil/spherical.h
+INSTALL	q/src/ffmpeg/libavutil/stereo3d.h
+INSTALL	q/src/ffmpeg/libavutil/tdrdi.h
+INSTALL	q/src/ffmpeg/libavutil/threadmessage.h
+INSTALL	q/src/ffmpeg/libavutil/time.h
+INSTALL	q/src/ffmpeg/libavutil/timecode.h
+INSTALL	q/src/ffmpeg/libavutil/timestamp.h
+INSTALL	q/src/ffmpeg/libavutil/tree.h
+INSTALL	q/src/ffmpeg/libavutil/twofish.h
+INSTALL	q/src/ffmpeg/libavutil/uuid.h
+INSTALL	q/src/ffmpeg/libavutil/version.h
+INSTALL	q/src/ffmpeg/libavutil/video_enc_params.h
+INSTALL	q/src/ffmpeg/libavutil/xtea.h
+INSTALL	q/src/ffmpeg/libavutil/tea.h
+INSTALL	q/src/ffmpeg/libavutil/tx.h
+INSTALL	q/src/ffmpeg/libavutil/video_hint.h
+INSTALL	libavutil/avconfig.h
+INSTALL	libavutil/ffversion.h
+INSTALL	libavutil/libavutil.pc
+The Meson build system
+Version: 1.12.0
+Source dir: C:/Users/Alperen/Desktop/Antigravity/Aperture Final/scratch/libmpv-performance-20261019/src/libplacebo
+Build dir: C:/Users/Alperen/Desktop/Antigravity/Aperture Final/scratch/libmpv-performance-20261019/placebo-build
+Build type: native build
+Project name: libplacebo
+Project version: 7.360.1
+C compiler for the host machine: cc (gcc 16.2.0 "cc (Rev3, Built by MSYS2 project) 16.2.0")
+C linker for the host machine: cc ld.bfd 2.47.20260726
+C++ compiler for the host machine: c++ (gcc 16.2.0 "c++ (Rev3, Built by MSYS2 project) 16.2.0")
+C++ linker for the host machine: c++ ld.bfd 2.47.20260726
+Host machine cpu family: x86_64
+Host machine cpu: x86_64
+Compiler for C supports arguments -Wincompatible-pointer-types: YES 
+Compiler for C supports arguments -Wc23-extensions: NO 
+Compiler for C supports link arguments -Wl,--exclude-libs=ALL: YES 
+Configuring libplacebo.rc using configuration
+Configuring demos.rc using configuration
+Library m found: YES
+Program python3 found: YES (C:/msys64/mingw64/bin/python.exe)
+Found pkg-config: YES (C:\msys64\mingw64\bin/pkg-config.exe) 3.0.5
+Found CMake: C:\msys64\mingw64\bin/cmake.exe (4.4.2)
+Run-time dependency libunwind found: NO  (tried pkg-config and cmake)
+Library execinfo found: NO
+Checking for function "backtrace_symbols" with dependency -lexecinfo: NO 
+Check usable header "dbghelp.h" : YES 
+Library shlwapi found: YES
+Fetching value of define "__MINGW32__" : 1 
+Program dlltool found: YES (C:\msys64\mingw64\bin/dlltool.exe)
+Run-time dependency shaderc found: YES 2026.3.1
+Header "shaderc/shaderc.h" has symbol "shaderc_env_version_vulkan_1_4" with dependency shaderc_combined: YES 
+Header "shaderc/shaderc.h" has symbol "shaderc_env_version_vulkan_1_3" with dependency shaderc_combined: YES 
+Check usable header "d3d11.h" : YES 
+Check usable header "d3d11_4.h" : YES 
+Check usable header "dxgi1_6.h" : YES 
+Run-time dependency spirv-cross-c-shared found: YES 0.68.0
+Library version found: YES
+Header "dxgidebug.h" has symbol "IID_IDXGIInfoQueue" : YES 
+Header "d3d11sdklayers.h" has symbol "DXGI_DEBUG_D3D11" : YES 
+WARNING: Static library 'vulkan-1' not found for dependency 'vulkan', may not be statically linked
+Run-time dependency vulkan found: YES 1.4.357
+Header "vulkan/vulkan_core.h" has symbol "VK_VERSION_1_4" with dependency vulkan: YES 
+Run-time dependency lcms2 found: YES 2.19
+Dependency dovi for host machine skipped: feature libdovi disabled
+Run-time dependency libxxhash found: YES 0.8.3
+Configuring config.h using configuration
+Configuring config_internal.h using configuration
+Windows resource compiler: GNU windres (GNU Binutils) 2.47.20260726
+WARNING: Argument '-IC:/Users/Alperen/Desktop/Antigravity/Aperture Final/scratch/libmpv-performance-20261019/placebo-build/src' has a space which may not work with windres due to a MinGW bug: https://sourceware.org/bugzilla/show_bug.cgi?id=4933
+WARNING: Argument '-IC:/Users/Alperen/Desktop/Antigravity/Aperture Final/scratch/libmpv-performance-20261019/src/libplacebo/win32' has a space which may not work with windres due to a MinGW bug: https://sourceware.org/bugzilla/show_bug.cgi?id=4933
+WARNING: Library target 'placebo' has 'name_prefix' set. Compilers may not find it from its '-lplacebo' linker flag in the 'libplacebo.pc' pkg-config file.
+WARNING: Library target 'placebo' has 'name_prefix' set. Compilers may not find it from its '-lplacebo' linker flag in the 'libplacebo-uninstalled.pc' pkg-config file.
+Found pkg-config: YES (C:\msys64\mingw64\bin/pkg-config.exe) 3.0.5
+Build targets in project: 17
+
+libplacebo 7.360.1
+
+  Optional features
+    d3d11          : YES
+    dovi           : YES
+    gl-proc-addr   : YES
+    glslang        : NO
+    lcms           : YES
+    libdovi        : NO
+    opengl         : NO
+    shaderc        : YES
+    vk-proc-addr   : NO
+    vulkan         : NO
+    xxhash         : YES
+
+  User defined options
+    b_lto          : true
+    b_ndebug       : true
+    bench          : false
+    buildtype      : release
+    d3d11          : enabled
+    default_library: static
+    demos          : false
+    fuzz           : false
+    glslang        : disabled
+    lcms           : enabled
+    libdovi        : disabled
+    opengl         : disabled
+    optimization   : 3
+    prefer_static  : true
+    prefix         : Q:/prefix
+    shaderc        : enabled
+    tests          : false
+    vulkan         : disabled
+
+Found ninja-1.13.2 at C:\msys64\mingw64\bin/ninja.exe
+ninja: Entering directory `placebo-build'
+[1/63] Generating src/shaders/film_grain.c with a custom command (wrapped by meson to set env)
+[2/63] Generating src/shaders/dithering.c with a custom command (wrapped by meson to set env)
+[3/63] Generating src/shaders/custom_mpv.c with a custom command (wrapped by meson to set env)
+[4/63] Generating src/shaders/custom.c with a custom command (wrapped by meson to set env)
+[5/63] Generating src/shaders/colorspace.c with a custom command (wrapped by meson to set env)
+[6/63] Generating src/shaders.c with a custom command (wrapped by meson to set env)
+[7/63] Generating src/shaders/film_grain_av1.c with a custom command (wrapped by meson to set env)
+[8/63] Generating src/shaders/lut.c with a custom command (wrapped by meson to set env)
+[9/63] Generating src/shaders/film_grain_h274.c with a custom command (wrapped by meson to set env)
+[10/63] Generating src/shaders/icc.c with a custom command (wrapped by meson to set env)
+[11/63] Generating src/renderer.c with a custom command (wrapped by meson to set env)
+[12/63] Generating src/shaders/deinterlacing.c with a custom command (wrapped by meson to set env)
+[13/63] Generating src/version.h with a custom command
+[14/63] Compiling Windows resource src/libplacebo.rc
+[15/63] Generating src/shaders/sampling.c with a custom command (wrapped by meson to set env)
+[16/63] Compiling C object src/libplacebo.a.p/meson-generated_.._shaders_custom.c.obj
+[17/63] Compiling C object src/libplacebo.a.p/meson-generated_.._shaders_film_grain.c.obj
+[18/63] Compiling C object src/libplacebo.a.p/meson-generated_.._shaders_deinterlacing.c.obj
+[19/63] Compiling C object src/libplacebo.a.p/meson-generated_.._shaders_dithering.c.obj
+[20/63] Compiling C object src/libplacebo.a.p/meson-generated_.._shaders.c.obj
+[21/63] Compiling C object src/libplacebo.a.p/meson-generated_.._shaders_film_grain_av1.c.obj
+[22/63] Compiling C object src/libplacebo.a.p/meson-generated_.._shaders_film_grain_h274.c.obj
+[23/63] Compiling C object src/libplacebo.a.p/meson-generated_.._shaders_colorspace.c.obj
+[24/63] Compiling C object src/libplacebo.a.p/meson-generated_.._shaders_custom_mpv.c.obj
+[25/63] Compiling C object src/libplacebo.a.p/meson-generated_.._shaders_icc.c.obj
+[26/63] Compiling C object src/libplacebo.a.p/meson-generated_.._renderer.c.obj
+[27/63] Compiling C object src/libplacebo.a.p/common.c.obj
+[28/63] Compiling C object src/libplacebo.a.p/dither.c.obj
+[29/63] Compiling C object src/libplacebo.a.p/meson-generated_.._shaders_sampling.c.obj
+[30/63] Compiling C object src/libplacebo.a.p/meson-generated_.._shaders_lut.c.obj
+[31/63] Compiling C object src/libplacebo.a.p/cache.c.obj
+[32/63] Compiling C object src/libplacebo.a.p/colorspace.c.obj
+[33/63] Compiling C object src/libplacebo.a.p/dummy.c.obj
+[34/63] Compiling C object src/libplacebo.a.p/filters.c.obj
+[35/63] Compiling C object src/libplacebo.a.p/dispatch.c.obj
+[36/63] Generating src/ucrt_math.lib with a custom command
+[37/63] Compiling C object src/libplacebo.a.p/format.c.obj
+[38/63] Compiling C object src/libplacebo.a.p/glsl_spirv.c.obj
+[39/63] Compiling C object src/libplacebo.a.p/gamut_mapping.c.obj
+[40/63] Compiling C object src/libplacebo.a.p/pl_alloc.c.obj
+[41/63] Compiling C object src/libplacebo.a.p/gpu.c.obj
+[42/63] Compiling C object src/libplacebo.a.p/gpu_utils.c.obj
+[43/63] Compiling C object src/libplacebo.a.p/swapchain.c.obj
+[44/63] Compiling C object src/libplacebo.a.p/options.c.obj
+[45/63] Compiling C object src/libplacebo.a.p/pl_string.c.obj
+[46/63] Compiling C object src/libplacebo.a.p/log.c.obj
+[47/63] Compiling C object src/libplacebo.a.p/tone_mapping.c.obj
+[48/63] Compiling C object src/libplacebo.a.p/utils_dolbyvision.c.obj
+[49/63] Compiling C++ object src/libplacebo.a.p/convert.cc.obj
+[50/63] Compiling C object src/libplacebo.a.p/utils_upload.c.obj
+[51/63] Compiling C object src/libplacebo.a.p/glsl_spirv_shaderc.c.obj
+[52/63] Compiling C object src/libplacebo.a.p/utils_frame_queue.c.obj
+[53/63] Compiling C object src/libplacebo.a.p/d3d11_formats.c.obj
+[54/63] Compiling C object src/libplacebo.a.p/d3d11_context.c.obj
+[55/63] Compiling C object src/libplacebo.a.p/d3d11_gpu_buf.c.obj
+[56/63] Compiling C object src/libplacebo.a.p/d3d11_utils.c.obj
+[57/63] Compiling C object src/libplacebo.a.p/d3d11_gpu.c.obj
+[58/63] Compiling C object src/libplacebo.a.p/d3d11_swapchain.c.obj
+[59/63] Compiling C object src/libplacebo.a.p/d3d11_gpu_tex.c.obj
+[60/63] Compiling C object src/libplacebo.a.p/opengl_stubs.c.obj
+[61/63] Compiling C object src/libplacebo.a.p/d3d11_gpu_pass.c.obj
+[62/63] Compiling C object src/libplacebo.a.p/vulkan_stubs.c.obj
+[63/63] Linking static target src/libplacebo.a
+ninja: Entering directory `C:/Users/Alperen/Desktop/Antigravity/Aperture Final/scratch/libmpv-performance-20261019/placebo-build'
+[1/4] Generating src/version.h with a custom command
+Installing src/libplacebo.a to Q:/prefix/lib
+Installing C:/Users/Alperen/Desktop/Antigravity/Aperture Final/scratch/libmpv-performance-20261019/src/libplacebo/src/include/libplacebo/cache.h to Q:/prefix/include/libplacebo
+Installing C:/Users/Alperen/Desktop/Antigravity/Aperture Final/scratch/libmpv-performance-20261019/src/libplacebo/src/include/libplacebo/colorspace.h to Q:/prefix/include/libplacebo
+Installing C:/Users/Alperen/Desktop/Antigravity/Aperture Final/scratch/libmpv-performance-20261019/src/libplacebo/src/include/libplacebo/common.h to Q:/prefix/include/libplacebo
+Installing C:/Users/Alperen/Desktop/Antigravity/Aperture Final/scratch/libmpv-performance-20261019/src/libplacebo/src/include/libplacebo/d3d11.h to Q:/prefix/include/libplacebo
+Installing C:/Users/Alperen/Desktop/Antigravity/Aperture Final/scratch/libmpv-performance-20261019/src/libplacebo/src/include/libplacebo/dispatch.h to Q:/prefix/include/libplacebo
+Installing C:/Users/Alperen/Desktop/Antigravity/Aperture Final/scratch/libmpv-performance-20261019/src/libplacebo/src/include/libplacebo/dither.h to Q:/prefix/include/libplacebo
+Installing C:/Users/Alperen/Desktop/Antigravity/Aperture Final/scratch/libmpv-performance-20261019/src/libplacebo/src/include/libplacebo/dummy.h to Q:/prefix/include/libplacebo
+Installing C:/Users/Alperen/Desktop/Antigravity/Aperture Final/scratch/libmpv-performance-20261019/src/libplacebo/src/include/libplacebo/filters.h to Q:/prefix/include/libplacebo
+Installing C:/Users/Alperen/Desktop/Antigravity/Aperture Final/scratch/libmpv-performance-20261019/src/libplacebo/src/include/libplacebo/gamut_mapping.h to Q:/prefix/include/libplacebo
+Installing C:/Users/Alperen/Desktop/Antigravity/Aperture Final/scratch/libmpv-performance-20261019/src/libplacebo/src/include/libplacebo/gpu.h to Q:/prefix/include/libplacebo
+Installing C:/Users/Alperen/Desktop/Antigravity/Aperture Final/scratch/libmpv-performance-20261019/src/libplacebo/src/include/libplacebo/log.h to Q:/prefix/include/libplacebo
+Installing C:/Users/Alperen/Desktop/Antigravity/Aperture Final/scratch/libmpv-performance-20261019/src/libplacebo/src/include/libplacebo/opengl.h to Q:/prefix/include/libplacebo
+Installing C:/Users/Alperen/Desktop/Antigravity/Aperture Final/scratch/libmpv-performance-20261019/src/libplacebo/src/include/libplacebo/options.h to Q:/prefix/include/libplacebo
+Installing C:/Users/Alperen/Desktop/Antigravity/Aperture Final/scratch/libmpv-performance-20261019/src/libplacebo/src/include/libplacebo/renderer.h to Q:/prefix/include/libplacebo
+Installing C:/Users/Alperen/Desktop/Antigravity/Aperture Final/scratch/libmpv-performance-20261019/src/libplacebo/src/include/libplacebo/shaders/colorspace.h to Q:/prefix/include/libplacebo/shaders
+Installing C:/Users/Alperen/Desktop/Antigravity/Aperture Final/scratch/libmpv-performance-20261019/src/libplacebo/src/include/libplacebo/shaders/custom.h to Q:/prefix/include/libplacebo/shaders
+Installing C:/Users/Alperen/Desktop/Antigravity/Aperture Final/scratch/libmpv-performance-20261019/src/libplacebo/src/include/libplacebo/shaders/deinterlacing.h to Q:/prefix/include/libplacebo/shaders
+Installing C:/Users/Alperen/Desktop/Antigravity/Aperture Final/scratch/libmpv-performance-20261019/src/libplacebo/src/include/libplacebo/shaders/dithering.h to Q:/prefix/include/libplacebo/shaders
+Installing C:/Users/Alperen/Desktop/Antigravity/Aperture Final/scratch/libmpv-performance-20261019/src/libplacebo/src/include/libplacebo/shaders/film_grain.h to Q:/prefix/include/libplacebo/shaders
+Installing C:/Users/Alperen/Desktop/Antigravity/Aperture Final/scratch/libmpv-performance-20261019/src/libplacebo/src/include/libplacebo/shaders/icc.h to Q:/prefix/include/libplacebo/shaders
+Installing C:/Users/Alperen/Desktop/Antigravity/Aperture Final/scratch/libmpv-performance-20261019/src/libplacebo/src/include/libplacebo/shaders/lut.h to Q:/prefix/include/libplacebo/shaders
+Installing C:/Users/Alperen/Desktop/Antigravity/Aperture Final/scratch/libmpv-performance-20261019/src/libplacebo/src/include/libplacebo/shaders/sampling.h to Q:/prefix/include/libplacebo/shaders
+Installing C:/Users/Alperen/Desktop/Antigravity/Aperture Final/scratch/libmpv-performance-20261019/src/libplacebo/src/include/libplacebo/shaders.h to Q:/prefix/include/libplacebo
+Installing C:/Users/Alperen/Desktop/Antigravity/Aperture Final/scratch/libmpv-performance-20261019/src/libplacebo/src/include/libplacebo/swapchain.h to Q:/prefix/include/libplacebo
+Installing C:/Users/Alperen/Desktop/Antigravity/Aperture Final/scratch/libmpv-performance-20261019/src/libplacebo/src/include/libplacebo/tone_mapping.h to Q:/prefix/include/libplacebo
+Installing C:/Users/Alperen/Desktop/Antigravity/Aperture Final/scratch/libmpv-performance-20261019/src/libplacebo/src/include/libplacebo/utils/dav1d.h to Q:/prefix/include/libplacebo/utils
+Installing C:/Users/Alperen/Desktop/Antigravity/Aperture Final/scratch/libmpv-performance-20261019/src/libplacebo/src/include/libplacebo/utils/dav1d_internal.h to Q:/prefix/include/libplacebo/utils
+Installing C:/Users/Alperen/Desktop/Antigravity/Aperture Final/scratch/libmpv-performance-20261019/src/libplacebo/src/include/libplacebo/utils/dolbyvision.h to Q:/prefix/include/libplacebo/utils
+Installing C:/Users/Alperen/Desktop/Antigravity/Aperture Final/scratch/libmpv-performance-20261019/src/libplacebo/src/include/libplacebo/utils/frame_queue.h to Q:/prefix/include/libplacebo/utils
+Installing C:/Users/Alperen/Desktop/Antigravity/Aperture Final/scratch/libmpv-performance-20261019/src/libplacebo/src/include/libplacebo/utils/libav.h to Q:/prefix/include/libplacebo/utils
+Installing C:/Users/Alperen/Desktop/Antigravity/Aperture Final/scratch/libmpv-performance-20261019/src/libplacebo/src/include/libplacebo/utils/libav_internal.h to Q:/prefix/include/libplacebo/utils
+Installing C:/Users/Alperen/Desktop/Antigravity/Aperture Final/scratch/libmpv-performance-20261019/src/libplacebo/src/include/libplacebo/utils/upload.h to Q:/prefix/include/libplacebo/utils
+Installing C:/Users/Alperen/Desktop/Antigravity/Aperture Final/scratch/libmpv-performance-20261019/src/libplacebo/src/include/libplacebo/vulkan.h to Q:/prefix/include/libplacebo
+Installing C:/Users/Alperen/Desktop/Antigravity/Aperture Final/scratch/libmpv-performance-20261019/placebo-build/src/include/libplacebo/config.h to Q:/prefix/include/libplacebo
+Installing C:/Users/Alperen/Desktop/Antigravity/Aperture Final/scratch/libmpv-performance-20261019/placebo-build/meson-private/libplacebo.pc to Q:/prefix/lib/pkgconfig
+The Meson build system
+Version: 1.12.0
+Source dir: C:/Users/Alperen/Desktop/Antigravity/Aperture Final/scratch/libmpv-performance-20261019/src/mpv
+Build dir: C:/Users/Alperen/Desktop/Antigravity/Aperture Final/scratch/libmpv-performance-20261019/mpv-build
+Build type: native build
+Project name: mpv
+Project version: 0.41.0
+C compiler for the host machine: cc (gcc 16.2.0 "cc (Rev3, Built by MSYS2 project) 16.2.0")
+C linker for the host machine: cc ld.bfd 2.47.20260726
+Host machine cpu family: x86_64
+Host machine cpu: x86_64
+Program python3 found: YES (C:\msys64\mingw64\bin/python3.exe)
+Found pkg-config: YES (C:\msys64\mingw64\bin/pkg-config.exe) 3.0.5
+Run-time dependency libavcodec found: YES 62.11.100
+Run-time dependency libavfilter found: YES 11.4.100
+Run-time dependency libavformat found: YES 62.3.100
+Run-time dependency libavutil found: YES 60.8.100
+Run-time dependency libswresample found: YES 6.1.100
+Run-time dependency libswscale found: YES 9.1.100
+Run-time dependency libplacebo found: YES 7.360.1
+Run-time dependency libass found: YES 0.17.5
+Compiler for C supports arguments -Wdisabled-optimization: YES 
+Compiler for C supports arguments -Wempty-body: YES 
+Compiler for C supports arguments -Wformat: YES 
+Compiler for C supports arguments -Wimplicit-fallthrough: YES 
+Compiler for C supports arguments -Woverflow: YES 
+Compiler for C supports arguments -Wparentheses: YES 
+Compiler for C supports arguments -Wpointer-arith: YES 
+Compiler for C supports arguments -Wshadow: YES 
+Compiler for C supports arguments -Wundef: YES 
+Compiler for C supports arguments -Wvla: YES 
+Compiler for C supports arguments -Wno-cast-function-type: YES 
+Compiler for C supports arguments -Wno-format-zero-length: YES 
+Compiler for C supports arguments -Wno-missing-field-initializers: YES 
+Compiler for C supports arguments -Wno-sign-compare: YES 
+Compiler for C supports arguments -Wno-switch: YES 
+Compiler for C supports arguments -Wno-unused-parameter: YES 
+Compiler for C supports arguments -fno-math-errno: YES 
+Compiler for C supports arguments -fno-signed-zeros: YES 
+Compiler for C supports arguments -fno-trapping-math: YES 
+Compiler for C supports arguments -Wmissing-prototypes: YES 
+Compiler for C supports arguments -Wstrict-prototypes: YES 
+Compiler for C supports arguments -Werror=implicit-function-declaration: YES 
+Compiler for C supports arguments -Wno-pointer-sign: YES 
+Compiler for C supports arguments -Wformat -Werror=format-security: YES 
+Compiler for C supports link arguments -Wl,--nxcompat,--no-seh,--dynamicbase: YES 
+Compiler for C supports link arguments -Wl,-z,noexecstack: NO 
+Run-time dependency dl found: NO  (tried builtin and system)
+Library atomic found: YES
+Dependency appleframeworks(modules: Cocoa, IOKit, QuartzCore) for host machine skipped: feature cocoa disabled
+Checking for function "ppoll" : NO 
+Checking for function "memrchr" : NO 
+Library windowsapp skipped: feature uwp disabled
+Library avrt found: YES
+Library dwmapi found: YES
+Library gdi32 found: YES
+Library imm32 found: YES
+Library ntdll found: YES
+Library ole32 found: YES
+Library pathcch found: YES
+Library shcore found: YES
+Library user32 found: YES
+Library uuid found: YES
+Library uxtheme found: YES
+Library version found: YES
+C++ compiler for the host machine: c++ (gcc 16.2.0 "c++ (Rev3, Built by MSYS2 project) 16.2.0")
+C++ linker for the host machine: c++ ld.bfd 2.47.20260726
+Has header "winrt/base.h" : NO 
+Checking for function "glob" : NO 
+Header "sys/vt.h" has symbol "VT_GETMODE" : NO 
+Header "sys/consio.h" has symbol "VT_GETMODE" : NO 
+Header "dev/wscons/wsdisplay_usl_io.h" has symbol "VT_GETMODE" : NO 
+Checking for function "fstatfs" : NO 
+Checking for function "fstatfs" : NO 
+Compiler for C supports function attribute vector_size: YES 
+Program C:/Users/Alperen/Desktop/Antigravity/Aperture Final/scratch/libmpv-performance-20261019/src/mpv/TOOLS/docutils-wrapper.py found: YES (C:/msys64/mingw64/bin/python.exe C:/Users/Alperen/Desktop/Antigravity/Aperture Final/scratch/libmpv-performance-20261019/src/mpv/TOOLS/docutils-wrapper.py)
+Program C:/Users/Alperen/Desktop/Antigravity/Aperture Final/scratch/libmpv-performance-20261019/src/mpv/TOOLS/file2string.py found: YES (C:/msys64/mingw64/bin/python.exe C:/Users/Alperen/Desktop/Antigravity/Aperture Final/scratch/libmpv-performance-20261019/src/mpv/TOOLS/file2string.py)
+Program C:/Users/Alperen/Desktop/Antigravity/Aperture Final/scratch/libmpv-performance-20261019/src/mpv/TOOLS/matroska.py found: YES (C:/msys64/mingw64/bin/python.exe C:/Users/Alperen/Desktop/Antigravity/Aperture Final/scratch/libmpv-performance-20261019/src/mpv/TOOLS/matroska.py)
+Program C:/Users/Alperen/Desktop/Antigravity/Aperture Final/scratch/libmpv-performance-20261019/src/mpv/TOOLS/gen-mpv-desktop.py found: YES (C:/msys64/mingw64/bin/python.exe C:/Users/Alperen/Desktop/Antigravity/Aperture Final/scratch/libmpv-performance-20261019/src/mpv/TOOLS/gen-mpv-desktop.py)
+Program git found: YES (C:\msys64\usr\bin/git.exe)
+Dependency libcdio for host machine skipped: feature cdda disabled
+Dependency libcdio_paranoia for host machine skipped: feature cdda disabled
+Has header "linux/dvb/frontend.h" skipped: feature dvbin disabled
+Dependency dvdnav for host machine skipped: feature dvdnav disabled
+Run-time dependency iconv found: YES
+Dependency mujs for host machine skipped: feature javascript disabled
+Run-time dependency lcms2 found: YES 2.19
+Dependency libarchive for host machine skipped: feature libarchive disabled
+Found CMake: C:\msys64\mingw64\bin/cmake.exe (4.4.2)
+Run-time dependency libavdevice found: NO  (tried pkg-config and cmake)
+Dependency libbluray for host machine skipped: feature libbluray disabled
+Library m found: YES
+Library rt found: NO
+Dependency rubberband for host machine skipped: feature rubberband disabled
+sdl2-config found: NO
+Run-time dependency sdl2 found: NO  (tried pkg-config, config-tool and cmake)
+Run-time dependency uchardet found: YES 0.0.8
+Dependency vapoursynth for host machine skipped: feature vapoursynth disabled
+Dependency vapoursynth-script for host machine skipped: feature vapoursynth disabled
+Run-time dependency xfixes found: NO  (tried pkg-config and cmake)
+Run-time dependency x11 found: NO  (tried pkg-config)
+Dependency zimg for host machine skipped: feature zimg disabled
+Run-time dependency zlib found: YES 1.3.2
+Dependency alsa for host machine skipped: feature alsa disabled
+Dependency appleframeworks(modules: Foundation, AudioToolbox) for host machine skipped: feature audiounit disabled
+Header "AudioToolbox/AudioToolbox.h" has symbol "kAudioUnitSubType_RemoteIO" skipped: feature audiounit disabled
+Run-time dependency appleframeworks found: NO  (tried framework)
+Run-time dependency appleframeworks found: NO  (tried framework)
+Dependency jack for host machine skipped: feature jack disabled
+Dependency openal for host machine skipped: feature openal disabled
+Header "aaudio/AAudio.h" has symbol "AAudioStream" skipped: feature aaudio disabled
+Library OpenSLES found: NO
+Header "sys/soundcard.h" has symbol "SNDCTL_DSP_HALT" skipped: feature oss-audio disabled
+Dependency libpipewire-0.3 for host machine skipped: feature pipewire disabled
+Dependency libpulse for host machine skipped: feature pulse disabled
+Dependency sndio for host machine skipped: feature sndio disabled
+Header "audioclient.h" has symbol "IAudioClient" : YES 
+Dependency caca for host machine skipped: feature caca disabled
+Has header "d3d9.h" skipped: feature direct3d disabled
+Dependency libdrm for host machine skipped: feature drm disabled
+Dependency libdisplay-info for host machine skipped: feature drm disabled
+Dependency gbm for host machine skipped: feature gbm disabled
+Dependency libjpeg for host machine skipped: feature jpeg disabled
+Run-time dependency shaderc found: YES 2026.3.1
+Dependency libsixel for host machine skipped: feature sixel disabled
+Run-time dependency spirv-cross-c-shared found: YES 0.68.0
+Dependency wayland-client for host machine skipped: feature wayland disabled
+Dependency wayland-cursor for host machine skipped: feature wayland disabled
+Dependency wayland-protocols for host machine skipped: feature wayland disabled
+Dependency xkbcommon for host machine skipped: feature wayland disabled
+Dependency wayland-client for host machine skipped: feature wayland disabled
+Has header "linux/input-event-codes.h" skipped: feature wayland disabled
+Program wayland-scanner skipped: feature wayland disabled
+Dependency x11 for host machine skipped: feature x11 disabled
+Dependency xscrnsaver for host machine skipped: feature x11 disabled
+Dependency xext for host machine skipped: feature x11 disabled
+Dependency xpresent for host machine skipped: feature x11 disabled
+Dependency xrandr for host machine skipped: feature x11 disabled
+Dependency xv for host machine skipped: feature xv disabled
+Dependency GL for host machine skipped: feature gl-win32 disabled
+Library EGL skipped: feature egl-angle-lib disabled
+Dependency egl for host machine skipped: feature egl disabled
+Library EGL skipped: feature egl-android disabled
+Dependency wayland-egl for host machine skipped: feature egl-wayland disabled
+Dependency vulkan for host machine skipped: feature vulkan disabled
+Checking for function "vkCreateDisplayPlaneSurfaceKHR" with dependency vulkan: NO 
+Header "d3d11sdklayers.h" has symbol "DXGI_DEBUG_D3D11" : YES 
+Run-time dependency ffnvcodec found: NO  (tried pkg-config and cmake)
+Header "OpenGLES/ES3/glext.h" has symbol "GL_RGB32F" skipped: feature ios-gl disabled
+Dependency libva for host machine skipped: feature vaapi disabled
+Dependency libva-drm for host machine skipped: feature vaapi-drm disabled
+Dependency libva-wayland for host machine skipped: feature vaapi-wayland disabled
+Dependency libva-x11 for host machine skipped: feature vaapi-x11 disabled
+Dependency libva-win32 for host machine skipped: feature vaapi-win32 disabled
+Dependency vdpau for host machine skipped: feature vdpau disabled
+Dependency appleframeworks(modules: CoreVideo) for host machine skipped: feature videotoolbox-pl disabled
+Program xcrun skipped: feature swift-build disabled
+Program rst2man rst2man.py skipped: feature manpage-build disabled
+Program rst2html rst2html.py skipped: feature html-build disabled
+Program rst2pdf skipped: feature pdf-build disabled
+Configuring config.h using configuration
+Message: List of enabled features: cplugins d3d-hwaccel d3d11 dos-paths dxgi-debug-d3d11 ffmpeg glob glob-win32 gpl iconv lcms2 libass libplacebo shaderc spirv-cross uchardet vector wasapi win32 win32-desktop win32-threads zlib
+Windows resource compiler: GNU windres (GNU Binutils) 2.47.20260726
+WARNING: Argument '-IC:/Users/Alperen/Desktop/Antigravity/Aperture Final/scratch/libmpv-performance-20261019/mpv-build/common' has a space which may not work with windres due to a MinGW bug: https://sourceware.org/bugzilla/show_bug.cgi?id=4933
+WARNING: Argument '-IC:/Users/Alperen/Desktop/Antigravity/Aperture Final/scratch/libmpv-performance-20261019/src/mpv' has a space which may not work with windres due to a MinGW bug: https://sourceware.org/bugzilla/show_bug.cgi?id=4933
+WARNING: Argument '-IC:/Users/Alperen/Desktop/Antigravity/Aperture Final/scratch/libmpv-performance-20261019/mpv-build' has a space which may not work with windres due to a MinGW bug: https://sourceware.org/bugzilla/show_bug.cgi?id=4933
+Fetching value of define "MPV_CLIENT_API_VERSION" : (((2) << 16) | (5) | 0UL) 
+Compiler for C supports link arguments -Wl,-Bsymbolic: YES 
+Found pkg-config: YES (C:\msys64\mingw64\bin/pkg-config.exe) 3.0.5
+Build targets in project: 27
+
+mpv 0.41.0
+
+    cocoa            : NO
+    d3d11            : YES
+    drm              : NO
+    javascript       : NO
+    libmpv           : YES
+    lua              : NO
+    opengl           : NO
+    vulkan           : NO
+    wayland          : NO
+    x11              : NO
+
+  User defined options
+    alsa             : disabled
+    b_lto            : true
+    b_ndebug         : true
+    build-date       : false
+    buildtype        : release
+    caca             : disabled
+    cdda             : disabled
+    cocoa            : disabled
+    cplayer          : false
+    cuda-hwaccel     : disabled
+    cuda-interop     : disabled
+    d3d-hwaccel      : enabled
+    d3d11            : enabled
+    d3d9-hwaccel     : disabled
+    direct3d         : disabled
+    drm              : disabled
+    dvbin            : disabled
+    dvdnav           : disabled
+    egl              : disabled
+    egl-android      : disabled
+    egl-angle        : disabled
+    egl-angle-lib    : disabled
+    egl-angle-win32  : disabled
+    egl-drm          : disabled
+    egl-wayland      : disabled
+    egl-x11          : disabled
+    gl               : disabled
+    gl-dxinterop     : disabled
+    gl-dxinterop-d3d9: disabled
+    gl-win32         : disabled
+    jack             : disabled
+    javascript       : disabled
+    jpeg             : disabled
+    lcms2            : enabled
+    libarchive       : disabled
+    libbluray        : disabled
+    libmpv           : true
+    lua              : disabled
+    manpage-build    : disabled
+    optimization     : 3
+    oss-audio        : disabled
+    pipewire         : disabled
+    plain-gl         : disabled
+    prefer_static    : true
+    prefix           : Q:/prefix
+    pulse            : disabled
+    rubberband       : disabled
+    shaderc          : enabled
+    sixel            : disabled
+    sndio            : disabled
+    spirv-cross      : enabled
+    strip            : true
+    tests            : false
+    uchardet         : enabled
+    vaapi            : disabled
+    vaapi-drm        : disabled
+    vaapi-wayland    : disabled
+    vaapi-win32      : disabled
+    vaapi-x11        : disabled
+    vapoursynth      : disabled
+    vdpau            : disabled
+    vdpau-gl-x11     : disabled
+    vulkan           : disabled
+    wasapi           : enabled
+    wayland          : disabled
+    x11              : disabled
+    xv               : disabled
+    zimg             : disabled
+
+Found ninja-1.13.2 at C:\msys64\mingw64\bin/ninja.exe
+ninja: Entering directory `mpv-build'
+[1/235] Generating ebml_defs.inc with a custom command
+[2/235] Generating ebml_types.h with a custom command
+[3/235] Generating etc/mpv-icon-8bit-16x16.png with a custom command
+[4/235] Generating etc/mpv-icon-8bit-32x32.png with a custom command
+[5/235] Generating etc/mpv-icon-8bit-64x64.png with a custom command
+[6/235] Generating etc/mpv-icon-8bit-128x128.png with a custom command
+[7/235] Generating etc/input.conf with a custom command
+[8/235] Generating etc/builtin.conf with a custom command
+[9/235] Generating player/javascript/defaults.js with a custom command
+[10/235] Generating player/lua/defaults.lua with a custom command
+[11/235] Generating player/lua/assdraw.lua with a custom command
+[12/235] Generating player/lua/options.lua with a custom command
+[13/235] Generating player/lua/osc.lua with a custom command
+[14/235] Generating player/lua/ytdl_hook.lua with a custom command
+[15/235] Generating player/lua/stats.lua with a custom command
+[16/235] Generating player/lua/console.lua with a custom command
+[17/235] Generating player/lua/auto_profiles.lua with a custom command
+[18/235] Generating player/lua/input.lua with a custom command
+[19/235] Generating player/lua/fzy.lua with a custom command
+[20/235] Generating player/lua/select.lua with a custom command
+[21/235] Generating player/lua/positioning.lua with a custom command
+[22/235] Generating player/lua/commands.lua with a custom command
+[23/235] Generating player/lua/context_menu.lua with a custom command
+[24/235] Generating sub/osd_font.otf with a custom command
+[25/235] Generating common/version.h with a custom command (wrapped by meson because command contains newlines)
+[26/235] Compiling Windows resource osdep_mpv.rc
+[27/235] Compiling C object libmpv-2.dll.p/audio_chmap_avchannel.c.obj
+[28/235] Compiling C object libmpv-2.dll.p/audio_chmap_sel.c.obj
+[29/235] Compiling C object libmpv-2.dll.p/audio_aframe.c.obj
+[30/235] Compiling C object libmpv-2.dll.p/audio_chmap.c.obj
+[31/235] Compiling C object libmpv-2.dll.p/audio_filter_af_scaletempo2_internals.c.obj
+[32/235] Compiling C object libmpv-2.dll.p/audio_filter_af_scaletempo2.c.obj
+[33/235] Compiling C object libmpv-2.dll.p/audio_filter_af_drop.c.obj
+[34/235] Compiling C object libmpv-2.dll.p/audio_filter_af_lavcac3enc.c.obj
+[35/235] Compiling C object libmpv-2.dll.p/audio_fmt-conversion.c.obj
+[36/235] Compiling C object libmpv-2.dll.p/audio_decode_ad_lavc.c.obj
+[37/235] Compiling C object libmpv-2.dll.p/audio_decode_ad_spdif.c.obj
+[38/235] Compiling C object libmpv-2.dll.p/audio_filter_af_format.c.obj
+[39/235] Compiling C object libmpv-2.dll.p/audio_filter_af_scaletempo.c.obj
+[40/235] Compiling C object libmpv-2.dll.p/audio_format.c.obj
+[41/235] Compiling C object libmpv-2.dll.p/audio_out_ao.c.obj
+[42/235] Compiling C object libmpv-2.dll.p/common_codecs.c.obj
+[43/235] Compiling C object libmpv-2.dll.p/audio_out_ao_null.c.obj
+[44/235] Compiling C object libmpv-2.dll.p/common_av_common.c.obj
+[45/235] Compiling C object libmpv-2.dll.p/common_common.c.obj
+[46/235] Compiling C object libmpv-2.dll.p/common_playlist.c.obj
+[47/235] Compiling C object libmpv-2.dll.p/common_tags.c.obj
+[48/235] Compiling C object libmpv-2.dll.p/common_version.c.obj
+[49/235] Compiling C object libmpv-2.dll.p/common_recorder.c.obj
+[50/235] Compiling C object libmpv-2.dll.p/demux_cue.c.obj
+[51/235] Compiling C object libmpv-2.dll.p/demux_codec_tags.c.obj
+[52/235] Compiling C object libmpv-2.dll.p/demux_cache.c.obj
+[53/235] Compiling C object libmpv-2.dll.p/demux_demux_cue.c.obj
+[54/235] Compiling C object libmpv-2.dll.p/demux_demux_disc.c.obj
+[55/235] Compiling C object libmpv-2.dll.p/demux_demux_edl.c.obj
+[56/235] Compiling C object libmpv-2.dll.p/audio_out_ao_pcm.c.obj
+[57/235] Compiling C object libmpv-2.dll.p/demux_demux_mf.c.obj
+[58/235] Compiling C object libmpv-2.dll.p/common_av_log.c.obj
+[59/235] Compiling C object libmpv-2.dll.p/audio_out_buffer.c.obj
+[60/235] Compiling C object libmpv-2.dll.p/demux_demux_mpv.c.obj
+[61/235] Compiling C object libmpv-2.dll.p/common_encode_lavc.c.obj
+[62/235] Compiling C object libmpv-2.dll.p/audio_out_ao_lavc.c.obj
+[63/235] Compiling C object libmpv-2.dll.p/common_stats.c.obj
+[64/235] Compiling C object libmpv-2.dll.p/common_msg.c.obj
+[65/235] Compiling C object libmpv-2.dll.p/demux_demux_null.c.obj
+[66/235] Compiling C object libmpv-2.dll.p/demux_demux_timeline.c.obj
+[67/235] Compiling C object libmpv-2.dll.p/demux_ebml.c.obj
+[68/235] Compiling C object libmpv-2.dll.p/demux_packet.c.obj
+[69/235] Compiling C object libmpv-2.dll.p/demux_timeline.c.obj
+[70/235] Compiling C object libmpv-2.dll.p/demux_demux_raw.c.obj
+[71/235] Compiling C object libmpv-2.dll.p/demux_demux_mkv.c.obj
+[72/235] Compiling C object libmpv-2.dll.p/filters_f_autoconvert.c.obj
+[73/235] Compiling C object libmpv-2.dll.p/filters_f_auto_filters.c.obj
+[74/235] Compiling C object libmpv-2.dll.p/filters_f_hwtransfer.c.obj
+[75/235] Compiling C object libmpv-2.dll.p/filters_f_demux_in.c.obj
+[76/235] Compiling C object libmpv-2.dll.p/demux_demux.c.obj
+[77/235] Compiling C object libmpv-2.dll.p/filters_f_swresample.c.obj
+[78/235] Compiling C object libmpv-2.dll.p/filters_f_swscale.c.obj
+[79/235] Compiling C object libmpv-2.dll.p/filters_f_utils.c.obj
+[80/235] Compiling C object libmpv-2.dll.p/demux_demux_playlist.c.obj
+[81/235] Compiling C object libmpv-2.dll.p/filters_user_filters.c.obj
+[82/235] Compiling C object libmpv-2.dll.p/filters_f_async_queue.c.obj
+[83/235] Compiling C object libmpv-2.dll.p/input_cmd.c.obj
+[84/235] Compiling C object libmpv-2.dll.p/filters_frame.c.obj
+[85/235] Compiling C object libmpv-2.dll.p/input_event.c.obj
+[86/235] Compiling C object libmpv-2.dll.p/demux_demux_lavf.c.obj
+[87/235] Compiling C object libmpv-2.dll.p/filters_f_decoder_wrapper.c.obj
+[88/235] Compiling C object libmpv-2.dll.p/input_keycodes.c.obj
+[89/235] Compiling C object libmpv-2.dll.p/input_ipc.c.obj
+[90/235] Compiling C object libmpv-2.dll.p/misc_charset_conv.c.obj
+[91/235] Compiling C object libmpv-2.dll.p/misc_codepoint_width.c.obj
+[92/235] Compiling C object libmpv-2.dll.p/demux_packet_pool.c.obj
+[93/235] Compiling C object libmpv-2.dll.p/demux_demux_mkv_timeline.c.obj
+[94/235] Compiling C object libmpv-2.dll.p/misc_natural_sort.c.obj
+[95/235] Compiling C object libmpv-2.dll.p/misc_json.c.obj
+[96/235] Compiling C object libmpv-2.dll.p/misc_io_utils.c.obj
+[97/235] Compiling C object libmpv-2.dll.p/misc_language.c.obj
+[98/235] Compiling C object libmpv-2.dll.p/misc_node.c.obj
+[99/235] Compiling C object libmpv-2.dll.p/misc_random.c.obj
+[100/235] Compiling C object libmpv-2.dll.p/filters_f_lavfi.c.obj
+[101/235] Compiling C object libmpv-2.dll.p/filters_f_output_chain.c.obj
+[102/235] Compiling C object libmpv-2.dll.p/filters_filter.c.obj
+[103/235] Compiling C object libmpv-2.dll.p/options_m_option.c.obj
+[104/235] Compiling C object libmpv-2.dll.p/options_m_property.c.obj
+[105/235] Compiling C object libmpv-2.dll.p/input_input.c.obj
+[106/235] Compiling C object libmpv-2.dll.p/options_parse_commandline.c.obj
+[107/235] Compiling C object libmpv-2.dll.p/options_parse_configfile.c.obj
+[108/235] Compiling C object libmpv-2.dll.p/misc_thread_pool.c.obj
+[109/235] Compiling C object libmpv-2.dll.p/misc_rendezvous.c.obj
+[110/235] Compiling C object libmpv-2.dll.p/misc_path_utils.c.obj
+[111/235] Compiling C object libmpv-2.dll.p/misc_bstr.c.obj
+[112/235] Compiling C object libmpv-2.dll.p/misc_thread_tools.c.obj
+[113/235] Compiling C object libmpv-2.dll.p/options_path.c.obj
+[114/235] Compiling C object libmpv-2.dll.p/options_m_config_core.c.obj
+[115/235] Compiling C object libmpv-2.dll.p/misc_dispatch.c.obj
+[116/235] Compiling C object libmpv-2.dll.p/options_m_config_frontend.c.obj
+[117/235] Compiling C object libmpv-2.dll.p/player_external_files.c.obj
+[118/235] Compiling C object libmpv-2.dll.p/player_configfiles.c.obj
+[119/235] Compiling C object libmpv-2.dll.p/player_client.c.obj
+[120/235] Compiling C object libmpv-2.dll.p/player_audio.c.obj
+[121/235] Compiling C object libmpv-2.dll.p/player_misc.c.obj
+[122/235] Compiling C object libmpv-2.dll.p/player_main.c.obj
+[123/235] Compiling C object libmpv-2.dll.p/options_options.c.obj
+[124/235] Compiling C object libmpv-2.dll.p/player_osd.c.obj
+[125/235] Compiling C object libmpv-2.dll.p/player_loadfile.c.obj
+[126/235] Compiling C object libmpv-2.dll.p/player_playloop.c.obj
+[127/235] Compiling C object libmpv-2.dll.p/stream_stream_avdevice.c.obj
+[128/235] Compiling C object libmpv-2.dll.p/stream_cookies.c.obj
+[129/235] Compiling C object libmpv-2.dll.p/stream_stream_concat.c.obj
+[130/235] Compiling C object libmpv-2.dll.p/player_command.c.obj
+[131/235] Compiling C object libmpv-2.dll.p/stream_stream_edl.c.obj
+[132/235] Compiling C object libmpv-2.dll.p/player_screenshot.c.obj
+[133/235] Compiling C object libmpv-2.dll.p/stream_stream_mf.c.obj
+[134/235] Compiling C object libmpv-2.dll.p/stream_stream_memory.c.obj
+[135/235] Compiling C object libmpv-2.dll.p/stream_stream_null.c.obj
+[136/235] Compiling C object libmpv-2.dll.p/stream_stream_slice.c.obj
+[137/235] Compiling C object libmpv-2.dll.p/player_scripting.c.obj
+[138/235] Compiling C object libmpv-2.dll.p/player_clipboard_clipboard-vo.c.obj
+[139/235] Compiling C object libmpv-2.dll.p/player_sub.c.obj
+[140/235] Compiling C object libmpv-2.dll.p/player_clipboard_clipboard.c.obj
+[141/235] Compiling C object libmpv-2.dll.p/player_video.c.obj
+[142/235] Compiling C object libmpv-2.dll.p/stream_stream.c.obj
+[143/235] Compiling C object libmpv-2.dll.p/stream_stream_cb.c.obj
+[144/235] Compiling C object libmpv-2.dll.p/sub_ass_mp.c.obj
+[145/235] Compiling C object libmpv-2.dll.p/sub_draw_bmp.c.obj
+[146/235] Compiling C object libmpv-2.dll.p/sub_img_convert.c.obj
+[147/235] Compiling C object libmpv-2.dll.p/stream_stream_file.c.obj
+[148/235] Compiling C object libmpv-2.dll.p/stream_stream_lavf.c.obj
+[149/235] Compiling C object libmpv-2.dll.p/video_filter_refqueue.c.obj
+[150/235] Compiling C object libmpv-2.dll.p/video_csputils.c.obj
+[151/235] Compiling C object libmpv-2.dll.p/stream_stream_mpv.c.obj
+[152/235] Compiling C object libmpv-2.dll.p/video_fmt-conversion.c.obj
+[153/235] Compiling C object libmpv-2.dll.p/video_filter_vf_format.c.obj
+[154/235] Compiling C object libmpv-2.dll.p/sub_osd.c.obj
+[155/235] Compiling C object libmpv-2.dll.p/video_image_loader.c.obj
+[156/235] Compiling C object libmpv-2.dll.p/sub_sd_lavc.c.obj
+[157/235] Compiling C object libmpv-2.dll.p/sub_filter_sdh.c.obj
+[158/235] Compiling C object libmpv-2.dll.p/sub_sd_ass.c.obj
+[159/235] Compiling C object libmpv-2.dll.p/sub_dec_sub.c.obj
+[160/235] Compiling C object libmpv-2.dll.p/video_img_format.c.obj
+[161/235] Compiling C object libmpv-2.dll.p/sub_osd_libass.c.obj
+[162/235] Compiling C object libmpv-2.dll.p/sub_lavc_conv.c.obj
+[163/235] Compiling C object libmpv-2.dll.p/video_image_writer.c.obj
+[164/235] Compiling C object libmpv-2.dll.p/video_out_dither.c.obj
+[165/235] Compiling C object libmpv-2.dll.p/video_out_bitmap_packer.c.obj
+[166/235] Compiling C object libmpv-2.dll.p/video_filter_vf_sub.c.obj
+[167/235] Compiling C object libmpv-2.dll.p/video_hwdec.c.obj
+[168/235] Compiling C object libmpv-2.dll.p/video_decode_vd_lavc.c.obj
+[169/235] Compiling C object libmpv-2.dll.p/video_out_filter_kernels.c.obj
+[170/235] Compiling C object libmpv-2.dll.p/video_out_gpu_lcms.c.obj
+[171/235] Compiling C object libmpv-2.dll.p/video_out_gpu_ra.c.obj
+[172/235] Compiling C object libmpv-2.dll.p/video_mp_image_pool.c.obj
+[173/235] Compiling C object libmpv-2.dll.p/video_out_aspect.c.obj
+[174/235] Compiling C object libmpv-2.dll.p/video_out_dr_helper.c.obj
+[175/235] Compiling C object libmpv-2.dll.p/video_out_gpu_error_diffusion.c.obj
+[176/235] Compiling C object libmpv-2.dll.p/video_mp_image.c.obj
+[177/235] Compiling C object libmpv-2.dll.p/video_out_gpu_libmpv_gpu.c.obj
+[178/235] Compiling C object libmpv-2.dll.p/video_out_gpu_hwdec.c.obj
+[179/235] Compiling C object libmpv-2.dll.p/video_out_gpu_context.c.obj
+[180/235] Compiling C object libmpv-2.dll.p/video_out_gpu_osd.c.obj
+[181/235] Compiling C object libmpv-2.dll.p/video_out_gpu_spirv.c.obj
+[182/235] Compiling C object libmpv-2.dll.p/video_out_gpu_shader_cache.c.obj
+[183/235] Compiling C object libmpv-2.dll.p/video_out_gpu_user_shaders.c.obj
+[184/235] Compiling C object libmpv-2.dll.p/video_out_gpu_utils.c.obj
+[185/235] Compiling C object libmpv-2.dll.p/video_out_gpu_video_shaders.c.obj
+[186/235] Compiling C object libmpv-2.dll.p/video_out_libmpv_sw.c.obj
+[187/235] Compiling C object libmpv-2.dll.p/video_out_vo_gpu.c.obj
+[188/235] Compiling C object libmpv-2.dll.p/video_out_vo.c.obj
+[189/235] Compiling C object libmpv-2.dll.p/video_repack.c.obj
+[190/235] Compiling C object libmpv-2.dll.p/video_out_gpu_video.c.obj
+[191/235] Compiling C object libmpv-2.dll.p/video_out_vo_libmpv.c.obj
+[192/235] Compiling C object libmpv-2.dll.p/video_out_vo_image.c.obj
+[193/235] Compiling C object libmpv-2.dll.p/video_sws_utils.c.obj
+[194/235] Compiling C object libmpv-2.dll.p/video_out_vo_lavc.c.obj
+[195/235] Compiling C object libmpv-2.dll.p/video_out_vo_null.c.obj
+[196/235] Compiling C object libmpv-2.dll.p/video_out_vo_tct.c.obj
+[197/235] Compiling C object libmpv-2.dll.p/osdep_subprocess.c.obj
+[198/235] Compiling C object libmpv-2.dll.p/video_out_placebo_ra_pl.c.obj
+[199/235] Compiling C object libmpv-2.dll.p/ta_ta.c.obj
+[200/235] Compiling C object libmpv-2.dll.p/ta_ta_talloc.c.obj
+[201/235] Compiling C object libmpv-2.dll.p/ta_ta_utils.c.obj
+[202/235] Compiling C object libmpv-2.dll.p/video_out_vo_kitty.c.obj
+[203/235] Compiling C object libmpv-2.dll.p/video_out_win_state.c.obj
+[204/235] Compiling C object libmpv-2.dll.p/video_out_placebo_utils.c.obj
+[205/235] Compiling C object libmpv-2.dll.p/osdep_io.c.obj
+[206/235] Compiling C object libmpv-2.dll.p/osdep_timer.c.obj
+[207/235] Compiling C object libmpv-2.dll.p/osdep_als-voctrl.c.obj
+[208/235] Compiling C object libmpv-2.dll.p/player_clipboard_clipboard-win.c.obj
+[209/235] Compiling C object libmpv-2.dll.p/osdep_w32_keyboard.c.obj
+[210/235] Compiling C object libmpv-2.dll.p/osdep_subprocess-win.c.obj
+[211/235] Compiling C object libmpv-2.dll.p/input_ipc-win.c.obj
+[212/235] Compiling C object libmpv-2.dll.p/osdep_language-win.c.obj
+[213/235] Compiling C object libmpv-2.dll.p/osdep_terminal-win.c.obj
+[214/235] Compiling C object libmpv-2.dll.p/video_out_gpu_next_context.c.obj
+[215/235] Compiling C object libmpv-2.dll.p/osdep_windows_utils.c.obj
+[216/235] Compiling C object libmpv-2.dll.p/video_out_vo_gpu_next.c.obj
+[217/235] Compiling C object libmpv-2.dll.p/osdep_glob-win.c.obj
+[218/235] Compiling C object libmpv-2.dll.p/video_out_win32_displayconfig.c.obj
+[219/235] Compiling C object libmpv-2.dll.p/osdep_timer-win32.c.obj
+[220/235] Compiling C object libmpv-2.dll.p/video_out_win32_menu.c.obj
+[221/235] Compiling C object libmpv-2.dll.p/osdep_w32_register.c.obj
+[222/235] Compiling C object libmpv-2.dll.p/video_out_win32_droptarget.c.obj
+[223/235] Compiling C object libmpv-2.dll.p/video_out_w32_common.c.obj
+[224/235] Compiling C object libmpv-2.dll.p/video_out_gpu_spirv_shaderc.c.obj
+[225/235] Compiling C object libmpv-2.dll.p/osdep_path-win.c.obj
+[226/235] Compiling C object libmpv-2.dll.p/audio_out_ao_wasapi.c.obj
+[227/235] Compiling C object libmpv-2.dll.p/audio_out_ao_wasapi_changenotify.c.obj
+[228/235] Compiling C object libmpv-2.dll.p/audio_out_ao_wasapi_utils.c.obj
+[229/235] Compiling C object libmpv-2.dll.p/video_out_d3d11_context.c.obj
+[230/235] Compiling C object libmpv-2.dll.p/video_d3d.c.obj
+[231/235] Compiling C object libmpv-2.dll.p/video_out_d3d11_ra_d3d11.c.obj
+[232/235] Compiling C object libmpv-2.dll.p/video_out_gpu_d3d11_helpers.c.obj
+[233/235] Compiling C object libmpv-2.dll.p/video_filter_vf_d3d11vpp.c.obj
+[234/235] Compiling C object libmpv-2.dll.p/video_out_d3d11_hwdec_d3d11va.c.obj
+[235/235] Linking target libmpv-2.dll
+Q:/src/ffmpeg/libavcodec/wmadec.c: In function 'wma_decode_block':
+Q:/src/ffmpeg/libavcodec/wmadec.c:521:30: warning: writing 1 byte into a region of size 0 [-Wstringop-overflow=]
+  521 |         s->channel_coded[ch] = a;
+      |                              ^
+Q:/src/ffmpeg/libavcodec/wma.h:112:13: note: at offset 2 into destination object 'channel_coded' of size 2
+  112 |     uint8_t channel_coded[MAX_CHANNELS];    ///< true if channel is coded
+      |             ^
+Q:/src/ffmpeg/libavcodec/aacsbr_template.c: In function 'read_sbr_grid':
+Q:/src/ffmpeg/libavcodec/aacsbr_template.c:729:57: warning: writing 1 byte into a region of size 0 [-Wstringop-overflow=]
+  729 |             ch_data->t_env[ch_data->bs_num_env - 1 - i] =
+      |                                                         ^
+Q:/src/ffmpeg/libavcodec/sbr.h:106:24: note: at offset [2147483649, 4294967295] into destination object 't_env' of size 9
+  106 |     uint8_t            t_env[9];
+      |                        ^
+Q:/src/ffmpeg/libavcodec/aacsbr_template.c:729:57: warning: writing 1 byte into a region of size 0 [-Wstringop-overflow=]
+  729 |             ch_data->t_env[ch_data->bs_num_env - 1 - i] =
+      |                                                         ^
+Q:/src/ffmpeg/libavcodec/sbr.h:106:24: note: at offset [2147483649, 4294967294] into destination object 't_env' of size 9
+  106 |     uint8_t            t_env[9];
+      |                        ^
+Q:/src/ffmpeg/libavcodec/aacsbr_template.c:729:57: warning: writing 1 byte into a region of size 0 [-Wstringop-overflow=]
+  729 |             ch_data->t_env[ch_data->bs_num_env - 1 - i] =
+      |                                                         ^
+Q:/src/ffmpeg/libavcodec/sbr.h:106:24: note: at offset [2147483649, 4294967293] into destination object 't_env' of size 9
+  106 |     uint8_t            t_env[9];
+      |                        ^
+Q:/src/ffmpeg/libavcodec/aacsbr_template.c:729:57: warning: writing 1 byte into a region of size 0 [-Wstringop-overflow=]
+  729 |             ch_data->t_env[ch_data->bs_num_env - 1 - i] =
+      |                                                         ^
+Q:/src/ffmpeg/libavcodec/sbr.h:106:24: note: at offset [2147483649, 4294967292] into destination object 't_env' of size 9
+  106 |     uint8_t            t_env[9];
+      |                        ^
+ninja: Entering directory `mpv-build'
+[1/6] Generating common/version.h with a custom command (wrapped by meson because command contains newlines)
+[1/2] Installing files
+Installing libmpv-2.dll to Q:/stage/prefix/bin
+Stripping target 'libmpv-2.dll'.
+Installing libmpv.dll.a to Q:/stage/prefix/lib
+Installing C:/Users/Alperen/Desktop/Antigravity/Aperture Final/scratch/libmpv-performance-20261019/src/mpv/include/mpv/client.h to Q:/stage/prefix/include/mpv
+Installing C:/Users/Alperen/Desktop/Antigravity/Aperture Final/scratch/libmpv-performance-20261019/src/mpv/include/mpv/render.h to Q:/stage/prefix/include/mpv
+Installing C:/Users/Alperen/Desktop/Antigravity/Aperture Final/scratch/libmpv-performance-20261019/src/mpv/include/mpv/render_gl.h to Q:/stage/prefix/include/mpv
+Installing C:/Users/Alperen/Desktop/Antigravity/Aperture Final/scratch/libmpv-performance-20261019/src/mpv/include/mpv/stream_cb.h to Q:/stage/prefix/include/mpv
+Installing C:/Users/Alperen/Desktop/Antigravity/Aperture Final/scratch/libmpv-performance-20261019/mpv-build/meson-private/mpv.pc to Q:/stage/prefix/lib/pkgconfig
+0eb2a7ea41231db97fb4d10d0125675247b5fab3b9b068d0617d3f320c016b82 *output/libmpv-2.dll
+libmpv build and dependency checks passed.
