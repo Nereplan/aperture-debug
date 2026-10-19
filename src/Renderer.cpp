@@ -1238,6 +1238,7 @@ void Renderer::DrawSvgPath(const char* svgPath, const D2D1_RECT_F& rect, const D
     static std::unordered_map<std::string, ComPtr<ID2D1PathGeometry>> g_svgCache;
     auto it = g_svgCache.find(svgPath);
     if (it == g_svgCache.end()) {
+        if (g_svgCache.size() > 512) g_svgCache.clear();
         auto geom = SvgGeometry::Build(d2dFactory.Get(), svgPath);
         g_svgCache[svgPath] = geom;
         it = g_svgCache.find(svgPath);

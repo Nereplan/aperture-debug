@@ -276,11 +276,7 @@ PlayerRenderViewModel App::BuildPlayerRenderViewModel() const {
     }
     // 8. Context Menu
     if (isContextMenuOpen || contextMenuClosing) {
-        vm.contextMenu.isOpen = true;
-        vm.contextMenu.origin = contextMenuOrigin;
-        vm.contextMenu.items = contextMenuItems;
-        vm.contextMenu.hoveredIndex = hoveredContextMenuItem;
-        vm.contextMenu.animProgress = contextMenuAnim.current;
+        PopulateContextMenuViewModel(vm.contextMenu);
     }
     if (inPresentationTransition) {
         vm.pipOverlay.visible = false;
@@ -1012,11 +1008,7 @@ HubRenderViewModel App::BuildHubRenderViewModel() {
     }
     // Context Menu
     if (isContextMenuOpen || contextMenuClosing) {
-        vm.contextMenu.isOpen = true;
-        vm.contextMenu.origin = contextMenuOrigin;
-        vm.contextMenu.items = contextMenuItems;
-        vm.contextMenu.hoveredIndex = hoveredContextMenuItem;
-        vm.contextMenu.animProgress = contextMenuAnim.current;
+        PopulateContextMenuViewModel(vm.contextMenu);
     }
     // Modal
     if (activeModal != ModalType::None) {

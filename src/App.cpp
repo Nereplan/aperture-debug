@@ -1643,6 +1643,7 @@ bool App::Update(float dt) {
     // Play/Pause badge timer
     if (playPauseAnimTimer > 0.0f) { playPauseAnimTimer -= dt; needsRedraw = true; }
     if (contextMenuAnim.Tick()) needsRedraw = true;
+    if (TickSplitIrisAnimation(dt)) needsRedraw = true;
     if (flyoutAnim.Tick()) needsRedraw = true;
     if (pipVolumeAnim.Tick()) needsRedraw = true;
     if (resumePreviewAnim.Tick()) needsRedraw = true;
@@ -2172,6 +2173,11 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
             bool isPhysicalCtrl = (GetAsyncKeyState(VK_CONTROL) & 0x8000) != 0;
             float scrollDelta = (float)delta * 0.5f;
             if (playbackSession.IsOpen()) {
+                if (HandleContextMenuWheel(delta)) {
+                    InvalidateRect(hWnd, NULL, FALSE);
+                    Render();
+                    return 0;
+                }
                 if (isSettingsFlyoutOpen && currentFlyoutMenu == "queue") {
                     const size_t queueSize = playbackSession.GetQueueSize();
                     const size_t maxFirst = queueSize > 7 ? queueSize - 7 : 0;
@@ -2321,6 +2327,8 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
             const int oldHoveredShortcutIndex = hoveredShortcutIndex;
             const bool oldResetShortcutsHovered = isResetShortcutsHovered;
             const int oldHoveredContextMenuItem = hoveredContextMenuItem;
+            const int oldHoveredIrisShoulder = hoveredIrisShoulder;
+            const int oldActiveIrisDialIndex = activeIrisDialIndex;
             if (playbackSession.IsOpen()) {
                 if (!isMouseTracking) {
                     TRACKMOUSEEVENT tme = { sizeof(TRACKMOUSEEVENT), TME_LEAVE, hWnd, 0 };
@@ -2733,16 +2741,7 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                 }
             }
             if (isContextMenuOpen) {
-                float menuW = 220.0f * dp, itemH = 32.0f * dp, curMY = contextMenuOrigin.y + 4.0f * dp;
-                hoveredContextMenuItem = -1;
-                for (size_t i = 0; i < contextMenuItems.size(); ++i) {
-                    if (contextMenuItems[i].isSeparator) { curMY += 6.0f * dp; continue; }
-                    if (x >= contextMenuOrigin.x && x <= contextMenuOrigin.x + menuW && y >= curMY && y <= curMY + itemH) {
-                        hoveredContextMenuItem = (int)i;
-                        break;
-                    }
-                    curMY += itemH;
-                }
+                UpdateContextMenuHitTarget(x, y, dp);
             }
             if (currentTab == TabView::Playlists && playlistGridView) {
                 if (hoveredPlaylistDetailItemIndex != playlistCardHoverIndex) {
@@ -2768,7 +2767,9 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                 oldHoveredHistoryEmptyBtn != hoveredHistoryEmptyBtn || oldHoveredSettingsCat != hoveredSettingsCat ||
                 oldHoveredSettingsRow != hoveredSettingsRow ||
                 oldHoveredShortcutIndex != hoveredShortcutIndex || oldResetShortcutsHovered != isResetShortcutsHovered ||
-                oldHoveredContextMenuItem != hoveredContextMenuItem;
+                oldHoveredContextMenuItem != hoveredContextMenuItem ||
+                oldHoveredIrisShoulder != hoveredIrisShoulder ||
+                oldActiveIrisDialIndex != activeIrisDialIndex;
             if (hoverChanged) InvalidateRect(hWnd, NULL, FALSE);
             return 0;
         }
@@ -2871,13 +2872,9 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                 return 0;
             }
             if (isContextMenuOpen) {
-                if (hoveredContextMenuItem >= 0 && (size_t)hoveredContextMenuItem < contextMenuItems.size() &&
-                    !contextMenuItems[hoveredContextMenuItem].isDisabled && !contextMenuItems[hoveredContextMenuItem].isSeparator) {
-                    auto cb = contextMenuItems[hoveredContextMenuItem].onClick;
-                    CloseContextMenu();
-                    if (cb) cb();
-                } else { CloseContextMenu(); }
+                HandleContextMenuClick(x, y, dp);
                 InvalidateRect(hWnd, NULL, FALSE);
+                if (playbackSession.IsOpen()) Render();
                 return 0;
             }
             if (activeModal != ModalType::None) {
@@ -2930,12 +2927,7 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                     isKeyboardNavActive = false;
                     playerKeyboardFocusId = 0;
                     if (isContextMenuOpen) {
-                        if (hoveredContextMenuItem >= 0 && (size_t)hoveredContextMenuItem < contextMenuItems.size() &&
-                            !contextMenuItems[hoveredContextMenuItem].isDisabled && !contextMenuItems[hoveredContextMenuItem].isSeparator) {
-                            auto cb = contextMenuItems[hoveredContextMenuItem].onClick;
-                            CloseContextMenu();
-                            if (cb) cb();
-                        } else { CloseContextMenu(); }
+                        HandleContextMenuClick(x, y, dp);
                         InvalidateRect(hWnd, NULL, FALSE);
                         return 0;
                     }
@@ -4478,12 +4470,7 @@ LRESULT App::HandleOverlayMessage(HWND hOverlay, UINT uMsg, WPARAM wParam, LPARA
                 isKeyboardNavActive = false;
                 playerKeyboardFocusId = 0;
                 if (isContextMenuOpen) {
-                    if (hoveredContextMenuItem >= 0 && (size_t)hoveredContextMenuItem < contextMenuItems.size() &&
-                        !contextMenuItems[hoveredContextMenuItem].isDisabled && !contextMenuItems[hoveredContextMenuItem].isSeparator) {
-                        auto cb = contextMenuItems[hoveredContextMenuItem].onClick;
-                        CloseContextMenu();
-                        if (cb) cb();
-                    } else { CloseContextMenu(); }
+                    HandleContextMenuClick(x, y, dp);
                     Render();
                     return 0;
                 }
@@ -4581,12 +4568,7 @@ LRESULT App::HandleOverlayMessage(HWND hOverlay, UINT uMsg, WPARAM wParam, LPARA
                 if (PtInRectF(backRect, x, y)) { commandDispatcher.Execute(AppCommand::ClosePlayer); Render(); return 0; }
             }
             if (isContextMenuOpen) {
-                if (hoveredContextMenuItem >= 0 && (size_t)hoveredContextMenuItem < contextMenuItems.size() &&
-                    !contextMenuItems[hoveredContextMenuItem].isDisabled && !contextMenuItems[hoveredContextMenuItem].isSeparator) {
-                    auto cb = contextMenuItems[hoveredContextMenuItem].onClick;
-                    CloseContextMenu();
-                    if (cb) cb();
-                } else { CloseContextMenu(); }
+                HandleContextMenuClick(x, y, dp);
                 Render();
                 return 0;
             }
@@ -4737,6 +4719,11 @@ LRESULT App::HandleOverlayMessage(HWND hOverlay, UINT uMsg, WPARAM wParam, LPARA
         case WM_LBUTTONDBLCLK: {
             RefreshOverlayHitTargets(x, y);
             if (isJumpAheadHovered) return 0;
+            if (isContextMenuOpen) {
+                HandleContextMenuClick(x, y, dp);
+                Render();
+                return 0;
+            }
             if (playbackSession.IsPiP()) {
                 const auto pip = Presentation::PiP(winW, winH, dp);
                 if (PtInRectF(pip.audio, x, y)) {
@@ -4756,16 +4743,6 @@ LRESULT App::HandleOverlayMessage(HWND hOverlay, UINT uMsg, WPARAM wParam, LPARA
                     if (PtInRectF(flyoutBounds, x, y)) return 0;
                 }
                 if (!overPiPControl) commandDispatcher.Execute(AppCommand::TogglePiP);
-                return 0;
-            }
-            if (isContextMenuOpen) {
-                if (hoveredContextMenuItem >= 0 && (size_t)hoveredContextMenuItem < contextMenuItems.size() &&
-                    !contextMenuItems[hoveredContextMenuItem].isDisabled && !contextMenuItems[hoveredContextMenuItem].isSeparator) {
-                    auto cb = contextMenuItems[hoveredContextMenuItem].onClick;
-                    CloseContextMenu();
-                    if (cb) cb();
-                } else { CloseContextMenu(); }
-                Render();
                 return 0;
             }
             // Timeline track double-click: seek immediately and engage scrubbing
@@ -4835,6 +4812,10 @@ LRESULT App::HandleOverlayMessage(HWND hOverlay, UINT uMsg, WPARAM wParam, LPARA
             if (isCursorHidden) { isCursorHidden = false; SetCursor(LoadCursor(NULL, IDC_ARROW)); }
             short delta = GET_WHEEL_DELTA_WPARAM(wParam);
             bool isPhysicalCtrl = (GetAsyncKeyState(VK_CONTROL) & 0x8000) != 0;
+            if (HandleContextMenuWheel(delta)) {
+                Render();
+                return 0;
+            }
             if (isSettingsFlyoutOpen && currentFlyoutMenu == "queue") {
                 const size_t queueSize = playbackSession.GetQueueSize();
                 const size_t maxFirst = queueSize > 7 ? queueSize - 7 : 0;

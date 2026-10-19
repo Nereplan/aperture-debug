@@ -33,6 +33,38 @@ protected:
     static uint32_t QuantizeDrawingColor(float value) {
         return static_cast<uint32_t>(std::lround(std::clamp(value, 0.0f, 1.0f) * 65535.0f));
     }
+    class TransformScope {
+        ID2D1RenderTarget* target;
+        D2D1_MATRIX_3X2_F previous{};
+    public:
+        TransformScope(ID2D1RenderTarget* renderTarget, const D2D1_MATRIX_3X2_F& transform) : target(renderTarget) {
+            if (!target) return;
+            target->GetTransform(&previous);
+            target->SetTransform(transform * previous);
+        }
+        TransformScope(const TransformScope&) = delete;
+        TransformScope& operator=(const TransformScope&) = delete;
+        ~TransformScope() { if (target) target->SetTransform(previous); }
+    };
+    [[nodiscard]] TransformScope ApplyTransform(const D2D1_MATRIX_3X2_F& transform) {
+        return TransformScope(static_cast<Backend*>(this)->DrawingTarget(), transform);
+    }
+    void FillPolygon(const D2D1_POINT_2F* points, UINT32 count, const D2D1_COLOR_F& color) {
+        auto* target = static_cast<Backend*>(this)->DrawingTarget();
+        if (!target || !solidBrush || count < 3) return;
+        ComPtr<ID2D1Factory> factory;
+        target->GetFactory(&factory);
+        ComPtr<ID2D1PathGeometry> path;
+        if (FAILED(factory->CreatePathGeometry(&path))) return;
+        ComPtr<ID2D1GeometrySink> sink;
+        if (FAILED(path->Open(&sink))) return;
+        sink->BeginFigure(points[0], D2D1_FIGURE_BEGIN_FILLED);
+        sink->AddLines(points + 1, count - 1);
+        sink->EndFigure(D2D1_FIGURE_END_CLOSED);
+        if (FAILED(sink->Close())) return;
+        solidBrush->SetColor(color);
+        target->FillGeometry(path.Get(), solidBrush.Get());
+    }
     void FillRect(const D2D1_RECT_F& rect, const D2D1_COLOR_F& color) {
         auto* target = static_cast<Backend*>(this)->DrawingTarget();
         if (!target || !solidBrush) return;

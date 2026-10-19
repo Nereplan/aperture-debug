@@ -615,7 +615,8 @@ bool App::HandleGlobalKeyDown(WPARAM wParam, LPARAM lParam) {
             if (hoveredContextMenuItem >= 0 && (size_t)hoveredContextMenuItem < contextMenuItems.size() &&
                 !contextMenuItems[hoveredContextMenuItem].isDisabled && !contextMenuItems[hoveredContextMenuItem].isSeparator) {
                 auto cb = contextMenuItems[hoveredContextMenuItem].onClick;
-                CloseContextMenu();
+                bool keepOpen = contextMenuItems[hoveredContextMenuItem].keepOpen;
+                if (!keepOpen) CloseContextMenu();
                 if (cb) cb();
                 InvalidateRect(hWnd, NULL, FALSE);
                 if (playbackSession.IsOpen()) Render();

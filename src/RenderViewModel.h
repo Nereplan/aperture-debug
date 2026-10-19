@@ -36,7 +36,25 @@ struct ContextMenuItem {
     IconType icon = IconType::Play;
     bool isSeparator = false, isChecked = false, isDanger = false;
     std::function<void()> onClick = nullptr;
-    bool isDisabled = false, showCheckedIndicator = false;
+    bool isDisabled = false, showCheckedIndicator = false, keepOpen = false;
+};
+
+struct IrisDialSlotViewModel {
+    std::wstring name;
+    std::wstring value;
+    float centerDeg = 0.0f;
+    bool isModified = false;
+    bool isActive = false;
+};
+
+struct IrisShoulderButton {
+    std::wstring label;
+    IconType icon = IconType::Play;
+    bool hasIcon = true;
+    bool iconOnRight = false;
+    bool isDisabled = false;
+    bool keepOpen = false;
+    std::function<void()> onClick = nullptr;
 };
 
 struct SettingsPressState {
@@ -204,10 +222,19 @@ struct DiagnosticsOverlayViewModel {
 
 struct ContextMenuViewModel {
     bool isOpen = false;
+    bool isSplitIris = false;
     D2D1_POINT_2F origin = { 0.0f, 0.0f };
     std::vector<ContextMenuItem> items;
     int hoveredIndex = -1;
     float animProgress = 1.0f;
+
+    std::array<IrisDialSlotViewModel, 5> dials{};
+    int activeDialIndex = -1;
+    float currentWedgeAngle = 0.0f;
+    float apertureOpenFraction = 0.22f;
+    IrisShoulderButton leftShoulder;
+    IrisShoulderButton rightShoulder;
+    int hoveredShoulder = 0; // 0: none, 1: left, 2: right
 };
 
 struct JumpAheadViewModel {

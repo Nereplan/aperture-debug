@@ -1,4 +1,5 @@
 #include "Presentation.h"
+#include "SplitIrisMenuLayout.h"
 #include "UIComponents.h"
 #include "AppLayout.h"
 #include "BuildInfo.h"
@@ -8,6 +9,7 @@
 #include "SettingsLayout.h"
 #include <algorithm>
 #include <cmath>
+#include <cstdio>
 #include <ctime>
 
 namespace Aperture {
@@ -3634,13 +3636,179 @@ void UIComponents::DrawOSDBadge(OverlayRenderer& r, const Settings& s, const Osd
     DrawOSDBadge(r, s, vm.bounds, vm.icon, vm.text, vm.opacity, vm.isPiP);
 }
 
+template <typename R>
+static void DrawSplitIrisContextMenuImpl(R& r, const Settings& s, const ContextMenuViewModel& vm) {
+    namespace layout = SplitIrisMenuLayout;
+    const float dp = r.GetDpiScale();
+    const float alpha = std::clamp(vm.animProgress, 0.0f, 1.0f);
+    constexpr float pi = 3.14159265358979323846f;
+    const auto px = [&](float x) { return vm.origin.x + x * dp; };
+    const auto py = [&](float y) { return vm.origin.y + y * dp; };
+    // Scale the entire drawing about the iris, including text and icons.
+    const auto transform = r.ApplyTransform(D2D1::Matrix3x2F::Scale(
+        layout::Scale(alpha), layout::Scale(alpha), D2D1::Point2F(px(layout::Center), py(layout::Center))));
+    const auto box = [&](float x0, float y0, float x1, float y1) {
+        return D2D1::RectF(px(x0), py(y0), px(x1), py(y1));
+    };
+    const D2D1_RECT_F svgBox = box(0, 0, layout::Width, layout::Width);
+    const auto color = [&](UINT32 rgb, float opacity = 1.0f) { return D2D1::ColorF(rgb, alpha * opacity); };
+    const auto accent = [&](float opacity) { return ColorWithAlpha(s.currentTheme.accent, alpha * opacity); };
+    const auto text = color(0xe6e7ea), muted = color(0x9aa0a6), shortcut = color(0x757b82);
+    const auto danger = color(0xf26d6d);
+
+    // Flat, opaque surfaces and a fine border, as in the original HTML.
+    const float bottom = layout::Bottom(vm.items);
+    char bodyPath[256];
+    std::snprintf(bodyPath, sizeof(bodyPath),
+        "M 0.5 119 L 237.5 119 L 237.5 %.3f A 10 10 0 0 1 227.5 %.3f L 10.5 %.3f A 10 10 0 0 1 0.5 %.3f Z",
+        bottom - 10.5f, bottom - 0.5f, bottom - 0.5f, bottom - 10.5f);
+    r.DrawSvgPath(bodyPath, svgBox, color(0x1a1b1e), layout::Width, true);
+    r.DrawSvgPath(bodyPath, svgBox, color(0xffffff, 0.09f), layout::Width, false, dp);
+
+    // These are the reference's two shoulder paths, translated by the body's border.
+    const char* shoulderPaths[] = {
+        "M 12 125 L 76.3 125 A 43 43 0 0 0 95.6 156 L 12 156 A 5 5 0 0 1 7 151 L 7 130 A 5 5 0 0 1 12 125 Z",
+        "M 161.7 125 L 226 125 A 5 5 0 0 1 231 130 L 231 151 A 5 5 0 0 1 226 156 L 142.4 156 A 43 43 0 0 0 161.7 125 Z"
+    };
+    const IrisShoulderButton* shoulders[] = { &vm.leftShoulder, &vm.rightShoulder };
+    for (int i = 0; i < 2; ++i) {
+        const auto& button = *shoulders[i];
+        if (button.label.empty()) continue;
+        const bool hovered = vm.hoveredShoulder == i + 1 && !button.isDisabled;
+        r.DrawSvgPath(shoulderPaths[i], svgBox, color(0xffffff, hovered ? 0.09f : 0.035f), layout::Width, true);
+        r.DrawSvgPath(shoulderPaths[i], svgBox, color(0xffffff, hovered ? 0.16f : 0.07f), layout::Width, false, dp);
+        constexpr float iconSize = 12.0f, gap = 6.0f;
+        const float labelLeft = i == 0 ? 7.0f : 159.0f;
+        const float labelRight = labelLeft + 72.0f;
+        const float iconSpace = button.hasIcon ? iconSize + gap : 0.0f;
+        const std::wstring fitted = FitSingleLine(r, button.label, FontType::MenuShoulder, (72.0f - iconSpace) * dp);
+        const float textWidth = r.MeasureString(fitted, FontType::MenuShoulder).width / dp;
+        const float groupLeft = (labelLeft + labelRight - textWidth - iconSpace) * 0.5f;
+        const float textLeft = groupLeft + (button.hasIcon && !button.iconOnRight ? iconSpace : 0.0f);
+        const auto textColor = button.isDisabled ? color(0xe6e7ea, 0.40f) : text;
+        const auto iconColor = button.isDisabled ? color(0x9aa0a6, 0.38f) : muted;
+        if (button.hasIcon) {
+            const float iconLeft = button.iconOnRight ? groupLeft + textWidth + gap : groupLeft;
+            r.DrawIcon(button.icon, box(iconLeft, 134.5f, iconLeft + iconSize, 146.5f), iconColor);
+        }
+        r.DrawString(fitted, box(textLeft, 125, labelRight, 156), textColor, FontType::MenuShoulder,
+            DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+    }
+    r.DrawLine(px(12), py(164.5f), px(226), py(164.5f), color(0xffffff, 0.065f), dp);
+
+    float rowTop = layout::RowsTop;
+    for (size_t i = 0; i < vm.items.size(); ++i) {
+        const auto& item = vm.items[i];
+        if (item.isSeparator) {
+            r.DrawLine(px(12), py(rowTop + 4.5f), px(226), py(rowTop + 4.5f), color(0xffffff, 0.065f), dp);
+            rowTop += layout::SeparatorHeight;
+            continue;
+        }
+        const auto row = box(6, rowTop, 232, rowTop + layout::RowHeight);
+        const bool hovered = vm.hoveredIndex == static_cast<int>(i) && !item.isDisabled;
+        if (hovered) r.FillRoundedRect(row, 5.0f * dp,
+            item.isDanger ? color(0xf26d6d, 0.10f) : color(0xffffff, 0.07f));
+        const auto iconRect = box(15, rowTop + 7.5f, 29, rowTop + 21.5f);
+        const auto iconColor = item.isDisabled ? color(0x9aa0a6, 0.38f) : item.isDanger ? danger : muted;
+        if (item.showCheckedIndicator) {
+            if (item.isChecked) r.DrawIcon(IconType::Checkmark, iconRect, accent(1.0f));
+        } else {
+            r.DrawIcon(item.icon, iconRect, iconColor);
+        }
+        // Reserve only the measured shortcut width; arrows and single letters need very little space.
+        const float shortcutWidth = item.shortcut.empty() ? 0.0f : r.MeasureString(item.shortcut, FontType::MenuShortcut).width;
+        const float labelRight = px(223) - (item.shortcut.empty() ? 0.0f : shortcutWidth + 10.0f * dp);
+        const auto labelRect = D2D1::RectF(px(39), row.top, std::max(px(40), labelRight), row.bottom);
+        r.DrawString(FitSingleLine(r, item.label, FontType::MenuLabel, RectWidth(labelRect)), labelRect,
+            item.isDisabled ? color(0xe6e7ea, 0.42f) : item.isDanger ? danger : text, FontType::MenuLabel,
+            DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+        if (!item.shortcut.empty()) {
+            r.DrawString(item.shortcut, D2D1::RectF(px(223) - shortcutWidth - dp, row.top, px(223), row.bottom),
+                item.isDisabled ? color(0x757b82, 0.35f) : shortcut, FontType::MenuShortcut,
+                DWRITE_TEXT_ALIGNMENT_TRAILING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+        }
+        rowTop += layout::RowPitch;
+    }
+
+    const char* archPath = "M 0.5 119 A 118.5 118.5 0 0 1 237.5 119 L 157 119 A 38 38 0 0 0 81 119 Z";
+    r.DrawSvgPath(archPath, svgBox, color(0x1a1b1e), layout::Width, true);
+    r.DrawSvgPath("M 0.5 119 A 118.5 118.5 0 0 1 237.5 119", svgBox,
+        color(0xffffff, 0.09f), layout::Width, false, dp);
+    if (vm.activeDialIndex >= 0) {
+        const float a0 = (vm.currentWedgeAngle - 18.0f) * pi / 180.0f;
+        const float a1 = (vm.currentWedgeAngle + 18.0f) * pi / 180.0f;
+        char wedge[256];
+        std::snprintf(wedge, sizeof(wedge),
+            "M %.3f %.3f A 118.5 118.5 0 0 1 %.3f %.3f L %.3f %.3f A 38 38 0 0 0 %.3f %.3f Z",
+            119 + 118.5f * std::sin(a0), 119 - 118.5f * std::cos(a0),
+            119 + 118.5f * std::sin(a1), 119 - 118.5f * std::cos(a1),
+            119 + 38 * std::sin(a1), 119 - 38 * std::cos(a1),
+            119 + 38 * std::sin(a0), 119 - 38 * std::cos(a0));
+        r.DrawSvgPath(wedge, svgBox, accent(0.14f), layout::Width, true);
+        const float rim0 = (vm.currentWedgeAngle - 16.5f) * pi / 180.0f;
+        const float rim1 = (vm.currentWedgeAngle + 16.5f) * pi / 180.0f;
+        char rim[160];
+        std::snprintf(rim, sizeof(rim), "M %.3f %.3f A 118 118 0 0 1 %.3f %.3f",
+            119 + 118 * std::sin(rim0), 119 - 118 * std::cos(rim0),
+            119 + 118 * std::sin(rim1), 119 - 118 * std::cos(rim1));
+        r.DrawSvgPath(rim, svgBox, accent(1.0f), layout::Width, false, 2.0f * dp);
+    }
+    for (int i = 1; i < 5; ++i) {
+        const float angle = (-90.0f + i * 36.0f) * pi / 180.0f;
+        r.DrawLine(px(119 + 38 * std::sin(angle)), py(119 - 38 * std::cos(angle)),
+            px(119 + 118.5f * std::sin(angle)), py(119 - 118.5f * std::cos(angle)), color(0xffffff, 0.06f), dp);
+    }
+    for (int i = 0; i < 5; ++i) {
+        const float angle = vm.dials[i].centerDeg * pi / 180.0f;
+        const float x = 119 + 80 * std::sin(angle), y = 119 - 80 * std::cos(angle);
+        const bool active = vm.activeDialIndex == i;
+        r.DrawString(vm.dials[i].name, box(x - 38, y - 13, x + 38, y), active ? text : muted,
+            FontType::MenuDial, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+        const auto valueRect = box(x - 38, y + 1, x + 38, y + 14);
+        r.DrawString(FitSingleLine(r, vm.dials[i].value, FontType::MenuValue, RectWidth(valueRect)), valueRect,
+            active || vm.dials[i].isModified ? accent(1.0f) : shortcut, FontType::MenuValue,
+            DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+    }
+
+    // The reference's six tangent blades share a fill. Draw that disc and its
+    // hexagonal opening first, then all six seams so later blades cannot cover them.
+    constexpr float radius = layout::ChamberRadius;
+    r.FillCircle(px(119), py(119), radius * dp, color(0x15171b));
+    const float fraction = std::clamp(vm.apertureOpenFraction, 0.06f, 0.90f);
+    const float hole = 2.6f + fraction * (radius - 7.5f);
+    const float twist = std::acos(std::clamp(hole / radius, 0.08f, 0.96f)) * 0.74f;
+    const float vertexOffset = hole * std::tan(pi / 6.0f);
+    const float tangentExit = std::sqrt(std::max(0.0f, radius * radius - hole * hole));
+    D2D1_POINT_2F vertices[6], exits[6];
+    for (int i = 0; i < 6; ++i) {
+        const float angle = i * pi / 3.0f + twist;
+        const float nx = std::cos(angle), ny = std::sin(angle), tx = -ny, ty = nx;
+        vertices[i] = D2D1::Point2F(px(119 + nx * hole - tx * vertexOffset), py(119 + ny * hole - ty * vertexOffset));
+        exits[i] = D2D1::Point2F(px(119 + nx * hole + tx * tangentExit), py(119 + ny * hole + ty * tangentExit));
+    }
+    // Floating-point geometry avoids the old per-frame SVG rounding and cache churn.
+    r.FillPolygon(vertices, 6, color(0x0b0c0f));
+    for (int i = 0; i < 6; ++i) {
+        r.DrawLine(vertices[i].x, vertices[i].y, exits[i].x, exits[i].y, color(0x2d323b), 1.2f * dp);
+    }
+    r.DrawCircle(px(119), py(119), radius * dp, color(0xffffff, 0.11f), 1.1f * dp);
+}
+
 void UIComponents::DrawContextMenu(Renderer& r, const Settings& s, const ContextMenuViewModel& vm) {
     if (!vm.isOpen) return;
+    if (vm.isSplitIris) {
+        DrawSplitIrisContextMenuImpl(r, s, vm);
+        return;
+    }
     DrawContextMenu(r, s, vm.origin, vm.items, vm.hoveredIndex, vm.animProgress);
 }
 
 void UIComponents::DrawOverlayContextMenu(OverlayRenderer& r, const Settings& s, const ContextMenuViewModel& vm) {
     if (!vm.isOpen) return;
+    if (vm.isSplitIris) {
+        DrawSplitIrisContextMenuImpl(r, s, vm);
+        return;
+    }
     DrawOverlayContextMenu(r, s, vm.origin, vm.items, vm.hoveredIndex, vm.animProgress);
 }
 

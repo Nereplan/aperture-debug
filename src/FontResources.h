@@ -17,7 +17,8 @@ enum class FontType {
     Mono,        // 12px Mono - Timestamps, file paths, codecs, bitrates
     MonoSmall,   // 10.5px Mono - Small timestamps, counter badges
     Bold,        // 15px Bold - Prominent cards, CTA text
-    Subtitle     // 18px Bold - Player OSD & subtitles
+    Subtitle,    // 18px Bold - Player OSD & subtitles
+    MenuLabel, MenuShoulder, MenuDial, MenuValue, MenuShortcut
 };
 
 // Each backend owns its resources; construction and font fallback policy are shared.
@@ -31,6 +32,7 @@ protected:
     ComPtr<IDWriteTextFormat> tfHero, tfTitle, tfSubheading, tfMedium;
     ComPtr<IDWriteTextFormat> tfRegular, tfSmall, tfCaption, tfMono;
     ComPtr<IDWriteTextFormat> tfMonoSmall, tfBold, tfSubtitle;
+    ComPtr<IDWriteTextFormat> tfMenuLabel, tfMenuShoulder, tfMenuDial, tfMenuValue, tfMenuShortcut;
     static void MakeFormat( IDWriteFactory* factory, IDWriteFontCollection* customCollection, const wchar_t* family,
         DWRITE_FONT_WEIGHT weight, DWRITE_FONT_STYLE style, DWRITE_FONT_STRETCH stretch, float size, const wchar_t* locale,
         IDWriteTextFormat** ppFormat ) {
@@ -93,6 +95,11 @@ protected:
             case FontType::MonoSmall:  return tfMonoSmall ? tfMonoSmall.Get() : tfMono.Get();
             case FontType::Bold:       return tfBold ? tfBold.Get() : tfTitle.Get();
             case FontType::Subtitle:   return tfSubtitle ? tfSubtitle.Get() : tfTitle.Get();
+            case FontType::MenuLabel: return tfMenuLabel.Get();
+            case FontType::MenuShoulder: return tfMenuShoulder.Get();
+            case FontType::MenuDial: return tfMenuDial.Get();
+            case FontType::MenuValue: return tfMenuValue.Get();
+            case FontType::MenuShortcut: return tfMenuShortcut.Get();
         }
         return tfRegular.Get();
     }
@@ -146,6 +153,7 @@ protected:
         tfMedium.Reset();    tfRegular.Reset();  tfSmall.Reset();
         tfCaption.Reset();   tfMono.Reset();     tfMonoSmall.Reset();
         tfBold.Reset();      tfSubtitle.Reset();
+        tfMenuLabel.Reset(); tfMenuShoulder.Reset(); tfMenuDial.Reset(); tfMenuValue.Reset(); tfMenuShortcut.Reset();
         std::wstring locName = Utf8ToUtf16(Localization::Instance().GetCurrentLocale());
         if (locName.empty()) locName = L"en-us";
         MakeFormat(fac, col, display.c_str(), DWRITE_FONT_WEIGHT_SEMI_BOLD, DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, 22.0f * dp, locName.c_str(), &tfHero);
@@ -159,10 +167,17 @@ protected:
         MakeFormat(fac, col, mono.c_str(),    DWRITE_FONT_WEIGHT_MEDIUM,    DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, 10.5f * dp, locName.c_str(), &tfMonoSmall);
         MakeFormat(fac, col, sans.c_str(),    DWRITE_FONT_WEIGHT_BOLD,      DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, 15.0f * dp, locName.c_str(), &tfBold);
         MakeFormat(fac, col, display.c_str(), DWRITE_FONT_WEIGHT_BOLD,      DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, 18.0f * dp, locName.c_str(), &tfSubtitle);
+        // The compact player menu follows the native typography of the HTML reference.
+        MakeFormat(fac, col, L"Segoe UI", DWRITE_FONT_WEIGHT_NORMAL, DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, 12.5f * dp, locName.c_str(), &tfMenuLabel);
+        MakeFormat(fac, col, L"Segoe UI", DWRITE_FONT_WEIGHT_MEDIUM, DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, 12.0f * dp, locName.c_str(), &tfMenuShoulder);
+        MakeFormat(fac, col, L"Segoe UI", DWRITE_FONT_WEIGHT_MEDIUM, DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, 10.5f * dp, locName.c_str(), &tfMenuDial);
+        MakeFormat(fac, col, L"Consolas", DWRITE_FONT_WEIGHT_NORMAL, DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, 10.0f * dp, locName.c_str(), &tfMenuValue);
+        MakeFormat(fac, col, L"Segoe UI", DWRITE_FONT_WEIGHT_NORMAL, DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, 11.0f * dp, locName.c_str(), &tfMenuShortcut);
         bool isRtl = Localization::Instance().IsRtl();
         DWRITE_READING_DIRECTION readingDir = isRtl ? DWRITE_READING_DIRECTION_RIGHT_TO_LEFT : DWRITE_READING_DIRECTION_LEFT_TO_RIGHT;
         IDWriteTextFormat *formats[] = {tfHero.Get(),    tfTitle.Get(), tfSubheading.Get(), tfMedium.Get(), tfRegular.Get(), tfSmall.Get(),
-                                        tfCaption.Get(), tfMono.Get(),  tfMonoSmall.Get(),  tfBold.Get(),   tfSubtitle.Get()};
+                                        tfCaption.Get(), tfMono.Get(),  tfMonoSmall.Get(),  tfBold.Get(),   tfSubtitle.Get(),
+                                        tfMenuLabel.Get(), tfMenuShoulder.Get(), tfMenuDial.Get(), tfMenuValue.Get(), tfMenuShortcut.Get()};
         for (auto* f : formats) {
             if (f) {
                 f->SetWordWrapping(DWRITE_WORD_WRAPPING_NO_WRAP);

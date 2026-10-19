@@ -255,18 +255,11 @@ void App::RefreshOverlayHitTargets(float mouseX, float mouseY) {
     isVolumeHovered = false;
     hoveredFlyoutOption = -1;
     hoveredContextMenuItem = -1;
+    hoveredIrisShoulder = 0;
     // Menu item hover is presentation-independent: it must run before the PiP early-return
     // below or context-menu clicks in PiP would always see no hovered item and just close.
     if (isContextMenuOpen) {
-        float menuW = 220.0f * dp, itemH = 32.0f * dp, curY = contextMenuOrigin.y + 4.0f * dp;
-        for (size_t i = 0; i < contextMenuItems.size(); ++i) {
-            if (contextMenuItems[i].isSeparator) { curY += 6.0f * dp; continue; }
-            if (mouseX >= contextMenuOrigin.x && mouseX <= contextMenuOrigin.x + menuW && mouseY >= curY && mouseY <= curY + itemH) {
-                hoveredContextMenuItem = (int)i;
-                break;
-            }
-            curY += itemH;
-        }
+        UpdateContextMenuHitTarget(mouseX, mouseY, dp);
     }
     if (playbackSession.IsPiP()) {
         const auto pip = Presentation::PiP(winW, winH, dp);

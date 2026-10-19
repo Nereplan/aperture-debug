@@ -442,6 +442,7 @@ void OverlayRenderer::DrawSvgPath(const char* svgPath, const D2D1_RECT_F& rect, 
     static std::unordered_map<std::string, ComPtr<ID2D1PathGeometry>> g_svgOverlayCache;
     auto it = g_svgOverlayCache.find(svgPath);
     if (it == g_svgOverlayCache.end()) {
+        if (g_svgOverlayCache.size() >= 512) g_svgOverlayCache.clear();
         auto geom = SvgGeometry::Build(d2dFactory.Get(), svgPath);
         g_svgOverlayCache[svgPath] = geom;
         it = g_svgOverlayCache.find(svgPath);

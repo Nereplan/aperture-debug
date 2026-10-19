@@ -98,6 +98,8 @@ public:
         ~ScopedPrimitiveSnapping() { r.SetPrimitiveSnapping(prev); }
     };
     // Primitives
+    using DrawingPrimitives::ApplyTransform;
+    using DrawingPrimitives::FillPolygon;
     void Clear(const D2D1_COLOR_F& color);
     using DrawingPrimitives::FillRect;
     void FillGradientRect(const D2D1_RECT_F& rect, const D2D1_COLOR_F& startColor, const D2D1_COLOR_F& endColor, bool vertical = true);

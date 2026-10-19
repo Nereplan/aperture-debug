@@ -50,6 +50,8 @@ public:
     bool EndDrawAndPresent(HWND hOverlayWnd, int screenX, int screenY);
     float GetDpiScale() const { return dpiScale; }
     // Direct2D Drawing Primitives
+    using DrawingPrimitives::ApplyTransform;
+    using DrawingPrimitives::FillPolygon;
     void Clear(const D2D1_COLOR_F& color = D2D1::ColorF(0, 0, 0, 0));
     using DrawingPrimitives::FillRect;
     void FillGradientRect(const D2D1_RECT_F& rect, const D2D1_COLOR_F& startColor, const D2D1_COLOR_F& endColor, bool vertical = true);

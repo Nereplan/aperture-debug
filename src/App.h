@@ -700,9 +700,20 @@ private:
     bool isPlaylistsNavDropHovered = false;
     // Context Menu State
     bool isContextMenuOpen = false;
+    bool isSplitIrisMenu = false;
     D2D1_POINT_2F contextMenuOrigin = { 0, 0 };
+    D2D1_POINT_2F irisAnchorCursor = { 0, 0 };
     std::vector<ContextMenuItem> contextMenuItems;
     int hoveredContextMenuItem = -1;
+    IrisShoulderButton irisLeftShoulder;
+    IrisShoulderButton irisRightShoulder;
+    int hoveredIrisShoulder = 0; // 0: none, 1: left, 2: right
+    int activeIrisDialIndex = -1;
+    std::array<float, 5> irisDialApertures = { 0.56f, 0.56f, 0.56f, 0.56f, 0.56f };
+    float irisTargetWedgeAngle = 0.0f;
+    float irisCurrentWedgeAngle = 0.0f;
+    float irisApertureTarget = 0.22f;
+    float irisApertureCurrent = 0.06f;
     AnimatedFloat contextMenuAnim;
     AnimatedFloat flyoutAnim;
     // Menus fade out on close: hit-testing stops as soon as the open flag drops; the closing flag only extends drawing until the fade ends.
@@ -774,6 +785,17 @@ private:
     void PresentHubContextMenu(float x, float y, float width);
     void PresentPlayerContextMenu(float x, float y, float width, bool animate, PlayerMenuReveal reveal);
     void PrepareContextMenu(float& x, float& y, float width, float dp);
+    void PrepareSplitIrisContextMenu(float x, float y, float dp, bool resetIrisAnimation);
+    void SetIrisShoulders(IrisShoulderButton left, IrisShoulderButton right);
+    void SetActiveIrisDial(int index);
+    void StepIrisDial(int index, int dir);
+    void ResetIrisDial(int index);
+    std::array<IrisDialSlotViewModel, 5> BuildIrisDialViewModels() const;
+    void PopulateContextMenuViewModel(ContextMenuViewModel& out) const;
+    void UpdateContextMenuHitTarget(float mouseX, float mouseY, float dp);
+    bool HandleContextMenuClick(float mouseX, float mouseY, float dp);
+    bool HandleContextMenuWheel(short delta);
+    bool TickSplitIrisAnimation(float dt);
     void OpenMediaContextMenu(const MediaItem& item, float x, float y);
     void OpenFolderContextMenu(int groupIndex, float x, float y);
     void RemoveSelectedFolders();
