@@ -16,6 +16,15 @@ SPEC.loader.exec_module(BENCH)
 
 
 class DecodeComparisonTests(unittest.TestCase):
+    def test_windows_builds_and_unit_tests_defer_decoder_timing(self):
+        for name in ("cl.exe", "link.exe", "MSBuild.exe", "Aperture_Unit_Tests.exe"):
+            with self.subTest(process=name), mock.patch.object(BENCH.os, "name", "nt"), \
+                    mock.patch.object(BENCH.subprocess, "CREATE_NO_WINDOW", 0, create=True), \
+                    mock.patch.object(BENCH.subprocess, "run", return_value=subprocess.CompletedProcess(
+                        [], 0, f'"{name}","1234","Console","1","100 K"\n', "")):
+                with self.assertRaisesRegex(RuntimeError, "Timing deferred"):
+                    BENCH.no_competing_benchmarks()
+
     def run_comparison(self, root, mismatch=False, incomplete=False):
         baseline, candidate, media = (root / f for f in ("baseline.exe", "candidate.exe", "media.mp4"))
         for path in (baseline, candidate, media):

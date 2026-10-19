@@ -27,7 +27,8 @@ def no_competing_benchmarks():
                              text=True, capture_output=True, check=True,
                              creationflags=subprocess.CREATE_NO_WINDOW)
     blocked = {"aperture.exe", "vlc.exe", "mpv_playback_test.exe", "gcc.exe",
-               "cc1.exe", "cc1plus.exe", "lto1.exe", "ninja.exe", "make.exe"}
+               "cc1.exe", "cc1plus.exe", "lto1.exe", "ninja.exe", "make.exe",
+               "cl.exe", "link.exe", "msbuild.exe", "aperture_unit_tests.exe"}
     active = sorted({r[0] for r in csv.reader(process.stdout.splitlines())
                      if r and r[0].lower() in blocked})
     if active:
