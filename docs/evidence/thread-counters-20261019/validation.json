@@ -1,0 +1,48 @@
+{
+  "recordedUtc": "2026-10-19T08:32:42.640836+00:00",
+  "commit": "17c95d04acef97ff0861567041c4291b59aaa55a",
+  "dirty": true,
+  "sourceHashes": {
+    "tests/benchmark/compare_players.ps1": "0663ffa157a220452921120e9ebea705875f3c2f5c1a2de9833e07934412929c",
+    "tests/benchmark/PlayerBenchmarkWindow.cs": "a4aac4dcebea1f1155314ad3ef64b043b3813744f2d318be0cd727587b8c6742",
+    "tests/benchmark/PlayerThreadCounters.cs": "eafd9a01e2d0251180f0bb115bbcdc32fd1621b92e822ea727312767d2babece",
+    "tests/benchmark/PlayerThreadCounters.Tests.cs": "0dbae9fce85224b9bbf5c9846aa718ad10a879239056340fe8f0a3c86c8a8977",
+    "tests/benchmark/test_player_thread_counters.ps1": "fda59d15c831a4a307a897ec7c605b80ad81341e8267b9e4ffdfe3524d2b96bb"
+  },
+  "checks": {
+    "collector": {
+      "passed": 7,
+      "total": 7
+    },
+    "scriptParse": {
+      "passed": 2,
+      "total": 2
+    },
+    "visiblePlaybackGuard": {
+      "passed": 1,
+      "total": 1,
+      "noPlayerLaunched": true,
+      "noOutputCreated": true
+    }
+  },
+  "scope": "Observer correctness/self-observation only. No new Aperture or VLC run, no full-App CPU/RAM value, no presented-frame/cadence claim. One deliberately hidden STATIC window validates owner-thread identity; no media player starts.",
+  "method": "Optional CaptureThreadCounters captures passive cumulative cycles, sampled kernel/user CPU time, descriptions, creation identities and QPC bounds at ordinary benchmark samples. Observer is warmed against its own host before player launch. No thread suspension or stack walking. Process CPU totals remain primary.",
+  "limits": [
+    "Exited or inaccessible threads can be missing; a surviving-thread sum is not complete process CPU. Match TID plus creation time; a thread name is not code-cause proof.",
+    "Collector integration into an actual visible player measurement remains deferred until the human explicitly authorizes another run. The earlier one-time approval was consumed.",
+    "The self-snapshot belongs to the PowerShell validation host; its counters are not Aperture performance."
+  ],
+  "recordChecks": {
+    "checkpointSchema": "54 checkpoints / 1293 observations / 38 embedded reports valid",
+    "checkpointTests": {
+      "passed": 18,
+      "total": 18
+    },
+    "chartTests": {
+      "passed": 16,
+      "total": 16
+    },
+    "historicalDataPreserved": true,
+    "productionDllUnchanged": true
+  }
+}

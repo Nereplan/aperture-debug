@@ -96,7 +96,7 @@ git diff --check</pre>
 <script id="checkpoint-data" type="application/json">
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-10-19T08:21:57+00:00",
+  "updatedAt": "2026-10-19T08:32:43+00:00",
   "metrics": {
     "visible-ms": {
       "label": "Visible window",
@@ -17364,6 +17364,36 @@ git diff --check</pre>
             "runs": 5,
             "scope": "Five rotated fresh-process measurements per variant; one discarded process per case/variant. Separate hash warmup; software demux/decode only, not whole-player performance. All measured runs retained."
           }
+        }
+      ]
+    },
+    {
+      "id": "thread-counters-20261019-validated",
+      "label": "Playback observer / passive thread counters",
+      "measuredAt": "2026-10-19T08:32:42.640836+00:00",
+      "commit": "17c95d04acef97ff0861567041c4291b59aaa55a",
+      "dirty": true,
+      "sourceNote": "Observer-only source change at 17c95d04acef97ff0861567041c4291b59aaa55a. Existing user edits remain untouched; App EXE and bundled native DLL unchanged. Exact source hashes in docs/evidence/thread-counters-20261019/validation.json.",
+      "notes": "Seven hidden collector checks, two script parses and the default visible-playback guard passed. Optional snapshots can help locate CPU activity by thread without suspension or stacks. No new player measurement; prior single-launch authorization is consumed. Exited-thread and causal-attribution limits remain explicit.",
+      "results": [],
+      "tests": [
+        {
+          "name": "Passive thread collector",
+          "status": "pass",
+          "passed": 7,
+          "total": 7,
+          "durationSeconds": null,
+          "evidence": "docs/evidence/thread-counters-20261019/checks.txt",
+          "scope": "Own host and a deliberately hidden STATIC fixture only: identities, cycles, descriptions, handle cleanup, window ownership and JSON. No media player launched."
+        },
+        {
+          "name": "Default visible-playback guard",
+          "status": "pass",
+          "passed": 1,
+          "total": 1,
+          "durationSeconds": null,
+          "evidence": "docs/evidence/thread-counters-20261019/guard.json",
+          "scope": "CaptureThreadCounters does not bypass explicit visible-playback opt-in; refused before output creation."
         }
       ]
     }

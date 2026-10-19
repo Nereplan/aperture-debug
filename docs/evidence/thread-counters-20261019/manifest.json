@@ -1,0 +1,29 @@
+{
+  "files": [
+    {
+      "path": ".gitattributes",
+      "bytes": 9,
+      "sha256": "8b9c3028d6467ff3be7c793141927841d70f47f52d0590677438f488ca154992"
+    },
+    {
+      "path": "checks.txt",
+      "bytes": 472,
+      "sha256": "62b6b76cb7aba7db0a5ab1828e826d10fc157028500bd12d02cd330d511c0837"
+    },
+    {
+      "path": "guard.json",
+      "bytes": 172,
+      "sha256": "bc0a12ac872afdd93a82aade1b0c1d7c243813ce03d0709f61c8b324bb71cec0"
+    },
+    {
+      "path": "self-snapshot.json",
+      "bytes": 9928,
+      "sha256": "cbdea73181a8fb70b9a7f46322d9f2c3da6a265c31c01eb6fce4d6fa321d0a84"
+    },
+    {
+      "path": "validation.json",
+      "bytes": 2446,
+      "sha256": "193a87707f4e9f183a7f13d562e74e2201dc8e6bfcd291ddaba18e1a95adebb2"
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+PASS owned process, unique threads and monotonic capture bounds
+PASS missing process has an explicit unavailable reason
+PASS busy worker retains creation identity and increasing cycles
+PASS native thread descriptions survive capture
+PASS repeated snapshots close native thread handles
+PASS hidden owner-window thread lookup checks process identity
+PASS JSON preserves raw cycles and lossless creation identities
+7 thread-counter checks passed; no player launched.
