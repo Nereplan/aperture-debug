@@ -3656,11 +3656,12 @@ static void DrawSplitIrisContextMenuImpl(R& r, const Settings& s, const ContextM
     const auto text = color(0xe6e7ea), muted = color(0x9aa0a6), shortcut = color(0x757b82);
     const auto danger = color(0xf26d6d);
 
-    // Flat, opaque surfaces and a fine border, as in the original HTML.
+    // One opaque plate under the arch, iris and body. Adjacent antialiased
+    // cutouts leave translucent pixels around the iris and reveal the video.
     const float bottom = layout::Bottom(vm.items);
     char bodyPath[256];
     std::snprintf(bodyPath, sizeof(bodyPath),
-        "M 0.5 119 L 237.5 119 L 237.5 %.3f A 10 10 0 0 1 227.5 %.3f L 10.5 %.3f A 10 10 0 0 1 0.5 %.3f Z",
+        "M 0.5 119 A 118.5 118.5 0 0 1 237.5 119 L 237.5 %.3f A 10 10 0 0 1 227.5 %.3f L 10.5 %.3f A 10 10 0 0 1 0.5 %.3f Z",
         bottom - 10.5f, bottom - 0.5f, bottom - 0.5f, bottom - 10.5f);
     r.DrawSvgPath(bodyPath, svgBox, color(0x1a1b1e), layout::Width, true);
     r.DrawSvgPath(bodyPath, svgBox, color(0xffffff, 0.09f), layout::Width, false, dp);
@@ -3730,10 +3731,6 @@ static void DrawSplitIrisContextMenuImpl(R& r, const Settings& s, const ContextM
         rowTop += layout::RowPitch;
     }
 
-    const char* archPath = "M 0.5 119 A 118.5 118.5 0 0 1 237.5 119 L 157 119 A 38 38 0 0 0 81 119 Z";
-    r.DrawSvgPath(archPath, svgBox, color(0x1a1b1e), layout::Width, true);
-    r.DrawSvgPath("M 0.5 119 A 118.5 118.5 0 0 1 237.5 119", svgBox,
-        color(0xffffff, 0.09f), layout::Width, false, dp);
     if (vm.activeDialIndex >= 0) {
         const float a0 = (vm.currentWedgeAngle - 18.0f) * pi / 180.0f;
         const float a1 = (vm.currentWedgeAngle + 18.0f) * pi / 180.0f;
@@ -3762,11 +3759,11 @@ static void DrawSplitIrisContextMenuImpl(R& r, const Settings& s, const ContextM
         const float angle = vm.dials[i].centerDeg * pi / 180.0f;
         const float x = 119 + 80 * std::sin(angle), y = 119 - 80 * std::cos(angle);
         const bool active = vm.activeDialIndex == i;
-        r.DrawString(vm.dials[i].name, box(x - 38, y - 13, x + 38, y), active ? text : muted,
+        r.DrawString(vm.dials[i].name, box(x - 38, y - 14, x + 38, y + 1), active ? text : muted,
             FontType::MenuDial, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-        const auto valueRect = box(x - 38, y + 1, x + 38, y + 14);
+        const auto valueRect = box(x - 38, y + 1, x + 38, y + 16);
         r.DrawString(FitSingleLine(r, vm.dials[i].value, FontType::MenuValue, RectWidth(valueRect)), valueRect,
-            active || vm.dials[i].isModified ? accent(1.0f) : shortcut, FontType::MenuValue,
+            active || vm.dials[i].isModified ? accent(1.0f) : color(0x90969e), FontType::MenuValue,
             DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
     }
 

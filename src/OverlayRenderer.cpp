@@ -41,6 +41,7 @@ void OverlayRenderer::Shutdown() {
     pBitmapBits = nullptr;
     solidBrush.Reset();
     textRenderingParams.Reset();
+    menuTextRenderingParams.Reset();
     subtitleFormat.Reset();
     subtitleLayout.Reset();
     subtitleLayoutText.clear();
@@ -153,6 +154,7 @@ void OverlayRenderer::SetTextScale(float scale) {
 
 void OverlayRenderer::CreateTextRenderingParams() {
     textRenderingParams.Reset();
+    menuTextRenderingParams.Reset();
     if (!dwriteFactory) return;
     ComPtr<IDWriteRenderingParams> monitorParams;
     HMONITOR hMon = overlayWindow ? MonitorFromWindow(overlayWindow, MONITOR_DEFAULTTONEAREST) : NULL;
@@ -164,6 +166,10 @@ void OverlayRenderer::CreateTextRenderingParams() {
     // clearTypeLevel 0 ensures crisp, clean glyph alpha coverage without colored fringes.
     dwriteFactory->CreateCustomRenderingParams( gamma, 1.0f, 1.0f, 0.0f, DWRITE_PIXEL_GEOMETRY_FLAT,
         DWRITE_RENDERING_MODE1_NATURAL_SYMMETRIC, DWRITE_GRID_FIT_MODE_DISABLED, &textRenderingParams );
+    // Compact menu labels need grid fitting at small sizes. Keep grayscale
+    // coverage for the layered surface and avoid the heavy contrast of OSD text.
+    dwriteFactory->CreateCustomRenderingParams( gamma, 0.0f, 0.5f, 0.0f, DWRITE_PIXEL_GEOMETRY_FLAT,
+        DWRITE_RENDERING_MODE1_NATURAL, DWRITE_GRID_FIT_MODE_ENABLED, &menuTextRenderingParams );
 }
 
 void OverlayRenderer::ReleaseRenderTarget() {
@@ -422,9 +428,12 @@ void OverlayRenderer::DrawString(const std::wstring& text, const D2D1_RECT_F& re
     ComPtr<IDWriteTextLayout> layout = GetOrCreateTextLayout( text, font, std::max(1.0f, RectWidth(snappedRect)),
         std::max(1.0f, RectHeight(snappedRect)), align, valign );
     if (!layout) return;
+    const bool menuText = font >= FontType::MenuLabel && font <= FontType::MenuShortcut && menuTextRenderingParams;
+    if (menuText) dcRenderTarget->SetTextRenderingParams(menuTextRenderingParams.Get());
     solidBrush->SetColor(color);
     dcRenderTarget->DrawTextLayout( D2D1::Point2F(snappedRect.left, snappedRect.top),
         layout.Get(), solidBrush.Get(), D2D1_DRAW_TEXT_OPTIONS_ENABLE_COLOR_FONT );
+    if (menuText) dcRenderTarget->SetTextRenderingParams(textRenderingParams.Get());
 }
 
 D2D1_SIZE_F OverlayRenderer::MeasureString(const std::wstring& text, FontType font) {

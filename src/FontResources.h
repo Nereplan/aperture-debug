@@ -170,8 +170,8 @@ protected:
         // The compact player menu follows the native typography of the HTML reference.
         MakeFormat(fac, col, L"Segoe UI", DWRITE_FONT_WEIGHT_NORMAL, DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, 12.5f * dp, locName.c_str(), &tfMenuLabel);
         MakeFormat(fac, col, L"Segoe UI", DWRITE_FONT_WEIGHT_MEDIUM, DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, 12.0f * dp, locName.c_str(), &tfMenuShoulder);
-        MakeFormat(fac, col, L"Segoe UI", DWRITE_FONT_WEIGHT_MEDIUM, DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, 10.5f * dp, locName.c_str(), &tfMenuDial);
-        MakeFormat(fac, col, L"Consolas", DWRITE_FONT_WEIGHT_NORMAL, DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, 10.0f * dp, locName.c_str(), &tfMenuValue);
+        MakeFormat(fac, col, L"Segoe UI", DWRITE_FONT_WEIGHT_MEDIUM, DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, 11.0f * dp, locName.c_str(), &tfMenuDial);
+        MakeFormat(fac, col, L"Segoe UI", DWRITE_FONT_WEIGHT_NORMAL, DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, 11.0f * dp, locName.c_str(), &tfMenuValue);
         MakeFormat(fac, col, L"Segoe UI", DWRITE_FONT_WEIGHT_NORMAL, DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, 11.0f * dp, locName.c_str(), &tfMenuShortcut);
         bool isRtl = Localization::Instance().IsRtl();
         DWRITE_READING_DIRECTION readingDir = isRtl ? DWRITE_READING_DIRECTION_RIGHT_TO_LEFT : DWRITE_READING_DIRECTION_LEFT_TO_RIGHT;

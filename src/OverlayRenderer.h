@@ -102,6 +102,7 @@ private:
     void ArmFrameTimer(double now);
     ComPtr<ID2D1Factory1> d2dFactory;
     ComPtr<IDWriteRenderingParams3> textRenderingParams;
+    ComPtr<IDWriteRenderingParams3> menuTextRenderingParams;
     ComPtr<ID2D1DCRenderTarget> dcRenderTarget;
     struct LayoutKey {
         std::wstring text;
