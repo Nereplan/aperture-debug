@@ -11,6 +11,39 @@ inline constexpr float RowHeight = 29.0f;
 inline constexpr float RowPitch = 30.0f;
 inline constexpr float SeparatorHeight = 9.0f;
 
+struct LabelRowBounds {
+    float left, right;
+    float Width() const { return std::max(0.0f, right - left); }
+};
+
+// Horizontal text rows must fit between both radial dividers and the curved
+// rims. Intersect the limits at both ends of the row, with a visible gutter.
+inline LabelRowBounds DialLabelRow(float centerDeg, float top, float bottom) {
+    constexpr float pi = 3.14159265358979323846f, gutter = 2.5f;
+    constexpr float outer = Center - 0.5f - gutter, inner = ChamberRadius + gutter;
+    const float start = (centerDeg - 18.0f) * pi / 180.0f;
+    const float end = (centerDeg + 18.0f) * pi / 180.0f;
+    LabelRowBounds bounds{0.0f, Width};
+    for (float y : {top, bottom}) {
+        const float height = Center - y;
+        if (height < 0.0f || height >= outer) return {Center, Center};
+        const float extent = std::sqrt(outer * outer - height * height);
+        bounds.left = std::max(bounds.left, Center - extent);
+        bounds.right = std::min(bounds.right, Center + extent);
+        if (centerDeg > -72.0f) bounds.left = std::max(bounds.left,
+            Center + height * std::tan(start) + gutter / std::cos(start));
+        if (centerDeg < 72.0f) bounds.right = std::min(bounds.right,
+            Center + height * std::tan(end) - gutter / std::cos(end));
+        if (height < inner) {
+            const float chamber = std::sqrt(inner * inner - height * height);
+            if (centerDeg < 0.0f) bounds.right = std::min(bounds.right, Center - chamber);
+            else if (centerDeg > 0.0f) bounds.left = std::max(bounds.left, Center + chamber);
+            else return {Center, Center};
+        }
+    }
+    return bounds;
+}
+
 inline float Scale(float progress) {
     return 0.95f + 0.05f * std::clamp(progress, 0.0f, 1.0f);
 }

@@ -3759,9 +3759,54 @@ static void DrawSplitIrisContextMenuImpl(R& r, const Settings& s, const ContextM
         const float angle = vm.dials[i].centerDeg * pi / 180.0f;
         const float x = 119 + 80 * std::sin(angle), y = 119 - 80 * std::cos(angle);
         const bool active = vm.activeDialIndex == i;
-        r.DrawString(vm.dials[i].name, box(x - 38, y - 14, x + 38, y + 1), active ? text : muted,
-            FontType::MenuDial, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-        const auto valueRect = box(x - 38, y + 1, x + 38, y + 16);
+        const float nameWidth = r.MeasureString(vm.dials[i].name, FontType::MenuDial).width / dp + 1.0f;
+        float labelY = y, widest = -1.0f;
+        layout::LabelRowBounds nameBounds{};
+        // Move long names towards the wider outer part of their wedge. Retain
+        // the readable font size and full name whenever the sector permits it.
+        for (int offset = 0; offset <= 24; ++offset) {
+            const auto candidate = layout::DialLabelRow(vm.dials[i].centerDeg, y - 14 - offset, y + 1 - offset);
+            if (candidate.Width() > widest) {
+                widest = candidate.Width();
+                nameBounds = candidate;
+                labelY = y - offset;
+            }
+            if (candidate.Width() >= nameWidth) break;
+        }
+        const auto centerInRow = [](layout::LabelRowBounds bounds, float preferred, float width) {
+            if (bounds.Width() <= width) return (bounds.left + bounds.right) * 0.5f;
+            const float half = width * 0.5f;
+            return std::clamp(preferred, bounds.left + half, bounds.right - half);
+        };
+        float nameX = centerInRow(nameBounds, x, nameWidth);
+        const size_t wordBreak = vm.dials[i].name.find(L' ');
+        if (nameBounds.Width() < nameWidth && wordBreak != std::wstring::npos) {
+            // The central wedge cannot contain the full horizontal "Audio Delay"
+            // at this font size. Stack the words instead of shrinking or losing it.
+            for (int line = 0; line < 2; ++line) {
+                const auto word = line == 0 ? vm.dials[i].name.substr(0, wordBreak) : vm.dials[i].name.substr(wordBreak + 1);
+                const float top = y - 28 + line * 14;
+                const auto bounds = layout::DialLabelRow(vm.dials[i].centerDeg, top, top + 14);
+                const float width = r.MeasureString(word, FontType::MenuDial).width / dp + 1.0f;
+                const float center = centerInRow(bounds, x, width);
+                const float half = std::max(0.0f, std::min(center - bounds.left, bounds.right - center));
+                const auto rect = box(center - half, top, center + half, top + 14);
+                r.DrawString(FitSingleLine(r, word, FontType::MenuDial, RectWidth(rect)), rect, active ? text : muted,
+                    FontType::MenuDial, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+            }
+            nameX = x;
+            labelY = y - 1;
+        } else {
+            const float nameHalf = std::max(0.0f, std::min(nameX - nameBounds.left, nameBounds.right - nameX));
+            const auto nameRect = box(nameX - nameHalf, labelY - 14, nameX + nameHalf, labelY + 1);
+            r.DrawString(FitSingleLine(r, vm.dials[i].name, FontType::MenuDial, RectWidth(nameRect)), nameRect, active ? text : muted,
+                FontType::MenuDial, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+        }
+        const auto valueBounds = layout::DialLabelRow(vm.dials[i].centerDeg, labelY + 1, labelY + 16);
+        const float valueWidth = r.MeasureString(vm.dials[i].value, FontType::MenuValue).width / dp + 1.0f;
+        const float valueX = centerInRow(valueBounds, nameX, valueWidth);
+        const float valueHalf = std::max(0.0f, std::min(valueX - valueBounds.left, valueBounds.right - valueX));
+        const auto valueRect = box(valueX - valueHalf, labelY + 1, valueX + valueHalf, labelY + 16);
         r.DrawString(FitSingleLine(r, vm.dials[i].value, FontType::MenuValue, RectWidth(valueRect)), valueRect,
             active || vm.dials[i].isModified ? accent(1.0f) : color(0x90969e), FontType::MenuValue,
             DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
