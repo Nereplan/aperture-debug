@@ -1,0 +1,42 @@
+{
+  "recordedUtc": "2026-10-19T07:48:56.580635+00:00",
+  "authorizedVisibleLaunches": 1,
+  "measuredLaunches": 1,
+  "discardedWarmupLaunches": 0,
+  "vlcLaunches": 0,
+  "sampledAndAdvancing": true,
+  "videoCanvas": [
+    1280,
+    720
+  ],
+  "dpi": 96,
+  "snapshotCount": 7,
+  "seconds": 30.0075739,
+  "ownedWindowClosed": true,
+  "ownedRuntimeAndProfileRemoved": true,
+  "calibrationSupported": true,
+  "calibrationInvariantTsc": true,
+  "calibrationRateSpread": 6.401e-06,
+  "calibrationBusyRatio": 0.995762906,
+  "calibrationLogicalProcessors": 24,
+  "packageManifestVerifiedFiles": 10,
+  "appSourceHashesStillMatch": true,
+  "rootBundledNativeUnchanged": true,
+  "scope": "Playback position/canvas and recorded process counters only; actual decoder, audio sink, presented frames and dropped-frame counts were not collected in this visible run.",
+  "recordChecks": {
+    "checkpointSchema": "49 checkpoints / 1253 observations / 37 embedded reports valid",
+    "checkpointTests": {
+      "passed": 18,
+      "total": 18
+    },
+    "chartTests": {
+      "passed": 16,
+      "total": 16,
+      "initialFailure": "A chart test assumed the 18 October replay would forever be the last recorded observation. Adding the authorized 19 October run exposed that stale assertion.",
+      "repair": "Compute the latest explicitly matching recorded observation by date; require the earlier replay to remain included and both timeline and resource map to end at the latest observation."
+    },
+    "historicalDataPreserved": true,
+    "frontendBytesPreserved": true,
+    "savedVlcUnchanged": true
+  }
+}

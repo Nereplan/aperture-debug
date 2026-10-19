@@ -1,0 +1,241 @@
+{
+  "recordedUtc": "2026-10-19T07:48:56.580635+00:00",
+  "batchCompletedUtc": "2026-10-19T07:45:02.4348196Z",
+  "status": "Single run: private RAM is lower than saved VLC, but full-window CPU is higher. Speed-profile native build remains experimental, not adopted.",
+  "method": "Exactly one human-authorized visible Aperture launch, no discarded warmup and no VLC launch. Same SHA256-verified 180s 1080p30 H264/AAC stereo fixture, clean owned portable profile, 1280x720 actual video canvas at 96 DPI. Seven process snapshots span 30.0075739 seconds after at least 10s media time and settling, with advancing media. No concurrent tests/builds/profilers during sampling. Full-window calibrated CPU = cycle delta / actual elapsed / fresh validated same-CPU invariant-TSC rate *100, percent of one logical processor; divide by 24 for whole-machine capacity. Raw process CPU-time delta is retained separately. Private RAM/working set/dedicated GPU allocation are medians of all seven snapshots; overlapping memory categories are not summed. Saved VLC retains its original date/session/calibration. Balanced Aperture versus linear VLC scaling, no equal-output or decoder equivalence claim.",
+  "sourceIdentity": "docs/evidence/native-performance-20261019/visible-once/source-identity.json",
+  "aperture": {
+    "values": {
+      "cpu-core": 6.556720000914256,
+      "visible-ms": 101.8359,
+      "runtime-mib": 36.37646198272705,
+      "private-mib": 147.69921875,
+      "working-set-mib": 138.13671875,
+      "gpu-mib": 98.265625
+    },
+    "sampledCpuOneLogicalPercent": 6.248422502426962,
+    "cpuTotalCapacityPercent": 0.27319666670476067,
+    "cycleDelta": 7476544080,
+    "sampledCpuSecondsDelta": 1.875,
+    "actualElapsedSeconds": 30.0075739,
+    "privateMiBSnapshotRange": [
+      147.48828125,
+      150.7421875
+    ],
+    "sharedGpuMiB": 14.078125,
+    "snapshotCount": 7,
+    "mediaIntervalSeconds": [
+      10.0666666667,
+      40.0666666667
+    ],
+    "intervals": [
+      {
+        "fromMediaSeconds": 10.0666666667,
+        "toMediaSeconds": 15.0666666667,
+        "elapsedSeconds": 5.002002000000001,
+        "cpuOneLogicalPercent": 17.84185119183245
+      },
+      {
+        "fromMediaSeconds": 15.0666666667,
+        "toMediaSeconds": 20.0666666667,
+        "elapsedSeconds": 5.006833099999998,
+        "cpuOneLogicalPercent": 4.2730265705141806
+      },
+      {
+        "fromMediaSeconds": 20.0666666667,
+        "toMediaSeconds": 25.0666666667,
+        "elapsedSeconds": 5.0023321,
+        "cpuOneLogicalPercent": 4.110037085780625
+      },
+      {
+        "fromMediaSeconds": 25.0666666667,
+        "toMediaSeconds": 30.0666666667,
+        "elapsedSeconds": 5.004062900000001,
+        "cpuOneLogicalPercent": 4.152627769386066
+      },
+      {
+        "fromMediaSeconds": 30.0666666667,
+        "toMediaSeconds": 35.0666666667,
+        "elapsedSeconds": 4.9820218999999994,
+        "cpuOneLogicalPercent": 4.615734765051733
+      },
+      {
+        "fromMediaSeconds": 35.0666666667,
+        "toMediaSeconds": 40.0666666667,
+        "elapsedSeconds": 5.010321900000001,
+        "cpuOneLogicalPercent": 4.346323749098806
+      }
+    ]
+  },
+  "savedVlc": {
+    "referenceId": "vlc-20261018-balanced-overlay-screen-h264",
+    "version": "3.0.23",
+    "originalBatchMeasuredAt": "2026-10-18T18:57:51.4393218Z",
+    "originalStartedUtc": "2026-10-18T18:57:02.2838411Z",
+    "originalSamplingEndedUtc": "2026-10-18T18:57:50.1329986Z",
+    "originalSession": "balanced-overlay-screen-h264-20261018",
+    "rawEvidence": "docs/evidence/balanced-memory-20261018/app/comparison.json",
+    "values": {
+      "cpu-core": 5.091447168676399,
+      "visible-ms": 1639.955,
+      "runtime-mib": 182.99101448059082,
+      "private-mib": 150.8515625,
+      "working-set-mib": 146.0859375,
+      "gpu-mib": 118.4609375
+    },
+    "sampledCpuOneLogicalPercent": 4.529518017998671,
+    "cpuTotalCapacityPercent": 0.2121436320281833,
+    "cycleDelta": 5806467640,
+    "sampledCpuSecondsDelta": 1.359375,
+    "actualElapsedSeconds": 30.011471299999997,
+    "privateMiBSnapshotRange": [
+      150.58203125,
+      151.05859375
+    ],
+    "sharedGpuMiB": 15.28515625,
+    "snapshotCount": 7,
+    "mediaIntervalSeconds": [
+      11.0,
+      41.0
+    ],
+    "intervals": [
+      {
+        "fromMediaSeconds": 11.0,
+        "toMediaSeconds": 16.0,
+        "elapsedSeconds": 4.999637499999999,
+        "cpuOneLogicalPercent": 5.176952703767877
+      },
+      {
+        "fromMediaSeconds": 16.0,
+        "toMediaSeconds": 21.0,
+        "elapsedSeconds": 5.008760500000001,
+        "cpuOneLogicalPercent": 5.062243789346408
+      },
+      {
+        "fromMediaSeconds": 21.0,
+        "toMediaSeconds": 26.0,
+        "elapsedSeconds": 4.997666599999999,
+        "cpuOneLogicalPercent": 5.132364534200405
+      },
+      {
+        "fromMediaSeconds": 26.0,
+        "toMediaSeconds": 31.0,
+        "elapsedSeconds": 5.0125391000000015,
+        "cpuOneLogicalPercent": 5.00969990809355
+      },
+      {
+        "fromMediaSeconds": 31.0,
+        "toMediaSeconds": 36.0,
+        "elapsedSeconds": 4.994461999999999,
+        "cpuOneLogicalPercent": 5.110455696363643
+      },
+      {
+        "fromMediaSeconds": 36.0,
+        "toMediaSeconds": 41.0,
+        "elapsedSeconds": 4.998405599999998,
+        "cpuOneLogicalPercent": 5.05725800101339
+      }
+    ]
+  },
+  "versusSavedVlc": {
+    "privateMiBDifference": -3.15234375,
+    "privateRelativePercent": -2.089699104044751,
+    "calibratedCpuRelativePercent": 28.77910314482901,
+    "calibratedCpuMachinePercentagePointDifference": 0.061053034676577383,
+    "sampledCpuOneLogicalPercentagePointDifference": 1.7189044844282906,
+    "dedicatedGpuMiBDifference": -20.1953125,
+    "suppliedRuntimeMiBDifference": -146.61455249786377
+  },
+  "previousAperture": {
+    "rawEvidence": "docs/evidence/direct-nv12-20261018/visible-once/comparison.json",
+    "values": {
+      "cpu-core": 4.949772590381909,
+      "visible-ms": 109.8057,
+      "runtime-mib": 27.88720417022705,
+      "private-mib": 148.01171875,
+      "working-set-mib": 141.5390625,
+      "gpu-mib": 98.27734375
+    },
+    "sampledCpuOneLogicalPercent": 4.945508385418275,
+    "cpuTotalCapacityPercent": 0.20624052459924622,
+    "cycleDelta": 5645490140,
+    "sampledCpuSecondsDelta": 1.484375,
+    "actualElapsedSeconds": 30.0146089,
+    "privateMiBSnapshotRange": [
+      147.3984375,
+      148.1171875
+    ],
+    "sharedGpuMiB": 13.59765625,
+    "snapshotCount": 7,
+    "mediaIntervalSeconds": [
+      10.0666666667,
+      40.0666666667
+    ],
+    "intervals": [
+      {
+        "fromMediaSeconds": 10.0666666667,
+        "toMediaSeconds": 15.0666666667,
+        "elapsedSeconds": 5.014386900000002,
+        "cpuOneLogicalPercent": 4.920654028179538
+      },
+      {
+        "fromMediaSeconds": 15.0666666667,
+        "toMediaSeconds": 20.0666666667,
+        "elapsedSeconds": 4.9987979,
+        "cpuOneLogicalPercent": 4.859729017046116
+      },
+      {
+        "fromMediaSeconds": 20.0666666667,
+        "toMediaSeconds": 25.0333333333,
+        "elapsedSeconds": 4.989804299999999,
+        "cpuOneLogicalPercent": 5.076756800721741
+      },
+      {
+        "fromMediaSeconds": 25.0333333333,
+        "toMediaSeconds": 30.0666666667,
+        "elapsedSeconds": 5.010572700000001,
+        "cpuOneLogicalPercent": 4.9609564685291625
+      },
+      {
+        "fromMediaSeconds": 30.0666666667,
+        "toMediaSeconds": 35.0333333333,
+        "elapsedSeconds": 4.9913386999999965,
+        "cpuOneLogicalPercent": 4.978093963021227
+      },
+      {
+        "fromMediaSeconds": 35.0333333333,
+        "toMediaSeconds": 40.0666666667,
+        "elapsedSeconds": 5.009708400000001,
+        "cpuOneLogicalPercent": 4.90288279646727
+      }
+    ]
+  },
+  "versusPreviousAperture": {
+    "privateMiBDifference": -0.3125,
+    "privateRelativePercent": -0.2111319310654225,
+    "calibratedCpuRelativePercent": 32.46507554013425,
+    "calibratedCpuMachinePercentagePointDifference": 0.06695614210551445,
+    "sampledCpuOneLogicalPercentagePointDifference": 1.3029141170086866,
+    "dedicatedGpuMiBDifference": -0.01171875,
+    "suppliedRuntimeMiBDifference": 8.4892578125
+  },
+  "cpuBurstReview": {
+    "finding": "The first sampled interval is 17.84185% of one logical processor; subsequent intervals are 4.11004–4.61573%. All intervals remain included in the official full-window CPU average.",
+    "cause": "Unknown. No thread/event/decoder trace was collected; these cumulative counters cannot attribute the burst to a component or the native profile. Separate historical sessions do not establish causality.",
+    "selection": "No interval trimmed, no replacement run, no alternative steady-state headline."
+  },
+  "decision": {
+    "candidateAdopted": false,
+    "bundledNativeSha256": "8dd14629f574a04a1d6904104be8748e73954d9ac5aef07cc36f1a34ee752daa",
+    "reason": "Software-only decode gains remain valid component evidence, but this one full-App hardware-playback sample does not establish a CPU gain. Candidate adds 8.4892578125 MiB of native DLL; keep it isolated pending further evidence.",
+    "candidatePackage": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\native-performance-20261019\\portable-candidate"
+  },
+  "limits": [
+    "One measured launch; snapshot intervals/ranges are not independent repeat-run samples. No stable player ranking, general performance win or code-caused regression follows.",
+    "Original matching VLC baseline reused without running VLC, changing its timestamp/session or substituting the current calibration.",
+    "Process-to-visible-window is shell readiness, not first visible video. Runtime sizes are supplied distributions with differing feature inventories.",
+    "Media advancement and actual canvas verified; visible decoder/filter path, audio output activity and presented-frame cadence were not instrumented.",
+    "Earlier hidden functional and frame-quality checks remain separately dated validation, not new measurements of this visible run.",
+    "Source contains existing user changes. No install, restart, release, or adoption was performed."
+  ]
+}

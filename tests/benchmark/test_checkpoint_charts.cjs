@@ -108,9 +108,15 @@ test('compatible replays connect saved history and retain the original VLC date'
   const cp = DATA.checkpoints.find(c => c.id === 'direct-nv12-20261018-visible-once');
   const r = cp.results.find(r => r.metric === 'cpu-core');
   const points = context.historyPoints(context.seriesKey(r));
+  const latestRecorded = DATA.checkpoints.flatMap(c => c.results
+    .filter(v => v.metric === r.metric && v.historySeries === r.historySeries &&
+      v.environment === r.environment && v.workload === r.workload && v.value !== null)
+    .map(v => ({id: c.id, date: v.measuredAt || c.measuredAt})))
+    .sort((a, b) => Date.parse(a.date) - Date.parse(b.date)).at(-1);
   assert(points.length >= 5);
   assert(points.some(p => p.id === 'balanced-overlay-20261018-released'));
-  assert.equal(points.at(-1).id, cp.id);
+  assert(points.some(p => p.id === cp.id));
+  assert.equal(points.at(-1).id, latestRecorded.id);
   const b = context.baseline(r);
   assert.equal(b.measuredAt, '2026-10-18T18:57:51.4393218Z');
   assert.equal(b.value, 5.091447168676399);
@@ -122,7 +128,8 @@ test('compatible replays connect saved history and retain the original VLC date'
   const mapPoints = context.resourcePoints(context.playerOrigin(cp));
   assert(mapPoints.length >= 5);
   assert(mapPoints.some(p => p.id === 'balanced-overlay-20261018-released'));
-  assert.equal(mapPoints.at(-1).id, cp.id);
+  assert(mapPoints.some(p => p.id === cp.id));
+  assert.equal(mapPoints.at(-1).id, latestRecorded.id);
   assert.equal(mapPoints.find(p => p.id === 'balanced-overlay-20261018-released').y, 174.515625);
   for (let i = 1; i < mapPoints.length; i++) assert(Date.parse(mapPoints[i].date) >= Date.parse(mapPoints[i - 1].date));
 });

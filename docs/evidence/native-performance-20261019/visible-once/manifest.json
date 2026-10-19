@@ -1,0 +1,40 @@
+{
+  "recordedUtc": "2026-10-19T07:50:09.940689+00:00",
+  "files": [
+    {
+      "path": "comparison.json",
+      "bytes": 8975,
+      "sha256": "6c424bc1d886df9992c05ff6fbd871fd5f1d4aca359eed7b114fa82e517d47f0"
+    },
+    {
+      "path": "cpu-calibration.json",
+      "bytes": 812,
+      "sha256": "56721e51e47d4306e53a8545c1cee72bdb0bb8ca1d6e2a44a2b0c08f7d12b650"
+    },
+    {
+      "path": "package-manifest.json",
+      "bytes": 2200,
+      "sha256": "b61c9a2ee57f0d881947bcad8c1740cbc5186a37097100ef12deabe8ac98a8e3"
+    },
+    {
+      "path": "review.json",
+      "bytes": 10378,
+      "sha256": "5bb9c7b468e918db8be6f2593d96f257f56ccb99b6001f849a0c669c215a6734"
+    },
+    {
+      "path": "run-result.json",
+      "bytes": 6048,
+      "sha256": "f9118c64b148cedc0256f4f7228de0efafac6ad0d6c5525ea6f787386702040f"
+    },
+    {
+      "path": "source-identity.json",
+      "bytes": 1639,
+      "sha256": "4b1a4f52bdb7bc1915f48b7a6d8a0ef585744b4a9a672df50278aed76d4cac53"
+    },
+    {
+      "path": "validation.json",
+      "bytes": 1633,
+      "sha256": "6ab97f48b96226dea3be179d46a8475528afd45df1bcb54ffc6a6de816255950"
+    }
+  ]
+}

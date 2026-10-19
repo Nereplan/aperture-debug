@@ -1,0 +1,21 @@
+{
+  "recordedUtc": "2026-10-19T07:48:56.580635+00:00",
+  "recordingCommit": "028941a30247b9753b5130e6c0ac0ee8f17f1380",
+  "dirty": true,
+  "builtCandidateSourceRecord": "docs/evidence/native-performance-20261019/source-identity.json",
+  "reusedAppBuildSourceRecord": "docs/evidence/direct-nv12-20261018/source-identity.json",
+  "appSha256": "3f63a5577e6c56b17441c88c28d8cbed2734a71738be165a44443243a04ae8b0",
+  "nativeSha256": "0eb2a7ea41231db97fb4d10d0125675247b5fab3b9b068d0617d3f320c016b82",
+  "nativeBytes": 33462784,
+  "profile": "performance",
+  "recipeId": "64c2cdacba5d90eb138b4ffcfbe5cd4042a3a1b5fde97cbc5028ce49e1045570",
+  "fixtureSha256": "86c249a196158ca2479bb9dd6e0045f24cbcbd2e04a80a41e37c2f6b78f70e68",
+  "runnerSha256": "db161d7e91399e42a1dda72d89ac5ec8240c99fe91b39c2f7026a454fe54dcad",
+  "calibratorSourceSha256": "4c5c1e508f7094a844d9e0c6b5632e8d9c0531aa093b3a90793d756f8ee51d9f",
+  "calibratorExeSha256": "1ef42419188a13b80e81f769bdac0bf1dd3149c5c1fd58961b726c711b868ac5",
+  "statusProbeSha256": "dd2d16e17b783f19de74d91755d1644c4278d3ebfcaa24c84b3a99760f0773b7",
+  "savedVlcComparisonSha256": "79fc292142a6374fe6f76d436f9b33b9f092da4162b708d2c8b67d6366a40aa2",
+  "allRecordedAppSourceHashesStillMatch": true,
+  "recordedAppSourceFileCount": 143,
+  "note": "Reused App EXE includes pre-existing user worktree edits. Only the packaged native DLL differs from the previous App trial. Package file hashes verified against the retained manifest. Recording commit identifies the review, not a clean rebuild of the EXE. Candidate not installed or adopted; bundled size-profile DLL remains unchanged."
+}
