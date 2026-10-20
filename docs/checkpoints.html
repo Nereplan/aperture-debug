@@ -96,7 +96,7 @@ git diff --check</pre>
 <script id="checkpoint-data" type="application/json">
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-10-20T14:39:48+00:00",
+  "updatedAt": "2026-10-20T14:50:32+00:00",
   "metrics": {
     "visible-ms": {
       "label": "Visible window",
@@ -399,6 +399,11 @@ git diff --check</pre>
       "label": "Owned visible hub playback · calibrated cycles",
       "category": "Playback",
       "method": "Explicitly authorized visible full-player comparison using official VLC3.0.24 and frozen Aperture packages. Fresh complete runtime/profile per run, one warmup plus three measured rounds per player, rotating order; 3s hub then owned open. Same SHA256-verified H264/AAC fixture, actual1280x720 canvas and matching DPI; default output settings (no forced VLC linear mode). Seven uniformly spaced snapshots over about30s at media20–50s; endpoint Windows CPU time, per-run median RAM/GPU. Both owned windows temporarily topmost at40,40, with full-canvas/foreign-window/cursor guards before and after collection. Raw cycle counters remain separate diagnostics. No builds/tests/profilers concurrent. Driver allocations overlap process memory and are not summed. Source/runtime/helper manifests and all failed pilots are retained. This protocol does not establish equal decoders, filtering, frame cadence, readiness, physical audio output or feature-matched storage. CPU is process cycle delta / endpoint wall seconds / fresh validated3799998626.821145 invariant-TSC ticks/sec *100, one logical processor. Summary machine capacity divides by verified24LP. Five raw TSC/QPC samples, stable-rate and independent busy-thread/process checks passed on the exact CPU, driver and boot. These are hardware-specific calibrated cycle diagnostics; original CPU-time rows are preserved."
+    },
+    "library-selection-final-20261019": {
+      "label": "Final bounded library selection / 25k and 100k catalogs",
+      "category": "Library",
+      "method": "Saved native query_resource_benchmark.cpp runs: three process rounds per variant, one warmup and seven measured samples per mode per process, pooled median of 21 samples; all sample ranges retained. The small catalog has 25,000 in-memory records and the large catalog has 100,000. Elapsed steady-clock wall time is rounded to 0.001 ms in the CSVs; it is not process CPU time. AllocationProbe tracks requested C++ allocation counts/bytes and peak live query allocations, excluding OS/allocator overhead, process RSS/private bytes and GPU memory. The probe attempts to pin itself to its first allowed logical processor, but success is not recorded. No media playback or profile writes. Compiler flags, host load and complete source-to-executable identity were not contemporaneously attested; original saved file/probe/source hashes and limits are retained in evidence. All 672 rows across 15 modes preserve result counts/order hashes. Large rounds retain baseline, rejected old-batch and final partitioned-window variants; small rounds retain baseline then final."
     }
   },
   "environments": {
@@ -455,6 +460,10 @@ git diff --check</pre>
       "label": "Ryzen3900X / RTX4070SUPER · 20 Oct",
       "logicalProcessors": 24,
       "details": "{\"cpuName\": \"AMD Ryzen 9 3900X 12-Core Processor            \", \"gpuDriverVersion\": \"32.0.16.1742\", \"gpuName\": \"NVIDIA GeForce RTX 4070 SUPER\", \"lastBootUpTimeUtc\": \"2026-10-20T08:20:29.5000000Z\", \"logicalProcessors\": 24, \"osVersion\": \"Microsoft Windows 11 Pro 10.0.26200 build 26200\", \"source\": \"Win32_ComputerSystem, Win32_OperatingSystem, Win32_Processor and Win32_VideoController CIM instances\"}"
+    },
+    "library-selection-20261019-unattested-host": {
+      "label": "Saved Windows x64 library probe / host not fully attested",
+      "details": "The saved native probes and original build/validation logs identify this study. The CSVs do not embed a complete hardware/OS/host-load manifest or verified affinity success; source/probe hashes observed retrospectively are recorded. This isolated environment identity prevents fabricated joins with playback or earlier library studies."
     }
   },
   "references": {
@@ -18107,6 +18116,585 @@ git diff --check</pre>
           "evidence": "docs/evidence/vlc-rival-20261020/pruned-validation/package-manifest.json"
         }
       ]
+    },
+    {
+      "id": "library-selection-20261019-before",
+      "label": "Library selection before bounded repair",
+      "measuredAt": "2026-10-19",
+      "commit": "f93cffa0d3c21aa4c5c9a75c1cfa3dd6509cef86",
+      "dirty": null,
+      "sourceNote": "Preserved baseline probes associated with starting HEAD f93cffa; complete historical clean/dirty and build-input attestation is unavailable. No new measurement was performed while assembling this checkpoint.",
+      "notes": "These are isolated library-selection observations, not VLC or playback results. Capped flat 50-result peak requested C++ heap falls from 802,719 to 15,639 B (98.05%), and capped smart 50-result peak falls from 205,639 to 14,231 B (93.08%). Saved elapsed medians are slower: 1.271 to 1.852 ms and 0.881 to 1.188 ms, with overlapping ranges; no small-cap CPU win is claimed. At 24,000 results from 100,000 records, final partitioned-window selection measures 17.394 to 11.350 ms (34.75% lower median; non-overlapping saved ranges), with peak 3,870,078 to 3,454,078 B (10.75% lower). The rejected fixed-batch approach measures 196.659 ms on that workload and is retained only as experimental evidence. The quarter-catalog 25,000-result fallback measures 14.501 to 14.267 ms with overlapping ranges and unchanged peak 3,997,998 B. All result counts/order hashes match. Exact per-run start times are unavailable; the date comes from the saved 19 October artifacts. Historical probe/source identity is retrospective, not a complete contemporaneous build attestation. Earlier randomized tests preceded the final repair; the saved final focused log establishes 16/16 current selection tests.",
+      "results": [
+        {
+          "metric": "elapsed-ms",
+          "protocol": "library-selection-final-20261019",
+          "environment": "library-selection-20261019-unattested-host",
+          "workload": "25,000 records / cold flat projection / cap 50",
+          "session": "library-selection-final-20261019",
+          "value": 1.271,
+          "samples": 21,
+          "samplingNote": "Three saved processes × seven measured samples; one warmup per mode/process excluded. Value is the pooled sample median.",
+          "runRange": {
+            "min": 0.887,
+            "max": 1.8,
+            "runs": 3,
+            "scope": "Observed min/max across all 21 measured samples from three processes (seven samples per process); not a range of process medians."
+          },
+          "evidence": "docs/evidence/library-selection-20261019/final-review.json"
+        },
+        {
+          "metric": "peak-cpp-bytes",
+          "protocol": "library-selection-final-20261019",
+          "environment": "library-selection-20261019-unattested-host",
+          "workload": "25,000 records / cold flat projection / cap 50",
+          "session": "library-selection-final-20261019",
+          "value": 802719,
+          "samples": 21,
+          "samplingNote": "Three saved processes × seven measured samples; one warmup per mode/process excluded. Value is the pooled sample median.",
+          "runRange": {
+            "min": 802719,
+            "max": 802719,
+            "runs": 3,
+            "scope": "Observed min/max across all 21 measured samples from three processes (seven samples per process); not a range of process medians."
+          },
+          "evidence": "docs/evidence/library-selection-20261019/final-review.json"
+        },
+        {
+          "metric": "allocated-bytes",
+          "protocol": "library-selection-final-20261019",
+          "environment": "library-selection-20261019-unattested-host",
+          "workload": "25,000 records / cold flat projection / cap 50",
+          "session": "library-selection-final-20261019",
+          "value": 818086,
+          "samples": 21,
+          "samplingNote": "Three saved processes × seven measured samples; one warmup per mode/process excluded. Value is the pooled sample median.",
+          "runRange": {
+            "min": 818086,
+            "max": 818086,
+            "runs": 3,
+            "scope": "Observed min/max across all 21 measured samples from three processes (seven samples per process); not a range of process medians."
+          },
+          "evidence": "docs/evidence/library-selection-20261019/final-review.json"
+        },
+        {
+          "metric": "allocations",
+          "protocol": "library-selection-final-20261019",
+          "environment": "library-selection-20261019-unattested-host",
+          "workload": "25,000 records / cold flat projection / cap 50",
+          "session": "library-selection-final-20261019",
+          "value": 108,
+          "samples": 21,
+          "samplingNote": "Three saved processes × seven measured samples; one warmup per mode/process excluded. Value is the pooled sample median.",
+          "runRange": {
+            "min": 108,
+            "max": 108,
+            "runs": 3,
+            "scope": "Observed min/max across all 21 measured samples from three processes (seven samples per process); not a range of process medians."
+          },
+          "evidence": "docs/evidence/library-selection-20261019/final-review.json"
+        },
+        {
+          "metric": "elapsed-ms",
+          "protocol": "library-selection-final-20261019",
+          "environment": "library-selection-20261019-unattested-host",
+          "workload": "25,000 records / smart playlist / cap 50",
+          "session": "library-selection-final-20261019",
+          "value": 0.881,
+          "samples": 21,
+          "samplingNote": "Three saved processes × seven measured samples; one warmup per mode/process excluded. Value is the pooled sample median.",
+          "runRange": {
+            "min": 0.578,
+            "max": 1.765,
+            "runs": 3,
+            "scope": "Observed min/max across all 21 measured samples from three processes (seven samples per process); not a range of process medians."
+          },
+          "evidence": "docs/evidence/library-selection-20261019/final-review.json"
+        },
+        {
+          "metric": "peak-cpp-bytes",
+          "protocol": "library-selection-final-20261019",
+          "environment": "library-selection-20261019-unattested-host",
+          "workload": "25,000 records / smart playlist / cap 50",
+          "session": "library-selection-final-20261019",
+          "value": 205639,
+          "samples": 21,
+          "samplingNote": "Three saved processes × seven measured samples; one warmup per mode/process excluded. Value is the pooled sample median.",
+          "runRange": {
+            "min": 205639,
+            "max": 205639,
+            "runs": 3,
+            "scope": "Observed min/max across all 21 measured samples from three processes (seven samples per process); not a range of process medians."
+          },
+          "evidence": "docs/evidence/library-selection-20261019/final-review.json"
+        },
+        {
+          "metric": "allocated-bytes",
+          "protocol": "library-selection-final-20261019",
+          "environment": "library-selection-20261019-unattested-host",
+          "workload": "25,000 records / smart playlist / cap 50",
+          "session": "library-selection-final-20261019",
+          "value": 205639,
+          "samples": 21,
+          "samplingNote": "Three saved processes × seven measured samples; one warmup per mode/process excluded. Value is the pooled sample median.",
+          "runRange": {
+            "min": 205639,
+            "max": 205639,
+            "runs": 3,
+            "scope": "Observed min/max across all 21 measured samples from three processes (seven samples per process); not a range of process medians."
+          },
+          "evidence": "docs/evidence/library-selection-20261019/final-review.json"
+        },
+        {
+          "metric": "allocations",
+          "protocol": "library-selection-final-20261019",
+          "environment": "library-selection-20261019-unattested-host",
+          "workload": "25,000 records / smart playlist / cap 50",
+          "session": "library-selection-final-20261019",
+          "value": 52,
+          "samples": 21,
+          "samplingNote": "Three saved processes × seven measured samples; one warmup per mode/process excluded. Value is the pooled sample median.",
+          "runRange": {
+            "min": 52,
+            "max": 52,
+            "runs": 3,
+            "scope": "Observed min/max across all 21 measured samples from three processes (seven samples per process); not a range of process medians."
+          },
+          "evidence": "docs/evidence/library-selection-20261019/final-review.json"
+        },
+        {
+          "metric": "elapsed-ms",
+          "protocol": "library-selection-final-20261019",
+          "environment": "library-selection-20261019-unattested-host",
+          "workload": "100,000 records / duration-sorted smart playlist / cap 24,000",
+          "session": "library-selection-final-20261019",
+          "value": 17.394,
+          "samples": 21,
+          "samplingNote": "Three saved processes × seven measured samples; one warmup per mode/process excluded. Value is the pooled sample median.",
+          "runRange": {
+            "min": 16.457,
+            "max": 18.297,
+            "runs": 3,
+            "scope": "Observed min/max across all 21 measured samples from three processes (seven samples per process); not a range of process medians."
+          },
+          "evidence": "docs/evidence/library-selection-20261019/final-review.json"
+        },
+        {
+          "metric": "peak-cpp-bytes",
+          "protocol": "library-selection-final-20261019",
+          "environment": "library-selection-20261019-unattested-host",
+          "workload": "100,000 records / duration-sorted smart playlist / cap 24,000",
+          "session": "library-selection-final-20261019",
+          "value": 3870078,
+          "samples": 21,
+          "samplingNote": "Three saved processes × seven measured samples; one warmup per mode/process excluded. Value is the pooled sample median.",
+          "runRange": {
+            "min": 3870078,
+            "max": 3870078,
+            "runs": 3,
+            "scope": "Observed min/max across all 21 measured samples from three processes (seven samples per process); not a range of process medians."
+          },
+          "evidence": "docs/evidence/library-selection-20261019/final-review.json"
+        },
+        {
+          "metric": "allocated-bytes",
+          "protocol": "library-selection-final-20261019",
+          "environment": "library-selection-20261019-unattested-host",
+          "workload": "100,000 records / duration-sorted smart playlist / cap 24,000",
+          "session": "library-selection-final-20261019",
+          "value": 3870078,
+          "samples": 21,
+          "samplingNote": "Three saved processes × seven measured samples; one warmup per mode/process excluded. Value is the pooled sample median.",
+          "runRange": {
+            "min": 3870078,
+            "max": 3870078,
+            "runs": 3,
+            "scope": "Observed min/max across all 21 measured samples from three processes (seven samples per process); not a range of process medians."
+          },
+          "evidence": "docs/evidence/library-selection-20261019/final-review.json"
+        },
+        {
+          "metric": "allocations",
+          "protocol": "library-selection-final-20261019",
+          "environment": "library-selection-20261019-unattested-host",
+          "workload": "100,000 records / duration-sorted smart playlist / cap 24,000",
+          "session": "library-selection-final-20261019",
+          "value": 24002,
+          "samples": 21,
+          "samplingNote": "Three saved processes × seven measured samples; one warmup per mode/process excluded. Value is the pooled sample median.",
+          "runRange": {
+            "min": 24002,
+            "max": 24002,
+            "runs": 3,
+            "scope": "Observed min/max across all 21 measured samples from three processes (seven samples per process); not a range of process medians."
+          },
+          "evidence": "docs/evidence/library-selection-20261019/final-review.json"
+        },
+        {
+          "metric": "elapsed-ms",
+          "protocol": "library-selection-final-20261019",
+          "environment": "library-selection-20261019-unattested-host",
+          "workload": "100,000 records / duration-sorted smart playlist / cap 25,000 fallback",
+          "session": "library-selection-final-20261019",
+          "value": 14.501,
+          "samples": 21,
+          "samplingNote": "Three saved processes × seven measured samples; one warmup per mode/process excluded. Value is the pooled sample median.",
+          "runRange": {
+            "min": 13.523,
+            "max": 16.066,
+            "runs": 3,
+            "scope": "Observed min/max across all 21 measured samples from three processes (seven samples per process); not a range of process medians."
+          },
+          "evidence": "docs/evidence/library-selection-20261019/final-review.json"
+        },
+        {
+          "metric": "peak-cpp-bytes",
+          "protocol": "library-selection-final-20261019",
+          "environment": "library-selection-20261019-unattested-host",
+          "workload": "100,000 records / duration-sorted smart playlist / cap 25,000 fallback",
+          "session": "library-selection-final-20261019",
+          "value": 3997998,
+          "samples": 21,
+          "samplingNote": "Three saved processes × seven measured samples; one warmup per mode/process excluded. Value is the pooled sample median.",
+          "runRange": {
+            "min": 3997998,
+            "max": 3997998,
+            "runs": 3,
+            "scope": "Observed min/max across all 21 measured samples from three processes (seven samples per process); not a range of process medians."
+          },
+          "evidence": "docs/evidence/library-selection-20261019/final-review.json"
+        },
+        {
+          "metric": "allocated-bytes",
+          "protocol": "library-selection-final-20261019",
+          "environment": "library-selection-20261019-unattested-host",
+          "workload": "100,000 records / duration-sorted smart playlist / cap 25,000 fallback",
+          "session": "library-selection-final-20261019",
+          "value": 4397998,
+          "samples": 21,
+          "samplingNote": "Three saved processes × seven measured samples; one warmup per mode/process excluded. Value is the pooled sample median.",
+          "runRange": {
+            "min": 4397998,
+            "max": 4397998,
+            "runs": 3,
+            "scope": "Observed min/max across all 21 measured samples from three processes (seven samples per process); not a range of process medians."
+          },
+          "evidence": "docs/evidence/library-selection-20261019/final-review.json"
+        },
+        {
+          "metric": "allocations",
+          "protocol": "library-selection-final-20261019",
+          "environment": "library-selection-20261019-unattested-host",
+          "workload": "100,000 records / duration-sorted smart playlist / cap 25,000 fallback",
+          "session": "library-selection-final-20261019",
+          "value": 25003,
+          "samples": 21,
+          "samplingNote": "Three saved processes × seven measured samples; one warmup per mode/process excluded. Value is the pooled sample median.",
+          "runRange": {
+            "min": 25003,
+            "max": 25003,
+            "runs": 3,
+            "scope": "Observed min/max across all 21 measured samples from three processes (seven samples per process); not a range of process medians."
+          },
+          "evidence": "docs/evidence/library-selection-20261019/final-review.json"
+        }
+      ],
+      "tests": []
+    },
+    {
+      "id": "library-selection-20261019-final",
+      "label": "Library selection with bounded and partitioned windows",
+      "measuredAt": "2026-10-19",
+      "commit": "f93cffa0d3c21aa4c5c9a75c1cfa3dd6509cef86",
+      "dirty": true,
+      "sourceNote": "Final modified library source observed on base f93cffa. Exact source/probe hashes are retained in source-hashes.json; no contemporaneous complete build attestation exists. No new measurement was performed while assembling this checkpoint.",
+      "notes": "These are isolated library-selection observations, not VLC or playback results. Capped flat 50-result peak requested C++ heap falls from 802,719 to 15,639 B (98.05%), and capped smart 50-result peak falls from 205,639 to 14,231 B (93.08%). Saved elapsed medians are slower: 1.271 to 1.852 ms and 0.881 to 1.188 ms, with overlapping ranges; no small-cap CPU win is claimed. At 24,000 results from 100,000 records, final partitioned-window selection measures 17.394 to 11.350 ms (34.75% lower median; non-overlapping saved ranges), with peak 3,870,078 to 3,454,078 B (10.75% lower). The rejected fixed-batch approach measures 196.659 ms on that workload and is retained only as experimental evidence. The quarter-catalog 25,000-result fallback measures 14.501 to 14.267 ms with overlapping ranges and unchanged peak 3,997,998 B. All result counts/order hashes match. Exact per-run start times are unavailable; the date comes from the saved 19 October artifacts. Historical probe/source identity is retrospective, not a complete contemporaneous build attestation. Earlier randomized tests preceded the final repair; the saved final focused log establishes 16/16 current selection tests.",
+      "results": [
+        {
+          "metric": "elapsed-ms",
+          "protocol": "library-selection-final-20261019",
+          "environment": "library-selection-20261019-unattested-host",
+          "workload": "25,000 records / cold flat projection / cap 50",
+          "session": "library-selection-final-20261019",
+          "value": 1.852,
+          "samples": 21,
+          "samplingNote": "Three saved processes × seven measured samples; one warmup per mode/process excluded. Value is the pooled sample median.",
+          "runRange": {
+            "min": 0.837,
+            "max": 2.257,
+            "runs": 3,
+            "scope": "Observed min/max across all 21 measured samples from three processes (seven samples per process); not a range of process medians."
+          },
+          "evidence": "docs/evidence/library-selection-20261019/final-review.json"
+        },
+        {
+          "metric": "peak-cpp-bytes",
+          "protocol": "library-selection-final-20261019",
+          "environment": "library-selection-20261019-unattested-host",
+          "workload": "25,000 records / cold flat projection / cap 50",
+          "session": "library-selection-final-20261019",
+          "value": 15639,
+          "samples": 21,
+          "samplingNote": "Three saved processes × seven measured samples; one warmup per mode/process excluded. Value is the pooled sample median.",
+          "runRange": {
+            "min": 15639,
+            "max": 15639,
+            "runs": 3,
+            "scope": "Observed min/max across all 21 measured samples from three processes (seven samples per process); not a range of process medians."
+          },
+          "evidence": "docs/evidence/library-selection-20261019/final-review.json"
+        },
+        {
+          "metric": "allocated-bytes",
+          "protocol": "library-selection-final-20261019",
+          "environment": "library-selection-20261019-unattested-host",
+          "workload": "25,000 records / cold flat projection / cap 50",
+          "session": "library-selection-final-20261019",
+          "value": 19647,
+          "samples": 21,
+          "samplingNote": "Three saved processes × seven measured samples; one warmup per mode/process excluded. Value is the pooled sample median.",
+          "runRange": {
+            "min": 19647,
+            "max": 19647,
+            "runs": 3,
+            "scope": "Observed min/max across all 21 measured samples from three processes (seven samples per process); not a range of process medians."
+          },
+          "evidence": "docs/evidence/library-selection-20261019/final-review.json"
+        },
+        {
+          "metric": "allocations",
+          "protocol": "library-selection-final-20261019",
+          "environment": "library-selection-20261019-unattested-host",
+          "workload": "25,000 records / cold flat projection / cap 50",
+          "session": "library-selection-final-20261019",
+          "value": 108,
+          "samples": 21,
+          "samplingNote": "Three saved processes × seven measured samples; one warmup per mode/process excluded. Value is the pooled sample median.",
+          "runRange": {
+            "min": 108,
+            "max": 108,
+            "runs": 3,
+            "scope": "Observed min/max across all 21 measured samples from three processes (seven samples per process); not a range of process medians."
+          },
+          "evidence": "docs/evidence/library-selection-20261019/final-review.json"
+        },
+        {
+          "metric": "elapsed-ms",
+          "protocol": "library-selection-final-20261019",
+          "environment": "library-selection-20261019-unattested-host",
+          "workload": "25,000 records / smart playlist / cap 50",
+          "session": "library-selection-final-20261019",
+          "value": 1.188,
+          "samples": 21,
+          "samplingNote": "Three saved processes × seven measured samples; one warmup per mode/process excluded. Value is the pooled sample median.",
+          "runRange": {
+            "min": 0.712,
+            "max": 2.263,
+            "runs": 3,
+            "scope": "Observed min/max across all 21 measured samples from three processes (seven samples per process); not a range of process medians."
+          },
+          "evidence": "docs/evidence/library-selection-20261019/final-review.json"
+        },
+        {
+          "metric": "peak-cpp-bytes",
+          "protocol": "library-selection-final-20261019",
+          "environment": "library-selection-20261019-unattested-host",
+          "workload": "25,000 records / smart playlist / cap 50",
+          "session": "library-selection-final-20261019",
+          "value": 14231,
+          "samples": 21,
+          "samplingNote": "Three saved processes × seven measured samples; one warmup per mode/process excluded. Value is the pooled sample median.",
+          "runRange": {
+            "min": 14231,
+            "max": 14231,
+            "runs": 3,
+            "scope": "Observed min/max across all 21 measured samples from three processes (seven samples per process); not a range of process medians."
+          },
+          "evidence": "docs/evidence/library-selection-20261019/final-review.json"
+        },
+        {
+          "metric": "allocated-bytes",
+          "protocol": "library-selection-final-20261019",
+          "environment": "library-selection-20261019-unattested-host",
+          "workload": "25,000 records / smart playlist / cap 50",
+          "session": "library-selection-final-20261019",
+          "value": 14231,
+          "samples": 21,
+          "samplingNote": "Three saved processes × seven measured samples; one warmup per mode/process excluded. Value is the pooled sample median.",
+          "runRange": {
+            "min": 14231,
+            "max": 14231,
+            "runs": 3,
+            "scope": "Observed min/max across all 21 measured samples from three processes (seven samples per process); not a range of process medians."
+          },
+          "evidence": "docs/evidence/library-selection-20261019/final-review.json"
+        },
+        {
+          "metric": "allocations",
+          "protocol": "library-selection-final-20261019",
+          "environment": "library-selection-20261019-unattested-host",
+          "workload": "25,000 records / smart playlist / cap 50",
+          "session": "library-selection-final-20261019",
+          "value": 52,
+          "samples": 21,
+          "samplingNote": "Three saved processes × seven measured samples; one warmup per mode/process excluded. Value is the pooled sample median.",
+          "runRange": {
+            "min": 52,
+            "max": 52,
+            "runs": 3,
+            "scope": "Observed min/max across all 21 measured samples from three processes (seven samples per process); not a range of process medians."
+          },
+          "evidence": "docs/evidence/library-selection-20261019/final-review.json"
+        },
+        {
+          "metric": "elapsed-ms",
+          "protocol": "library-selection-final-20261019",
+          "environment": "library-selection-20261019-unattested-host",
+          "workload": "100,000 records / duration-sorted smart playlist / cap 24,000",
+          "session": "library-selection-final-20261019",
+          "value": 11.35,
+          "samples": 21,
+          "samplingNote": "Three saved processes × seven measured samples; one warmup per mode/process excluded. Value is the pooled sample median.",
+          "runRange": {
+            "min": 10.728,
+            "max": 12.747,
+            "runs": 3,
+            "scope": "Observed min/max across all 21 measured samples from three processes (seven samples per process); not a range of process medians."
+          },
+          "evidence": "docs/evidence/library-selection-20261019/final-review.json"
+        },
+        {
+          "metric": "peak-cpp-bytes",
+          "protocol": "library-selection-final-20261019",
+          "environment": "library-selection-20261019-unattested-host",
+          "workload": "100,000 records / duration-sorted smart playlist / cap 24,000",
+          "session": "library-selection-final-20261019",
+          "value": 3454078,
+          "samples": 21,
+          "samplingNote": "Three saved processes × seven measured samples; one warmup per mode/process excluded. Value is the pooled sample median.",
+          "runRange": {
+            "min": 3454078,
+            "max": 3454078,
+            "runs": 3,
+            "scope": "Observed min/max across all 21 measured samples from three processes (seven samples per process); not a range of process medians."
+          },
+          "evidence": "docs/evidence/library-selection-20261019/final-review.json"
+        },
+        {
+          "metric": "allocated-bytes",
+          "protocol": "library-selection-final-20261019",
+          "environment": "library-selection-20261019-unattested-host",
+          "workload": "100,000 records / duration-sorted smart playlist / cap 24,000",
+          "session": "library-selection-final-20261019",
+          "value": 3454078,
+          "samples": 21,
+          "samplingNote": "Three saved processes × seven measured samples; one warmup per mode/process excluded. Value is the pooled sample median.",
+          "runRange": {
+            "min": 3454078,
+            "max": 3454078,
+            "runs": 3,
+            "scope": "Observed min/max across all 21 measured samples from three processes (seven samples per process); not a range of process medians."
+          },
+          "evidence": "docs/evidence/library-selection-20261019/final-review.json"
+        },
+        {
+          "metric": "allocations",
+          "protocol": "library-selection-final-20261019",
+          "environment": "library-selection-20261019-unattested-host",
+          "workload": "100,000 records / duration-sorted smart playlist / cap 24,000",
+          "session": "library-selection-final-20261019",
+          "value": 24002,
+          "samples": 21,
+          "samplingNote": "Three saved processes × seven measured samples; one warmup per mode/process excluded. Value is the pooled sample median.",
+          "runRange": {
+            "min": 24002,
+            "max": 24002,
+            "runs": 3,
+            "scope": "Observed min/max across all 21 measured samples from three processes (seven samples per process); not a range of process medians."
+          },
+          "evidence": "docs/evidence/library-selection-20261019/final-review.json"
+        },
+        {
+          "metric": "elapsed-ms",
+          "protocol": "library-selection-final-20261019",
+          "environment": "library-selection-20261019-unattested-host",
+          "workload": "100,000 records / duration-sorted smart playlist / cap 25,000 fallback",
+          "session": "library-selection-final-20261019",
+          "value": 14.267,
+          "samples": 21,
+          "samplingNote": "Three saved processes × seven measured samples; one warmup per mode/process excluded. Value is the pooled sample median.",
+          "runRange": {
+            "min": 12.74,
+            "max": 17.012,
+            "runs": 3,
+            "scope": "Observed min/max across all 21 measured samples from three processes (seven samples per process); not a range of process medians."
+          },
+          "evidence": "docs/evidence/library-selection-20261019/final-review.json"
+        },
+        {
+          "metric": "peak-cpp-bytes",
+          "protocol": "library-selection-final-20261019",
+          "environment": "library-selection-20261019-unattested-host",
+          "workload": "100,000 records / duration-sorted smart playlist / cap 25,000 fallback",
+          "session": "library-selection-final-20261019",
+          "value": 3997998,
+          "samples": 21,
+          "samplingNote": "Three saved processes × seven measured samples; one warmup per mode/process excluded. Value is the pooled sample median.",
+          "runRange": {
+            "min": 3997998,
+            "max": 3997998,
+            "runs": 3,
+            "scope": "Observed min/max across all 21 measured samples from three processes (seven samples per process); not a range of process medians."
+          },
+          "evidence": "docs/evidence/library-selection-20261019/final-review.json"
+        },
+        {
+          "metric": "allocated-bytes",
+          "protocol": "library-selection-final-20261019",
+          "environment": "library-selection-20261019-unattested-host",
+          "workload": "100,000 records / duration-sorted smart playlist / cap 25,000 fallback",
+          "session": "library-selection-final-20261019",
+          "value": 4397998,
+          "samples": 21,
+          "samplingNote": "Three saved processes × seven measured samples; one warmup per mode/process excluded. Value is the pooled sample median.",
+          "runRange": {
+            "min": 4397998,
+            "max": 4397998,
+            "runs": 3,
+            "scope": "Observed min/max across all 21 measured samples from three processes (seven samples per process); not a range of process medians."
+          },
+          "evidence": "docs/evidence/library-selection-20261019/final-review.json"
+        },
+        {
+          "metric": "allocations",
+          "protocol": "library-selection-final-20261019",
+          "environment": "library-selection-20261019-unattested-host",
+          "workload": "100,000 records / duration-sorted smart playlist / cap 25,000 fallback",
+          "session": "library-selection-final-20261019",
+          "value": 25003,
+          "samples": 21,
+          "samplingNote": "Three saved processes × seven measured samples; one warmup per mode/process excluded. Value is the pooled sample median.",
+          "runRange": {
+            "min": 25003,
+            "max": 25003,
+            "runs": 3,
+            "scope": "Observed min/max across all 21 measured samples from three processes (seven samples per process); not a range of process medians."
+          },
+          "evidence": "docs/evidence/library-selection-20261019/final-review.json"
+        }
+      ],
+      "tests": [
+        {
+          "name": "Final focused SmartPlaylists and LibraryQuery saved suite",
+          "status": "pass",
+          "passed": 16,
+          "total": 16,
+          "durationSeconds": 0.42265,
+          "evidence": "docs/evidence/library-selection-20261019/partitioned-window-unit-tests.log",
+          "scope": "Saved final focused executable log: 16 passed, 0 failed, 0 skipped. It does not establish new randomized-workflow or player validation."
+        }
+      ],
+      "pairedWith": "library-selection-20261019-before"
     }
   ],
   "reports": [

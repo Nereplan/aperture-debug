@@ -1,0 +1,125 @@
+{
+  "schemaVersion": 1,
+  "kind": "Retrospective identity copied from saved final-review.json; not a build attestation",
+  "baseCommitObservedAtReview": "f93cffa0d3c21aa4c5c9a75c1cfa3dd6509cef86",
+  "recordedSourceState": "dirty",
+  "observedAt": "2026-10-20T09:24:54.126475+00:00",
+  "sourceNote": "Dirty source tree; exact observed file hashes below. No contemporaneous source-to-executable manifest exists for the saved probes, so current source hashes are identities observed at review, not a reconstructed build attestation.",
+  "sources": [
+    {
+      "path": "src/LibraryQuery.cpp",
+      "bytes": 74554,
+      "sha256": "d27b4bfb01cc571c35a3c84c0fe37c8c1c798b5db051c00890807b7067062732",
+      "lastWriteUtc": "2026-10-19T18:26:16.656286+00:00"
+    },
+    {
+      "path": "src/LibraryQuery.h",
+      "bytes": 12310,
+      "sha256": "0697eff07805ca3117fa2fef7bc483da2ddaa3d180fc3d095d87c4f5b6e9725a",
+      "lastWriteUtc": "2026-10-19T17:51:16.650701+00:00"
+    },
+    {
+      "path": "src/MediaLibrary.cpp",
+      "bytes": 170834,
+      "sha256": "e7c9b1b151d6fe91c42b3098ce4971b44f281e5f0308dbba65b840dc893d8246",
+      "lastWriteUtc": "2026-10-19T18:33:42.362386+00:00"
+    },
+    {
+      "path": "src/MediaLibrary.h",
+      "bytes": 33429,
+      "sha256": "4be3e025da52492b230d0419839b6fdb3c62c0a730fffb3ca12d4e1d5fe11b80",
+      "lastWriteUtc": "2026-10-19T17:45:47.971866+00:00"
+    },
+    {
+      "path": "tests/unit/TestLibraryQuery.h",
+      "bytes": 60521,
+      "sha256": "175ea543d76d9b17c3c75131cd5f0d5fde5ac7dda6caaffa5b633f48ac33044f",
+      "lastWriteUtc": "2026-10-19T18:25:24.264391+00:00"
+    },
+    {
+      "path": "tests/unit/TestSmartPlaylists.h",
+      "bytes": 18306,
+      "sha256": "e872a224e7bb929557d3528b9dec52336850066c79b3e4a77e746114b084c8fa",
+      "lastWriteUtc": "2026-10-19T18:31:31.968369+00:00"
+    },
+    {
+      "path": "tests/benchmark/query_resource_benchmark.cpp",
+      "bytes": 18770,
+      "sha256": "f478495bd533ff8811b306dabd33b2d2d65811f9ecf4beae807699a2bddf24b3",
+      "lastWriteUtc": "2026-10-19T18:31:31.968369+00:00"
+    },
+    {
+      "path": "tests/benchmark/AllocationProbe.h",
+      "bytes": 1438,
+      "sha256": "13e18817dfaf4f761394aed84bf22cfb296cae8ae91c6048e3416b8aa6823e82",
+      "lastWriteUtc": "2026-10-04T20:19:49.389145+00:00"
+    }
+  ],
+  "savedProbes": [
+    {
+      "path": "before\\query-benchmark.exe",
+      "bytes": 854528,
+      "sha256": "ec8d6bece63ba020befcb7ba62497f97618fdd80d31ea7c02280ec6be381da66",
+      "lastWriteUtc": "2026-10-19T18:18:47.777108+00:00"
+    },
+    {
+      "path": "focused\\query-baseline-large.exe",
+      "bytes": 858624,
+      "sha256": "524843d461e4c1ad48eca52dcb9caaa26912aad6463017533ed93b701c0aaa57",
+      "lastWriteUtc": "2026-10-19T18:32:08.473708+00:00"
+    },
+    {
+      "path": "focused\\query-old-batch-large.exe",
+      "bytes": 861184,
+      "sha256": "ad567bb536c48e5b5ba30919367110bdd272bd007d1ea23cd8d425dc6e08a571",
+      "lastWriteUtc": "2026-10-19T18:32:40.232019+00:00"
+    },
+    {
+      "path": "focused\\query-partitioned-window.exe",
+      "bytes": 863232,
+      "sha256": "d09d2bba9e6cc3ba1115dc3792cfbd77201e4d5bb1da221cfbb224442507ee36",
+      "lastWriteUtc": "2026-10-19T18:33:54.517470+00:00"
+    },
+    {
+      "path": "focused\\focused.exe",
+      "bytes": 1337344,
+      "sha256": "41614f75d82115608f568faa1cf8ea76a56bca74a482dd8bb642ea70580c9f06",
+      "lastWriteUtc": "2026-10-19T18:34:00.648484+00:00"
+    }
+  ],
+  "currentSourceComparison": [
+    {
+      "path": "src/LibraryQuery.cpp",
+      "matchesRecordedHash": true
+    },
+    {
+      "path": "src/LibraryQuery.h",
+      "matchesRecordedHash": true
+    },
+    {
+      "path": "src/MediaLibrary.cpp",
+      "matchesRecordedHash": true
+    },
+    {
+      "path": "src/MediaLibrary.h",
+      "matchesRecordedHash": true
+    },
+    {
+      "path": "tests/unit/TestLibraryQuery.h",
+      "matchesRecordedHash": true
+    },
+    {
+      "path": "tests/unit/TestSmartPlaylists.h",
+      "matchesRecordedHash": true
+    },
+    {
+      "path": "tests/benchmark/query_resource_benchmark.cpp",
+      "matchesRecordedHash": true
+    },
+    {
+      "path": "tests/benchmark/AllocationProbe.h",
+      "matchesRecordedHash": true
+    }
+  ],
+  "limitation": "Probe binaries remain external. Saved CSVs contain no source/binary hash or complete contemporaneous build manifest. Current matching source hashes do not prove which exact inputs produced the historical executable."
+}

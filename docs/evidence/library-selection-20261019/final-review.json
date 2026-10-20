@@ -1,0 +1,1415 @@
+{
+  "schemaVersion": 1,
+  "reviewedAtUtc": "2026-10-20T09:24:54.126475+00:00",
+  "purpose": "Non-overwriting review of saved final library-selection CSVs; no timings, builds, tests, or player launches were performed for this review.",
+  "baseCommitObservedAtReview": "f93cffa0d3c21aa4c5c9a75c1cfa3dd6509cef86",
+  "sourceState": "Dirty source tree; exact observed file hashes below. No contemporaneous source-to-executable manifest exists for the saved probes, so current source hashes are identities observed at review, not a reconstructed build attestation.",
+  "protocol": {
+    "smallCatalogRecords": 25000,
+    "largeCatalogRecords": 100000,
+    "roundsPerVariant": 3,
+    "warmupPerModePerProcess": 1,
+    "measuredSamplesPerModePerProcess": 7,
+    "samplesPerModePerVariant": 21,
+    "measuredRowsReviewed": 672,
+    "timing": "std::chrono::steady_clock elapsed wall time, milliseconds rounded to three decimals in CSV",
+    "affinity": "Probe source restricts the process to the first allowed logical processor when GetProcessAffinityMask succeeds. CSVs do not record whether affinity calls succeeded.",
+    "heap": "AllocationProbe tracks C++ allocation calls, total allocated bytes and peak live bytes within query ownership; this is not process RSS, private bytes or GPU memory.",
+    "order": "Three saved alternating process rounds for each comparison; all rows included. Large rounds contain baseline, rejected old-batch and final partitioned-window variants. Small rounds contain before then final partitioned-window."
+  },
+  "validation": {
+    "filesReviewed": 15,
+    "allRequestedFilesHaveSevenUniqueSamplesPerMode": true,
+    "distinctModes": 15,
+    "allCountAndOrderSignaturesEquivalent": true,
+    "finalFocusedSuite": {
+      "log": "partitioned-window-unit-tests.log",
+      "passed": 16,
+      "failed": 0,
+      "skipped": 0,
+      "savedElapsedMs": 422.65
+    },
+    "newRunsPerformed": false
+  },
+  "workloads": [
+    {
+      "family": "small",
+      "mode": 0,
+      "name": "flat_unlimited",
+      "resultSignature": {
+        "items": 25000,
+        "groups": 0,
+        "orderHash": "3887941111447873229"
+      },
+      "allSamplesMatchSignature": true,
+      "variants": {
+        "small-final-before": {
+          "samples": 21,
+          "elapsedMs": {
+            "median": 13.575,
+            "minimum": 12.399,
+            "maximum": 15.239
+          },
+          "allocations": {
+            "median": 50010,
+            "minimum": 50010,
+            "maximum": 50010
+          },
+          "allocated_bytes": {
+            "median": 9856964,
+            "minimum": 9856964,
+            "maximum": 9856964
+          },
+          "peak_live_cpp_bytes": {
+            "median": 8654517,
+            "minimum": 8654517,
+            "maximum": 8654517
+          },
+          "roundMedianMs": [
+            13.011,
+            14.056,
+            13.27
+          ]
+        },
+        "small-final-partitioned-window": {
+          "samples": 21,
+          "elapsedMs": {
+            "median": 12.898,
+            "minimum": 12.312,
+            "maximum": 13.609
+          },
+          "allocations": {
+            "median": 50010,
+            "minimum": 50010,
+            "maximum": 50010
+          },
+          "allocated_bytes": {
+            "median": 9856964,
+            "minimum": 9856964,
+            "maximum": 9856964
+          },
+          "peak_live_cpp_bytes": {
+            "median": 8654517,
+            "minimum": 8654517,
+            "maximum": 8654517
+          },
+          "roundMedianMs": [
+            13.246,
+            12.898,
+            12.693
+          ]
+        }
+      },
+      "finalVersusBaseline": {
+        "elapsedMedianChangePercent": -4.987108655616945,
+        "peakLiveCppBytesReductionPercent": 0.0,
+        "elapsedRangesOverlap": true
+      }
+    },
+    {
+      "family": "small",
+      "mode": 1,
+      "name": "folder_grouped",
+      "resultSignature": {
+        "items": 25000,
+        "groups": 500,
+        "orderHash": "14064243531747278525"
+      },
+      "allSamplesMatchSignature": true,
+      "variants": {
+        "small-final-before": {
+          "samples": 21,
+          "elapsedMs": {
+            "median": 22.188,
+            "minimum": 21.328,
+            "maximum": 27.365
+          },
+          "allocations": {
+            "median": 112492,
+            "minimum": 112492,
+            "maximum": 112492
+          },
+          "allocated_bytes": {
+            "median": 14918328,
+            "minimum": 14918328,
+            "maximum": 14918328
+          },
+          "peak_live_cpp_bytes": {
+            "median": 9049674,
+            "minimum": 9049674,
+            "maximum": 9049674
+          },
+          "roundMedianMs": [
+            21.786,
+            23.361,
+            21.678
+          ]
+        },
+        "small-final-partitioned-window": {
+          "samples": 21,
+          "elapsedMs": {
+            "median": 21.739,
+            "minimum": 21.071,
+            "maximum": 24.509
+          },
+          "allocations": {
+            "median": 112492,
+            "minimum": 112492,
+            "maximum": 112492
+          },
+          "allocated_bytes": {
+            "median": 14918328,
+            "minimum": 14918328,
+            "maximum": 14918328
+          },
+          "peak_live_cpp_bytes": {
+            "median": 9049674,
+            "minimum": 9049674,
+            "maximum": 9049674
+          },
+          "roundMedianMs": [
+            21.57,
+            21.802,
+            21.724
+          ]
+        }
+      },
+      "finalVersusBaseline": {
+        "elapsedMedianChangePercent": -2.0236163692085696,
+        "peakLiveCppBytesReductionPercent": 0.0,
+        "elapsedRangesOverlap": true
+      }
+    },
+    {
+      "family": "small",
+      "mode": 2,
+      "name": "series_grouped",
+      "resultSignature": {
+        "items": 25000,
+        "groups": 500,
+        "orderHash": "18385957098797748877"
+      },
+      "allSamplesMatchSignature": true,
+      "variants": {
+        "small-final-before": {
+          "samples": 21,
+          "elapsedMs": {
+            "median": 27.228,
+            "minimum": 26.722,
+            "maximum": 33.609
+          },
+          "allocations": {
+            "median": 184929,
+            "minimum": 184929,
+            "maximum": 184929
+          },
+          "allocated_bytes": {
+            "median": 16614393,
+            "minimum": 16614393,
+            "maximum": 16614393
+          },
+          "peak_live_cpp_bytes": {
+            "median": 8952714,
+            "minimum": 8952714,
+            "maximum": 8952714
+          },
+          "roundMedianMs": [
+            26.959,
+            27.357,
+            27.228
+          ]
+        },
+        "small-final-partitioned-window": {
+          "samples": 21,
+          "elapsedMs": {
+            "median": 27.048,
+            "minimum": 26.381,
+            "maximum": 27.706
+          },
+          "allocations": {
+            "median": 184929,
+            "minimum": 184929,
+            "maximum": 184929
+          },
+          "allocated_bytes": {
+            "median": 16614393,
+            "minimum": 16614393,
+            "maximum": 16614393
+          },
+          "peak_live_cpp_bytes": {
+            "median": 8952714,
+            "minimum": 8952714,
+            "maximum": 8952714
+          },
+          "roundMedianMs": [
+            27.048,
+            27.082,
+            26.994
+          ]
+        }
+      },
+      "finalVersusBaseline": {
+        "elapsedMedianChangePercent": -0.6610841780520182,
+        "peakLiveCppBytesReductionPercent": 0.0,
+        "elapsedRangesOverlap": true
+      }
+    },
+    {
+      "family": "small",
+      "mode": 3,
+      "name": "cold_capped_flat_50",
+      "resultSignature": {
+        "items": 50,
+        "groups": 0,
+        "orderHash": "18252797214864490390"
+      },
+      "allSamplesMatchSignature": true,
+      "variants": {
+        "small-final-before": {
+          "samples": 21,
+          "elapsedMs": {
+            "median": 1.271,
+            "minimum": 0.887,
+            "maximum": 1.8
+          },
+          "allocations": {
+            "median": 108,
+            "minimum": 108,
+            "maximum": 108
+          },
+          "allocated_bytes": {
+            "median": 818086,
+            "minimum": 818086,
+            "maximum": 818086
+          },
+          "peak_live_cpp_bytes": {
+            "median": 802719,
+            "minimum": 802719,
+            "maximum": 802719
+          },
+          "roundMedianMs": [
+            1.127,
+            1.271,
+            1.429
+          ]
+        },
+        "small-final-partitioned-window": {
+          "samples": 21,
+          "elapsedMs": {
+            "median": 1.852,
+            "minimum": 0.837,
+            "maximum": 2.257
+          },
+          "allocations": {
+            "median": 108,
+            "minimum": 108,
+            "maximum": 108
+          },
+          "allocated_bytes": {
+            "median": 19647,
+            "minimum": 19647,
+            "maximum": 19647
+          },
+          "peak_live_cpp_bytes": {
+            "median": 15639,
+            "minimum": 15639,
+            "maximum": 15639
+          },
+          "roundMedianMs": [
+            1.324,
+            1.401,
+            1.979
+          ]
+        }
+      },
+      "finalVersusBaseline": {
+        "elapsedMedianChangePercent": 45.71203776553896,
+        "peakLiveCppBytesReductionPercent": 98.05174662615435,
+        "elapsedRangesOverlap": true
+      }
+    },
+    {
+      "family": "small",
+      "mode": 4,
+      "name": "manual_unlimited",
+      "resultSignature": {
+        "items": 25000,
+        "groups": 0,
+        "orderHash": "16529484153980573085"
+      },
+      "allSamplesMatchSignature": true,
+      "variants": {
+        "small-final-before": {
+          "samples": 21,
+          "elapsedMs": {
+            "median": 5.958,
+            "minimum": 5.691,
+            "maximum": 6.414
+          },
+          "allocations": {
+            "median": 50009,
+            "minimum": 50009,
+            "maximum": 50009
+          },
+          "allocated_bytes": {
+            "median": 9456964,
+            "minimum": 9456964,
+            "maximum": 9456964
+          },
+          "peak_live_cpp_bytes": {
+            "median": 8654517,
+            "minimum": 8654517,
+            "maximum": 8654517
+          },
+          "roundMedianMs": [
+            5.835,
+            6.09,
+            5.934
+          ]
+        },
+        "small-final-partitioned-window": {
+          "samples": 21,
+          "elapsedMs": {
+            "median": 5.83,
+            "minimum": 5.477,
+            "maximum": 6.196
+          },
+          "allocations": {
+            "median": 50009,
+            "minimum": 50009,
+            "maximum": 50009
+          },
+          "allocated_bytes": {
+            "median": 9456964,
+            "minimum": 9456964,
+            "maximum": 9456964
+          },
+          "peak_live_cpp_bytes": {
+            "median": 8654517,
+            "minimum": 8654517,
+            "maximum": 8654517
+          },
+          "roundMedianMs": [
+            5.778,
+            5.83,
+            5.992
+          ]
+        }
+      },
+      "finalVersusBaseline": {
+        "elapsedMedianChangePercent": -2.14837193689158,
+        "peakLiveCppBytesReductionPercent": 0.0,
+        "elapsedRangesOverlap": true
+      }
+    },
+    {
+      "family": "small",
+      "mode": 5,
+      "name": "smart_playlist_limit_50",
+      "resultSignature": {
+        "items": 50,
+        "groups": 0,
+        "orderHash": "18216606917897658675"
+      },
+      "allSamplesMatchSignature": true,
+      "variants": {
+        "small-final-before": {
+          "samples": 21,
+          "elapsedMs": {
+            "median": 0.881,
+            "minimum": 0.578,
+            "maximum": 1.765
+          },
+          "allocations": {
+            "median": 52,
+            "minimum": 52,
+            "maximum": 52
+          },
+          "allocated_bytes": {
+            "median": 205639,
+            "minimum": 205639,
+            "maximum": 205639
+          },
+          "peak_live_cpp_bytes": {
+            "median": 205639,
+            "minimum": 205639,
+            "maximum": 205639
+          },
+          "roundMedianMs": [
+            0.749,
+            1.42,
+            0.799
+          ]
+        },
+        "small-final-partitioned-window": {
+          "samples": 21,
+          "elapsedMs": {
+            "median": 1.188,
+            "minimum": 0.712,
+            "maximum": 2.263
+          },
+          "allocations": {
+            "median": 52,
+            "minimum": 52,
+            "maximum": 52
+          },
+          "allocated_bytes": {
+            "median": 14231,
+            "minimum": 14231,
+            "maximum": 14231
+          },
+          "peak_live_cpp_bytes": {
+            "median": 14231,
+            "minimum": 14231,
+            "maximum": 14231
+          },
+          "roundMedianMs": [
+            1.525,
+            1.334,
+            0.814
+          ]
+        }
+      },
+      "finalVersusBaseline": {
+        "elapsedMedianChangePercent": 34.846765039727565,
+        "peakLiveCppBytesReductionPercent": 93.07962011097118,
+        "elapsedRangesOverlap": true
+      }
+    },
+    {
+      "family": "small",
+      "mode": 6,
+      "name": "warm_broad_search_50",
+      "resultSignature": {
+        "items": 50,
+        "groups": 25000,
+        "orderHash": "1621705931885563205"
+      },
+      "allSamplesMatchSignature": true,
+      "variants": {
+        "small-final-before": {
+          "samples": 21,
+          "elapsedMs": {
+            "median": 1.117,
+            "minimum": 0.525,
+            "maximum": 2.607
+          },
+          "allocations": {
+            "median": 153,
+            "minimum": 153,
+            "maximum": 153
+          },
+          "allocated_bytes": {
+            "median": 16071,
+            "minimum": 16071,
+            "maximum": 16071
+          },
+          "peak_live_cpp_bytes": {
+            "median": 16071,
+            "minimum": 16071,
+            "maximum": 16071
+          },
+          "roundMedianMs": [
+            0.911,
+            2.054,
+            1.117
+          ]
+        },
+        "small-final-partitioned-window": {
+          "samples": 21,
+          "elapsedMs": {
+            "median": 0.905,
+            "minimum": 0.547,
+            "maximum": 1.549
+          },
+          "allocations": {
+            "median": 153,
+            "minimum": 153,
+            "maximum": 153
+          },
+          "allocated_bytes": {
+            "median": 16071,
+            "minimum": 16071,
+            "maximum": 16071
+          },
+          "peak_live_cpp_bytes": {
+            "median": 16071,
+            "minimum": 16071,
+            "maximum": 16071
+          },
+          "roundMedianMs": [
+            1.346,
+            0.73,
+            0.768
+          ]
+        }
+      },
+      "finalVersusBaseline": {
+        "elapsedMedianChangePercent": -18.97940913160251,
+        "peakLiveCppBytesReductionPercent": 0.0,
+        "elapsedRangesOverlap": true
+      }
+    },
+    {
+      "family": "small",
+      "mode": 7,
+      "name": "nearly_unlimited_flat_24000",
+      "resultSignature": {
+        "items": 24000,
+        "groups": 0,
+        "orderHash": "2870827262583812293"
+      },
+      "allSamplesMatchSignature": true,
+      "variants": {
+        "small-final-before": {
+          "samples": 21,
+          "elapsedMs": {
+            "median": 12.769,
+            "minimum": 11.681,
+            "maximum": 13.62
+          },
+          "allocations": {
+            "median": 48009,
+            "minimum": 48009,
+            "maximum": 48009
+          },
+          "allocated_bytes": {
+            "median": 9329725,
+            "minimum": 9329725,
+            "maximum": 9329725
+          },
+          "peak_live_cpp_bytes": {
+            "median": 8127278,
+            "minimum": 8127278,
+            "maximum": 8127278
+          },
+          "roundMedianMs": [
+            12.275,
+            12.996,
+            12.816
+          ]
+        },
+        "small-final-partitioned-window": {
+          "samples": 21,
+          "elapsedMs": {
+            "median": 12.692,
+            "minimum": 11.819,
+            "maximum": 16.112
+          },
+          "allocations": {
+            "median": 48009,
+            "minimum": 48009,
+            "maximum": 48009
+          },
+          "allocated_bytes": {
+            "median": 9329725,
+            "minimum": 9329725,
+            "maximum": 9329725
+          },
+          "peak_live_cpp_bytes": {
+            "median": 8127278,
+            "minimum": 8127278,
+            "maximum": 8127278
+          },
+          "roundMedianMs": [
+            12.598,
+            12.412,
+            13.608
+          ]
+        }
+      },
+      "finalVersusBaseline": {
+        "elapsedMedianChangePercent": -0.6030229461978176,
+        "peakLiveCppBytesReductionPercent": 0.0,
+        "elapsedRangesOverlap": true
+      }
+    },
+    {
+      "family": "small",
+      "mode": 8,
+      "name": "media_extension_predicate_25000",
+      "resultSignature": {
+        "items": 25000,
+        "groups": 0,
+        "orderHash": "5489961046923757933"
+      },
+      "allSamplesMatchSignature": true,
+      "variants": {
+        "small-final-before": {
+          "samples": 21,
+          "elapsedMs": {
+            "median": 2.679,
+            "minimum": 2.155,
+            "maximum": 3.246
+          },
+          "allocations": {
+            "median": 0,
+            "minimum": 0,
+            "maximum": 0
+          },
+          "allocated_bytes": {
+            "median": 0,
+            "minimum": 0,
+            "maximum": 0
+          },
+          "peak_live_cpp_bytes": {
+            "median": 0,
+            "minimum": 0,
+            "maximum": 0
+          },
+          "roundMedianMs": [
+            2.775,
+            2.623,
+            2.639
+          ]
+        },
+        "small-final-partitioned-window": {
+          "samples": 21,
+          "elapsedMs": {
+            "median": 3.323,
+            "minimum": 2.734,
+            "maximum": 3.601
+          },
+          "allocations": {
+            "median": 0,
+            "minimum": 0,
+            "maximum": 0
+          },
+          "allocated_bytes": {
+            "median": 0,
+            "minimum": 0,
+            "maximum": 0
+          },
+          "peak_live_cpp_bytes": {
+            "median": 0,
+            "minimum": 0,
+            "maximum": 0
+          },
+          "roundMedianMs": [
+            3.481,
+            2.923,
+            3.094
+          ]
+        }
+      },
+      "finalVersusBaseline": {
+        "elapsedMedianChangePercent": 24.038820455393804,
+        "peakLiveCppBytesReductionPercent": 0,
+        "elapsedRangesOverlap": true
+      }
+    },
+    {
+      "family": "small",
+      "mode": 9,
+      "name": "cold_search_index_construction",
+      "resultSignature": {
+        "items": 50,
+        "groups": 25000,
+        "orderHash": "1621705931885563205"
+      },
+      "allSamplesMatchSignature": true,
+      "variants": {
+        "small-final-before": {
+          "samples": 21,
+          "elapsedMs": {
+            "median": 41.57,
+            "minimum": 40.83,
+            "maximum": 54.972
+          },
+          "allocations": {
+            "median": 150003,
+            "minimum": 150003,
+            "maximum": 150003
+          },
+          "allocated_bytes": {
+            "median": 17109023,
+            "minimum": 17109023,
+            "maximum": 17109023
+          },
+          "peak_live_cpp_bytes": {
+            "median": 17109023,
+            "minimum": 17109023,
+            "maximum": 17109023
+          },
+          "roundMedianMs": [
+            41.423,
+            42.008,
+            41.252
+          ]
+        },
+        "small-final-partitioned-window": {
+          "samples": 21,
+          "elapsedMs": {
+            "median": 42.052,
+            "minimum": 41.172,
+            "maximum": 58.975
+          },
+          "allocations": {
+            "median": 150003,
+            "minimum": 150003,
+            "maximum": 150003
+          },
+          "allocated_bytes": {
+            "median": 17109023,
+            "minimum": 17109023,
+            "maximum": 17109023
+          },
+          "peak_live_cpp_bytes": {
+            "median": 17109023,
+            "minimum": 17109023,
+            "maximum": 17109023
+          },
+          "roundMedianMs": [
+            41.587,
+            42.052,
+            44.141
+          ]
+        }
+      },
+      "finalVersusBaseline": {
+        "elapsedMedianChangePercent": 1.1594900168390598,
+        "peakLiveCppBytesReductionPercent": 0.0,
+        "elapsedRangesOverlap": true
+      }
+    },
+    {
+      "family": "small",
+      "mode": 10,
+      "name": "warm_multitoken_search_series_benchmark",
+      "resultSignature": {
+        "items": 50,
+        "groups": 25000,
+        "orderHash": "18216606917897658675"
+      },
+      "allSamplesMatchSignature": true,
+      "variants": {
+        "small-final-before": {
+          "samples": 21,
+          "elapsedMs": {
+            "median": 6.184,
+            "minimum": 6.026,
+            "maximum": 6.806
+          },
+          "allocations": {
+            "median": 158,
+            "minimum": 158,
+            "maximum": 158
+          },
+          "allocated_bytes": {
+            "median": 16295,
+            "minimum": 16295,
+            "maximum": 16295
+          },
+          "peak_live_cpp_bytes": {
+            "median": 16231,
+            "minimum": 16231,
+            "maximum": 16231
+          },
+          "roundMedianMs": [
+            6.22,
+            6.096,
+            6.384
+          ]
+        },
+        "small-final-partitioned-window": {
+          "samples": 21,
+          "elapsedMs": {
+            "median": 6.298,
+            "minimum": 5.931,
+            "maximum": 7.271
+          },
+          "allocations": {
+            "median": 158,
+            "minimum": 158,
+            "maximum": 158
+          },
+          "allocated_bytes": {
+            "median": 16295,
+            "minimum": 16295,
+            "maximum": 16295
+          },
+          "peak_live_cpp_bytes": {
+            "median": 16231,
+            "minimum": 16231,
+            "maximum": 16231
+          },
+          "roundMedianMs": [
+            6.015,
+            6.14,
+            6.92
+          ]
+        }
+      },
+      "finalVersusBaseline": {
+        "elapsedMedianChangePercent": 1.843467011642952,
+        "peakLiveCppBytesReductionPercent": 0.0,
+        "elapsedRangesOverlap": true
+      }
+    },
+    {
+      "family": "small",
+      "mode": 11,
+      "name": "warm_multitoken_search_series_s01e1",
+      "resultSignature": {
+        "items": 50,
+        "groups": 5500,
+        "orderHash": "17520420770283918933"
+      },
+      "allSamplesMatchSignature": true,
+      "variants": {
+        "small-final-before": {
+          "samples": 21,
+          "elapsedMs": {
+            "median": 4.071,
+            "minimum": 3.815,
+            "maximum": 4.401
+          },
+          "allocations": {
+            "median": 156,
+            "minimum": 156,
+            "maximum": 156
+          },
+          "allocated_bytes": {
+            "median": 16967,
+            "minimum": 16967,
+            "maximum": 16967
+          },
+          "peak_live_cpp_bytes": {
+            "median": 16935,
+            "minimum": 16935,
+            "maximum": 16935
+          },
+          "roundMedianMs": [
+            3.948,
+            4.136,
+            4.076
+          ]
+        },
+        "small-final-partitioned-window": {
+          "samples": 21,
+          "elapsedMs": {
+            "median": 4.191,
+            "minimum": 3.89,
+            "maximum": 5.188
+          },
+          "allocations": {
+            "median": 156,
+            "minimum": 156,
+            "maximum": 156
+          },
+          "allocated_bytes": {
+            "median": 16967,
+            "minimum": 16967,
+            "maximum": 16967
+          },
+          "peak_live_cpp_bytes": {
+            "median": 16935,
+            "minimum": 16935,
+            "maximum": 16935
+          },
+          "roundMedianMs": [
+            4.139,
+            4.045,
+            4.306
+          ]
+        }
+      },
+      "finalVersusBaseline": {
+        "elapsedMedianChangePercent": 2.9476787030213725,
+        "peakLiveCppBytesReductionPercent": 0.0,
+        "elapsedRangesOverlap": true
+      }
+    },
+    {
+      "family": "small",
+      "mode": 12,
+      "name": "warm_rejected_search_absent_query",
+      "resultSignature": {
+        "items": 0,
+        "groups": 0,
+        "orderHash": "14695981039346656037"
+      },
+      "allSamplesMatchSignature": true,
+      "variants": {
+        "small-final-before": {
+          "samples": 21,
+          "elapsedMs": {
+            "median": 0.001,
+            "minimum": 0.001,
+            "maximum": 0.001
+          },
+          "allocations": {
+            "median": 4,
+            "minimum": 4,
+            "maximum": 4
+          },
+          "allocated_bytes": {
+            "median": 160,
+            "minimum": 160,
+            "maximum": 160
+          },
+          "peak_live_cpp_bytes": {
+            "median": 160,
+            "minimum": 160,
+            "maximum": 160
+          },
+          "roundMedianMs": [
+            0.001,
+            0.001,
+            0.001
+          ]
+        },
+        "small-final-partitioned-window": {
+          "samples": 21,
+          "elapsedMs": {
+            "median": 0.001,
+            "minimum": 0.001,
+            "maximum": 0.001
+          },
+          "allocations": {
+            "median": 4,
+            "minimum": 4,
+            "maximum": 4
+          },
+          "allocated_bytes": {
+            "median": 160,
+            "minimum": 160,
+            "maximum": 160
+          },
+          "peak_live_cpp_bytes": {
+            "median": 160,
+            "minimum": 160,
+            "maximum": 160
+          },
+          "roundMedianMs": [
+            0.001,
+            0.001,
+            0.001
+          ]
+        }
+      },
+      "finalVersusBaseline": {
+        "elapsedMedianChangePercent": 0.0,
+        "peakLiveCppBytesReductionPercent": 0.0,
+        "elapsedRangesOverlap": true
+      }
+    },
+    {
+      "family": "large",
+      "mode": 26,
+      "name": "smart_playlist_limit_24000_of_100000",
+      "resultSignature": {
+        "items": 24000,
+        "groups": 0,
+        "orderHash": "17321886413172622337"
+      },
+      "allSamplesMatchSignature": true,
+      "variants": {
+        "large-final-baseline": {
+          "samples": 21,
+          "elapsedMs": {
+            "median": 17.394,
+            "minimum": 16.457,
+            "maximum": 18.297
+          },
+          "allocations": {
+            "median": 24002,
+            "minimum": 24002,
+            "maximum": 24002
+          },
+          "allocated_bytes": {
+            "median": 3870078,
+            "minimum": 3870078,
+            "maximum": 3870078
+          },
+          "peak_live_cpp_bytes": {
+            "median": 3870078,
+            "minimum": 3870078,
+            "maximum": 3870078
+          },
+          "roundMedianMs": [
+            16.907,
+            17.327,
+            17.79
+          ]
+        },
+        "large-final-old-batch": {
+          "samples": 21,
+          "elapsedMs": {
+            "median": 196.659,
+            "minimum": 194.052,
+            "maximum": 204.296
+          },
+          "allocations": {
+            "median": 24002,
+            "minimum": 24002,
+            "maximum": 24002
+          },
+          "allocated_bytes": {
+            "median": 3270270,
+            "minimum": 3270270,
+            "maximum": 3270270
+          },
+          "peak_live_cpp_bytes": {
+            "median": 3270270,
+            "minimum": 3270270,
+            "maximum": 3270270
+          },
+          "roundMedianMs": [
+            195.41,
+            198.57,
+            196.422
+          ]
+        },
+        "large-final-partitioned-window": {
+          "samples": 21,
+          "elapsedMs": {
+            "median": 11.35,
+            "minimum": 10.728,
+            "maximum": 12.747
+          },
+          "allocations": {
+            "median": 24002,
+            "minimum": 24002,
+            "maximum": 24002
+          },
+          "allocated_bytes": {
+            "median": 3454078,
+            "minimum": 3454078,
+            "maximum": 3454078
+          },
+          "peak_live_cpp_bytes": {
+            "median": 3454078,
+            "minimum": 3454078,
+            "maximum": 3454078
+          },
+          "roundMedianMs": [
+            11.104,
+            12.488,
+            11.014
+          ]
+        }
+      },
+      "finalVersusBaseline": {
+        "elapsedMedianChangePercent": -34.74761411981142,
+        "peakLiveCppBytesReductionPercent": 10.749137355887918,
+        "elapsedRangesOverlap": false
+      }
+    },
+    {
+      "family": "large",
+      "mode": 27,
+      "name": "smart_playlist_limit_25000_of_100000",
+      "resultSignature": {
+        "items": 25000,
+        "groups": 0,
+        "orderHash": "9247615804464156077"
+      },
+      "allSamplesMatchSignature": true,
+      "variants": {
+        "large-final-baseline": {
+          "samples": 21,
+          "elapsedMs": {
+            "median": 14.501,
+            "minimum": 13.523,
+            "maximum": 16.066
+          },
+          "allocations": {
+            "median": 25003,
+            "minimum": 25003,
+            "maximum": 25003
+          },
+          "allocated_bytes": {
+            "median": 4397998,
+            "minimum": 4397998,
+            "maximum": 4397998
+          },
+          "peak_live_cpp_bytes": {
+            "median": 3997998,
+            "minimum": 3997998,
+            "maximum": 3997998
+          },
+          "roundMedianMs": [
+            14.908,
+            14.066,
+            14.887
+          ]
+        },
+        "large-final-old-batch": {
+          "samples": 21,
+          "elapsedMs": {
+            "median": 14.296,
+            "minimum": 13.177,
+            "maximum": 15.29
+          },
+          "allocations": {
+            "median": 25003,
+            "minimum": 25003,
+            "maximum": 25003
+          },
+          "allocated_bytes": {
+            "median": 4397998,
+            "minimum": 4397998,
+            "maximum": 4397998
+          },
+          "peak_live_cpp_bytes": {
+            "median": 3997998,
+            "minimum": 3997998,
+            "maximum": 3997998
+          },
+          "roundMedianMs": [
+            13.79,
+            14.776,
+            13.824
+          ]
+        },
+        "large-final-partitioned-window": {
+          "samples": 21,
+          "elapsedMs": {
+            "median": 14.267,
+            "minimum": 12.74,
+            "maximum": 17.012
+          },
+          "allocations": {
+            "median": 25003,
+            "minimum": 25003,
+            "maximum": 25003
+          },
+          "allocated_bytes": {
+            "median": 4397998,
+            "minimum": 4397998,
+            "maximum": 4397998
+          },
+          "peak_live_cpp_bytes": {
+            "median": 3997998,
+            "minimum": 3997998,
+            "maximum": 3997998
+          },
+          "roundMedianMs": [
+            14.421,
+            15.765,
+            13.421
+          ]
+        }
+      },
+      "finalVersusBaseline": {
+        "elapsedMedianChangePercent": -1.613681815047241,
+        "peakLiveCppBytesReductionPercent": 0.0,
+        "elapsedRangesOverlap": true
+      }
+    }
+  ],
+  "inputCsvFiles": [
+    {
+      "path": "large-final-baseline-1.csv",
+      "bytes": 977,
+      "sha256": "d0ea65f1ccae4e13c7d897736c4b442a6d409a9f37d2af6a4b00dc11f2776d36",
+      "lastWriteUtc": "2026-10-19T18:34:24.547543+00:00"
+    },
+    {
+      "path": "large-final-baseline-2.csv",
+      "bytes": 977,
+      "sha256": "8c6c1cb8d04412d159655598455f275d63e25fcad961f923cf3ddecac97671c9",
+      "lastWriteUtc": "2026-10-19T18:34:27.060576+00:00"
+    },
+    {
+      "path": "large-final-baseline-3.csv",
+      "bytes": 977,
+      "sha256": "0b113c8b1a6cc59632f3fde4fa52a851a9c14185d7bfecea502d5b3aed41c01d",
+      "lastWriteUtc": "2026-10-19T18:34:29.647173+00:00"
+    },
+    {
+      "path": "large-final-old-batch-1.csv",
+      "bytes": 984,
+      "sha256": "958a21a8a1ab075ca1ef6080cb9b07460e46c3189485af44686023324215fd5d",
+      "lastWriteUtc": "2026-10-19T18:34:26.355943+00:00"
+    },
+    {
+      "path": "large-final-old-batch-2.csv",
+      "bytes": 984,
+      "sha256": "974cddbf92ab8073183ecac28c036e6777a28b6ce0746e5d48348c1ae6332929",
+      "lastWriteUtc": "2026-10-19T18:34:28.895318+00:00"
+    },
+    {
+      "path": "large-final-old-batch-3.csv",
+      "bytes": 984,
+      "sha256": "738a6f6ede5a1fd1c0a83d4d3ccc294c0f568fd2844aa0f2a81d1bdb65c61a47",
+      "lastWriteUtc": "2026-10-19T18:34:31.459420+00:00"
+    },
+    {
+      "path": "large-final-partitioned-window-1.csv",
+      "bytes": 977,
+      "sha256": "ff7f15e24dce09e3cc0f917c849f4c999a87b41d9f467c1114ae52baac838719",
+      "lastWriteUtc": "2026-10-19T18:34:26.684852+00:00"
+    },
+    {
+      "path": "large-final-partitioned-window-2.csv",
+      "bytes": 977,
+      "sha256": "f0f6690fcdabda3874be178dd88655f7f36b07b0a25925dcf26793ba6d1e4154",
+      "lastWriteUtc": "2026-10-19T18:34:29.250154+00:00"
+    },
+    {
+      "path": "large-final-partitioned-window-3.csv",
+      "bytes": 977,
+      "sha256": "8224e1267a5d078fbc80ae0cedc3c921cf15d653fdb8418a6427af8218978338",
+      "lastWriteUtc": "2026-10-19T18:34:31.788596+00:00"
+    },
+    {
+      "path": "small-final-before-1.csv",
+      "bytes": 5394,
+      "sha256": "0f913834fb0381f550b295af1189e5ad6ed43dfa01ddad0cd38e7fce15ca6aa1",
+      "lastWriteUtc": "2026-10-19T18:34:33.298469+00:00"
+    },
+    {
+      "path": "small-final-before-2.csv",
+      "bytes": 5394,
+      "sha256": "2f4501270c69bb81fab606f4f18f1356585a70337c14e968048e145b63af2038",
+      "lastWriteUtc": "2026-10-19T18:34:36.437605+00:00"
+    },
+    {
+      "path": "small-final-before-3.csv",
+      "bytes": 5394,
+      "sha256": "10a58919fe9039c9e89efdd861686719bd43870a8a3fd4bdb04ed89a358e4471",
+      "lastWriteUtc": "2026-10-19T18:34:39.510725+00:00"
+    },
+    {
+      "path": "small-final-partitioned-window-1.csv",
+      "bytes": 5366,
+      "sha256": "7718052596849e147790eca10f375f67358c91d1ccb87cdd134907178c206f03",
+      "lastWriteUtc": "2026-10-19T18:34:34.826148+00:00"
+    },
+    {
+      "path": "small-final-partitioned-window-2.csv",
+      "bytes": 5366,
+      "sha256": "72fb32817a8fd2dc6e684207b9c8ce4fff44ed4e5a63fc9074ad64875a6eece6",
+      "lastWriteUtc": "2026-10-19T18:34:37.990846+00:00"
+    },
+    {
+      "path": "small-final-partitioned-window-3.csv",
+      "bytes": 5366,
+      "sha256": "2594f2d6211ec31b9b75592870f1fdc27d7109f3af25a9ff98dc436f17158a4d",
+      "lastWriteUtc": "2026-10-19T18:34:41.118347+00:00"
+    }
+  ],
+  "sourcesObservedAtReview": [
+    {
+      "path": "src/LibraryQuery.cpp",
+      "bytes": 74554,
+      "sha256": "d27b4bfb01cc571c35a3c84c0fe37c8c1c798b5db051c00890807b7067062732",
+      "lastWriteUtc": "2026-10-19T18:26:16.656286+00:00"
+    },
+    {
+      "path": "src/LibraryQuery.h",
+      "bytes": 12310,
+      "sha256": "0697eff07805ca3117fa2fef7bc483da2ddaa3d180fc3d095d87c4f5b6e9725a",
+      "lastWriteUtc": "2026-10-19T17:51:16.650701+00:00"
+    },
+    {
+      "path": "src/MediaLibrary.cpp",
+      "bytes": 170834,
+      "sha256": "e7c9b1b151d6fe91c42b3098ce4971b44f281e5f0308dbba65b840dc893d8246",
+      "lastWriteUtc": "2026-10-19T18:33:42.362386+00:00"
+    },
+    {
+      "path": "src/MediaLibrary.h",
+      "bytes": 33429,
+      "sha256": "4be3e025da52492b230d0419839b6fdb3c62c0a730fffb3ca12d4e1d5fe11b80",
+      "lastWriteUtc": "2026-10-19T17:45:47.971866+00:00"
+    },
+    {
+      "path": "tests/unit/TestLibraryQuery.h",
+      "bytes": 60521,
+      "sha256": "175ea543d76d9b17c3c75131cd5f0d5fde5ac7dda6caaffa5b633f48ac33044f",
+      "lastWriteUtc": "2026-10-19T18:25:24.264391+00:00"
+    },
+    {
+      "path": "tests/unit/TestSmartPlaylists.h",
+      "bytes": 18306,
+      "sha256": "e872a224e7bb929557d3528b9dec52336850066c79b3e4a77e746114b084c8fa",
+      "lastWriteUtc": "2026-10-19T18:31:31.968369+00:00"
+    },
+    {
+      "path": "tests/benchmark/query_resource_benchmark.cpp",
+      "bytes": 18770,
+      "sha256": "f478495bd533ff8811b306dabd33b2d2d65811f9ecf4beae807699a2bddf24b3",
+      "lastWriteUtc": "2026-10-19T18:31:31.968369+00:00"
+    },
+    {
+      "path": "tests/benchmark/AllocationProbe.h",
+      "bytes": 1438,
+      "sha256": "13e18817dfaf4f761394aed84bf22cfb296cae8ae91c6048e3416b8aa6823e82",
+      "lastWriteUtc": "2026-10-04T20:19:49.389145+00:00"
+    }
+  ],
+  "savedProbeArtifactsObservedAtReview": [
+    {
+      "path": "before\\query-benchmark.exe",
+      "bytes": 854528,
+      "sha256": "ec8d6bece63ba020befcb7ba62497f97618fdd80d31ea7c02280ec6be381da66",
+      "lastWriteUtc": "2026-10-19T18:18:47.777108+00:00"
+    },
+    {
+      "path": "focused\\query-baseline-large.exe",
+      "bytes": 858624,
+      "sha256": "524843d461e4c1ad48eca52dcb9caaa26912aad6463017533ed93b701c0aaa57",
+      "lastWriteUtc": "2026-10-19T18:32:08.473708+00:00"
+    },
+    {
+      "path": "focused\\query-old-batch-large.exe",
+      "bytes": 861184,
+      "sha256": "ad567bb536c48e5b5ba30919367110bdd272bd007d1ea23cd8d425dc6e08a571",
+      "lastWriteUtc": "2026-10-19T18:32:40.232019+00:00"
+    },
+    {
+      "path": "focused\\query-partitioned-window.exe",
+      "bytes": 863232,
+      "sha256": "d09d2bba9e6cc3ba1115dc3792cfbd77201e4d5bb1da221cfbb224442507ee36",
+      "lastWriteUtc": "2026-10-19T18:33:54.517470+00:00"
+    },
+    {
+      "path": "focused\\focused.exe",
+      "bytes": 1337344,
+      "sha256": "41614f75d82115608f568faa1cf8ea76a56bca74a482dd8bb642ea70580c9f06",
+      "lastWriteUtc": "2026-10-19T18:34:00.648484+00:00"
+    }
+  ],
+  "savedBuildAndValidationLogs": [
+    {
+      "path": "partitioned-window-build.log",
+      "bytes": 103,
+      "sha256": "eb1fd9fb1e73e80f0887050c724c99e5e0346266dad296f4f06e6d1967ee03ee",
+      "lastWriteUtc": "2026-10-19T18:33:54.563163+00:00"
+    },
+    {
+      "path": "partitioned-window-unit-build.log",
+      "bytes": 68,
+      "sha256": "0e19bc391ea2ed46b99c596b86583452869239d98a69e58ff8e7e54eacb69661",
+      "lastWriteUtc": "2026-10-19T18:34:00.696381+00:00"
+    },
+    {
+      "path": "partitioned-window-unit-tests.log",
+      "bytes": 1425,
+      "sha256": "81097434985e9a4e6824a065070ddcd7ef4ba5010a24c1ad7bb4c1c1a7bc29cc",
+      "lastWriteUtc": "2026-10-19T18:34:01.461781+00:00"
+    },
+    {
+      "path": "large-baseline-build.log",
+      "bytes": 123,
+      "sha256": "393bb370cbb890ea9f5a46883bd92bc41b0c4bffe1813bb0939fb5cc3b689f2c",
+      "lastWriteUtc": "2026-10-19T18:32:08.522215+00:00"
+    },
+    {
+      "path": "large-old-batch-build.log",
+      "bytes": 85,
+      "sha256": "fff48678d1c686a83ed221a34f9051f1aae07d234ee9b43bd8666e58db922a10",
+      "lastWriteUtc": "2026-10-19T18:32:40.277508+00:00"
+    }
+  ],
+  "limitations": [
+    "This is an isolated library microbenchmark, not a VLC comparison or end-to-end playback result.",
+    "Small-cap wall times are short and noisy; all ranges and process-round medians are retained. No broad CPU win follows from lower C++ heap use.",
+    "The rejected old-batch implementation has a severe large-cap elapsed regression; its samples are retained for audit and must not be represented as final behavior.",
+    "Saved CSVs have no embedded binary/source hash or host-load trace. File hashes identify the evidence reviewed now, not an independently authenticated original execution.",
+    "The earlier randomized workflow run preceded these final selection changes; final-focused coverage is established by the saved 16-test log, not that earlier workflow total."
+  ]
+}

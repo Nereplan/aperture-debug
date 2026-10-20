@@ -1,0 +1,152 @@
+{
+  "schemaVersion": 1,
+  "assembledAtUtc": "2026-10-20T14:44:05.632340+00:00",
+  "originalScratchDirectory": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-library-20261019",
+  "filesCopiedWithoutChangingBytes": [
+    {
+      "path": "final-review.json",
+      "bytes": 39705,
+      "sha256": "8fd046efc839359358d5fb5faf9c684216c6d557212b6b7ebb8b2a93a18cc2b2"
+    },
+    {
+      "path": "large-final-baseline-1.csv",
+      "bytes": 977,
+      "sha256": "d0ea65f1ccae4e13c7d897736c4b442a6d409a9f37d2af6a4b00dc11f2776d36",
+      "lastWriteUtc": "2026-10-19T18:34:24.547543+00:00"
+    },
+    {
+      "path": "large-final-baseline-2.csv",
+      "bytes": 977,
+      "sha256": "8c6c1cb8d04412d159655598455f275d63e25fcad961f923cf3ddecac97671c9",
+      "lastWriteUtc": "2026-10-19T18:34:27.060576+00:00"
+    },
+    {
+      "path": "large-final-baseline-3.csv",
+      "bytes": 977,
+      "sha256": "0b113c8b1a6cc59632f3fde4fa52a851a9c14185d7bfecea502d5b3aed41c01d",
+      "lastWriteUtc": "2026-10-19T18:34:29.647173+00:00"
+    },
+    {
+      "path": "large-final-old-batch-1.csv",
+      "bytes": 984,
+      "sha256": "958a21a8a1ab075ca1ef6080cb9b07460e46c3189485af44686023324215fd5d",
+      "lastWriteUtc": "2026-10-19T18:34:26.355943+00:00"
+    },
+    {
+      "path": "large-final-old-batch-2.csv",
+      "bytes": 984,
+      "sha256": "974cddbf92ab8073183ecac28c036e6777a28b6ce0746e5d48348c1ae6332929",
+      "lastWriteUtc": "2026-10-19T18:34:28.895318+00:00"
+    },
+    {
+      "path": "large-final-old-batch-3.csv",
+      "bytes": 984,
+      "sha256": "738a6f6ede5a1fd1c0a83d4d3ccc294c0f568fd2844aa0f2a81d1bdb65c61a47",
+      "lastWriteUtc": "2026-10-19T18:34:31.459420+00:00"
+    },
+    {
+      "path": "large-final-partitioned-window-1.csv",
+      "bytes": 977,
+      "sha256": "ff7f15e24dce09e3cc0f917c849f4c999a87b41d9f467c1114ae52baac838719",
+      "lastWriteUtc": "2026-10-19T18:34:26.684852+00:00"
+    },
+    {
+      "path": "large-final-partitioned-window-2.csv",
+      "bytes": 977,
+      "sha256": "f0f6690fcdabda3874be178dd88655f7f36b07b0a25925dcf26793ba6d1e4154",
+      "lastWriteUtc": "2026-10-19T18:34:29.250154+00:00"
+    },
+    {
+      "path": "large-final-partitioned-window-3.csv",
+      "bytes": 977,
+      "sha256": "8224e1267a5d078fbc80ae0cedc3c921cf15d653fdb8418a6427af8218978338",
+      "lastWriteUtc": "2026-10-19T18:34:31.788596+00:00"
+    },
+    {
+      "path": "small-final-before-1.csv",
+      "bytes": 5394,
+      "sha256": "0f913834fb0381f550b295af1189e5ad6ed43dfa01ddad0cd38e7fce15ca6aa1",
+      "lastWriteUtc": "2026-10-19T18:34:33.298469+00:00"
+    },
+    {
+      "path": "small-final-before-2.csv",
+      "bytes": 5394,
+      "sha256": "2f4501270c69bb81fab606f4f18f1356585a70337c14e968048e145b63af2038",
+      "lastWriteUtc": "2026-10-19T18:34:36.437605+00:00"
+    },
+    {
+      "path": "small-final-before-3.csv",
+      "bytes": 5394,
+      "sha256": "10a58919fe9039c9e89efdd861686719bd43870a8a3fd4bdb04ed89a358e4471",
+      "lastWriteUtc": "2026-10-19T18:34:39.510725+00:00"
+    },
+    {
+      "path": "small-final-partitioned-window-1.csv",
+      "bytes": 5366,
+      "sha256": "7718052596849e147790eca10f375f67358c91d1ccb87cdd134907178c206f03",
+      "lastWriteUtc": "2026-10-19T18:34:34.826148+00:00"
+    },
+    {
+      "path": "small-final-partitioned-window-2.csv",
+      "bytes": 5366,
+      "sha256": "72fb32817a8fd2dc6e684207b9c8ce4fff44ed4e5a63fc9074ad64875a6eece6",
+      "lastWriteUtc": "2026-10-19T18:34:37.990846+00:00"
+    },
+    {
+      "path": "small-final-partitioned-window-3.csv",
+      "bytes": 5366,
+      "sha256": "2594f2d6211ec31b9b75592870f1fdc27d7109f3af25a9ff98dc436f17158a4d",
+      "lastWriteUtc": "2026-10-19T18:34:41.118347+00:00"
+    },
+    {
+      "path": "partitioned-window-build.log",
+      "bytes": 103,
+      "sha256": "eb1fd9fb1e73e80f0887050c724c99e5e0346266dad296f4f06e6d1967ee03ee",
+      "lastWriteUtc": "2026-10-19T18:33:54.563163+00:00"
+    },
+    {
+      "path": "partitioned-window-unit-build.log",
+      "bytes": 68,
+      "sha256": "0e19bc391ea2ed46b99c596b86583452869239d98a69e58ff8e7e54eacb69661",
+      "lastWriteUtc": "2026-10-19T18:34:00.696381+00:00"
+    },
+    {
+      "path": "partitioned-window-unit-tests.log",
+      "bytes": 1425,
+      "sha256": "81097434985e9a4e6824a065070ddcd7ef4ba5010a24c1ad7bb4c1c1a7bc29cc",
+      "lastWriteUtc": "2026-10-19T18:34:01.461781+00:00"
+    },
+    {
+      "path": "large-baseline-build.log",
+      "bytes": 123,
+      "sha256": "393bb370cbb890ea9f5a46883bd92bc41b0c4bffe1813bb0939fb5cc3b689f2c",
+      "lastWriteUtc": "2026-10-19T18:32:08.522215+00:00"
+    },
+    {
+      "path": "large-old-batch-build.log",
+      "bytes": 85,
+      "sha256": "fff48678d1c686a83ed221a34f9051f1aae07d234ee9b43bd8666e58db922a10",
+      "lastWriteUtc": "2026-10-19T18:32:40.277508+00:00"
+    }
+  ],
+  "copiedBytes": 82603,
+  "validation": {
+    "csvFiles": 15,
+    "measuredRows": 672,
+    "distinctModes": 15,
+    "samplesPerModePerVariant": 21,
+    "allCountAndOrderSignaturesMatch": true,
+    "focusedSavedTests": {
+      "passed": 16,
+      "failed": 0,
+      "skipped": 0,
+      "durationSeconds": 0.42265
+    }
+  },
+  "generatedFiles": [
+    ".gitattributes",
+    "source-hashes.json",
+    "evidence-manifest.json"
+  ],
+  "scope": "Evidence packaging and independent CSV aggregation only; no new timings, builds, players or test execution. Performance interpretation belongs in the appended checkpoint notes."
+}
