@@ -2,8 +2,73 @@
 
 #include "../support/TestFramework.h"
 #include "../../src/MpvPlayer.h"
+#include <cstdlib>
 #include <cstring>
+#include <string_view>
 #include <type_traits>
+
+namespace Aperture {
+// Exercise production track publication without a DLL, event thread, or timing races.
+struct MpvTrackTestAccess {
+    MpvPlayer player;
+    int64_t secondaryId = 0;
+    std::vector<uint64_t> callbackVersions;
+    MpvTrackTestAccess() {
+        player.mpv = reinterpret_cast<mpv_handle*>(this);
+        player.fn_mpv_get_property = &Property;
+        player.fn_mpv_get_property_string = &StringProperty;
+        player.fn_mpv_free = &std::free;
+        player.SetOnTracksChanged([this] { callbackVersions.push_back(player.GetTracksVersion()); });
+    }
+    ~MpvTrackTestAccess() { player.ClearCallbacks(); player.mpv = nullptr; }
+    void Refresh() { player.RefreshTracks(); }
+    static std::string_view TrackField(const char* name, unsigned& index) {
+        std::string_view path(name);
+        constexpr std::string_view prefix = "track-list/";
+        if (path.substr(0, prefix.size()) != prefix) return {};
+        path.remove_prefix(prefix.size());
+        if (path.size() < 3 || path[0] < '0' || path[0] > '3' || path[1] != '/') return {};
+        index = static_cast<unsigned>(path[0] - '0');
+        return path.substr(2);
+    }
+    static int Property(mpv_handle* handle, const char* name, mpv_format format, void* output) {
+        const auto& fixture = *reinterpret_cast<const MpvTrackTestAccess*>(handle);
+        if (format == MPV_FORMAT_INT64 && std::strcmp(name, "secondary-sid") == 0) {
+            *static_cast<int64_t*>(output) = fixture.secondaryId; return 0;
+        }
+        if (format == MPV_FORMAT_INT64 && std::strcmp(name, "track-list/count") == 0) {
+            *static_cast<int64_t*>(output) = 4; return 0;
+        }
+        unsigned index = 0;
+        const auto field = TrackField(name, index);
+        if (format == MPV_FORMAT_INT64 && (field == "id" || field == "demux-channel-count")) {
+            *static_cast<int64_t*>(output) = field == "id" ? (index == 0 ? 10 : index) : (index == 0 ? 2 : 0);
+            return 0;
+        }
+        if (format == MPV_FORMAT_FLAG && (field == "selected" || field == "default" || field == "external" || field == "forced")) {
+            *static_cast<int*>(output) = (field == "selected" || field == "default") && index <= 1;
+            return 0;
+        }
+        return MPV_ERROR_PROPERTY_NOT_FOUND;
+    }
+    static char* StringProperty(mpv_handle*, const char* name) {
+        unsigned index = 0;
+        const auto field = TrackField(name, index);
+        const char* value = nullptr;
+        if (field == "type") value = index == 0 ? "audio" : "sub";
+        else if (field == "title") {
+            constexpr const char* titles[] = { "Audio", "Primary", "Secondary two", "Secondary three" };
+            value = titles[index];
+        } else if (field == "lang") value = "eng";
+        else if (field == "codec" || field == "codec-desc") value = index == 0 ? "AAC" : "SRT";
+        if (!value) return nullptr;
+        const size_t bytes = std::strlen(value) + 1;
+        auto* copy = static_cast<char*>(std::malloc(bytes));
+        if (copy) std::memcpy(copy, value, bytes);
+        return copy;
+    }
+};
+}
 
 namespace Aperture::Test {
 namespace MpvInitializationFixture {
@@ -24,6 +89,44 @@ public:
     using MpvApiOwner::SetMpvWindow;
     using MpvApiOwner::EssentialOptionsAccepted;
 };
+}
+
+TEST_CASE(MpvInitialization, SecondarySubtitleSelectionPublishesTrackVersion) {
+    MpvTrackTestAccess fixture;
+    fixture.Refresh();
+    TEST_ASSERT_EQ(fixture.player.GetTracksVersion(), uint64_t{1});
+    TEST_ASSERT_EQ(fixture.callbackVersions.size(), size_t{1});
+    const auto original = fixture.player.GetSubtitleTracks();
+    TEST_ASSERT_EQ(original.size(), size_t{3});
+    uint64_t cachedVersion = fixture.player.GetTracksVersion();
+    auto cached = original;
+    uint64_t expectedVersion = cachedVersion;
+    int64_t previousSecondary = 0;
+    for (const int64_t secondary : { 2, 2, 3, 0, 0 }) {
+        fixture.secondaryId = secondary;
+        fixture.Refresh();
+        if (secondary != previousSecondary) ++expectedVersion;
+        TEST_ASSERT_EQ(fixture.player.GetTracksVersion(), expectedVersion);
+        TEST_ASSERT_EQ(fixture.callbackVersions.size(), static_cast<size_t>(expectedVersion));
+        TEST_ASSERT_EQ(fixture.callbackVersions.back(), expectedVersion);
+        TEST_ASSERT_EQ(fixture.player.GetCurrentSubtitleTrackId(), 1);
+        TEST_ASSERT_EQ(fixture.player.GetCurrentSecondarySubtitleTrackId(), static_cast<int>(secondary));
+        if (fixture.player.GetTracksVersion() != cachedVersion) {
+            cached = fixture.player.GetSubtitleTracks();
+            cachedVersion = fixture.player.GetTracksVersion();
+        }
+        for (size_t i = 0; i < cached.size(); ++i) {
+            TEST_ASSERT_EQ(cached[i].id, static_cast<int>(i + 1));
+            TEST_ASSERT_EQ(cached[i].isSelected, i == 0);
+            TEST_ASSERT_EQ(cached[i].isSecondarySelected, secondary == static_cast<int64_t>(i + 1));
+            TEST_ASSERT(!original[i].isSecondarySelected);
+        }
+        const auto audio = fixture.player.GetAudioTracks();
+        TEST_ASSERT_EQ(audio.size(), size_t{1});
+        TEST_ASSERT_EQ(audio[0].id, 10);
+        TEST_ASSERT(audio[0].isSelected && !audio[0].isSecondarySelected);
+        previousSecondary = secondary;
+    }
 }
 
 TEST_CASE(MpvInitialization, ExportPolicyAndBundledLifecycle) {

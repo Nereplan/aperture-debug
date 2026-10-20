@@ -234,6 +234,7 @@ public:
     HMODULE GetMpvDll() const { return hMpvDll; }
 
 private:
+    friend struct MpvTrackTestAccess;
     std::wstring GetCodec(const char* primary, const char* fallback) const;
     void EventLoop();
     // Normalize both eof-reached (used with keep-open) and END_FILE/EOF into

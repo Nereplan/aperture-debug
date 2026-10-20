@@ -531,6 +531,7 @@ void MpvPlayer::RefreshTracks() {
                 const MpvTrackInfo& y = b[i];
                 if (x.id != y.id || x.type != y.type || x.title != y.title || x.lang != y.lang ||
                     x.codec != y.codec || x.isSelected != y.isSelected || x.isDefault != y.isDefault ||
+                    x.isSecondarySelected != y.isSecondarySelected ||
                     x.isExternal != y.isExternal || x.isForced != y.isForced || x.channels != y.channels) {
                     return false;
                 }
