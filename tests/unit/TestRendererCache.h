@@ -1,5 +1,6 @@
 #pragma once
 #include "../support/TestFramework.h"
+#include "../support/TestTempDir.h"
 #include "../../src/Renderer.h"
 
 namespace Aperture {
@@ -47,6 +48,59 @@ struct RendererCacheTestAccess {
     static uint64_t CompletedBytes(Renderer& r) { return r.completedThumbnailBytes; }
     static bool InFlight(Renderer& r, int id) {
         return r.inFlightThumbnailKeys.count({std::to_wstring(id), 320, 180}) != 0;
+    }
+    static size_t LayoutCount(const Renderer& r) { return r.layoutCache.size(); }
+    static size_t LayoutLruCount(const Renderer& r) { return r.layoutLru.size(); }
+    static uint64_t LayoutBytes(const Renderer& r) { return r.layoutCacheBytes; }
+    static size_t SizedFormatCount(const Renderer& r) { return r.sizedFormatCache.size(); }
+    static bool HasWic(const Renderer& r) { return r.wicFactory != nullptr; }
+    static IDWriteTextFormat* BaseFormat(Renderer& r) { return r.GetTextFormat(FontType::Regular); }
+    static uint32_t PngLastPixel(Renderer& r, const std::wstring& path, UINT& width, UINT& height) {
+        auto* wic = r.EnsureWicFactory();
+        TEST_ASSERT(wic != nullptr);
+        ComPtr<IWICBitmapDecoder> decoder;
+        TEST_ASSERT(SUCCEEDED(wic->CreateDecoderFromFilename(path.c_str(), nullptr, GENERIC_READ,
+            WICDecodeMetadataCacheOnLoad, &decoder)));
+        ComPtr<IWICBitmapFrameDecode> frame;
+        TEST_ASSERT(SUCCEEDED(decoder->GetFrame(0, &frame)));
+        TEST_ASSERT(SUCCEEDED(frame->GetSize(&width, &height)));
+        ComPtr<IWICFormatConverter> converter;
+        TEST_ASSERT(SUCCEEDED(wic->CreateFormatConverter(&converter)));
+        TEST_ASSERT(SUCCEEDED(converter->Initialize(frame.Get(), GUID_WICPixelFormat32bppBGRA,
+            WICBitmapDitherTypeNone, nullptr, 0, WICBitmapPaletteTypeCustom)));
+        WICRect corner{int(width - 1), int(height - 1), 1, 1};
+        uint32_t pixel = 0;
+        TEST_ASSERT(SUCCEEDED(converter->CopyPixels(&corner, sizeof(pixel), sizeof(pixel), reinterpret_cast<BYTE*>(&pixel))));
+        return pixel;
+    }
+    // This tests the broadcast contract directly. It does not simulate Shell
+    // decoding or claim to be a real blocked-producer integration test.
+    static bool HiddenTrimBroadcastsToBothWaiters(Renderer& r) {
+        std::condition_variable observed;
+        size_t ready = 0, released = 0;
+        const uint64_t generation = r.thumbnailGeneration;
+        auto wait = [&]() {
+            std::unique_lock<std::mutex> lock(r.thumbnailMutex);
+            ++ready;
+            observed.notify_all();
+            r.thumbnailCv.wait(lock, [&]() { return generation != r.thumbnailGeneration; });
+            ++released;
+            observed.notify_all();
+        };
+        std::thread first(wait), second(wait);
+        std::unique_lock<std::mutex> lock(r.thumbnailMutex);
+        const bool registered = observed.wait_for(lock, std::chrono::seconds(2), [&]() { return ready == 2; });
+        lock.unlock();
+        r.TrimHiddenLibraryCaches();
+        lock.lock();
+        const bool broadcast = registered && observed.wait_for(lock, std::chrono::seconds(1), [&]() { return released == 2; });
+        // Always release and join both observers, including on regression.
+        ++r.thumbnailGeneration;
+        lock.unlock();
+        r.thumbnailCv.notify_all();
+        first.join();
+        second.join();
+        return broadcast;
     }
     static void Clear(Renderer& r) { r.ClearThumbnailCacheInternal(); }
     static DXGI_SWAP_CHAIN_DESC1 Buffers(Renderer& r) {
@@ -216,6 +270,68 @@ TEST_CASE(RendererCache, HiddenLibraryRetainsRecentBitmapsAndDropsQueuedPixels) 
     renderer.TrimHiddenLibraryCaches(0);
     TEST_ASSERT_EQ(RendererCacheTestAccess::Bytes(renderer), uint64_t(0));
     TEST_ASSERT_EQ(RendererCacheTestAccess::IndexedCount(renderer), size_t(0));
+}
+
+TEST_CASE(RendererCache, HiddenTrimBroadcastsGenerationInvalidation) {
+    Renderer renderer;
+    TEST_ASSERT(RendererCacheTestAccess::HiddenTrimBroadcastsToBothWaiters(renderer));
+}
+
+TEST_CASE(RendererCache, HiddenTextAndCaptureCachesRebuildWithoutReplacingSharedResources) {
+    struct Window {
+        HWND handle = CreateWindowExW(0, L"STATIC", L"Hidden cache reconstruction", WS_POPUP,
+            0, 0, 320, 240, nullptr, nullptr, GetModuleHandleW(nullptr), nullptr);
+        ~Window() { if (handle) DestroyWindow(handle); }
+    } window;
+    ScopedTempDir directory(L"Aperture_Hidden_Caches_");
+    Renderer renderer;
+    TEST_ASSERT(renderer.Initialize(window.handle, "", false));
+    auto* d2dFactory = renderer.GetD2DFactory();
+    auto* writeFactory = renderer.GetDWriteFactory();
+    auto* collection = renderer.GetCustomFontCollection();
+    auto* baseFormat = RendererCacheTestAccess::BaseFormat(renderer);
+    const std::wstring text = L"Hub title with shaped text: \x03A9 \x0627\x0644\x0639\x0631\x0628\x064A\x0629";
+    const auto normal = renderer.MeasureString(text, FontType::Regular);
+    const auto sized = renderer.MeasureStringSized(text, 17.0f, DWRITE_FONT_WEIGHT_SEMI_BOLD);
+    TEST_ASSERT(normal.width > 0 && sized.width > 0);
+    renderer.BeginDraw();
+    renderer.Clear(D2D1::ColorF(D2D1::ColorF::Blue));
+    renderer.DrawString(text, D2D1::RectF(4, 4, 200, 60), D2D1::ColorF(D2D1::ColorF::White));
+    TEST_ASSERT(renderer.EndDraw(false));
+    auto* context = renderer.GetD2DContext();
+    const auto before = directory.SubPath(L"before.png");
+    TEST_ASSERT(renderer.CaptureBackBufferToPng(before));
+    UINT width = 0, height = 0;
+    TEST_ASSERT_EQ(RendererCacheTestAccess::PngLastPixel(renderer, before, width, height), 0xff0000ffu);
+    TEST_ASSERT_EQ(width, 320u); TEST_ASSERT_EQ(height, 240u);
+    TEST_ASSERT(RendererCacheTestAccess::LayoutCount(renderer) > 0);
+    TEST_ASSERT(RendererCacheTestAccess::SizedFormatCount(renderer) > 0);
+    TEST_ASSERT(RendererCacheTestAccess::HasWic(renderer));
+
+    renderer.TrimHiddenLibraryCaches();
+    TEST_ASSERT_EQ(RendererCacheTestAccess::LayoutCount(renderer), size_t(0));
+    TEST_ASSERT_EQ(RendererCacheTestAccess::LayoutLruCount(renderer), size_t(0));
+    TEST_ASSERT_EQ(RendererCacheTestAccess::LayoutBytes(renderer), uint64_t(0));
+    TEST_ASSERT_EQ(RendererCacheTestAccess::SizedFormatCount(renderer), size_t(0));
+    TEST_ASSERT(!RendererCacheTestAccess::HasWic(renderer));
+    TEST_ASSERT(renderer.GetD2DFactory() == d2dFactory && renderer.GetDWriteFactory() == writeFactory);
+    TEST_ASSERT(renderer.GetCustomFontCollection() == collection);
+    TEST_ASSERT(RendererCacheTestAccess::BaseFormat(renderer) == baseFormat);
+    TEST_ASSERT(renderer.GetD2DContext() == context);
+    const auto restoredNormal = renderer.MeasureString(text, FontType::Regular);
+    const auto restoredSized = renderer.MeasureStringSized(text, 17.0f, DWRITE_FONT_WEIGHT_SEMI_BOLD);
+    TEST_ASSERT_EQ(restoredNormal.width, normal.width); TEST_ASSERT_EQ(restoredNormal.height, normal.height);
+    TEST_ASSERT_EQ(restoredSized.width, sized.width); TEST_ASSERT_EQ(restoredSized.height, sized.height);
+    TEST_ASSERT_EQ(RendererCacheTestAccess::Buffers(renderer).Width, 1u);
+    renderer.BeginDraw();
+    renderer.Clear(D2D1::ColorF(D2D1::ColorF::Red));
+    renderer.DrawString(text, D2D1::RectF(4, 4, 200, 60), D2D1::ColorF(D2D1::ColorF::White));
+    TEST_ASSERT(renderer.EndDraw(false));
+    const auto after = directory.SubPath(L"after.png");
+    TEST_ASSERT(renderer.CaptureBackBufferToPng(after));
+    TEST_ASSERT_EQ(RendererCacheTestAccess::PngLastPixel(renderer, after, width, height), 0xffff0000u);
+    TEST_ASSERT_EQ(width, 320u); TEST_ASSERT_EQ(height, 240u);
+    TEST_ASSERT(renderer.GetD2DContext() == context);
 }
 
 TEST_CASE(RendererCache, HiddenBackbuffersRestoreWithoutReplacingDeviceOrThumbnails) {

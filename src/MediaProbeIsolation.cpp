@@ -265,6 +265,7 @@ MediaProbeIsolation::MediaProbeIsolation(CancelCheck canceled, std::wstring exec
 MediaProbeIsolation::~MediaProbeIsolation() = default;
 MediaProbeIsolation::Outcome MediaProbeIsolation::LastOutcome() const { return impl->outcome; }
 DWORD MediaProbeIsolation::HelperProcessId() const { return impl->pid; }
+void MediaProbeIsolation::ReleaseIdleResources() { impl->Stop(true); }
 bool MediaProbeIsolation::ProbeMetadata(const std::wstring& path, double& duration, uint32_t& width, uint32_t& height, DWORD timeoutMs) {
     duration = 0; width = 0; height = 0;
     if (!impl->Run(Operation::Metadata, path, 0, 0, timeoutMs)) return false;

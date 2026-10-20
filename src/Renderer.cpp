@@ -208,6 +208,11 @@ void Renderer::TrimHiddenLibraryCaches(uint64_t retainedThumbnailBytes) {
         thumbnailLru.pop_back();
     }
     ClearShadowCache();
+    layoutCache.clear();
+    layoutLru.clear();
+    layoutCacheBytes = 0;
+    sizedFormatCache.clear();
+    wicFactory.Reset();
     // Completed software thumbnails can otherwise remain queued for the whole
     // movie. In-flight results become stale; workers and disk entries survive.
     {
@@ -218,6 +223,9 @@ void Renderer::TrimHiddenLibraryCaches(uint64_t retainedThumbnailBytes) {
         completedThumbnailResults.clear();
         completedThumbnailBytes = 0;
     }
+    // Wake both producers waiting for result space and idle workers holding a
+    // probe from the old generation. They must observe the invalidation now.
+    thumbnailCv.notify_all();
 }
 
 void Renderer::ReleaseDeviceResources() {
@@ -1342,6 +1350,24 @@ void Renderer::ThumbnailWorkerThread() {
         while (true) {
             {
                 std::unique_lock<std::mutex> lock(thumbnailMutex);
+                if (probes.HelperProcessId()) {
+                    bool releaseProbe = activeGeneration != thumbnailGeneration;
+                    if (!releaseProbe && pendingThumbnailRequests.empty()) {
+                        const uint64_t idleGeneration = thumbnailGeneration;
+                        const bool woke = thumbnailCv.wait_for(lock, std::chrono::seconds(5), [&]() {
+                            return thumbnailWorkerStopping || !pendingThumbnailRequests.empty() ||
+                                idleGeneration != thumbnailGeneration;
+                        });
+                        releaseProbe = !woke || idleGeneration != thumbnailGeneration;
+                    }
+                    if (releaseProbe) {
+                        // Stop may wait for the helper. Keep renderer queue and
+                        // persistence locks free while releasing its mapping.
+                        lock.unlock();
+                        probes.ReleaseIdleResources();
+                        lock.lock();
+                    }
+                }
                 thumbnailCv.wait(lock, [this]() { return thumbnailWorkerStopping || !pendingThumbnailRequests.empty(); });
                 if (thumbnailWorkerStopping) { break; }
                 if (pendingThumbnailRequests.empty()) { continue; }

@@ -133,6 +133,29 @@ int wmain(int argc, wchar_t** argv) {
         }
         {
             MediaProbeIsolation probes;
+            DWORD handlesBefore = 0, handlesAfter = 0;
+            Require(GetProcessHandleCount(GetCurrentProcess(), &handlesBefore) != FALSE,
+                "Read parent handles before explicit idle release");
+            for (int cycle = 0; cycle < 3; ++cycle) {
+                double duration = 0; uint32_t width = 0, height = 0;
+                std::vector<uint8_t> pixels;
+                Require(probes.ProbeMetadata(wave, duration, width, height), "Metadata restarts after idle release");
+                Require(std::abs(duration - 2.0) < 0.02, "Restarted metadata preserves duration");
+                Require(probes.GetThumbnail(bitmap, 32, 18, pixels, width, height), "Thumbnail restarts after idle release");
+                Require(width && height && pixels.size() == size_t(width) * height * 4, "Restarted thumbnail bytes are complete");
+                const DWORD pid = probes.HelperProcessId();
+                probes.ReleaseIdleResources();
+                Require(!probes.HelperProcessId() && probes.LastOutcome() == MediaProbeIsolation::Outcome::Success,
+                    "Idle release clears owner while retaining last outcome");
+                RequireProcessExited(pid);
+                probes.ReleaseIdleResources();
+                Require(GetProcessHandleCount(GetCurrentProcess(), &handlesAfter) != FALSE, "Read released parent handles");
+                Require(handlesAfter <= handlesBefore, "Idle release closes parent job, mapping and event handles");
+            }
+            std::cout << "explicit-idle-release-and-restart,pass,0\n";
+        }
+        {
+            MediaProbeIsolation probes;
             const ULONGLONG started = GetTickCount64();
             Require(!probes.RunBlockedProbeForTesting(500), "Blocked helper deadline fails");
             const ULONGLONG elapsed = GetTickCount64() - started;

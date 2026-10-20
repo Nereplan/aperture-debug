@@ -34,6 +34,8 @@ public:
                       std::vector<uint8_t>& pixels, uint32_t& width, uint32_t& height, DWORD timeoutMs = 15000);
     Outcome LastOutcome() const;
     DWORD HelperProcessId() const;
+    // The owner calls this between requests; the next probe starts lazily.
+    void ReleaseIdleResources();
 #ifdef APERTURE_TEST_PROBE_ISOLATION
     bool RunBlockedProbeForTesting(DWORD timeoutMs);
     bool IsCurrentProbeEnteredForTesting() const;
