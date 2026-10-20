@@ -85,20 +85,18 @@ struct PlayerDiagnostics {
     int64_t audioSampleRate = 0, audioChannels = 0;
     std::wstring audioTrackTitle, subTrackTitle;
     int activeSubSafeAreaX = 0, activeSubSafeAreaY = 0;
-    std::wstring activeSubSafeArea;
     // --- Audio & Surround Diagnostics ---
     std::wstring activeAudioDevice, activeAudioDeviceDescription, activeAudioLayout, activeAudioChannelMix;
-    std::wstring activeNightMode, activeAudioFilters;
+    std::wstring activeNightMode;
     double activeAudioBalance = 0.0;
     std::wstring activeAudioChannelMap;
     bool audioDeviceFallback = false;
-    std::wstring colorPrimaries, colorTransfer, colorSpace, colorLevels;
-    double sigPeak = 0.0, maxCll = 0.0, maxFall = 0.0, minLuma = 0.0;
-    double maxLuma = 0.0;
+    std::wstring colorPrimaries, colorTransfer;
+    double sigPeak = 0.0, maxCll = 0.0, maxFall = 0.0;
     bool isHdrSource = false;
     std::wstring hdrType = L"SDR";
     std::wstring activeOutputMode = L"SDR Native";
-    std::wstring activeToneMapping, activeGamutMapping, activeIccProfile, colorDiagnosticsStr;
+    std::wstring activeToneMapping, activeIccProfile;
 };
 
 class MpvPlayer : private MpvApiOwner {

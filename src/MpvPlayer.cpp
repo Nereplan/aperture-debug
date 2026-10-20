@@ -1807,12 +1807,10 @@ PlayerDiagnostics MpvPlayer::GetDiagnostics() const {
         }
         d.activeSubSafeAreaX = lastSubSafeAreaX;
         d.activeSubSafeAreaY = lastSubSafeAreaY;
-        d.activeSubSafeArea = std::to_wstring(lastSubSafeAreaX) + L"% H, " + std::to_wstring(lastSubSafeAreaY) + L"% V";
         d.activeAudioDevice = Utf8ToUtf16(lastAudioPlan.normalizedDevice);
         d.activeAudioLayout = Utf8ToUtf16(lastAudioPlan.normalizedLayout);
         d.activeAudioChannelMix = Utf8ToUtf16(lastAudioPlan.normalizedChannelMix);
         d.activeNightMode = Utf8ToUtf16(lastAudioPlan.normalizedNightMode);
-        d.activeAudioFilters = Utf8ToUtf16(lastAudioPlan.filterString);
         d.activeAudioBalance = lastAudioPlan.normalizedBalance;
         d.activeAudioChannelMap = Utf8ToUtf16(lastAudioPlan.normalizedChannelMap);
         d.audioDeviceFallback = lastAudioPlan.deviceFellBackToAuto;
@@ -1870,19 +1868,13 @@ PlayerDiagnostics MpvPlayer::GetDiagnostics() const {
     readInteger(d.audioChannels, {"audio-params/channel-count"});
     readString(d.colorPrimaries, "video-params/primaries");
     readString(d.colorTransfer, "video-params/gamma", "video-params/colortransfer");
-    readString(d.colorSpace, "video-params/colorspace");
-    readString(d.colorLevels, "video-params/colorlevels");
     readString(d.activeToneMapping, "tone-mapping");
-    readString(d.activeGamutMapping, "gamut-mapping-mode");
     readString(d.activeIccProfile, "icc-profile");
     readString(d.activeAudioDevice, "audio-device", nullptr, false);
     readString(d.activeAudioLayout, "audio-channels", nullptr, false);
-    readString(d.activeAudioFilters, "af");
     readDouble(d.sigPeak, {"video-params/sig-peak"});
     readDouble(d.maxCll, {"video-params/max-cll"});
     readDouble(d.maxFall, {"video-params/max-fall"});
-    readDouble(d.minLuma, {"video-params/min-luma"});
-    readDouble(d.maxLuma, {"video-params/max-luma"});
     std::wstring trLower = d.colorTransfer;
     for (auto& c : trLower) c = (wchar_t)towlower(c);
     std::wstring primLower = d.colorPrimaries;
