@@ -43,10 +43,6 @@ if ($vMajor -lt 0 -or $vMinor -lt 0 -or $vPatch -lt 0 -or $vBuild -lt 0) {
     throw "version.json numeric version fields must be non-negative integers"
 }
 
-$vString = if ($verRaw.versionString) { $verRaw.versionString } else { "$vMajor.$vMinor.$vPatch.$vBuild" }
-$vDisplay = if ($verRaw.displayVersion) { $verRaw.displayVersion } else { "$vMajor.$vMinor.$vPatch" }
-$vChannel = if ($verRaw.channel) { $verRaw.channel } else { "stable" }
-
 $tempDir = Join-Path ([System.IO.Path]::GetTempPath()) ("Aperture_updater_tests_" + [System.Guid]::NewGuid().ToString("N"))
 New-Item -ItemType Directory -Path $tempDir -Force | Out-Null
 
@@ -57,24 +53,11 @@ $genVersionHeader = Join-Path $genDir "Version.h"
 $versionHeaderContent = @"
 #pragma once
 #include <cstdint>
-#include <string_view>
-
-#define APERTURE_VERSION_MAJOR $vMajor
-#define APERTURE_VERSION_MINOR $vMinor
-#define APERTURE_VERSION_PATCH $vPatch
-#define APERTURE_VERSION_BUILD $vBuild
-#define APERTURE_VERSION_STRING "$vString"
-#define APERTURE_DISPLAY_VERSION "$vDisplay"
-#define APERTURE_BUILD_CHANNEL "$vChannel"
-
 namespace Aperture::Version {
-    inline constexpr uint32_t Major = APERTURE_VERSION_MAJOR;
-    inline constexpr uint32_t Minor = APERTURE_VERSION_MINOR;
-    inline constexpr uint32_t Patch = APERTURE_VERSION_PATCH;
-    inline constexpr uint32_t Build = APERTURE_VERSION_BUILD;
-    inline constexpr std::string_view String = APERTURE_VERSION_STRING;
-    inline constexpr std::string_view DisplayVersion = APERTURE_DISPLAY_VERSION;
-    inline constexpr std::string_view BuildChannel = APERTURE_BUILD_CHANNEL;
+    inline constexpr uint32_t Major = $vMajor;
+    inline constexpr uint32_t Minor = $vMinor;
+    inline constexpr uint32_t Patch = $vPatch;
+    inline constexpr uint32_t Build = $vBuild;
 }
 "@
 [IO.File]::WriteAllText($genVersionHeader, $versionHeaderContent, [System.Text.Encoding]::UTF8)

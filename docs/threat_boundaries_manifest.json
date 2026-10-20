@@ -327,8 +327,6 @@
         "Aperture::Diagnostics::Initialize",
         "Aperture::Diagnostics::Shutdown",
         "Aperture::Diagnostics::Log",
-        "Aperture::Diagnostics::CreateHangDump",
-        "Aperture::Diagnostics::CreateBundle",
         "Aperture::Diagnostics::RecordHeartbeat"
       ],
       "sourceFiles": [

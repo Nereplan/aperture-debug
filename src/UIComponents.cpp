@@ -3,7 +3,6 @@
 #include "UIComponents.h"
 #include "PlaybackFlyoutLayout.h"
 #include "AppLayout.h"
-#include "BuildInfo.h"
 #include "ChannelPolicy.h"
 #include "Version.h"
 #include "Localization.h"
@@ -1348,7 +1347,6 @@ void UIComponents::DrawSettingsView(Renderer& r, const Settings& s, const Settin
     } else if (vm.activeCat == SettingsCategory::System) {
         drawPageHeader(Loc::Tr("settings.category.system"), Loc::Tr("settings.page.system"));
         drawHeader(Loc::Tr("settings.system.about_header").c_str());
-        const BuildInfo::BuildInfoSnapshot info = BuildInfo::GetSnapshot(false);
         float aboutCardH = SettingsLayout::kSystemAboutHeight * dp;
         const auto aboutRect = D2D1::RectF(contentBounds.left + padX, contentY, contentBounds.right - padX, contentY + aboutCardH);
         SurfaceStyle aStyle = makeFlatSurface();
@@ -1371,7 +1369,7 @@ void UIComponents::DrawSettingsView(Renderer& r, const Settings& s, const Settin
 
         const float infoLeft = isRtl ? (aboutRect.left + 16.0f * dp) : (logoBox.right + 12.0f * dp);
         const float infoRight = isRtl ? (logoBox.left - 12.0f * dp) : (aboutRect.right - 16.0f * dp);
-        r.DrawString(L"Aperture " + Utf8ToUtf16(info.version.displayVersion),
+        r.DrawString(L"Aperture " + std::wstring(Version::DisplayVersionWide),
             D2D1::RectF(infoLeft, aboutRect.top + 12 * dp, infoRight, aboutRect.top + 34 * dp),
             textPri, FontType::Bold, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
         r.DrawString(Loc::Tr("settings.system.portable_desc"),

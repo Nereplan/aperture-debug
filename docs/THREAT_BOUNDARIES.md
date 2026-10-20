@@ -21,7 +21,7 @@ Aperture is a native Windows media player built with C++17, Win32, Direct2D, Dir
   │   ├── mpv.conf
   │   └── backups\                  # Rotating backups (.bak.1 .. .bak.3)
   ├── cache\                        # Disposable caches (thumbnails, shaders, subtitles)
-  ├── diagnostics\                  # Diagnostic bundles, local error logs, process crash/hang minidumps
+  ├── diagnostics\                  # Local error logs, startup reports, process crash/hang minidumps
   └── screenshots\                  # User-initiated media frame captures
 ```
 
@@ -255,15 +255,15 @@ The system defines twelve distinct security boundaries spanning external data, i
 
 - **Boundary ID**: `diagnostics_and_process_dumps`
 - **Category**: `diagnostics_and_telemetry`
-- **Assets & Actors**: Application error logs (`aperture.log`), diagnostic bundles (`bundle-*.txt`), process crash minidumps (`crash-*.dmp`), live hang minidumps (`hang-*.dmp`).
+- **Assets & Actors**: Application error logs (`aperture.log`), startup reports (`perf/startup-*.json`), process crash minidumps (`crash-*.dmp`), live hang minidumps (`hang-*.dmp`).
 - **Trust Level**: Process memory, exception context, and diagnostic event streams.
-- **Entry Points**: `Diagnostics::Initialize`, `Diagnostics::Shutdown`, `Diagnostics::Log`, `Diagnostics::CreateHangDump`, `Diagnostics::CreateBundle`, `Diagnostics::RecordHeartbeat`, unhandled exception filter (`WriteCrashDump`).
+- **Entry Points**: `Diagnostics::Initialize`, `Diagnostics::Shutdown`, `Diagnostics::StartWatchdog`, `Diagnostics::Log`, `Diagnostics::RecordHeartbeat`, unhandled exception filter (`WriteCrashDump`).
 - **Security Validations & Bounds**:
   - Directory confinement: all diagnostic artifacts written strictly to `<rootDir>\diagnostics\`.
   - Log rotation: active log size capped at `kMaxLogBytes = 1 MiB` (`1048576` bytes); retains `kRetainedLogs = 3` rotating backups (`aperture.log.1 .. 3`).
   - Minidump scope: uses `MiniDumpWithThreadInfo` for minimal crash minidumps, capturing only thread stacks and exception records rather than full process address space.
   - Watchdog heartbeat: polls every `5000 ms`; triggers hang dump only when main thread heartbeat stalls past `kHangThresholdMilliseconds = 30000 ms`.
-  - Diagnostic bundles written atomically via `AtomicWriteTextFile`.
+  - Startup reports written atomically via `AtomicWriteTextFile`.
   - Zero remote transmission: logs and dumps remain strictly local on disk.
 - **Privilege & Context**: Standard user process.
 - **Durable-Write Destination**: Strictly `<rootDir>\diagnostics\...`.

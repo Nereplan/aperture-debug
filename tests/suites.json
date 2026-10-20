@@ -326,7 +326,7 @@
       ],
       "artifactPolicy": "isolated_temp",
       "timeoutSeconds": 180,
-      "description": "Root-local logging, diagnostic bundle generation, non-destructive live hang dump capture, and unhandled exception crash dump verification."
+      "description": "Root-local logging, explicit startup resource capture, internal live-dump writing, and unhandled exception crash dump verification."
     },
     {
       "id": "updater",

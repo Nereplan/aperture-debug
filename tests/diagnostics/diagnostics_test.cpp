@@ -1,4 +1,4 @@
-#include "../../src/Diagnostics.h"
+#include "../../src/Diagnostics.cpp"
 #include "../../src/Common.h"
 #include "../../src/Json.h"
 
@@ -23,7 +23,7 @@ int wmain(int argc, wchar_t** argv) {
     Diagnostics::Log(AppError::Storage(7, ERROR_ACCESS_DENIED,
         L"Test storage failure", L"diagnostics verification", GetDataDir()));
 
-    const std::wstring directory = Diagnostics::GetDirectory();
+    const std::wstring directory = GetExeDir() + L"\\diagnostics";
     Diagnostics::RecordStartupMilestone(L"timestamp-only");
     Diagnostics::RecordStartupMilestone(L"explicit-resources", true);
     Diagnostics::WriteStartupReport();
@@ -49,10 +49,8 @@ int wmain(int argc, wchar_t** argv) {
         if (startupReportValid) break;
     }
     const std::wstring logPath = directory + L"\\aperture.log";
-    const std::wstring bundlePath = Diagnostics::CreateBundle();
-    const std::wstring hangDumpPath = Diagnostics::CreateHangDump();
+    const std::wstring hangDumpPath = Diagnostics::WriteProcessDump(L"hang", nullptr);
     const bool valid = startupReportValid && IsPathUnderRoot(directory) && FileExists(logPath) &&
-        !bundlePath.empty() && FileExists(bundlePath) && IsPathUnderRoot(bundlePath) &&
         !hangDumpPath.empty() && FileExists(hangDumpPath) && IsPathUnderRoot(hangDumpPath);
     Diagnostics::Shutdown();
 
@@ -60,6 +58,6 @@ int wmain(int argc, wchar_t** argv) {
         std::wcerr << L"Portable diagnostics artifacts were not created under the executable root\n";
         return 12;
     }
-    std::wcout << L"portable diagnostics log and bundle verified\n";
+    std::wcout << L"portable diagnostics log, startup report and live dump verified\n";
     return 0;
 }

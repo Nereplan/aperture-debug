@@ -26,90 +26,6 @@ set(APERTURE_TRANSLATION_STRING "${APERTURE_LANG_HEX}${APERTURE_CODEPAGE_HEX}")
 set(APERTURE_VERSION_CSV "${APERTURE_VERSION_MAJOR},${APERTURE_VERSION_MINOR},${APERTURE_VERSION_PATCH},${APERTURE_VERSION_BUILD}")
 set(APERTURE_PROJECT_VERSION "${APERTURE_VERSION_MAJOR}.${APERTURE_VERSION_MINOR}.${APERTURE_VERSION_PATCH}.${APERTURE_VERSION_BUILD}")
 
-# Parse authoritative dependency inventory from scripts/dependencies.json
-set(APERTURE_LIBMPV_VERSION "unavailable")
-set(APERTURE_LIBMPV_CLIENT_API "unavailable")
-set(APERTURE_LIBMPV_ABI "unavailable")
-set(APERTURE_LIBMPV_SHA256 "unavailable")
-set(APERTURE_LIBMPV_LICENSE "unavailable")
-set(APERTURE_FONT_INTER_VERSION "unavailable")
-set(APERTURE_FONT_INTER_SHA256 "unavailable")
-set(APERTURE_FONT_SPACE_GROTESK_VERSION "unavailable")
-set(APERTURE_FONT_SPACE_GROTESK_SHA256 "unavailable")
-set(APERTURE_FONT_JETBRAINS_MONO_VERSION "unavailable")
-set(APERTURE_FONT_JETBRAINS_MONO_SHA256 "unavailable")
-
-if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/scripts/dependencies.json")
-    file(READ "${CMAKE_CURRENT_SOURCE_DIR}/scripts/dependencies.json" APERTURE_DEPS_JSON_DATA)
-    string(JSON APERTURE_VENDORED_COUNT LENGTH "${APERTURE_DEPS_JSON_DATA}" "vendoredFiles")
-    if(APERTURE_VENDORED_COUNT GREATER 0)
-        math(EXPR APERTURE_VENDORED_MAX "${APERTURE_VENDORED_COUNT} - 1")
-        foreach(i RANGE 0 ${APERTURE_VENDORED_MAX})
-            string(JSON V_ID GET "${APERTURE_DEPS_JSON_DATA}" "vendoredFiles" ${i} "id")
-            string(JSON V_VER GET "${APERTURE_DEPS_JSON_DATA}" "vendoredFiles" ${i} "version")
-            string(JSON V_HASH GET "${APERTURE_DEPS_JSON_DATA}" "vendoredFiles" ${i} "sha256")
-            string(JSON V_LIC GET "${APERTURE_DEPS_JSON_DATA}" "vendoredFiles" ${i} "license")
-            if(V_ID STREQUAL "libmpv")
-                set(APERTURE_LIBMPV_VERSION "${V_VER}")
-                set(APERTURE_LIBMPV_SHA256 "${V_HASH}")
-                set(APERTURE_LIBMPV_LICENSE "${V_LIC}")
-                string(JSON APERTURE_LIBMPV_CLIENT_API GET "${APERTURE_DEPS_JSON_DATA}" "vendoredFiles" ${i} "clientApiVersion")
-                string(JSON APERTURE_LIBMPV_ABI GET "${APERTURE_DEPS_JSON_DATA}" "vendoredFiles" ${i} "abiVersion")
-            elseif(V_ID STREQUAL "font_inter")
-                set(APERTURE_FONT_INTER_VERSION "${V_VER}")
-                set(APERTURE_FONT_INTER_SHA256 "${V_HASH}")
-            elseif(V_ID STREQUAL "font_space_grotesk")
-                set(APERTURE_FONT_SPACE_GROTESK_VERSION "${V_VER}")
-                set(APERTURE_FONT_SPACE_GROTESK_SHA256 "${V_HASH}")
-            elseif(V_ID STREQUAL "font_jetbrains_mono")
-                set(APERTURE_FONT_JETBRAINS_MONO_VERSION "${V_VER}")
-                set(APERTURE_FONT_JETBRAINS_MONO_SHA256 "${V_HASH}")
-            endif()
-        endforeach()
-    endif()
-endif()
-
-# Optional CI Provenance Inputs (defaults to "unavailable" when not provided)
-set(APERTURE_BUILD_COMMIT "" CACHE STRING "Explicit CI build commit SHA")
-set(APERTURE_BUILD_REPOSITORY "" CACHE STRING "Explicit CI build repository URL")
-set(APERTURE_BUILD_CHANNEL "" CACHE STRING "Explicit release / distribution channel")
-
-if(NOT APERTURE_BUILD_COMMIT AND DEFINED ENV{GITHUB_SHA})
-    set(APERTURE_BUILD_COMMIT "$ENV{GITHUB_SHA}")
-endif()
-if(NOT APERTURE_BUILD_REPOSITORY AND DEFINED ENV{GITHUB_REPOSITORY})
-    set(APERTURE_BUILD_REPOSITORY "$ENV{GITHUB_REPOSITORY}")
-endif()
-if(NOT APERTURE_BUILD_CHANNEL AND DEFINED ENV{APERTURE_CHANNEL})
-    set(APERTURE_BUILD_CHANNEL "$ENV{APERTURE_CHANNEL}")
-endif()
-
-if(NOT APERTURE_BUILD_COMMIT)
-    set(APERTURE_BUILD_COMMIT "unavailable")
-endif()
-if(NOT APERTURE_BUILD_REPOSITORY)
-    set(APERTURE_BUILD_REPOSITORY "unavailable")
-endif()
-if(NOT APERTURE_BUILD_CHANNEL)
-    set(APERTURE_BUILD_CHANNEL "stable")
-endif()
-
-# Target architecture and toolchain metadata
-set(APERTURE_TARGET_ARCH "x64")
-if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-    set(APERTURE_COMPILER_NAME "MSVC")
-    set(APERTURE_COMPILER_VERSION "${MSVC_VERSION}")
-else()
-    set(APERTURE_COMPILER_NAME "${CMAKE_CXX_COMPILER_ID}")
-    set(APERTURE_COMPILER_VERSION "${CMAKE_CXX_COMPILER_VERSION}")
-endif()
-
-if(CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION)
-    set(APERTURE_WINDOWS_SDK_VERSION "${CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION}")
-else()
-    set(APERTURE_WINDOWS_SDK_VERSION "10.0.19041.0+")
-endif()
-
 project(Aperture
     VERSION ${APERTURE_PROJECT_VERSION}
     DESCRIPTION "${APERTURE_FILE_DESCRIPTION}"
@@ -190,7 +106,6 @@ set(APERTURE_SOURCES
     src/AppTouch.cpp
     src/AppViewModels.cpp
     src/AudioConfig.cpp
-    src/BuildInfo.cpp
     src/ChannelPolicy.cpp
     src/CommandDispatcher.cpp
     src/Diagnostics.cpp
@@ -231,7 +146,6 @@ set(APERTURE_HEADERS
     src/AppInternals.h
     src/AppLayout.h
     src/AudioConfig.h
-    src/BuildInfo.h
     src/ChannelPolicy.h
     src/CommandDispatcher.h
     src/Common.h

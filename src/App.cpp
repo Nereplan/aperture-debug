@@ -7,8 +7,6 @@
 #include "MediaFoundation.h"
 #include "OnlineSubtitles.h"
 #include "Updater.h"
-#include "Version.h"
-#include "BuildInfo.h"
 #include "ChannelPolicy.h"
 #include "Localization.h"
 #include "SettingsLayout.h"

@@ -207,9 +207,8 @@ The following files are stored in the portable root but are deliberately non-ver
 |:---|:---|:---|
 | `data\mpv.conf` | **Plain-text libmpv configuration**. Uses `property=value` syntax parsed directly by libmpv. Not JSON-modeled. | Backed up via `CreateRotatingBackup(3)` before any reset/template write; Last-Known-Good configuration snapshot stored at `data\mpv.conf.lkg`. |
 | `data\mpv.conf.lkg` | **Last-Known-Good mpv configuration**. Verified snapshot created when custom mpv configuration loads successfully. | Written atomically via `AtomicWriteTextFile`. |
-| `data\diagnostics\aperture.log` (and `.1..5`) | **Rolling runtime telemetry**. Unstructured plain-text logs for diagnostic inspection. | Size-capped at 1 MiB (`kMaxLogBytes`) with rolling 5-file retention (`.1` to `.5`). |
-| `data\diagnostics\*.dmp` | **Win32 MiniDump crash / hang dumps**. Binary minidumps written on unhandled exceptions or watchdog timeouts. | Generated via `MiniDumpWriteDump` with unique timestamped filenames (`crash-YYYYMMDD-HHMMSS-mmm.dmp`, `hang-YYYYMMDD-HHMMSS-mmm.dmp`). |
-| `data\diagnostics\diagnostics-*.json` | **Point-in-time exported reports**. Immutable diagnostic snapshots generated via BuildInfo export. | Written atomically via `AtomicWriteTextFile`. |
+| `diagnostics\aperture.log` (and `.1..3`) | **Rolling runtime telemetry**. Unstructured plain-text logs for diagnostic inspection. | Size-capped at 1 MiB (`kMaxLogBytes`) with rolling 3-file retention (`.1` to `.3`). |
+| `diagnostics\*.dmp` | **Win32 MiniDump crash / hang dumps**. Binary minidumps written on unhandled exceptions or watchdog timeouts. | Generated via `MiniDumpWriteDump` with unique timestamped filenames (`crash-YYYYMMDD-HHMMSS-mmm.dmp`, `hang-YYYYMMDD-HHMMSS-mmm.dmp`). |
 | `cache\thumbnails\*` | **Disposable video thumbnails**. WIC/Direct2D cached bitmaps. | Evicted automatically under LRU `CacheBudgetConfig` (64 MB default, 160 MB total). Safe to delete at any time. |
 | `cache\shaders\*` | **Disposable compiled shaders**. Direct3D 11 and mpv GPU shader binaries. | Evicted under LRU `CacheBudgetConfig` (64 MB default, 160 MB total). Safe to delete at any time. |
 | `cache\subtitles\*` | **Disposable online downloaded subtitles**. Retrieved SRT/VTT subtitle tracks. | Evicted under LRU `CacheBudgetConfig` (16 MB default, 160 MB total). Safe to delete at any time. |

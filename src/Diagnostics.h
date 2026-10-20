@@ -16,7 +16,4 @@ void RecordHeartbeat(const std::wstring& state);
 // Retained in memory (capped) and flushed to diagnostics/perf/ only on request.
 void RecordStartupMilestone(const std::wstring& name, bool captureResources = false);
 void WriteStartupReport();
-std::wstring CreateBundle();
-std::wstring CreateHangDump();
-std::wstring GetDirectory();
 } // namespace Aperture::Diagnostics

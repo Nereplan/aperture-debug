@@ -1,7 +1,5 @@
 #include "Diagnostics.h"
 #include "Common.h"
-#include "Version.h"
-#include "BuildInfo.h"
 
 #include <dbghelp.h>
 #include <tlhelp32.h>
@@ -327,40 +325,6 @@ void WriteStartupReport() {
             for (size_t i = static_cast<size_t>(kRetainedPerfReports); i < files.size(); ++i) { DeleteFileW(files[i].first.c_str()); }
         }
     }
-}
-
-std::wstring CreateHangDump() { return WriteProcessDump(L"hang", nullptr); }
-
-std::wstring CreateBundle() {
-    std::lock_guard<std::mutex> lock(g_mutex);
-    if (!EnsureDirectory()) return {};
-    MEMORYSTATUSEX memory{ sizeof(memory) };
-    GlobalMemoryStatusEx(&memory);
-    OSVERSIONINFOW version{ sizeof(version) };
-#pragma warning(push)
-#pragma warning(disable: 4996)
-    GetVersionExW(&version);
-#pragma warning(pop)
-
-    const BuildInfo::BuildInfoSnapshot snapshot = BuildInfo::GetSnapshot(false);
-    std::wostringstream report;
-    report << BuildInfo::FormatHumanReadable(snapshot, false) << L"\r\n[SYSTEM & PROCESS HEALTH]\r\n"
-           << L"  OS Version:         " << version.dwMajorVersion << L"." << version.dwMinorVersion << L" build " << version.dwBuildNumber
-           << L"\r\n"
-           << L"  Memory Load:        " << memory.dwMemoryLoad << L"%\r\n"
-           << L"  Available Physical: " << (memory.ullAvailPhys / (1024 * 1024)) << L" MB\r\n"
-           << L"  Total Physical:     " << (memory.ullTotalPhys / (1024 * 1024)) << L" MB\r\n"
-           << L"  Heartbeat State:    " << g_heartbeat << L"\r\n"
-           << L"  Logging Status:     " << (g_loggingEnabled ? L"Enabled" : L"Disabled") << L"\r\n"
-           << L"  Diagnostics Folder: " << g_directory << L"\r\n";
-    const std::wstring path = g_directory + L"\\bundle-" + Timestamp() + L".txt";
-    return AtomicWriteTextFile(path, Utf16ToUtf8(report.str())).is_ok() ? path : std::wstring();
-}
-
-std::wstring GetDirectory() {
-    std::lock_guard<std::mutex> lock(g_mutex);
-    if (g_directory.empty()) g_directory = GetExeDir() + L"\\diagnostics";
-    return g_directory;
 }
 
 } // namespace Aperture::Diagnostics
