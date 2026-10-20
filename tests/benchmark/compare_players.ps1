@@ -232,6 +232,18 @@ function Playback([string]$Name, [int]$OwnedPid, [int]$Port, $Environment, [swit
         return @{positionSec=$null;state=$null;reason='No owned-PID playback status probe supplied/available.'}
     } catch { return @{positionSec=$null;state=$null;reason=$_.Exception.Message} }
 }
+function Vlc-ColorState($Reply) {
+    if ($Reply.values[0] -notin @(0,1)) { throw 'Invalid VLC input-presence flag.' }
+    $states=[regex]::Matches($Reply.raw,'(?m)(?:^|>)[ \t]*status change: \( (?:play|pause|stop|unknown) state: (-?\d+) \)')
+    $state=if($states.Count){[int]$states[$states.Count-1].Groups[1].Value}else{$null}
+    # VLC3.0.24 oldrc.c: is_playing tests input presence, including pause.
+    # Playlist() rejects status with this prompt only when input state is PAUSE_S.
+    # https://raw.githubusercontent.com/videolan/vlc/3.0.24/modules/control/oldrc.c
+    $guard=$Reply.raw -match "(?m)^Type 'pause' to continue\.[\r]?$"
+    $hasInput=$Reply.values[0] -eq 1
+    @{state=$state;hasInput=$hasInput;paused=($hasInput -and ($guard -or $state -eq 4));
+      evidence=$(if($guard){'input-pause-guard'}elseif($null -ne $state){'playlist-state'}else{'unavailable'})}
+}
 function Color-Status([string]$Name, [int]$OwnedPid, [int]$Port, $Environment, [switch]$Pause) {
     $started=[Diagnostics.Stopwatch]::GetTimestamp()
     if ($Name -eq 'Aperture') {
@@ -241,16 +253,15 @@ function Color-Status([string]$Name, [int]$OwnedPid, [int]$Port, $Environment, [
     $requests=[Collections.Generic.List[object]]::new()
     $raw=Vlc-Numbers $Port $OwnedPid "status`nis_playing`nget_time`n" 2
     $requests.Add($raw)
-    if ($raw.values[0] -notin @(0,1)) { throw 'Invalid VLC playback state.' }
+    $state=Vlc-ColorState $raw
     # RC pause toggles. Never resume a previously paused player.
-    if ($Pause -and $raw.values[0] -eq 1) {
+    if ($Pause -and -not $state.paused) {
+        if (-not $state.hasInput -or $state.state -ne 3) { throw 'Cannot confirm VLC is playing before toggling pause.' }
         $raw=Vlc-Numbers $Port $OwnedPid "pause`nstatus`nis_playing`nget_time`n" 2
         $requests.Add($raw)
+        $state=Vlc-ColorState $raw
     }
-    if ($raw.values[0] -notin @(0,1)) { throw 'Invalid VLC playback state after pause.' }
-    $states=[regex]::Matches($raw.raw,'(?m)(?:^|>)[ \t]*status change: \( (?:play|pause|stop|unknown) state: (-?\d+) \)')
-    $state=if($states.Count){[int]$states[$states.Count-1].Groups[1].Value}else{$null}
-    return @{positionSec=$raw.values[1];paused=($raw.values[0] -eq 0 -and $null -ne $state -and $state -eq 4);state=$state;isPlaying=$raw.values[0];reason=$null;raw=$requests.ToArray();qpcStart=$started;qpcEnd=[Diagnostics.Stopwatch]::GetTimestamp()}
+    return @{positionSec=$raw.values[1];paused=$state.paused;state=$state.state;hasInput=$state.hasInput;pauseEvidence=$state.evidence;reason=$null;raw=$requests.ToArray();qpcStart=$started;qpcEnd=[Diagnostics.Stopwatch]::GetTimestamp()}
 }
 function Assert-ColorPaused($Status, [double]$Target, $Previous = $null) {
     if ($Status.reason -or $Status.paused -ne $true -or $null -eq $Status.positionSec -or

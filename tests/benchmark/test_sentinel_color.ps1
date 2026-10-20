@@ -5,7 +5,7 @@ $source = Join-Path $PSScriptRoot 'compare_players.ps1'
 $tokens=$null; $errors=$null
 $ast=[Management.Automation.Language.Parser]::ParseFile($source,[ref]$tokens,[ref]$errors)
 if($errors.Count) { throw ($errors.Message -join '; ') }
-$names=@('Vlc-ReplyValues','Vlc-Time','Color-Status','Assert-ColorPaused','Wait-ColorPaused','Color-Difference')
+$names=@('Vlc-ReplyValues','Vlc-Time','Vlc-ColorState','Color-Status','Assert-ColorPaused','Wait-ColorPaused','Color-Difference')
 foreach($name in $names) {
     $definition=$ast.Find({param($node) $node -is [Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq $name},$false)
     if(-not $definition) { throw "Missing tested function: $name" }
@@ -57,22 +57,22 @@ function Vlc-Numbers([int]$Port,[int]$OwnedPid,[string]$Request,[int]$ExpectedCo
     if(-not $script:replies.Count) { throw 'Unexpected extra control request.' }
     $script:replies.Dequeue()
 }
-$script:replies.Enqueue(@{values=@(0,6);raw="status change: ( pause state: 4 )`n"})
+$script:replies.Enqueue(@{values=@(1,6);raw="status change: ( pause state: 4 )`n"})
 $status=Color-Status VLC 123 456 @{} -Pause
 Assert-ColorPaused $status 6
 Check ($requests.Count -eq 1 -and $requests[0] -notmatch 'pause') 'already-paused VLC is never toggled into playing'
-$script:requests.Clear(); $script:replies.Enqueue(@{values=@(1,18);raw="status change: ( play state: 3 )`n"}); $script:replies.Enqueue(@{values=@(0,18);raw="status change: ( pause state: 4 )`n"})
+$script:requests.Clear(); $script:replies.Enqueue(@{values=@(1,18);raw="status change: ( play state: 3 )`n"}); $script:replies.Enqueue(@{values=@(1,18);raw="status change: ( pause state: 4 )`n"})
 $status=Color-Status VLC 123 456 @{} -Pause
 Assert-ColorPaused $status 18
 Check ($requests.Count -eq 2 -and $requests[1] -eq "pause`nstatus`nis_playing`nget_time`n" -and $status.raw.Count -eq 2) 'playing VLC toggles once and retains both raw state/time responses'
 $script:replies.Enqueue(@{values=@(0,18);raw="status change: ( stop state: 5 )`n"})
-$statusStopped=Color-Status VLC 123 456 @{} -Pause
+$statusStopped=Color-Status VLC 123 456 @{}
 Check (Rejects { Assert-ColorPaused $statusStopped 18 }) 'VLC stopped state cannot masquerade as paused'
 $script:replies.Enqueue(@{values=@(0,18);raw='no authoritative state'})
-$statusUnknown=Color-Status VLC 123 456 @{} -Pause
+$statusUnknown=Color-Status VLC 123 456 @{}
 Check (Rejects { Assert-ColorPaused $statusUnknown 18 }) 'VLC missing status cannot masquerade as paused'
 Check ($status.qpcStart -gt 0 -and $status.qpcEnd -ge $status.qpcStart) 'control observation retains conservative QPC bounds'
-$script:requests.Clear(); $script:replies.Enqueue(@{values=@(1,30)}); $script:replies.Enqueue(@{values=@(1,30)})
+$script:requests.Clear(); $script:replies.Enqueue(@{values=@(1,30);raw="status change: ( play state: 3 )`n"}); $script:replies.Enqueue(@{values=@(1,30);raw="status change: ( play state: 3 )`n"})
 $status=Color-Status VLC 123 456 @{} -Pause
 Check (Rejects { Assert-ColorPaused $status 30 }) 'unconfirmed VLC pause is rejected'
 $script:replies.Enqueue(@{values=@(9,42)})
@@ -91,9 +91,9 @@ $status=Color-Status Aperture 123 0 @{}
 Check ($lastAction -eq '' -and $status.paused) 'Aperture sampled status does not issue another control'
 $script:requests.Clear()
 $script:replies.Enqueue(@{values=@(1,6);raw="status change: ( play state: 3 )`n"})
-$script:replies.Enqueue(@{values=@(1,6);raw="status change: ( pause state: 4 )`n"})
+$script:replies.Enqueue(@{values=@(1,6);raw="status change: ( play state: 3 )`n"})
 $initial=Color-Status VLC 123 456 @{} -Pause
-$script:replies.Enqueue(@{values=@(0,6);raw="status change: ( pause state: 4 )`n"})
+$script:replies.Enqueue(@{values=@(1,6);raw="Type 'pause' to continue.`r`nstatus: returned 0 (no error)`r`n1`r`n6`r`n"})
 $trace=@{}
 $settled=Wait-ColorPaused VLC 123 456 @{} $initial 6 $trace
 Check ($settled.paused -and $trace.observations.Count -eq 2 -and $trace.status -eq 'settled') 'asynchronous pause requires a later consistent status'
@@ -106,5 +106,9 @@ Check (Rejects { Wait-ColorPaused VLC 123 456 @{} @{paused=$true;positionSec=18}
 $trace=@{}; $before=$requests.Count
 $settled=Wait-ColorPaused VLC 123 456 @{} @{paused=$true;positionSec=6} 6 $trace
 Check ($settled.paused -and $requests.Count -eq $before -and $trace.observations.Count -eq 1) 'already-settled pause needs no further control request'
-Check ($count -eq 33) 'complete coarse color contract set'
+$state=Vlc-ColorState @{values=@(1,6);raw="Type 'pause' to continue.`r`n"}
+Check ($state.paused -and $state.evidence -eq 'input-pause-guard' -and $null -eq $state.state) 'old RC blocked status proves paused input without inventing a playlist state'
+$state=Vlc-ColorState @{values=@(0,6);raw="Type 'pause' to continue.`r`nstatus change: ( pause state: 4 )`r`n"}
+Check (-not $state.paused) 'stale pause text cannot validate an absent input'
+Check ($count -eq 35) 'complete coarse color contract set'
 Write-Output "$count checks passed; no player or desktop capture was used."
