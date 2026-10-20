@@ -1,0 +1,13 @@
+/nologo
+/utf-8
+/O2
+/MT
+/bigobj
+/EHsc
+/std:c++17
+/DUNICODE
+/D_UNICODE
+/I"C:\Users\Alperen\AppData\Local\Codex\tools\scratch\aperture-flat-sift-20261020\baseline-src"
+/c
+/Fo"C:\Users\Alperen\AppData\Local\Codex\tools\scratch\aperture-flat-sift-20261020\candidate-build\LibraryQuery.obj"
+"C:\Users\Alperen\AppData\Local\Codex\tools\scratch\aperture-flat-sift-20261020\candidate-src\LibraryQuery.cpp"

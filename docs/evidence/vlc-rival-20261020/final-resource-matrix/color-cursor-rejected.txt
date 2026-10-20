@@ -1,0 +1,3 @@
+Aperture round 0 (measured): sentinel-color-validated; four-known-phases-paused-and-sampled
+VLC round 0 (measured): failed; playback-unverified
+C:\Users\Alperen\AppData\Local\Codex\tools\scratch\aperture-rival-20261019\sentinel-colors-qualified-20261020\comparison.json

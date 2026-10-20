@@ -1,0 +1,18 @@
+{
+  "recordedAtUtc": "2026-10-20T20:06:52.6885590Z",
+  "sourceSha256": "4c5c1e508f7094a844d9e0c6b5632e8d9c0531aa093b3a90793d756f8ee51d9f",
+  "executableSha256": "ffccb0f867af7c71f6b6c257cb246f7dacd124ad585e6fc1f68096f782733b10",
+  "buildIdentity": "../calibration-20261020/identity.json; unchanged existing native executable and source verified before this fresh run",
+  "environment": {
+    "osVersion": "Microsoft Windows 11 Pro 10.0.26200 build 26200",
+    "cpuName": "AMD Ryzen 9 3900X 12-Core Processor            ",
+    "logicalProcessors": 24,
+    "gpuName": "NVIDIA GeForce RTX 4070 SUPER",
+    "gpuDriverVersion": "32.0.16.1742",
+    "lastBootUpTimeUtc": "2026-10-20T08:20:29.5015290Z",
+    "source": "Win32_ComputerSystem, Win32_OperatingSystem, Win32_Processor and Win32_VideoController CIM instances"
+  },
+  "exitCode": 0,
+  "scope": "Fresh hardware-specific calibration after HEVC/AV1/H264 matrix and separate paused SDR color check. No task-owned player/build/test running concurrently.",
+  "calibrationSha256": "280a2677a344e870e6b417d9e43fee1324888b0381e680be40b33eb820913e9d"
+}

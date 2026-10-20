@@ -1,0 +1,5 @@
+Exception: C:\Users\Alperen\AppData\Local\Codex\tools\scratch\aperture-rival-20261019\run-resource-pruned.ps1:29
+Line |
+  29 |  … rPos(0,0)) { throw 'Cannot put cursor outside the measured canvas.' }
+     |                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+     | Cannot put cursor outside the measured canvas.

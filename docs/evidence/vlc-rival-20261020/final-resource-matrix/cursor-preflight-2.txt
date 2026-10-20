@@ -1,0 +1,5 @@
+Exception: C:\Users\Alperen\AppData\Local\Codex\tools\scratch\aperture-rival-20261019\run-resource-pruned.ps1:33
+Line |
+  33 |  … Pos(0,0)) { throw 'Cursor overlaps the planned canvas and Windows rej …
+     |                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+     | Cursor overlaps the planned canvas and Windows rejected moving it; move it outside x32..1360,y32..832.

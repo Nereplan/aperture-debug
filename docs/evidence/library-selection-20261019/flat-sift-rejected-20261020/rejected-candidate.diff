@@ -1,0 +1,24 @@
+diff --git "a/C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-flat-sift-20261020\\baseline-src\\LibraryQuery.cpp" "b/C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-flat-sift-20261020\\candidate-src\\LibraryQuery.cpp"
+index e9ef6ba..ea1e0d2 100644
+--- "a/C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-flat-sift-20261020\\baseline-src\\LibraryQuery.cpp"
++++ "b/C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-flat-sift-20261020\\candidate-src\\LibraryQuery.cpp"
+@@ -764,9 +764,16 @@ LibraryViewProjection LibraryQueryEngine::BuildView( const MediaLibrary& library
+                 matches.push_back(m);
+                 if (matches.size() == options.maxItems) std::make_heap(matches.begin(), matches.end(), less);
+             } else if (less(m, matches.front())) {
+-                std::pop_heap(matches.begin(), matches.end(), less);
+-                matches.back() = m;
+-                std::push_heap(matches.begin(), matches.end(), less);
++                // Replacing the maximum only needs one downward heap repair.
++                size_t hole = 0;
++                while (hole < matches.size() / 2) {
++                    size_t child = hole * 2 + 1;
++                    if (child + 1 < matches.size() && less(matches[child], matches[child + 1])) ++child;
++                    if (!less(m, matches[child])) break;
++                    matches[hole] = matches[child];
++                    hole = child;
++                }
++                matches[hole] = m;
+             }
+             continue;
+         }

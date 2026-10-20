@@ -1,0 +1,78 @@
+.............................................
+----------------------------------------------------------------------
+Ran 45 tests in 0.571s
+
+OK
+PASS fractional alignment binds without rounding and invalid positions are rejected
+PASS location-independent complete runtime identity
+PASS ordinal inventory survives a Turkish sort culture
+PASS same-length dependency replacement changes identity
+PASS added and renamed zero-byte inputs change identity
+PASS linked inputs are rejected
+PASS recognize synthetic phase 0
+PASS recognize synthetic phase 1
+PASS recognize synthetic phase 2
+PASS recognize synthetic phase 3
+PASS bounded RGB conversion error preserves phase
+PASS all sentinel pixels must match
+PASS mixed scene phases are ambiguous
+PASS black shell is not recognized as video
+PASS incorrect sample count is rejected
+PASS invalid RGB encoding is rejected
+PASS strided BGR extraction preserves phase 0 and ignores alpha/padding
+PASS strided BGR extraction preserves phase 1 and ignores alpha/padding
+PASS strided BGR extraction preserves phase 2 and ignores alpha/padding
+PASS strided BGR extraction preserves phase 3 and ignores alpha/padding
+PASS extracted RGB at tolerance boundary retains phase
+PASS extracted RGB beyond tolerance boundary rejects phase
+PASS null BGR pointer is rejected before an invalid memory read
+PASS short BGR stride is rejected before an invalid memory read
+PASS truncated BGR storage is rejected before an invalid memory read
+PASS invalid BGR width is rejected before an invalid memory read
+PASS null sentinel coordinates is rejected before an invalid memory read
+PASS incorrect sentinel coordinate count is rejected before an invalid memory read
+PASS sentinel beyond row width is rejected before an invalid memory read
+PASS negative sentinel row is rejected before an invalid memory read
+PASS fixture and recognizer share phase/color definitions
+PASS fixture stays off screen
+PASS hidden window is rejected before any pixel read
+PASS capture restores caller DPI context
+PASS wrong PID is rejected before any pixel read
+PASS rejection retains JSON timing bounds
+PASS visibility-only guard rejects hidden canvas without pixel capture
+PASS visibility-only guard rejects foreign PID without pixel capture
+PASS missing canvas never becomes zero-latency readiness
+PASS invalid process never becomes readiness
+PASS visibility-only player discovery does not capture desktop pixels
+PASS complete readiness development check set
+36 checks passed; visible sentinel, occlusion, startup and seek validation remain deferred to the coordinated desktop session.
+PASS RC state/time batch parses complete numeric lines
+PASS partial TCP numeric line is not accepted
+PASS completed multi-digit value is preserved
+PASS extra RC numeric responses are rejected
+PASS oversized RC transcript is rejected
+PASS identical RGB samples have zero pairwise difference
+PASS channel-wise difference reaches full 8-bit range
+PASS packed RGB integers are split into independent components
+PASS pairwise metric treats neither player as reference
+PASS incomplete RGB samples are rejected
+PASS out-of-range RGB is rejected
+PASS playing status cannot validate paused color
+PASS missing position cannot validate paused color
+PASS nonfinite position cannot validate paused color
+PASS wrong phase midpoint is rejected
+PASS motion during paused sampling is rejected
+PASS stable near-midpoint paused position is accepted
+PASS already-paused VLC is never toggled into playing
+PASS playing VLC toggles once and retains both raw state/time responses
+PASS VLC stopped state cannot masquerade as paused
+PASS VLC missing status cannot masquerade as paused
+PASS control observation retains conservative QPC bounds
+PASS unconfirmed VLC pause is rejected
+PASS invalid VLC state is rejected
+PASS ordinary seek/time control remains compatible
+PASS Aperture uses its explicit pause control and retained status
+PASS Aperture sampled status does not issue another control
+PASS complete coarse color contract set
+28 checks passed; no player or desktop capture was used.
+Rival observer/evidence contracts passed without launching players.

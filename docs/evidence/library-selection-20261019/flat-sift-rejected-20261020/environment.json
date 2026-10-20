@@ -1,0 +1,13 @@
+{
+  "capturedAtUtc": "2026-10-20T20:15:19.4930121Z",
+  "os": "Microsoft Windows 11 Pro",
+  "osVersion": "10.0.26200",
+  "build": "26200",
+  "lastBootUpTimeUtc": "2026-10-20T08:20:29.5015290Z",
+  "logicalProcessors": 24,
+  "cpu": [
+    "AMD Ryzen 9 3900X 12-Core Processor"
+  ],
+  "source": "Win32_ComputerSystem, Win32_OperatingSystem, Win32_Processor",
+  "activeCompilersOrPlayers": []
+}

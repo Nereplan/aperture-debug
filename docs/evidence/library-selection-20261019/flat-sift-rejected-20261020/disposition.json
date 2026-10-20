@@ -1,0 +1,454 @@
+{
+  "schemaVersion": 1,
+  "reviewedAtUtc": "2026-10-20T20:16:53.754200+00:00",
+  "decision": "rejected",
+  "productionSourceRestored": true,
+  "productionFile": "src/LibraryQuery.cpp",
+  "restoredSha256": "d27b4bfb01cc571c35a3c84c0fe37c8c1c798b5db051c00890807b7067062732",
+  "baseCommit": "23fd026c2b114f8391465bfb5f7d28a79da02025",
+  "reason": "The custom downward-hole replacement adds production code and produces no material repeatable broad benefit. At cap 1,023 under descending-duration replacement pressure it is slower in every paired process and has disjoint saved sample ranges. The standard pop_heap/push_heap implementation is retained.",
+  "results": [
+    {
+      "mode": 0,
+      "variants": {
+        "baseline": {
+          "medianMeanQueryMs": 0.772770312,
+          "minMeanQueryMs": 0.693003125,
+          "maxMeanQueryMs": 1.23715625,
+          "processMedianMeanQueryMs": [
+            0.731226562,
+            0.851042188,
+            0.771460937
+          ],
+          "allocationCallsPerQuery": 108,
+          "allocatedBytesPerQuery": 19647,
+          "peakLiveCppBytes": 15639
+        },
+        "candidate": {
+          "medianMeanQueryMs": 0.892439063,
+          "minMeanQueryMs": 0.75655625,
+          "maxMeanQueryMs": 0.95626875,
+          "processMedianMeanQueryMs": [
+            0.922529687,
+            0.9026375,
+            0.777304688
+          ],
+          "allocationCallsPerQuery": 108,
+          "allocatedBytesPerQuery": 19647,
+          "peakLiveCppBytes": 15639
+        }
+      },
+      "signature": [
+        "50",
+        "25000",
+        "18252797214864490390",
+        "6912",
+        "1257408",
+        "15639"
+      ],
+      "medianChangePercent": 15.485681727379808,
+      "pairedProcessMedianChangePercent": [
+        26.161949653026962,
+        6.062603326546245,
+        0.7574914969414648
+      ],
+      "rangesOverlap": true
+    },
+    {
+      "mode": 1,
+      "variants": {
+        "baseline": {
+          "medianMeanQueryMs": 0.313051562,
+          "minMeanQueryMs": 0.30701875,
+          "maxMeanQueryMs": 0.321342187,
+          "processMedianMeanQueryMs": [
+            0.311953125,
+            0.311398438,
+            0.31451875
+          ],
+          "allocationCallsPerQuery": 7,
+          "allocatedBytesPerQuery": 4408,
+          "peakLiveCppBytes": 4280
+        },
+        "candidate": {
+          "medianMeanQueryMs": 0.309192187,
+          "minMeanQueryMs": 0.304523437,
+          "maxMeanQueryMs": 0.319789062,
+          "processMedianMeanQueryMs": [
+            0.309754688,
+            0.309801563,
+            0.30881875
+          ],
+          "allocationCallsPerQuery": 7,
+          "allocatedBytesPerQuery": 4408,
+          "peakLiveCppBytes": 4280
+        }
+      },
+      "signature": [
+        "50",
+        "25000",
+        "14282658495663252410",
+        "448",
+        "282112",
+        "4280"
+      ],
+      "medianChangePercent": -1.2328240674933877,
+      "pairedProcessMedianChangePercent": [
+        -0.7047331229651843,
+        -0.5128076461321185,
+        -1.8122925898694575
+      ],
+      "rangesOverlap": true
+    },
+    {
+      "mode": 2,
+      "variants": {
+        "baseline": {
+          "medianMeanQueryMs": 1.688309375,
+          "minMeanQueryMs": 1.643723438,
+          "maxMeanQueryMs": 1.862414063,
+          "processMedianMeanQueryMs": [
+            1.67180625,
+            1.668625,
+            1.814417187
+          ],
+          "allocationCallsPerQuery": 7,
+          "allocatedBytesPerQuery": 4408,
+          "peakLiveCppBytes": 4280
+        },
+        "candidate": {
+          "medianMeanQueryMs": 1.791151563,
+          "minMeanQueryMs": 1.741482812,
+          "maxMeanQueryMs": 1.879301563,
+          "processMedianMeanQueryMs": [
+            1.82785,
+            1.777953125,
+            1.777598438
+          ],
+          "allocationCallsPerQuery": 7,
+          "allocatedBytesPerQuery": 4408,
+          "peakLiveCppBytes": 4280
+        }
+      },
+      "signature": [
+        "50",
+        "25000",
+        "8845440962454317344",
+        "448",
+        "282112",
+        "4280"
+      ],
+      "medianChangePercent": 6.091430251046259,
+      "pairedProcessMedianChangePercent": [
+        9.333841765455775,
+        6.551988913027196,
+        -2.0292328172264007
+      ],
+      "rangesOverlap": true
+    },
+    {
+      "mode": 3,
+      "variants": {
+        "baseline": {
+          "medianMeanQueryMs": 2.491659375,
+          "minMeanQueryMs": 2.45368125,
+          "maxMeanQueryMs": 2.642698437,
+          "processMedianMeanQueryMs": [
+            2.489995313,
+            2.514246875,
+            2.478325
+          ],
+          "allocationCallsPerQuery": 7,
+          "allocatedBytesPerQuery": 43406,
+          "peakLiveCppBytes": 43278
+        },
+        "candidate": {
+          "medianMeanQueryMs": 3.135328125,
+          "minMeanQueryMs": 3.080376563,
+          "maxMeanQueryMs": 3.249340625,
+          "processMedianMeanQueryMs": [
+            3.1482875,
+            3.127184375,
+            3.12740625
+          ],
+          "allocationCallsPerQuery": 7,
+          "allocatedBytesPerQuery": 43406,
+          "peakLiveCppBytes": 43278
+        }
+      },
+      "signature": [
+        "1023",
+        "25000",
+        "13465247602052566639",
+        "448",
+        "2777984",
+        "43278"
+      ],
+      "medianChangePercent": 25.832935129826893,
+      "pairedProcessMedianChangePercent": [
+        26.437486992972502,
+        24.37857260934251,
+        26.19032007505069
+      ],
+      "rangesOverlap": false
+    },
+    {
+      "mode": 4,
+      "variants": {
+        "baseline": {
+          "medianMeanQueryMs": 0.295809375,
+          "minMeanQueryMs": 0.288407813,
+          "maxMeanQueryMs": 0.307398438,
+          "processMedianMeanQueryMs": [
+            0.293984375,
+            0.301789062,
+            0.295809375
+          ],
+          "allocationCallsPerQuery": 7,
+          "allocatedBytesPerQuery": 4408,
+          "peakLiveCppBytes": 4280
+        },
+        "candidate": {
+          "medianMeanQueryMs": 0.293595312,
+          "minMeanQueryMs": 0.289307812,
+          "maxMeanQueryMs": 0.303329688,
+          "processMedianMeanQueryMs": [
+            0.293595312,
+            0.293440625,
+            0.294023437
+          ],
+          "allocationCallsPerQuery": 7,
+          "allocatedBytesPerQuery": 4408,
+          "peakLiveCppBytes": 4280
+        }
+      },
+      "signature": [
+        "50",
+        "25000",
+        "17263648858073257450",
+        "448",
+        "282112",
+        "4280"
+      ],
+      "medianChangePercent": -0.7484762780084253,
+      "pairedProcessMedianChangePercent": [
+        -0.13234138719108168,
+        -2.7663153013809283,
+        -0.6037462470552146
+      ],
+      "rangesOverlap": true
+    }
+  ],
+  "validation": {
+    "measuredRows": 210,
+    "samplesPerModePerVariant": 21,
+    "processesPerVariant": 3,
+    "queriesPerSample": 64,
+    "measuredQueries": 13440,
+    "allSignaturesAndAllocationsEquivalent": true,
+    "functionalOracles": {
+      "passed": 3,
+      "failed": 0,
+      "skipped": 0,
+      "durationSeconds": 0.13728,
+      "evidence": "oracle-tests.log",
+      "scope": "Existing sorting/grouping/capped projection and 4,096-record independent filtering/pinning/availability checks, plus 512-record monotone/permuted/repeated-key stable-prefix checks for both directions and caps 1,2,17,50,64,127,128,513."
+    }
+  },
+  "sourceAndBuildIdentity": "pre-timing-manifest.json binds frozen source/header snapshots, exact probe/header, compiler/linker hashes, response files, common object hashes, variant object/EXE hashes before any timing. Every recorded byte sequence was checked again after timing. Only LibraryQuery.cpp differs between source variants; both links reuse identical common production and probe objects.",
+  "evidenceFiles": [
+    {
+      "path": "baseline-pair1.csv",
+      "bytes": 2849,
+      "sha256": "42d7f37050d5d90c8bb74599021878288c0f6842af9c45681529b0fd372e177d"
+    },
+    {
+      "path": "baseline-pair2.csv",
+      "bytes": 2849,
+      "sha256": "dd877ebee0e68ee431d6c611e51d45bee7dbf4701927a1896385ee19c380e706"
+    },
+    {
+      "path": "baseline-pair3.csv",
+      "bytes": 2849,
+      "sha256": "0332e38d7633133f1ead4ffa995ded77f88525db20585a76b38d3de655781dae"
+    },
+    {
+      "path": "candidate-pair1.csv",
+      "bytes": 2849,
+      "sha256": "42c6b501375fa522ae4c73d043c3aa4da457cd715de50668156a4cfd317c2989"
+    },
+    {
+      "path": "candidate-pair2.csv",
+      "bytes": 2849,
+      "sha256": "49994d75a6b748cdacf9bc976a0c26c6c63cd28b5864f43ae3d9082d459ba718"
+    },
+    {
+      "path": "candidate-pair3.csv",
+      "bytes": 2849,
+      "sha256": "931ddd4dbd5ad1d341b48a455b40abb78366f622692f1b73f727244101b562c0"
+    },
+    {
+      "path": "baseline-pair1.stderr.txt",
+      "bytes": 100,
+      "sha256": "f7f8f9603a9913935eff361efc318649acaf114a6fe4fbc1ac866b8b2a72e3bb"
+    },
+    {
+      "path": "baseline-pair2.stderr.txt",
+      "bytes": 100,
+      "sha256": "88a202971b0cdc161b36ecbe616e21a9fc178b58f9504d6496c543bc4f148d91"
+    },
+    {
+      "path": "baseline-pair3.stderr.txt",
+      "bytes": 100,
+      "sha256": "d6af8dd2b963c8921a48af67eafb63401a55dc72a630af775e6ed6be86c0ffc7"
+    },
+    {
+      "path": "candidate-pair1.stderr.txt",
+      "bytes": 100,
+      "sha256": "f7f8f9603a9913935eff361efc318649acaf114a6fe4fbc1ac866b8b2a72e3bb"
+    },
+    {
+      "path": "candidate-pair2.stderr.txt",
+      "bytes": 100,
+      "sha256": "88a202971b0cdc161b36ecbe616e21a9fc178b58f9504d6496c543bc4f148d91"
+    },
+    {
+      "path": "candidate-pair3.stderr.txt",
+      "bytes": 100,
+      "sha256": "d6af8dd2b963c8921a48af67eafb63401a55dc72a630af775e6ed6be86c0ffc7"
+    },
+    {
+      "path": "baseline-pair1.json",
+      "bytes": 518,
+      "sha256": "038a305601db48af30b9e2437b5e0f0d90cafb9cde6d5b0906b825bcf18cea3f"
+    },
+    {
+      "path": "baseline-pair2.json",
+      "bytes": 518,
+      "sha256": "bdc7bf78e76b6824e4e3c756a355b57f46f09eaa99db4e750b3477276364cefa"
+    },
+    {
+      "path": "baseline-pair3.json",
+      "bytes": 518,
+      "sha256": "7127ca514adb95abfcf73ad6bb67afde922253decf40d59c51b64e001be420e4"
+    },
+    {
+      "path": "candidate-pair1.json",
+      "bytes": 520,
+      "sha256": "7631b6e0e6269b66b92a40e59b8b6f31fcb74864ece0e6a922ea2aa43419bdd5"
+    },
+    {
+      "path": "candidate-pair2.json",
+      "bytes": 520,
+      "sha256": "327158b68cdb87ab2cfb7f90b511d3226da880bf2cdeda48bedb8e9be3171446"
+    },
+    {
+      "path": "candidate-pair3.json",
+      "bytes": 520,
+      "sha256": "5aea6994b383d7bdd538970b7d25e282f711921909f3e0a5bd18d8a1c210fd9f"
+    },
+    {
+      "path": "flat_sift_probe.cpp",
+      "bytes": 6658,
+      "sha256": "58d34f1b0c9d0cf4449d0e14b4464db6793b4a48eead39706354e096779ae75b"
+    },
+    {
+      "path": "AllocationProbe.h",
+      "bytes": 1438,
+      "sha256": "13e18817dfaf4f761394aed84bf22cfb296cae8ae91c6048e3416b8aa6823e82"
+    },
+    {
+      "path": "measure.py",
+      "bytes": 4451,
+      "sha256": "6ec2aa25e67c1e77d19f065cd933978a2db139ea5ba4310afd62b0c31d2d1c45"
+    },
+    {
+      "path": "independent_oracle.cpp",
+      "bytes": 2202,
+      "sha256": "f46129a539f78dade2c16d6d72d64c4cc86319acf8c2b4b19d90f78324bcf6ec"
+    },
+    {
+      "path": "oracle-tests.log",
+      "bytes": 358,
+      "sha256": "7d4f458e1734cc7ef5edf80a980fe825f1d80ea3250b455e63b6fdb02baa7207"
+    },
+    {
+      "path": "oracle-build.log",
+      "bytes": 104,
+      "sha256": "ed26f8913167e191d585997c1da616da16a47a4bd065af24265f1aaef56e0673"
+    },
+    {
+      "path": "comparison.json",
+      "bytes": 10154,
+      "sha256": "b5fbf74c040235ea82edff91fe17d63523e14a9c67b14c0cc3044677647d9a3a"
+    },
+    {
+      "path": "pre-timing-manifest.json",
+      "bytes": 56926,
+      "sha256": "a2e2fcbee1afcf2ae7b66adf24e613df1ceb9999b8bd1fac1a20670d00022b59"
+    },
+    {
+      "path": "source-freeze.json",
+      "bytes": 24183,
+      "sha256": "0518a3ce1cc94720f4ba45a767ded204ac505ebef170b7d9cfb6738c00c3a065"
+    },
+    {
+      "path": "toolchain.json",
+      "bytes": 998,
+      "sha256": "24f8d6621b2b39c04fdcef608d08bf626506637c6b8a2aa94969d761220be293"
+    },
+    {
+      "path": "environment.json",
+      "bytes": 402,
+      "sha256": "600aff2541746264de1a508b9c7da2f4da57afbeeceb0e6b855a38abb8c992f6"
+    },
+    {
+      "path": "build.ps1",
+      "bytes": 4343,
+      "sha256": "ef656c5c04cbada858a4e68861edd2f1101461d1350b0df18d3b4ba750caee9d"
+    },
+    {
+      "path": "build.cmd",
+      "bytes": 1377,
+      "sha256": "564590880158ffe016fc5df3321458675ead685c259729a862218ea0611ca603"
+    },
+    {
+      "path": "build.log",
+      "bytes": 276,
+      "sha256": "7f20fcc0d7a172416d68dca36374be79d75ac0c2a7a75174112d70fe7d570f43"
+    },
+    {
+      "path": "compile-common.rsp",
+      "bytes": 1616,
+      "sha256": "4b8f91e21041df5b222868bc2ce727db23cfc591c77f4d71fa1e84ccfc432ee7"
+    },
+    {
+      "path": "compile-baseline.rsp",
+      "bytes": 408,
+      "sha256": "e96f258a1a4508f715d474361e6dabe76c36b0937b9b63e70dba855677618f43"
+    },
+    {
+      "path": "compile-candidate.rsp",
+      "bytes": 410,
+      "sha256": "5baa231b5e5311a62162259852ef13a581a60705687425f9904c8419ec7bb5a5"
+    },
+    {
+      "path": "link-baseline.rsp",
+      "bytes": 1718,
+      "sha256": "07ffd7c2bbd57d5e6c469c78ae907674248d29126d07b90a2b81b4809af4a36f"
+    },
+    {
+      "path": "link-candidate.rsp",
+      "bytes": 1720,
+      "sha256": "261d00cb0a1d6f38cb5b260270c78ea5a90185d137052bab0c37a00626814fb2"
+    }
+  ],
+  "limitations": [
+    "Single host and three processes per variant; observed ranges are not formal statistical confidence intervals.",
+    "Small title/shuffled/control deltas have overlapping ranges and cannot establish a repeatable gain or causal regression.",
+    "Per-query elapsed values are means of 64 timed fresh-engine calls; validation/hashing/destruction occur outside each timed call. Requested C++ heap instrumentation excludes process RSS/private/GPU allocation.",
+    "No player was launched and no rival/playback gain is claimed. Root may resume its own builds and visible comparisons after the explicit CPU release.",
+    "Frozen source snapshots preserve the actual working-tree line endings; the commit comparison records line-ending-normalized equivalence rather than claiming raw Git blobs were identical.",
+    "The orchestration script hash is recorded in this final review; the native source/build identities were captured before timing."
+  ]
+}

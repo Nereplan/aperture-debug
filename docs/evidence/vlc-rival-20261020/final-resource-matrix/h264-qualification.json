@@ -1,0 +1,435 @@
+{
+  "schemaVersion": 1,
+  "qualifiedResourceEvidence": true,
+  "overallWin": false,
+  "launchMode": "HubThenOpen",
+  "overallStatus": "unproven",
+  "candidate": "Aperture",
+  "rival": "VLC",
+  "runtimeIdentities": {
+    "Aperture": {
+      "version": "2.0.0.0",
+      "executableSha256": "78b59f4e3e98e3f5f7a3e3a309c522f3ce1828e3f58e22c1a85a12c008fa9a7f",
+      "runtimeManifestSha256": "8a333e146c3153f0e00a350323a0402c265be4320fbc8bf08f70ac9530005ac8",
+      "launchConfigurationSha256": "a1d739ee61b07b1f82aa2d8a68ca115f5224f3ab9efcdf37f99d0c95cd7e4215"
+    },
+    "VLC": {
+      "version": "3.0.24",
+      "executableSha256": "63d0d02df6e466d642b824dc66be6b5a134bf98b26747ffac8ec0d879dc180d7",
+      "runtimeManifestSha256": "a48412d2ee742a32192cf0c8389d2251c180160c2bc615492044d1a73aa5b2ff",
+      "launchConfigurationSha256": "da81acc3a52ff1824b3943aa24ac5a1d58982693977e320e18746dc81669aac4"
+    }
+  },
+  "cycleCalibration": {
+    "sha256": "280a2677a344e870e6b417d9e43fee1324888b0381e680be40b33eb820913e9d",
+    "identitySha256": "20e65483aa584d8c0914512ce6f8659de3a4e265ab79dbd80a7b92ecb85f9399",
+    "recordedAtUtc": "2026-10-20T20:06:52.6885590Z",
+    "sourceSha256": "4c5c1e508f7094a844d9e0c6b5632e8d9c0531aa093b3a90793d756f8ee51d9f",
+    "executableSha256": "ffccb0f867af7c71f6b6c257cb246f7dacd124ad585e6fc1f68096f782733b10",
+    "tscTicksPerSecond": 3799994306.159619,
+    "scope": "Hardware/boot-specific cycles diagnostic; retains raw CPU-time evidence."
+  },
+  "qualificationThresholds": {
+    "minimumMeasuredRuns": 3,
+    "minimumCpuWindowSeconds": 25,
+    "matchedPositionToleranceSeconds": 1.1
+  },
+  "environment": {
+    "osVersion": "Microsoft Windows 11 Pro 10.0.26200 build 26200",
+    "cpuName": "AMD Ryzen 9 3900X 12-Core Processor            ",
+    "logicalProcessors": 24,
+    "gpuName": "NVIDIA GeForce RTX 4070 SUPER",
+    "gpuDriverVersion": "32.0.16.1742",
+    "lastBootUpTimeUtc": "2026-10-20T08:20:29.5015290Z",
+    "source": "Win32_ComputerSystem, Win32_OperatingSystem, Win32_Processor and Win32_VideoController CIM instances"
+  },
+  "mediaSha256": "86c249a196158ca2479bb9dd6e0045f24cbcbd2e04a80a41e37c2f6b78f70e68",
+  "videoCanvas": [
+    1280,
+    720
+  ],
+  "measuredRunsPerPlayer": 3,
+  "discardedWarmupsPerPlayer": 1,
+  "samplingSeconds": [
+    {
+      "median": 30.0101513,
+      "min": 30.008879899999997,
+      "max": 30.013254600000003,
+      "runs": 3,
+      "values": [
+        30.008879899999997,
+        30.0101513,
+        30.013254600000003
+      ]
+    },
+    {
+      "median": 30.0077849,
+      "min": 30.0046104,
+      "max": 30.011401900000003,
+      "runs": 3,
+      "values": [
+        30.0077849,
+        30.0046104,
+        30.011401900000003
+      ]
+    }
+  ],
+  "rows": {
+    "cpu": {
+      "label": "Sampled CPU time / wall time",
+      "unit": "% of one logical processor",
+      "status": "inconclusive-overlapping-ranges",
+      "candidate": {
+        "median": 3.800797232235214,
+        "min": 3.6442232426202787,
+        "max": 4.425773319183433,
+        "runs": 3,
+        "values": [
+          4.425773319183433,
+          3.800797232235214,
+          3.6442232426202787
+        ]
+      },
+      "rival": {
+        "median": 4.165083671083022,
+        "min": 3.5407478544009425,
+        "max": 5.311683700448915,
+        "runs": 3,
+        "values": [
+          3.5407478544009425,
+          5.311683700448915,
+          4.165083671083022
+        ]
+      },
+      "medianDifference": -0.3642864388478082,
+      "differenceUnit": "percentage points of one logical processor",
+      "relativeDifferencePercent": -8.746197378385078
+    },
+    "capacity": {
+      "label": "Sampled CPU / verified machine capacity",
+      "unit": "% of machine capacity",
+      "status": "inconclusive-overlapping-ranges",
+      "candidate": {
+        "median": 0.1583665513431339,
+        "min": 0.15184263510917828,
+        "max": 0.18440722163264303,
+        "runs": 3,
+        "values": [
+          0.18440722163264303,
+          0.1583665513431339,
+          0.15184263510917828
+        ]
+      },
+      "rival": {
+        "median": 0.1735451529617926,
+        "min": 0.14753116060003926,
+        "max": 0.22132015418537146,
+        "runs": 3,
+        "values": [
+          0.14753116060003926,
+          0.22132015418537146,
+          0.1735451529617926
+        ]
+      },
+      "medianDifference": -0.015178601618658694,
+      "differenceUnit": "percentage points of machine capacity",
+      "relativeDifferencePercent": -8.74619737838509
+    },
+    "cycles": {
+      "label": "Raw process cycles / wall time (not CPU-time percent)",
+      "unit": "cycles/s",
+      "status": "candidate-better",
+      "candidate": {
+        "median": 165883864.77078506,
+        "min": 156578144.6441333,
+        "max": 166866823.97632578,
+        "runs": 3,
+        "values": [
+          166866823.97632578,
+          165883864.77078506,
+          156578144.6441333
+        ]
+      },
+      "rival": {
+        "median": 182724039.63625535,
+        "min": 177851000.25826964,
+        "max": 185908436.3533181,
+        "runs": 3,
+        "values": [
+          177851000.25826964,
+          182724039.63625535,
+          185908436.3533181
+        ]
+      },
+      "medianDifference": -16840174.86547029,
+      "differenceUnit": "cycles/s",
+      "relativeDifferencePercent": -9.21617916230051
+    },
+    "private": {
+      "label": "Private committed RAM",
+      "unit": "MiB",
+      "status": "inconclusive-overlapping-ranges",
+      "candidate": {
+        "median": 166.20703125,
+        "min": 165.8828125,
+        "max": 166.7421875,
+        "runs": 3,
+        "values": [
+          166.20703125,
+          166.7421875,
+          165.8828125
+        ]
+      },
+      "rival": {
+        "median": 167.8515625,
+        "min": 165.7734375,
+        "max": 167.87109375,
+        "runs": 3,
+        "values": [
+          165.7734375,
+          167.87109375,
+          167.8515625
+        ]
+      },
+      "medianDifference": -1.64453125,
+      "differenceUnit": "MiB",
+      "relativeDifferencePercent": -0.9797533162671623
+    },
+    "workingSet": {
+      "label": "Resident working set",
+      "unit": "MiB",
+      "status": "candidate-better",
+      "candidate": {
+        "median": 142.10546875,
+        "min": 141.91796875,
+        "max": 142.5390625,
+        "runs": 3,
+        "values": [
+          141.91796875,
+          142.10546875,
+          142.5390625
+        ]
+      },
+      "rival": {
+        "median": 171.515625,
+        "min": 171.22265625,
+        "max": 171.69921875,
+        "runs": 3,
+        "values": [
+          171.69921875,
+          171.22265625,
+          171.515625
+        ]
+      },
+      "medianDifference": -29.41015625,
+      "differenceUnit": "MiB",
+      "relativeDifferencePercent": -17.14721690808053
+    },
+    "dedicatedGpu": {
+      "label": "Dedicated GPU allocation (not utilization)",
+      "unit": "MiB",
+      "status": "candidate-better",
+      "candidate": {
+        "median": 112.32421875,
+        "min": 112.3203125,
+        "max": 112.33984375,
+        "runs": 3,
+        "values": [
+          112.3203125,
+          112.32421875,
+          112.33984375
+        ]
+      },
+      "rival": {
+        "median": 118.4609375,
+        "min": 118.453125,
+        "max": 118.4609375,
+        "runs": 3,
+        "values": [
+          118.4609375,
+          118.4609375,
+          118.453125
+        ]
+      },
+      "medianDifference": -6.13671875,
+      "differenceUnit": "MiB",
+      "relativeDifferencePercent": -5.180373277055994
+    },
+    "sharedGpu": {
+      "label": "Shared GPU allocation",
+      "unit": "MiB",
+      "status": "rival-better",
+      "candidate": {
+        "median": 15.1171875,
+        "min": 15.1171875,
+        "max": 15.1171875,
+        "runs": 3,
+        "values": [
+          15.1171875,
+          15.1171875,
+          15.1171875
+        ]
+      },
+      "rival": {
+        "median": 15.0703125,
+        "min": 15.0546875,
+        "max": 15.0703125,
+        "runs": 3,
+        "values": [
+          15.0703125,
+          15.0703125,
+          15.0546875
+        ]
+      },
+      "medianDifference": 0.046875,
+      "differenceUnit": "MiB",
+      "relativeDifferencePercent": 0.3110419906687367
+    },
+    "runtime": {
+      "label": "Complete supplied runtime (feature inventories may differ)",
+      "unit": "MiB",
+      "status": "candidate-better",
+      "candidate": {
+        "median": 30.61571979522705,
+        "min": 30.61571979522705,
+        "max": 30.61571979522705,
+        "runs": 3,
+        "values": [
+          30.61571979522705,
+          30.61571979522705,
+          30.61571979522705
+        ]
+      },
+      "rival": {
+        "median": 190.01314163208008,
+        "min": 190.01314163208008,
+        "max": 190.01314163208008,
+        "runs": 3,
+        "values": [
+          190.01314163208008,
+          190.01314163208008,
+          190.01314163208008
+        ]
+      },
+      "medianDifference": -159.39742183685303,
+      "differenceUnit": "MiB",
+      "relativeDifferencePercent": -83.887577705279
+    },
+    "calibratedCpu": {
+      "label": "Hardware-calibrated cycles / wall time",
+      "unit": "% of one logical processor",
+      "status": "candidate-better",
+      "candidate": {
+        "median": 4.365371403370126,
+        "min": 4.120483664681476,
+        "max": 4.391238789643506,
+        "runs": 3,
+        "values": [
+          4.391238789643506,
+          4.365371403370126,
+          4.120483664681476
+        ]
+      },
+      "rival": {
+        "median": 4.8085345638562655,
+        "min": 4.680296493338982,
+        "max": 4.892334603027402,
+        "runs": 3,
+        "values": [
+          4.680296493338982,
+          4.8085345638562655,
+          4.892334603027402
+        ]
+      },
+      "medianDifference": -0.44316316048613924,
+      "differenceUnit": "percentage points of one logical processor",
+      "relativeDifferencePercent": -9.21617916230052
+    },
+    "calibratedCapacity": {
+      "label": "Hardware-calibrated cycles / machine capacity",
+      "unit": "% of machine capacity",
+      "status": "candidate-better",
+      "candidate": {
+        "median": 0.18189047514042192,
+        "min": 0.17168681936172817,
+        "max": 0.18296828290181275,
+        "runs": 3,
+        "values": [
+          0.18296828290181275,
+          0.18189047514042192,
+          0.17168681936172817
+        ]
+      },
+      "rival": {
+        "median": 0.2003556068273444,
+        "min": 0.19501235388912427,
+        "max": 0.20384727512614176,
+        "runs": 3,
+        "values": [
+          0.19501235388912427,
+          0.2003556068273444,
+          0.20384727512614176
+        ]
+      },
+      "medianDifference": -0.018465131686922487,
+      "differenceUnit": "percentage points of machine capacity",
+      "relativeDifferencePercent": -9.21617916230053
+    },
+    "quality": {
+      "label": "Output quality and presentation cadence",
+      "status": "unproven",
+      "reason": "Not established by compare_players resource/status counters."
+    },
+    "readiness": {
+      "label": "First visible video and seek readiness",
+      "status": "unproven",
+      "reason": "Not established by compare_players resource/status counters."
+    },
+    "workflows": {
+      "label": "Core workflows and reliability",
+      "status": "unproven",
+      "reason": "Not established by compare_players resource/status counters."
+    },
+    "featureMatchedStorage": {
+      "label": "Feature-matched distribution storage",
+      "status": "unproven",
+      "reason": "Not established by compare_players resource/status counters."
+    }
+  },
+  "shellVisibleMsDiagnosticOnly": [
+    {
+      "median": 82.9514,
+      "min": 82.653,
+      "max": 118.1714,
+      "runs": 3,
+      "values": [
+        82.9514,
+        82.653,
+        118.1714
+      ]
+    },
+    {
+      "median": 810.9668,
+      "min": 780.3894,
+      "max": 827.1732,
+      "runs": 3,
+      "values": [
+        780.3894,
+        810.9668,
+        827.1732
+      ]
+    }
+  ],
+  "limits": [
+    "Run ranges are descriptive, not confidence intervals or causal attribution.",
+    "Overlapping ranges cannot establish a winner; snapshots are not independent runs.",
+    "CPU uses each complete endpoint delta; RAM uses a median per run, then across runs.",
+    "Machine CPU differences are percentage points; relative percent is separate.",
+    "Cycles/s is not converted to time using CPU MHz or an unverified calibration.",
+    "Root-process counters exclude shared services; memory accounts must not be added."
+  ],
+  "sourceReport": {
+    "path": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\h264-hub-final-clean-20261020\\comparison.json",
+    "sha256": "09acf15cb1366ab825a471d76b29f2d76b4e4083b9516e09e1b967699e375cc4"
+  }
+}

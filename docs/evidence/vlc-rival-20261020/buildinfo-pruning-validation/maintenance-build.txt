@@ -1,0 +1,15 @@
+Json.cpp
+Settings.cpp
+ChannelPolicy.cpp
+Localization.cpp
+AudioConfig.cpp
+MediaLibrary.cpp
+LibraryQuery.cpp
+GlobalSearch.cpp
+TextInputModel.cpp
+FolderWatcher.cpp
+MediaFoundation.cpp
+MediaProbeIsolation.cpp
+Generating Code...
+maintenance_resource_benchmark.cpp
+Native build: 12 production files compiled, 0 reused.

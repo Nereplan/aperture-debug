@@ -1,0 +1,6 @@
+Bounded query selection (3 selected, 0 filtered)
+[       OK ] LibraryQuery::SortingGroupingAndCappedProjection (20.05 ms)
+[       OK ] LibraryQuery::ColdCappedSelectionPreservesPinningFilteringAndAvailability (113.83 ms)
+[       OK ] LibraryQuery::BoundedReplacementMatchesIndependentNumericPrefix (3.32 ms)
+
+3 passed, 0 failed, 0 skipped in 137.28 ms

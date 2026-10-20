@@ -96,7 +96,7 @@ git diff --check</pre>
 <script id="checkpoint-data" type="application/json">
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-10-20T14:50:32+00:00",
+  "updatedAt": "2026-10-20T20:30:11+00:00",
   "metrics": {
     "visible-ms": {
       "label": "Visible window",
@@ -404,6 +404,11 @@ git diff --check</pre>
       "label": "Final bounded library selection / 25k and 100k catalogs",
       "category": "Library",
       "method": "Saved native query_resource_benchmark.cpp runs: three process rounds per variant, one warmup and seven measured samples per mode per process, pooled median of 21 samples; all sample ranges retained. The small catalog has 25,000 in-memory records and the large catalog has 100,000. Elapsed steady-clock wall time is rounded to 0.001 ms in the CSVs; it is not process CPU time. AllocationProbe tracks requested C++ allocation counts/bytes and peak live query allocations, excluding OS/allocator overhead, process RSS/private bytes and GPU memory. The probe attempts to pin itself to its first allowed logical processor, but success is not recorded. No media playback or profile writes. Compiler flags, host load and complete source-to-executable identity were not contemporaneously attested; original saved file/probe/source hashes and limits are retained in evidence. All 672 rows across 15 modes preserve result counts/order hashes. Large rounds retain baseline, rejected old-batch and final partitioned-window variants; small rounds retain baseline then final."
+    },
+    "playback-owned-visible-hub-tsc-30s-v2": {
+      "label": "Owned visible playback / fresh calibrated cycles",
+      "category": "Playback",
+      "method": "Explicitly authorized visible full-player comparison using official VLC3.0.24 and frozen Aperture packages. Fresh complete runtime/profile per run, one warmup plus three measured rounds per player, rotating order; 3s hub then owned open. Same SHA256-verified H264/AAC fixture, actual1280x720 canvas and matching DPI; default output settings (no forced VLC linear mode). Seven uniformly spaced snapshots over about30s at media20–50s; endpoint Windows CPU time, per-run median RAM/GPU. Both owned windows temporarily topmost at40,40, with full-canvas/foreign-window/cursor guards before and after collection. Raw cycle counters remain separate diagnostics. No builds/tests/profilers concurrent. Driver allocations overlap process memory and are not summed. Source/runtime/helper manifests and all failed pilots are retained. This protocol does not establish equal decoders, filtering, frame cadence, readiness, physical audio output or feature-matched storage. Windows CPU-time sampling aliases on this machine; retain its conflict with cycle diagnostics. Hardware-calibrated CPU is process-cycle delta / endpoint wall seconds / fresh validated invariant-TSC ticks per second *100; verified24LP enables machine-capacity normalization. Every batch retains five raw TSC/QPC intervals, independent busy-thread/process checks, calibration source/executable/content hashes and exact CPU/OS/GPU/driver/boot identity. This batch uses 3799994306.159619 ticks/sec. Original sampled CPU-time rows remain unchanged."
     }
   },
   "environments": {
@@ -1477,6 +1482,125 @@ git diff --check</pre>
             "max": 4.818721473738156,
             "runs": 3,
             "scope": "Three fresh measured processes; one warmup excluded. CPU uses full endpoint delta; RAM/GPU median of seven snapshots per run. Min/max describe run medians or CPU rates, not confidence intervals."
+          }
+        }
+      ]
+    },
+    "vlc-3.0.24-owned-hub-h264-final-clean-20261020": {
+      "player": "VLC",
+      "version": "3.0.24",
+      "measuredAt": "2026-10-20T15:32:11.7405525Z",
+      "results": [
+        {
+          "metric": "cpu-core",
+          "protocol": "playback-owned-visible-hub-30s-v1",
+          "environment": "ryzen3900x-4070super-20261020",
+          "workload": "1080p30 H.264 + AAC stereo / 1280x720 canvas / player defaults / HubThenOpen",
+          "session": "owned-hub-h264-final-clean-20261020",
+          "value": 4.165083671083022,
+          "samples": 3,
+          "evidence": "docs/evidence/vlc-rival-20261020/final-resource-matrix/h264-qualification.json",
+          "runRange": {
+            "min": 3.5407478544009425,
+            "max": 5.311683700448915,
+            "runs": 3,
+            "scope": "Three fresh measured processes; one warmup excluded per player. CPU uses complete30s endpoint deltas; RAM/GPU uses median of seven snapshots per run, then median across runs. Ranges describe per-run values, not confidence intervals."
+          }
+        },
+        {
+          "metric": "private-mib",
+          "protocol": "playback-owned-visible-hub-30s-v1",
+          "environment": "ryzen3900x-4070super-20261020",
+          "workload": "1080p30 H.264 + AAC stereo / 1280x720 canvas / player defaults / HubThenOpen",
+          "session": "owned-hub-h264-final-clean-20261020",
+          "value": 167.8515625,
+          "samples": 3,
+          "evidence": "docs/evidence/vlc-rival-20261020/final-resource-matrix/h264-qualification.json",
+          "runRange": {
+            "min": 165.7734375,
+            "max": 167.87109375,
+            "runs": 3,
+            "scope": "Three fresh measured processes; one warmup excluded per player. CPU uses complete30s endpoint deltas; RAM/GPU uses median of seven snapshots per run, then median across runs. Ranges describe per-run values, not confidence intervals."
+          }
+        },
+        {
+          "metric": "working-set-mib",
+          "protocol": "playback-owned-visible-hub-30s-v1",
+          "environment": "ryzen3900x-4070super-20261020",
+          "workload": "1080p30 H.264 + AAC stereo / 1280x720 canvas / player defaults / HubThenOpen",
+          "session": "owned-hub-h264-final-clean-20261020",
+          "value": 171.515625,
+          "samples": 3,
+          "evidence": "docs/evidence/vlc-rival-20261020/final-resource-matrix/h264-qualification.json",
+          "runRange": {
+            "min": 171.22265625,
+            "max": 171.69921875,
+            "runs": 3,
+            "scope": "Three fresh measured processes; one warmup excluded per player. CPU uses complete30s endpoint deltas; RAM/GPU uses median of seven snapshots per run, then median across runs. Ranges describe per-run values, not confidence intervals."
+          }
+        },
+        {
+          "metric": "gpu-mib",
+          "protocol": "playback-owned-visible-hub-30s-v1",
+          "environment": "ryzen3900x-4070super-20261020",
+          "workload": "1080p30 H.264 + AAC stereo / 1280x720 canvas / player defaults / HubThenOpen",
+          "session": "owned-hub-h264-final-clean-20261020",
+          "value": 118.4609375,
+          "samples": 3,
+          "evidence": "docs/evidence/vlc-rival-20261020/final-resource-matrix/h264-qualification.json",
+          "runRange": {
+            "min": 118.453125,
+            "max": 118.4609375,
+            "runs": 3,
+            "scope": "Three fresh measured processes; one warmup excluded per player. CPU uses complete30s endpoint deltas; RAM/GPU uses median of seven snapshots per run, then median across runs. Ranges describe per-run values, not confidence intervals."
+          }
+        },
+        {
+          "metric": "shared-gpu-mib",
+          "protocol": "playback-owned-visible-hub-30s-v1",
+          "environment": "ryzen3900x-4070super-20261020",
+          "workload": "1080p30 H.264 + AAC stereo / 1280x720 canvas / player defaults / HubThenOpen",
+          "session": "owned-hub-h264-final-clean-20261020",
+          "value": 15.0703125,
+          "samples": 3,
+          "evidence": "docs/evidence/vlc-rival-20261020/final-resource-matrix/h264-qualification.json",
+          "runRange": {
+            "min": 15.0546875,
+            "max": 15.0703125,
+            "runs": 3,
+            "scope": "Three fresh measured processes; one warmup excluded per player. CPU uses complete30s endpoint deltas; RAM/GPU uses median of seven snapshots per run, then median across runs. Ranges describe per-run values, not confidence intervals."
+          }
+        },
+        {
+          "metric": "runtime-mib",
+          "protocol": "playback-owned-visible-hub-30s-v1",
+          "environment": "ryzen3900x-4070super-20261020",
+          "workload": "1080p30 H.264 + AAC stereo / 1280x720 canvas / player defaults / HubThenOpen",
+          "session": "owned-hub-h264-final-clean-20261020",
+          "value": 190.01314163208008,
+          "samples": 3,
+          "evidence": "docs/evidence/vlc-rival-20261020/final-resource-matrix/h264-qualification.json",
+          "runRange": {
+            "min": 190.01314163208008,
+            "max": 190.01314163208008,
+            "runs": 3,
+            "scope": "Three fresh measured processes; one warmup excluded per player. CPU uses complete30s endpoint deltas; RAM/GPU uses median of seven snapshots per run, then median across runs. Ranges describe per-run values, not confidence intervals."
+          }
+        },
+        {
+          "metric": "cpu-core",
+          "protocol": "playback-owned-visible-hub-tsc-30s-v2",
+          "environment": "ryzen3900x-4070super-20261020",
+          "workload": "1080p30 H.264 + AAC stereo / 1280x720 canvas / player defaults / HubThenOpen",
+          "session": "owned-hub-h264-final-clean-20261020",
+          "value": 4.8085345638562655,
+          "samples": 3,
+          "evidence": "docs/evidence/vlc-rival-20261020/final-resource-matrix/h264-qualification.json",
+          "runRange": {
+            "min": 4.680296493338982,
+            "max": 4.892334603027402,
+            "runs": 3,
+            "scope": "Three fresh measured processes; one warmup excluded per player. CPU uses complete30s endpoint deltas; RAM/GPU uses median of seven snapshots per run, then median across runs. Ranges describe per-run values, not confidence intervals."
           }
         }
       ]
@@ -18695,6 +18819,268 @@ git diff --check</pre>
         }
       ],
       "pairedWith": "library-selection-20261019-before"
+    },
+    {
+      "id": "rival-h264-20261020-pruned",
+      "label": "Pruned Aperture / fresh H264 rival comparison",
+      "measuredAt": "2026-10-20T15:32:11.7405525Z",
+      "commit": "23fd026c2b114f8391465bfb5f7d28a79da02025",
+      "dirty": false,
+      "sourceNote": "Frozen clean production source23fd026; EXE SHA25678b59f4e3e98e3f5f7a3e3a309c522f3ce1828e3f58e22c1a85a12c008fa9a7f,3453952bytes. Full source/CMake and10payload hashes in docs/evidence/vlc-rival-20261020/final-resource-matrix/frozen-qualified-build.json. Later working-tree pruning is not part of this measured executable.",
+      "notes": [
+        "H264 qualifies with unchanged3-run/25s minimums and1.1s endpoint-match threshold. Aperture resident working set and dedicated GPU allocation have lower nonoverlapping observed run ranges; private RAM and Windows CPU-time ranges overlap. Shared GPU allocation favors VLC. No accounts are summed.",
+        "Validated calibrated CPU is4.365371403370126% of one logical processor for Aperture versus4.8085345638562655% for VLC; divide by verified24LP to obtain0.1818904751404219% versus0.2003556068273444% machine capacity. Difference is about-0.01847 percentage points of machine capacity, distinct from-9.216% relative. Calibration/raw counters are both preserved.",
+        "All24 matrix launches sampled successfully, but HEVC and AV1 whole batches fail subsequent segment qualification: one measured VLC endpoint49s versus fractional Aperture endpoints beyond50.1s exceeds the declared1.1s match threshold. Their raw observations are retained without normalized rival-winning results or discarded individual runs.",
+        "Aperture sampled allfour paused SDR sentinel phases. VLC color run stopped on cursor overlap beforephase0; no pairwise color or general quality/cadence claim.",
+        "Earlier metadata rounds the same Windows boot to08:20:29.5000000Z; new independent matrix and calibration identify08:20:29.5015290Z (1.529ms precision difference). CPU/24LP/Windows/GPU/driver agree. Fresh calibration qualification requires exact raw matrix identity.",
+        "Differences from earlier H264 sessions are observations, not isolated code effects. Dedicated GPU allocation here is about112.32MiB versus earlier108.57MiB despite smaller EXE; this does not prove a source regression or physical hidden-buffer reclamation.",
+        "Complete package footprint is30.62MiB versus190.01MiB supplied VLC distribution with different feature inventories; feature-matched storage superiority remains unproven. Decoder equivalence, broad quality, cadence, visible readiness and core workflow rivalry remain outstanding."
+      ],
+      "results": [
+        {
+          "metric": "cpu-core",
+          "protocol": "playback-owned-visible-hub-30s-v1",
+          "environment": "ryzen3900x-4070super-20261020",
+          "workload": "1080p30 H.264 + AAC stereo / 1280x720 canvas / player defaults / HubThenOpen",
+          "session": "owned-hub-h264-final-clean-20261020",
+          "value": 3.800797232235214,
+          "samples": 3,
+          "evidence": "docs/evidence/vlc-rival-20261020/final-resource-matrix/h264-qualification.json",
+          "runRange": {
+            "min": 3.6442232426202787,
+            "max": 4.425773319183433,
+            "runs": 3,
+            "scope": "Three fresh measured processes; one warmup excluded per player. CPU uses complete30s endpoint deltas; RAM/GPU uses median of seven snapshots per run, then median across runs. Ranges describe per-run values, not confidence intervals."
+          },
+          "reference": "vlc-3.0.24-owned-hub-h264-final-clean-20261020"
+        },
+        {
+          "metric": "private-mib",
+          "protocol": "playback-owned-visible-hub-30s-v1",
+          "environment": "ryzen3900x-4070super-20261020",
+          "workload": "1080p30 H.264 + AAC stereo / 1280x720 canvas / player defaults / HubThenOpen",
+          "session": "owned-hub-h264-final-clean-20261020",
+          "value": 166.20703125,
+          "samples": 3,
+          "evidence": "docs/evidence/vlc-rival-20261020/final-resource-matrix/h264-qualification.json",
+          "runRange": {
+            "min": 165.8828125,
+            "max": 166.7421875,
+            "runs": 3,
+            "scope": "Three fresh measured processes; one warmup excluded per player. CPU uses complete30s endpoint deltas; RAM/GPU uses median of seven snapshots per run, then median across runs. Ranges describe per-run values, not confidence intervals."
+          },
+          "reference": "vlc-3.0.24-owned-hub-h264-final-clean-20261020"
+        },
+        {
+          "metric": "working-set-mib",
+          "protocol": "playback-owned-visible-hub-30s-v1",
+          "environment": "ryzen3900x-4070super-20261020",
+          "workload": "1080p30 H.264 + AAC stereo / 1280x720 canvas / player defaults / HubThenOpen",
+          "session": "owned-hub-h264-final-clean-20261020",
+          "value": 142.10546875,
+          "samples": 3,
+          "evidence": "docs/evidence/vlc-rival-20261020/final-resource-matrix/h264-qualification.json",
+          "runRange": {
+            "min": 141.91796875,
+            "max": 142.5390625,
+            "runs": 3,
+            "scope": "Three fresh measured processes; one warmup excluded per player. CPU uses complete30s endpoint deltas; RAM/GPU uses median of seven snapshots per run, then median across runs. Ranges describe per-run values, not confidence intervals."
+          },
+          "reference": "vlc-3.0.24-owned-hub-h264-final-clean-20261020"
+        },
+        {
+          "metric": "gpu-mib",
+          "protocol": "playback-owned-visible-hub-30s-v1",
+          "environment": "ryzen3900x-4070super-20261020",
+          "workload": "1080p30 H.264 + AAC stereo / 1280x720 canvas / player defaults / HubThenOpen",
+          "session": "owned-hub-h264-final-clean-20261020",
+          "value": 112.32421875,
+          "samples": 3,
+          "evidence": "docs/evidence/vlc-rival-20261020/final-resource-matrix/h264-qualification.json",
+          "runRange": {
+            "min": 112.3203125,
+            "max": 112.33984375,
+            "runs": 3,
+            "scope": "Three fresh measured processes; one warmup excluded per player. CPU uses complete30s endpoint deltas; RAM/GPU uses median of seven snapshots per run, then median across runs. Ranges describe per-run values, not confidence intervals."
+          },
+          "reference": "vlc-3.0.24-owned-hub-h264-final-clean-20261020"
+        },
+        {
+          "metric": "shared-gpu-mib",
+          "protocol": "playback-owned-visible-hub-30s-v1",
+          "environment": "ryzen3900x-4070super-20261020",
+          "workload": "1080p30 H.264 + AAC stereo / 1280x720 canvas / player defaults / HubThenOpen",
+          "session": "owned-hub-h264-final-clean-20261020",
+          "value": 15.1171875,
+          "samples": 3,
+          "evidence": "docs/evidence/vlc-rival-20261020/final-resource-matrix/h264-qualification.json",
+          "runRange": {
+            "min": 15.1171875,
+            "max": 15.1171875,
+            "runs": 3,
+            "scope": "Three fresh measured processes; one warmup excluded per player. CPU uses complete30s endpoint deltas; RAM/GPU uses median of seven snapshots per run, then median across runs. Ranges describe per-run values, not confidence intervals."
+          },
+          "reference": "vlc-3.0.24-owned-hub-h264-final-clean-20261020"
+        },
+        {
+          "metric": "runtime-mib",
+          "protocol": "playback-owned-visible-hub-30s-v1",
+          "environment": "ryzen3900x-4070super-20261020",
+          "workload": "1080p30 H.264 + AAC stereo / 1280x720 canvas / player defaults / HubThenOpen",
+          "session": "owned-hub-h264-final-clean-20261020",
+          "value": 30.61571979522705,
+          "samples": 3,
+          "evidence": "docs/evidence/vlc-rival-20261020/final-resource-matrix/h264-qualification.json",
+          "runRange": {
+            "min": 30.61571979522705,
+            "max": 30.61571979522705,
+            "runs": 3,
+            "scope": "Three fresh measured processes; one warmup excluded per player. CPU uses complete30s endpoint deltas; RAM/GPU uses median of seven snapshots per run, then median across runs. Ranges describe per-run values, not confidence intervals."
+          },
+          "reference": "vlc-3.0.24-owned-hub-h264-final-clean-20261020"
+        },
+        {
+          "metric": "cpu-core",
+          "protocol": "playback-owned-visible-hub-tsc-30s-v2",
+          "environment": "ryzen3900x-4070super-20261020",
+          "workload": "1080p30 H.264 + AAC stereo / 1280x720 canvas / player defaults / HubThenOpen",
+          "session": "owned-hub-h264-final-clean-20261020",
+          "value": 4.365371403370126,
+          "samples": 3,
+          "evidence": "docs/evidence/vlc-rival-20261020/final-resource-matrix/h264-qualification.json",
+          "runRange": {
+            "min": 4.120483664681476,
+            "max": 4.391238789643506,
+            "runs": 3,
+            "scope": "Three fresh measured processes; one warmup excluded per player. CPU uses complete30s endpoint deltas; RAM/GPU uses median of seven snapshots per run, then median across runs. Ranges describe per-run values, not confidence intervals."
+          },
+          "reference": "vlc-3.0.24-owned-hub-h264-final-clean-20261020"
+        }
+      ],
+      "tests": [
+        {
+          "name": "H264 visible owned resource launch sampling",
+          "status": "pass",
+          "passed": 8,
+          "total": 8,
+          "durationSeconds": null,
+          "evidence": "docs/evidence/vlc-rival-20261020/final-resource-matrix/h264-raw.json",
+          "scope": "Includes2warmups and6measured launches; eight launches are not eight independent measured runs per player."
+        },
+        {
+          "name": "Complete matrix sampled launches",
+          "status": "pass",
+          "passed": 24,
+          "total": 24,
+          "durationSeconds": null,
+          "evidence": "docs/evidence/vlc-rival-20261020/final-resource-matrix/review.json",
+          "scope": "Sampling success only; includes H264 launches and allwarmups. Overlaps the preceding count."
+        },
+        {
+          "name": "Post-sampling matched-segment qualification across3workloads",
+          "status": "partial",
+          "passed": 1,
+          "total": 3,
+          "durationSeconds": null,
+          "evidence": "docs/evidence/vlc-rival-20261020/final-resource-matrix/review.json",
+          "scope": "H264 passes; HEVC andAV1 whole batches rejected for unmatched quantized endpoints. No evaluator tolerances relaxed."
+        },
+        {
+          "name": "Paused SDR color launch check",
+          "status": "partial",
+          "passed": 1,
+          "total": 2,
+          "durationSeconds": null,
+          "evidence": "docs/evidence/vlc-rival-20261020/final-resource-matrix/color-cursor-rejected.json",
+          "scope": "Aperture4phases sampled; VLC rejected on cursor overlap beforephase0. No paired quality result."
+        }
+      ]
+    },
+    {
+      "id": "library-flat-sift-rejected-20261020",
+      "label": "Rejected single-sift bounded heap replacement",
+      "measuredAt": "2026-10-20T20:15:39.168025+00:00",
+      "commit": "23fd026c2b114f8391465bfb5f7d28a79da02025",
+      "dirty": true,
+      "sourceNote": "Experimental LibraryQuery.cpp variant compiled against frozen 23fd026 shared source/API. Contemporaneous pre-timing source/build/EXE identities are in docs/evidence/library-selection-20261019/flat-sift-rejected-20261020/pre-timing-manifest.json. Standard-heap baseline was restored; no code accepted.",
+      "notes": "Rejected the custom downward-hole replacement. No production, test or probe source change was accepted; LibraryQuery.cpp was restored byte-for-byte to the standard pop_heap/push_heap implementation. The extra production code did not provide a material repeatable broad benefit.\n\nContemporaneous source/build attestation is stronger than the earlier saved library-selection study: complete frozen source/header identities, compiler/linker hashes, response files, common-object hashes, both variant object/EXE hashes and exact probe bytes were recorded before timing and checked again afterward. Only LibraryQuery.cpp differs between variants; both links reuse identical common production/probe objects on frozen base 23fd026. Raw working-tree line endings and Git-content normalization are explicit. Executables and full source/object trees remain external; the compact evidence folder preserves hashes, both query variants and raw data.\n\nProtocol: 25,000 in-memory records; three paired process rounds in baseline/candidate, candidate/baseline, baseline/candidate order. Mode order rotates identically within each pair. Each process requires and verifies one-logical-processor affinity. Every mode uses one warmup sample plus seven measured samples; each sample averages 64 fresh-engine Query/QueryView calls. Thus each mode/variant has 21 measured sample means across three processes, and the full experiment contains 13,440 measured queries plus 1,920 warmup queries. Timing excludes result validation, hashing and destruction. Ranges below span all 21 sample means, not process-median ranges. Counts/order oracles and C++ allocation identities match across every variant; requested heap counters do not measure RSS/private/GPU allocation.\n\nCold title-sorted full projection, cap 50: pooled median mean-query time 0.772770312 to 0.892439063 ms (+15.49%). Observed baseline range 0.693003125–1.237156250 ms; candidate range 0.756556250–0.956268750 ms. Paired process-median changes: +26.16%, +6.06%, +0.76%. Ranges overlap. Allocation calls/query 108, allocated bytes/query 19647, peak live C++ bytes 15639, identical for both variants.\n\nCold compact duration view with permuted input, cap 50: pooled median mean-query time 0.313051562 to 0.309192187 ms (-1.23%). Observed baseline range 0.307018750–0.321342187 ms; candidate range 0.304523437–0.319789062 ms. Paired process-median changes: -0.70%, -0.51%, -1.81%. Ranges overlap. Allocation calls/query 7, allocated bytes/query 4408, peak live C++ bytes 4280, identical for both variants.\n\nCold compact duration view with descending input, cap 50: pooled median mean-query time 1.688309375 to 1.791151563 ms (+6.09%). Observed baseline range 1.643723438–1.862414063 ms; candidate range 1.741482812–1.879301563 ms. Paired process-median changes: +9.33%, +6.55%, -2.03%. Ranges overlap. Allocation calls/query 7, allocated bytes/query 4408, peak live C++ bytes 4280, identical for both variants.\n\nCold compact duration view with descending input, cap 1,023: pooled median mean-query time 2.491659375 to 3.135328125 ms (+25.83%). Observed baseline range 2.453681250–2.642698437 ms; candidate range 3.080376563–3.249340625 ms. Paired process-median changes: +26.44%, +24.38%, +26.19%. Ranges do not overlap. Allocation calls/query 7, allocated bytes/query 43406, peak live C++ bytes 43278, identical for both variants.\n\nCold compact duration view with ascending input, cap 50 (no-replacement control): pooled median mean-query time 0.295809375 to 0.293595312 ms (-0.75%). Observed baseline range 0.288407813–0.307398438 ms; candidate range 0.289307812–0.303329688 ms. Paired process-median changes: -0.13%, -2.77%, -0.60%. Ranges overlap. Allocation calls/query 7, allocated bytes/query 4408, peak live C++ bytes 4280, identical for both variants.\n\nThe cap-1,023 replacement-heavy candidate is slower in every paired process (about 24–26%) with non-overlapping observed ranges. Small shuffled/control differences and the title/cap-50 observations have overlapping ranges; they establish no repeatable gain or isolated causal claim. This is one host with three processes per variant, not a formal confidence interval or VLC/playback result. Existing 4,096-record independent filter/pinning/availability oracles and additional 512-record monotone/permuted/repeated-key prefix checks passed; no real player was launched. Results remain evidence for rejecting this candidate, not a new shipped performance observation.",
+      "results": [],
+      "tests": [
+        {
+          "name": "Independent bounded-query ordering and selection oracles",
+          "status": "pass",
+          "passed": 3,
+          "total": 3,
+          "durationSeconds": 0.13728,
+          "evidence": "docs/evidence/library-selection-20261019/flat-sift-rejected-20261020/oracle-tests.log",
+          "scope": "Existing sorting/grouping/capped projection and 4,096-record independent filtering/pinning/availability checks, plus 512-record monotone/permuted/repeated-key stable prefixes in both directions with caps 1, 2, 17, 50, 64, 127, 128 and 513. No player/performance-rival validation."
+        }
+      ]
+    },
+    {
+      "id": "buildinfo-pruning-validation-20261020",
+      "label": "Remove disconnected build reports and idle heartbeat text",
+      "measuredAt": "2026-10-20T20:30:11.546254+00:00",
+      "commit": "c539728",
+      "dirty": true,
+      "sourceNote": "Production/CMake/version content clean atc539728 (BuildInfo pruneeab4b8a, heartbeatb0d97fc, harnessc539728); working tree carried documentation/evidence updates. New EXEa65ef1873523afb9cacc7d3e3bd23d63cf6175f2e64703f8f04423bd614db229,3442176bytes; post-build source inventory and package manifest under docs/evidence/vlc-rival-20261020/buildinfo-pruning-validation/",
+      "notes": [
+        "Removed2source files and1189net lines from the disconnected BuildInfo/report subtree:715production/build,471test,3documentation net lines. System page reads the authoritative version directly instead of performing root-writability file probes, graphics-adapter discovery and complete diagnostic metadata allocation on each draw. Existing log/startup-report/crash/watchdog behavior remains.",
+        "Follow-up removal of the now-unread heartbeat label and its mutex keeps only existing atomic watchdog timestamp/reset updates. Diagnostics.cpp remains directly included in its standalone test TU to exercise the real internal live-dump writer; no test-only public dump wrapper remains.",
+        "Release build succeeded; all10package payload lengths/hashes verified. EXE is3442176bytes,11776bytes(11.5KiB) smaller than prior measured23fd026 executable3453952bytes. This is executable-file size, not RAM/storage-feature equivalence or a new playback measurement.",
+        "Full23-suite PR gate passed351.7s for the BuildInfo pruning before heartbeat/harness follow-ups. Focused native diagnostics and threat-boundary checks passed afterward; final full-GUI Release build validates updated call signatures. This does not claim a repeated full gate for the final follow-ups.",
+        "Fractional alignment now survives public parameter binding and rejects invalid negative/out-of-range/nonfinite values. Pure rival contracts pass in PowerShell7andWindowsPowerShell5.1. Original failed binding test retained. Evaluator thresholds unchanged. Predeclared HEVC/AV1 repeats remain pending the visible cursor constraint; neither old unmatched batch is promoted.",
+        "Changed maintenance probe compiles and passes6correctness workloads after API retirement. Its incidental single-invocation CSV timings are not comparative performance results. Rejected custom heap implementation remains removed; its separate checkpoint preserves all observed slow cases.",
+        "Source/runtime quality, presentation cadence, equal decoders, visible readiness and broader workflow rivalry remain outstanding. No overall Aperture win is claimed."
+      ],
+      "results": [],
+      "tests": [
+        {
+          "name": "Local PR gate / BuildInfo cleanup before follow-ups",
+          "status": "pass",
+          "passed": 23,
+          "total": 23,
+          "durationSeconds": 351.7,
+          "evidence": "docs/evidence/vlc-rival-20261020/buildinfo-pruning-validation/pr-gate-summary.txt",
+          "scope": "Source content equivalent toeab4b8a. Central runner summary retained; not a repeated gate for later heartbeat/harness commits."
+        },
+        {
+          "name": "Focused heartbeat diagnostics and boundary validation",
+          "status": "pass",
+          "passed": null,
+          "total": null,
+          "durationSeconds": null,
+          "evidence": "docs/evidence/vlc-rival-20261020/buildinfo-pruning-validation/heartbeat-focused.txt",
+          "scope": "Real log/startup report/live-dump writer/crash test; separate boundary verifier retained."
+        },
+        {
+          "name": "Release build and portable package verification",
+          "status": "pass",
+          "passed": 10,
+          "total": 10,
+          "durationSeconds": null,
+          "evidence": "docs/evidence/vlc-rival-20261020/buildinfo-pruning-validation/package-manifest.json",
+          "scope": "10payload hashes/lengthsverified; sourcecompiledandlinked. Not10functional scenarios."
+        },
+        {
+          "name": "Current maintenance probe correctness workloads",
+          "status": "pass",
+          "passed": 6,
+          "total": 6,
+          "durationSeconds": null,
+          "evidence": "docs/evidence/vlc-rival-20261020/buildinfo-pruning-validation/maintenance-correctness.csv",
+          "scope": "Single invocation; timings are incidental, no comparative result."
+        },
+        {
+          "name": "Fractional alignment/identity contracts per host",
+          "status": "pass",
+          "passed": 6,
+          "total": 6,
+          "durationSeconds": null,
+          "evidence": "docs/evidence/vlc-rival-20261020/buildinfo-pruning-validation/fractional-contracts-pwsh7.txt",
+          "scope": "Same6contracts passed PowerShell7andWindowsPowerShell5.1; repetitions overlap. Also45evaluator,36readiness,28color contracts eachhost, no players."
+        }
+      ]
     }
   ],
   "reports": [
@@ -18951,6 +19337,15 @@ git diff --check</pre>
         "playback-balanced-canvas-tsc-30s-v1",
         "playback-balanced-overlay-screen-30s-v1",
         "playback-balanced-saved-vlc-replay-30s-v1"
+      ]
+    },
+    "rival-h264-calibrated-history": {
+      "label": "H264 owned visible calibrated playback",
+      "method": "Chronological observations on the same24LP CPU/Windows boot with fresh batch-specific validated invariant-TSC calibrations. Calibration rates/raw provenance remain attached; these are observations, not causal effects. Raw CPU-time remains a separate protocol.",
+      "workload": "1080p30 H.264 + AAC stereo / 1280x720 canvas / player defaults / HubThenOpen",
+      "protocols": [
+        "playback-owned-visible-hub-tsc-30s-v1",
+        "playback-owned-visible-hub-tsc-30s-v2"
       ]
     }
   }

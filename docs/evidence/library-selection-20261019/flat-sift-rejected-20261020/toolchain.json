@@ -1,0 +1,21 @@
+{
+  "compiler": "C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.44.35207\\bin\\Hostx64\\x64\\cl.exe",
+  "compilerVersion": "19.44.35228.0",
+  "compilerSha256": "88c8344236a27a6e727e0a8edc49aaa2690bdc7a9464b9d18cc7abe70a9f1c0d",
+  "linker": "C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.44.35207\\bin\\Hostx64\\x64\\link.exe",
+  "linkerSha256": "ca11e6c45debd34bf652dfe984c5360a531a005ed78bf72852330c9c2590cf0d",
+  "commonCodeGenerationFlags": [
+    "/nologo",
+    "/utf-8",
+    "/O2",
+    "/MT",
+    "/bigobj",
+    "/EHsc",
+    "/std:c++17",
+    "/DUNICODE",
+    "/D_UNICODE",
+    "/I\"C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-flat-sift-20261020\\baseline-src\""
+  ],
+  "variantDifference": "Only LibraryQuery.cpp is compiled separately. Both links reuse the identical common11production objects and identical probe object.",
+  "buildStartedUtc": "2026-10-20T20:12:44.0839055Z"
+}

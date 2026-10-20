@@ -1,0 +1,13 @@
+{
+  "variant": "candidate",
+  "pair": 3,
+  "startedAtUtc": "2026-10-20T20:15:35.905822+00:00",
+  "endedAtUtc": "2026-10-20T20:15:39.168025+00:00",
+  "command": [
+    "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-flat-sift-20261020\\candidate-build\\flat-sift-probe.exe",
+    "2"
+  ],
+  "returnCode": 0,
+  "exeSha256": "6545d3489c34a4cc4c5f919c2acc303d556960fce78e70b9046bfc0d248411da",
+  "preTimingManifestSha256": "a2e2fcbee1afcf2ae7b66adf24e613df1ceb9999b8bd1fac1a20670d00022b59"
+}

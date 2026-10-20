@@ -1,0 +1,5 @@
+Json.cpp
+diagnostics_test.cpp
+Native build: 1 production files compiled, 0 reused.
+portable diagnostics log, startup report and live dump verified
+Diagnostics tests passed: root-local log, startup report, live dump writer, and crash dump

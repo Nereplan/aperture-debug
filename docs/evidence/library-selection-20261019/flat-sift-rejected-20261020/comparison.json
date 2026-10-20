@@ -1,0 +1,324 @@
+{
+  "schemaVersion": 1,
+  "preTimingManifestSha256": "a2e2fcbee1afcf2ae7b66adf24e613df1ceb9999b8bd1fac1a20670d00022b59",
+  "runs": [
+    {
+      "variant": "baseline",
+      "pair": 1,
+      "startedAtUtc": "2026-10-20T20:15:20.366483+00:00",
+      "endedAtUtc": "2026-10-20T20:15:23.272789+00:00",
+      "command": [
+        "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-flat-sift-20261020\\baseline-build\\flat-sift-probe.exe",
+        "0"
+      ],
+      "returnCode": 0,
+      "exeSha256": "c2a1e478d5be760a0ec5df975a45bcc8425d2e4e0772e5d9d16bc7d59e586bf9",
+      "preTimingManifestSha256": "a2e2fcbee1afcf2ae7b66adf24e613df1ceb9999b8bd1fac1a20670d00022b59"
+    },
+    {
+      "variant": "candidate",
+      "pair": 1,
+      "startedAtUtc": "2026-10-20T20:15:23.275249+00:00",
+      "endedAtUtc": "2026-10-20T20:15:26.675705+00:00",
+      "command": [
+        "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-flat-sift-20261020\\candidate-build\\flat-sift-probe.exe",
+        "0"
+      ],
+      "returnCode": 0,
+      "exeSha256": "6545d3489c34a4cc4c5f919c2acc303d556960fce78e70b9046bfc0d248411da",
+      "preTimingManifestSha256": "a2e2fcbee1afcf2ae7b66adf24e613df1ceb9999b8bd1fac1a20670d00022b59"
+    },
+    {
+      "variant": "candidate",
+      "pair": 2,
+      "startedAtUtc": "2026-10-20T20:15:26.678008+00:00",
+      "endedAtUtc": "2026-10-20T20:15:30.011800+00:00",
+      "command": [
+        "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-flat-sift-20261020\\candidate-build\\flat-sift-probe.exe",
+        "1"
+      ],
+      "returnCode": 0,
+      "exeSha256": "6545d3489c34a4cc4c5f919c2acc303d556960fce78e70b9046bfc0d248411da",
+      "preTimingManifestSha256": "a2e2fcbee1afcf2ae7b66adf24e613df1ceb9999b8bd1fac1a20670d00022b59"
+    },
+    {
+      "variant": "baseline",
+      "pair": 2,
+      "startedAtUtc": "2026-10-20T20:15:30.014509+00:00",
+      "endedAtUtc": "2026-10-20T20:15:32.979246+00:00",
+      "command": [
+        "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-flat-sift-20261020\\baseline-build\\flat-sift-probe.exe",
+        "1"
+      ],
+      "returnCode": 0,
+      "exeSha256": "c2a1e478d5be760a0ec5df975a45bcc8425d2e4e0772e5d9d16bc7d59e586bf9",
+      "preTimingManifestSha256": "a2e2fcbee1afcf2ae7b66adf24e613df1ceb9999b8bd1fac1a20670d00022b59"
+    },
+    {
+      "variant": "baseline",
+      "pair": 3,
+      "startedAtUtc": "2026-10-20T20:15:32.981870+00:00",
+      "endedAtUtc": "2026-10-20T20:15:35.903289+00:00",
+      "command": [
+        "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-flat-sift-20261020\\baseline-build\\flat-sift-probe.exe",
+        "2"
+      ],
+      "returnCode": 0,
+      "exeSha256": "c2a1e478d5be760a0ec5df975a45bcc8425d2e4e0772e5d9d16bc7d59e586bf9",
+      "preTimingManifestSha256": "a2e2fcbee1afcf2ae7b66adf24e613df1ceb9999b8bd1fac1a20670d00022b59"
+    },
+    {
+      "variant": "candidate",
+      "pair": 3,
+      "startedAtUtc": "2026-10-20T20:15:35.905822+00:00",
+      "endedAtUtc": "2026-10-20T20:15:39.168025+00:00",
+      "command": [
+        "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-flat-sift-20261020\\candidate-build\\flat-sift-probe.exe",
+        "2"
+      ],
+      "returnCode": 0,
+      "exeSha256": "6545d3489c34a4cc4c5f919c2acc303d556960fce78e70b9046bfc0d248411da",
+      "preTimingManifestSha256": "a2e2fcbee1afcf2ae7b66adf24e613df1ceb9999b8bd1fac1a20670d00022b59"
+    }
+  ],
+  "workloads": [
+    {
+      "mode": 0,
+      "variants": {
+        "baseline": {
+          "medianMeanQueryMs": 0.772770312,
+          "minMeanQueryMs": 0.693003125,
+          "maxMeanQueryMs": 1.23715625,
+          "processMedianMeanQueryMs": [
+            0.731226562,
+            0.851042188,
+            0.771460937
+          ],
+          "allocationCallsPerQuery": 108,
+          "allocatedBytesPerQuery": 19647,
+          "peakLiveCppBytes": 15639
+        },
+        "candidate": {
+          "medianMeanQueryMs": 0.892439063,
+          "minMeanQueryMs": 0.75655625,
+          "maxMeanQueryMs": 0.95626875,
+          "processMedianMeanQueryMs": [
+            0.922529687,
+            0.9026375,
+            0.777304688
+          ],
+          "allocationCallsPerQuery": 108,
+          "allocatedBytesPerQuery": 19647,
+          "peakLiveCppBytes": 15639
+        }
+      },
+      "signature": [
+        "50",
+        "25000",
+        "18252797214864490390",
+        "6912",
+        "1257408",
+        "15639"
+      ],
+      "medianChangePercent": 15.485681727379808,
+      "pairedProcessMedianChangePercent": [
+        26.161949653026962,
+        6.062603326546245,
+        0.7574914969414648
+      ],
+      "rangesOverlap": true
+    },
+    {
+      "mode": 1,
+      "variants": {
+        "baseline": {
+          "medianMeanQueryMs": 0.313051562,
+          "minMeanQueryMs": 0.30701875,
+          "maxMeanQueryMs": 0.321342187,
+          "processMedianMeanQueryMs": [
+            0.311953125,
+            0.311398438,
+            0.31451875
+          ],
+          "allocationCallsPerQuery": 7,
+          "allocatedBytesPerQuery": 4408,
+          "peakLiveCppBytes": 4280
+        },
+        "candidate": {
+          "medianMeanQueryMs": 0.309192187,
+          "minMeanQueryMs": 0.304523437,
+          "maxMeanQueryMs": 0.319789062,
+          "processMedianMeanQueryMs": [
+            0.309754688,
+            0.309801563,
+            0.30881875
+          ],
+          "allocationCallsPerQuery": 7,
+          "allocatedBytesPerQuery": 4408,
+          "peakLiveCppBytes": 4280
+        }
+      },
+      "signature": [
+        "50",
+        "25000",
+        "14282658495663252410",
+        "448",
+        "282112",
+        "4280"
+      ],
+      "medianChangePercent": -1.2328240674933877,
+      "pairedProcessMedianChangePercent": [
+        -0.7047331229651843,
+        -0.5128076461321185,
+        -1.8122925898694575
+      ],
+      "rangesOverlap": true
+    },
+    {
+      "mode": 2,
+      "variants": {
+        "baseline": {
+          "medianMeanQueryMs": 1.688309375,
+          "minMeanQueryMs": 1.643723438,
+          "maxMeanQueryMs": 1.862414063,
+          "processMedianMeanQueryMs": [
+            1.67180625,
+            1.668625,
+            1.814417187
+          ],
+          "allocationCallsPerQuery": 7,
+          "allocatedBytesPerQuery": 4408,
+          "peakLiveCppBytes": 4280
+        },
+        "candidate": {
+          "medianMeanQueryMs": 1.791151563,
+          "minMeanQueryMs": 1.741482812,
+          "maxMeanQueryMs": 1.879301563,
+          "processMedianMeanQueryMs": [
+            1.82785,
+            1.777953125,
+            1.777598438
+          ],
+          "allocationCallsPerQuery": 7,
+          "allocatedBytesPerQuery": 4408,
+          "peakLiveCppBytes": 4280
+        }
+      },
+      "signature": [
+        "50",
+        "25000",
+        "8845440962454317344",
+        "448",
+        "282112",
+        "4280"
+      ],
+      "medianChangePercent": 6.091430251046259,
+      "pairedProcessMedianChangePercent": [
+        9.333841765455775,
+        6.551988913027196,
+        -2.0292328172264007
+      ],
+      "rangesOverlap": true
+    },
+    {
+      "mode": 3,
+      "variants": {
+        "baseline": {
+          "medianMeanQueryMs": 2.491659375,
+          "minMeanQueryMs": 2.45368125,
+          "maxMeanQueryMs": 2.642698437,
+          "processMedianMeanQueryMs": [
+            2.489995313,
+            2.514246875,
+            2.478325
+          ],
+          "allocationCallsPerQuery": 7,
+          "allocatedBytesPerQuery": 43406,
+          "peakLiveCppBytes": 43278
+        },
+        "candidate": {
+          "medianMeanQueryMs": 3.135328125,
+          "minMeanQueryMs": 3.080376563,
+          "maxMeanQueryMs": 3.249340625,
+          "processMedianMeanQueryMs": [
+            3.1482875,
+            3.127184375,
+            3.12740625
+          ],
+          "allocationCallsPerQuery": 7,
+          "allocatedBytesPerQuery": 43406,
+          "peakLiveCppBytes": 43278
+        }
+      },
+      "signature": [
+        "1023",
+        "25000",
+        "13465247602052566639",
+        "448",
+        "2777984",
+        "43278"
+      ],
+      "medianChangePercent": 25.832935129826893,
+      "pairedProcessMedianChangePercent": [
+        26.437486992972502,
+        24.37857260934251,
+        26.19032007505069
+      ],
+      "rangesOverlap": false
+    },
+    {
+      "mode": 4,
+      "variants": {
+        "baseline": {
+          "medianMeanQueryMs": 0.295809375,
+          "minMeanQueryMs": 0.288407813,
+          "maxMeanQueryMs": 0.307398438,
+          "processMedianMeanQueryMs": [
+            0.293984375,
+            0.301789062,
+            0.295809375
+          ],
+          "allocationCallsPerQuery": 7,
+          "allocatedBytesPerQuery": 4408,
+          "peakLiveCppBytes": 4280
+        },
+        "candidate": {
+          "medianMeanQueryMs": 0.293595312,
+          "minMeanQueryMs": 0.289307812,
+          "maxMeanQueryMs": 0.303329688,
+          "processMedianMeanQueryMs": [
+            0.293595312,
+            0.293440625,
+            0.294023437
+          ],
+          "allocationCallsPerQuery": 7,
+          "allocatedBytesPerQuery": 4408,
+          "peakLiveCppBytes": 4280
+        }
+      },
+      "signature": [
+        "50",
+        "25000",
+        "17263648858073257450",
+        "448",
+        "282112",
+        "4280"
+      ],
+      "medianChangePercent": -0.7484762780084253,
+      "pairedProcessMedianChangePercent": [
+        -0.13234138719108168,
+        -2.7663153013809283,
+        -0.6037462470552146
+      ],
+      "rangesOverlap": true
+    }
+  ],
+  "validation": {
+    "measuredRows": 210,
+    "samplesPerModePerVariant": 21,
+    "processesPerVariant": 3,
+    "queriesPerSample": 64,
+    "measuredQueries": 13440,
+    "allSignaturesAndAllocationsEquivalent": true
+  }
+}

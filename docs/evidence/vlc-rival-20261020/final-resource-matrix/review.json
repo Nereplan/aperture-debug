@@ -1,0 +1,159 @@
+{
+  "recordedAtUtc": "2026-10-20T20:12:44.665670+00:00",
+  "sourceContentCommit": "23fd026c2b114f8391465bfb5f7d28a79da02025",
+  "measuredProductionSourceDirty": false,
+  "executableSha256": "78b59f4e3e98e3f5f7a3e3a309c522f3ce1828e3f58e22c1a85a12c008fa9a7f",
+  "runOutcome": "All24 launches sampled successfully (one warmup plus three measured processes per player/workload); success of sampling does not imply matched-segment qualification.",
+  "qualification": {
+    "h264": "Qualified using unchanged evaluator and fresh exact-environment calibration.",
+    "hevc": "Rejected: measured VLC round1 ends at integer49s while Aperture maximum endpoint50.2166666667s; exceeds existing1.1s matching threshold. No runs discarded.",
+    "av1": "Rejected: measured VLC round1 ends at integer49s while Aperture maximum endpoint50.1333333333s; exceeds existing1.1s matching threshold. No runs discarded."
+  },
+  "colorCheck": "Aperture sampled all4 known paused phases; VLC failed before phase0 sampling due cursor-occludes-canvas. No pairwise color comparison is qualified.",
+  "protocol": "HubThenOpen3s; default player output settings; actual1280x720 guarded visible canvas/DPI; media threshold20s; seven snapshots across30s; isolated full runtime/profile, rotating order, one warmup+three measured rounds/player; no task-owned tests/builds/profilers concurrently.",
+  "cpuAccounting": "Retain raw Windows CPU-time alongside hardware-calibrated process cycles. Calibration source/exe hashes match earlier recorded build; raw5TSC/QPC intervals and independent busy-thread/process checks passed on same CPU24LP/OS/GPU/driver/boot. Original source and build provenance at../calibration/; existing executable was reused and verified.",
+  "environmentPrecision": "Earlier records serialize the same Windows boot as08:20:29.5000000Z; this matrix and fresh calibration independently report08:20:29.5015290Z, a1.529ms precision difference. Hardware/OS/driver unchanged; calibration qualification requires exact matrix identity.",
+  "overallWin": false,
+  "remaining": "Fresh predeclared half-second alignment for rejected HEVC/AV1 workloads; complete paused pairwise color sampling; decoder/drop/cadence, visible readiness, broader workflows and quality remain unproven.",
+  "cleanup": "Rejected startup staging copies remain outside the repository. No source runtime or installed VLC was altered.",
+  "files": [
+    {
+      "path": "frozen-qualified-build.json",
+      "bytes": 24244,
+      "sha256": "140d32c3327354e94a474ba1da172d3e19f0cb8df75cc69ecb2e63ec2108afab",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\frozen-qualified-build.json"
+    },
+    {
+      "path": "build.txt",
+      "bytes": 3820,
+      "sha256": "2ef39ab3a71085a9aff95902b03b47eceb5899d16b628617e0f89e4ba6283048",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\candidate-qualified-build.log"
+    },
+    {
+      "path": "package.txt",
+      "bytes": 398,
+      "sha256": "84c6a94898d36d107d122901ed8a8791633331592a0740a82c5e42d2f46ec194",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\candidate-qualified-package.log"
+    },
+    {
+      "path": "calibration.json",
+      "bytes": 811,
+      "sha256": "280a2677a344e870e6b417d9e43fee1324888b0381e680be40b33eb820913e9d",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\calibration-final-clean-20261020\\cpu-calibration.json"
+    },
+    {
+      "path": "calibration-identity.json",
+      "bytes": 1113,
+      "sha256": "20e65483aa584d8c0914512ce6f8659de3a4e265ab79dbd80a7b92ecb85f9399",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\calibration-final-clean-20261020\\identity.json"
+    },
+    {
+      "path": "calibration-stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\calibration-final-clean-20261020\\stderr.txt"
+    },
+    {
+      "path": "resource-launcher.ps1",
+      "bytes": 3036,
+      "sha256": "d7050a42180dba5c2ff7af66920db5101aad0ed165b1fd7c29932b7544735d6e",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\run-resource-qualified.ps1"
+    },
+    {
+      "path": "color-launcher.ps1",
+      "bytes": 3082,
+      "sha256": "a7a50e5a9b39457ac0cc837b185664e310255c9aed1182a5d96e67fe7627c861",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\run-sentinel-colors-qualified.ps1"
+    },
+    {
+      "path": "color-cursor-rejected.json",
+      "bytes": 234869,
+      "sha256": "fe7f062bf0077dc7abc21523d87f0647130e6ad7d5bf92d9b8c85a83e8059e34",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\sentinel-colors-qualified-20261020\\comparison.json"
+    },
+    {
+      "path": "color-cursor-rejected.txt",
+      "bytes": 273,
+      "sha256": "9aa7c537d747c27ac90ee9605fd418c86fae5080cb834a53573b035d5643f590",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\sentinel-colors-qualified-20261020.log"
+    },
+    {
+      "path": "startup-preflight-failure.json",
+      "bytes": 536,
+      "sha256": "ac90048fc8b4786dc7d1c02a8d1732cd5e04fa48992b3f00a3fdf1abbc1a73e4",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\matrix-first-preflight-failure.json"
+    },
+    {
+      "path": "cursor-preflight-1.txt",
+      "bytes": 339,
+      "sha256": "5582612128df6dbf79ef780560401c0bba122f5725af6bef3fcb17059d158d29",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hevc-hub-pruned-20261020.log"
+    },
+    {
+      "path": "cursor-preflight-2.txt",
+      "bytes": 401,
+      "sha256": "ff0568fca43f92e66e67d9d84cfecbc81f41634b30878e78d191f1e3be0c6ad8",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hevc-hub-pruned-20261020-launch2.log"
+    },
+    {
+      "path": "empty-data-preflight.txt",
+      "bytes": 346,
+      "sha256": "a029929ba2a5d6828626fb5b04b4016c288b9d4882f4145a7cfdf6eb14d9f014",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hevc-hub-qualified-final-20261020.log"
+    },
+    {
+      "path": "hevc-raw.json",
+      "bytes": 283319,
+      "sha256": "9a1ceddc93a4ec66559f503fa0a508a344414902eab2a378bafbfb35b95a909f",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hevc-hub-final-clean-20261020\\comparison.json"
+    },
+    {
+      "path": "hevc-qualification.json",
+      "bytes": 156,
+      "sha256": "e378aa58b1368ae03fa18140419a4b28aae2fe42f347167e84aac5460eb39593",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hevc-hub-final-clean-20261020\\qualification-complete.json"
+    },
+    {
+      "path": "hevc-launches.txt",
+      "bytes": 634,
+      "sha256": "d606662c853692bffbfdc383e6b26925baf8ef9221ca89b9c8f8e34cfcb928b9",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hevc-hub-final-clean-20261020.log"
+    },
+    {
+      "path": "av1-raw.json",
+      "bytes": 283275,
+      "sha256": "545d0e6c4e19ef7f427ba8a9fe6969b3289afd9c908364daab5942685f82688b",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\av1-hub-final-clean-20261020\\comparison.json"
+    },
+    {
+      "path": "av1-qualification.json",
+      "bytes": 156,
+      "sha256": "e378aa58b1368ae03fa18140419a4b28aae2fe42f347167e84aac5460eb39593",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\av1-hub-final-clean-20261020\\qualification-complete.json"
+    },
+    {
+      "path": "av1-launches.txt",
+      "bytes": 633,
+      "sha256": "ef9151cb4c39b9a98d7dd4d9f271ce19ab3a8a43c37646a5f75e4c4884733d3f",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\av1-hub-final-clean-20261020.log"
+    },
+    {
+      "path": "h264-raw.json",
+      "bytes": 283438,
+      "sha256": "09acf15cb1366ab825a471d76b29f2d76b4e4083b9516e09e1b967699e375cc4",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\h264-hub-final-clean-20261020\\comparison.json"
+    },
+    {
+      "path": "h264-qualification.json",
+      "bytes": 13207,
+      "sha256": "2b13745066b22f6af41ad60364218c84127abe7e7fa70b634d23455b1c22112e",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\h264-hub-final-clean-20261020\\qualification-complete.json"
+    },
+    {
+      "path": "h264-launches.txt",
+      "bytes": 634,
+      "sha256": "ed9492aa5cec9b3c42058d7c708b8922ba978a04910a4a1821d6c96f26fe0d2e",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\h264-hub-final-clean-20261020.log"
+    }
+  ]
+}

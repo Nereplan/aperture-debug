@@ -1,0 +1,1665 @@
+{
+  "schemaVersion": 1,
+  "capturedBeforeAnyTimingUtc": "2026-10-20T20:15:19.809647+00:00",
+  "baseCommit": "23fd026c2b114f8391465bfb5f7d28a79da02025",
+  "variantSourceDifferences": [
+    "LibraryQuery.cpp"
+  ],
+  "sourceAndBuildFiles": [
+    {
+      "path": "AllocationProbe.h",
+      "bytes": 1438,
+      "sha256": "13e18817dfaf4f761394aed84bf22cfb296cae8ae91c6048e3416b8aa6823e82"
+    },
+    {
+      "path": "baseline-build/flat-sift-probe.exe",
+      "bytes": 564736,
+      "sha256": "c2a1e478d5be760a0ec5df975a45bcc8425d2e4e0772e5d9d16bc7d59e586bf9"
+    },
+    {
+      "path": "baseline-build/LibraryQuery.obj",
+      "bytes": 3056510,
+      "sha256": "eb08006afcc3218c1e174c1a21ec606c9ec55129636e67221ae0e13ad649e212"
+    },
+    {
+      "path": "baseline-src/Accessibility.cpp",
+      "bytes": 78502,
+      "sha256": "ac1502fc5948313e5456e4aa10d129eda0d85a399b4165d5aa37118b3544103f"
+    },
+    {
+      "path": "baseline-src/Accessibility.h",
+      "bytes": 18014,
+      "sha256": "9fcb62092a93ff04057caee94ffe7cab4bb2da4eb713859f7467c7cec7926117"
+    },
+    {
+      "path": "baseline-src/AnimationCurves.h",
+      "bytes": 5156,
+      "sha256": "1e8449b30910da903187b607046c87a5bbb9ab760387bdef28fa43db5571ee22"
+    },
+    {
+      "path": "baseline-src/App.cpp",
+      "bytes": 303738,
+      "sha256": "db42b051185b4ac507d64595174eeed0d61de035dfbfc373479922b79c25ebf4"
+    },
+    {
+      "path": "baseline-src/App.h",
+      "bytes": 54596,
+      "sha256": "73bafb9536fd072ef00b8cc8319a74abd3ffe759ca7498359784fe59010012d3"
+    },
+    {
+      "path": "baseline-src/AppAccessibility.cpp",
+      "bytes": 131730,
+      "sha256": "64c64a11f8641be6ea0870ef45c96e9a38a45eb053ab917b12a0f00d8d1cac53"
+    },
+    {
+      "path": "baseline-src/AppDragDrop.cpp",
+      "bytes": 15068,
+      "sha256": "eb6004f76e15e59a5d35dc13005e6799c0330df75d47146a8d23f32db978b917"
+    },
+    {
+      "path": "baseline-src/AppFileOps.cpp",
+      "bytes": 15044,
+      "sha256": "db6c1df56726fcd71a161cedf4dd2d970e8deb79818a81b38f4904f1cc68e420"
+    },
+    {
+      "path": "baseline-src/AppHover.cpp",
+      "bytes": 18947,
+      "sha256": "3746f19b006c6d7e2349c20fd11c959dcb5188984f4aed1ceb2993b53eccd958"
+    },
+    {
+      "path": "baseline-src/AppImportJobs.cpp",
+      "bytes": 18412,
+      "sha256": "431e3dd8386dd8e75687ac95fbde9b9516698fc2b1a732e8c7c3bc6628fc7d48"
+    },
+    {
+      "path": "baseline-src/AppIncludes.h",
+      "bytes": 1617,
+      "sha256": "15c017ee8a5dc65e8ab43cb8961c5df0014a6e2d81a49f862dc880155ea3c5d3"
+    },
+    {
+      "path": "baseline-src/AppInternals.h",
+      "bytes": 7839,
+      "sha256": "d524f78295d3faf9dcd77a3fbfd5ed867b183b500a4e5e48029d1c6475ec0578"
+    },
+    {
+      "path": "baseline-src/AppKeyboard.cpp",
+      "bytes": 96404,
+      "sha256": "8e54b0236d6b33d67739eace183f70e68db8668199c2589a3cfe7222c4052346"
+    },
+    {
+      "path": "baseline-src/AppLayout.h",
+      "bytes": 6020,
+      "sha256": "a762e05d4178b7c77c0b853a6671b0cbb1339ea38538ac71d7b02d25217f8f54"
+    },
+    {
+      "path": "baseline-src/AppLibrary.cpp",
+      "bytes": 33895,
+      "sha256": "429bbcf770824fb13acdc4a87c306708822fa2a2ae64eea37b342376c274784c"
+    },
+    {
+      "path": "baseline-src/AppMenus.cpp",
+      "bytes": 108822,
+      "sha256": "8df823e3a65774871dd0c85217ba16bf7e9005662112581bf8377d21b2216339"
+    },
+    {
+      "path": "baseline-src/AppModals.cpp",
+      "bytes": 43195,
+      "sha256": "b5be8de97d2506049be2c7e017a73fb216ff17166fc505ec6c55aefd45f5791d"
+    },
+    {
+      "path": "baseline-src/AppPersistence.cpp",
+      "bytes": 12446,
+      "sha256": "0336c78e3a5faccf57c8f2d43933bcff79706c42f7efd12c517d0a66e0e22ddd"
+    },
+    {
+      "path": "baseline-src/AppPlayback.cpp",
+      "bytes": 53798,
+      "sha256": "67b424aca7ddb8c0cdabb609af0ce1351ba1340d1fd0043ae4367be6835c040d"
+    },
+    {
+      "path": "baseline-src/AppSelection.cpp",
+      "bytes": 34386,
+      "sha256": "8d2fc3cf4b83c25cb6976749de5ef8fd3f625decc7fd05a0e5b3e9c47c201659"
+    },
+    {
+      "path": "baseline-src/AppTooltips.cpp",
+      "bytes": 19249,
+      "sha256": "401d26c312adb8744170262b34293e4c3d2e713a631f8e9bcc5c178e21afa710"
+    },
+    {
+      "path": "baseline-src/AppTouch.cpp",
+      "bytes": 31772,
+      "sha256": "2d1605561c1c793e24ec52d3f82478f15de52a046f1a879328b73fd47264b57f"
+    },
+    {
+      "path": "baseline-src/AppViewModels.cpp",
+      "bytes": 79358,
+      "sha256": "fd92e094db13530e00b3935d15b07bc761de17a89d3ebde3d7ee4b3b29b4ad3f"
+    },
+    {
+      "path": "baseline-src/AsyncOwnedJob.h",
+      "bytes": 4097,
+      "sha256": "9ea84eafb2ef3d42e538b656d4b0c439206ca6633cb765ebad097d01c2f856f5"
+    },
+    {
+      "path": "baseline-src/AudioConfig.cpp",
+      "bytes": 8307,
+      "sha256": "a7693e40db68baa315d39a2899b6fa90fcf44feeaa2096a9f5f7ded2ab255e9c"
+    },
+    {
+      "path": "baseline-src/AudioConfig.h",
+      "bytes": 2697,
+      "sha256": "701e84ff3280a80d0fe357e093c8870a884f04c4cee41a792ecf00750f572f9c"
+    },
+    {
+      "path": "baseline-src/BackgroundPathAvailability.h",
+      "bytes": 8015,
+      "sha256": "1ee4970e3d62e396c0a3132b0214e91499302b06aae8b2ec43a2a451d7e7be0b"
+    },
+    {
+      "path": "baseline-src/BackupFiles.h",
+      "bytes": 7937,
+      "sha256": "580f1cdc995e422ef944308ff24a6e2c822b6770302823574e1bb3c5e36924ec"
+    },
+    {
+      "path": "baseline-src/BuildInfo.cpp",
+      "bytes": 21208,
+      "sha256": "534c73c50863eca50d136c91cfa74e808708b3c87723c32fad09328d52e433a1"
+    },
+    {
+      "path": "baseline-src/BuildInfo.h",
+      "bytes": 3023,
+      "sha256": "27cc23788324755b4ec281c4d50b7d13d8005fd88400008a6de7b15dbb9de0ba"
+    },
+    {
+      "path": "baseline-src/CacheStorage.h",
+      "bytes": 31984,
+      "sha256": "2e750903c2d74d76e719942483e4afd76a1f75664abeb4cc6dd519f8d198396c"
+    },
+    {
+      "path": "baseline-src/ChannelPolicy.cpp",
+      "bytes": 11224,
+      "sha256": "81a8669253a0e67b9f2157fd3b6a307092eb6a2a7c3a071ce863553feb5216c3"
+    },
+    {
+      "path": "baseline-src/ChannelPolicy.h",
+      "bytes": 2496,
+      "sha256": "6fe60c3453db94398294770f5bc08d0b197af762e8417be5cf45e8dc14765a4c"
+    },
+    {
+      "path": "baseline-src/ChapterMarkerCache.h",
+      "bytes": 2256,
+      "sha256": "6ec3e34b3c156d0abac2fa3909d6a7cae871f6ef555d6749c38b24b16f75c25f"
+    },
+    {
+      "path": "baseline-src/CollectionAlgorithms.h",
+      "bytes": 820,
+      "sha256": "45a81c1dcf4c4c5134abb81ea28159bc2cbe95d20ac748fd433075b1ac485016"
+    },
+    {
+      "path": "baseline-src/ColorHelpers.h",
+      "bytes": 1660,
+      "sha256": "322692933ada4edc0527ea0d4228be0da35909ab340f864d2bc2fb5a774996ca"
+    },
+    {
+      "path": "baseline-src/CommandDispatcher.cpp",
+      "bytes": 50985,
+      "sha256": "2a2d51bc31b7df8b3a2fc15057bb943597405e5055b51398794690fd4d10b88d"
+    },
+    {
+      "path": "baseline-src/CommandDispatcher.h",
+      "bytes": 3932,
+      "sha256": "ba30af7d374838951fa259d8e4a587085108231942bf40c2ade0bd42cc219282"
+    },
+    {
+      "path": "baseline-src/Common.h",
+      "bytes": 628,
+      "sha256": "fdd8d2168e0e33b7201894aaff6ee67c0ae058aaf50bb084cd15a9e87cb26705"
+    },
+    {
+      "path": "baseline-src/CommonStrings.h",
+      "bytes": 847,
+      "sha256": "70e40ccc2628072875d0352032d9eb16da1f3b922a38a13c04f8963d0d564085"
+    },
+    {
+      "path": "baseline-src/Diagnostics.cpp",
+      "bytes": 17772,
+      "sha256": "0b993c1730ee24c490ad4f842b412895528b72b87e5ac038c503693f5e6f83c5"
+    },
+    {
+      "path": "baseline-src/Diagnostics.h",
+      "bytes": 790,
+      "sha256": "e45c03ea8cd9411e229e5d20dca101375a89f47a12c24b1d76ac52edbc1a601d"
+    },
+    {
+      "path": "baseline-src/DllLoader.h",
+      "bytes": 2564,
+      "sha256": "da3f74140662411959a364b6cbc2ff6c99491c4a5a10c4d680448704917fbeb8"
+    },
+    {
+      "path": "baseline-src/DrawingPrimitives.h",
+      "bytes": 10975,
+      "sha256": "e0d13f09be10aa7db218f0f3094fcc9ae6af1d620be4dea35c85dae683179bfb"
+    },
+    {
+      "path": "baseline-src/Error.h",
+      "bytes": 1828,
+      "sha256": "368bf16a131db839ff012c1a6ff6d0f33b8cc22b515c6e142e8cdf8ff2d3e0f3"
+    },
+    {
+      "path": "baseline-src/FolderRediscovery.h",
+      "bytes": 12233,
+      "sha256": "3b3a7d382cb11a7ed807aa38ec9543325e160d83fa9f4d5bd1a488a82f1d36e4"
+    },
+    {
+      "path": "baseline-src/FolderWatcher.cpp",
+      "bytes": 21043,
+      "sha256": "1f80ca24b97c82396388c5fa938ee8905662a1a90b8527483b82ff7733df34f7"
+    },
+    {
+      "path": "baseline-src/FolderWatcher.h",
+      "bytes": 4330,
+      "sha256": "aa2a1f9b9c2c71b6853ba5e1bee7a99f06c214ccfc6d4602ea6c8891b89c7a30"
+    },
+    {
+      "path": "baseline-src/FontResources.h",
+      "bytes": 13285,
+      "sha256": "963d8a5e9ae664c68c9c120587bc9b12d9353df662bfd45eecadce459806a1de"
+    },
+    {
+      "path": "baseline-src/Formatters.h",
+      "bytes": 2127,
+      "sha256": "0b9faeaf41a99839d1313cb8bb698427690c50d6592fed707bb9dbff63f9400d"
+    },
+    {
+      "path": "baseline-src/GeometryHelpers.h",
+      "bytes": 625,
+      "sha256": "0e5ec34d2f6a69806e390b73571733c142ec9c91afc6f0f4cc51a4ee49fbf50a"
+    },
+    {
+      "path": "baseline-src/GlobalSearch.cpp",
+      "bytes": 34171,
+      "sha256": "442aba47b96a1819bf08b672539f3a2f7681659d3e936b46a9bd86896b68ff00"
+    },
+    {
+      "path": "baseline-src/GlobalSearch.h",
+      "bytes": 9912,
+      "sha256": "f2de236231e6add7acaa8199f5128d9513bdcf3a2c070f7428ce5bbb61ac8f5f"
+    },
+    {
+      "path": "baseline-src/HeapOptional.h",
+      "bytes": 2124,
+      "sha256": "0dde0b4470724b82dd69a38f18e1d51fb80f6039959535357d4a1e8403008238"
+    },
+    {
+      "path": "baseline-src/HttpBodyReader.h",
+      "bytes": 2881,
+      "sha256": "1d6d878a86a681ffa088c2679c4fb95ba28264f16e364860cce2520a1efc6dcd"
+    },
+    {
+      "path": "baseline-src/HttpTransport.cpp",
+      "bytes": 15897,
+      "sha256": "e835853191494b52afc2242108809a8e9e35af9374c676f2e372588caac955a1"
+    },
+    {
+      "path": "baseline-src/HttpTransport.h",
+      "bytes": 2886,
+      "sha256": "5825769fc75de98939d061ac6f6ed4ddc538711afbb86cf0227408046d2acc3a"
+    },
+    {
+      "path": "baseline-src/IconPaths.h",
+      "bytes": 6421,
+      "sha256": "820d7602184a541fc619aa5e1425f3df66837c5d4743b403a67551be12dfa76f"
+    },
+    {
+      "path": "baseline-src/ImportPlaybackIntent.h",
+      "bytes": 1361,
+      "sha256": "ef08c4213b749d110870bb014dca6877fa64a573d0892c8aa6bcb95c81b3d3bc"
+    },
+    {
+      "path": "baseline-src/IpcProtocol.h",
+      "bytes": 58221,
+      "sha256": "21578c4ac8c20c2110575df738ab0ce02cae97c1044a5a23a8230397b835dae7"
+    },
+    {
+      "path": "baseline-src/Json.cpp",
+      "bytes": 17495,
+      "sha256": "ab3c88eee43eff4517d37f56fd697aeead97a0b92509203825f26b01e68de04b"
+    },
+    {
+      "path": "baseline-src/Json.h",
+      "bytes": 4869,
+      "sha256": "336cfbfeaec773c82654c7ea42bc879abc90e7a91bdc9720d194c0fd2699eb5d"
+    },
+    {
+      "path": "baseline-src/JsonStoreValidation.h",
+      "bytes": 730,
+      "sha256": "1be3b1fe6a475dc8ee90e9e9e0355513841dbbf2f0b9c99f2af8654edab2ffbd"
+    },
+    {
+      "path": "baseline-src/LibraryIncrementalStore.h",
+      "bytes": 10380,
+      "sha256": "c6e89570c1d9dd03ad8f780a4bf5895b0c68f2c59fcb041d461f0af870936732"
+    },
+    {
+      "path": "baseline-src/LibraryQuery.cpp",
+      "bytes": 74554,
+      "sha256": "d27b4bfb01cc571c35a3c84c0fe37c8c1c798b5db051c00890807b7067062732"
+    },
+    {
+      "path": "baseline-src/LibraryQuery.h",
+      "bytes": 12310,
+      "sha256": "0697eff07805ca3117fa2fef7bc483da2ddaa3d180fc3d095d87c4f5b6e9725a"
+    },
+    {
+      "path": "baseline-src/LibrarySaveComparison.h",
+      "bytes": 3727,
+      "sha256": "a6aa06032c937633ae2f2e7b8435b0af832e8ced4c544b31dfccfb5e496c4b72"
+    },
+    {
+      "path": "baseline-src/LibrarySaveWorker.h",
+      "bytes": 7738,
+      "sha256": "e6b105660f27f9f6c7b721f39bf8a4740f298afbbb92132ba2a5b1f5cf2aba8e"
+    },
+    {
+      "path": "baseline-src/LibrarySnapshot.cpp",
+      "bytes": 3773,
+      "sha256": "63563d5136bb261e2375fa55b531803741a31db16923e49399296ed4c62301e4"
+    },
+    {
+      "path": "baseline-src/LibrarySnapshot.h",
+      "bytes": 2085,
+      "sha256": "42c42fd85677f66f70d9899c29b2a95d3e6bd2f94040fe4a16a4bba297949e7c"
+    },
+    {
+      "path": "baseline-src/Localization.cpp",
+      "bytes": 47338,
+      "sha256": "1f438a0c77b1eddb255716d0b75417f9abe2c1eeb65bd31b0a4804e5df27ad49"
+    },
+    {
+      "path": "baseline-src/Localization.h",
+      "bytes": 10984,
+      "sha256": "4e80c9bc09dc55d7f8fe77d03243fcb07ce592bab1de267562b2e44ac7333b38"
+    },
+    {
+      "path": "baseline-src/main.cpp",
+      "bytes": 29446,
+      "sha256": "be05aea928eba5f3dd6c0680a8734d579ed4dc9a83599e6c6314729cc0fcae7f"
+    },
+    {
+      "path": "baseline-src/MediaFoundation.cpp",
+      "bytes": 2038,
+      "sha256": "42f2b5113ed88168c7b5f10ccea5a935fdda2a04a7042546b9329353360c680c"
+    },
+    {
+      "path": "baseline-src/MediaFoundation.h",
+      "bytes": 1591,
+      "sha256": "0284dc46701b556a08b75022d28120dcd9e2bf787037f96f3fdfae52a0190a7c"
+    },
+    {
+      "path": "baseline-src/MediaImportProbeCache.h",
+      "bytes": 4571,
+      "sha256": "90b768aa2cac842019ff27a75a43658e55886dde38cf04e26e064f039b6d9fa9"
+    },
+    {
+      "path": "baseline-src/MediaLibrary.cpp",
+      "bytes": 170545,
+      "sha256": "36ff30b4e7cc12190408e96eeb082bf3f5df6a36b29c0ea6c78fef07cb25fc62"
+    },
+    {
+      "path": "baseline-src/MediaLibrary.h",
+      "bytes": 33185,
+      "sha256": "4eca5e7fef9c92ce0a650417e3b80db02df7f72aa40ae2711ca19d186708f7d6"
+    },
+    {
+      "path": "baseline-src/MediaProbeIsolation.cpp",
+      "bytes": 20305,
+      "sha256": "90ec46fddf7341911cbea1365c0f9052edb2e59378336a4464f94f62538ddc79"
+    },
+    {
+      "path": "baseline-src/MediaProbeIsolation.h",
+      "bytes": 2514,
+      "sha256": "305346ab7e238dd9cf3aaddca26f67a7cb9a0fad57ad3452573655fd86ec7baa"
+    },
+    {
+      "path": "baseline-src/MediaTransport.cpp",
+      "bytes": 15933,
+      "sha256": "3a9878abfaa865a70957d5eb517c644d8b78e3d880cbca311903a2d0738d9dac"
+    },
+    {
+      "path": "baseline-src/MediaTransport.h",
+      "bytes": 4533,
+      "sha256": "ec41313ae4a8d5e433ebaad031208b6a50d3228ced090d8a82eb03413476fc6c"
+    },
+    {
+      "path": "baseline-src/MetadataBackfillCursor.h",
+      "bytes": 1540,
+      "sha256": "399da0978152ba58a77f880f2a3c3294f4abeece25fc45a7d8b4ef1bd8ee05c0"
+    },
+    {
+      "path": "baseline-src/MpvApi.h",
+      "bytes": 7964,
+      "sha256": "a85a2f8c6959f7bb1f4266b6d906a6b7f3b3dd71e81e3d0e5ca77f46b7c425d1"
+    },
+    {
+      "path": "baseline-src/MpvPlayer.cpp",
+      "bytes": 119635,
+      "sha256": "0de7bd6b77c913dec87956617f44a174e713afca4ea258399fb405085bff7186"
+    },
+    {
+      "path": "baseline-src/MpvPlayer.h",
+      "bytes": 20188,
+      "sha256": "f0913c2b006b11b2d23de76f432c72d3bce733aab8c42513f02b8cb34acb104d"
+    },
+    {
+      "path": "baseline-src/NetworkStream.cpp",
+      "bytes": 24121,
+      "sha256": "c6276aeb1f7f0229e782fa05bd6a5762aeec274900b3fd699e05fb8763912a7e"
+    },
+    {
+      "path": "baseline-src/NetworkStream.h",
+      "bytes": 4047,
+      "sha256": "e5e0f117047d26df00729230405667b0e9cd662130225e31def0af74725ce47c"
+    },
+    {
+      "path": "baseline-src/OnlineSubtitleJobs.h",
+      "bytes": 4145,
+      "sha256": "8977d10fb2f97a57c1fb859efe2d50bb38c8a260f2ff59abb8d93db0a74775d9"
+    },
+    {
+      "path": "baseline-src/OnlineSubtitles.cpp",
+      "bytes": 24276,
+      "sha256": "bed718c5e6163db8c1bf72d52b565683dbdfca2a34c15c2bb1e8d6aa39801b06"
+    },
+    {
+      "path": "baseline-src/OnlineSubtitles.h",
+      "bytes": 4695,
+      "sha256": "2d4bfe996d530010a86434d93ef6cddd3599316d76c89722807096680bf715e1"
+    },
+    {
+      "path": "baseline-src/OperationCancellation.h",
+      "bytes": 1155,
+      "sha256": "7f96042ed1d8e602ba42bad091e362794f3b3ae9f76988b6a61172b687e30cac"
+    },
+    {
+      "path": "baseline-src/OverlayFramePacer.h",
+      "bytes": 1760,
+      "sha256": "4753e51ae1a2b7004d0af0001d5a47353bf44770be67d3fbd4c7226504cf8849"
+    },
+    {
+      "path": "baseline-src/OverlayRenderer.cpp",
+      "bytes": 30780,
+      "sha256": "58ff2c8cdd7e09e02a7bf27dd2c184e2f1ccd920b94a087981fa6d2557708493"
+    },
+    {
+      "path": "baseline-src/OverlayRenderer.h",
+      "bytes": 8246,
+      "sha256": "703a8b5414b4804f037929019486b219651942959b13eaeef1fabc5af252201b"
+    },
+    {
+      "path": "baseline-src/PathFileHelpers.h",
+      "bytes": 20344,
+      "sha256": "cdbe61a42c67c52e75dfeac552cd920d947a03eaf432b8e762796532ba202374"
+    },
+    {
+      "path": "baseline-src/PlaybackFlyoutLayout.h",
+      "bytes": 2913,
+      "sha256": "e2243ef89abc8a7602abc1ab5c436157b47a199883d241614597d3ff1b96efc5"
+    },
+    {
+      "path": "baseline-src/PlaybackScaling.h",
+      "bytes": 882,
+      "sha256": "357d242d73bd742d4c71b9eed1b47cfa333f16f734df4eff0878d77100f78e82"
+    },
+    {
+      "path": "baseline-src/PlaybackSession.cpp",
+      "bytes": 34948,
+      "sha256": "5fc867c45c893e6894bb8e74004b19a75746fedd553ac2e3c527e0ddbb09a284"
+    },
+    {
+      "path": "baseline-src/PlaybackSession.h",
+      "bytes": 8441,
+      "sha256": "b69bdabfc23de5f6a75ee5a65bfd2feda75853a328dca70b6d7d82cff81c755d"
+    },
+    {
+      "path": "baseline-src/PlaybackTarget.h",
+      "bytes": 925,
+      "sha256": "d996ea685aab61925e72c47704facb1949f0185be4ce1621530c1566c4a11eae"
+    },
+    {
+      "path": "baseline-src/PlaylistIO.cpp",
+      "bytes": 38958,
+      "sha256": "c26d3189f2e54612a2adad41b718d1e4f6925db5a536c0ca21bde2637d3f199c"
+    },
+    {
+      "path": "baseline-src/PlaylistIO.h",
+      "bytes": 7873,
+      "sha256": "649a4069e5b50709160a6d0f027c8bf0e81bdd4b73ef0a4316dc8ebdd2cb0ab2"
+    },
+    {
+      "path": "baseline-src/PreparedSmartPlaylist.h",
+      "bytes": 9722,
+      "sha256": "a082e2f4c74ab832ebb1371dffbecdb30cdaf598e64cb3d63533946071c7d6f2"
+    },
+    {
+      "path": "baseline-src/Presentation.h",
+      "bytes": 10555,
+      "sha256": "cc722724bce28956796918ba059d1ff5c5582102e550522557104ae27107dada"
+    },
+    {
+      "path": "baseline-src/Renderer.cpp",
+      "bytes": 91523,
+      "sha256": "741d120e6527341424858d9bd9a78d7b9d4ad1bcbaf09f7ab3bdfd415ad86952"
+    },
+    {
+      "path": "baseline-src/Renderer.h",
+      "bytes": 24052,
+      "sha256": "70c11f9e67240d818dab1987bd4d510a46c227cdd4a49044fbb4aa86b3dcd646"
+    },
+    {
+      "path": "baseline-src/RenderViewModel.h",
+      "bytes": 26156,
+      "sha256": "78b4128a3aa42201aa25275e58ccd33be50d7caadda1804a5c10e995640fc4d9"
+    },
+    {
+      "path": "baseline-src/Reorder.h",
+      "bytes": 2389,
+      "sha256": "930fcdb38ecd62ce2dbf3e5fc7549f478ec01c92a5652585178412c47f5661db"
+    },
+    {
+      "path": "baseline-src/resource.h",
+      "bytes": 94,
+      "sha256": "621f5504a7b21255dd2c728e9135f75ee6cbcf109b232b299af660482aaf6cf8"
+    },
+    {
+      "path": "baseline-src/ScreenshotPaths.h",
+      "bytes": 8764,
+      "sha256": "003fa03c71cd11fa4945cef8816424c722ddf8bb49231f8f676c721084dbe9a8"
+    },
+    {
+      "path": "baseline-src/Settings.cpp",
+      "bytes": 69109,
+      "sha256": "8d669c3da22c9ec9cbe6dc7093364cd7135697b80d4e8f37067afa19e008c431"
+    },
+    {
+      "path": "baseline-src/Settings.h",
+      "bytes": 12353,
+      "sha256": "a3f8300faa6ac627b7d4f7e2afc5b07533011f3b6ee33246846e11adced9f5ae"
+    },
+    {
+      "path": "baseline-src/SettingsLayout.h",
+      "bytes": 3286,
+      "sha256": "0a5eaf36e0821a728d6e46ea77fae16b5fa125037658a0389ce180d10ea57fed"
+    },
+    {
+      "path": "baseline-src/SmartRuleParsing.h",
+      "bytes": 3665,
+      "sha256": "301b713dae4401298170aabf9156a733801b2ad7f9d6fd4ec1f250acf8d879f3"
+    },
+    {
+      "path": "baseline-src/SnapshotRecords.h",
+      "bytes": 1889,
+      "sha256": "617ee08fcd38b21ff3eb9c2df8a14904f0d1f0949856ccd01fae3863f3d1fd08"
+    },
+    {
+      "path": "baseline-src/SplitIrisMenuLayout.h",
+      "bytes": 2746,
+      "sha256": "87a491d1101bb690b2b45d73d3c49f13bbc9684bfcb036fb585d50870f0a0532"
+    },
+    {
+      "path": "baseline-src/StorageLimits.h",
+      "bytes": 132,
+      "sha256": "209f657d69f2f7096563aa6be16f977dfd83765ce4ba276429208ea7d9831e7e"
+    },
+    {
+      "path": "baseline-src/StorageStatus.h",
+      "bytes": 1472,
+      "sha256": "955a7bde83bb413940327d6c72ff6b67ec4552d38e8bc39c37386f6a1f62088e"
+    },
+    {
+      "path": "baseline-src/SubtitleDiscovery.cpp",
+      "bytes": 27352,
+      "sha256": "fdf7cd8f1a449c6043fcca1c4b35279c1b715cd70ad7a7ce688031f2d9ebfc19"
+    },
+    {
+      "path": "baseline-src/SubtitleDiscovery.h",
+      "bytes": 3398,
+      "sha256": "a007b5f91dab2895603523f23775d5e3ec2caed3160fac02cc76915572abf3e4"
+    },
+    {
+      "path": "baseline-src/Subtitles.cpp",
+      "bytes": 28531,
+      "sha256": "111434d75adbe3f9c569aaf5604577145d75417a84f8eac39c86c1311c41e593"
+    },
+    {
+      "path": "baseline-src/Subtitles.h",
+      "bytes": 4983,
+      "sha256": "05027bee29b5ec0d8505395cc429cd6b534de0ef5334a08502535bb1d06e5bd7"
+    },
+    {
+      "path": "baseline-src/SvgGeometry.h",
+      "bytes": 6463,
+      "sha256": "8ce01bd4b5e4f56edffef2b8094169138f79519acb129b15546432b50f88a437"
+    },
+    {
+      "path": "baseline-src/SystemVisualPreferences.cpp",
+      "bytes": 4784,
+      "sha256": "a170fdb466ee33684dd2d3f48969e9f07f4aa35ce2e7d14b4ffff80c000544eb"
+    },
+    {
+      "path": "baseline-src/SystemVisualPreferences.h",
+      "bytes": 2966,
+      "sha256": "e42b44615c00806c214e403b67f9f7b15eba80b527efe10465068650087acaca"
+    },
+    {
+      "path": "baseline-src/TaskbarController.cpp",
+      "bytes": 14839,
+      "sha256": "31bc5c153b2ce56d8af6c6f681191d5d2620b20b462c5aa7243cdf174b73dc61"
+    },
+    {
+      "path": "baseline-src/TaskbarController.h",
+      "bytes": 4099,
+      "sha256": "f0f7537672d819500bb3198151943261935a899a3fe13246c1ea0cbe93173fcd"
+    },
+    {
+      "path": "baseline-src/TextInputModel.cpp",
+      "bytes": 15981,
+      "sha256": "7c5ec9f1fab48291c674dfea3b9f8317ad4234ff2e564efecd171d3f77dd9053"
+    },
+    {
+      "path": "baseline-src/TextInputModel.h",
+      "bytes": 5874,
+      "sha256": "45a8ee3d477d75f841378277fb332ae26111cbef2681c35bbcd926842688130d"
+    },
+    {
+      "path": "baseline-src/ThumbnailCodec.h",
+      "bytes": 10405,
+      "sha256": "58e5798d4c521dca17ed2ad755c673c10fe8ec49eee2e967e65930b3f1949432"
+    },
+    {
+      "path": "baseline-src/ThumbnailMigration.h",
+      "bytes": 5141,
+      "sha256": "62632ec0e6aae9191e72b6d507b98b5f2aeb8753a785ce4d15dd6f0372b2cdd6"
+    },
+    {
+      "path": "baseline-src/TooltipManager.cpp",
+      "bytes": 14523,
+      "sha256": "d788bf147f288010bc4605a0fda755bb2e5fde381feed734dfaa2c8c47bc2f1b"
+    },
+    {
+      "path": "baseline-src/TooltipManager.h",
+      "bytes": 3051,
+      "sha256": "9ce8fd73b1fa109436eca0e7b8e56b9a0ffbf814490277b38e0a3a860aed7222"
+    },
+    {
+      "path": "baseline-src/TouchInput.h",
+      "bytes": 8984,
+      "sha256": "96262726a6e46a6111576b5116cc99025eed7ce24c0baaccad1476a699fd6523"
+    },
+    {
+      "path": "baseline-src/UIComponents.cpp",
+      "bytes": 287890,
+      "sha256": "8081645b4cd3ba3c175a8417b7c98212c565907b91d3bcc0fd69b8b1c13e66a5"
+    },
+    {
+      "path": "baseline-src/UIComponents.h",
+      "bytes": 5603,
+      "sha256": "a8c83cab0a4bc04b9f44c76f42d65ee54735229118bfe4e4f6bcc661d04f6f6c"
+    },
+    {
+      "path": "baseline-src/Updater.cpp",
+      "bytes": 61562,
+      "sha256": "842037f4afe1a36043b1aa36f28b85d1fd883850e3885923a2ecc832bca334da"
+    },
+    {
+      "path": "baseline-src/Updater.h",
+      "bytes": 8309,
+      "sha256": "ddb40e6275c6914ef7ff1b9e59e88852f03ddcbe2decd80e4b171f48aaedff12"
+    },
+    {
+      "path": "baseline-src/WatchReconcile.h",
+      "bytes": 19361,
+      "sha256": "06a00ba2d10f8781ddd66df602721671f2487e9516c0ef90e465f34ff1739fa3"
+    },
+    {
+      "path": "baseline-src/Win32IoCancellation.h",
+      "bytes": 1102,
+      "sha256": "ca87f73888d4804cd4885e34b9c57dc7ca7daa4090ed3a4ab67310b37f442ef2"
+    },
+    {
+      "path": "baseline-src/WindowGeometry.h",
+      "bytes": 1316,
+      "sha256": "68886df7f4416026b934c8df1b8008b58c5a173903c059a64b7c38b3d6509e8e"
+    },
+    {
+      "path": "baseline-src/WinHttpAsyncRequest.h",
+      "bytes": 4786,
+      "sha256": "414ab475fbe929265a8c81ce46eac40580c85fd69b8832f6f7eed5757310e113"
+    },
+    {
+      "path": "build-oracle.cmd",
+      "bytes": 373,
+      "sha256": "d2a1402ad5aa9dd7fc9d24b8dcd8cd48b71b4f7639ad60c73c9083447ce97456"
+    },
+    {
+      "path": "build.cmd",
+      "bytes": 1377,
+      "sha256": "564590880158ffe016fc5df3321458675ead685c259729a862218ea0611ca603"
+    },
+    {
+      "path": "build.ps1",
+      "bytes": 4343,
+      "sha256": "ef656c5c04cbada858a4e68861edd2f1101461d1350b0df18d3b4ba750caee9d"
+    },
+    {
+      "path": "candidate-build/flat-sift-probe.exe",
+      "bytes": 563712,
+      "sha256": "6545d3489c34a4cc4c5f919c2acc303d556960fce78e70b9046bfc0d248411da"
+    },
+    {
+      "path": "candidate-build/LibraryQuery.obj",
+      "bytes": 3044513,
+      "sha256": "dac1e986b4801895a05acdaa7f8138bdf1ad45517e739407511918ad9d2c0cdd"
+    },
+    {
+      "path": "candidate-src/Accessibility.cpp",
+      "bytes": 78502,
+      "sha256": "ac1502fc5948313e5456e4aa10d129eda0d85a399b4165d5aa37118b3544103f"
+    },
+    {
+      "path": "candidate-src/Accessibility.h",
+      "bytes": 18014,
+      "sha256": "9fcb62092a93ff04057caee94ffe7cab4bb2da4eb713859f7467c7cec7926117"
+    },
+    {
+      "path": "candidate-src/AnimationCurves.h",
+      "bytes": 5156,
+      "sha256": "1e8449b30910da903187b607046c87a5bbb9ab760387bdef28fa43db5571ee22"
+    },
+    {
+      "path": "candidate-src/App.cpp",
+      "bytes": 303738,
+      "sha256": "db42b051185b4ac507d64595174eeed0d61de035dfbfc373479922b79c25ebf4"
+    },
+    {
+      "path": "candidate-src/App.h",
+      "bytes": 54596,
+      "sha256": "73bafb9536fd072ef00b8cc8319a74abd3ffe759ca7498359784fe59010012d3"
+    },
+    {
+      "path": "candidate-src/AppAccessibility.cpp",
+      "bytes": 131730,
+      "sha256": "64c64a11f8641be6ea0870ef45c96e9a38a45eb053ab917b12a0f00d8d1cac53"
+    },
+    {
+      "path": "candidate-src/AppDragDrop.cpp",
+      "bytes": 15068,
+      "sha256": "eb6004f76e15e59a5d35dc13005e6799c0330df75d47146a8d23f32db978b917"
+    },
+    {
+      "path": "candidate-src/AppFileOps.cpp",
+      "bytes": 15044,
+      "sha256": "db6c1df56726fcd71a161cedf4dd2d970e8deb79818a81b38f4904f1cc68e420"
+    },
+    {
+      "path": "candidate-src/AppHover.cpp",
+      "bytes": 18947,
+      "sha256": "3746f19b006c6d7e2349c20fd11c959dcb5188984f4aed1ceb2993b53eccd958"
+    },
+    {
+      "path": "candidate-src/AppImportJobs.cpp",
+      "bytes": 18412,
+      "sha256": "431e3dd8386dd8e75687ac95fbde9b9516698fc2b1a732e8c7c3bc6628fc7d48"
+    },
+    {
+      "path": "candidate-src/AppIncludes.h",
+      "bytes": 1617,
+      "sha256": "15c017ee8a5dc65e8ab43cb8961c5df0014a6e2d81a49f862dc880155ea3c5d3"
+    },
+    {
+      "path": "candidate-src/AppInternals.h",
+      "bytes": 7839,
+      "sha256": "d524f78295d3faf9dcd77a3fbfd5ed867b183b500a4e5e48029d1c6475ec0578"
+    },
+    {
+      "path": "candidate-src/AppKeyboard.cpp",
+      "bytes": 96404,
+      "sha256": "8e54b0236d6b33d67739eace183f70e68db8668199c2589a3cfe7222c4052346"
+    },
+    {
+      "path": "candidate-src/AppLayout.h",
+      "bytes": 6020,
+      "sha256": "a762e05d4178b7c77c0b853a6671b0cbb1339ea38538ac71d7b02d25217f8f54"
+    },
+    {
+      "path": "candidate-src/AppLibrary.cpp",
+      "bytes": 33895,
+      "sha256": "429bbcf770824fb13acdc4a87c306708822fa2a2ae64eea37b342376c274784c"
+    },
+    {
+      "path": "candidate-src/AppMenus.cpp",
+      "bytes": 108822,
+      "sha256": "8df823e3a65774871dd0c85217ba16bf7e9005662112581bf8377d21b2216339"
+    },
+    {
+      "path": "candidate-src/AppModals.cpp",
+      "bytes": 43195,
+      "sha256": "b5be8de97d2506049be2c7e017a73fb216ff17166fc505ec6c55aefd45f5791d"
+    },
+    {
+      "path": "candidate-src/AppPersistence.cpp",
+      "bytes": 12446,
+      "sha256": "0336c78e3a5faccf57c8f2d43933bcff79706c42f7efd12c517d0a66e0e22ddd"
+    },
+    {
+      "path": "candidate-src/AppPlayback.cpp",
+      "bytes": 53798,
+      "sha256": "67b424aca7ddb8c0cdabb609af0ce1351ba1340d1fd0043ae4367be6835c040d"
+    },
+    {
+      "path": "candidate-src/AppSelection.cpp",
+      "bytes": 34386,
+      "sha256": "8d2fc3cf4b83c25cb6976749de5ef8fd3f625decc7fd05a0e5b3e9c47c201659"
+    },
+    {
+      "path": "candidate-src/AppTooltips.cpp",
+      "bytes": 19249,
+      "sha256": "401d26c312adb8744170262b34293e4c3d2e713a631f8e9bcc5c178e21afa710"
+    },
+    {
+      "path": "candidate-src/AppTouch.cpp",
+      "bytes": 31772,
+      "sha256": "2d1605561c1c793e24ec52d3f82478f15de52a046f1a879328b73fd47264b57f"
+    },
+    {
+      "path": "candidate-src/AppViewModels.cpp",
+      "bytes": 79358,
+      "sha256": "fd92e094db13530e00b3935d15b07bc761de17a89d3ebde3d7ee4b3b29b4ad3f"
+    },
+    {
+      "path": "candidate-src/AsyncOwnedJob.h",
+      "bytes": 4097,
+      "sha256": "9ea84eafb2ef3d42e538b656d4b0c439206ca6633cb765ebad097d01c2f856f5"
+    },
+    {
+      "path": "candidate-src/AudioConfig.cpp",
+      "bytes": 8307,
+      "sha256": "a7693e40db68baa315d39a2899b6fa90fcf44feeaa2096a9f5f7ded2ab255e9c"
+    },
+    {
+      "path": "candidate-src/AudioConfig.h",
+      "bytes": 2697,
+      "sha256": "701e84ff3280a80d0fe357e093c8870a884f04c4cee41a792ecf00750f572f9c"
+    },
+    {
+      "path": "candidate-src/BackgroundPathAvailability.h",
+      "bytes": 8015,
+      "sha256": "1ee4970e3d62e396c0a3132b0214e91499302b06aae8b2ec43a2a451d7e7be0b"
+    },
+    {
+      "path": "candidate-src/BackupFiles.h",
+      "bytes": 7937,
+      "sha256": "580f1cdc995e422ef944308ff24a6e2c822b6770302823574e1bb3c5e36924ec"
+    },
+    {
+      "path": "candidate-src/BuildInfo.cpp",
+      "bytes": 21208,
+      "sha256": "534c73c50863eca50d136c91cfa74e808708b3c87723c32fad09328d52e433a1"
+    },
+    {
+      "path": "candidate-src/BuildInfo.h",
+      "bytes": 3023,
+      "sha256": "27cc23788324755b4ec281c4d50b7d13d8005fd88400008a6de7b15dbb9de0ba"
+    },
+    {
+      "path": "candidate-src/CacheStorage.h",
+      "bytes": 31984,
+      "sha256": "2e750903c2d74d76e719942483e4afd76a1f75664abeb4cc6dd519f8d198396c"
+    },
+    {
+      "path": "candidate-src/ChannelPolicy.cpp",
+      "bytes": 11224,
+      "sha256": "81a8669253a0e67b9f2157fd3b6a307092eb6a2a7c3a071ce863553feb5216c3"
+    },
+    {
+      "path": "candidate-src/ChannelPolicy.h",
+      "bytes": 2496,
+      "sha256": "6fe60c3453db94398294770f5bc08d0b197af762e8417be5cf45e8dc14765a4c"
+    },
+    {
+      "path": "candidate-src/ChapterMarkerCache.h",
+      "bytes": 2256,
+      "sha256": "6ec3e34b3c156d0abac2fa3909d6a7cae871f6ef555d6749c38b24b16f75c25f"
+    },
+    {
+      "path": "candidate-src/CollectionAlgorithms.h",
+      "bytes": 820,
+      "sha256": "45a81c1dcf4c4c5134abb81ea28159bc2cbe95d20ac748fd433075b1ac485016"
+    },
+    {
+      "path": "candidate-src/ColorHelpers.h",
+      "bytes": 1660,
+      "sha256": "322692933ada4edc0527ea0d4228be0da35909ab340f864d2bc2fb5a774996ca"
+    },
+    {
+      "path": "candidate-src/CommandDispatcher.cpp",
+      "bytes": 50985,
+      "sha256": "2a2d51bc31b7df8b3a2fc15057bb943597405e5055b51398794690fd4d10b88d"
+    },
+    {
+      "path": "candidate-src/CommandDispatcher.h",
+      "bytes": 3932,
+      "sha256": "ba30af7d374838951fa259d8e4a587085108231942bf40c2ade0bd42cc219282"
+    },
+    {
+      "path": "candidate-src/Common.h",
+      "bytes": 628,
+      "sha256": "fdd8d2168e0e33b7201894aaff6ee67c0ae058aaf50bb084cd15a9e87cb26705"
+    },
+    {
+      "path": "candidate-src/CommonStrings.h",
+      "bytes": 847,
+      "sha256": "70e40ccc2628072875d0352032d9eb16da1f3b922a38a13c04f8963d0d564085"
+    },
+    {
+      "path": "candidate-src/Diagnostics.cpp",
+      "bytes": 17772,
+      "sha256": "0b993c1730ee24c490ad4f842b412895528b72b87e5ac038c503693f5e6f83c5"
+    },
+    {
+      "path": "candidate-src/Diagnostics.h",
+      "bytes": 790,
+      "sha256": "e45c03ea8cd9411e229e5d20dca101375a89f47a12c24b1d76ac52edbc1a601d"
+    },
+    {
+      "path": "candidate-src/DllLoader.h",
+      "bytes": 2564,
+      "sha256": "da3f74140662411959a364b6cbc2ff6c99491c4a5a10c4d680448704917fbeb8"
+    },
+    {
+      "path": "candidate-src/DrawingPrimitives.h",
+      "bytes": 10975,
+      "sha256": "e0d13f09be10aa7db218f0f3094fcc9ae6af1d620be4dea35c85dae683179bfb"
+    },
+    {
+      "path": "candidate-src/Error.h",
+      "bytes": 1828,
+      "sha256": "368bf16a131db839ff012c1a6ff6d0f33b8cc22b515c6e142e8cdf8ff2d3e0f3"
+    },
+    {
+      "path": "candidate-src/FolderRediscovery.h",
+      "bytes": 12233,
+      "sha256": "3b3a7d382cb11a7ed807aa38ec9543325e160d83fa9f4d5bd1a488a82f1d36e4"
+    },
+    {
+      "path": "candidate-src/FolderWatcher.cpp",
+      "bytes": 21043,
+      "sha256": "1f80ca24b97c82396388c5fa938ee8905662a1a90b8527483b82ff7733df34f7"
+    },
+    {
+      "path": "candidate-src/FolderWatcher.h",
+      "bytes": 4330,
+      "sha256": "aa2a1f9b9c2c71b6853ba5e1bee7a99f06c214ccfc6d4602ea6c8891b89c7a30"
+    },
+    {
+      "path": "candidate-src/FontResources.h",
+      "bytes": 13285,
+      "sha256": "963d8a5e9ae664c68c9c120587bc9b12d9353df662bfd45eecadce459806a1de"
+    },
+    {
+      "path": "candidate-src/Formatters.h",
+      "bytes": 2127,
+      "sha256": "0b9faeaf41a99839d1313cb8bb698427690c50d6592fed707bb9dbff63f9400d"
+    },
+    {
+      "path": "candidate-src/GeometryHelpers.h",
+      "bytes": 625,
+      "sha256": "0e5ec34d2f6a69806e390b73571733c142ec9c91afc6f0f4cc51a4ee49fbf50a"
+    },
+    {
+      "path": "candidate-src/GlobalSearch.cpp",
+      "bytes": 34171,
+      "sha256": "442aba47b96a1819bf08b672539f3a2f7681659d3e936b46a9bd86896b68ff00"
+    },
+    {
+      "path": "candidate-src/GlobalSearch.h",
+      "bytes": 9912,
+      "sha256": "f2de236231e6add7acaa8199f5128d9513bdcf3a2c070f7428ce5bbb61ac8f5f"
+    },
+    {
+      "path": "candidate-src/HeapOptional.h",
+      "bytes": 2124,
+      "sha256": "0dde0b4470724b82dd69a38f18e1d51fb80f6039959535357d4a1e8403008238"
+    },
+    {
+      "path": "candidate-src/HttpBodyReader.h",
+      "bytes": 2881,
+      "sha256": "1d6d878a86a681ffa088c2679c4fb95ba28264f16e364860cce2520a1efc6dcd"
+    },
+    {
+      "path": "candidate-src/HttpTransport.cpp",
+      "bytes": 15897,
+      "sha256": "e835853191494b52afc2242108809a8e9e35af9374c676f2e372588caac955a1"
+    },
+    {
+      "path": "candidate-src/HttpTransport.h",
+      "bytes": 2886,
+      "sha256": "5825769fc75de98939d061ac6f6ed4ddc538711afbb86cf0227408046d2acc3a"
+    },
+    {
+      "path": "candidate-src/IconPaths.h",
+      "bytes": 6421,
+      "sha256": "820d7602184a541fc619aa5e1425f3df66837c5d4743b403a67551be12dfa76f"
+    },
+    {
+      "path": "candidate-src/ImportPlaybackIntent.h",
+      "bytes": 1361,
+      "sha256": "ef08c4213b749d110870bb014dca6877fa64a573d0892c8aa6bcb95c81b3d3bc"
+    },
+    {
+      "path": "candidate-src/IpcProtocol.h",
+      "bytes": 58221,
+      "sha256": "21578c4ac8c20c2110575df738ab0ce02cae97c1044a5a23a8230397b835dae7"
+    },
+    {
+      "path": "candidate-src/Json.cpp",
+      "bytes": 17495,
+      "sha256": "ab3c88eee43eff4517d37f56fd697aeead97a0b92509203825f26b01e68de04b"
+    },
+    {
+      "path": "candidate-src/Json.h",
+      "bytes": 4869,
+      "sha256": "336cfbfeaec773c82654c7ea42bc879abc90e7a91bdc9720d194c0fd2699eb5d"
+    },
+    {
+      "path": "candidate-src/JsonStoreValidation.h",
+      "bytes": 730,
+      "sha256": "1be3b1fe6a475dc8ee90e9e9e0355513841dbbf2f0b9c99f2af8654edab2ffbd"
+    },
+    {
+      "path": "candidate-src/LibraryIncrementalStore.h",
+      "bytes": 10380,
+      "sha256": "c6e89570c1d9dd03ad8f780a4bf5895b0c68f2c59fcb041d461f0af870936732"
+    },
+    {
+      "path": "candidate-src/LibraryQuery.cpp",
+      "bytes": 74899,
+      "sha256": "fe3dc8132851df7559b68c27a4a4d6049c1a3176fb749d3a30c3cba93e6ce806"
+    },
+    {
+      "path": "candidate-src/LibraryQuery.h",
+      "bytes": 12310,
+      "sha256": "0697eff07805ca3117fa2fef7bc483da2ddaa3d180fc3d095d87c4f5b6e9725a"
+    },
+    {
+      "path": "candidate-src/LibrarySaveComparison.h",
+      "bytes": 3727,
+      "sha256": "a6aa06032c937633ae2f2e7b8435b0af832e8ced4c544b31dfccfb5e496c4b72"
+    },
+    {
+      "path": "candidate-src/LibrarySaveWorker.h",
+      "bytes": 7738,
+      "sha256": "e6b105660f27f9f6c7b721f39bf8a4740f298afbbb92132ba2a5b1f5cf2aba8e"
+    },
+    {
+      "path": "candidate-src/LibrarySnapshot.cpp",
+      "bytes": 3773,
+      "sha256": "63563d5136bb261e2375fa55b531803741a31db16923e49399296ed4c62301e4"
+    },
+    {
+      "path": "candidate-src/LibrarySnapshot.h",
+      "bytes": 2085,
+      "sha256": "42c42fd85677f66f70d9899c29b2a95d3e6bd2f94040fe4a16a4bba297949e7c"
+    },
+    {
+      "path": "candidate-src/Localization.cpp",
+      "bytes": 47338,
+      "sha256": "1f438a0c77b1eddb255716d0b75417f9abe2c1eeb65bd31b0a4804e5df27ad49"
+    },
+    {
+      "path": "candidate-src/Localization.h",
+      "bytes": 10984,
+      "sha256": "4e80c9bc09dc55d7f8fe77d03243fcb07ce592bab1de267562b2e44ac7333b38"
+    },
+    {
+      "path": "candidate-src/main.cpp",
+      "bytes": 29446,
+      "sha256": "be05aea928eba5f3dd6c0680a8734d579ed4dc9a83599e6c6314729cc0fcae7f"
+    },
+    {
+      "path": "candidate-src/MediaFoundation.cpp",
+      "bytes": 2038,
+      "sha256": "42f2b5113ed88168c7b5f10ccea5a935fdda2a04a7042546b9329353360c680c"
+    },
+    {
+      "path": "candidate-src/MediaFoundation.h",
+      "bytes": 1591,
+      "sha256": "0284dc46701b556a08b75022d28120dcd9e2bf787037f96f3fdfae52a0190a7c"
+    },
+    {
+      "path": "candidate-src/MediaImportProbeCache.h",
+      "bytes": 4571,
+      "sha256": "90b768aa2cac842019ff27a75a43658e55886dde38cf04e26e064f039b6d9fa9"
+    },
+    {
+      "path": "candidate-src/MediaLibrary.cpp",
+      "bytes": 170545,
+      "sha256": "36ff30b4e7cc12190408e96eeb082bf3f5df6a36b29c0ea6c78fef07cb25fc62"
+    },
+    {
+      "path": "candidate-src/MediaLibrary.h",
+      "bytes": 33185,
+      "sha256": "4eca5e7fef9c92ce0a650417e3b80db02df7f72aa40ae2711ca19d186708f7d6"
+    },
+    {
+      "path": "candidate-src/MediaProbeIsolation.cpp",
+      "bytes": 20305,
+      "sha256": "90ec46fddf7341911cbea1365c0f9052edb2e59378336a4464f94f62538ddc79"
+    },
+    {
+      "path": "candidate-src/MediaProbeIsolation.h",
+      "bytes": 2514,
+      "sha256": "305346ab7e238dd9cf3aaddca26f67a7cb9a0fad57ad3452573655fd86ec7baa"
+    },
+    {
+      "path": "candidate-src/MediaTransport.cpp",
+      "bytes": 15933,
+      "sha256": "3a9878abfaa865a70957d5eb517c644d8b78e3d880cbca311903a2d0738d9dac"
+    },
+    {
+      "path": "candidate-src/MediaTransport.h",
+      "bytes": 4533,
+      "sha256": "ec41313ae4a8d5e433ebaad031208b6a50d3228ced090d8a82eb03413476fc6c"
+    },
+    {
+      "path": "candidate-src/MetadataBackfillCursor.h",
+      "bytes": 1540,
+      "sha256": "399da0978152ba58a77f880f2a3c3294f4abeece25fc45a7d8b4ef1bd8ee05c0"
+    },
+    {
+      "path": "candidate-src/MpvApi.h",
+      "bytes": 7964,
+      "sha256": "a85a2f8c6959f7bb1f4266b6d906a6b7f3b3dd71e81e3d0e5ca77f46b7c425d1"
+    },
+    {
+      "path": "candidate-src/MpvPlayer.cpp",
+      "bytes": 119635,
+      "sha256": "0de7bd6b77c913dec87956617f44a174e713afca4ea258399fb405085bff7186"
+    },
+    {
+      "path": "candidate-src/MpvPlayer.h",
+      "bytes": 20188,
+      "sha256": "f0913c2b006b11b2d23de76f432c72d3bce733aab8c42513f02b8cb34acb104d"
+    },
+    {
+      "path": "candidate-src/NetworkStream.cpp",
+      "bytes": 24121,
+      "sha256": "c6276aeb1f7f0229e782fa05bd6a5762aeec274900b3fd699e05fb8763912a7e"
+    },
+    {
+      "path": "candidate-src/NetworkStream.h",
+      "bytes": 4047,
+      "sha256": "e5e0f117047d26df00729230405667b0e9cd662130225e31def0af74725ce47c"
+    },
+    {
+      "path": "candidate-src/OnlineSubtitleJobs.h",
+      "bytes": 4145,
+      "sha256": "8977d10fb2f97a57c1fb859efe2d50bb38c8a260f2ff59abb8d93db0a74775d9"
+    },
+    {
+      "path": "candidate-src/OnlineSubtitles.cpp",
+      "bytes": 24276,
+      "sha256": "bed718c5e6163db8c1bf72d52b565683dbdfca2a34c15c2bb1e8d6aa39801b06"
+    },
+    {
+      "path": "candidate-src/OnlineSubtitles.h",
+      "bytes": 4695,
+      "sha256": "2d4bfe996d530010a86434d93ef6cddd3599316d76c89722807096680bf715e1"
+    },
+    {
+      "path": "candidate-src/OperationCancellation.h",
+      "bytes": 1155,
+      "sha256": "7f96042ed1d8e602ba42bad091e362794f3b3ae9f76988b6a61172b687e30cac"
+    },
+    {
+      "path": "candidate-src/OverlayFramePacer.h",
+      "bytes": 1760,
+      "sha256": "4753e51ae1a2b7004d0af0001d5a47353bf44770be67d3fbd4c7226504cf8849"
+    },
+    {
+      "path": "candidate-src/OverlayRenderer.cpp",
+      "bytes": 30780,
+      "sha256": "58ff2c8cdd7e09e02a7bf27dd2c184e2f1ccd920b94a087981fa6d2557708493"
+    },
+    {
+      "path": "candidate-src/OverlayRenderer.h",
+      "bytes": 8246,
+      "sha256": "703a8b5414b4804f037929019486b219651942959b13eaeef1fabc5af252201b"
+    },
+    {
+      "path": "candidate-src/PathFileHelpers.h",
+      "bytes": 20344,
+      "sha256": "cdbe61a42c67c52e75dfeac552cd920d947a03eaf432b8e762796532ba202374"
+    },
+    {
+      "path": "candidate-src/PlaybackFlyoutLayout.h",
+      "bytes": 2913,
+      "sha256": "e2243ef89abc8a7602abc1ab5c436157b47a199883d241614597d3ff1b96efc5"
+    },
+    {
+      "path": "candidate-src/PlaybackScaling.h",
+      "bytes": 882,
+      "sha256": "357d242d73bd742d4c71b9eed1b47cfa333f16f734df4eff0878d77100f78e82"
+    },
+    {
+      "path": "candidate-src/PlaybackSession.cpp",
+      "bytes": 34948,
+      "sha256": "5fc867c45c893e6894bb8e74004b19a75746fedd553ac2e3c527e0ddbb09a284"
+    },
+    {
+      "path": "candidate-src/PlaybackSession.h",
+      "bytes": 8441,
+      "sha256": "b69bdabfc23de5f6a75ee5a65bfd2feda75853a328dca70b6d7d82cff81c755d"
+    },
+    {
+      "path": "candidate-src/PlaybackTarget.h",
+      "bytes": 925,
+      "sha256": "d996ea685aab61925e72c47704facb1949f0185be4ce1621530c1566c4a11eae"
+    },
+    {
+      "path": "candidate-src/PlaylistIO.cpp",
+      "bytes": 38958,
+      "sha256": "c26d3189f2e54612a2adad41b718d1e4f6925db5a536c0ca21bde2637d3f199c"
+    },
+    {
+      "path": "candidate-src/PlaylistIO.h",
+      "bytes": 7873,
+      "sha256": "649a4069e5b50709160a6d0f027c8bf0e81bdd4b73ef0a4316dc8ebdd2cb0ab2"
+    },
+    {
+      "path": "candidate-src/PreparedSmartPlaylist.h",
+      "bytes": 9722,
+      "sha256": "a082e2f4c74ab832ebb1371dffbecdb30cdaf598e64cb3d63533946071c7d6f2"
+    },
+    {
+      "path": "candidate-src/Presentation.h",
+      "bytes": 10555,
+      "sha256": "cc722724bce28956796918ba059d1ff5c5582102e550522557104ae27107dada"
+    },
+    {
+      "path": "candidate-src/Renderer.cpp",
+      "bytes": 91523,
+      "sha256": "741d120e6527341424858d9bd9a78d7b9d4ad1bcbaf09f7ab3bdfd415ad86952"
+    },
+    {
+      "path": "candidate-src/Renderer.h",
+      "bytes": 24052,
+      "sha256": "70c11f9e67240d818dab1987bd4d510a46c227cdd4a49044fbb4aa86b3dcd646"
+    },
+    {
+      "path": "candidate-src/RenderViewModel.h",
+      "bytes": 26156,
+      "sha256": "78b4128a3aa42201aa25275e58ccd33be50d7caadda1804a5c10e995640fc4d9"
+    },
+    {
+      "path": "candidate-src/Reorder.h",
+      "bytes": 2389,
+      "sha256": "930fcdb38ecd62ce2dbf3e5fc7549f478ec01c92a5652585178412c47f5661db"
+    },
+    {
+      "path": "candidate-src/resource.h",
+      "bytes": 94,
+      "sha256": "621f5504a7b21255dd2c728e9135f75ee6cbcf109b232b299af660482aaf6cf8"
+    },
+    {
+      "path": "candidate-src/ScreenshotPaths.h",
+      "bytes": 8764,
+      "sha256": "003fa03c71cd11fa4945cef8816424c722ddf8bb49231f8f676c721084dbe9a8"
+    },
+    {
+      "path": "candidate-src/Settings.cpp",
+      "bytes": 69109,
+      "sha256": "8d669c3da22c9ec9cbe6dc7093364cd7135697b80d4e8f37067afa19e008c431"
+    },
+    {
+      "path": "candidate-src/Settings.h",
+      "bytes": 12353,
+      "sha256": "a3f8300faa6ac627b7d4f7e2afc5b07533011f3b6ee33246846e11adced9f5ae"
+    },
+    {
+      "path": "candidate-src/SettingsLayout.h",
+      "bytes": 3286,
+      "sha256": "0a5eaf36e0821a728d6e46ea77fae16b5fa125037658a0389ce180d10ea57fed"
+    },
+    {
+      "path": "candidate-src/SmartRuleParsing.h",
+      "bytes": 3665,
+      "sha256": "301b713dae4401298170aabf9156a733801b2ad7f9d6fd4ec1f250acf8d879f3"
+    },
+    {
+      "path": "candidate-src/SnapshotRecords.h",
+      "bytes": 1889,
+      "sha256": "617ee08fcd38b21ff3eb9c2df8a14904f0d1f0949856ccd01fae3863f3d1fd08"
+    },
+    {
+      "path": "candidate-src/SplitIrisMenuLayout.h",
+      "bytes": 2746,
+      "sha256": "87a491d1101bb690b2b45d73d3c49f13bbc9684bfcb036fb585d50870f0a0532"
+    },
+    {
+      "path": "candidate-src/StorageLimits.h",
+      "bytes": 132,
+      "sha256": "209f657d69f2f7096563aa6be16f977dfd83765ce4ba276429208ea7d9831e7e"
+    },
+    {
+      "path": "candidate-src/StorageStatus.h",
+      "bytes": 1472,
+      "sha256": "955a7bde83bb413940327d6c72ff6b67ec4552d38e8bc39c37386f6a1f62088e"
+    },
+    {
+      "path": "candidate-src/SubtitleDiscovery.cpp",
+      "bytes": 27352,
+      "sha256": "fdf7cd8f1a449c6043fcca1c4b35279c1b715cd70ad7a7ce688031f2d9ebfc19"
+    },
+    {
+      "path": "candidate-src/SubtitleDiscovery.h",
+      "bytes": 3398,
+      "sha256": "a007b5f91dab2895603523f23775d5e3ec2caed3160fac02cc76915572abf3e4"
+    },
+    {
+      "path": "candidate-src/Subtitles.cpp",
+      "bytes": 28531,
+      "sha256": "111434d75adbe3f9c569aaf5604577145d75417a84f8eac39c86c1311c41e593"
+    },
+    {
+      "path": "candidate-src/Subtitles.h",
+      "bytes": 4983,
+      "sha256": "05027bee29b5ec0d8505395cc429cd6b534de0ef5334a08502535bb1d06e5bd7"
+    },
+    {
+      "path": "candidate-src/SvgGeometry.h",
+      "bytes": 6463,
+      "sha256": "8ce01bd4b5e4f56edffef2b8094169138f79519acb129b15546432b50f88a437"
+    },
+    {
+      "path": "candidate-src/SystemVisualPreferences.cpp",
+      "bytes": 4784,
+      "sha256": "a170fdb466ee33684dd2d3f48969e9f07f4aa35ce2e7d14b4ffff80c000544eb"
+    },
+    {
+      "path": "candidate-src/SystemVisualPreferences.h",
+      "bytes": 2966,
+      "sha256": "e42b44615c00806c214e403b67f9f7b15eba80b527efe10465068650087acaca"
+    },
+    {
+      "path": "candidate-src/TaskbarController.cpp",
+      "bytes": 14839,
+      "sha256": "31bc5c153b2ce56d8af6c6f681191d5d2620b20b462c5aa7243cdf174b73dc61"
+    },
+    {
+      "path": "candidate-src/TaskbarController.h",
+      "bytes": 4099,
+      "sha256": "f0f7537672d819500bb3198151943261935a899a3fe13246c1ea0cbe93173fcd"
+    },
+    {
+      "path": "candidate-src/TextInputModel.cpp",
+      "bytes": 15981,
+      "sha256": "7c5ec9f1fab48291c674dfea3b9f8317ad4234ff2e564efecd171d3f77dd9053"
+    },
+    {
+      "path": "candidate-src/TextInputModel.h",
+      "bytes": 5874,
+      "sha256": "45a8ee3d477d75f841378277fb332ae26111cbef2681c35bbcd926842688130d"
+    },
+    {
+      "path": "candidate-src/ThumbnailCodec.h",
+      "bytes": 10405,
+      "sha256": "58e5798d4c521dca17ed2ad755c673c10fe8ec49eee2e967e65930b3f1949432"
+    },
+    {
+      "path": "candidate-src/ThumbnailMigration.h",
+      "bytes": 5141,
+      "sha256": "62632ec0e6aae9191e72b6d507b98b5f2aeb8753a785ce4d15dd6f0372b2cdd6"
+    },
+    {
+      "path": "candidate-src/TooltipManager.cpp",
+      "bytes": 14523,
+      "sha256": "d788bf147f288010bc4605a0fda755bb2e5fde381feed734dfaa2c8c47bc2f1b"
+    },
+    {
+      "path": "candidate-src/TooltipManager.h",
+      "bytes": 3051,
+      "sha256": "9ce8fd73b1fa109436eca0e7b8e56b9a0ffbf814490277b38e0a3a860aed7222"
+    },
+    {
+      "path": "candidate-src/TouchInput.h",
+      "bytes": 8984,
+      "sha256": "96262726a6e46a6111576b5116cc99025eed7ce24c0baaccad1476a699fd6523"
+    },
+    {
+      "path": "candidate-src/UIComponents.cpp",
+      "bytes": 287890,
+      "sha256": "8081645b4cd3ba3c175a8417b7c98212c565907b91d3bcc0fd69b8b1c13e66a5"
+    },
+    {
+      "path": "candidate-src/UIComponents.h",
+      "bytes": 5603,
+      "sha256": "a8c83cab0a4bc04b9f44c76f42d65ee54735229118bfe4e4f6bcc661d04f6f6c"
+    },
+    {
+      "path": "candidate-src/Updater.cpp",
+      "bytes": 61562,
+      "sha256": "842037f4afe1a36043b1aa36f28b85d1fd883850e3885923a2ecc832bca334da"
+    },
+    {
+      "path": "candidate-src/Updater.h",
+      "bytes": 8309,
+      "sha256": "ddb40e6275c6914ef7ff1b9e59e88852f03ddcbe2decd80e4b171f48aaedff12"
+    },
+    {
+      "path": "candidate-src/WatchReconcile.h",
+      "bytes": 19361,
+      "sha256": "06a00ba2d10f8781ddd66df602721671f2487e9516c0ef90e465f34ff1739fa3"
+    },
+    {
+      "path": "candidate-src/Win32IoCancellation.h",
+      "bytes": 1102,
+      "sha256": "ca87f73888d4804cd4885e34b9c57dc7ca7daa4090ed3a4ab67310b37f442ef2"
+    },
+    {
+      "path": "candidate-src/WindowGeometry.h",
+      "bytes": 1316,
+      "sha256": "68886df7f4416026b934c8df1b8008b58c5a173903c059a64b7c38b3d6509e8e"
+    },
+    {
+      "path": "candidate-src/WinHttpAsyncRequest.h",
+      "bytes": 4786,
+      "sha256": "414ab475fbe929265a8c81ce46eac40580c85fd69b8832f6f7eed5757310e113"
+    },
+    {
+      "path": "common-objects/AudioConfig.obj",
+      "bytes": 240401,
+      "sha256": "7a0fa679234e9f63c61bcb7e053c96e8de1cf28546c1d83966000401a98a9bc5"
+    },
+    {
+      "path": "common-objects/ChannelPolicy.obj",
+      "bytes": 817603,
+      "sha256": "680f3fbce3c51b7620dedfbeb4a5fffbd4902006d3eaac3ee632b016544a6a77"
+    },
+    {
+      "path": "common-objects/flat_sift_probe.obj",
+      "bytes": 1334100,
+      "sha256": "05ea3941106a1a16fe816c71011b5743d53c788861d7843601b8a94830a08eba"
+    },
+    {
+      "path": "common-objects/FolderWatcher.obj",
+      "bytes": 1548246,
+      "sha256": "324ee5cb358f0ad7786fa3a5810f55c94400857e6f08e800a06c2f2f8cc81acd"
+    },
+    {
+      "path": "common-objects/GlobalSearch.obj",
+      "bytes": 1286994,
+      "sha256": "59a3197dc5ad0640b9352f1886d050006b92eea4752015c258fdcf12438af946"
+    },
+    {
+      "path": "common-objects/Json.obj",
+      "bytes": 1108525,
+      "sha256": "e98aec959bbec225d0a3d0da1c2b2a58e0cde29204bd3251dde8d2b1e26e9247"
+    },
+    {
+      "path": "common-objects/Localization.obj",
+      "bytes": 1817049,
+      "sha256": "174c37bdf31831bdb775e369dd3e71d4c6ada7e87dc0c48d3280f143d3d3d074"
+    },
+    {
+      "path": "common-objects/MediaFoundation.obj",
+      "bytes": 98326,
+      "sha256": "9fba3b9e0b905eb05300b4f5de23ec6338e2bf8ffa1a87f08a3241e6b24d4351"
+    },
+    {
+      "path": "common-objects/MediaLibrary.obj",
+      "bytes": 7824639,
+      "sha256": "a94f2d4d5174149bf22eab0946d5bb3092d7c65d2b2fd350ee7a9b7fba6a9638"
+    },
+    {
+      "path": "common-objects/MediaProbeIsolation.obj",
+      "bytes": 341291,
+      "sha256": "a310171b397e3dd6fa7919da4bc629c8a4531f541ed46ee5013b4638fdd0dff6"
+    },
+    {
+      "path": "common-objects/Settings.obj",
+      "bytes": 2222535,
+      "sha256": "3e3241b309cb80dc0111d5c941b83a9210e9d585f9e262ea9cfaae79c95be2f7"
+    },
+    {
+      "path": "common-objects/TextInputModel.obj",
+      "bytes": 198601,
+      "sha256": "89c68cd02405966a28e7651fad27e7cfc0283ad35d93c83671ff55a131cc72a8"
+    },
+    {
+      "path": "compile-baseline.rsp",
+      "bytes": 408,
+      "sha256": "e96f258a1a4508f715d474361e6dabe76c36b0937b9b63e70dba855677618f43"
+    },
+    {
+      "path": "compile-candidate.rsp",
+      "bytes": 410,
+      "sha256": "5baa231b5e5311a62162259852ef13a581a60705687425f9904c8419ec7bb5a5"
+    },
+    {
+      "path": "compile-common.rsp",
+      "bytes": 1616,
+      "sha256": "4b8f91e21041df5b222868bc2ce727db23cfc591c77f4d71fa1e84ccfc432ee7"
+    },
+    {
+      "path": "environment.json",
+      "bytes": 402,
+      "sha256": "600aff2541746264de1a508b9c7da2f4da57afbeeceb0e6b855a38abb8c992f6"
+    },
+    {
+      "path": "flat_sift_probe.cpp",
+      "bytes": 6658,
+      "sha256": "58d34f1b0c9d0cf4449d0e14b4464db6793b4a48eead39706354e096779ae75b"
+    },
+    {
+      "path": "independent-oracle.exe",
+      "bytes": 1172480,
+      "sha256": "4c7dc189bc9f8671771c31049ff9d5896b3be1713e6084eb6a9f88763a8639b3"
+    },
+    {
+      "path": "independent_oracle.cpp",
+      "bytes": 2202,
+      "sha256": "f46129a539f78dade2c16d6d72d64c4cc86319acf8c2b4b19d90f78324bcf6ec"
+    },
+    {
+      "path": "independent_oracle.obj",
+      "bytes": 3680780,
+      "sha256": "debc36af6783b286cc38b5df9c6a8c000b47d91d12a93ba4bc7892927be3cde6"
+    },
+    {
+      "path": "link-baseline.rsp",
+      "bytes": 1718,
+      "sha256": "07ffd7c2bbd57d5e6c469c78ae907674248d29126d07b90a2b81b4809af4a36f"
+    },
+    {
+      "path": "link-candidate.rsp",
+      "bytes": 1720,
+      "sha256": "261d00cb0a1d6f38cb5b260270c78ea5a90185d137052bab0c37a00626814fb2"
+    },
+    {
+      "path": "oracle.rsp",
+      "bytes": 1908,
+      "sha256": "0b4f042ca04b5b5d675503b671121af8bf8fac3ce1495cc96a50cad81a01cb5b"
+    },
+    {
+      "path": "source-freeze.json",
+      "bytes": 24183,
+      "sha256": "0518a3ce1cc94720f4ba45a767ded204ac505ebef170b7d9cfb6738c00c3a065"
+    },
+    {
+      "path": "tests/support/TestFramework.h",
+      "bytes": 6060,
+      "sha256": "e503ca6ede9aaaa4fa58700ca4ee4f6e626e6101d69de02d0d3c7cfbb92b942b"
+    },
+    {
+      "path": "tests/support/TestRunner.h",
+      "bytes": 4302,
+      "sha256": "9268037a7470557645ae0d6d7e16bbbc6702dad8d8c3dfd23bfea9df3b9b97f3"
+    },
+    {
+      "path": "tests/support/TestTempDir.h",
+      "bytes": 4366,
+      "sha256": "49ce883a027d565a026c0c876f5c4eb70c081c11cf724bcff0376ac40f99044f"
+    },
+    {
+      "path": "tests/unit/TestLibraryQuery.h",
+      "bytes": 60548,
+      "sha256": "ad1fbeece4e5c8215b65cfdb0625558e84d65a0902c1524ad8aeb7fde5fc2102"
+    },
+    {
+      "path": "toolchain.json",
+      "bytes": 998,
+      "sha256": "24f8d6621b2b39c04fdcef608d08bf626506637c6b8a2aa94969d761220be293"
+    }
+  ],
+  "protocol": {
+    "mode0": "Cold full projection, title ascending, cap50 /25000 records",
+    "mode1": "Cold compact view, duration permutation(i*193)%25000, cap50",
+    "mode2": "Cold compact view, descending duration input, cap50 (replacement-heavy)",
+    "mode3": "Cold compact view, descending duration input, cap1023 (replacement-heavy)",
+    "mode4": "Cold compact view, ascending duration input, cap50 (no-replacement control)",
+    "processPairs": 3,
+    "processOrder": [
+      [
+        "baseline",
+        "candidate"
+      ],
+      [
+        "candidate",
+        "baseline"
+      ],
+      [
+        "baseline",
+        "candidate"
+      ]
+    ],
+    "modeRotationByPair": [
+      0,
+      1,
+      2
+    ],
+    "queriesPerSample": 64,
+    "warmupSamplesPerModePerProcess": 1,
+    "measuredSamplesPerModePerProcess": 7,
+    "timedRegion": "Only Query/QueryView calls; result validation, hashing and destruction are outside each timed region. Each sample sums64 fresh-engine queries.",
+    "aggregation": "Per-query sample mean from64calls; pooled median of21 sample means per mode/variant, with all raw ranges and3 process medians retained.",
+    "allocationAccounting": "Sum requested C++ allocation calls/bytes over64queries; peak is maximum live query C++ bytes. No RSS/private/GPU claim.",
+    "pinning": "Each process requires successful one-processor affinity and verifies the resulting mask; exact mask in stderr metadata.",
+    "validation": "Every individual query matches an independent full-sort prefix/count oracle; signatures and allocation identities will also be checked across variants.",
+    "limitations": [
+      "Single host, three processes per variant; ranges are observations, not formal causal or statistical proof.",
+      "No CPU-frequency conversion or player comparison; wall time and C++ heap counters only.",
+      "OS/allocator overhead and process RSS are outside the allocation probe."
+    ]
+  }
+}

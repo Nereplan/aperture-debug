@@ -1,0 +1,25 @@
+================================================================================
+            Aperture Threat Boundary & Security Invariant Report            
+================================================================================
+Manifest:   docs\threat_boundaries_manifest.json
+Schema:     docs\threat_boundaries_manifest.schema.json
+Reference:  docs\THREAT_BOUNDARIES.md
+--------------------------------------------------------------------------------
+Status: VALID (All 12 threat boundaries verified successfully)
+
+--- Verified Security Boundaries ---
+  [01] updater_and_package_trust                | Symbols: 10 | Sources:  6 | Tests:  4
+  [02] same_user_ipc_and_automation             | Symbols: 10 | Sources:  4 | Tests:  1
+  [03] dll_loading_and_runtime_isolation        | Symbols:  5 | Sources:  4 | Tests:  3
+  [04] external_tool_execution                  | Symbols:  1 | Sources:  2 | Tests:  1
+  [05] network_streams_and_urls                 | Symbols:  3 | Sources:  4 | Tests:  2
+  [06] online_subtitles_service                 | Symbols:  5 | Sources:  4 | Tests:  1
+  [07] media_containers_and_playlist_parsing    | Symbols:  8 | Sources:  8 | Tests:  4
+  [08] portable_storage_and_root_containment    | Symbols: 11 | Sources:  7 | Tests:  5
+  [09] diagnostics_and_process_dumps            | Symbols:  5 | Sources:  3 | Tests:  2
+  [10] shell_registration_and_system_metadata   | Symbols:  2 | Sources:  4 | Tests:  1
+  [11] localization_and_mpv_configuration       | Symbols:  9 | Sources:  5 | Tests:  3
+  [12] ui_drag_drop_and_clipboard               | Symbols:  7 | Sources:  5 | Tests:  1
+
+Invariants: Portable-only containment, zero %APPDATA%/Registry state leakage verified.
+================================================================================

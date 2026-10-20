@@ -1,0 +1,5 @@
+Exception: C:\Users\Alperen\Desktop\Antigravity\Aperture Final\tests\benchmark\compare_players.ps1:368
+Line |
+ 368 |  … th $path) { throw "Supply a clean Aperture runtime without preexistin …
+     |                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+     | Supply a clean Aperture runtime without preexisting data.

@@ -1,0 +1,7 @@
+{
+  "recordedUtc": "2026-10-20T14:47:19.459624+00:00",
+  "status": "preflight-failed-before-player-launch",
+  "reason": "Cursor read/move preflight returned false. No workload output directory or player was created.",
+  "log": "hevc-hub-pruned-20261020.log",
+  "followUp": "Read-only desktop check found Default input desktop accessible. Explicit cursor move returned false with Win32 error0; no locked-desktop cause inferred. Launcher now leaves an already-safe cursor alone and still requires all sampled visibility guards."
+}

@@ -1,0 +1,13 @@
+{
+  "recordedAtUtc": "2026-10-20T20:14:58.327331+00:00",
+  "reason": "HEVC/AV1 original20s integer alignment produced one VLC terminal reading49s per workload; unchanged evaluator rejected the full batches for endpoint spread>1.1s. Raw launches/counters and failed qualification retained.",
+  "workloads": [
+    "hevc",
+    "av1"
+  ],
+  "change": "Only SamplingStartMediaSeconds20.5 instead of20.0. VLC integer get_time must reach21; Aperture reaches at least20.5. Half-second phase avoids positioning fractional Aperture endpoints just past an integer VLC endpoint boundary. Retain exact observed endpoints and unchanged1.1s match threshold.",
+  "fixedInputs": "Same frozen23fd026/78b59f runtime, VLC3.0.24 official runtime, SHA-verified fixtures, player defaults,1280x720 canvas, HubThenOpen3s, one warmup+three measured rounds/player, rotating order, seven snapshots/30s. No builds/tests/profilers during runs.",
+  "decisions": "Retain every attempted run. Do not select individual replacement runs, relax evaluator thresholds or replace saved raw batches. Repeated full batches qualify independently or remain rejected. H264 already qualifies and is not repeated.",
+  "qualifiedComparisonLimit": "Nominal media segments with integer-quantized VLC status; no identical per-frame/media timestamps, presentation or decoder equivalence claimed.",
+  "launcherSha256": "392381234addb259436fb69bc487724d522dddd11cb205f8a7a54bbdd44c1f10"
+}

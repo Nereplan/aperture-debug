@@ -1,0 +1,874 @@
+{
+  "recordedAtUtc": "2026-10-20T20:29:32.295540+00:00",
+  "sourceContentCommit": "c5397285b10d00222cea9f6a7c370a2758bccc56",
+  "productionSourceDirty": false,
+  "executableBytes": 3442176,
+  "executableSha256": "a65ef1873523afb9cacc7d3e3bd23d63cf6175f2e64703f8f04423bd614db229",
+  "sourceInventoryScope": "Post-build raw inventory of production sources/templates and CMake/version inputs; build started after committed source, with no intervening production edits. Full Git source commit is recorded, not a signed build attestation.",
+  "sourceFiles": [
+    {
+      "path": "CMakeLists.txt",
+      "bytes": 13902,
+      "sha256": "e483318cf3fbb5d778fab6aa4dfedf0c8f8d51ee63cc16f72b888012f77bf704"
+    },
+    {
+      "path": "version.json",
+      "bytes": 690,
+      "sha256": "2981b60b0178d70226916bfed6c257a107cd8b5b638854f59bd7c1d5e283482d"
+    },
+    {
+      "path": "src/Accessibility.cpp",
+      "bytes": 78502,
+      "sha256": "ac1502fc5948313e5456e4aa10d129eda0d85a399b4165d5aa37118b3544103f"
+    },
+    {
+      "path": "src/Accessibility.h",
+      "bytes": 18014,
+      "sha256": "9fcb62092a93ff04057caee94ffe7cab4bb2da4eb713859f7467c7cec7926117"
+    },
+    {
+      "path": "src/AnimationCurves.h",
+      "bytes": 5156,
+      "sha256": "1e8449b30910da903187b607046c87a5bbb9ab760387bdef28fa43db5571ee22"
+    },
+    {
+      "path": "src/App.cpp",
+      "bytes": 303666,
+      "sha256": "25c1a04e7df54a1fcc18f4b2f545fb5209cfeef0fba335d099888ababc4ce030"
+    },
+    {
+      "path": "src/App.h",
+      "bytes": 54596,
+      "sha256": "73bafb9536fd072ef00b8cc8319a74abd3ffe759ca7498359784fe59010012d3"
+    },
+    {
+      "path": "src/app.manifest.in",
+      "bytes": 1890,
+      "sha256": "7a3a2a0d5c24804b919ffdb1224738372daf3fbfa7b5f9b277b30512ff30fc36"
+    },
+    {
+      "path": "src/AppAccessibility.cpp",
+      "bytes": 131730,
+      "sha256": "64c64a11f8641be6ea0870ef45c96e9a38a45eb053ab917b12a0f00d8d1cac53"
+    },
+    {
+      "path": "src/AppDragDrop.cpp",
+      "bytes": 15022,
+      "sha256": "8ee527f7b0afa7eaf92c56f798f534bdafc92b5c79371b0d3ac6c5767d8e88c5"
+    },
+    {
+      "path": "src/AppFileOps.cpp",
+      "bytes": 14998,
+      "sha256": "c3b4535368ff2e543b00963591b3bbc343b8175f7165ccd0e25dd7d26c252ca0"
+    },
+    {
+      "path": "src/AppHover.cpp",
+      "bytes": 18901,
+      "sha256": "44b3635a9c2c0740910c6b6f035e5bb90539589c9f22ef800c781717d5619e37"
+    },
+    {
+      "path": "src/AppImportJobs.cpp",
+      "bytes": 18368,
+      "sha256": "a773b032375330c73d3c522e229a144ecf212e8dbb81a55f3a24b2077639661a"
+    },
+    {
+      "path": "src/AppIncludes.h",
+      "bytes": 1617,
+      "sha256": "15c017ee8a5dc65e8ab43cb8961c5df0014a6e2d81a49f862dc880155ea3c5d3"
+    },
+    {
+      "path": "src/AppInternals.h",
+      "bytes": 7839,
+      "sha256": "d524f78295d3faf9dcd77a3fbfd5ed867b183b500a4e5e48029d1c6475ec0578"
+    },
+    {
+      "path": "src/AppKeyboard.cpp",
+      "bytes": 96360,
+      "sha256": "255281b89efc7720da121af6117b2afc24305486b321d6547c928977bf1c08ea"
+    },
+    {
+      "path": "src/AppLayout.h",
+      "bytes": 6020,
+      "sha256": "a762e05d4178b7c77c0b853a6671b0cbb1339ea38538ac71d7b02d25217f8f54"
+    },
+    {
+      "path": "src/AppLibrary.cpp",
+      "bytes": 33849,
+      "sha256": "655c054fdcce86daaf85dbfa587eb2ee959ba6712c9907c60f42fc2fd3fc7498"
+    },
+    {
+      "path": "src/AppMenus.cpp",
+      "bytes": 108822,
+      "sha256": "8df823e3a65774871dd0c85217ba16bf7e9005662112581bf8377d21b2216339"
+    },
+    {
+      "path": "src/AppModals.cpp",
+      "bytes": 43151,
+      "sha256": "6dc1def72e75dd521ca07bf42923b224128c6edb861830092a268e44ffd72d12"
+    },
+    {
+      "path": "src/AppPersistence.cpp",
+      "bytes": 12400,
+      "sha256": "28160faf2620baa3a5ee87d295102725471714fc520ce63d3f720bfd1ae8f02f"
+    },
+    {
+      "path": "src/AppPlayback.cpp",
+      "bytes": 53774,
+      "sha256": "05fd66013dd97a2f99e8705573c37a75b0504df411a910badaaeb0620093eb7d"
+    },
+    {
+      "path": "src/AppSelection.cpp",
+      "bytes": 34340,
+      "sha256": "3d479de0eaea3ada5ae11173b7d5a8d6be6f48e40cc6c9685e57741429837127"
+    },
+    {
+      "path": "src/AppTooltips.cpp",
+      "bytes": 19205,
+      "sha256": "4de7ae184fca34f213bb3841fbef64a6053d727387996f98cd18629c483f490e"
+    },
+    {
+      "path": "src/AppTouch.cpp",
+      "bytes": 31772,
+      "sha256": "2d1605561c1c793e24ec52d3f82478f15de52a046f1a879328b73fd47264b57f"
+    },
+    {
+      "path": "src/AppViewModels.cpp",
+      "bytes": 79358,
+      "sha256": "fd92e094db13530e00b3935d15b07bc761de17a89d3ebde3d7ee4b3b29b4ad3f"
+    },
+    {
+      "path": "src/AsyncOwnedJob.h",
+      "bytes": 4097,
+      "sha256": "9ea84eafb2ef3d42e538b656d4b0c439206ca6633cb765ebad097d01c2f856f5"
+    },
+    {
+      "path": "src/AudioConfig.cpp",
+      "bytes": 8307,
+      "sha256": "a7693e40db68baa315d39a2899b6fa90fcf44feeaa2096a9f5f7ded2ab255e9c"
+    },
+    {
+      "path": "src/AudioConfig.h",
+      "bytes": 2697,
+      "sha256": "701e84ff3280a80d0fe357e093c8870a884f04c4cee41a792ecf00750f572f9c"
+    },
+    {
+      "path": "src/BackgroundPathAvailability.h",
+      "bytes": 8015,
+      "sha256": "1ee4970e3d62e396c0a3132b0214e91499302b06aae8b2ec43a2a451d7e7be0b"
+    },
+    {
+      "path": "src/BackupFiles.h",
+      "bytes": 7937,
+      "sha256": "580f1cdc995e422ef944308ff24a6e2c822b6770302823574e1bb3c5e36924ec"
+    },
+    {
+      "path": "src/CacheStorage.h",
+      "bytes": 31984,
+      "sha256": "2e750903c2d74d76e719942483e4afd76a1f75664abeb4cc6dd519f8d198396c"
+    },
+    {
+      "path": "src/ChannelPolicy.cpp",
+      "bytes": 11224,
+      "sha256": "81a8669253a0e67b9f2157fd3b6a307092eb6a2a7c3a071ce863553feb5216c3"
+    },
+    {
+      "path": "src/ChannelPolicy.h",
+      "bytes": 2496,
+      "sha256": "6fe60c3453db94398294770f5bc08d0b197af762e8417be5cf45e8dc14765a4c"
+    },
+    {
+      "path": "src/ChapterMarkerCache.h",
+      "bytes": 2256,
+      "sha256": "6ec3e34b3c156d0abac2fa3909d6a7cae871f6ef555d6749c38b24b16f75c25f"
+    },
+    {
+      "path": "src/CollectionAlgorithms.h",
+      "bytes": 820,
+      "sha256": "45a81c1dcf4c4c5134abb81ea28159bc2cbe95d20ac748fd433075b1ac485016"
+    },
+    {
+      "path": "src/ColorHelpers.h",
+      "bytes": 1660,
+      "sha256": "322692933ada4edc0527ea0d4228be0da35909ab340f864d2bc2fb5a774996ca"
+    },
+    {
+      "path": "src/CommandDispatcher.cpp",
+      "bytes": 50985,
+      "sha256": "2a2d51bc31b7df8b3a2fc15057bb943597405e5055b51398794690fd4d10b88d"
+    },
+    {
+      "path": "src/CommandDispatcher.h",
+      "bytes": 3932,
+      "sha256": "ba30af7d374838951fa259d8e4a587085108231942bf40c2ade0bd42cc219282"
+    },
+    {
+      "path": "src/Common.h",
+      "bytes": 628,
+      "sha256": "fdd8d2168e0e33b7201894aaff6ee67c0ae058aaf50bb084cd15a9e87cb26705"
+    },
+    {
+      "path": "src/CommonStrings.h",
+      "bytes": 847,
+      "sha256": "70e40ccc2628072875d0352032d9eb16da1f3b922a38a13c04f8963d0d564085"
+    },
+    {
+      "path": "src/Diagnostics.cpp",
+      "bytes": 15834,
+      "sha256": "d5389e770ef22df6721d320dc4cbec990bf5c1e8157cd35ef9e3c3260a6df909"
+    },
+    {
+      "path": "src/Diagnostics.h",
+      "bytes": 673,
+      "sha256": "2edc9e92442dba8b68aee45ef187f3cd10e9f9b20c37ee9f846bf998a8f96a79"
+    },
+    {
+      "path": "src/DllLoader.h",
+      "bytes": 2564,
+      "sha256": "da3f74140662411959a364b6cbc2ff6c99491c4a5a10c4d680448704917fbeb8"
+    },
+    {
+      "path": "src/DrawingPrimitives.h",
+      "bytes": 10975,
+      "sha256": "e0d13f09be10aa7db218f0f3094fcc9ae6af1d620be4dea35c85dae683179bfb"
+    },
+    {
+      "path": "src/Error.h",
+      "bytes": 1828,
+      "sha256": "368bf16a131db839ff012c1a6ff6d0f33b8cc22b515c6e142e8cdf8ff2d3e0f3"
+    },
+    {
+      "path": "src/FolderRediscovery.h",
+      "bytes": 12233,
+      "sha256": "3b3a7d382cb11a7ed807aa38ec9543325e160d83fa9f4d5bd1a488a82f1d36e4"
+    },
+    {
+      "path": "src/FolderWatcher.cpp",
+      "bytes": 21043,
+      "sha256": "1f80ca24b97c82396388c5fa938ee8905662a1a90b8527483b82ff7733df34f7"
+    },
+    {
+      "path": "src/FolderWatcher.h",
+      "bytes": 4330,
+      "sha256": "aa2a1f9b9c2c71b6853ba5e1bee7a99f06c214ccfc6d4602ea6c8891b89c7a30"
+    },
+    {
+      "path": "src/FontResources.h",
+      "bytes": 13285,
+      "sha256": "963d8a5e9ae664c68c9c120587bc9b12d9353df662bfd45eecadce459806a1de"
+    },
+    {
+      "path": "src/Formatters.h",
+      "bytes": 2127,
+      "sha256": "0b9faeaf41a99839d1313cb8bb698427690c50d6592fed707bb9dbff63f9400d"
+    },
+    {
+      "path": "src/GeometryHelpers.h",
+      "bytes": 625,
+      "sha256": "0e5ec34d2f6a69806e390b73571733c142ec9c91afc6f0f4cc51a4ee49fbf50a"
+    },
+    {
+      "path": "src/GlobalSearch.cpp",
+      "bytes": 34171,
+      "sha256": "442aba47b96a1819bf08b672539f3a2f7681659d3e936b46a9bd86896b68ff00"
+    },
+    {
+      "path": "src/GlobalSearch.h",
+      "bytes": 9912,
+      "sha256": "f2de236231e6add7acaa8199f5128d9513bdcf3a2c070f7428ce5bbb61ac8f5f"
+    },
+    {
+      "path": "src/HeapOptional.h",
+      "bytes": 2124,
+      "sha256": "0dde0b4470724b82dd69a38f18e1d51fb80f6039959535357d4a1e8403008238"
+    },
+    {
+      "path": "src/HttpBodyReader.h",
+      "bytes": 2881,
+      "sha256": "1d6d878a86a681ffa088c2679c4fb95ba28264f16e364860cce2520a1efc6dcd"
+    },
+    {
+      "path": "src/HttpTransport.cpp",
+      "bytes": 15897,
+      "sha256": "e835853191494b52afc2242108809a8e9e35af9374c676f2e372588caac955a1"
+    },
+    {
+      "path": "src/HttpTransport.h",
+      "bytes": 2886,
+      "sha256": "5825769fc75de98939d061ac6f6ed4ddc538711afbb86cf0227408046d2acc3a"
+    },
+    {
+      "path": "src/IconPaths.h",
+      "bytes": 6421,
+      "sha256": "820d7602184a541fc619aa5e1425f3df66837c5d4743b403a67551be12dfa76f"
+    },
+    {
+      "path": "src/ImportPlaybackIntent.h",
+      "bytes": 1361,
+      "sha256": "ef08c4213b749d110870bb014dca6877fa64a573d0892c8aa6bcb95c81b3d3bc"
+    },
+    {
+      "path": "src/IpcProtocol.h",
+      "bytes": 58221,
+      "sha256": "21578c4ac8c20c2110575df738ab0ce02cae97c1044a5a23a8230397b835dae7"
+    },
+    {
+      "path": "src/Json.cpp",
+      "bytes": 17495,
+      "sha256": "ab3c88eee43eff4517d37f56fd697aeead97a0b92509203825f26b01e68de04b"
+    },
+    {
+      "path": "src/Json.h",
+      "bytes": 4869,
+      "sha256": "336cfbfeaec773c82654c7ea42bc879abc90e7a91bdc9720d194c0fd2699eb5d"
+    },
+    {
+      "path": "src/JsonStoreValidation.h",
+      "bytes": 730,
+      "sha256": "1be3b1fe6a475dc8ee90e9e9e0355513841dbbf2f0b9c99f2af8654edab2ffbd"
+    },
+    {
+      "path": "src/LibraryIncrementalStore.h",
+      "bytes": 10380,
+      "sha256": "c6e89570c1d9dd03ad8f780a4bf5895b0c68f2c59fcb041d461f0af870936732"
+    },
+    {
+      "path": "src/LibraryQuery.cpp",
+      "bytes": 74554,
+      "sha256": "d27b4bfb01cc571c35a3c84c0fe37c8c1c798b5db051c00890807b7067062732"
+    },
+    {
+      "path": "src/LibraryQuery.h",
+      "bytes": 12310,
+      "sha256": "0697eff07805ca3117fa2fef7bc483da2ddaa3d180fc3d095d87c4f5b6e9725a"
+    },
+    {
+      "path": "src/LibrarySaveComparison.h",
+      "bytes": 3727,
+      "sha256": "a6aa06032c937633ae2f2e7b8435b0af832e8ced4c544b31dfccfb5e496c4b72"
+    },
+    {
+      "path": "src/LibrarySaveWorker.h",
+      "bytes": 7738,
+      "sha256": "e6b105660f27f9f6c7b721f39bf8a4740f298afbbb92132ba2a5b1f5cf2aba8e"
+    },
+    {
+      "path": "src/LibrarySnapshot.cpp",
+      "bytes": 3773,
+      "sha256": "63563d5136bb261e2375fa55b531803741a31db16923e49399296ed4c62301e4"
+    },
+    {
+      "path": "src/LibrarySnapshot.h",
+      "bytes": 2085,
+      "sha256": "42c42fd85677f66f70d9899c29b2a95d3e6bd2f94040fe4a16a4bba297949e7c"
+    },
+    {
+      "path": "src/Localization.cpp",
+      "bytes": 47338,
+      "sha256": "1f438a0c77b1eddb255716d0b75417f9abe2c1eeb65bd31b0a4804e5df27ad49"
+    },
+    {
+      "path": "src/Localization.h",
+      "bytes": 10984,
+      "sha256": "4e80c9bc09dc55d7f8fe77d03243fcb07ce592bab1de267562b2e44ac7333b38"
+    },
+    {
+      "path": "src/main.cpp",
+      "bytes": 29346,
+      "sha256": "6f172dd4fbbf4505ca38ad74cc64f7053f5f685dac066210cb86f000a884ea9a"
+    },
+    {
+      "path": "src/MediaFoundation.cpp",
+      "bytes": 2038,
+      "sha256": "42f2b5113ed88168c7b5f10ccea5a935fdda2a04a7042546b9329353360c680c"
+    },
+    {
+      "path": "src/MediaFoundation.h",
+      "bytes": 1591,
+      "sha256": "0284dc46701b556a08b75022d28120dcd9e2bf787037f96f3fdfae52a0190a7c"
+    },
+    {
+      "path": "src/MediaImportProbeCache.h",
+      "bytes": 4571,
+      "sha256": "90b768aa2cac842019ff27a75a43658e55886dde38cf04e26e064f039b6d9fa9"
+    },
+    {
+      "path": "src/MediaLibrary.cpp",
+      "bytes": 170545,
+      "sha256": "36ff30b4e7cc12190408e96eeb082bf3f5df6a36b29c0ea6c78fef07cb25fc62"
+    },
+    {
+      "path": "src/MediaLibrary.h",
+      "bytes": 33185,
+      "sha256": "4eca5e7fef9c92ce0a650417e3b80db02df7f72aa40ae2711ca19d186708f7d6"
+    },
+    {
+      "path": "src/MediaProbeIsolation.cpp",
+      "bytes": 20305,
+      "sha256": "90ec46fddf7341911cbea1365c0f9052edb2e59378336a4464f94f62538ddc79"
+    },
+    {
+      "path": "src/MediaProbeIsolation.h",
+      "bytes": 2514,
+      "sha256": "305346ab7e238dd9cf3aaddca26f67a7cb9a0fad57ad3452573655fd86ec7baa"
+    },
+    {
+      "path": "src/MediaTransport.cpp",
+      "bytes": 15933,
+      "sha256": "3a9878abfaa865a70957d5eb517c644d8b78e3d880cbca311903a2d0738d9dac"
+    },
+    {
+      "path": "src/MediaTransport.h",
+      "bytes": 4533,
+      "sha256": "ec41313ae4a8d5e433ebaad031208b6a50d3228ced090d8a82eb03413476fc6c"
+    },
+    {
+      "path": "src/MetadataBackfillCursor.h",
+      "bytes": 1540,
+      "sha256": "399da0978152ba58a77f880f2a3c3294f4abeece25fc45a7d8b4ef1bd8ee05c0"
+    },
+    {
+      "path": "src/MpvApi.h",
+      "bytes": 7964,
+      "sha256": "a85a2f8c6959f7bb1f4266b6d906a6b7f3b3dd71e81e3d0e5ca77f46b7c425d1"
+    },
+    {
+      "path": "src/MpvPlayer.cpp",
+      "bytes": 119635,
+      "sha256": "0de7bd6b77c913dec87956617f44a174e713afca4ea258399fb405085bff7186"
+    },
+    {
+      "path": "src/MpvPlayer.h",
+      "bytes": 20188,
+      "sha256": "f0913c2b006b11b2d23de76f432c72d3bce733aab8c42513f02b8cb34acb104d"
+    },
+    {
+      "path": "src/NetworkStream.cpp",
+      "bytes": 24121,
+      "sha256": "c6276aeb1f7f0229e782fa05bd6a5762aeec274900b3fd699e05fb8763912a7e"
+    },
+    {
+      "path": "src/NetworkStream.h",
+      "bytes": 4047,
+      "sha256": "e5e0f117047d26df00729230405667b0e9cd662130225e31def0af74725ce47c"
+    },
+    {
+      "path": "src/OnlineSubtitleJobs.h",
+      "bytes": 4145,
+      "sha256": "8977d10fb2f97a57c1fb859efe2d50bb38c8a260f2ff59abb8d93db0a74775d9"
+    },
+    {
+      "path": "src/OnlineSubtitles.cpp",
+      "bytes": 24276,
+      "sha256": "bed718c5e6163db8c1bf72d52b565683dbdfca2a34c15c2bb1e8d6aa39801b06"
+    },
+    {
+      "path": "src/OnlineSubtitles.h",
+      "bytes": 4695,
+      "sha256": "2d4bfe996d530010a86434d93ef6cddd3599316d76c89722807096680bf715e1"
+    },
+    {
+      "path": "src/OperationCancellation.h",
+      "bytes": 1155,
+      "sha256": "7f96042ed1d8e602ba42bad091e362794f3b3ae9f76988b6a61172b687e30cac"
+    },
+    {
+      "path": "src/OverlayFramePacer.h",
+      "bytes": 1760,
+      "sha256": "4753e51ae1a2b7004d0af0001d5a47353bf44770be67d3fbd4c7226504cf8849"
+    },
+    {
+      "path": "src/OverlayRenderer.cpp",
+      "bytes": 30780,
+      "sha256": "58ff2c8cdd7e09e02a7bf27dd2c184e2f1ccd920b94a087981fa6d2557708493"
+    },
+    {
+      "path": "src/OverlayRenderer.h",
+      "bytes": 8246,
+      "sha256": "703a8b5414b4804f037929019486b219651942959b13eaeef1fabc5af252201b"
+    },
+    {
+      "path": "src/PathFileHelpers.h",
+      "bytes": 20344,
+      "sha256": "cdbe61a42c67c52e75dfeac552cd920d947a03eaf432b8e762796532ba202374"
+    },
+    {
+      "path": "src/PlaybackFlyoutLayout.h",
+      "bytes": 2913,
+      "sha256": "e2243ef89abc8a7602abc1ab5c436157b47a199883d241614597d3ff1b96efc5"
+    },
+    {
+      "path": "src/PlaybackScaling.h",
+      "bytes": 882,
+      "sha256": "357d242d73bd742d4c71b9eed1b47cfa333f16f734df4eff0878d77100f78e82"
+    },
+    {
+      "path": "src/PlaybackSession.cpp",
+      "bytes": 34948,
+      "sha256": "5fc867c45c893e6894bb8e74004b19a75746fedd553ac2e3c527e0ddbb09a284"
+    },
+    {
+      "path": "src/PlaybackSession.h",
+      "bytes": 8441,
+      "sha256": "b69bdabfc23de5f6a75ee5a65bfd2feda75853a328dca70b6d7d82cff81c755d"
+    },
+    {
+      "path": "src/PlaybackTarget.h",
+      "bytes": 925,
+      "sha256": "d996ea685aab61925e72c47704facb1949f0185be4ce1621530c1566c4a11eae"
+    },
+    {
+      "path": "src/PlaylistIO.cpp",
+      "bytes": 38958,
+      "sha256": "c26d3189f2e54612a2adad41b718d1e4f6925db5a536c0ca21bde2637d3f199c"
+    },
+    {
+      "path": "src/PlaylistIO.h",
+      "bytes": 7873,
+      "sha256": "649a4069e5b50709160a6d0f027c8bf0e81bdd4b73ef0a4316dc8ebdd2cb0ab2"
+    },
+    {
+      "path": "src/PreparedSmartPlaylist.h",
+      "bytes": 9722,
+      "sha256": "a082e2f4c74ab832ebb1371dffbecdb30cdaf598e64cb3d63533946071c7d6f2"
+    },
+    {
+      "path": "src/Presentation.h",
+      "bytes": 10555,
+      "sha256": "cc722724bce28956796918ba059d1ff5c5582102e550522557104ae27107dada"
+    },
+    {
+      "path": "src/Renderer.cpp",
+      "bytes": 91523,
+      "sha256": "741d120e6527341424858d9bd9a78d7b9d4ad1bcbaf09f7ab3bdfd415ad86952"
+    },
+    {
+      "path": "src/Renderer.h",
+      "bytes": 24052,
+      "sha256": "70c11f9e67240d818dab1987bd4d510a46c227cdd4a49044fbb4aa86b3dcd646"
+    },
+    {
+      "path": "src/RenderViewModel.h",
+      "bytes": 26156,
+      "sha256": "78b4128a3aa42201aa25275e58ccd33be50d7caadda1804a5c10e995640fc4d9"
+    },
+    {
+      "path": "src/Reorder.h",
+      "bytes": 2389,
+      "sha256": "930fcdb38ecd62ce2dbf3e5fc7549f478ec01c92a5652585178412c47f5661db"
+    },
+    {
+      "path": "src/resource.h",
+      "bytes": 94,
+      "sha256": "621f5504a7b21255dd2c728e9135f75ee6cbcf109b232b299af660482aaf6cf8"
+    },
+    {
+      "path": "src/resources.rc.in",
+      "bytes": 1298,
+      "sha256": "c6617f82bab560c6e03f7afc4dbe171e0f740d0284a00bdf1cf07c720b450370"
+    },
+    {
+      "path": "src/ScreenshotPaths.h",
+      "bytes": 8764,
+      "sha256": "003fa03c71cd11fa4945cef8816424c722ddf8bb49231f8f676c721084dbe9a8"
+    },
+    {
+      "path": "src/Settings.cpp",
+      "bytes": 69109,
+      "sha256": "8d669c3da22c9ec9cbe6dc7093364cd7135697b80d4e8f37067afa19e008c431"
+    },
+    {
+      "path": "src/Settings.h",
+      "bytes": 12353,
+      "sha256": "a3f8300faa6ac627b7d4f7e2afc5b07533011f3b6ee33246846e11adced9f5ae"
+    },
+    {
+      "path": "src/SettingsLayout.h",
+      "bytes": 3286,
+      "sha256": "0a5eaf36e0821a728d6e46ea77fae16b5fa125037658a0389ce180d10ea57fed"
+    },
+    {
+      "path": "src/SmartRuleParsing.h",
+      "bytes": 3665,
+      "sha256": "301b713dae4401298170aabf9156a733801b2ad7f9d6fd4ec1f250acf8d879f3"
+    },
+    {
+      "path": "src/SnapshotRecords.h",
+      "bytes": 1889,
+      "sha256": "617ee08fcd38b21ff3eb9c2df8a14904f0d1f0949856ccd01fae3863f3d1fd08"
+    },
+    {
+      "path": "src/SplitIrisMenuLayout.h",
+      "bytes": 2746,
+      "sha256": "87a491d1101bb690b2b45d73d3c49f13bbc9684bfcb036fb585d50870f0a0532"
+    },
+    {
+      "path": "src/StorageLimits.h",
+      "bytes": 132,
+      "sha256": "209f657d69f2f7096563aa6be16f977dfd83765ce4ba276429208ea7d9831e7e"
+    },
+    {
+      "path": "src/StorageStatus.h",
+      "bytes": 1472,
+      "sha256": "955a7bde83bb413940327d6c72ff6b67ec4552d38e8bc39c37386f6a1f62088e"
+    },
+    {
+      "path": "src/SubtitleDiscovery.cpp",
+      "bytes": 27352,
+      "sha256": "fdf7cd8f1a449c6043fcca1c4b35279c1b715cd70ad7a7ce688031f2d9ebfc19"
+    },
+    {
+      "path": "src/SubtitleDiscovery.h",
+      "bytes": 3398,
+      "sha256": "a007b5f91dab2895603523f23775d5e3ec2caed3160fac02cc76915572abf3e4"
+    },
+    {
+      "path": "src/Subtitles.cpp",
+      "bytes": 28531,
+      "sha256": "111434d75adbe3f9c569aaf5604577145d75417a84f8eac39c86c1311c41e593"
+    },
+    {
+      "path": "src/Subtitles.h",
+      "bytes": 4983,
+      "sha256": "05027bee29b5ec0d8505395cc429cd6b534de0ef5334a08502535bb1d06e5bd7"
+    },
+    {
+      "path": "src/SvgGeometry.h",
+      "bytes": 6463,
+      "sha256": "8ce01bd4b5e4f56edffef2b8094169138f79519acb129b15546432b50f88a437"
+    },
+    {
+      "path": "src/SystemVisualPreferences.cpp",
+      "bytes": 4784,
+      "sha256": "a170fdb466ee33684dd2d3f48969e9f07f4aa35ce2e7d14b4ffff80c000544eb"
+    },
+    {
+      "path": "src/SystemVisualPreferences.h",
+      "bytes": 2966,
+      "sha256": "e42b44615c00806c214e403b67f9f7b15eba80b527efe10465068650087acaca"
+    },
+    {
+      "path": "src/TaskbarController.cpp",
+      "bytes": 14839,
+      "sha256": "31bc5c153b2ce56d8af6c6f681191d5d2620b20b462c5aa7243cdf174b73dc61"
+    },
+    {
+      "path": "src/TaskbarController.h",
+      "bytes": 4099,
+      "sha256": "f0f7537672d819500bb3198151943261935a899a3fe13246c1ea0cbe93173fcd"
+    },
+    {
+      "path": "src/TextInputModel.cpp",
+      "bytes": 15981,
+      "sha256": "7c5ec9f1fab48291c674dfea3b9f8317ad4234ff2e564efecd171d3f77dd9053"
+    },
+    {
+      "path": "src/TextInputModel.h",
+      "bytes": 5874,
+      "sha256": "45a8ee3d477d75f841378277fb332ae26111cbef2681c35bbcd926842688130d"
+    },
+    {
+      "path": "src/ThumbnailCodec.h",
+      "bytes": 10405,
+      "sha256": "58e5798d4c521dca17ed2ad755c673c10fe8ec49eee2e967e65930b3f1949432"
+    },
+    {
+      "path": "src/ThumbnailMigration.h",
+      "bytes": 5141,
+      "sha256": "62632ec0e6aae9191e72b6d507b98b5f2aeb8753a785ce4d15dd6f0372b2cdd6"
+    },
+    {
+      "path": "src/TooltipManager.cpp",
+      "bytes": 14523,
+      "sha256": "d788bf147f288010bc4605a0fda755bb2e5fde381feed734dfaa2c8c47bc2f1b"
+    },
+    {
+      "path": "src/TooltipManager.h",
+      "bytes": 3051,
+      "sha256": "9ce8fd73b1fa109436eca0e7b8e56b9a0ffbf814490277b38e0a3a860aed7222"
+    },
+    {
+      "path": "src/TouchInput.h",
+      "bytes": 8984,
+      "sha256": "96262726a6e46a6111576b5116cc99025eed7ce24c0baaccad1476a699fd6523"
+    },
+    {
+      "path": "src/UIComponents.cpp",
+      "bytes": 287787,
+      "sha256": "2737d9a6fb952f59438281ab7e41f7e4ae261e4886afc2a231e07b853f34edb6"
+    },
+    {
+      "path": "src/UIComponents.h",
+      "bytes": 5603,
+      "sha256": "a8c83cab0a4bc04b9f44c76f42d65ee54735229118bfe4e4f6bcc661d04f6f6c"
+    },
+    {
+      "path": "src/Updater.cpp",
+      "bytes": 61562,
+      "sha256": "842037f4afe1a36043b1aa36f28b85d1fd883850e3885923a2ecc832bca334da"
+    },
+    {
+      "path": "src/Updater.h",
+      "bytes": 8309,
+      "sha256": "ddb40e6275c6914ef7ff1b9e59e88852f03ddcbe2decd80e4b171f48aaedff12"
+    },
+    {
+      "path": "src/Version.h.in",
+      "bytes": 2734,
+      "sha256": "036c0c50ab822df1a223dec515a9f40252050108360e31ba74f6982376977b96"
+    },
+    {
+      "path": "src/WatchReconcile.h",
+      "bytes": 19361,
+      "sha256": "06a00ba2d10f8781ddd66df602721671f2487e9516c0ef90e465f34ff1739fa3"
+    },
+    {
+      "path": "src/Win32IoCancellation.h",
+      "bytes": 1102,
+      "sha256": "ca87f73888d4804cd4885e34b9c57dc7ca7daa4090ed3a4ab67310b37f442ef2"
+    },
+    {
+      "path": "src/WindowGeometry.h",
+      "bytes": 1316,
+      "sha256": "68886df7f4416026b934c8df1b8008b58c5a173903c059a64b7c38b3d6509e8e"
+    },
+    {
+      "path": "src/WinHttpAsyncRequest.h",
+      "bytes": 4786,
+      "sha256": "414ab475fbe929265a8c81ce46eac40580c85fd69b8832f6f7eed5757310e113"
+    }
+  ],
+  "changes": {
+    "buildInfoPruning": {
+      "productionAndBuildNetLinesRemoved": 715,
+      "testNetLinesRemoved": 471,
+      "totalNetLinesRemoved": 1189
+    },
+    "effect": "System page no longer probes root writability or discovers the graphics adapter to display a version. Disconnected BuildInfo and diagnostic report/export subtree removed. Unread heartbeat string and its per-App::Update mutex removed afterward; watchdog timestamp/reset flags remain."
+  },
+  "validation": [
+    {
+      "name": "Full local PR gate",
+      "passed": 23,
+      "total": 23,
+      "durationSeconds": 351.7,
+      "sourceContentCommit": "eab4b8a",
+      "scope": "Full cleanup before subsequent heartbeat API simplification and fractional harness change. Retained file is central runner summary; child native console streams were observed in tool outputs, not captured by this redirection. Static analysis compiled/analyzed49translation units, no new warnings/errors. Portable geometry remains opt-in; passing PR tier is not visible UI/audio/quality verification.",
+      "evidence": "pr-gate-summary.txt"
+    },
+    {
+      "name": "Heartbeat follow-up diagnostics",
+      "status": "pass",
+      "sourceContentCommit": "b0d97fc",
+      "scope": "Native log/startup resource report/live dump writer/crash dump checks plus threat-boundary verifier passed; this is focused follow-up, not a repeated full gate.",
+      "evidence": "heartbeat-focused.txt"
+    },
+    {
+      "name": "Release application and package",
+      "status": "pass",
+      "scope": "Full GUI source compiled/linked with final heartbeat call signatures; all10packaged payload lengths/SHA256verified. New executable11.5KiB smaller than previous23fd026 measured EXE. No playback performance measurement for this new executable.",
+      "evidence": "release-build.txt"
+    },
+    {
+      "name": "Rival contract checks / two PowerShell hosts",
+      "status": "pass",
+      "sourceContentCommit": "c539728",
+      "scope": "45Python evaluator,6identity/alignment,36readiness and28color contracts each host. Host repetitions overlap; no players/capture. Initial test used an inaccessible exception type and failed; corrected public binding-exception test passes both hosts.",
+      "evidence": "fractional-contracts-pwsh7.txt"
+    },
+    {
+      "name": "Maintenance probe correctness",
+      "passed": 6,
+      "total": 6,
+      "scope": "Current benchmark compiles after retired removal metadata API. One invocation validates3direct library removal modes, cache index and2eviction modes. CSV times are incidental, not new comparative evidence.",
+      "evidence": "maintenance-correctness.csv"
+    }
+  ],
+  "repeatPlanAddendum": "Before any corrected visible repeat, SamplingStartMediaSeconds was changed from int to double with double range bounds; otherwise20.5 could round to20. Actual public parameter binding and invalid fractional/nonfinite positions pass on PowerShell7/5.1. Existing evaluator1.1s match threshold remains unchanged. Repeat plan uses previous frozen23fd026 runtime, not this new executable.",
+  "limits": "New binary is built/packaged but not visibly compared. Qualified H264 resources remain the earlier frozen23fd026 observation. HEVC/AV1 old batches and color cursor failure remain rejected. Overall Aperture superiority remains unproven.",
+  "files": [
+    {
+      "path": "pr-gate-summary.txt",
+      "bytes": 7026,
+      "sha256": "55239d27cc0613dfd5133573b445fc27c79d8ef7eba72b4c5b0d6ca3b7b87def",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\dead-buildinfo-pr-gate-20261020.txt"
+    },
+    {
+      "path": "diagnostics-before-heartbeat.txt",
+      "bytes": 243,
+      "sha256": "a0d62b70a1d89424af366960ad836990da553c7117269f2cdb19a5c57b5ec104",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\dead-buildinfo-diagnostics-20261020.txt"
+    },
+    {
+      "path": "heartbeat-focused.txt",
+      "bytes": 243,
+      "sha256": "a0d62b70a1d89424af366960ad836990da553c7117269f2cdb19a5c57b5ec104",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\heartbeat-focused-20261020.txt"
+    },
+    {
+      "path": "heartbeat-boundaries.txt",
+      "bytes": 1814,
+      "sha256": "9b8339761afae3e84364bf71fa560fc1b8e1288b14cb3ffda1785dd6e2c90c64",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\heartbeat-boundaries-20261020.txt"
+    },
+    {
+      "path": "fractional-contracts-first-failure.txt",
+      "bytes": 149,
+      "sha256": "18d90c9c7430d61d082c1cd4fc9b2bd8c3aa0e0b7a664d6effaac165724ae9ef",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\fractional-rival-contracts-pwsh7-20261020.txt"
+    },
+    {
+      "path": "fractional-contracts-pwsh7.txt",
+      "bytes": 4188,
+      "sha256": "14ed304ca17d7a60728531eff53b8d1ab5e90ac8d9b91547ea2226e915a35a22",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\fractional-rival-contracts-pwsh7-fixed-20261020.txt"
+    },
+    {
+      "path": "fractional-contracts-ps51.txt",
+      "bytes": 4188,
+      "sha256": "fa34740466f76de5a2020312cf6af00cb5e93579d5afdb58651cf6478846cebc",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\fractional-rival-contracts-ps51-20261020.txt"
+    },
+    {
+      "path": "release-build.txt",
+      "bytes": 3267,
+      "sha256": "c7117c903bbfa8c277f3bf32bbcaa163d7768743f8a8dbd0741f8535f8b01efa",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\candidate-after-prune-build.txt"
+    },
+    {
+      "path": "package.txt",
+      "bytes": 402,
+      "sha256": "d68d0557026836f05ae71a285bba93fc1978665605eec251bbb067112e6dad49",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\candidate-after-prune-package.txt"
+    },
+    {
+      "path": "package-manifest.json",
+      "bytes": 2200,
+      "sha256": "1333ac161da0fabe17f53011adb89bf2234e9320db9261b1beb0f4736041eb0c",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\candidate-after-prune-runtime\\manifest.json"
+    },
+    {
+      "path": "maintenance-build.txt",
+      "bytes": 328,
+      "sha256": "d774cee81d0964ef0c5f1e78fd6cc67ac4378c04e79cc5bc1c2f2c8d5c36b1c8",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\maintenance-current-20261020\\build.txt"
+    },
+    {
+      "path": "maintenance-correctness.csv",
+      "bytes": 585,
+      "sha256": "1c15f9761824d4ce39e8baf406a98b5f7023860467dc0b728a925d2ed9e59509",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\maintenance-current-20261020\\validation.csv"
+    },
+    {
+      "path": "halfsecond-alignment-plan.json",
+      "bytes": 1449,
+      "sha256": "4846dd0b4751d8f1192b6ea39002198ef03faaadd9da2461cfcd24f91b53e2ab",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\halfsecond-alignment-plan.json"
+    },
+    {
+      "path": "halfsecond-resource-launcher.ps1",
+      "bytes": 3038,
+      "sha256": "392381234addb259436fb69bc487724d522dddd11cb205f8a7a54bbdd44c1f10",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\run-resource-halfsecond-qualified.ps1"
+    }
+  ]
+}

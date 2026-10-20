@@ -1,0 +1,1 @@
+verified_affinity_mask=1;mode_rotation=2;queries_per_sample=64;warmup_samples=1;measured_samples=7

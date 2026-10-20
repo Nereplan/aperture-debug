@@ -1,0 +1,247 @@
+{
+  "schemaVersion": 1,
+  "packagedAtUtc": "2026-10-20T20:18:26.537576+00:00",
+  "decision": "rejected; no code accepted",
+  "originalScratchDirectory": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-flat-sift-20261020",
+  "filesCopiedWithoutModification": [
+    {
+      "path": "flat_sift_probe.cpp",
+      "bytes": 6658,
+      "sha256": "58d34f1b0c9d0cf4449d0e14b4464db6793b4a48eead39706354e096779ae75b"
+    },
+    {
+      "path": "AllocationProbe.h",
+      "bytes": 1438,
+      "sha256": "13e18817dfaf4f761394aed84bf22cfb296cae8ae91c6048e3416b8aa6823e82"
+    },
+    {
+      "path": "independent_oracle.cpp",
+      "bytes": 2202,
+      "sha256": "f46129a539f78dade2c16d6d72d64c4cc86319acf8c2b4b19d90f78324bcf6ec"
+    },
+    {
+      "path": "tests/unit/TestLibraryQuery.h",
+      "bytes": 60548,
+      "sha256": "ad1fbeece4e5c8215b65cfdb0625558e84d65a0902c1524ad8aeb7fde5fc2102"
+    },
+    {
+      "path": "tests/support/TestFramework.h",
+      "bytes": 6060,
+      "sha256": "e503ca6ede9aaaa4fa58700ca4ee4f6e626e6101d69de02d0d3c7cfbb92b942b"
+    },
+    {
+      "path": "tests/support/TestRunner.h",
+      "bytes": 4302,
+      "sha256": "9268037a7470557645ae0d6d7e16bbbc6702dad8d8c3dfd23bfea9df3b9b97f3"
+    },
+    {
+      "path": "tests/support/TestTempDir.h",
+      "bytes": 4366,
+      "sha256": "49ce883a027d565a026c0c876f5c4eb70c081c11cf724bcff0376ac40f99044f"
+    },
+    {
+      "path": "baseline-src/LibraryQuery.cpp",
+      "bytes": 74554,
+      "sha256": "d27b4bfb01cc571c35a3c84c0fe37c8c1c798b5db051c00890807b7067062732"
+    },
+    {
+      "path": "candidate-src/LibraryQuery.cpp",
+      "bytes": 74899,
+      "sha256": "fe3dc8132851df7559b68c27a4a4d6049c1a3176fb749d3a30c3cba93e6ce806"
+    },
+    {
+      "path": "source-freeze.json",
+      "bytes": 24183,
+      "sha256": "0518a3ce1cc94720f4ba45a767ded204ac505ebef170b7d9cfb6738c00c3a065"
+    },
+    {
+      "path": "pre-timing-manifest.json",
+      "bytes": 56926,
+      "sha256": "a2e2fcbee1afcf2ae7b66adf24e613df1ceb9999b8bd1fac1a20670d00022b59"
+    },
+    {
+      "path": "environment.json",
+      "bytes": 402,
+      "sha256": "600aff2541746264de1a508b9c7da2f4da57afbeeceb0e6b855a38abb8c992f6"
+    },
+    {
+      "path": "toolchain.json",
+      "bytes": 998,
+      "sha256": "24f8d6621b2b39c04fdcef608d08bf626506637c6b8a2aa94969d761220be293"
+    },
+    {
+      "path": "comparison.json",
+      "bytes": 10154,
+      "sha256": "b5fbf74c040235ea82edff91fe17d63523e14a9c67b14c0cc3044677647d9a3a"
+    },
+    {
+      "path": "disposition.json",
+      "bytes": 14922,
+      "sha256": "f2dc9e995778ce918bc4c5e0ba8ae6879d23ec76b959eaa6bd9e07319b95d393"
+    },
+    {
+      "path": "rejected-candidate.diff",
+      "bytes": 1597,
+      "sha256": "f4cfb246be951ef3cb5cf424627302fcc3920f56fce2f5e8c2fd3d35ec4c165c"
+    },
+    {
+      "path": "build.ps1",
+      "bytes": 4343,
+      "sha256": "ef656c5c04cbada858a4e68861edd2f1101461d1350b0df18d3b4ba750caee9d"
+    },
+    {
+      "path": "build.cmd",
+      "bytes": 1377,
+      "sha256": "564590880158ffe016fc5df3321458675ead685c259729a862218ea0611ca603"
+    },
+    {
+      "path": "build.log",
+      "bytes": 276,
+      "sha256": "7f20fcc0d7a172416d68dca36374be79d75ac0c2a7a75174112d70fe7d570f43"
+    },
+    {
+      "path": "compile-common.rsp",
+      "bytes": 1616,
+      "sha256": "4b8f91e21041df5b222868bc2ce727db23cfc591c77f4d71fa1e84ccfc432ee7"
+    },
+    {
+      "path": "compile-baseline.rsp",
+      "bytes": 408,
+      "sha256": "e96f258a1a4508f715d474361e6dabe76c36b0937b9b63e70dba855677618f43"
+    },
+    {
+      "path": "compile-candidate.rsp",
+      "bytes": 410,
+      "sha256": "5baa231b5e5311a62162259852ef13a581a60705687425f9904c8419ec7bb5a5"
+    },
+    {
+      "path": "link-baseline.rsp",
+      "bytes": 1718,
+      "sha256": "07ffd7c2bbd57d5e6c469c78ae907674248d29126d07b90a2b81b4809af4a36f"
+    },
+    {
+      "path": "link-candidate.rsp",
+      "bytes": 1720,
+      "sha256": "261d00cb0a1d6f38cb5b260270c78ea5a90185d137052bab0c37a00626814fb2"
+    },
+    {
+      "path": "build-oracle.cmd",
+      "bytes": 373,
+      "sha256": "d2a1402ad5aa9dd7fc9d24b8dcd8cd48b71b4f7639ad60c73c9083447ce97456"
+    },
+    {
+      "path": "oracle.rsp",
+      "bytes": 1908,
+      "sha256": "0b4f042ca04b5b5d675503b671121af8bf8fac3ce1495cc96a50cad81a01cb5b"
+    },
+    {
+      "path": "oracle-build.log",
+      "bytes": 104,
+      "sha256": "ed26f8913167e191d585997c1da616da16a47a4bd065af24265f1aaef56e0673"
+    },
+    {
+      "path": "oracle-tests.log",
+      "bytes": 358,
+      "sha256": "7d4f458e1734cc7ef5edf80a980fe825f1d80ea3250b455e63b6fdb02baa7207"
+    },
+    {
+      "path": "measure.py",
+      "bytes": 4451,
+      "sha256": "6ec2aa25e67c1e77d19f065cd933978a2db139ea5ba4310afd62b0c31d2d1c45"
+    },
+    {
+      "path": "baseline-pair1.csv",
+      "bytes": 2849,
+      "sha256": "42d7f37050d5d90c8bb74599021878288c0f6842af9c45681529b0fd372e177d"
+    },
+    {
+      "path": "baseline-pair2.csv",
+      "bytes": 2849,
+      "sha256": "dd877ebee0e68ee431d6c611e51d45bee7dbf4701927a1896385ee19c380e706"
+    },
+    {
+      "path": "baseline-pair3.csv",
+      "bytes": 2849,
+      "sha256": "0332e38d7633133f1ead4ffa995ded77f88525db20585a76b38d3de655781dae"
+    },
+    {
+      "path": "candidate-pair1.csv",
+      "bytes": 2849,
+      "sha256": "42c6b501375fa522ae4c73d043c3aa4da457cd715de50668156a4cfd317c2989"
+    },
+    {
+      "path": "candidate-pair2.csv",
+      "bytes": 2849,
+      "sha256": "49994d75a6b748cdacf9bc976a0c26c6c63cd28b5864f43ae3d9082d459ba718"
+    },
+    {
+      "path": "candidate-pair3.csv",
+      "bytes": 2849,
+      "sha256": "931ddd4dbd5ad1d341b48a455b40abb78366f622692f1b73f727244101b562c0"
+    },
+    {
+      "path": "baseline-pair1.stderr.txt",
+      "bytes": 100,
+      "sha256": "f7f8f9603a9913935eff361efc318649acaf114a6fe4fbc1ac866b8b2a72e3bb"
+    },
+    {
+      "path": "baseline-pair2.stderr.txt",
+      "bytes": 100,
+      "sha256": "88a202971b0cdc161b36ecbe616e21a9fc178b58f9504d6496c543bc4f148d91"
+    },
+    {
+      "path": "baseline-pair3.stderr.txt",
+      "bytes": 100,
+      "sha256": "d6af8dd2b963c8921a48af67eafb63401a55dc72a630af775e6ed6be86c0ffc7"
+    },
+    {
+      "path": "candidate-pair1.stderr.txt",
+      "bytes": 100,
+      "sha256": "f7f8f9603a9913935eff361efc318649acaf114a6fe4fbc1ac866b8b2a72e3bb"
+    },
+    {
+      "path": "candidate-pair2.stderr.txt",
+      "bytes": 100,
+      "sha256": "88a202971b0cdc161b36ecbe616e21a9fc178b58f9504d6496c543bc4f148d91"
+    },
+    {
+      "path": "candidate-pair3.stderr.txt",
+      "bytes": 100,
+      "sha256": "d6af8dd2b963c8921a48af67eafb63401a55dc72a630af775e6ed6be86c0ffc7"
+    },
+    {
+      "path": "baseline-pair1.json",
+      "bytes": 518,
+      "sha256": "038a305601db48af30b9e2437b5e0f0d90cafb9cde6d5b0906b825bcf18cea3f"
+    },
+    {
+      "path": "baseline-pair2.json",
+      "bytes": 518,
+      "sha256": "bdc7bf78e76b6824e4e3c756a355b57f46f09eaa99db4e750b3477276364cefa"
+    },
+    {
+      "path": "baseline-pair3.json",
+      "bytes": 518,
+      "sha256": "7127ca514adb95abfcf73ad6bb67afde922253decf40d59c51b64e001be420e4"
+    },
+    {
+      "path": "candidate-pair1.json",
+      "bytes": 520,
+      "sha256": "7631b6e0e6269b66b92a40e59b8b6f31fcb74864ece0e6a922ea2aa43419bdd5"
+    },
+    {
+      "path": "candidate-pair2.json",
+      "bytes": 520,
+      "sha256": "327158b68cdb87ab2cfb7f90b511d3226da880bf2cdeda48bedb8e9be3171446"
+    },
+    {
+      "path": "candidate-pair3.json",
+      "bytes": 520,
+      "sha256": "5aea6994b383d7bdd538970b7d25e282f711921909f3e0a5bd18d8a1c210fd9f"
+    }
+  ],
+  "copiedBytes": 384079,
+  "externalOnlyArtifacts": "Full frozen source trees, common/variant object files and executables remain in the original scratch directory. The contemporaneous pre-timing manifest identifies their exact bytes. This compact bundle preserves both complete LibraryQuery variants, probe/oracle sources, build commands/response files, compiler identity, all raw timing rows and all output/validation hashes.",
+  "sourceBoundary": "Only LibraryQuery.cpp differs between source variants. Both links reuse identical common production and probe objects compiled against the same frozen 23fd026 source/API. The source-freeze record includes raw working-tree hashes and normalized Git-content comparisons.",
+  "measurementNote": "Recorded C++ heap counters and elapsed query timings are not player CPU, RSS/private bytes or GPU measurements. Full ranges and rejected/slower results are retained."
+}
