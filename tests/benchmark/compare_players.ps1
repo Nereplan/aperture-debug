@@ -258,6 +258,30 @@ function Assert-ColorPaused($Status, [double]$Target, $Previous = $null) {
         [Math]::Abs($Status.positionSec-$Target) -gt 1.1) { throw 'Color sample requires paused playback near the phase midpoint.' }
     if ($null -ne $Previous -and [Math]::Abs($Status.positionSec-$Previous.positionSec) -gt 0.05) { throw 'Playback moved during paused color sampling.' }
 }
+function Wait-ColorPaused([string]$Name, [int]$OwnedPid, [int]$Port, $Environment, $Initial, [double]$Target, $Trace,
+                          [ValidateRange(0,5000)][int]$TimeoutMs = 3000) {
+    $Trace.qpcStart=[Diagnostics.Stopwatch]::GetTimestamp()
+    $Trace.observations=[Collections.Generic.List[object]]::new()
+    $Trace.status='pending'
+    $deadline=$Trace.qpcStart+$TimeoutMs*[Diagnostics.Stopwatch]::Frequency/1000.0
+    $status=$Initial
+    try {
+        while($true) {
+            $Trace.observations.Add($status)
+            if($status.reason) { throw "Pause status failed: $($status.reason)" }
+            if($status.paused -eq $true) {
+                Assert-ColorPaused $status $Target
+                $Trace.status='settled'
+                return $status
+            }
+            if([Diagnostics.Stopwatch]::GetTimestamp() -ge $deadline) { throw 'Timed out confirming paused playback.' }
+            Start-Sleep -Milliseconds 25
+            # Pause toggles in VLC: confirmation must only query, never repeat it.
+            $status=Color-Status $Name $OwnedPid $Port $Environment
+        }
+    } catch { $Trace.status='failed'; $Trace.reason=$_.Exception.Message; throw }
+    finally { $Trace.qpcEnd=[Diagnostics.Stopwatch]::GetTimestamp() }
+}
 function Color-Difference([int[]]$Left, [int[]]$Right) {
     if ($Left.Count -ne 54 -or $Right.Count -ne 54) { throw 'Color difference requires two complete 54-point RGB arrays.' }
     [long]$sum=0; $maximum=0
@@ -284,10 +308,11 @@ function Sentinel-Colors($Run, [string]$Name, [int]$OwnedPid, [int]$Port, $Envir
         $entry.visiblePhase=[PlayerVideoReadiness]::WaitForPhase([uint32]$OwnedPid,$Name,$entry.seekQpcStart,$phase,15000,5)
         if ($entry.visiblePhase.status -ne 'recognized') { throw "Color phase recognition failed: $($entry.visiblePhase.reason)" }
         $entry.pause=Color-Status $Name $OwnedPid $Port $Environment -Pause
-        Assert-ColorPaused $entry.pause $target
+        $entry.pauseSettlement=@{}
+        $settled=Wait-ColorPaused $Name $OwnedPid $Port $Environment $entry.pause $target $entry.pauseSettlement
         Start-Sleep -Milliseconds 100
         $entry.pauseConfirmation=Color-Status $Name $OwnedPid $Port $Environment
-        Assert-ColorPaused $entry.pauseConfirmation $target $entry.pause
+        Assert-ColorPaused $entry.pauseConfirmation $target $settled
         for($index=0;$index -lt 3;$index++) {
             $reading=[ordered]@{index=$index;status='pending'}
             $entry.samples.Add($reading)

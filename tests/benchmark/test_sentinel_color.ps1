@@ -5,7 +5,7 @@ $source = Join-Path $PSScriptRoot 'compare_players.ps1'
 $tokens=$null; $errors=$null
 $ast=[Management.Automation.Language.Parser]::ParseFile($source,[ref]$tokens,[ref]$errors)
 if($errors.Count) { throw ($errors.Message -join '; ') }
-$names=@('Vlc-ReplyValues','Vlc-Time','Color-Status','Assert-ColorPaused','Color-Difference')
+$names=@('Vlc-ReplyValues','Vlc-Time','Color-Status','Assert-ColorPaused','Wait-ColorPaused','Color-Difference')
 foreach($name in $names) {
     $definition=$ast.Find({param($node) $node -is [Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq $name},$false)
     if(-not $definition) { throw "Missing tested function: $name" }
@@ -89,5 +89,22 @@ Assert-ColorPaused $status 42
 Check ($lastAction -eq 'Pause' -and $status.raw.state -eq 3) 'Aperture uses its explicit pause control and retained status'
 $status=Color-Status Aperture 123 0 @{}
 Check ($lastAction -eq '' -and $status.paused) 'Aperture sampled status does not issue another control'
-Check ($count -eq 27) 'complete coarse color contract set'
+$script:requests.Clear()
+$script:replies.Enqueue(@{values=@(1,6);raw="status change: ( play state: 3 )`n"})
+$script:replies.Enqueue(@{values=@(1,6);raw="status change: ( pause state: 4 )`n"})
+$initial=Color-Status VLC 123 456 @{} -Pause
+$script:replies.Enqueue(@{values=@(0,6);raw="status change: ( pause state: 4 )`n"})
+$trace=@{}
+$settled=Wait-ColorPaused VLC 123 456 @{} $initial 6 $trace
+Check ($settled.paused -and $trace.observations.Count -eq 2 -and $trace.status -eq 'settled') 'asynchronous pause requires a later consistent status'
+Check ($requests.Count -eq 3 -and @($requests | Where-Object { $_ -match '(?m)^pause$' }).Count -eq 1) 'pause confirmation never repeats the toggle'
+Check ($trace.qpcStart -gt 0 -and $trace.qpcEnd -ge $trace.qpcStart -and $trace.observations[0].raw.Count -eq 2) 'settling retains initial replies and conservative QPC bounds'
+$trace=@{}
+$timedOut=Rejects { Wait-ColorPaused VLC 123 456 @{} $initial 6 $trace -TimeoutMs 0 }
+Check ($timedOut -and $trace.status -eq 'failed' -and $trace.observations.Count -eq 1) 'unconfirmed pause times out with its observations retained'
+Check (Rejects { Wait-ColorPaused VLC 123 456 @{} @{paused=$true;positionSec=18} 6 @{} }) 'settled pause still rejects the wrong midpoint'
+$trace=@{}; $before=$requests.Count
+$settled=Wait-ColorPaused VLC 123 456 @{} @{paused=$true;positionSec=6} 6 $trace
+Check ($settled.paused -and $requests.Count -eq $before -and $trace.observations.Count -eq 1) 'already-settled pause needs no further control request'
+Check ($count -eq 33) 'complete coarse color contract set'
 Write-Output "$count checks passed; no player or desktop capture was used."
