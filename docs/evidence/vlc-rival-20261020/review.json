@@ -1,0 +1,225 @@
+{
+  "recordType": "Measured player comparison and qualification; overall superiority remains unproven",
+  "sourceContentCommit": "d6abc564f1f8d2a554971d4dead21e06035ebf3c",
+  "productionSourceDirty": false,
+  "beforeIdentity": "Frozen cfaad05ef520eae08dcaa96cc3e4c754328c91dca300164c6fb7054153782dff executable, source equivalent to f93cffa cleanup. See docs/evidence/polish-20261019/summary.json.",
+  "runtimeIdentities": {
+    "Aperture-current": {
+      "version": "2.0.0.0",
+      "executableSha256": "393a4ad63bf9a4b9896e3cc33abdcded0b8681f917cdf437d8393a1b4e62cd1f",
+      "runtimeManifestSha256": "c8fd61d67251b6f94c9b87631cfcfba25a76496a040f7df033f4cb4ea0d190d5",
+      "launchConfigurationSha256": "a1d739ee61b07b1f82aa2d8a68ca115f5224f3ab9efcdf37f99d0c95cd7e4215"
+    },
+    "VLC": {
+      "version": "3.0.24",
+      "executableSha256": "63d0d02df6e466d642b824dc66be6b5a134bf98b26747ffac8ec0d879dc180d7",
+      "runtimeManifestSha256": "a48412d2ee742a32192cf0c8389d2251c180160c2bc615492044d1a73aa5b2ff",
+      "launchConfigurationSha256": "da81acc3a52ff1824b3943aa24ac5a1d58982693977e320e18746dc81669aac4"
+    }
+  },
+  "environment": {
+    "osVersion": "Microsoft Windows 11 Pro 10.0.26200 build 26200",
+    "cpuName": "AMD Ryzen 9 3900X 12-Core Processor            ",
+    "logicalProcessors": 24,
+    "gpuName": "NVIDIA GeForce RTX 4070 SUPER",
+    "gpuDriverVersion": "32.0.16.1742",
+    "lastBootUpTimeUtc": "2026-10-20T08:20:29.5000000Z",
+    "source": "Win32_ComputerSystem, Win32_OperatingSystem, Win32_Processor and Win32_VideoController CIM instances"
+  },
+  "officialRival": {
+    "version": "3.0.24",
+    "archiveUrl": "https://download.videolan.org/pub/videolan/vlc/3.0.24/win64/vlc-3.0.24-win64.7z",
+    "archiveSha256": "1ed59c09152e78aff84663fa76efab26057716576db74332858810e5ef54ae1f",
+    "verification": "Downloaded archive matched adjacent official .7z.sha256. System VLC installation was not replaced."
+  },
+  "resourceProtocol": "Fresh full portable runtime/profile per run; HubThenOpen after 3s hub wait; one warmup and three measured rounds per variant with rotating launch order; default player output settings; actual 1280x720 canvas and matching DPI; media segment 20\u201350s; seven uniformly spaced snapshots over 30s endpoint CPU windows. Both owned players temporarily topmost at (40,40), with sampled owned-canvas, foreign-window and cursor guards before and after every snapshot. No competing task builds/tests/profilers during this batch. All 12 runs passed. Full runtime manifests, launch settings and observer hashes are in raw comparison.",
+  "interpretation": {
+    "overallWin": false,
+    "supportedObservations": "H264 current build has lower observed private RAM, resident working set, dedicated GPU allocation and calibrated process-cycle demand, with nonoverlapping three-run ranges. These observations do not establish identical decoder/filter/output quality or a universal player ranking.",
+    "cpuCounters": "Raw Windows sampled CPU-time/wall-time favors VLC. Raw cycles/sec favors Aperture. Separate calibrated cycle rows use five measured invariant-TSC/QPC intervals and independent thread/process busy-counter checks, validated on the exact same CPU/24 LP/Windows boot. Original CPU-time evidence is retained, never overwritten.",
+    "storage": "Complete packaged runtime footprints differ in feature inventories, plugins and languages; no feature-matched storage win is claimed.",
+    "hiddenHubTrim": "Before/current dedicated GPU allocation remains about108.57MiB. Smaller nominal hidden swapchain capacity is not evidence of reclaimed physical GPU memory.",
+    "qualityReadiness": "One controlled visible run per player matched known sentinel phase0 then phase2 after an owned seek24. Bounds include observer/control delay, so no latency ranking. Sparse pixels do not prove full image parity or presentation cadence. No resource CPU numbers are taken from the controlled seek experiment.",
+    "remaining": "Fresh post-prune H264/AV1/HEVC matrix, effective decoder/drop/cadence checks, first-visible-video readiness, broader core workflows and output-quality comparisons remain to be verified."
+  },
+  "pilotDisposition": [
+    {
+      "batch": "visibility-pilot-20261020",
+      "scope": "Superseded diagnostic/pilot; never pooled with qualified resource evidence.",
+      "runs": [
+        {
+          "player": "Aperture",
+          "status": "failed",
+          "failure": "Video canvas is not verifiably visible: higher-window-intersects-canvas (pid=20384,class=ApertureOverlay)"
+        },
+        {
+          "player": "VLC",
+          "status": "failed",
+          "failure": "Video canvas is not verifiably visible: higher-window-intersects-canvas (pid=16580,class=MozillaWindowClass)"
+        }
+      ]
+    },
+    {
+      "batch": "visibility-pilot-topmost-20261020",
+      "scope": "Superseded diagnostic/pilot; never pooled with qualified resource evidence.",
+      "runs": [
+        {
+          "player": "Aperture",
+          "status": "failed",
+          "failure": "Video canvas is not verifiably visible: sentinel-occluded-or-unowned"
+        }
+      ]
+    },
+    {
+      "batch": "visibility-sentinel-20261020",
+      "scope": "Superseded diagnostic/pilot; never pooled with qualified resource evidence.",
+      "runs": [
+        {
+          "player": "Aperture",
+          "status": "failed",
+          "failure": "Video canvas is not verifiably visible: sentinel-occluded-or-unowned"
+        }
+      ]
+    },
+    {
+      "batch": "visibility-sentinel-hit-20261020",
+      "scope": "Superseded diagnostic/pilot; never pooled with qualified resource evidence.",
+      "runs": [
+        {
+          "player": "Aperture",
+          "status": "failed",
+          "failure": "Video canvas is not verifiably visible: sentinel-occluded-or-unowned (pid=22512,class=Aperture_Native_Video_Child,hit=1048964,root=3408900,canvas=1966682)"
+        }
+      ]
+    },
+    {
+      "batch": "visibility-sentinel-host-20261020",
+      "scope": "Superseded diagnostic/pilot; never pooled with qualified resource evidence.",
+      "runs": [
+        {
+          "player": "Aperture",
+          "status": "sampled",
+          "failure": null
+        },
+        {
+          "player": "VLC",
+          "status": "sampled",
+          "failure": null
+        }
+      ]
+    },
+    {
+      "batch": "controlled-seek-20261020",
+      "scope": "Superseded diagnostic/pilot; never pooled with qualified resource evidence.",
+      "runs": [
+        {
+          "player": "Aperture",
+          "status": "sentinel-validated",
+          "failure": null
+        },
+        {
+          "player": "VLC",
+          "status": "sentinel-validated",
+          "failure": null
+        }
+      ]
+    }
+  ],
+  "files": [
+    {
+      "path": "docs/evidence/vlc-rival-20261020/h264-before-current/comparison.json",
+      "sha256": "bd2e074b817233c0d3bbc838153b9335b004b913ab139f7d826da6cf600ef313",
+      "bytes": 347345
+    },
+    {
+      "path": "docs/evidence/vlc-rival-20261020/h264-before-current/qualified-current.json",
+      "sha256": "4d771848d0dc2aef5353183d9d1cd955cb4f1e8668b2bf53265e00fb3ae956db",
+      "bytes": 10768
+    },
+    {
+      "path": "docs/evidence/vlc-rival-20261020/h264-before-current/qualified-before.json",
+      "sha256": "0a4087219f04148e56fa8f8f0041ce0270d839036531645c04c2f0f3d27163be",
+      "bytes": 10753
+    },
+    {
+      "path": "docs/evidence/vlc-rival-20261020/h264-before-current/qualified-current-calibrated.json",
+      "sha256": "5399f69536dfaac1308a43a2bd97b3977c94e14cc31b40aa2c33f8e4714e9953",
+      "bytes": 13181
+    },
+    {
+      "path": "docs/evidence/vlc-rival-20261020/calibration/cpu-calibration.json",
+      "sha256": "26b132e4c05761b4ae710d44355faf962ca3ddc9f512026c9fc397bc30d96ed8",
+      "bytes": 809
+    },
+    {
+      "path": "docs/evidence/vlc-rival-20261020/calibration/identity.json",
+      "sha256": "e61e6db4015a185a39a901b2189f1bfc9efe3b9bb81467059b3cde45ec5b483f",
+      "bytes": 1012
+    },
+    {
+      "path": "docs/evidence/vlc-rival-20261020/calibration/build.log",
+      "sha256": "8c046db801b5f91523ed1142dbacb239eb037e881564da108113d115fa35f025",
+      "bytes": 325
+    },
+    {
+      "path": "docs/evidence/vlc-rival-20261020/controlled-seek/comparison.json",
+      "sha256": "f5f40076223ba9b662d32635ecaf3d15c1c0c96b431c5766074aad5d1fd937d3",
+      "bytes": 175917
+    },
+    {
+      "path": "docs/evidence/vlc-rival-20261020/frozen-measured-build.json",
+      "sha256": "c660f77165b515fc5bdd2d5cc7f390b2d1d31db13ae52cf7bffe0975a503900d",
+      "bytes": 620
+    },
+    {
+      "path": "docs/evidence/vlc-rival-20261020/qualification-tests.txt",
+      "sha256": "dfbdb9e11bc6bd8a03b84cbec6bcae85ded0b03827d88986a231ee7e05160f69",
+      "bytes": 149
+    },
+    {
+      "path": "docs/evidence/vlc-rival-20261020/vlc-official.sha256",
+      "sha256": "b1ae7ae9d576b78eef9b893265ec51651571c4b7457320ff5cc0f1fa638774ab",
+      "bytes": 86
+    },
+    {
+      "path": "docs/evidence/vlc-rival-20261020/pilots/visibility-pilot-20261020/comparison.json",
+      "sha256": "6876241255f5ab1216c965ceab3f557fc042eeb55acd6855e76067c0d732141a",
+      "bytes": 158093
+    },
+    {
+      "path": "docs/evidence/vlc-rival-20261020/pilots/visibility-pilot-topmost-20261020/comparison.json",
+      "sha256": "4fe4b2645803ca450362d36942da1c58f66c5a028d9f25f537cdfdaefa806f13",
+      "bytes": 155025
+    },
+    {
+      "path": "docs/evidence/vlc-rival-20261020/pilots/visibility-sentinel-20261020/comparison.json",
+      "sha256": "ea7113cf1d5a858edb875cf8f26ca123ddb8a310b64d4dbc3c5dc20f32391809",
+      "bytes": 155087
+    },
+    {
+      "path": "docs/evidence/vlc-rival-20261020/pilots/visibility-sentinel-hit-20261020/comparison.json",
+      "sha256": "d8723c098150f0c27a38e5db8ce428eb45862c332b1423694cc7808699075355",
+      "bytes": 155200
+    },
+    {
+      "path": "docs/evidence/vlc-rival-20261020/pilots/visibility-sentinel-host-20261020/comparison.json",
+      "sha256": "764a3db15a473e54e623f178c2526286876155e6774fc731100e6902e69e29ca",
+      "bytes": 178078
+    },
+    {
+      "path": "docs/evidence/vlc-rival-20261020/pilots/controlled-seek-20261020/comparison.json",
+      "sha256": "1c3b6d05518ff1e2c8e439965f744b393cf86dc456414f84509d46bc0acdc851",
+      "bytes": 175025
+    },
+    {
+      "path": "docs/evidence/vlc-rival-20261020/pilots/h264-hub-20261020/aborted.json",
+      "sha256": "574ba04098389682e4ab06ff56c3162418b782aecdf677df17a1f273bd1d10a3",
+      "bytes": 323
+    },
+    {
+      "path": "docs/evidence/vlc-rival-20261020/h264-before-current/qualified-before-calibrated.json",
+      "sha256": "15e499b4dfcad5938fd72192df68c7e8c923d3e6f8bbb1ec33586b3df196ecc8",
+      "bytes": 13164
+    }
+  ]
+}

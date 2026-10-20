@@ -1,0 +1,9 @@
+{
+  "recordedAtUtc": "2026-10-20T09:49:27.6460486Z",
+  "sourceContentCommit": "d6abc564f1f8d2a554971d4dead21e06035ebf3c",
+  "productionSourceDirty": false,
+  "executableSha256": "393A4AD63BF9A4B9896E3CC33ABDCDED0B8681F917CDF437D8393A1B4E62CD1F",
+  "buildCommand": "build.ps1 -BuildOutputPath <scratch>/candidate-final-build/Aperture.exe",
+  "validation": "23-suite gate passed on efcb781 production; secondary-track focused2/2 and hidden playback UI27/27 passed for subsequent scoped changes.",
+  "note": "Pending benchmark-harness changes do not change the frozen packaged executable. No release published."
+}

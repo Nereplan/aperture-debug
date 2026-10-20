@@ -1,0 +1,8 @@
+{
+  "abortedAtUtc": "2026-10-20T09:32:55.5524070Z",
+  "reason": "Warmup visibility guard rejected higher-window occlusion. Owned controller stopped; batch cannot qualify. Next batch will explicitly raise only its owned player before settling.",
+  "controllerPid": 22132,
+  "closedOwnedPlayerPids": [
+    3508
+  ]
+}

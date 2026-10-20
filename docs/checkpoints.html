@@ -96,7 +96,7 @@ git diff --check</pre>
 <script id="checkpoint-data" type="application/json">
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-10-19T18:08:55+00:00",
+  "updatedAt": "2026-10-20T14:33:32+00:00",
   "metrics": {
     "visible-ms": {
       "label": "Visible window",
@@ -389,6 +389,16 @@ git diff --check</pre>
       "label": "CPU-only decode / compiler profiles",
       "category": "Playback",
       "method": "One discarded process per variant/case, followed by rotated measured processes. Each process first hashes decoded output in a separate warmup, then initializes a fresh decoder and times fixed-count demux/decode/frame release. Open, stream discovery and codec initialization excluded. One decoder thread, warm file cache, no affinity change; raw process cycles and CPU time retained without converting to CPU utilization. Exact decoded buffers and frame metadata must match across both variants and all launches. Static probe links the corresponding FFmpeg libraries but has a different final LTO link from libmpv. Size and speed variants have the same decoded buffers/metadata in all 60 launches. No VLC counterpart or whole-App CPU/RAM inference."
+    },
+    "playback-owned-visible-hub-30s-v1": {
+      "label": "Owned visible hub playback · sampled CPU",
+      "category": "Playback",
+      "method": "Explicitly authorized visible full-player comparison using official VLC3.0.24 and frozen Aperture packages. Fresh complete runtime/profile per run, one warmup plus three measured rounds per player, rotating order; 3s hub then owned open. Same SHA256-verified H264/AAC fixture, actual1280x720 canvas and matching DPI; default output settings (no forced VLC linear mode). Seven uniformly spaced snapshots over about30s at media20–50s; endpoint Windows CPU time, per-run median RAM/GPU. Both owned windows temporarily topmost at40,40, with full-canvas/foreign-window/cursor guards before and after collection. Raw cycle counters remain separate diagnostics. No builds/tests/profilers concurrent. Driver allocations overlap process memory and are not summed. Source/runtime/helper manifests and all failed pilots are retained. This protocol does not establish equal decoders, filtering, frame cadence, readiness, physical audio output or feature-matched storage. Windows CPU-time sampling aliases on this machine; retain its conflict with cycle diagnostics."
+    },
+    "playback-owned-visible-hub-tsc-30s-v1": {
+      "label": "Owned visible hub playback · calibrated cycles",
+      "category": "Playback",
+      "method": "Explicitly authorized visible full-player comparison using official VLC3.0.24 and frozen Aperture packages. Fresh complete runtime/profile per run, one warmup plus three measured rounds per player, rotating order; 3s hub then owned open. Same SHA256-verified H264/AAC fixture, actual1280x720 canvas and matching DPI; default output settings (no forced VLC linear mode). Seven uniformly spaced snapshots over about30s at media20–50s; endpoint Windows CPU time, per-run median RAM/GPU. Both owned windows temporarily topmost at40,40, with full-canvas/foreign-window/cursor guards before and after collection. Raw cycle counters remain separate diagnostics. No builds/tests/profilers concurrent. Driver allocations overlap process memory and are not summed. Source/runtime/helper manifests and all failed pilots are retained. This protocol does not establish equal decoders, filtering, frame cadence, readiness, physical audio output or feature-matched storage. CPU is process cycle delta / endpoint wall seconds / fresh validated3799998626.821145 invariant-TSC ticks/sec *100, one logical processor. Summary machine capacity divides by verified24LP. Five raw TSC/QPC samples, stable-rate and independent busy-thread/process checks passed on the exact CPU, driver and boot. These are hardware-specific calibrated cycle diagnostics; original CPU-time rows are preserved."
     }
   },
   "environments": {
@@ -440,6 +450,11 @@ git diff --check</pre>
     "historical-startup-machine": {
       "label": "Recorded Windows x64 startup machine",
       "details": "Windows x64 startup captures from the repository evidence. Full hardware identity was not included in these gate JSON files. Compare these as historical observations of the recorded native endpoints, not as a feature-matched playback ranking. See individual reports and later machine record."
+    },
+    "ryzen3900x-4070super-20261020": {
+      "label": "Ryzen3900X / RTX4070SUPER · 20 Oct",
+      "logicalProcessors": 24,
+      "details": "{\"cpuName\": \"AMD Ryzen 9 3900X 12-Core Processor            \", \"gpuDriverVersion\": \"32.0.16.1742\", \"gpuName\": \"NVIDIA GeForce RTX 4070 SUPER\", \"lastBootUpTimeUtc\": \"2026-10-20T08:20:29.5000000Z\", \"logicalProcessors\": 24, \"osVersion\": \"Microsoft Windows 11 Pro 10.0.26200 build 26200\", \"source\": \"Win32_ComputerSystem, Win32_OperatingSystem, Win32_Processor and Win32_VideoController CIM instances\"}"
     }
   },
   "references": {
@@ -1334,6 +1349,125 @@ git diff --check</pre>
             "max": 118.4609375,
             "runs": 1,
             "scope": "Single-run screen; min=max is not a repeated-run distribution. Memory medians use seven snapshots/run. CPU uses calibrated process cycles over ~30seconds."
+          }
+        }
+      ]
+    },
+    "vlc-3.0.24-owned-hub-h264-20261020": {
+      "player": "VLC",
+      "version": "3.0.24",
+      "measuredAt": "2026-10-20T10:04:51.3003313Z",
+      "results": [
+        {
+          "metric": "cpu-core",
+          "protocol": "playback-owned-visible-hub-30s-v1",
+          "environment": "ryzen3900x-4070super-20261020",
+          "workload": "1080p30 H.264 + AAC stereo / 1280x720 canvas / player defaults / HubThenOpen",
+          "session": "owned-hub-h264-20261020",
+          "value": 2.187131628710215,
+          "samples": 3,
+          "evidence": "docs/evidence/vlc-rival-20261020/h264-before-current/qualified-current-calibrated.json",
+          "runRange": {
+            "min": 1.926696992052487,
+            "max": 3.38537441719394,
+            "runs": 3,
+            "scope": "Three fresh measured processes; one warmup excluded. CPU uses full endpoint delta; RAM/GPU median of seven snapshots per run. Min/max describe run medians or CPU rates, not confidence intervals."
+          }
+        },
+        {
+          "metric": "private-mib",
+          "protocol": "playback-owned-visible-hub-30s-v1",
+          "environment": "ryzen3900x-4070super-20261020",
+          "workload": "1080p30 H.264 + AAC stereo / 1280x720 canvas / player defaults / HubThenOpen",
+          "session": "owned-hub-h264-20261020",
+          "value": 167.5390625,
+          "samples": 3,
+          "evidence": "docs/evidence/vlc-rival-20261020/h264-before-current/qualified-current-calibrated.json",
+          "runRange": {
+            "min": 165.4609375,
+            "max": 168.1484375,
+            "runs": 3,
+            "scope": "Three fresh measured processes; one warmup excluded. CPU uses full endpoint delta; RAM/GPU median of seven snapshots per run. Min/max describe run medians or CPU rates, not confidence intervals."
+          }
+        },
+        {
+          "metric": "working-set-mib",
+          "protocol": "playback-owned-visible-hub-30s-v1",
+          "environment": "ryzen3900x-4070super-20261020",
+          "workload": "1080p30 H.264 + AAC stereo / 1280x720 canvas / player defaults / HubThenOpen",
+          "session": "owned-hub-h264-20261020",
+          "value": 169.00390625,
+          "samples": 3,
+          "evidence": "docs/evidence/vlc-rival-20261020/h264-before-current/qualified-current-calibrated.json",
+          "runRange": {
+            "min": 168.9140625,
+            "max": 169.0625,
+            "runs": 3,
+            "scope": "Three fresh measured processes; one warmup excluded. CPU uses full endpoint delta; RAM/GPU median of seven snapshots per run. Min/max describe run medians or CPU rates, not confidence intervals."
+          }
+        },
+        {
+          "metric": "gpu-mib",
+          "protocol": "playback-owned-visible-hub-30s-v1",
+          "environment": "ryzen3900x-4070super-20261020",
+          "workload": "1080p30 H.264 + AAC stereo / 1280x720 canvas / player defaults / HubThenOpen",
+          "session": "owned-hub-h264-20261020",
+          "value": 118.45703125,
+          "samples": 3,
+          "evidence": "docs/evidence/vlc-rival-20261020/h264-before-current/qualified-current-calibrated.json",
+          "runRange": {
+            "min": 118.453125,
+            "max": 118.4609375,
+            "runs": 3,
+            "scope": "Three fresh measured processes; one warmup excluded. CPU uses full endpoint delta; RAM/GPU median of seven snapshots per run. Min/max describe run medians or CPU rates, not confidence intervals."
+          }
+        },
+        {
+          "metric": "shared-gpu-mib",
+          "protocol": "playback-owned-visible-hub-30s-v1",
+          "environment": "ryzen3900x-4070super-20261020",
+          "workload": "1080p30 H.264 + AAC stereo / 1280x720 canvas / player defaults / HubThenOpen",
+          "session": "owned-hub-h264-20261020",
+          "value": 15.0390625,
+          "samples": 3,
+          "evidence": "docs/evidence/vlc-rival-20261020/h264-before-current/qualified-current-calibrated.json",
+          "runRange": {
+            "min": 15.0078125,
+            "max": 15.0546875,
+            "runs": 3,
+            "scope": "Three fresh measured processes; one warmup excluded. CPU uses full endpoint delta; RAM/GPU median of seven snapshots per run. Min/max describe run medians or CPU rates, not confidence intervals."
+          }
+        },
+        {
+          "metric": "runtime-mib",
+          "protocol": "playback-owned-visible-hub-30s-v1",
+          "environment": "ryzen3900x-4070super-20261020",
+          "workload": "1080p30 H.264 + AAC stereo / 1280x720 canvas / player defaults / HubThenOpen",
+          "session": "owned-hub-h264-20261020",
+          "value": 190.01314163208008,
+          "samples": 3,
+          "evidence": "docs/evidence/vlc-rival-20261020/h264-before-current/qualified-current-calibrated.json",
+          "runRange": {
+            "min": 190.01314163208008,
+            "max": 190.01314163208008,
+            "runs": 3,
+            "scope": "Three fresh measured processes; one warmup excluded. CPU uses full endpoint delta; RAM/GPU median of seven snapshots per run. Min/max describe run medians or CPU rates, not confidence intervals."
+          }
+        },
+        {
+          "metric": "cpu-core",
+          "protocol": "playback-owned-visible-hub-tsc-30s-v1",
+          "environment": "ryzen3900x-4070super-20261020",
+          "workload": "1080p30 H.264 + AAC stereo / 1280x720 canvas / player defaults / HubThenOpen",
+          "session": "owned-hub-h264-20261020",
+          "value": 4.245981544509494,
+          "samples": 3,
+          "evidence": "docs/evidence/vlc-rival-20261020/h264-before-current/qualified-current-calibrated.json",
+          "runRange": {
+            "min": 4.199744051925198,
+            "max": 4.818721473738156,
+            "runs": 3,
+            "scope": "Three fresh measured processes; one warmup excluded. CPU uses full endpoint delta; RAM/GPU median of seven snapshots per run. Min/max describe run medians or CPU rates, not confidence intervals."
           }
         }
       ]
@@ -17640,6 +17774,285 @@ git diff --check</pre>
           "total": null,
           "durationSeconds": null,
           "evidence": "docs/evidence/polish-20261019/summary.json"
+        }
+      ]
+    },
+    {
+      "id": "rival-h264-20261020-before",
+      "label": "Fresh rival baseline / prior cleanup",
+      "measuredAt": "2026-10-20T10:02:38.2642291Z",
+      "commit": "f93cffa",
+      "dirty": false,
+      "sourceNote": "Frozen pre-change executable cfaad05ef520eae08dcaa96cc3e4c754328c91dca300164c6fb7054153782dff; production content equivalent to f93cffa. Complete packaged runtime manifests and benchmark-harness hashes are in raw comparison; scope and calibration in docs/evidence/vlc-rival-20261020/review.json.",
+      "notes": "Measured H264/AAC resource observations only. Raw CPU-time favors VLC; separately validated calibrated cycles favor Aperture. Current calibrated demand3.8290 versus4.2460 percent of oneLP (0.15954 versus0.17692 percent machine capacity),9.82% relatively lower; current resident RAM15.18% and dedicated GPU allocation8.34% lower with disjoint three-run ranges. Decoder/output equivalence and broad superiority remain unproven. Before/current GPU allocations overlap around108.57MiB: no actual GPU saving demonstrated for nominal hidden1x1 swapchain trim. Full packages have different feature inventories. Preserved all rejected pilots; controlled known-phase seek is a functional check and cannot rank latency.",
+      "results": [
+        {
+          "metric": "cpu-core",
+          "protocol": "playback-owned-visible-hub-30s-v1",
+          "environment": "ryzen3900x-4070super-20261020",
+          "workload": "1080p30 H.264 + AAC stereo / 1280x720 canvas / player defaults / HubThenOpen",
+          "session": "owned-hub-h264-20261020",
+          "value": 3.8527271593756844,
+          "samples": 3,
+          "evidence": "docs/evidence/vlc-rival-20261020/h264-before-current/qualified-before-calibrated.json",
+          "runRange": {
+            "min": 3.5920973478522003,
+            "max": 3.904798078930312,
+            "runs": 3,
+            "scope": "Three fresh measured processes; one warmup excluded. CPU uses full endpoint delta; RAM/GPU median of seven snapshots per run. Min/max describe run medians or CPU rates, not confidence intervals."
+          },
+          "reference": "vlc-3.0.24-owned-hub-h264-20261020"
+        },
+        {
+          "metric": "private-mib",
+          "protocol": "playback-owned-visible-hub-30s-v1",
+          "environment": "ryzen3900x-4070super-20261020",
+          "workload": "1080p30 H.264 + AAC stereo / 1280x720 canvas / player defaults / HubThenOpen",
+          "session": "owned-hub-h264-20261020",
+          "value": 164.3671875,
+          "samples": 3,
+          "evidence": "docs/evidence/vlc-rival-20261020/h264-before-current/qualified-before-calibrated.json",
+          "runRange": {
+            "min": 163.68359375,
+            "max": 164.890625,
+            "runs": 3,
+            "scope": "Three fresh measured processes; one warmup excluded. CPU uses full endpoint delta; RAM/GPU median of seven snapshots per run. Min/max describe run medians or CPU rates, not confidence intervals."
+          },
+          "reference": "vlc-3.0.24-owned-hub-h264-20261020"
+        },
+        {
+          "metric": "working-set-mib",
+          "protocol": "playback-owned-visible-hub-30s-v1",
+          "environment": "ryzen3900x-4070super-20261020",
+          "workload": "1080p30 H.264 + AAC stereo / 1280x720 canvas / player defaults / HubThenOpen",
+          "session": "owned-hub-h264-20261020",
+          "value": 143.3359375,
+          "samples": 3,
+          "evidence": "docs/evidence/vlc-rival-20261020/h264-before-current/qualified-before-calibrated.json",
+          "runRange": {
+            "min": 143.2421875,
+            "max": 143.4453125,
+            "runs": 3,
+            "scope": "Three fresh measured processes; one warmup excluded. CPU uses full endpoint delta; RAM/GPU median of seven snapshots per run. Min/max describe run medians or CPU rates, not confidence intervals."
+          },
+          "reference": "vlc-3.0.24-owned-hub-h264-20261020"
+        },
+        {
+          "metric": "gpu-mib",
+          "protocol": "playback-owned-visible-hub-30s-v1",
+          "environment": "ryzen3900x-4070super-20261020",
+          "workload": "1080p30 H.264 + AAC stereo / 1280x720 canvas / player defaults / HubThenOpen",
+          "session": "owned-hub-h264-20261020",
+          "value": 108.57421875,
+          "samples": 3,
+          "evidence": "docs/evidence/vlc-rival-20261020/h264-before-current/qualified-before-calibrated.json",
+          "runRange": {
+            "min": 108.5703125,
+            "max": 108.57421875,
+            "runs": 3,
+            "scope": "Three fresh measured processes; one warmup excluded. CPU uses full endpoint delta; RAM/GPU median of seven snapshots per run. Min/max describe run medians or CPU rates, not confidence intervals."
+          },
+          "reference": "vlc-3.0.24-owned-hub-h264-20261020"
+        },
+        {
+          "metric": "shared-gpu-mib",
+          "protocol": "playback-owned-visible-hub-30s-v1",
+          "environment": "ryzen3900x-4070super-20261020",
+          "workload": "1080p30 H.264 + AAC stereo / 1280x720 canvas / player defaults / HubThenOpen",
+          "session": "owned-hub-h264-20261020",
+          "value": 15.2421875,
+          "samples": 3,
+          "evidence": "docs/evidence/vlc-rival-20261020/h264-before-current/qualified-before-calibrated.json",
+          "runRange": {
+            "min": 15.1171875,
+            "max": 15.2421875,
+            "runs": 3,
+            "scope": "Three fresh measured processes; one warmup excluded. CPU uses full endpoint delta; RAM/GPU median of seven snapshots per run. Min/max describe run medians or CPU rates, not confidence intervals."
+          },
+          "reference": "vlc-3.0.24-owned-hub-h264-20261020"
+        },
+        {
+          "metric": "runtime-mib",
+          "protocol": "playback-owned-visible-hub-30s-v1",
+          "environment": "ryzen3900x-4070super-20261020",
+          "workload": "1080p30 H.264 + AAC stereo / 1280x720 canvas / player defaults / HubThenOpen",
+          "session": "owned-hub-h264-20261020",
+          "value": 30.62353229522705,
+          "samples": 3,
+          "evidence": "docs/evidence/vlc-rival-20261020/h264-before-current/qualified-before-calibrated.json",
+          "runRange": {
+            "min": 30.62353229522705,
+            "max": 30.62353229522705,
+            "runs": 3,
+            "scope": "Three fresh measured processes; one warmup excluded. CPU uses full endpoint delta; RAM/GPU median of seven snapshots per run. Min/max describe run medians or CPU rates, not confidence intervals."
+          },
+          "reference": "vlc-3.0.24-owned-hub-h264-20261020"
+        },
+        {
+          "metric": "cpu-core",
+          "protocol": "playback-owned-visible-hub-tsc-30s-v1",
+          "environment": "ryzen3900x-4070super-20261020",
+          "workload": "1080p30 H.264 + AAC stereo / 1280x720 canvas / player defaults / HubThenOpen",
+          "session": "owned-hub-h264-20261020",
+          "value": 3.823133768123453,
+          "samples": 3,
+          "evidence": "docs/evidence/vlc-rival-20261020/h264-before-current/qualified-before-calibrated.json",
+          "runRange": {
+            "min": 3.76512458503541,
+            "max": 3.8293758408231695,
+            "runs": 3,
+            "scope": "Three fresh measured processes; one warmup excluded. CPU uses full endpoint delta; RAM/GPU median of seven snapshots per run. Min/max describe run medians or CPU rates, not confidence intervals."
+          },
+          "reference": "vlc-3.0.24-owned-hub-h264-20261020"
+        }
+      ],
+      "tests": []
+    },
+    {
+      "id": "rival-h264-20261020-current",
+      "label": "Fresh rival comparison / bounded queries and paced UI",
+      "measuredAt": "2026-10-20T10:03:33.6207158Z",
+      "commit": "d6abc564f1f8d2a554971d4dead21e06035ebf3c",
+      "dirty": false,
+      "sourceNote": "Frozen measured executable393a4ad63bf9a4b9896e3cc33abdcded0b8681f917cdf437d8393a1b4e62cd1f built from d6abc56; no uncommitted production changes. Later dead-preview/cache-lifetime fixes are outside this measured build. Complete packaged runtime manifests and benchmark-harness hashes are in raw comparison; scope and calibration in docs/evidence/vlc-rival-20261020/review.json.",
+      "notes": "Measured H264/AAC resource observations only. Raw CPU-time favors VLC; separately validated calibrated cycles favor Aperture. Current calibrated demand3.8290 versus4.2460 percent of oneLP (0.15954 versus0.17692 percent machine capacity),9.82% relatively lower; current resident RAM15.18% and dedicated GPU allocation8.34% lower with disjoint three-run ranges. Decoder/output equivalence and broad superiority remain unproven. Before/current GPU allocations overlap around108.57MiB: no actual GPU saving demonstrated for nominal hidden1x1 swapchain trim. Full packages have different feature inventories. Preserved all rejected pilots; controlled known-phase seek is a functional check and cannot rank latency.",
+      "results": [
+        {
+          "metric": "cpu-core",
+          "protocol": "playback-owned-visible-hub-30s-v1",
+          "environment": "ryzen3900x-4070super-20261020",
+          "workload": "1080p30 H.264 + AAC stereo / 1280x720 canvas / player defaults / HubThenOpen",
+          "session": "owned-hub-h264-20261020",
+          "value": 3.957228963065084,
+          "samples": 3,
+          "evidence": "docs/evidence/vlc-rival-20261020/h264-before-current/qualified-current-calibrated.json",
+          "runRange": {
+            "min": 3.8014185412588373,
+            "max": 4.164682223351788,
+            "runs": 3,
+            "scope": "Three fresh measured processes; one warmup excluded. CPU uses full endpoint delta; RAM/GPU median of seven snapshots per run. Min/max describe run medians or CPU rates, not confidence intervals."
+          },
+          "reference": "vlc-3.0.24-owned-hub-h264-20261020"
+        },
+        {
+          "metric": "private-mib",
+          "protocol": "playback-owned-visible-hub-30s-v1",
+          "environment": "ryzen3900x-4070super-20261020",
+          "workload": "1080p30 H.264 + AAC stereo / 1280x720 canvas / player defaults / HubThenOpen",
+          "session": "owned-hub-h264-20261020",
+          "value": 165.17578125,
+          "samples": 3,
+          "evidence": "docs/evidence/vlc-rival-20261020/h264-before-current/qualified-current-calibrated.json",
+          "runRange": {
+            "min": 165.1328125,
+            "max": 165.35546875,
+            "runs": 3,
+            "scope": "Three fresh measured processes; one warmup excluded. CPU uses full endpoint delta; RAM/GPU median of seven snapshots per run. Min/max describe run medians or CPU rates, not confidence intervals."
+          },
+          "reference": "vlc-3.0.24-owned-hub-h264-20261020"
+        },
+        {
+          "metric": "working-set-mib",
+          "protocol": "playback-owned-visible-hub-30s-v1",
+          "environment": "ryzen3900x-4070super-20261020",
+          "workload": "1080p30 H.264 + AAC stereo / 1280x720 canvas / player defaults / HubThenOpen",
+          "session": "owned-hub-h264-20261020",
+          "value": 143.34765625,
+          "samples": 3,
+          "evidence": "docs/evidence/vlc-rival-20261020/h264-before-current/qualified-current-calibrated.json",
+          "runRange": {
+            "min": 143.3359375,
+            "max": 143.3515625,
+            "runs": 3,
+            "scope": "Three fresh measured processes; one warmup excluded. CPU uses full endpoint delta; RAM/GPU median of seven snapshots per run. Min/max describe run medians or CPU rates, not confidence intervals."
+          },
+          "reference": "vlc-3.0.24-owned-hub-h264-20261020"
+        },
+        {
+          "metric": "gpu-mib",
+          "protocol": "playback-owned-visible-hub-30s-v1",
+          "environment": "ryzen3900x-4070super-20261020",
+          "workload": "1080p30 H.264 + AAC stereo / 1280x720 canvas / player defaults / HubThenOpen",
+          "session": "owned-hub-h264-20261020",
+          "value": 108.57421875,
+          "samples": 3,
+          "evidence": "docs/evidence/vlc-rival-20261020/h264-before-current/qualified-current-calibrated.json",
+          "runRange": {
+            "min": 108.5703125,
+            "max": 108.58203125,
+            "runs": 3,
+            "scope": "Three fresh measured processes; one warmup excluded. CPU uses full endpoint delta; RAM/GPU median of seven snapshots per run. Min/max describe run medians or CPU rates, not confidence intervals."
+          },
+          "reference": "vlc-3.0.24-owned-hub-h264-20261020"
+        },
+        {
+          "metric": "shared-gpu-mib",
+          "protocol": "playback-owned-visible-hub-30s-v1",
+          "environment": "ryzen3900x-4070super-20261020",
+          "workload": "1080p30 H.264 + AAC stereo / 1280x720 canvas / player defaults / HubThenOpen",
+          "session": "owned-hub-h264-20261020",
+          "value": 15.1171875,
+          "samples": 3,
+          "evidence": "docs/evidence/vlc-rival-20261020/h264-before-current/qualified-current-calibrated.json",
+          "runRange": {
+            "min": 14.9921875,
+            "max": 15.2421875,
+            "runs": 3,
+            "scope": "Three fresh measured processes; one warmup excluded. CPU uses full endpoint delta; RAM/GPU median of seven snapshots per run. Min/max describe run medians or CPU rates, not confidence intervals."
+          },
+          "reference": "vlc-3.0.24-owned-hub-h264-20261020"
+        },
+        {
+          "metric": "runtime-mib",
+          "protocol": "playback-owned-visible-hub-30s-v1",
+          "environment": "ryzen3900x-4070super-20261020",
+          "workload": "1080p30 H.264 + AAC stereo / 1280x720 canvas / player defaults / HubThenOpen",
+          "session": "owned-hub-h264-20261020",
+          "value": 30.62597370147705,
+          "samples": 3,
+          "evidence": "docs/evidence/vlc-rival-20261020/h264-before-current/qualified-current-calibrated.json",
+          "runRange": {
+            "min": 30.62597370147705,
+            "max": 30.62597370147705,
+            "runs": 3,
+            "scope": "Three fresh measured processes; one warmup excluded. CPU uses full endpoint delta; RAM/GPU median of seven snapshots per run. Min/max describe run medians or CPU rates, not confidence intervals."
+          },
+          "reference": "vlc-3.0.24-owned-hub-h264-20261020"
+        },
+        {
+          "metric": "cpu-core",
+          "protocol": "playback-owned-visible-hub-tsc-30s-v1",
+          "environment": "ryzen3900x-4070super-20261020",
+          "workload": "1080p30 H.264 + AAC stereo / 1280x720 canvas / player defaults / HubThenOpen",
+          "session": "owned-hub-h264-20261020",
+          "value": 3.8290394551577727,
+          "samples": 3,
+          "evidence": "docs/evidence/vlc-rival-20261020/h264-before-current/qualified-current-calibrated.json",
+          "runRange": {
+            "min": 3.8213201086640356,
+            "max": 3.9222711486512796,
+            "runs": 3,
+            "scope": "Three fresh measured processes; one warmup excluded. CPU uses full endpoint delta; RAM/GPU median of seven snapshots per run. Min/max describe run medians or CPU rates, not confidence intervals."
+          },
+          "reference": "vlc-3.0.24-owned-hub-h264-20261020"
+        }
+      ],
+      "tests": [
+        {
+          "name": "Rival evidence and hardware calibration adversarial contracts",
+          "status": "pass",
+          "passed": 45,
+          "total": 45,
+          "durationSeconds": 0.637,
+          "evidence": "docs/evidence/vlc-rival-20261020/qualification-tests.txt"
+        },
+        {
+          "name": "Controlled visible seek / one launch each / no latency ranking",
+          "status": "pass",
+          "passed": 2,
+          "total": 2,
+          "durationSeconds": null,
+          "evidence": "docs/evidence/vlc-rival-20261020/controlled-seek/comparison.json"
         }
       ]
     }

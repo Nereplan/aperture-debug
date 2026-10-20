@@ -1,5 +1,6 @@
 """Adversarial evidence checks; never launches a media player or opens a window."""
 import copy
+import hashlib
 import importlib.util
 import json
 from pathlib import Path
@@ -347,6 +348,128 @@ class RivalTests(unittest.TestCase):
             result = subprocess.run(command[:-2], capture_output=True, text=True)
             self.assertEqual(result.returncode, 2)
             self.assertFalse(json.loads(result.stdout)["qualifiedResourceEvidence"])
+
+
+class CalibrationTests(unittest.TestCase):
+    def setUp(self):
+        self.report = fixture()
+        self.environment = self.report["environment"]
+        self.environment["lastBootUpTimeUtc"] = "2026-10-20T08:00:00Z"
+        self.raw = {"supported": True, "invariant_tsc": True, "cpu": "CPU fixture",
+                    "logical_processors": 24, "qpc_frequency": 10000000,
+                    "tsc_ticks_per_second": 4000000000, "relative_rate_spread": 0,
+                    "busy_wall_seconds": .25, "thread_busy_ratio": .99, "process_busy_ratio": .99,
+                    "thread_cycles": 990000000, "process_cycles": 990000000, "uptime_ms": 3600000,
+                    "samples": [{"tsc_delta": 1000000000, "qpc_delta": 2500000,
+                                 "ticks_per_second": 4000000000} for _ in range(5)]}
+        self.attestation = {"recordedAtUtc": "2026-10-20T09:00:01Z", "environment": copy.deepcopy(self.environment),
+                            "sourceSha256": "1" * 64, "executableSha256": "2" * 64, "exitCode": 0}
+
+    def evaluate(self):
+        with tempfile.TemporaryDirectory() as folder:
+            raw, identity = Path(folder) / "raw.json", Path(folder) / "identity.json"
+            raw.write_text(json.dumps(self.raw), encoding="utf-8")
+            self.attestation.setdefault("calibrationSha256", hashlib.sha256(raw.read_bytes()).hexdigest())
+            identity.write_text(json.dumps(self.attestation), encoding="utf-8")
+            return api.evaluate(self.report, calibration=raw, calibration_identity=identity)
+
+    def test_calibration_preserves_raw_cpu_and_uses_verified_capacity(self):
+        baseline = api.evaluate(self.report)
+        result = self.evaluate()
+        for key in ("cpu", "capacity", "cycles"):
+            self.assertEqual(result["rows"][key], baseline["rows"][key])
+        for side in ("candidate", "rival"):
+            expected = baseline["rows"]["cycles"][side]["median"] / 4000000000 * 100
+            self.assertAlmostEqual(result["rows"]["calibratedCpu"][side]["median"], expected)
+            self.assertAlmostEqual(result["rows"]["calibratedCapacity"][side]["median"], expected / 24)
+        self.assertFalse(result["overallWin"])
+        self.assertEqual(result["rows"]["calibratedCpu"]["status"], "candidate-better")
+        self.assertEqual(result["cycleCalibration"]["sourceSha256"], "1" * 64)
+
+    def test_no_calibration_means_no_converted_cpu_claim(self):
+        result = api.evaluate(self.report)
+        self.assertNotIn("calibratedCpu", result["rows"])
+        self.assertIsNone(result["cycleCalibration"])
+
+    def test_both_input_files_are_required(self):
+        for kwargs in ({"calibration": Path("missing")}, {"calibration_identity": Path("missing")}):
+            with self.assertRaisesRegex(ValueError, "Supply both"):
+                api.evaluate(self.report, **kwargs)
+
+    def test_changed_raw_file_cannot_reuse_attestation(self):
+        self.attestation["calibrationSha256"] = "0" * 64
+        with self.assertRaisesRegex(ValueError, "recorded hash"):
+            self.evaluate()
+
+    def test_rejects_wrong_hardware_driver_or_boot(self):
+        for field in ("cpuName", "logicalProcessors", "lastBootUpTimeUtc", "osVersion", "gpuName", "gpuDriverVersion"):
+            with self.subTest(field=field):
+                original = self.attestation["environment"][field]
+                self.attestation["environment"][field] = "different"
+                with self.assertRaisesRegex(ValueError, "environment differs"):
+                    self.evaluate()
+                self.attestation["environment"][field] = original
+
+    def test_native_cpu_or_count_cannot_disagree_with_sidecar(self):
+        for field, value in (("cpu", "other CPU"), ("logical_processors", 12), ("logical_processors", True)):
+            with self.subTest(field=field, value=value):
+                original = self.raw[field]
+                self.raw[field] = value
+                with self.assertRaises(ValueError): self.evaluate()
+                self.raw[field] = original
+                self.attestation.pop("calibrationSha256", None)
+
+    def test_bad_uptime_or_naive_timestamp_is_rejected(self):
+        for time in ("2026-10-20T09:10:01Z", "2026-10-20T09:00:01", None):
+            self.attestation["recordedAtUtc"] = time
+            with self.assertRaisesRegex(ValueError, "uptime|UTC"):
+                self.evaluate()
+
+    def test_failure_or_noninvariant_counter_cannot_be_calibrated(self):
+        for field in ("supported", "invariant_tsc"):
+            self.raw[field] = False
+            with self.assertRaisesRegex(ValueError, "Unsupported"):
+                self.evaluate()
+            self.raw[field] = True
+            self.attestation.pop("calibrationSha256", None)
+        self.attestation["exitCode"] = 4
+        with self.assertRaisesRegex(ValueError, "Unsupported"):
+            self.evaluate()
+
+    def test_rate_must_be_recomputed_from_raw_deltas(self):
+        self.raw["samples"][2]["ticks_per_second"] += 1000000
+        with self.assertRaisesRegex(ValueError, "raw deltas"):
+            self.evaluate()
+
+    def test_stable_claim_cannot_hide_unstable_samples(self):
+        self.raw["samples"][0].update(tsc_delta=1100000000, ticks_per_second=4400000000)
+        self.raw["relative_rate_spread"] = .1
+        with self.assertRaisesRegex(ValueError, "Unstable"):
+            self.evaluate()
+
+    def test_sample_count_duration_and_finite_counters_are_validated(self):
+        for samples in ([], self.raw["samples"][:4],
+                        [{"tsc_delta": 4000000, "qpc_delta": 10000, "ticks_per_second": 4000000000}] * 5,
+                        [{"tsc_delta": float("inf"), "qpc_delta": 2500000, "ticks_per_second": 4000000000}] * 5):
+            self.raw["samples"] = samples
+            with self.assertRaises(ValueError): self.evaluate()
+            self.attestation.pop("calibrationSha256", None)
+
+    def test_busy_check_must_agree_with_real_counter_deltas(self):
+        for field, value in (("thread_busy_ratio", 1), ("process_cycles", 1000), ("busy_wall_seconds", .01)):
+            original = self.raw[field]
+            self.raw[field] = value
+            with self.assertRaisesRegex(ValueError, "busy"):
+                self.evaluate()
+            self.raw[field] = original
+            self.attestation.pop("calibrationSha256", None)
+
+    def test_attestation_requires_source_and_binary_identity(self):
+        for field in ("sourceSha256", "executableSha256"):
+            original = self.attestation.pop(field)
+            with self.assertRaisesRegex(ValueError, "SHA|Sha"):
+                self.evaluate()
+            self.attestation[field] = original
 
 
 if __name__ == "__main__":

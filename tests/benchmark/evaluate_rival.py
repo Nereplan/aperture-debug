@@ -1,5 +1,6 @@
 """Qualify compare_players.ps1 evidence; resource observations never prove overall superiority."""
 import argparse
+from datetime import datetime
 import hashlib
 import json
 import math
@@ -97,7 +98,68 @@ def comparison(label, unit, groups, metric):
                                           if b["median"] else None)}
 
 
-def evaluate(report, candidate="Aperture", rival="VLC", min_runs=3, min_seconds=25):
+def calibration_rate(raw, attestation, environment, digest):
+    """Accept only this CPU/boot's stable invariant-TSC and busy-counter check.
+
+    Attestation is recorded provenance, not a cryptographic assertion of trust.
+    Keep the original Windows CPU-time counters alongside this diagnostic.
+    """
+    require(isinstance(raw, dict) and isinstance(attestation, dict), "Invalid calibration record")
+    require(sha(attestation.get("calibrationSha256"), "calibration SHA256") == digest,
+            "Calibration content differs from its recorded hash")
+    for field in ("sourceSha256", "executableSha256"):
+        sha(attestation.get(field), "calibration " + field)
+    require(type(attestation.get("exitCode")) is int and attestation["exitCode"] == 0 and
+            raw.get("supported") is True and raw.get("invariant_tsc") is True,
+            "Unsupported calibration")
+    recorded = attestation.get("environment")
+    require(isinstance(recorded, dict), "Missing calibration environment")
+    for field in ("cpuName", "logicalProcessors", "lastBootUpTimeUtc", "osVersion",
+                  "gpuName", "gpuDriverVersion"):
+        require(environment.get(field) is not None and recorded.get(field) == environment[field],
+                "Calibration environment differs: " + field)
+    require(isinstance(raw.get("cpu"), str) and raw["cpu"].strip() == environment["cpuName"].strip() and
+            number(raw.get("logical_processors"), "calibration processor count", integer=True) ==
+            environment["logicalProcessors"], "Calibration CPU identity differs")
+    def utc(value):
+        require(isinstance(value, str), "Missing calibration UTC identity")
+        result = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        require(result.utcoffset() is not None and result.utcoffset().total_seconds() == 0,
+                "Calibration identity must use UTC")
+        return result
+    uptime = number(raw.get("uptime_ms"), "calibration uptime", integer=True) / 1000
+    age = (utc(attestation.get("recordedAtUtc")) - utc(environment["lastBootUpTimeUtc"])).total_seconds()
+    require(uptime > 0 and abs(age - uptime) < 5, "Calibration uptime differs from recorded boot")
+    frequency = number(raw.get("qpc_frequency"), "calibration QPC frequency", integer=True)
+    require(frequency > 0, "Zero calibration QPC frequency")
+    samples = raw.get("samples")
+    require(isinstance(samples, list) and len(samples) == 5, "Calibration needs five raw samples")
+    rates = []
+    for sample in samples:
+        require(isinstance(sample, dict), "Invalid calibration sample")
+        ticks = number(sample.get("tsc_delta"), "TSC delta", integer=True)
+        qpc = number(sample.get("qpc_delta"), "QPC delta", integer=True)
+        require(ticks > 0 and qpc / frequency >= .2, "Short/empty calibration sample")
+        rate = ticks * frequency / qpc
+        require(math.isclose(rate, number(sample.get("ticks_per_second"), "sample rate"),
+                             rel_tol=1e-9), "Calibration sample rate differs from raw deltas")
+        rates.append(rate)
+    rate = median(rates)
+    spread = (max(rates) - min(rates)) / rate
+    require(math.isclose(rate, number(raw.get("tsc_ticks_per_second"), "TSC rate"), rel_tol=1e-9) and
+            abs(spread - number(raw.get("relative_rate_spread"), "rate spread")) <= 1e-9 and
+            spread < .005, "Unstable/inconsistent calibration rate")
+    wall = number(raw.get("busy_wall_seconds"), "busy wall seconds")
+    require(wall >= .249, "Short calibration busy check")
+    for counter in ("thread", "process"):
+        ratio = number(raw.get(counter + "_cycles"), counter + " busy cycles", integer=True) / rate / wall
+        require(abs(ratio - number(raw.get(counter + "_busy_ratio"), counter + " busy ratio")) < 1e-7 and
+                .9 < ratio < 1.02, "Invalid calibration busy-counter check")
+    return rate
+
+
+def evaluate(report, candidate="Aperture", rival="VLC", min_runs=3, min_seconds=25, *,
+             calibration=None, calibration_identity=None):
     require(type(min_runs) is int and min_runs >= 2, "At least two measured runs are required")
     require(number(min_seconds, "minimum seconds") > 0, "Minimum seconds must be positive")
     require(isinstance(report, dict) and type(report.get("schemaVersion")) is int and report["schemaVersion"] == 1,
@@ -115,6 +177,21 @@ def evaluate(report, candidate="Aperture", rival="VLC", min_runs=3, min_seconds=
                 f"Missing environment {field}")
     processors = number(environment.get("logicalProcessors"), "logical processors", integer=True)
     require(processors > 0, "Logical processor count must be positive")
+    require((calibration is None) == (calibration_identity is None),
+            "Supply both calibration and calibration identity")
+    calibrated_rate, calibration_evidence = None, None
+    if calibration is not None:
+        raw_bytes, identity_bytes = calibration.read_bytes(), calibration_identity.read_bytes()
+        attestation = json.loads(identity_bytes.decode("utf-8-sig"))
+        digest = hashlib.sha256(raw_bytes).hexdigest()
+        calibrated_rate = calibration_rate(json.loads(raw_bytes.decode("utf-8-sig")), attestation,
+                                           environment, digest)
+        calibration_evidence = {"sha256": digest, "identitySha256": hashlib.sha256(identity_bytes).hexdigest(),
+                                "recordedAtUtc": attestation["recordedAtUtc"],
+                                "sourceSha256": attestation["sourceSha256"],
+                                "executableSha256": attestation["executableSha256"],
+                                "tscTicksPerSecond": calibrated_rate,
+                                "scope": "Hardware/boot-specific cycles diagnostic; retains raw CPU-time evidence."}
     iterations = number(report.get("iterations"), "iterations", integer=True)
     warmups = number(report.get("warmupIterations"), "warmups", integer=True)
     require(iterations >= min_runs, "Insufficient measured rounds; samples are not independent runs")
@@ -232,6 +309,14 @@ def evaluate(report, candidate="Aperture", rival="VLC", min_runs=3, min_seconds=
                              "launchConfigurationSha256": hashlib.sha256(json.dumps(
                                  config, sort_keys=True, ensure_ascii=False).encode("utf-8")).hexdigest()}
         grouped.append(group)
+    if calibrated_rate is not None:
+        for group in grouped:
+            group["calibratedCpu"] = [None if cycles is None else cycles / calibrated_rate * 100
+                                      for cycles in group["cycles"]]
+            require(all(value is None or value <= processors * 100 * 1.01
+                        for value in group["calibratedCpu"]), "Impossible calibrated CPU rate")
+            group["calibratedCapacity"] = [None if value is None else value / processors
+                                           for value in group["calibratedCpu"]]
     require(len(dpi) == 1 and next(iter(dpi)) > 0, "Mixed/invalid canvas DPI")
     require(len(sample_counts) == 1, "Mixed counter-sampling schedules")
     require(all(max(s[i] for s in segments) - min(s[i] for s in segments) <= 1.1
@@ -244,6 +329,11 @@ def evaluate(report, candidate="Aperture", rival="VLC", min_runs=3, min_seconds=
         ("dedicatedGpu", "Dedicated GPU allocation (not utilization)", "MiB"),
         ("sharedGpu", "Shared GPU allocation", "MiB"),
         ("runtime", "Complete supplied runtime (feature inventories may differ)", "MiB"))}
+    if calibrated_rate is not None:
+        for key, label, unit in (
+                ("calibratedCpu", "Hardware-calibrated cycles / wall time", "% of one logical processor"),
+                ("calibratedCapacity", "Hardware-calibrated cycles / machine capacity", "% of machine capacity")):
+            rows[key] = comparison(label, unit, grouped, key)
     for key, label in (("quality", "Output quality and presentation cadence"),
                        ("readiness", "First visible video and seek readiness"),
                        ("workflows", "Core workflows and reliability"),
@@ -254,6 +344,7 @@ def evaluate(report, candidate="Aperture", rival="VLC", min_runs=3, min_seconds=
             "launchMode": launch_mode,
             "overallStatus": "unproven", "candidate": candidate, "rival": rival,
             "runtimeIdentities": sources,
+            "cycleCalibration": calibration_evidence,
             "qualificationThresholds": {"minimumMeasuredRuns": min_runs,
                                         "minimumCpuWindowSeconds": min_seconds,
                                         "matchedPositionToleranceSeconds": 1.1},
@@ -276,12 +367,15 @@ def main():
     parser.add_argument("--rival", default="VLC")
     parser.add_argument("--min-runs", type=int, default=3)
     parser.add_argument("--min-seconds", type=float, default=25)
+    parser.add_argument("--calibration", type=Path, help="Optional fresh native invariant-TSC/busy-counter JSON")
+    parser.add_argument("--calibration-identity", type=Path, help="Matching hash, CPU and boot attestation")
     parser.add_argument("--output", type=Path, help="New JSON evidence file; existing files are never replaced")
     args = parser.parse_args()
     try:
         source = args.report.read_bytes()
         result = evaluate(json.loads(source.decode("utf-8-sig")),
-                          args.candidate, args.rival, args.min_runs, args.min_seconds)
+                          args.candidate, args.rival, args.min_runs, args.min_seconds,
+                          calibration=args.calibration, calibration_identity=args.calibration_identity)
         result["sourceReport"] = {"path": str(args.report.resolve()),
                                   "sha256": hashlib.sha256(source).hexdigest()}
         code = 0

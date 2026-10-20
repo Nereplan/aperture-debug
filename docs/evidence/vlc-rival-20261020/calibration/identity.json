@@ -1,0 +1,17 @@
+{
+  "recordedAtUtc": "2026-10-20T10:10:51.5919869Z",
+  "sourceSha256": "4C5C1E508F7094A844D9E0C6B5632E8D9C0531AA093B3A90793D756F8EE51D9F",
+  "executableSha256": "FFCCB0F867AF7C71F6B6C257CB246F7DACD124AD585E6FC1F68096F782733B10",
+  "environment": {
+    "osVersion": "Microsoft Windows 11 Pro 10.0.26200 build 26200",
+    "cpuName": "AMD Ryzen 9 3900X 12-Core Processor            ",
+    "logicalProcessors": 24,
+    "gpuName": "NVIDIA GeForce RTX 4070 SUPER",
+    "gpuDriverVersion": "32.0.16.1742",
+    "lastBootUpTimeUtc": "2026-10-20T08:20:29.5000000Z",
+    "source": "Win32_ComputerSystem, Win32_OperatingSystem, Win32_Processor and Win32_VideoController CIM instances"
+  },
+  "exitCode": 0,
+  "scope": "Fresh hardware-specific diagnostic after completed player trials. No player/build/test launched concurrently by this task. User-installed VLC opened after the completed batch and was preserved.",
+  "calibrationSha256": "26b132e4c05761b4ae710d44355faf962ca3ddc9f512026c9fc397bc30d96ed8"
+}
