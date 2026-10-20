@@ -1,4 +1,4 @@
-// Measures bulk-removal cleanup preparation and real indexed eviction. No
+// Measures direct bulk library removal and real indexed eviction. No
 // playback/profile writes. Missing-file eviction uses an isolated cache root.
 #include "MediaLibrary.h"
 #include "CacheStorage.h"
@@ -7,7 +7,6 @@
 #include <cstdio>
 #include <filesystem>
 #include <stdexcept>
-#include <type_traits>
 
 using namespace Aperture;
 namespace fs = std::filesystem;
@@ -17,37 +16,6 @@ static uint64_t Hash(std::wstring_view text) {
     for (wchar_t c : text) { hash ^= c; hash *= 1099511628211ull; }
     return hash;
 }
-
-// The baseline runs the former AppSelection caller's scans around the actual
-// library removal. The current build gets cleanup metadata from that removal.
-// SFINAE keeps the same harness usable with the baseline source revision.
-template<typename Library, typename = void> struct RemovalCleanup {
-    struct Target { std::string id; std::wstring filePath; double durationSec; };
-    static std::vector<Target> Run(Library& library, const std::vector<std::string>& ids, size_t& removed, size_t& skipped) {
-        std::vector<Target> targets;
-        targets.reserve(ids.size());
-        for (const auto& id : ids) {
-            for (const auto& item : library.mediaItems) {
-                if (item.id == id) { targets.push_back({item.id, item.filePath, item.durationSec}); break; }
-            }
-        }
-        removed = library.RemoveMedia(ids, &skipped, false);
-        targets.erase(std::remove_if(targets.begin(), targets.end(), [&](const Target& target) {
-            return std::any_of(library.mediaItems.begin(), library.mediaItems.end(),
-                [&](const MediaItem& item) { return item.id == target.id; });
-        }), targets.end());
-        return targets;
-    }
-};
-
-template<typename Library> struct RemovalCleanup<Library, std::void_t<typename Library::RemovedMediaInfo>> {
-    static std::vector<typename Library::RemovedMediaInfo> Run(Library& library, const std::vector<std::string>& ids,
-                                                              size_t& removed, size_t& skipped) {
-        std::vector<typename Library::RemovedMediaInfo> targets;
-        removed = library.RemoveMedia(ids, &skipped, false, &targets);
-        return targets;
-    }
-};
 
 static void Row(const char* mode, int sample, double ms, size_t items, size_t changed, uint64_t hash) {
     std::printf("%s,%d,%.6f,%zu,%zu,%zu,%zu,%zu,%llu\n", mode, sample, ms, stats.calls, stats.bytes, stats.peak,
@@ -62,17 +30,13 @@ static void Removal(const char* mode, int count, int stride, int sample) {
     std::vector<std::string> ids;
     library.mediaItems.reserve(count);
     Playlist playlist; playlist.id = "fixture";
-    uint64_t expectedCleanupHash = 0;
     for (int i = 0; i < count; ++i) {
         MediaItem item;
         item.id = std::to_string(i);
         item.filePath = L"C:\\Benchmark\\" + std::wstring(80, L'x') + L"\\Episode-" + std::to_wstring(i) + L".mkv";
         item.durationSec = 100.5 + i;
         playlist.itemPaths.push_back(item.filePath);
-        if (i % stride == 0) {
-            ids.push_back(item.id);
-            expectedCleanupHash += Hash(item.filePath) ^ static_cast<uint64_t>(item.durationSec * 2);
-        }
+        if (i % stride == 0) ids.push_back(item.id);
         library.mediaItems.push_back(std::move(item));
     }
     library.playlists.push_back(std::move(playlist));
@@ -81,12 +45,11 @@ static void Removal(const char* mode, int count, int stride, int sample) {
     size_t removed = 0, skipped = 0;
     measuring = true;
     const auto start = std::chrono::steady_clock::now();
-    const auto targets = RemovalCleanup<MediaLibrary>::Run(library, ids, removed, skipped);
+    removed = library.RemoveMedia(ids, &skipped, false);
     const auto end = std::chrono::steady_clock::now();
     measuring = false;
-    uint64_t cleanupHash = 0, orderedHash = 14695981039346656037ull;
-    for (const auto& target : targets) cleanupHash += Hash(target.filePath) ^ static_cast<uint64_t>(target.durationSec * 2);
-    if (removed != ids.size() || skipped || targets.size() != removed || cleanupHash != expectedCleanupHash ||
+    uint64_t orderedHash = 14695981039346656037ull;
+    if (removed != ids.size() || skipped ||
         library.mediaItems.size() != count - removed || library.playlists[0].itemPaths.size() != count - removed)
         throw std::runtime_error("Removal result mismatch");
     size_t index = 0;
@@ -97,7 +60,7 @@ static void Removal(const char* mode, int count, int stride, int sample) {
         orderedHash ^= Hash(item.filePath); orderedHash *= 1099511628211ull;
         ++index;
     }
-    Row(mode, sample, std::chrono::duration<double, std::milli>(end - start).count(), count, removed, orderedHash ^ cleanupHash);
+    Row(mode, sample, std::chrono::duration<double, std::milli>(end - start).count(), count, removed, orderedHash);
 }
 
 static void IndexResources(int sample) {
@@ -164,9 +127,9 @@ int wmain(int argc, wchar_t** argv) {
         if (GetProcessAffinityMask(GetCurrentProcess(), &processMask, &systemMask))
             SetProcessAffinityMask(GetCurrentProcess(), processMask & (~processMask + 1));
         std::puts("mode,sample,ms,allocations,allocated_bytes,peak_live_cpp_bytes,items,changed,result_hash");
-        Removal("remove-500-half", 500, 2, sample);
-        Removal("remove-25000-sparse", 25000, 500, sample);
-        Removal("remove-25000-half", 25000, 2, sample);
+        Removal("library-remove-500-half", 500, 2, sample);
+        Removal("library-remove-25000-sparse", 25000, 500, sample);
+        Removal("library-remove-25000-half", 25000, 2, sample);
         IndexResources(sample);
         Eviction("evict-25000-one", 25000, 1, sample, root);
         Eviction("evict-25000-100", 25000, 100, sample, root);

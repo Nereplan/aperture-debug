@@ -1202,18 +1202,14 @@ MediaImportResult MediaLibrary::ImportPaths(const std::vector<std::wstring>& pat
 
 bool MediaLibrary::RemoveMedia(const std::string &id) { return RemoveMedia(std::vector<std::string>{id}) != 0; }
 
-size_t MediaLibrary::RemoveMedia(const std::vector<std::string>& ids, size_t* outSkipped, bool saveChanges,
-                               std::vector<RemovedMediaInfo>* outRemoved) {
-    if (outRemoved) outRemoved->clear();
+size_t MediaLibrary::RemoveMedia(const std::vector<std::string>& ids, size_t* outSkipped, bool saveChanges) {
     if (ids.empty() || mediaItems.empty()) { if (outSkipped) *outSkipped = ids.size(); return 0; }
     std::unordered_set<std::string> idsToRemove(ids.begin(), ids.end());
-    if (outRemoved) outRemoved->reserve((std::min)(mediaItems.size(), idsToRemove.size()));
     std::unordered_set<std::wstring> removedPaths;
     removedPaths.reserve(idsToRemove.size());
     const size_t oldSize = mediaItems.size();
     mediaItems.erase(std::remove_if(mediaItems.begin(), mediaItems.end(), [&](const MediaItem& item) {
         if (idsToRemove.find(item.id) == idsToRemove.end()) return false;
-        if (outRemoved) outRemoved->push_back({item.filePath, item.durationSec});
         removedPaths.insert(NormalizePathKey(item.filePath));
         return true;
     }), mediaItems.end());

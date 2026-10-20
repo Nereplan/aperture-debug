@@ -202,12 +202,6 @@ bool App::TakeScreenshot() {
     return true;
 }
 
-// Hub cache keys are path-only hashes; regenerate the one key on removal.
-void App::PurgeThumbnailCacheForFile(const std::wstring& filePath) {
-    PurgeThumbnailDiskCacheForFile(filePath);
-}
-
-
 void App::PruneOrphanedHubThumbnailCache() {
     std::vector<std::wstring> livePaths;
     livePaths.reserve(library.mediaItems.size());

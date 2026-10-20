@@ -123,7 +123,9 @@ int wmain(int argc, wchar_t** argv) {
         extractor.SetPrivateMode(false); extract(2);
         PreviewThumbnailFrame stored;
         Check(LoadHubThumbnailFromDiskCache(argv[1], 320, 180, stored, GetExeDir(), false), "Normal hub extraction did not persist");
-        Check(PurgeThumbnailDiskCacheForFile(argv[1]) == 1, "Cannot clear normal hub fixture");
+        Check(PruneOrphanedHubThumbnailDiskCache({argv[1]}) == 0 && FileExists(cachedPath), "Prune removed live decoded hub fixture");
+        Check(PruneOrphanedHubThumbnailDiskCache({}) == 1, "Cannot prune normal hub fixture");
+        Check(!LoadHubThumbnailFromDiskCache(argv[1], 320, 180, stored, GetExeDir(), false), "Prune left decoded hub pixels readable");
         Check(extractor.Begin(argv[1], 3), "Cancellable hub extraction did not start");
         extractor.Cancel();
         Check(!extractor.IsActive() && !extractor.Pump() && !extractor.TakeResult(stored), "Cancelled hub extraction published pixels");

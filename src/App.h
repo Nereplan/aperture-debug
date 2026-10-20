@@ -599,7 +599,6 @@ private:
     void ClearSelectionInCurrentPane();
     void DeleteSelectedInCurrentPane();
     void ConfirmDeleteSelectedMedia();
-    void PurgeThumbnailCacheForFile(const std::wstring& filePath);
     void PruneOrphanedHubThumbnailCache();
     struct LibraryUndoEntry {
         std::wstring label;

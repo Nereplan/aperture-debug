@@ -321,9 +321,7 @@ bool SaveHubThumbnailToDiskCache( const PreviewThumbnailFrame& frame, const Cach
 bool LoadHubThumbnailFromDiskCache( const std::wstring& filePath, int width, int height, PreviewThumbnailFrame& outFrame,
     const std::wstring& root = GetExeDir(), bool migrateLegacy = true );
 
-// Remove the path's hub entry, or prune entries whose media is no longer live.
-size_t PurgeThumbnailDiskCacheForFile( const std::wstring& filePath, const std::wstring& root = GetExeDir() );
-
+// Prune entries whose media is no longer live, including obsolete hub keys.
 size_t PruneOrphanedHubThumbnailDiskCache( const std::vector<std::wstring>& liveFilePaths, const std::wstring& root = GetExeDir() );
 
 // High-performance background video preview renderer using libmpv render context

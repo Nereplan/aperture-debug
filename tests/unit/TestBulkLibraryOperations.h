@@ -55,11 +55,9 @@ TEST_CASE(BulkOperations, BatchSelectionRemovalAndWatchedState) {
     TEST_ASSERT_EQ(lib.FindByPath(path1)->lastPosSec, 0.0);
 
     lib.AddToHistory(path1, 42.0, 100.0);
-    std::vector<MediaLibrary::RemovedMediaInfo> removedInfo;
     size_t skippedRemove = 0;
-    TEST_ASSERT_EQ(lib.RemoveMedia({ id1, id2, "non_existent_id" }, &skippedRemove, false, &removedInfo), size_t(2));
+    TEST_ASSERT_EQ(lib.RemoveMedia({ id1, id2, "non_existent_id" }, &skippedRemove, false), size_t(2));
     TEST_ASSERT_EQ(skippedRemove, size_t(1));
-    TEST_ASSERT_EQ(removedInfo.size(), size_t(2));
     TEST_ASSERT(lib.FindById(id1) == nullptr);
     TEST_ASSERT(lib.FindById(id2) == nullptr);
     TEST_ASSERT(lib.FindById(id3) != nullptr);

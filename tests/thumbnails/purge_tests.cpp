@@ -25,24 +25,27 @@ size_t TestThumbnailPurge(const fs::path& root) {
     const auto profile = root.wstring();
     const fs::path dir = GetCacheDir(CacheClass::Thumbnails, profile);
     const auto target = MakeHubThumbnailCacheKey(path, 0, 0), retained = MakeHubThumbnailCacheKey(live, 0, 0);
-    check(PurgeThumbnailDiskCacheForFile(path, profile) == 0, "Empty cache removed count");
-    auto upperTarget = target;
+    check(PruneOrphanedHubThumbnailDiskCache({live}, profile) == 0, "Empty cache removed count");
+    auto upperTarget = target, upperRetained = retained;
     CharUpperBuffW(upperTarget.data(), static_cast<DWORD>(upperTarget.size()));
-    create(dir / upperTarget); create(dir / retained); create(dir / L"unrelated.bin");
+    CharUpperBuffW(upperRetained.data(), static_cast<DWORD>(upperRetained.size()));
+    create(dir / upperTarget); create(dir / upperRetained); create(dir / L"unrelated.bin");
     struct Handle { HANDLE value; ~Handle() { if (value != INVALID_HANDLE_VALUE) CloseHandle(value); } } locked{
         CreateFileW((dir / target).c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, 0, nullptr)};
     check(locked.value != INVALID_HANDLE_VALUE, "Cannot lock purge fixture");
-    check(PurgeThumbnailDiskCacheForFile(path, profile) == 0 && fs::exists(dir / target), "Locked thumbnail was removed");
+    check(PruneOrphanedHubThumbnailDiskCache({L"", live}, profile) == 0 && fs::exists(dir / target), "Locked thumbnail or uppercase live entry was removed");
     CloseHandle(locked.value); locked.value = INVALID_HANDLE_VALUE;
-    check(PurgeThumbnailDiskCacheForFile(path, profile) == 1, "Unlocked thumbnail cannot be retried");
-    check(!fs::exists(dir / target) && fs::exists(dir / retained) && fs::exists(dir / L"unrelated.bin"), "Scoped purge affected unrelated files");
+    const auto secondTarget = MakeHubThumbnailCacheKey(L"C:\\Media\\also-removed.mkv", 0, 0);
+    create(dir / secondTarget);
+    check(PruneOrphanedHubThumbnailDiskCache({live}, profile) == 2, "Bulk retry did not remove both orphan thumbnails");
+    check(!fs::exists(dir / target) && !fs::exists(dir / secondTarget) && fs::exists(dir / upperRetained) && fs::exists(dir / L"unrelated.bin"), "Pruning affected uppercase live or unrelated files");
     fs::create_directory(dir / target);
-    check(PurgeThumbnailDiskCacheForFile(path, profile) == 0 && fs::is_directory(dir / target), "Purge changed directory entry");
+    check(PruneOrphanedHubThumbnailDiskCache({live}, profile) == 0 && fs::is_directory(dir / target), "Pruning changed directory entry");
     fs::remove(dir / target);
     create(dir / L"hub_0123456789abcdef.bin");
     check(PruneOrphanedHubThumbnailDiskCache({live}, profile) == 1, "Orphan hub entry remains");
     check(fs::exists(dir / retained) && fs::exists(dir / L"unrelated.bin"), "Pruning affected live or unrelated files");
-    check(PurgeThumbnailDiskCacheForFile(L"", profile) == 0, "Empty path changed cache");
+    check(PruneOrphanedHubThumbnailDiskCache({L"", live}, profile) == 0, "Stable live set changed cache");
     PreviewThumbnailFrame frame;
     frame.filePath = path; frame.timestampSec = 65.25;
     frame.width = 32; frame.height = 18; frame.bgraPixels.assign(32 * 18 * 4, 255);
@@ -50,7 +53,9 @@ size_t TestThumbnailPurge(const fs::path& root) {
     PreviewThumbnailFrame restored;
     check(LoadHubThumbnailFromDiskCache(path, 320, 180, restored, profile, false), "Hub reader lost saved key");
     check(restored.width == 32 && restored.height == 18 && restored.timestampSec == 65.25, "Hub roundtrip metadata changed");
-    check(PurgeThumbnailDiskCacheForFile(path, profile) == 1, "Real encoded cache purge count");
+    check(PruneOrphanedHubThumbnailDiskCache({path, live}, profile) == 0, "Pruning removed live encoded cache");
+    check(PruneOrphanedHubThumbnailDiskCache({live}, profile) == 1, "Real encoded cache prune count");
     check(!LoadHubThumbnailFromDiskCache(path, 320, 180, restored, profile, false), "Hub reader resurrected removed entry");
+    check(PruneOrphanedHubThumbnailDiskCache({}, profile) == 1 && !fs::exists(dir / upperRetained) && fs::exists(dir / L"unrelated.bin"), "Empty library did not prune only hub entries");
     return checks;
 }

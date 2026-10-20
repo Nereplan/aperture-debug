@@ -233,9 +233,8 @@ void App::ConfirmDeleteSelectedMedia() {
         : L"Are you sure you want to remove " + std::to_wstring(count) + L" selected items from the library? The media files on disk will not be deleted.";
     ShowConfirmationModal(L"Remove from Library", message, L"Remove", [this, idsToDelete]() {
         ArmLibraryUndo(L"Library removal");
-        std::vector<MediaLibrary::RemovedMediaInfo> removedItems;
         size_t skipped = 0;
-        const size_t removed = library.RemoveMedia(idsToDelete, &skipped, true, &removedItems);
+        const size_t removed = library.RemoveMedia(idsToDelete, &skipped, true);
         SaveLibrary();
         if (removed > 0) {
             // Drain every producer before deleting disk entries, then cancel
@@ -246,10 +245,7 @@ void App::ConfirmDeleteSelectedMedia() {
             hubExtractors[0].Shutdown();
             hubExtractors[1].Shutdown();
             renderer.ClearThumbnailCache();
-            for (const auto& item : removedItems) {
-                PurgeThumbnailCacheForFile(item.filePath);
-            }
-            // Also removes dimension-dependent legacy hub keys, whose hashes cannot be reconstructed reliably after shell extraction.
+            // Remove deleted media and dimension-dependent legacy hub keys in one scan.
             PruneOrphanedHubThumbnailCache();
             cachedVisibleVideoPaths.clear();
             lastVisibleCollectMs = 0;

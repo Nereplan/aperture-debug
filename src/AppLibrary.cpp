@@ -602,8 +602,8 @@ bool App::HubExtractPathStillWanted(const std::wstring& path) {
 
 
 bool App::DriveHubExtraction() {
-    // Two dedicated extractor instances run fully parallel to hover,
-    // hover previews or playback decoding; they only need the player closed so
+    // Two dedicated extractor instances run fully parallel to hover previews
+    // or playback decoding; they only need the player closed so
     // background I/O never contends with active media.
     if (playbackSession.IsOpen()) return false;
     CollectVisibleVideoPaths();

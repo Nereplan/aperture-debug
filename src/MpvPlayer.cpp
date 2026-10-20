@@ -1959,14 +1959,6 @@ bool LoadHubThumbnailFromDiskCache( const std::wstring& filePath, int width, int
     return true;
 }
 
-size_t PurgeThumbnailDiskCacheForFile( const std::wstring& filePath, const std::wstring& root ) {
-    if (filePath.empty()) return 0;
-    std::lock_guard<std::recursive_mutex> ioLock(Detail::CacheIOMutex());
-    InvalidateCacheAccounting(root);
-    const std::wstring target = GetCacheDir(CacheClass::Thumbnails, root) + L"\\" + MakeHubThumbnailCacheKey(filePath, 0, 0);
-    return DeleteFileW(target.c_str()) ? 1 : 0;
-}
-
 size_t PruneOrphanedHubThumbnailDiskCache( const std::vector<std::wstring>& liveFilePaths, const std::wstring& root ) {
     std::lock_guard<std::recursive_mutex> ioLock(Detail::CacheIOMutex());
     InvalidateCacheAccounting(root);
@@ -1979,7 +1971,11 @@ size_t PruneOrphanedHubThumbnailDiskCache( const std::vector<std::wstring>& live
     HANDLE find = FindFirstFileW((dir + L"\\hub_*.bin").c_str(), &data);
     if (find == INVALID_HANDLE_VALUE) return 0;
     do {
-        if ((data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) == 0 && liveKeys.find(data.cFileName) == liveKeys.end() &&
+        if (data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) continue;
+        std::wstring key = data.cFileName;
+        // Canonical keys are ASCII; Windows cache filenames may use either case.
+        for (auto& c : key) { if (c >= L'A' && c <= L'Z') c += L'a' - L'A'; }
+        if (liveKeys.find(key) == liveKeys.end() &&
             DeleteFileW((dir + L"\\" + data.cFileName).c_str())) {
             ++removed;
         }

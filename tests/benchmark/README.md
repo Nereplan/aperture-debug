@@ -163,6 +163,15 @@ presentation cadence. These runs contain no resource samples and cannot qualify
 as resource evidence. Run the off-screen control/parser/metric contracts with
 `pwsh -NoProfile -File tests/benchmark/test_sentinel_color.ps1`.
 
+## Library maintenance
+
+`run_maintenance_benchmark.ps1 -BaselineSourceDirectory <source> -OutputDirectory
+<new-directory>` compares direct bulk library removal and indexed cache eviction.
+The `library-remove-*` modes check removal counts and surviving media/playlist
+order. They exclude the retired caller-side cleanup-metadata preparation and use
+different names and result hashes from historical `remove-*` observations. Keep
+those historical measurements under their original protocol; do not pool them.
+
 ## Media record memory
 
 `run_media_record_benchmark.ps1 -OutputDirectory <scratch-directory>` measures

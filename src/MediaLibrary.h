@@ -451,11 +451,8 @@ public:
                                   const MediaImportProbeCache* probeCache = nullptr, const MediaProbeFunction& probeFunction = {});
     MediaImportMergeResult MergeImportedMedia(std::vector<MediaItem> items,
         const std::vector<std::optional<MetadataBackfillBaseline>>& baseline);
-    struct RemovedMediaInfo { std::wstring filePath; double durationSec = 0.0; };
     bool RemoveMedia(const std::string& id);
-    // Optional owned metadata for cleanup after vector erasure invalidates pointers.
-    size_t RemoveMedia(const std::vector<std::string>& ids, size_t* outSkipped = nullptr, bool saveChanges = true,
-                       std::vector<RemovedMediaInfo>* outRemoved = nullptr);
+    size_t RemoveMedia(const std::vector<std::string>& ids, size_t* outSkipped = nullptr, bool saveChanges = true);
     MediaItem* FindByPath(const std::wstring& path);
     const MediaItem* FindByPath(const std::wstring& path) const;
     MediaItem* FindById(const std::string& id);
