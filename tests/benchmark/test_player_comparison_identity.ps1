@@ -1,4 +1,21 @@
 $ErrorActionPreference = 'Stop'
+$parseErrors = $null; $tokens = $null
+$comparison = [Management.Automation.Language.Parser]::ParseFile(
+    (Join-Path $PSScriptRoot 'compare_players.ps1'), [ref]$tokens, [ref]$parseErrors)
+if ($parseErrors.Count) { throw 'Player comparison parameter parsing failed.' }
+# Exercise the actual public parameter block without executing player setup.
+$bind = [scriptblock]::Create($comparison.ParamBlock.Extent.Text + '; $SamplingStartMediaSeconds')
+$inputs = @{AperturePath='unused';MediaPath='unused';OutputDir='unused'}
+foreach ($value in @(0.0,20.5,86400.0)) {
+    if ((& $bind @inputs -SamplingStartMediaSeconds $value) -ne $value) { throw 'Media alignment was rounded.' }
+}
+foreach ($value in @(-0.5,86400.5,[double]::NaN,[double]::PositiveInfinity,[double]::NegativeInfinity)) {
+    $rejected = $false
+    try { & $bind @inputs -SamplingStartMediaSeconds $value | Out-Null }
+    catch [System.Management.Automation.ParameterBindingException] { $rejected = $true }
+    if (-not $rejected) { throw 'Invalid media alignment was accepted.' }
+}
+Write-Output 'PASS fractional alignment binds without rounding and invalid positions are rejected'
 . (Join-Path $PSScriptRoot 'player_comparison_identity.ps1')
 $fixtureRoot = Join-Path ([IO.Path]::GetTempPath()) ('Aperture-runtime-identity-' + [Guid]::NewGuid().ToString('N'))
 $fixture = Join-Path $fixtureRoot 'original'

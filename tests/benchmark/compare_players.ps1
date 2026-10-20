@@ -39,7 +39,7 @@ param(
     [string]$ApertureVariantsFile = '',
     [ValidateRange(0,120)][int]$SamplingSeconds = 0,
     [ValidateRange(0,86400)][int]$LaunchMediaStartSeconds = 0,
-    [ValidateRange(0,86400)][int]$SamplingStartMediaSeconds = 0
+    [ValidateRange(0.0,86400.0)][double]$SamplingStartMediaSeconds = 0
 )
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'player_comparison_identity.ps1')

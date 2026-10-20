@@ -86,6 +86,11 @@ Aperture/VLC, opens media from its beginning, and rejects a nonzero
 `-ForceD3D11Linear` requests VLC's D3D11 output/decoder and linear scaling; it
 does not establish the effective decoder or equal filtering/output in both apps.
 
+`-SamplingStartMediaSeconds` accepts fractional positions. A predeclared half-second
+threshold can keep integer-quantized VLC status away from an endpoint boundary.
+Keep the observed positions, original failed batches and qualification tolerance;
+fractional alignment does not establish identical frame timestamps.
+
 `player_comparison_identity.ps1` hashes every supplied runtime file using ordinal
 path ordering, rejects linked inputs, verifies staged copies, and records the
 OS/CPU/GPU/driver and logical-processor count. Each counter sample must pass owned,
