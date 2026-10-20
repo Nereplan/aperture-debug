@@ -1699,17 +1699,16 @@ bool App::Update(float dt) {
 
 void App::Render() {
     if (renderer.AreDeviceWorkersRunning()) return;
-    RefreshAccessibilityTree(false);
     if (playbackSession.IsOpen()) {
-        hubTooltips.SetActive(false);
-        hubTooltips.HideForKeyboard();
-        RefreshPlayerTooltips();
-    } else { playerTooltips.SetActive(false); playerTooltips.HideForKeyboard(); RefreshHubTooltips(); }
-    if (playbackSession.IsOpen()) {
+        if (hubTooltips.IsActive()) hubTooltips.SetActive(false);
         if (!EnsureOverlayReady()) return;
         RECT clientScreenRect{};
         if (!GetClientScreenRect(hWnd, clientScreenRect)) return;
         if (!overlayRenderer.BeginFrame(hOverlayWnd)) return;
+        // Rejected input-driven frames retain a pending timer wake. Refresh
+        // derived UI state once for the accepted frame using the latest input.
+        RefreshAccessibilityTree(false);
+        RefreshPlayerTooltips();
         PlayerRenderViewModel vm = BuildPlayerRenderViewModel();
         UIComponents::DrawPlayerOverlay(overlayRenderer, settings, vm);
         const bool presented = overlayRenderer.EndDrawAndPresent(hOverlayWnd, clientScreenRect.left, clientScreenRect.top);
@@ -1717,6 +1716,10 @@ void App::Render() {
             overlayRenderer.ReleaseEmptySurface();
         return;
     }
+    RefreshAccessibilityTree(false);
+    playerTooltips.SetActive(false);
+    playerTooltips.HideForKeyboard();
+    RefreshHubTooltips();
     // --- Hub Library View (Rendered directly on main window) ---
     // Hide-once guards: ShowWindow churn every rendered hub frame would emit
     // redundant WM_SHOWWINDOW traffic on the video/overlay windows.

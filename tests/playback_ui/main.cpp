@@ -107,6 +107,102 @@ struct PlaybackUiTestAccess {
         NoVisibleWindows();
         Pass("hidden owner, overlay and muted native player");
     }
+    static double FrameSeconds() {
+        LARGE_INTEGER now{}, frequency{}; QueryPerformanceCounter(&now); QueryPerformanceFrequency(&frequency);
+        return static_cast<double>(now.QuadPart) / static_cast<double>(frequency.QuadPart);
+    }
+    static LRESULT CALLBACK ObserveTooltip(HWND window, UINT message, WPARAM w, LPARAM l, UINT_PTR, DWORD_PTR data) {
+        if (message == TTM_HITTESTA || message == TTM_HITTESTW) ++*reinterpret_cast<unsigned*>(data);
+        return DefSubclassProc(window, message, w, l);
+    }
+    static std::wstring PlayTooltip(const App& a) {
+        wchar_t text[256]{};
+        TOOLINFOW info{}; info.cbSize = sizeof(info); info.hwnd = a.hOverlayWnd; info.uId = 2002; info.lpszText = text;
+        SendMessageW(a.playerTooltips.GetHandle(), TTM_GETTEXTW, 256, reinterpret_cast<LPARAM>(&info));
+        return text;
+    }
+    static void PacedInputBookkeeping(App& a) {
+        auto& r = a.overlayRenderer;
+        const auto savedShortcut = a.settings.shortcuts.find("togglePlay");
+        const bool hadShortcut = savedShortcut != a.settings.shortcuts.end();
+        const ShortcutBinding original = hadShortcut ? savedShortcut->second : ShortcutBinding{};
+        a.settings.shortcuts["togglePlay"].vkCode = VK_F8;
+        a.controlsOpacity = 1.0f; a.controlsIdleTimer = 0.0f; a.playerKeyboardFocusId = 9002;
+        const auto layout = Presentation::Player(1024, 640, r.GetDpiScale(), false);
+        const auto center = [](const D2D1_RECT_F& rect) { return Point(static_cast<int>((rect.left + rect.right) * .5f), static_cast<int>((rect.top + rect.bottom) * .5f)); };
+        const LPARAM play = center(layout.play), settings = center(layout.settings);
+        a.RefreshOverlayHitTargets(static_cast<float>(GET_X_LPARAM(play)), static_cast<float>(GET_Y_LPARAM(play)));
+        r.framePacer.Reset(); a.MarkAccessibilityDirty(); a.Render();
+        Require(a.playerTooltips.IsCreated() && a.playerTooltips.IsActive(), "Player tooltip setup failed");
+        Require(PlayTooltip(a).find(L"F8") != std::wstring::npos, "Initial playback shortcut missing from tooltip");
+        Require(r.pBitmapBits && r.width && r.height, "No initial paced overlay pixels");
+        const size_t hoverPixel = static_cast<size_t>((layout.settings.top + layout.settings.bottom) * .5f) * r.width +
+            static_cast<size_t>(layout.settings.left + 2 * r.GetDpiScale());
+        const auto initialPixel = static_cast<const uint32_t*>(r.pBitmapBits)[hoverPixel];
+        const auto frames = r.GetFrameStatistics().framesDrawn;
+        const auto signature = a.playerTooltipSignature;
+        const auto initialTooltip = PlayTooltip(a);
+        const double cadenceCheck = r.nextCadenceCheckSeconds;
+        // Control the existing private clock state, rather than racing a real
+        // 16ms interval or slowing the flood enough to accept an accidental frame.
+        const double now = FrameSeconds();
+        r.nextCadenceCheckSeconds = now + 3600;
+        r.framePacer.FrameStarted(now + 3600);
+        Require(a.hubTooltips.Create(a.hWnd) && a.hubTooltips.SetActive(true), "Hidden hub tooltip transition setup failed");
+        a.accessibilityLastRefreshMs = 0; a.MarkAccessibilityDirty();
+        a.playerKeyboardFocusId = 9006;
+        struct TooltipProbe {
+            HWND window; unsigned hitTests = 0;
+            explicit TooltipProbe(HWND value) : window(value) {
+                Require(SetWindowSubclass(window, ObserveTooltip, 1, reinterpret_cast<DWORD_PTR>(&hitTests)) != FALSE, "Tooltip relay observer setup failed");
+            }
+            ~TooltipProbe() { RemoveWindowSubclass(window, ObserveTooltip, 1); }
+        } probe(a.playerTooltips.GetHandle());
+        for (int i = 0; i < 256; ++i) {
+            a.settings.shortcuts["togglePlay"].vkCode = (i & 1) ? VK_F9 : VK_F10;
+            const LPARAM point = (i & 1) ? settings : play;
+            a.HandleOverlayMessage(a.hOverlayWnd, WM_MOUSEMOVE, 0, point);
+            Require(a.hoveredPlayerButtonId == ((i & 1) ? 5 : 1), "Pacing deferred immediate mouse hit testing");
+            Require(!a.hubTooltips.IsActive(), "Rejected playback frame kept hub tooltips active");
+        }
+        Require(probe.hitTests >= 256, "Pacing suppressed tooltip mouse relay");
+        Require(a.accessibilityLastRefreshMs == 0 && a.accessibilityDirty, "Rejected frames refreshed accessibility");
+        Require(a.playerTooltipSignature == signature && PlayTooltip(a) == initialTooltip, "Rejected frames refreshed tooltips");
+        Require(r.GetFrameStatistics().framesDrawn == frames && r.HasPendingFrame(), "Input flood drew early or lost its final frame");
+        Require(r.frameTimer && WaitForSingleObject(r.frameTimer, 0) == WAIT_TIMEOUT, "Rejected frame did not retain its deadline timer");
+        // Commands remain synchronous even while their visual frame is pending.
+        const bool wasPlaying = a.player.IsPlaying();
+        a.HandleOverlayMessage(a.hOverlayWnd, WM_LBUTTONDOWN, MK_LBUTTON, play);
+        Require(a.player.IsPlaying() != wasPlaying, "Pacing deferred a playback command");
+        a.HandleOverlayMessage(a.hOverlayWnd, WM_LBUTTONUP, 0, play);
+        a.HandleOverlayMessage(a.hOverlayWnd, WM_LBUTTONDOWN, MK_LBUTTON, play);
+        Require(a.player.IsPlaying() == wasPlaying, "Second playback command was lost");
+        a.HandleOverlayMessage(a.hOverlayWnd, WM_LBUTTONUP, 0, play);
+        a.HandleOverlayMessage(a.hOverlayWnd, WM_MOUSEMOVE, 0, settings);
+        a.playerKeyboardFocusId = 9006; a.MarkAccessibilityDirty();
+        a.HandleMessage(a.hWnd, WM_GETOBJECT, 0, static_cast<LPARAM>(UiaRootObjectId));
+        AccessibilityNode node;
+        Require(!a.accessibilityDirty && a.accessibilityLastRefreshMs != 0 && a.accessibilityTree.GetNodeCopy(9006, node) && node.focused,
+            "WM_GETOBJECT did not force current accessibility during a pending frame");
+        Require(r.GetFrameStatistics().framesDrawn == frames && r.HasPendingFrame(), "Accessibility query consumed the pending visual frame");
+        a.settings.shortcuts["togglePlay"].vkCode = VK_F11;
+        a.accessibilityLastRefreshMs = 0; a.MarkAccessibilityDirty();
+        // Make the retained request due and use its timer wake, with no more input.
+        r.framePacer.FrameStarted(FrameSeconds() - 1); r.framePacer.Request(); r.ArmFrameTimer(FrameSeconds());
+        Require(WaitForSingleObject(r.frameTimer, 1000) == WAIT_OBJECT_0 && r.IsFrameDue(), "Pending overlay timer did not wake");
+        a.Render();
+        Require(r.GetFrameStatistics().framesDrawn == frames + 1 && !r.HasPendingFrame(), "Deadline did not consume exactly one pending frame");
+        Require(a.BuildPlayerRenderViewModel().bottomBar.hoveredButtonId == 5 &&
+            static_cast<const uint32_t*>(r.pBitmapBits)[hoverPixel] != initialPixel, "Deadline frame did not draw the newest hover");
+        Require(!a.accessibilityDirty && a.accessibilityLastRefreshMs != 0 && a.accessibilityTree.GetNodeCopy(9002, node) &&
+            node.keyboardShortcut.find(L"F11") != std::wstring::npos, "Deadline frame missed the newest accessibility shortcut");
+        Require(a.playerTooltipSignature != signature && PlayTooltip(a).find(L"F11") != std::wstring::npos, "Deadline frame missed the newest tooltip shortcut");
+        if (hadShortcut) a.settings.shortcuts["togglePlay"] = original;
+        else a.settings.shortcuts.erase("togglePlay");
+        r.nextCadenceCheckSeconds = cadenceCheck;
+        a.MarkAccessibilityDirty();
+        Pass("input flood keeps hit testing, tooltip relay and commands immediate; deferred bookkeeping draws latest state on timer wake");
+    }
     static void DiagnosticsClose(App& a) {
         Key(a, 'I'); Require(a.showPlaybackDiagnostics, "Diagnostics keyboard toggle did not open panel");
         const float dp = a.overlayRenderer.GetDpiScale();
@@ -382,7 +478,7 @@ struct PlaybackUiTestAccess {
         Pass("Undo history bounds entry count and retained payload");
     }
     static void Run(App& a, const std::wstring& media) {
-        Setup(a, media); DiagnosticsClose(a); Controls(a); Subtitles(a); Bookmark(a); RepeatAndMenu(a); RenameUndo(a); MoveUndo(a); MediaAndFolderUndo(a); EditHistory(a); NoVisibleWindows();
+        Setup(a, media); PacedInputBookkeeping(a); DiagnosticsClose(a); Controls(a); Subtitles(a); Bookmark(a); RepeatAndMenu(a); RenameUndo(a); MoveUndo(a); MediaAndFolderUndo(a); EditHistory(a); NoVisibleWindows();
     }
     static void Release(App& a) {
         if (a.hWnd) SetWindowLongPtrW(a.hWnd, GWLP_USERDATA, 0);
