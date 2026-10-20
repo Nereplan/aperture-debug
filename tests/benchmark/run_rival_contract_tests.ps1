@@ -5,4 +5,5 @@ $python = Get-Command python.exe -ErrorAction Stop
 if ($LASTEXITCODE -ne 0) { throw 'Rival evidence contracts failed.' }
 & (Join-Path $PSScriptRoot 'test_player_comparison_identity.ps1')
 & (Join-Path $PSScriptRoot 'test_player_video_readiness.ps1')
+& (Join-Path $PSScriptRoot 'test_sentinel_color.ps1')
 Write-Output 'Rival observer/evidence contracts passed without launching players.'

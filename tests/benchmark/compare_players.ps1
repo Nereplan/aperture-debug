@@ -21,6 +21,7 @@ param(
     [Parameter(Mandatory)][string]$OutputDir,
     [string]$ApertureStatusProbe = '',
     [string]$SentinelFixtureManifest = '',
+    [switch]$SentinelColorCheck,
     [switch]$AllowVisiblePlayback,
     [switch]$RefreshVlcBaseline,
     [ValidateSet('Aperture','VLC','MPC-HC')][string[]]$PlayerNames = @('Aperture'),
@@ -53,6 +54,11 @@ if ($LaunchMode -eq 'HubThenOpen' -and ('MPC-HC' -in $PlayerNames -or $LaunchMed
     throw 'HubThenOpen supports Aperture/VLC with the media opened at its beginning.'
 }
 if ($PSVersionTable.PSVersion.Major -lt 7) { throw 'Use PowerShell 7 (ProcessStartInfo.ArgumentList required).' }
+if ($SentinelColorCheck -and (-not $SentinelFixtureManifest -or $SamplingSeconds -or $SamplingStartMediaSeconds -or
+    $LaunchMediaStartSeconds -or $CaptureThreadCounters -or $ApertureVariantsFile -or
+    @($PlayerNames | Select-Object -Unique).Count -ne 2 -or 'Aperture' -notin $PlayerNames -or 'VLC' -notin $PlayerNames)) {
+    throw 'SentinelColorCheck requires the fixture manifest and Aperture/VLC, without resource sampling, launch offsets, thread capture or variants.'
+}
 function Assert-NoReparseAncestors([string]$Path) {
     $current=[IO.Path]::GetFullPath($Path)
     while($current) {
@@ -73,6 +79,7 @@ if ($SentinelFixtureManifest) {
     $sentinelFixture = Get-Content -LiteralPath $SentinelFixtureManifest -Raw | ConvertFrom-Json
     if ($sentinelFixture.mediaSha256 -ne $mediaHash -or $sentinelFixture.phaseSeconds -ne 12 -or
         $sentinelFixture.phaseCount -ne 4 -or $sentinelFixture.width -ne 1280 -or $sentinelFixture.height -ne 720 -or
+        $sentinelFixture.fps -ne 30 -or ($sentinelFixture.paletteRgb -join ',') -cne (@(0xe62828,0x28d73c,0x3246e6,0x1ed2dc,0xdc28d2,0xe6d21e) -join ',') -or
         $VideoWidth -ne 1280 -or $VideoHeight -ne 720 -or 'MPC-HC' -in $PlayerNames) {
         throw 'Sentinel validation requires the exact controlled fixture and a matched 1280x720 Aperture/VLC canvas.'
     }
@@ -164,7 +171,14 @@ function Gpu([int]$OwnedPid) {
         return @{dedicatedBytes=[int64](($dedicated | Measure-Object CookedValue -Sum).Sum);sharedBytes=[int64](($shared | Measure-Object CookedValue -Sum).Sum);unavailableReason=$null}
     } catch { return @{dedicatedBytes=$null;sharedBytes=$null;unavailableReason=$_.Exception.Message} }
 }
-function Vlc-Time([int]$Port, [int]$OwnedPid, [string]$OpenMediaUri = '', [int]$SeekSeconds = -1) {
+function Vlc-ReplyValues([string]$Reply, [int]$ExpectedCount) {
+    if ($ExpectedCount -notin @(1,2) -or $Reply.Length -gt 16384) { throw 'Unexpected or oversized RC numeric response.' }
+    # Require the complete line; a TCP chunk can end inside a numeric value.
+    $matches=[regex]::Matches($Reply,'(?m)^[ \t]*(?:>[ \t]*)?(\d+)[ \t]*\r?\n')
+    if ($matches.Count -gt $ExpectedCount) { throw 'Unexpected RC numeric response count.' }
+    @($matches | ForEach-Object { [double]$_.Groups[1].Value })
+}
+function Vlc-Numbers([int]$Port, [int]$OwnedPid, [string]$Request, [int]$ExpectedCount = 1) {
     # Verify the listener's owning PID before sending any command. Fail closed on a race.
     $listener = @(Get-NetTCPConnection -LocalAddress '127.0.0.1' -LocalPort $Port -State Listen -ErrorAction Stop)
     if ($listener.Count -ne 1 -or $listener[0].OwningProcess -ne $OwnedPid) { throw 'RC listener is not owned by benchmark process.' }
@@ -173,21 +187,27 @@ function Vlc-Time([int]$Port, [int]$OwnedPid, [string]$OpenMediaUri = '', [int]$
         $connect = $client.ConnectAsync('127.0.0.1',$Port)
         if (-not $connect.Wait(1500)) { throw 'RC connect timeout.' }
         $stream = $client.GetStream(); $stream.ReadTimeout = 1500; $stream.WriteTimeout = 1500
-        $request = if ($OpenMediaUri) { "add $OpenMediaUri`nget_time`n" } elseif ($SeekSeconds -ge 0) { "seek $SeekSeconds`nget_time`n" } else { "get_time`n" }
-        $command = [Text.Encoding]::ASCII.GetBytes($request)
+        $started = [Diagnostics.Stopwatch]::GetTimestamp()
+        $command = [Text.Encoding]::ASCII.GetBytes($Request)
         $stream.Write($command,0,$command.Length)
         $buffer = [byte[]]::new(4096); $reply = ''; $deadline = [DateTime]::UtcNow.AddSeconds(2)
         do {
             $count = $stream.Read($buffer,0,$buffer.Length)
             if ($count -eq 0) { break }
             $reply += [Text.Encoding]::UTF8.GetString($buffer,0,$count)
-            $matches = [regex]::Matches($reply,'(?m)^\s*(?:>\s*)?(\d+)\s*\r?$')
-            if ($matches.Count) { return [double]$matches[$matches.Count-1].Groups[1].Value }
+            $values=@(Vlc-ReplyValues $reply $ExpectedCount)
+            if ($values.Count -eq $ExpectedCount) {
+                return @{values=$values;raw=$reply;request=$Request;qpcStart=$started;qpcEnd=[Diagnostics.Stopwatch]::GetTimestamp()}
+            }
         } while ([DateTime]::UtcNow -lt $deadline)
         throw 'RC returned no numeric playback time.'
     } finally { $client.Dispose() }
 }
-function Playback([string]$Name, [int]$OwnedPid, [int]$Port, $Environment, [switch]$OpenMedia, [int]$SeekSeconds = -1) {
+function Vlc-Time([int]$Port, [int]$OwnedPid, [string]$OpenMediaUri = '', [int]$SeekSeconds = -1) {
+    $request = if ($OpenMediaUri) { "add $OpenMediaUri`nget_time`n" } elseif ($SeekSeconds -ge 0) { "seek $SeekSeconds`nget_time`n" } else { "get_time`n" }
+    (Vlc-Numbers $Port $OwnedPid $request).values[0]
+}
+function Playback([string]$Name, [int]$OwnedPid, [int]$Port, $Environment, [switch]$OpenMedia, [int]$SeekSeconds = -1, [ValidateSet('','Pause','Play')][string]$Action = '') {
     try {
         if ($Name -eq 'VLC') {
             $uri = if ($OpenMedia) { [Uri]::new($MediaPath).AbsoluteUri } else { '' }
@@ -199,6 +219,7 @@ function Playback([string]$Name, [int]$OwnedPid, [int]$Port, $Environment, [swit
             $psi.ArgumentList.Add([string]$OwnedPid)
             if ($OpenMedia) { $psi.ArgumentList.Add('--open'); $psi.ArgumentList.Add($MediaPath) }
             elseif ($SeekSeconds -ge 0) { $psi.ArgumentList.Add('--seek'); $psi.ArgumentList.Add([string]$SeekSeconds) }
+            elseif ($Action) { $psi.ArgumentList.Add('--' + $Action.ToLowerInvariant()) }
             foreach($key in $Environment.Keys) { $psi.Environment[$key]=$Environment[$key] }
             $probe = [Diagnostics.Process]::Start($psi)
             try {
@@ -210,6 +231,80 @@ function Playback([string]$Name, [int]$OwnedPid, [int]$Port, $Environment, [swit
         }
         return @{positionSec=$null;state=$null;reason='No owned-PID playback status probe supplied/available.'}
     } catch { return @{positionSec=$null;state=$null;reason=$_.Exception.Message} }
+}
+function Color-Status([string]$Name, [int]$OwnedPid, [int]$Port, $Environment, [switch]$Pause) {
+    $started=[Diagnostics.Stopwatch]::GetTimestamp()
+    if ($Name -eq 'Aperture') {
+        $raw=Playback $Name $OwnedPid $Port $Environment -Action $(if($Pause){'Pause'}else{''})
+        return @{positionSec=$raw.positionSec;paused=($raw.state -eq 3);state=$raw.state;reason=$raw.reason;raw=$raw;qpcStart=$started;qpcEnd=[Diagnostics.Stopwatch]::GetTimestamp()}
+    }
+    $requests=[Collections.Generic.List[object]]::new()
+    $raw=Vlc-Numbers $Port $OwnedPid "status`nis_playing`nget_time`n" 2
+    $requests.Add($raw)
+    if ($raw.values[0] -notin @(0,1)) { throw 'Invalid VLC playback state.' }
+    # RC pause toggles. Never resume a previously paused player.
+    if ($Pause -and $raw.values[0] -eq 1) {
+        $raw=Vlc-Numbers $Port $OwnedPid "pause`nstatus`nis_playing`nget_time`n" 2
+        $requests.Add($raw)
+    }
+    if ($raw.values[0] -notin @(0,1)) { throw 'Invalid VLC playback state after pause.' }
+    $states=[regex]::Matches($raw.raw,'(?m)(?:^|>)[ \t]*status change: \( (?:play|pause|stop|unknown) state: (-?\d+) \)')
+    $state=if($states.Count){[int]$states[$states.Count-1].Groups[1].Value}else{$null}
+    return @{positionSec=$raw.values[1];paused=($raw.values[0] -eq 0 -and $null -ne $state -and $state -eq 4);state=$state;isPlaying=$raw.values[0];reason=$null;raw=$requests.ToArray();qpcStart=$started;qpcEnd=[Diagnostics.Stopwatch]::GetTimestamp()}
+}
+function Assert-ColorPaused($Status, [double]$Target, $Previous = $null) {
+    if ($Status.reason -or $Status.paused -ne $true -or $null -eq $Status.positionSec -or
+        [double]::IsNaN($Status.positionSec) -or [double]::IsInfinity($Status.positionSec) -or
+        [Math]::Abs($Status.positionSec-$Target) -gt 1.1) { throw 'Color sample requires paused playback near the phase midpoint.' }
+    if ($null -ne $Previous -and [Math]::Abs($Status.positionSec-$Previous.positionSec) -gt 0.05) { throw 'Playback moved during paused color sampling.' }
+}
+function Color-Difference([int[]]$Left, [int[]]$Right) {
+    if ($Left.Count -ne 54 -or $Right.Count -ne 54) { throw 'Color difference requires two complete 54-point RGB arrays.' }
+    [long]$sum=0; $maximum=0
+    for($i=0;$i -lt 54;$i++) {
+        if ($Left[$i] -lt 0 -or $Left[$i] -gt 0xffffff -or $Right[$i] -lt 0 -or $Right[$i] -gt 0xffffff) { throw 'Invalid RGB encoding.' }
+        foreach($shift in @(0,8,16)) {
+            $delta=[Math]::Abs((($Left[$i] -shr $shift) -band 255)-(($Right[$i] -shr $shift) -band 255))
+            $sum+=$delta; $maximum=[Math]::Max($maximum,$delta)
+        }
+    }
+    @{meanAbsoluteComponentDifference=$sum/162.0;maximumAbsoluteComponentDifference=$maximum;componentCount=162}
+}
+function Sentinel-Colors($Run, [string]$Name, [int]$OwnedPid, [int]$Port, $Environment) {
+    $phases=[Collections.Generic.List[object]]::new()
+    $Run.sentinelColor=@{qpcFrequency=[Diagnostics.Stopwatch]::Frequency;phases=$phases}
+    for($phase=0;$phase -lt 4;$phase++) {
+        $target=$phase*12+6
+        $entry=[ordered]@{phase=$phase;targetSec=$target;status='pending';samples=[Collections.Generic.List[object]]::new()}
+        $phases.Add($entry)
+        $entry.seekQpcStart=[Diagnostics.Stopwatch]::GetTimestamp()
+        $entry.seekResponse=Playback $Name $OwnedPid $Port $Environment -SeekSeconds $target
+        $entry.seekQpcEnd=[Diagnostics.Stopwatch]::GetTimestamp()
+        if ($entry.seekResponse.reason) { throw "Color seek failed: $($entry.seekResponse.reason)" }
+        $entry.visiblePhase=[PlayerVideoReadiness]::WaitForPhase([uint32]$OwnedPid,$Name,$entry.seekQpcStart,$phase,15000,5)
+        if ($entry.visiblePhase.status -ne 'recognized') { throw "Color phase recognition failed: $($entry.visiblePhase.reason)" }
+        $entry.pause=Color-Status $Name $OwnedPid $Port $Environment -Pause
+        Assert-ColorPaused $entry.pause $target
+        Start-Sleep -Milliseconds 100
+        $entry.pauseConfirmation=Color-Status $Name $OwnedPid $Port $Environment
+        Assert-ColorPaused $entry.pauseConfirmation $target $entry.pause
+        for($index=0;$index -lt 3;$index++) {
+            $reading=[ordered]@{index=$index;status='pending'}
+            $entry.samples.Add($reading)
+            $reading.before=Color-Status $Name $OwnedPid $Port $Environment
+            Assert-ColorPaused $reading.before $target $entry.pauseConfirmation
+            $reading.desktop=[PlayerVideoReadiness]::Observe([uint32]$OwnedPid,$Name)
+            $reading.after=Color-Status $Name $OwnedPid $Port $Environment
+            Assert-ColorPaused $reading.after $target $reading.before
+            if (-not $reading.desktop.safe -or $reading.desktop.status -ne 'sampled' -or $reading.desktop.phase -ne $phase -or $reading.desktop.rgb.Count -ne 54) { throw "Unsafe or wrong-phase color sample: $($reading.desktop.reason)" }
+            $canvas=$reading.desktop.screenCanvas
+            if (($canvas.right-$canvas.left) -ne 1280 -or ($canvas.bottom-$canvas.top) -ne 720 -or $reading.desktop.dpi -eq 0) { throw 'Color canvas changed from the matched 1280x720 target.' }
+            $reading.repeatDifference=Color-Difference $entry.samples[0].desktop.rgb $reading.desktop.rgb
+            $reading.status='sampled'
+            if($index -lt 2) { Start-Sleep -Milliseconds 100 }
+        }
+        $entry.status='sampled'
+    }
 }
 $benchmarkEnvironment = Get-PlayerBenchmarkEnvironment
 New-Item -ItemType Directory -Path $OutputDir -Force | Out-Null
@@ -327,6 +422,14 @@ $results = [Collections.Generic.List[object]]::new()
             if(-not [PlayerBenchmarkWindow]::Raise($window,[uint32]$process.Id)) { throw 'Post-load owned-window raise failed.' }
             $record.windowRaisedForVisibility = $true
             Start-Sleep -Seconds 2
+            if ($SentinelColorCheck) {
+                Sentinel-Colors $record $player.name $process.Id $port $envOverride
+                $record.windowDimensions=[PlayerBenchmarkWindow]::Size($window)
+                $record.videoCanvas=[PlayerBenchmarkWindow]::VideoCanvas($window,[uint32]$process.Id,$player.name)
+                $record.playbackVerification='four-known-phases-paused-and-sampled'
+                $record.status='sentinel-color-validated'
+                continue
+            }
             if ($SentinelFixtureManifest) {
                 $before = [PlayerVideoReadiness]::Observe([uint32]$process.Id, $player.name)
                 $record.sentinelBeforeSeek = $before
@@ -446,6 +549,22 @@ $report.harnessSourceSha256=$harnessSourceHashes
 if($ApertureStatusProbe){$report.apertureStatusProbeSha256=(Get-FileHash -LiteralPath $ApertureStatusProbe -Algorithm SHA256).Hash}
 $report.purpose=if($SentinelFixtureManifest){'Controlled visible sentinel and seek validation only; no resource or first-video startup ranking.'}else{'Resource comparison; no overall player ranking.'}
 if($SentinelFixtureManifest){$report.sentinelFixtureManifest=(Resolve-Path -LiteralPath $SentinelFixtureManifest).Path}
+if($SentinelColorCheck) {
+    $report.purpose='Coarse paused SDR sentinel RGB comparison only; no resource, startup, cadence or general image-quality ranking.'
+    $differences=[Collections.Generic.List[object]]::new()
+    foreach($left in @($results | Where-Object { $_.player -eq 'Aperture' -and $_.status -eq 'sentinel-color-validated' })) {
+        $right=@($results | Where-Object { $_.player -eq 'VLC' -and $_.round -eq $left.round -and $_.status -eq 'sentinel-color-validated' })
+        if($right.Count -ne 1) { continue }
+        for($phase=0;$phase -lt 4;$phase++) { for($index=0;$index -lt 3;$index++) {
+            $a=$left.sentinelColor.phases[$phase].samples[$index].desktop
+            $b=$right[0].sentinelColor.phases[$phase].samples[$index].desktop
+            if($a.dpi -ne $b.dpi -or ($a.screenCanvas.right-$a.screenCanvas.left) -ne ($b.screenCanvas.right-$b.screenCanvas.left) -or
+                ($a.screenCanvas.bottom-$a.screenCanvas.top) -ne ($b.screenCanvas.bottom-$b.screenCanvas.top)) { throw 'Color comparison has unmatched canvas/DPI.' }
+            $differences.Add(@{round=$left.round;warmup=$left.warmup;phase=$phase;sample=$index;rgbDifference=(Color-Difference $a.rgb $b.rgb)})
+        } }
+    }
+    $report.sentinelColorCheck=@{phaseMidpointsSec=@(6,18,30,42);samplesPerPhase=3;comparisons=$differences.ToArray();method='Pairwise absolute differences in 8-bit RGB component units at 54 flat-patch interior points. Three paused samples retain raw RGB and owned status/control/readback QPC bounds.';limits='Neither player is a color reference. The readiness tolerance only identifies scenes; it is not a quality threshold. No acceptance threshold, sharpness/scaling/chroma-edge/HDR/motion/audio or presentation-cadence claim.'}
+}
 $report.visibilityMethod='Only the owned player is raised topmost before settling. Its canvas must be visible, unminimized, uncloaked, within one monitor, and free of detected foreign-window/cursor occlusion before and after each resource sample. Hit-test sentinels may reach the video, an owned video-host ancestor/descendant, or its exact owned layered ApertureOverlay control surface. Ownership/hit tests do not prove layer transparency or presented pixels; controlled GDI sentinel recognition is separate. Guards do not continuously observe intervals or check every pixel.'
 $report.windowPlacement='Owned topmost comparison window at 40,40; not default window-manager placement.'
 $report.visibilityObserverSha256=$visibilityObserverSourceHash
@@ -454,4 +573,4 @@ if ($LaunchMode -eq 'HubThenOpen') { $report.hubSettleSeconds=$HubSettleSeconds 
 $report.runtimeManifestMethod='SHA-256 of ordinal-sorted UTF-8 lines: relative path with /, tab, byte length, tab, lowercase file SHA-256, LF. Source and staged runtime inventories must match before launch.'
 $report | ConvertTo-Json -Depth 14 | Set-Content -LiteralPath (Join-Path $OutputDir 'comparison.json') -Encoding utf8
 Write-Output (Join-Path $OutputDir 'comparison.json')
-if(@($results | Where-Object { $_.status -notin @('sampled','sentinel-validated') }).Count) { throw 'One or more player runs failed; see retained per-run results.' }
+if(@($results | Where-Object { $_.status -notin @('sampled','sentinel-validated','sentinel-color-validated') }).Count) { throw 'One or more player runs failed; see retained per-run results.' }

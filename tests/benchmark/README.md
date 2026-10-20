@@ -105,6 +105,17 @@ and verified processor normalization; raw cycles remain cycles/second. Quality,
 decoder equivalence, presentation drops/cadence, readiness and an overall win
 remain unproven by resource counters alone.
 
+An optional `--calibration <native-json> --calibration-identity <identity-json>`
+adds separate hardware-calibrated cycle rows. Run `calibrate_cpu_cycles.cpp`
+after the trials. Its sidecar records `calibrationSha256`, `sourceSha256`,
+`executableSha256`, `recordedAtUtc`, `exitCode` and the runner's environment
+identity. Qualification verifies the raw file hash, exact CPU/processor count,
+OS/GPU/driver and Windows boot, calibration uptime, five raw TSC/QPC intervals,
+rate stability and independent busy-thread/process cycle checks. Generic CPU MHz
+and calibrations from another boot are rejected. Original sampled CPU-time and
+cycles/second rows remain intact; the sidecar is recorded provenance, not a
+signed attestation. Preserve the native source, executable identity and raw JSON.
+
 For separate readiness work, generate the controlled 48-second H.264/AAC fixture
 before any timing:
 
@@ -132,6 +143,26 @@ or first-video startup evidence. Retain conservative timing bounds rather than
 treating their upper bounds as exact latency. Use `-FailFast` to close the owned
 run and retain a partial report immediately after a failed run.
 
+## Coarse SDR sentinel colors
+
+Add `-SentinelColorCheck -SentinelFixtureManifest '<fixture>/manifest.json'`
+with `-PlayerNames Aperture,VLC -VideoWidth 1280 -VideoHeight 720`. This separate
+mode seeks to 6/18/30/42 seconds, verifies each visible phase, pauses the owned
+player and retains three guarded 54-RGB samples per phase with before/after
+paused status, control timestamps, canvas/DPI and desktop readback QPC bounds.
+VLC's toggle pause is sent only when its owned RC interface reports playing;
+its explicit paused status and stable media time must then agree.
+Use `-Iterations 1 -WarmupIterations 0` for initial validation and a new output
+directory. Existing visible-playback and fresh-VLC authorization flags apply.
+
+The report records pairwise mean/maximum absolute 8-bit RGB component differences
+and repeat differences; neither player is a color reference. There is no quality
+acceptance threshold. The readiness tolerance identifies scenes only. Flat-patch
+samples do not measure sharpness, scaling, chroma edges, HDR, motion, audio or
+presentation cadence. These runs contain no resource samples and cannot qualify
+as resource evidence. Run the off-screen control/parser/metric contracts with
+`pwsh -NoProfile -File tests/benchmark/test_sentinel_color.ps1`.
+
 ## Media record memory
 
 `run_media_record_benchmark.ps1 -OutputDirectory <scratch-directory>` measures
@@ -149,24 +180,6 @@ allocation. This is an isolated record benchmark, excluding library lookup
 indexes, allocator overhead, process RSS, playback and GPU memory. Use the save
 and startup benchmarks for broader behavior, and compare dense as well as sparse
 optional-field workloads when evaluating a memory/speed tradeoff.
-
-## Thumbnail removal
-
-`compare_thumbnail_purge.ps1 -BeforeSourceDirectory <baseline-src> -OutputDirectory
-<scratch-directory>` compiles both production implementations before measuring.
-It alternates process order for one warmup and seven measured samples per version.
-`-AfterSourceDirectory` and `-Samples` override the current source and sample count.
-The generated executables, fixtures and object files stay under a unique `run-*`
-directory inside the supplied output directory; use a harness scratch directory.
-
-The benchmark calls the real thumbnail purge on empty, sparse, populated and dense
-caches, a directory exceeding the listing bound, and a short clip in a large cache.
-It verifies removal counts, deleted targets and retained unrelated files after
-every sample. Fixture construction, verification and process startup are excluded
-from timing. Payloads are empty files so corrupt-entry removal is measured too.
-Metadata is warm and the process uses one available logical processor. CSV heap
-metrics count requested C++ allocations, excluding Windows enumeration buffers,
-allocator overhead, process RSS and GPU memory. Sample zero is the warmup.
 
 ## Playback balance and progress capture
 
