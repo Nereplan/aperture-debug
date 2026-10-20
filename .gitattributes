@@ -25,3 +25,6 @@ tests/corpus/fixtures/media/*.aac binary
 tests/corpus/fixtures/media/extension_disagreement_text_as_aac.aac text eol=lf
 tests/corpus/fixtures/media/extension_disagreement_text_as_wav.wav text eol=lf
 tests/fixtures/** text eol=lf
+
+# Raw measurement hashes cover the recorded bytes, including line endings.
+docs/evidence/vlc-rival-20261020/** -text whitespace=cr-at-eol

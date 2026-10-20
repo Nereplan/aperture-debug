@@ -21,6 +21,11 @@ let checks = 0;
 function test(name, fn) {
   fn(); checks++; process.stdout.write(`PASS ${name}\n`);
 }
+function withVlcVersion(version, fn) {
+  const previous = DATA.references;
+  DATA.references = Object.fromEntries(Object.entries(previous).filter(([, r]) => r.version === version));
+  try { fn(); } finally { DATA.references = previous; }
+}
 
 test('Validation records leave the latest actual measurement selected', () => {
   const measured = {id: 'measured', results: [{value: 12}]};
@@ -60,22 +65,37 @@ test('startup and playback endpoints are not merged', () => {
   assert.notEqual(context.seriesKey(r.find(r => r.metric === 'visible-ms')), context.seriesKey(r.find(r => r.metric === 'shell-ms')));
 });
 
-test('an old Aperture checkpoint uses the latest recorded VLC reference', () => {
+test('compatible historical checkpoints use the latest available same-version reference', () => withVlcVersion('3.0.23', () => {
   const r = DATA.checkpoints.find(c => c.id === 'players-20261014').results.find(r => r.metric === 'visible-ms');
   const b = context.baseline(r);
   assert.equal(b.value, 1952.0802);
   assert.equal(b.measuredAt, '2026-10-17');
   assert.equal(b.label, 'VLC 3.0.23');
+}));
+
+test('a newer incompatible VLC reference leaves older comparisons unavailable', () => {
+  const legacy = DATA.checkpoints.find(c => c.id === 'players-20261014').results.find(r => r.metric === 'visible-ms');
+  const current = DATA.checkpoints.find(c => c.id === 'rival-h264-20261020-current').results.find(r => r.metric === 'cpu-core');
+  const previous = DATA.references;
+  const measured = previous[current.reference];
+  DATA.references = {...previous, 'test-incompatible-newest': {...measured, version: '99.0.0'}};
+  try {
+    assert.equal(context.baseline(legacy), null);
+    const b = context.baseline(current);
+    assert.equal(b.label, 'VLC 99.0.0');
+    assert.equal(b.measuredAt, measured.measuredAt);
+    assert.equal(b.value, measured.results.find(r => r.metric === current.metric && r.protocol === current.protocol).value);
+  } finally { DATA.references = previous; }
 });
 
-test('recorded one-processor CPU agrees with roughly one percent total capacity', () => {
+test('recorded one-processor CPU agrees with roughly one percent total capacity', () => withVlcVersion('3.0.23', () => {
   const r = DATA.checkpoints.find(c => c.id === 'backend-balance-20261017-after').results.find(r => r.metric === 'cpu-core');
   const b = context.baseline(r);
   assert(Math.abs(context.machineCpu(r) - 0.9224665486604366) < 1e-9);
   assert(Math.abs(context.machineCpu(b) - 0.1534810471996232) < 1e-9);
   assert.equal(context.machineCpu({...r, environment: 'unknown-machine'}), null);
   assert.equal(context.machineCpu({...r, metric: 'private-mib'}), null);
-});
+}));
 
 test('new playback protocols get their own map history and CPU summary source', () => {
   const legacy = DATA.checkpoints.find(c => c.id === 'backend-balance-20261017-after');
@@ -104,7 +124,7 @@ test('an older VLC version cannot displace the newest version', () => {
   delete refs['test-new-version']; delete refs['test-old-version-new-date'];
 });
 
-test('compatible replays connect saved history and retain the original VLC date', () => {
+test('compatible replays connect saved history and retain the original VLC date', () => withVlcVersion('3.0.23', () => {
   const cp = DATA.checkpoints.find(c => c.id === 'direct-nv12-20261018-visible-once');
   const r = cp.results.find(r => r.metric === 'cpu-core');
   const points = context.historyPoints(context.seriesKey(r));
@@ -132,7 +152,7 @@ test('compatible replays connect saved history and retain the original VLC date'
   assert.equal(mapPoints.at(-1).id, latestRecorded.id);
   assert.equal(mapPoints.find(p => p.id === 'balanced-overlay-20261018-released').y, 174.515625);
   for (let i = 1; i < mapPoints.length; i++) assert(Date.parse(mapPoints[i].date) >= Date.parse(mapPoints[i - 1].date));
-});
+}));
 
 test('ambiguous inferred history groups leave observations separate', () => {
   const r = {metric: 'cpu-core', protocol: 'test-ambiguous', workload: 'fixture', environment: 'machine'};
