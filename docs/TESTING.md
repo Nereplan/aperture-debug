@@ -10,7 +10,7 @@ Run checks locally from the repository root on Windows x64 with the build prereq
 ./tests/run_tests.ps1 -Tier pr -FailFast
 ```
 
-The default selection is the PR tier. It currently contains 22 suites covering library workflows, units, malformed inputs, persistence, IPC, loading, diagnostics, updates, package/install boundaries, static analysis, shutdown stress, media-probe isolation, and thumbnails. These names identify local groups; no GitHub Actions runner is used.
+The default selection is the PR tier. It currently contains 23 suites covering library workflows, units, malformed inputs, persistence, IPC, loading, diagnostics, updates, package/install boundaries, static analysis, shutdown stress, media-probe isolation, thumbnails, and rival benchmark contracts. These names identify local groups; no GitHub Actions runner is used.
 
 Select suites by inventory ID when working on a specific boundary:
 
@@ -21,7 +21,7 @@ Select suites by inventory ID when working on a specific boundary:
 ./tests/workflows/run_tests.ps1 -Seed 12345
 ```
 
-The native unit/backend/loading/persistence/IPC/loader/updater/stress harnesses register 213 behavioral contract tests (`160` unit, `9` backend, `8` loading, `28` persistence, `3` IPC, `3` updater, `1` loader, `1` stress) and reject an unknown selection, an empty selection, and a test that executes no assertions. Explicit skips are reported separately. Queue/session persistence runs independently of the opt-in visible-window geometry test. The central invocation shares production objects across the workflow, unit, corpus, and persistence suites in a temporary content-keyed pool; harness sources compile fresh. Running these scripts independently does not share that pool.
+The native unit/backend/loading/persistence/IPC/loader/updater/stress harnesses register 217 behavioral contract tests (`164` unit, `9` backend, `8` loading, `28` persistence, `3` IPC, `3` updater, `1` loader, `1` stress) and reject an unknown selection, an empty selection, and a test that executes no assertions. Explicit skips are reported separately. Queue/session persistence runs independently of the opt-in visible-window geometry test. The central invocation shares production objects across the workflow, unit, corpus, and persistence suites in a temporary content-keyed pool; harness sources compile fresh. Running these scripts independently does not share that pool.
 
 The [backend behavior suite](../tests/backend/README.md) exercises actual portable stores, cache operations, numeric formatting and allocation bounds. It replaces simulated persistence tests with real round trips. Run `./tests/backend/verify_mutations.ps1` to verify that deliberate production defects are rejected by their specific assertions.
 

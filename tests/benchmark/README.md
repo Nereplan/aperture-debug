@@ -52,6 +52,74 @@ universal player ranking. Complete supplied runtime sizes include their differen
 languages, plugins, update tools and other payload; they are not matched feature
 subsets or compressed download sizes.
 
+## Rival evidence qualification
+
+Use at least one discarded warmup and three measured runs per player, with at
+least 25 seconds between the actual CPU endpoint snapshots in each run. Finish
+all builds, fixture encoding and other tests before timing. Use a long fixture
+that covers the complete sampled segment. For a refreshed baseline, use the
+official [VLC 3.0.24 Windows x64 portable archive](https://download.videolan.org/pub/videolan/vlc/3.0.24/win64/vlc-3.0.24-win64.7z),
+verified against its adjacent SHA256 file and extracted outside the workspace.
+Keep its archive and complete runtime identities in the evidence.
+
+Replace the quoted placeholders with existing inputs and new external output
+paths. Run this only in an authorized visible session:
+
+```powershell
+./tests/benchmark/compare_players.ps1 `
+    -AllowVisiblePlayback -RefreshVlcBaseline -PlayerNames Aperture,VLC `
+    -AperturePath '<clean-aperture-runtime>' -VlcPath '<clean-vlc-3.0.24-runtime>' `
+    -MediaPath '<long-fixture-file>' -OutputDir '<new-resource-output-directory>' `
+    -Iterations 3 -WarmupIterations 1 -LaunchMode Direct `
+    -VideoWidth 1280 -VideoHeight 720 -ForceD3D11Linear `
+    -SamplingStartMediaSeconds 20 -SamplingSeconds 30
+
+python tests/benchmark/evaluate_rival.py '<resource-output-directory>/comparison.json' `
+    --candidate Aperture --rival VLC --min-runs 3 --min-seconds 25 `
+    --output '<new-qualified-output.json>'
+```
+
+Run `-LaunchMode HubThenOpen` as a separate batch to include the normal library
+entry path; `-HubSettleSeconds` controls its initial hub wait. That mode supports
+Aperture/VLC, opens media from its beginning, and rejects a nonzero
+`-LaunchMediaStartSeconds`. Do not pool launch modes, settings or workloads.
+`-ForceD3D11Linear` requests VLC's D3D11 output/decoder and linear scaling; it
+does not establish the effective decoder or equal filtering/output in both apps.
+
+`player_comparison_identity.ps1` hashes every supplied runtime file using ordinal
+path ordering, rejects linked inputs, verifies staged copies, and records the
+OS/CPU/GPU/driver and logical-processor count. Each counter sample must pass owned,
+unoccluded video-canvas guards before and after collection. This is sampled
+visibility evidence, not continuous visibility or frame-presentation evidence.
+
+`evaluate_rival.py` rejects missing/failed rounds, mixed identities/configuration,
+unmatched canvas/DPI or media segments, clustered snapshots, and invalid/short counter intervals.
+Invalid evidence exits with code 2; unavailable metrics stay unproven and failed
+runs are never silently discarded. Impossible zero RAM readings stay unproven.
+It reports per-run values, ranges and medians;
+overlapping ranges remain inconclusive. CPU uses raw CPU-time/wall-time deltas
+and verified processor normalization; raw cycles remain cycles/second. Quality,
+decoder equivalence, presentation drops/cadence, readiness and an overall win
+remain unproven by resource counters alone.
+
+For separate readiness work, generate the controlled 48-second H.264/AAC fixture
+before any timing:
+
+```powershell
+python tests/benchmark/generate_video_readiness_fixture.py `
+    --output-dir '<new-readiness-fixture-directory>' `
+    --ffmpeg '<ffmpeg.exe>' --ffprobe '<ffprobe.exe>'
+./tests/benchmark/run_rival_contract_tests.ps1
+```
+
+The generator preserves media/tool/observer hashes and stream metadata.
+`PlayerVideoReadiness.cs` recognizes its known phases at 54 desktop RGB sentinel
+points, requires two consecutive matches, and rejects unsafe/occluded captures.
+Its timing bounds include observation/control delay; these sparse samples do not
+prove general image quality, every presented frame or physical audio output.
+The contract suite tests identity, evidence rejection and readiness guards
+without launching a media player. It does not run the visible comparison.
+
 ## Media record memory
 
 `run_media_record_benchmark.ps1 -OutputDirectory <scratch-directory>` measures

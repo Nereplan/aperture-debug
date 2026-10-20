@@ -1,11 +1,13 @@
 // Build in an MSVC developer shell:
 // cl /nologo /std:c++17 /EHsc player_status_probe.cpp /Fe:player_status_probe.exe user32.lib shell32.lib advapi32.lib
 // Queries/controls only the explicitly supplied PID. Optional --stop, --pause
-// --play and --open <file> support playback/overlay lifecycle checks.
+// --play, --open <file> and --seek <seconds> support lifecycle checks.
 #include "../../src/IpcProtocol.h"
 #include <iostream>
 #include <iomanip>
 #include <cwchar>
+#include <cmath>
+#include <cerrno>
 using namespace Aperture;
 static DWORD targetPid;
 static HWND target;
@@ -34,7 +36,15 @@ int wmain(int argc, wchar_t** argv) {
     const bool control = argc == 3 && (wcscmp(argv[2], L"--stop") == 0 ||
         wcscmp(argv[2], L"--pause") == 0 || wcscmp(argv[2], L"--play") == 0);
     const bool open = argc == 4 && wcscmp(argv[2], L"--open") == 0;
-    if (argc != 2 && !control && !open) return 2;
+    const bool seek = argc == 4 && wcscmp(argv[2], L"--seek") == 0;
+    if (argc != 2 && !control && !open && !seek) return 2;
+    double seekSeconds = 0;
+    if (seek) {
+        wchar_t* end = nullptr;
+        errno = 0;
+        seekSeconds = wcstod(argv[3], &end);
+        if (errno || end == argv[3] || *end || !std::isfinite(seekSeconds) || seekSeconds < 0 || seekSeconds > 86400) return 2;
+    }
     wchar_t* end = nullptr; const auto parsed = wcstoul(argv[1], &end, 10);
     if (!parsed || *end) return 2;
     targetPid = static_cast<DWORD>(parsed);
@@ -45,11 +55,12 @@ int wmain(int argc, wchar_t** argv) {
     if (!RegisterClassW(&cls)) return 4;
     HWND reply = CreateWindowW(cls.lpszClassName, L"", 0, 0, 0, 0, 0, HWND_MESSAGE, nullptr, cls.hInstance, nullptr);
     if (!reply) return 4;
-    if (control || open) {
+    if (control || open || seek) {
         Ipc::AutomationCommand action;
-        action.op = open ? Ipc::AutomationOp::Open : wcscmp(argv[2], L"--stop") == 0 ? Ipc::AutomationOp::Stop :
+        action.op = open ? Ipc::AutomationOp::Open : seek ? Ipc::AutomationOp::Seek : wcscmp(argv[2], L"--stop") == 0 ? Ipc::AutomationOp::Stop :
                     wcscmp(argv[2], L"--pause") == 0 ? Ipc::AutomationOp::Pause : Ipc::AutomationOp::Play;
         if (open) action.mediaTargets.emplace_back(argv[3]);
+        if (seek) { action.seekPositionSec = seekSeconds; action.seekRelative = false; }
         if (!Ipc::SendAutomationCommand(target, action)) { DestroyWindow(reply); return 5; }
     }
     Ipc::AutomationCommand command; command.op = Ipc::AutomationOp::QueryStatus;

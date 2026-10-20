@@ -31,15 +31,21 @@ param(
     [ValidateRange(0,2160)][int]$VideoHeight = 0,
     [switch]$ForceD3D11Linear,
     [switch]$CaptureThreadCounters,
+    [ValidateSet('Direct','HubThenOpen')][string]$LaunchMode = 'Direct',
+    [ValidateRange(1,30)][int]$HubSettleSeconds = 3,
     [string]$ApertureVariantsFile = '',
     [ValidateRange(0,120)][int]$SamplingSeconds = 0,
     [ValidateRange(0,86400)][int]$LaunchMediaStartSeconds = 0,
     [ValidateRange(0,86400)][int]$SamplingStartMediaSeconds = 0
 )
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot 'player_comparison_identity.ps1')
 if (!$AllowVisiblePlayback) { throw 'Visible player measurements are deferred by default. Use saved evidence unless the user requests a desktop test.' }
 if ('VLC' -in $PlayerNames -and !$RefreshVlcBaseline) { throw 'Reuse the saved matching VLC baseline. A new VLC test requires an explicitly requested baseline refresh.' }
 if ('VLC' -in $PlayerNames -and !$VlcPath) { throw 'A requested VLC baseline refresh requires -VlcPath.' }
+if ($LaunchMode -eq 'HubThenOpen' -and ('MPC-HC' -in $PlayerNames -or $LaunchMediaStartSeconds)) {
+    throw 'HubThenOpen supports Aperture/VLC with the media opened at its beginning.'
+}
 if ($PSVersionTable.PSVersion.Major -lt 7) { throw 'Use PowerShell 7 (ProcessStartInfo.ArgumentList required).' }
 function Assert-NoReparseAncestors([string]$Path) {
     $current=[IO.Path]::GetFullPath($Path)
@@ -54,6 +60,7 @@ function Assert-NoReparseAncestors([string]$Path) {
 $OutputDir = [IO.Path]::GetFullPath($OutputDir).TrimEnd('\','/')
 if($OutputDir.Length -le [IO.Path]::GetPathRoot($OutputDir).Length) { throw 'OutputDir must be a specific harness directory, not a drive root.' }
 Assert-NoReparseAncestors $OutputDir
+if (Test-Path -LiteralPath (Join-Path $OutputDir 'comparison.json')) { throw 'Comparison evidence already exists; choose a new output directory.' }
 $MediaPath = (Resolve-Path -LiteralPath $MediaPath).Path
 $mediaHash = (Get-FileHash -LiteralPath $MediaPath -Algorithm SHA256).Hash
 if ($ApertureStatusProbe) { $ApertureStatusProbe = (Resolve-Path -LiteralPath $ApertureStatusProbe).Path }
@@ -66,10 +73,10 @@ function Runtime([string]$Name, [string]$Path, [string[]]$Names) {
     } else { $exe = $resolved; $resolved = Split-Path -Parent $exe }
     # Media must never be copied into or counted as the application's runtime.
     if ($MediaPath.StartsWith($resolved.TrimEnd('\') + '\', [StringComparison]::OrdinalIgnoreCase)) { throw "Media must be outside $Name runtime." }
-    if ($OutputDir.StartsWith($resolved.TrimEnd('\') + '\', [StringComparison]::OrdinalIgnoreCase)) { throw "Output must be outside $Name runtime." }
-    $files = @(Get-ChildItem -LiteralPath $resolved -File -Recurse)
-    if (Get-ChildItem -LiteralPath $resolved -Recurse -Attributes ReparsePoint -ErrorAction SilentlyContinue) { throw "Reparse points are not allowed in runtime: $resolved" }
-    [pscustomobject]@{name=$Name;source=$resolved;exeName=[IO.Path]::GetFileName($exe);exeHash=(Get-FileHash -LiteralPath $exe).Hash;version=(Get-Item -LiteralPath $exe).VersionInfo.FileVersion;runtimeBytes=[int64](($files | Measure-Object Length -Sum).Sum);runtimeFileCount=$files.Count}
+    if ($OutputDir.Equals($resolved.TrimEnd('\','/'), [StringComparison]::OrdinalIgnoreCase) -or
+        $OutputDir.StartsWith($resolved.TrimEnd('\') + '\', [StringComparison]::OrdinalIgnoreCase)) { throw "Output must be outside $Name runtime." }
+    $manifest = Get-PlayerRuntimeManifest $resolved
+    [pscustomobject]@{name=$Name;source=$resolved;exeName=[IO.Path]::GetFileName($exe);exeHash=(Get-FileHash -LiteralPath $exe).Hash;version=(Get-Item -LiteralPath $exe).VersionInfo.FileVersion;runtimeBytes=$manifest.bytes;runtimeFileCount=$manifest.files.Count;runtimeManifestSha256=$manifest.sha256;runtimeFiles=$manifest.files}
 }
 $players = @()
 if ($ApertureVariantsFile) {
@@ -111,6 +118,7 @@ foreach ($player in $players) {
     if (Get-Process -Name ([IO.Path]::GetFileNameWithoutExtension($player.exeName)) -ErrorAction SilentlyContinue) { throw "Close existing $($player.name) instances before comparing; nothing was closed." }
 }
 if (-not ('PlayerBenchmarkWindow' -as [type])) { Add-Type -Path (Join-Path $PSScriptRoot 'PlayerBenchmarkWindow.cs') }
+if (-not ('PlayerVideoReadiness' -as [type])) { Add-Type -Path (Join-Path $PSScriptRoot 'PlayerVideoReadiness.cs') }
 if ($CaptureThreadCounters) {
     $threadCounterSourceHash = (Get-FileHash -LiteralPath (Join-Path $PSScriptRoot 'PlayerThreadCounters.cs') -Algorithm SHA256).Hash
     if (-not ('PlayerThreadCounters' -as [type])) { Add-Type -Path (Join-Path $PSScriptRoot 'PlayerThreadCounters.cs') }
@@ -118,6 +126,12 @@ if ($CaptureThreadCounters) {
 }
 if ($MpcHcPath) { Add-Type -Path (Join-Path $PSScriptRoot 'MpcStatusObserver.cs') }
 function Bytes([string]$Path) { [int64]((Get-ChildItem -LiteralPath $Path -File -Recurse | Measure-Object Length -Sum).Sum) }
+function VisibleCanvas([int]$OwnedPid, [string]$Name) {
+    if ($Name -eq 'MPC-HC') { return $null }
+    $visibility = [PlayerVideoReadiness]::ValidateVisibleCanvas([uint32]$OwnedPid, $Name)
+    if (-not $visibility.safe) { throw "Video canvas is not verifiably visible: $($visibility.reason)" }
+    return $visibility
+}
 function Cycles([Diagnostics.Process]$OwnedProcess) {
     [UInt64]$count = 0
     if (-not [PlayerBenchmarkWindow]::QueryProcessCycles($OwnedProcess.Handle,[ref]$count)) { throw 'Owned-process cycle counter unavailable.' }
@@ -135,7 +149,7 @@ function Gpu([int]$OwnedPid) {
         return @{dedicatedBytes=[int64](($dedicated | Measure-Object CookedValue -Sum).Sum);sharedBytes=[int64](($shared | Measure-Object CookedValue -Sum).Sum);unavailableReason=$null}
     } catch { return @{dedicatedBytes=$null;sharedBytes=$null;unavailableReason=$_.Exception.Message} }
 }
-function Vlc-Time([int]$Port, [int]$OwnedPid) {
+function Vlc-Time([int]$Port, [int]$OwnedPid, [string]$OpenMediaUri = '') {
     # Verify the listener's owning PID before sending any command. Fail closed on a race.
     $listener = @(Get-NetTCPConnection -LocalAddress '127.0.0.1' -LocalPort $Port -State Listen -ErrorAction Stop)
     if ($listener.Count -ne 1 -or $listener[0].OwningProcess -ne $OwnedPid) { throw 'RC listener is not owned by benchmark process.' }
@@ -144,7 +158,8 @@ function Vlc-Time([int]$Port, [int]$OwnedPid) {
         $connect = $client.ConnectAsync('127.0.0.1',$Port)
         if (-not $connect.Wait(1500)) { throw 'RC connect timeout.' }
         $stream = $client.GetStream(); $stream.ReadTimeout = 1500; $stream.WriteTimeout = 1500
-        $command = [Text.Encoding]::ASCII.GetBytes("get_time`n")
+        $request = if ($OpenMediaUri) { "add $OpenMediaUri`nget_time`n" } else { "get_time`n" }
+        $command = [Text.Encoding]::ASCII.GetBytes($request)
         $stream.Write($command,0,$command.Length)
         $buffer = [byte[]]::new(4096); $reply = ''; $deadline = [DateTime]::UtcNow.AddSeconds(2)
         do {
@@ -157,13 +172,17 @@ function Vlc-Time([int]$Port, [int]$OwnedPid) {
         throw 'RC returned no numeric playback time.'
     } finally { $client.Dispose() }
 }
-function Playback([string]$Name, [int]$OwnedPid, [int]$Port, $Environment) {
+function Playback([string]$Name, [int]$OwnedPid, [int]$Port, $Environment, [switch]$OpenMedia) {
     try {
-        if ($Name -eq 'VLC') { return @{positionSec=(Vlc-Time $Port $OwnedPid);state=$null;reason=$null} }
+        if ($Name -eq 'VLC') {
+            $uri = if ($OpenMedia) { [Uri]::new($MediaPath).AbsoluteUri } else { '' }
+            return @{positionSec=(Vlc-Time $Port $OwnedPid $uri);state=$null;reason=$null}
+        }
         if ($Name -eq 'MPC-HC' -and $mpcObserver) { return @{positionSec=$mpcObserver.Query([uint32]$OwnedPid);state=$null;reason=$null} }
         if ($Name -eq 'Aperture' -and $ApertureStatusProbe) {
             $psi = [Diagnostics.ProcessStartInfo]::new($ApertureStatusProbe); $psi.UseShellExecute=$false; $psi.CreateNoWindow=$true; $psi.RedirectStandardOutput=$true
             $psi.ArgumentList.Add([string]$OwnedPid)
+            if ($OpenMedia) { $psi.ArgumentList.Add('--open'); $psi.ArgumentList.Add($MediaPath) }
             foreach($key in $Environment.Keys) { $psi.Environment[$key]=$Environment[$key] }
             $probe = [Diagnostics.Process]::Start($psi)
             try {
@@ -176,6 +195,7 @@ function Playback([string]$Name, [int]$OwnedPid, [int]$Port, $Environment) {
         return @{positionSec=$null;state=$null;reason='No owned-PID playback status probe supplied/available.'}
     } catch { return @{positionSec=$null;state=$null;reason=$_.Exception.Message} }
 }
+$benchmarkEnvironment = Get-PlayerBenchmarkEnvironment
 New-Item -ItemType Directory -Path $OutputDir -Force | Out-Null
 $runRoot = [IO.Path]::GetFullPath((Join-Path $OutputDir ('runs-' + [Guid]::NewGuid().ToString('N'))))
 New-Item -ItemType Directory -Path $runRoot | Out-Null
@@ -207,6 +227,9 @@ for ($round=0; $round -lt ($WarmupIterations+$Iterations); $round++) {
         $runtime = Join-Path $dir 'runtime'; $profile = Join-Path $dir 'profile'
         New-Item -ItemType Directory -Path $runtime -Force | Out-Null
         Get-ChildItem -LiteralPath $player.source -Force | Copy-Item -Destination $runtime -Recurse -Force
+        if ((Get-PlayerRuntimeManifest $runtime).sha256 -cne $player.runtimeManifestSha256) {
+            throw 'Copied runtime differs from its recorded source inventory; no player was launched.'
+        }
         $envOverride = @{APPDATA=(Join-Path $profile 'Roaming');LOCALAPPDATA=(Join-Path $profile 'Local');TEMP=(Join-Path $profile 'Temp');TMP=(Join-Path $profile 'Temp')}
         foreach($path in ($envOverride.Values | Select-Object -Unique)) { New-Item -ItemType Directory -Path $path -Force | Out-Null }
         if ($player.PSObject.Properties['experimentalEnvironment']) {
@@ -239,16 +262,23 @@ for ($round=0; $round -lt ($WarmupIterations+$Iterations); $round++) {
         if ($LaunchMediaStartSeconds) {
             $argsList.Add($(if ($player.name -eq 'VLC') { "--start-time=$LaunchMediaStartSeconds" } else { "--start=$LaunchMediaStartSeconds" }))
         }
-        $argsList.Add($MediaPath)
+        if ($LaunchMode -eq 'Direct') { $argsList.Add($MediaPath) }
         if ($ForceD3D11Linear -and $player.name -eq 'VLC') {
-            foreach ($argument in @('--vout=direct3d11','--avcodec-hw=d3d11va','--d3d11-upscale-mode=linear')) { $argsList.Insert($argsList.Count-1,$argument) }
+            foreach ($argument in @('--vout=direct3d11','--avcodec-hw=d3d11va','--d3d11-upscale-mode=linear')) {
+                if ($LaunchMode -eq 'Direct') { $argsList.Insert($argsList.Count - 1, $argument) }
+                else { $argsList.Add($argument) }
+            }
         }
         $beforeRuntime=Bytes $runtime; $beforeProfile=Bytes $profile
         $configText = if(Test-Path -LiteralPath $config -PathType Leaf) { [IO.File]::ReadAllText($config) } else { 'Fresh executable-adjacent data/ directory.' }
         $record=[ordered]@{player=$player.name;round=$round;warmup=($round -lt $WarmupIterations);status='failed';failure=$null;runtimeSource=$player.source;runtimeBytes=$player.runtimeBytes;runtimeFileCount=$player.runtimeFileCount;executableHash=$player.exeHash;version=$player.version;runDirectory=$dir;arguments=$argsList.ToArray();childEnvironment=$envOverride;configPath=$config;initialConfig=$configText;pid=$null;processToVisibleWindowMs=$null;windowDimensions=$null;playbackVerification='playback-unverified';playbackReason=$null;samples=@();writableGrowthBytes=$null;cleanup=$null;artifactCleanup=$null}
         $record.variant = $variantName
+        $record.runtimeManifestSha256 = $player.runtimeManifestSha256
+        $record.launchMode = $LaunchMode
+        $record.mediaOpenRequestedMs = $null
+        $record.openedMediaPath = $null
         $record.startedUtc = [DateTime]::UtcNow.ToString('o')
-        $process=$null; $window=[IntPtr]::Zero
+        $process=$null; $window=[IntPtr]::Zero; $samples=$null
         try {
             $psi=[Diagnostics.ProcessStartInfo]::new((Join-Path $runtime $player.exeName)); $psi.WorkingDirectory=$runtime; $psi.UseShellExecute=$false; $psi.CreateNoWindow=$true
             foreach($arg in $argsList) { $psi.ArgumentList.Add($arg) }
@@ -265,6 +295,13 @@ for ($round=0; $round -lt ($WarmupIterations+$Iterations); $round++) {
             $record.processToVisibleWindowMs=$timer.Elapsed.TotalMilliseconds
             if ($CaptureThreadCounters) { $record.uiThreadId = [PlayerBenchmarkWindow]::OwnerThread($window,[uint32]$process.Id) }
             if(-not [PlayerBenchmarkWindow]::Resize($window,[uint32]$process.Id,$WindowWidth,$WindowHeight)) { throw 'Owned-window resize failed.' }
+            if ($LaunchMode -eq 'HubThenOpen') {
+                Start-Sleep -Seconds $HubSettleSeconds
+                $record.mediaOpenRequestedMs = $timer.Elapsed.TotalMilliseconds
+                $record.openedMediaPath = $MediaPath
+                $opened = Playback $player.name $process.Id $port $envOverride -OpenMedia
+                if ($opened.reason) { throw "Owned-player media open failed: $($opened.reason)" }
+            }
             Start-Sleep -Seconds 8
             # Some players resize again when the decoder announces video size.
             # Enforce the shared outer dimensions after that initial load too.
@@ -293,6 +330,7 @@ for ($round=0; $round -lt ($WarmupIterations+$Iterations); $round++) {
                     if ($remaining -gt 0) { Start-Sleep -Milliseconds ([int][Math]::Ceiling($remaining*1000)) }
                 } elseif($sample) { Start-Sleep -Seconds 2 }
                 $process.Refresh(); if($process.HasExited) { throw 'Player exited during sampling.' }
+                $visibleBefore = VisibleCanvas $process.Id $player.name
                 if ($SamplingSeconds) {
                     # Timestamp CPU before either control or GPU queries. Their
                     # overhead remains inside the measured wall interval.
@@ -303,6 +341,8 @@ for ($round=0; $round -lt ($WarmupIterations+$Iterations); $round++) {
                     $playback = Playback $player.name $process.Id $port $envOverride
                     $gpu = Gpu $process.Id
                     $sampleRecord = [ordered]@{elapsedSeconds=$elapsed;workingSetBytes=$workingSet;privateBytes=$private;cpuSeconds=$cpu;cpuCycles=$cycles;dedicatedGpuBytes=$gpu.dedicatedBytes;sharedGpuBytes=$gpu.sharedBytes;gpuUnavailableReason=$gpu.unavailableReason;playback=$playback}
+                    $sampleRecord.visibleCanvasBefore = $visibleBefore
+                    $sampleRecord.visibleCanvasAfter = VisibleCanvas $process.Id $player.name
                     if ($CaptureThreadCounters) { $sampleRecord.threadCounters = $threadSnapshot }
                     $samples.Add([pscustomobject]$sampleRecord)
                     continue
@@ -310,6 +350,8 @@ for ($round=0; $round -lt ($WarmupIterations+$Iterations); $round++) {
                 $gpu=Gpu $process.Id
                 $process.Refresh()
                 $sampleRecord = [ordered]@{elapsedSeconds=$timer.Elapsed.TotalSeconds;workingSetBytes=$process.WorkingSet64;privateBytes=$process.PrivateMemorySize64;cpuSeconds=$process.TotalProcessorTime.TotalSeconds;cpuCycles=(Cycles $process);dedicatedGpuBytes=$gpu.dedicatedBytes;sharedGpuBytes=$gpu.sharedBytes;gpuUnavailableReason=$gpu.unavailableReason;playback=(Playback $player.name $process.Id $port $envOverride)}
+                $sampleRecord.visibleCanvasBefore = $visibleBefore
+                $sampleRecord.visibleCanvasAfter = VisibleCanvas $process.Id $player.name
                 if ($CaptureThreadCounters) { $sampleRecord.threadCounters = [PlayerThreadCounters]::Capture($process.Id) }
                 $samples.Add([pscustomobject]$sampleRecord)
             }
@@ -326,9 +368,11 @@ for ($round=0; $round -lt ($WarmupIterations+$Iterations); $round++) {
             for ($i=1; $i -lt $positions.Count; $i++) { if ($positions[$i] -le $positions[$i-1]) { $advancing=$false } }
             if($valid.Count -eq $sampleCount -and $advancing -and $statesOk) { $record.playbackVerification='advancing-playback-verified' }
             else { $record.playbackReason='Missing/nonadvancing time or nonplaying state. ' + (($samples | ForEach-Object { $_.playback.reason } | Where-Object { $_ } | Select-Object -Unique) -join '; ') }
+            if ($record.playbackVerification -ne 'advancing-playback-verified') { throw $record.playbackReason }
             $record.status='sampled'
         } catch { $record.failure=$_.Exception.Message }
         finally {
+            if ($null -ne $samples) { $record.samples=$samples.ToArray() }
             if($process) {
                 if(-not $process.HasExited) {
                     [PlayerBenchmarkWindow]::Close($window,[uint32]$process.Id)
@@ -362,6 +406,12 @@ if ($CaptureThreadCounters) {
 }
 if ($VideoWidth) { $report.videoCanvasTarget=@($VideoWidth,$VideoHeight); $report.limitations[1]='Video canvases match; actual child window dimensions/DPI are retained. Equal filter choices do not establish identical decoder or output pixels.' }
 $report.forcedVlcD3D11Linear=[bool]$ForceD3D11Linear
+$report.environment=$benchmarkEnvironment
+$report.visibilityMethod='Owned video canvas must be visible, unminimized, uncloaked, within one monitor, and free of detected window/cursor occlusion before and after each resource sample. Guards do not continuously observe the intervals or prove presented pixels.'
+$report.visibilityObserverSha256=(Get-FileHash -LiteralPath (Join-Path $PSScriptRoot 'PlayerVideoReadiness.cs') -Algorithm SHA256).Hash
+$report.launchMode=$LaunchMode
+if ($LaunchMode -eq 'HubThenOpen') { $report.hubSettleSeconds=$HubSettleSeconds }
+$report.runtimeManifestMethod='SHA-256 of ordinal-sorted UTF-8 lines: relative path with /, tab, byte length, tab, lowercase file SHA-256, LF. Source and staged runtime inventories must match before launch.'
 $report | ConvertTo-Json -Depth 14 | Set-Content -LiteralPath (Join-Path $OutputDir 'comparison.json') -Encoding utf8
 Write-Output (Join-Path $OutputDir 'comparison.json')
 if(@($results | Where-Object { $_.status -ne 'sampled' }).Count) { throw 'One or more player runs failed; see retained per-run results.' }
