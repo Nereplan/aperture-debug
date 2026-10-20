@@ -1692,8 +1692,22 @@ std::vector<std::wstring> MediaLibrary::EvaluatePreparedSmartPlaylist(const Prep
         smartAvailability.assign(mediaItems.size(), SmartAvailabilityEntry{});
         smartAvailabilityCatalog = revisions.catalog;
     }
+    const auto sortField = static_cast<LibrarySortField>(plan.SortField());
+    const auto sortDir = static_cast<SortDirection>(plan.SortDirection());
+    const auto less = [sortField, sortDir](const MediaItem* a, const MediaItem* b) {
+        const int cmp = LibraryQueryEngine::CompareItems(*a, *b, sortField, sortDir);
+        if (cmp != 0) return cmp < 0;
+        if (a->filePath != b->filePath) return a->filePath < b->filePath;
+        // Both pointers belong to mediaItems, so exact ties keep input order.
+        return a < b;
+    };
+    const size_t limit = plan.Limit();
+    const bool bounded = limit > 0 && limit < mediaItems.size() / 4;
+    // Under the bounded condition, doubling limit cannot overflow. Leave at
+    // least limit fresh candidates between trims so large caps stay amortized.
+    const size_t window = bounded ? (std::min)(mediaItems.size(), limit + (std::max)(limit, size_t{1024})) : mediaItems.size();
     std::vector<const MediaItem*> matched;
-    matched.reserve(mediaItems.size());
+    matched.reserve(window);
     for (size_t i = 0; i < mediaItems.size(); ++i) {
         const auto& item = mediaItems[i];
         expiresAtSec = (std::min)(expiresAtSec, plan.NextChangeAfter(item));
@@ -1729,29 +1743,23 @@ std::vector<std::wstring> MediaLibrary::EvaluatePreparedSmartPlaylist(const Prep
             exists = entry.value == PathAvailability::Present;
           }
         }
-        if (exists ? possible.present : possible.missing) matched.push_back(&item);
+        if (!(exists ? possible.present : possible.missing)) continue;
+        matched.push_back(&item);
+        // Small caps use partial_sort's tight loop; large caps only partition
+        // here, avoiding repeated ordering of the retained prefix. All records
+        // still contribute availability and time boundaries.
+        if (bounded && matched.size() == window) {
+            if (limit < 1024) std::partial_sort(matched.begin(), matched.begin() + limit, matched.end(), less);
+            else std::nth_element(matched.begin(), matched.begin() + limit, matched.end(), less);
+            matched.resize(limit);
+        }
     }
-    auto sortField = static_cast<LibrarySortField>(plan.SortField());
-    auto sortDir = static_cast<SortDirection>(plan.SortDirection());
-    const auto less = [sortField, sortDir](const MediaItem* a, const MediaItem* b) {
-        int cmp = LibraryQueryEngine::CompareItems(*a, *b, sortField, sortDir);
-        if (cmp != 0) return cmp < 0;
-        return a->filePath < b->filePath;
-    };
-    if (plan.Limit() > 0 && plan.Limit() < matched.size() / 4) {
-        std::partial_sort(matched.begin(), matched.begin() + plan.Limit(), matched.end(),
-            [sortField, sortDir](const MediaItem* a, const MediaItem* b) {
-                const int cmp = LibraryQueryEngine::CompareItems(*a, *b, sortField, sortDir);
-                if (cmp != 0) return cmp < 0;
-                if (a->filePath != b->filePath) return a->filePath < b->filePath;
-                // Both pointers belong to mediaItems: input order resolves
-                // exact ties just as the unlimited stable sort does.
-                return a < b;
-            });
+    if (bounded) {
+        std::partial_sort(matched.begin(), matched.begin() + (std::min)(limit, matched.size()), matched.end(), less);
     } else {
         std::stable_sort(matched.begin(), matched.end(), less);
     }
-    if (plan.Limit() > 0 && matched.size() > plan.Limit()) matched.resize(plan.Limit());
+    if (limit > 0 && matched.size() > limit) matched.resize(limit);
     std::vector<std::wstring> result;
     result.reserve(matched.size());
     for (const auto* item : matched) { result.push_back(item->filePath); }

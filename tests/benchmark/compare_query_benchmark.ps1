@@ -5,10 +5,11 @@ param(
     [Parameter(Mandatory)][string]$OutputJson,
     [switch]$ProgressOnly,
     [switch]$DuplicatesOnly,
-    [switch]$ExtendedOnly
+    [switch]$ExtendedOnly,
+    [switch]$LargePlaylistsOnly
 )
 $ErrorActionPreference = 'Stop'
-if (@(@($ProgressOnly, $DuplicatesOnly, $ExtendedOnly) | Where-Object { $_ }).Count -gt 1) { throw 'Select only one benchmark workload.' }
+if (@(@($ProgressOnly, $DuplicatesOnly, $ExtendedOnly, $LargePlaylistsOnly) | Where-Object { $_ }).Count -gt 1) { throw 'Select only one benchmark workload.' }
 $before = @(Import-Csv -LiteralPath $BeforeCsv)
 $after = @(Import-Csv -LiteralPath $AfterCsv)
 function Median($values) {
@@ -32,6 +33,10 @@ if ($ExtendedOnly) {
     $modes = @(19..25)
     $names = @('collapsed_folders', 'capped_folders', 'index_with_history', 'dense_unknown_resolution',
         'dense_mixed_resolution', 'mixed_threshold_duplicates', 'library_search_miss')
+}
+if ($LargePlaylistsOnly) {
+    $modes = @(26, 27)
+    $names = @('large_bounded_smart_playlist', 'quarter_catalog_smart_playlist')
 }
 if ($before.Count -ne 7 * $modes.Count -or $after.Count -ne 7 * $modes.Count) { throw 'Expected seven samples for each workload' }
 $summary = for ($index = 0; $index -lt $modes.Count; ++$index) {

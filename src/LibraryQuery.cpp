@@ -715,7 +715,15 @@ LibraryViewProjection LibraryQueryEngine::BuildView( const MediaLibrary& library
         if (checkDisk) projection.availability.push_back(match.existsOnDisk ? 1 : 0);
     };
     std::vector<ItemMatch> matches;
-    if (options.groupMode == LibraryGroupMode::Flat) matches.reserve(library.mediaItems.size());
+    const bool boundedFlat = options.groupMode == LibraryGroupMode::Flat && options.maxItems > 0 &&
+        options.maxItems < library.mediaItems.size() / 4;
+    const auto less = [&](const ItemMatch& a, const ItemMatch& b) {
+        const int cmp = CompareItems(*a.item, *b.item, options.sortField, options.sortDirection);
+        return cmp != 0 ? cmp < 0 : a.originalIndex < b.originalIndex;
+    };
+    ItemMatch pinned;
+    if (options.groupMode == LibraryGroupMode::Flat)
+        matches.reserve(boundedFlat ? options.maxItems : library.mediaItems.size());
     // Duplicate groups reuse the first filtering pass, including its disk
     // result. No second filesystem probe or full ItemMatch array is needed.
     std::vector<uint8_t> duplicateEligibility;
@@ -747,7 +755,19 @@ LibraryViewProjection LibraryQueryEngine::BuildView( const MediaLibrary& library
         m.originalIndex = i;
         m.existsOnDisk = exists;
         if (options.groupMode == LibraryGroupMode::Flat) {
-            matches.push_back(m);
+            if (!boundedFlat) { matches.push_back(m); continue; }
+            if (options.pinLastWatched && item.lastWatchedTimestamp > 0 &&
+                (!pinned.item || item.lastWatchedTimestamp > pinned.item->lastWatchedTimestamp)) pinned = m;
+            // Retain the sorted prefix and track the pinned item independently:
+            // pinning can displace one prefix item even when it sorts last.
+            if (matches.size() < options.maxItems) {
+                matches.push_back(m);
+                if (matches.size() == options.maxItems) std::make_heap(matches.begin(), matches.end(), less);
+            } else if (less(m, matches.front())) {
+                std::pop_heap(matches.begin(), matches.end(), less);
+                matches.back() = m;
+                std::push_heap(matches.begin(), matches.end(), less);
+            }
             continue;
         }
         std::wstring groupKey, directory;
@@ -830,6 +850,18 @@ LibraryViewProjection LibraryQueryEngine::BuildView( const MediaLibrary& library
             if (options.maxItems > 0 && projection.indices.size() >= options.maxItems) { break; }
         }
     } else if (options.groupMode == LibraryGroupMode::Flat) {
+        if (boundedFlat) {
+            if (matches.size() == options.maxItems) std::sort_heap(matches.begin(), matches.end(), less);
+            else std::sort(matches.begin(), matches.end(), less);
+            projection.isCapped = projection.filteredCount > matches.size();
+            projection.indices.reserve(matches.size());
+            if (pinned.item) projectItem(pinned);
+            for (const auto& match : matches) {
+                if (projection.indices.size() == options.maxItems) break;
+                if (!pinned.item || match.originalIndex != pinned.originalIndex) projectItem(match);
+            }
+            return projection;
+        }
         auto sortBegin = matches.begin();
         if (options.pinLastWatched) {
             auto best = std::max_element(matches.begin(), matches.end(), [](const ItemMatch& a, const ItemMatch& b) {
@@ -846,21 +878,7 @@ LibraryViewProjection LibraryQueryEngine::BuildView( const MediaLibrary& library
             projection.isCapped = true;
         } else { projection.isCapped = false; }
         if (options.sortField != LibrarySortField::Manual) {
-            const auto less = [&](const ItemMatch& a, const ItemMatch& b) {
-                const int cmp = CompareItems(*a.item, *b.item, options.sortField, options.sortDirection);
-                return cmp != 0 ? cmp < 0 : a.originalIndex < b.originalIndex;
-            };
-            if (projection.isCapped && countToProject < matches.size() / 4) {
-                // Input indices preserve stable-sort ties, including after
-                // rotating the pinned item out of the sortable suffix.
-                std::partial_sort(sortBegin, matches.begin() + countToProject, matches.end(),
-                    [&](const ItemMatch& a, const ItemMatch& b) {
-                        const int cmp = CompareItems(*a.item, *b.item, options.sortField, options.sortDirection);
-                        return cmp != 0 ? cmp < 0 : a.originalIndex < b.originalIndex;
-                    });
-            } else {
-                std::stable_sort(sortBegin, matches.end(), less);
-            }
+            std::stable_sort(sortBegin, matches.end(), less);
         }
         projection.indices.reserve(countToProject);
         for (size_t i = 0; i < countToProject; ++i) { const auto& m = matches[i]; projectItem(m); }

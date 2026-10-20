@@ -252,6 +252,68 @@ TEST_CASE(SmartPlaylists, LimitedEvaluationMatchesUnlimitedPrefix) {
     }
 }
 
+TEST_CASE(SmartPlaylists, LimitedSparseMatchesFollowNumericOracle) {
+    MediaLibrary library;
+    for (int i = 4095; i >= 0; --i) {
+        MediaItem item;
+        item.id = std::to_string(i);
+        item.filePath = L"C:\\Media\\" + std::to_wstring(i) + L".mkv";
+        item.durationSec = (i * 137) % 4096 + 0.5;
+        library.mediaItems.push_back(std::move(item));
+    }
+    for (size_t matchCount : {size_t(0), size_t(3), size_t(17), size_t(147), size_t(4096)}) {
+        std::vector<std::pair<double, std::wstring>> oracle;
+        for (size_t i = 0; i < library.mediaItems.size(); ++i) {
+            auto& item = library.mediaItems[i];
+            item.title = i < matchCount ? L"selected" : L"excluded";
+            if (i < matchCount) oracle.emplace_back(item.durationSec, item.filePath);
+        }
+        for (int direction = 0; direction <= 1; ++direction) {
+            std::sort(oracle.begin(), oracle.end(), [direction](const auto& a, const auto& b) {
+                return direction ? a.first > b.first : a.first < b.first;
+            });
+            SmartPlaylistCriteria criteria;
+            criteria.rules = {{SmartRuleField::Title, SmartRuleOperator::Equals, "selected"}};
+            criteria.sortField = 3; // Duration
+            criteria.sortDirection = direction;
+            for (size_t limit : {size_t(1), size_t(2), size_t(17), size_t(147), size_t(1023), size_t(1024), size_t(4097)}) {
+                criteria.limit = limit;
+                const auto paths = library.EvaluateSmartPlaylist(criteria);
+                TEST_ASSERT_EQ(paths.size(), (std::min)(limit, oracle.size()));
+                for (size_t i = 0; i < paths.size(); ++i) TEST_ASSERT_EQ(paths[i], oracle[i].second);
+            }
+        }
+    }
+}
+
+TEST_CASE(SmartPlaylists, LargeLimitMatchesNumericOracle) {
+    MediaLibrary library;
+    std::vector<size_t> oracle;
+    for (size_t i = 0; i < 100000; ++i) {
+        MediaItem item;
+        item.id = std::to_string(i);
+        item.filePath = L"C:\\Media\\" + std::to_wstring(i) + L".mkv";
+        item.durationSec = (i * 193) % 100000 + 0.5;
+        library.mediaItems.push_back(std::move(item));
+        oracle.push_back(i);
+    }
+    for (int direction = 0; direction <= 1; ++direction) {
+        std::sort(oracle.begin(), oracle.end(), [&](size_t a, size_t b) {
+            return direction ? library.mediaItems[a].durationSec > library.mediaItems[b].durationSec
+                : library.mediaItems[a].durationSec < library.mediaItems[b].durationSec;
+        });
+        SmartPlaylistCriteria criteria;
+        criteria.sortField = 3; // Duration
+        criteria.sortDirection = direction;
+        for (size_t limit : {size_t(24000), size_t(24999), size_t(25000)}) {
+            criteria.limit = limit;
+            const auto paths = library.EvaluateSmartPlaylist(criteria);
+            TEST_ASSERT_EQ(paths.size(), limit);
+            for (size_t i = 0; i < paths.size(); ++i) TEST_ASSERT_EQ(paths[i], library.mediaItems[oracle[i]].filePath);
+        }
+    }
+}
+
 
 TEST_CASE(SmartPlaylists, PathGenerationTracksRefreshesWithoutUnrelatedEdits) {
     MediaLibrary library;

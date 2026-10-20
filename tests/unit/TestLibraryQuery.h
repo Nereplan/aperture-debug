@@ -1286,4 +1286,61 @@ TEST_CASE(LibraryQuery, SortingGroupingAndCappedProjection) {
     step_LibraryQuery_SeriesOverrideCanShareStandaloneKeyWhenFiltering();
 }
 
+TEST_CASE(LibraryQuery, ColdCappedSelectionPreservesPinningFilteringAndAvailability) {
+    MediaLibrary library;
+    for (size_t i = 0; i < 4096; ++i) {
+        MediaItem item;
+        item.id = std::to_string(i);
+        item.filePath = L"C:\\Media\\" + std::to_wstring(i) + L".mkv";
+        item.title = i % 7 == 0 ? L"selected" : L"excluded";
+        item.durationSec = (i * 137) % 4096 + 0.5;
+        item.status = i % 5 == 0 ? "in_progress" : "new";
+        item.lastWatchedTimestamp = i / 50;
+        library.mediaItems.push_back(std::move(item));
+    }
+    for (auto field : {LibrarySortField::Manual, LibrarySortField::Duration})
+    for (auto direction : {SortDirection::Ascending, SortDirection::Descending})
+    for (bool pin : {false, true})
+    for (auto filter : {LibraryStatusFilter::All, LibraryStatusFilter::InProgress, LibraryStatusFilter::Missing}) {
+        std::vector<size_t> expected;
+        size_t pinned = library.mediaItems.size();
+        for (size_t i = 0; i < library.mediaItems.size(); ++i) {
+            if ((filter != LibraryStatusFilter::All && i % 7 != 0) || (filter == LibraryStatusFilter::InProgress && i % 5 != 0) ||
+                (filter == LibraryStatusFilter::Missing && i % 3 != 0)) continue;
+            expected.push_back(i);
+            if (pin && library.mediaItems[i].lastWatchedTimestamp > 0 && (pinned == library.mediaItems.size() ||
+                library.mediaItems[i].lastWatchedTimestamp > library.mediaItems[pinned].lastWatchedTimestamp)) pinned = i;
+        }
+        if (field == LibrarySortField::Duration) std::sort(expected.begin(), expected.end(), [&](size_t a, size_t b) {
+            return direction == SortDirection::Descending ? library.mediaItems[a].durationSec > library.mediaItems[b].durationSec
+                : library.mediaItems[a].durationSec < library.mediaItems[b].durationSec;
+        });
+        if (pinned != library.mediaItems.size()) {
+            expected.erase(std::find(expected.begin(), expected.end(), pinned));
+            expected.insert(expected.begin(), pinned);
+        }
+        for (size_t cap : {size_t(1), size_t(17), size_t(586), size_t(1023), size_t(1024), size_t(4097)}) {
+            LibraryQueryOptions options;
+            options.sortField = field; options.sortDirection = direction;
+            options.pinLastWatched = pin; options.statusFilter = filter;
+            options.searchQuery = filter == LibraryStatusFilter::All ? L"" : L"selected";
+            options.maxItems = cap; options.checkFileExists = true;
+            size_t probes = 0;
+            LibraryQueryEngine engine;
+            const auto& view = engine.QueryView(library, options, [&](const std::wstring& path) {
+                ++probes;
+                return std::stoi(GetFileTitleFromPath(path)) % 3 != 0;
+            });
+            TEST_ASSERT_EQ(probes, library.mediaItems.size());
+            TEST_ASSERT_EQ(view.filteredCount, expected.size());
+            TEST_ASSERT_EQ(view.indices.size(), (std::min)(cap, expected.size()));
+            TEST_ASSERT_EQ(view.isCapped, cap < expected.size());
+            for (size_t i = 0; i < view.indices.size(); ++i) {
+                TEST_ASSERT_EQ(view.indices[i], expected[i]);
+                TEST_ASSERT_EQ(view.availability[i], expected[i] % 3 != 0 ? 1 : 0);
+            }
+        }
+    }
+}
+
 } // namespace Aperture::Test

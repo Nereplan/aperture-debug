@@ -11,18 +11,39 @@ int main(int argc, char** argv) {
     DWORD_PTR processMask = 0, systemMask = 0;
     if (GetProcessAffinityMask(GetCurrentProcess(), &processMask, &systemMask))
         SetProcessAffinityMask(GetCurrentProcess(), processMask & (~processMask + 1));
+    const bool largePlaylist = argc > 1 && std::string(argv[1]) == "--large-playlist";
+    const int itemCount = largePlaylist ? 100000 : 25000;
     MediaLibrary library;
-    library.mediaItems.reserve(25000);
-    for (int i = 0; i < 25000; ++i) {
+    library.mediaItems.reserve(itemCount);
+    for (int i = 0; i < itemCount; ++i) {
         MediaItem item;
         item.id = std::to_string(i);
         item.filePath = L"C:\\Benchmark\\Series" + std::to_wstring(i / 50) +
             L"\\Series" + std::to_wstring(i / 50) + L" S01E" + std::to_wstring(i % 50 + 1) + L".mkv";
         item.title = GetFileTitleFromPath(item.filePath);
-        item.durationSec = 1200;
+        item.durationSec = largePlaylist ? (i * 193) % itemCount + 0.5 : 1200;
         library.mediaItems.push_back(std::move(item));
     }
     std::puts("mode,sample,ms,allocations,allocated_bytes,peak_live_cpp_bytes,items,groups,order_hash");
+    if (largePlaylist) {
+        for (int workload : {26, 27}) for (int sample = 0; sample < 8; ++sample) {
+            SmartPlaylistCriteria criteria;
+            criteria.sortField = static_cast<int>(LibrarySortField::Duration);
+            criteria.limit = workload == 26 ? 24000 : 25000;
+            if (stats.live != 0) return 2;
+            stats = {}; measuring = sample > 0;
+            const auto start = std::chrono::steady_clock::now();
+            const auto paths = library.EvaluateSmartPlaylist(criteria);
+            const auto end = std::chrono::steady_clock::now();
+            measuring = false;
+            uint64_t hash = 14695981039346656037ull;
+            for (const auto& path : paths) for (wchar_t c : path) { hash ^= c; hash *= 1099511628211ull; }
+            if (sample > 0) std::printf("%d,%d,%.3f,%zu,%zu,%zu,%zu,0,%llu\n", workload, sample,
+                std::chrono::duration<double, std::milli>(end - start).count(),
+                stats.calls, stats.bytes, stats.peak, paths.size(), hash);
+        }
+        return 0;
+    }
     if (argc > 1 && std::string(argv[1]) == "--extended") {
         for (int workload : {19, 20, 21, 22, 23, 24, 25}) {
             auto items = library.mediaItems;
