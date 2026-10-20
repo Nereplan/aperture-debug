@@ -523,7 +523,6 @@ void App::TogglePrivateMode() {
     CancelNetworkJobs();
     onlineSubtitleJobs.SyncContext(playbackSession.IsOpen() ? player.GetCurrentFilePath() : std::wstring{},
         settings, mediaGenerationToken, enabled);
-    previewPlayer.SetPrivateMode(enabled);
     hubExtractors[0].SetPrivateMode(enabled);
     hubExtractors[1].SetPrivateMode(enabled);
     renderer.SetThumbnailPrivateMode(enabled);
@@ -604,7 +603,7 @@ bool App::HubExtractPathStillWanted(const std::wstring& path) {
 
 bool App::DriveHubExtraction() {
     // Two dedicated extractor instances run fully parallel to hover,
-    // seekbar, and playback decoding; they only need the player closed so
+    // hover previews or playback decoding; they only need the player closed so
     // background I/O never contends with active media.
     if (playbackSession.IsOpen()) return false;
     CollectVisibleVideoPaths();

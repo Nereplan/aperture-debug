@@ -267,7 +267,6 @@ void App::RefreshOverlayHitTargets(float mouseX, float mouseY) {
     isTimelineHovered = overTrack;
     if (isTimelineHovered != prevTimelineHovered && !IsReducedMotionEnabled())
         AnimateVisual(timelineHoverAnim, isTimelineHovered ? 1.0f : 0.0f, MotionTokens::kFast, MotionTokens::Standard());
-    if (!overTrack) { if (previewPlayer.IsSeekbarActive()) previewPlayer.ResetSeekbarPreview(); }
     const bool queuePlayback = playbackSession.IsQueuePlayback();
     const auto layout = Presentation::Player(winW, winH, dp, queuePlayback);
     const std::pair<int, D2D1_RECT_F> buttons[] = {

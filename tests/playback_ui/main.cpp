@@ -203,6 +203,69 @@ struct PlaybackUiTestAccess {
         a.MarkAccessibilityDirty();
         Pass("input flood keeps hit testing, tooltip relay and commands immediate; deferred bookkeeping draws latest state on timer wake");
     }
+    static void PreviewIdleTeardown(App& a, const std::wstring& media) {
+        const bool hoverEnabled = a.settings.hoverPreviewEnabled;
+        a.settings.hoverPreviewEnabled = true;
+        a.HideTooltipKeyboardFocus();
+        for (HWND window : {a.hWnd, a.hOverlayWnd, a.hVideoWnd}) {
+            TRACKMOUSEEVENT cancel{ sizeof(TRACKMOUSEEVENT), TME_CANCEL | TME_LEAVE, window, 0 }; TrackMouseEvent(&cancel);
+        }
+        Pump(25);
+        a.player.Pause(); a.playbackSession.Close();
+        a.currentTab = TabView::Media; a.libraryGroupMode = LibraryGroupMode::Flat;
+        a.isLastWatchedCleared = true; a.EnsureMediaLayoutCache();
+        a.Update(0);
+        Require(!a.previewInitialized && !a.previewInitAttempted && !a.previewPlayer.GetPreviewBitmap(), "Idle hub eagerly initialized previews");
+        const float dp = a.renderer.GetDpiScale();
+        const auto view = Presentation::HubView(1024, 640, dp);
+        const LPARAM hover = Point(static_cast<int>((view.left + view.right) * .5f),
+            static_cast<int>(view.top + 44 * dp + (a.GetMediaRowTopDIP(0) + a.GetMediaRowHeightDIP(0) * .5f) * dp));
+        const auto warmHover = [&]() {
+            // Hidden synthetic input must not ask Windows to compare the real
+            // desktop cursor with this invisible owner and synthesize a leave.
+            a.isMouseTracking = true;
+            a.HandleMessage(a.hWnd, WM_MOUSEMOVE, 0, hover);
+            a.hubTooltips.SetActive(false); a.HideTooltipKeyboardFocus();
+            Require(a.hoveredMediaIndex == 0 && a.rowAnimStates[0].isHovering, "Hidden media hover did not reach the row");
+            Until([&]() {
+                a.Update(0);
+                return a.previewInitialized && a.previewPlayer.IsActive() && a.previewPlayer.GetPreviewBitmap();
+            }, "Hub hover did not initialize and decode a real preview");
+            NoVisibleWindows();
+        };
+        warmHover();
+        const auto dimensions = a.previewPlayer.GetPreviewBitmap()->GetPixelSize();
+        Require(dimensions.width >= 640 && dimensions.height >= 180, "Hub hover produced no preview-sized bitmap");
+        a.previewLastActivity = NowSeconds() - 13;
+        a.Update(0);
+        Require(a.previewInitialized && a.previewPlayer.IsActive() && a.previewPlayer.GetPreviewBitmap(), "Idle cleanup interrupted an active hub preview");
+        // Keep the native player/window hidden and exercise the same stop/session
+        // states used when opening main playback, without a visible transition.
+        Require(a.playbackSession.OpenDirect(media) && a.playbackSession.OnPlayerOpened(true), "Hidden playback transition failed");
+        a.previewPlayer.StopPreview(); a.player.Play();
+        Require(a.player.IsPlaying() && !a.previewPlayer.IsActive() && a.previewPlayer.GetPreviewBitmap(), "Stopped preview was not warm during native playback");
+        a.previewLastActivity = NowSeconds() - 11;
+        a.Update(0);
+        Require(a.previewInitialized && a.previewInitAttempted && a.previewPlayer.GetPreviewBitmap(), "Idle cleanup discarded a recent stopped preview");
+        a.previewLastActivity = NowSeconds() - 13;
+        a.Update(0);
+        Require(!a.previewInitialized && !a.previewInitAttempted && !a.previewPlayer.IsActive() && !a.previewPlayer.GetPreviewBitmap(),
+            "Main playback retained the expired preview or prevented lazy retry");
+        const double position = a.player.GetCurrentTime();
+        Until([&]() { return a.player.IsPlaying() && a.player.GetCurrentTime() > position + .1; }, "Preview teardown interrupted native main playback");
+        a.player.Pause(); a.playbackSession.Close();
+        a.HandleMessage(a.hWnd, WM_MOUSEMOVE, 0, Point(-100, -100));
+        warmHover();
+        Require(a.previewInitAttempted && a.previewPlayer.GetCurrentPreviewPath() == media, "Fresh hub hover did not lazily restart after cleanup");
+        a.HandleMessage(a.hWnd, WM_MOUSEMOVE, 0, Point(-100, -100));
+        a.Update(0);
+        Require(!a.previewPlayer.IsActive(), "Leaving the hub row did not stop the restarted preview");
+        Require(a.playbackSession.OpenDirect(media) && a.playbackSession.OnPlayerOpened(true), "Restoring hidden playback failed");
+        a.player.Play(); a.previewLastActivity = NowSeconds() - 13; a.Update(0);
+        a.settings.hoverPreviewEnabled = hoverEnabled;
+        a.controlsOpacity = 1.0f; a.controlsIdleTimer = 0.0f;
+        Pass("expired hub preview resources release during main playback; active/recent previews survive and fresh hover restarts lazily");
+    }
     static void DiagnosticsClose(App& a) {
         Key(a, 'I'); Require(a.showPlaybackDiagnostics, "Diagnostics keyboard toggle did not open panel");
         const float dp = a.overlayRenderer.GetDpiScale();
@@ -478,7 +541,7 @@ struct PlaybackUiTestAccess {
         Pass("Undo history bounds entry count and retained payload");
     }
     static void Run(App& a, const std::wstring& media) {
-        Setup(a, media); PacedInputBookkeeping(a); DiagnosticsClose(a); Controls(a); Subtitles(a); Bookmark(a); RepeatAndMenu(a); RenameUndo(a); MoveUndo(a); MediaAndFolderUndo(a); EditHistory(a); NoVisibleWindows();
+        Setup(a, media); PacedInputBookkeeping(a); PreviewIdleTeardown(a, media); DiagnosticsClose(a); Controls(a); Subtitles(a); Bookmark(a); RepeatAndMenu(a); RenameUndo(a); MoveUndo(a); MediaAndFolderUndo(a); EditHistory(a); NoVisibleWindows();
     }
     static void Release(App& a) {
         if (a.hWnd) SetWindowLongPtrW(a.hWnd, GWLP_USERDATA, 0);

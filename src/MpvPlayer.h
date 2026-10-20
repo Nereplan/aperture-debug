@@ -12,7 +12,6 @@
 #include <thread>
 #include <atomic>
 #include <condition_variable>
-#include <charconv>
 
 namespace Aperture {
 
@@ -293,141 +292,27 @@ private:
 };
 
 // =========================================================================
-// Video Thumbnail Preview & Cache System (Seekbar Hover & Scrubbing)
+// Hub Thumbnail Cache and Hover Preview
 // =========================================================================
-
-inline double QuantizePreviewTime(double rawTimeSec, double durationSec, double quantizeStepSec = 1.0) {
-    if (!std::isfinite(rawTimeSec) || !std::isfinite(durationSec) || durationSec <= 0.0 || rawTimeSec <= 0.0) { return 0.0; }
-    double clamped = std::clamp(rawTimeSec, 0.0, durationSec);
-    if (!std::isfinite(quantizeStepSec) || quantizeStepSec <= 0.0) { return clamped; }
-    double quantized = std::round(clamped / quantizeStepSec) * quantizeStepSec;
-    return std::clamp(quantized, 0.0, durationSec);
-}
 
 struct PreviewThumbnailFrame {
     std::wstring filePath;
     double timestampSec = 0.0;
     int width = 0, height = 0;
     std::vector<uint8_t> bgraPixels;
-    uint64_t accessCounter = 0;
-    size_t GetMemoryBytes() const { return sizeof(PreviewThumbnailFrame) + filePath.capacity() * sizeof(wchar_t) + bgraPixels.capacity(); }
 };
 
-class ThumbnailKeyBuilder {
-public:
-    explicit ThumbnailKeyBuilder(const std::wstring& path) {
-        const auto utf8 = Utf16ToUtf8(path);
-        prefix_ = (Fnv1a64(utf8.data(), utf8.size()) ^ uint64_t('|')) * 1099511628211ull;
-    }
-    uint64_t SeekHash(uint64_t milliseconds) const {
-        char digits[20]; // uint64_t's longest decimal representation
-        const auto converted = std::to_chars(digits, digits + sizeof(digits), milliseconds);
-        return Append(prefix_, digits, converted.ptr);
-    }
-    static std::wstring SeekKey(uint64_t hash) { return Format(L"thumb_", hash); }
-    std::wstring HubKey() const {
-        constexpr char suffix[] = "hub";
-        return Format(L"hub_", Append(prefix_, suffix, suffix + 3));
-    }
-private:
-    static uint64_t Append(uint64_t hash, const char* begin, const char* end) {
-        for (; begin != end; ++begin) hash = (hash ^ static_cast<unsigned char>(*begin)) * 1099511628211ull;
-        return hash;
-    }
-    static std::wstring Format(const wchar_t* prefix, uint64_t hash) {
-        constexpr wchar_t hex[] = L"0123456789abcdef";
-        std::wstring key(prefix);
-        const size_t start = key.size();
-        key.resize(start + 20);
-        for (size_t i = 0; i < 16; ++i) key[start + i] = hex[(hash >> (60 - i * 4)) & 15];
-        std::copy_n(L".bin", 4, key.begin() + start + 16);
-        return key;
-    }
-    uint64_t prefix_ = 0;
-};
-
-inline std::wstring MakeThumbnailCacheKey(const std::wstring& filePath, double quantizedTimeSec) {
-    const ThumbnailKeyBuilder key(filePath);
-    return key.SeekKey(key.SeekHash(static_cast<uint64_t>(std::llround(quantizedTimeSec * 1000.0))));
-}
-
-// Hub card thumbnails share cache/thumbnails with the seekbar tier but use a distinct path-only key (no dimensions or timestamp): hub cards
-// show one representative frame per file while seekbar entries are per-second.
+// Hub keys are path-only: shell thumbnails can have different dimensions,
+// and cards scale the same representative image on draw.
 inline std::wstring MakeHubThumbnailCacheKey(const std::wstring& filePath, int width, int height) {
-    // Size-independent by design: hub thumbnails come from shell extraction at whatever size the shell returns, and cards scale on draw.
-    // Including the size would fragment one file's entry across unpredictable keys and make cache purging on media removal impossible.
-    // (width/height params are kept for source compatibility.)
     (void)width; (void)height;
-    return ThumbnailKeyBuilder(filePath).HubKey();
+    const auto input = Utf16ToUtf8(filePath) + "|hub";
+    const uint64_t hash = Fnv1a64(input.data(), input.size());
+    constexpr wchar_t hex[] = L"0123456789abcdef";
+    std::wstring key = L"hub_0000000000000000.bin";
+    for (size_t i = 0; i < 16; ++i) key[4 + i] = hex[(hash >> (60 - i * 4)) & 15];
+    return key;
 }
-
-class ThumbnailMemoryCache {
-public:
-    explicit ThumbnailMemoryCache(size_t maxCount = 8, size_t maxBytes = 2 * 1024 * 1024) : maxCount_(maxCount), maxBytes_(maxBytes) {}
-    bool TryGet(const std::wstring& filePath, double quantizedTimeSec, PreviewThumbnailFrame& outFrame) {
-        std::lock_guard<std::mutex> lock(mutex_);
-        for (auto& item : entries_) {
-            if (item.filePath == filePath && std::abs(item.timestampSec - quantizedTimeSec) < 0.001) {
-                item.accessCounter = ++accessCounter_;
-                outFrame = item;
-                return true;
-            }
-        }
-        return false;
-    }
-    void Put(const PreviewThumbnailFrame& frame) {
-        if (frame.filePath.empty() || frame.bgraPixels.empty() || frame.width <= 0 || frame.height <= 0) return;
-        std::lock_guard<std::mutex> lock(mutex_);
-        for (auto& item : entries_) {
-            if (item.filePath == frame.filePath && std::abs(item.timestampSec - frame.timestampSec) < 0.001) {
-                totalBytes_ -= item.GetMemoryBytes();
-                item = frame;
-                item.accessCounter = ++accessCounter_;
-                totalBytes_ += item.GetMemoryBytes();
-                EvictIfNeeded();
-                return;
-            }
-        }
-        PreviewThumbnailFrame copy = frame;
-        copy.accessCounter = ++accessCounter_;
-        totalBytes_ += copy.GetMemoryBytes();
-        entries_.push_back(std::move(copy));
-        EvictIfNeeded();
-    }
-    void InvalidateMedia(const std::wstring& filePath) {
-        std::lock_guard<std::mutex> lock(mutex_);
-        if (filePath.empty()) { entries_.clear(); totalBytes_ = 0; return; }
-        auto it = entries_.begin();
-        while (it != entries_.end()) {
-            if (it->filePath == filePath) { totalBytes_ -= it->GetMemoryBytes(); it = entries_.erase(it); } else { ++it; }
-        }
-    }
-    void Clear() { std::lock_guard<std::mutex> lock(mutex_); entries_.clear(); totalBytes_ = 0; }
-    size_t GetCount() const { std::lock_guard<std::mutex> lock(mutex_); return entries_.size(); }
-    size_t GetTotalBytes() const { std::lock_guard<std::mutex> lock(mutex_); return totalBytes_; }
-
-private:
-    void EvictIfNeeded() {
-        while (!entries_.empty() && (entries_.size() > maxCount_ || totalBytes_ > maxBytes_)) {
-            auto oldestIt = entries_.begin();
-            for (auto it = entries_.begin(); it != entries_.end(); ++it) {
-                if (it->accessCounter < oldestIt->accessCounter) { oldestIt = it; }
-            }
-            totalBytes_ -= oldestIt->GetMemoryBytes();
-            entries_.erase(oldestIt);
-        }
-    }
-    mutable std::mutex mutex_;
-    size_t maxCount_ = 8, maxBytes_ = 2 * 1024 * 1024, totalBytes_ = 0;
-    uint64_t accessCounter_ = 0;
-    std::vector<PreviewThumbnailFrame> entries_;
-};
-
-bool SaveThumbnailToDiskCache( const PreviewThumbnailFrame& frame, const CacheBudgetConfig& config = GetGlobalCacheBudgets(),
-    const std::wstring& root = GetExeDir() );
-
-bool LoadThumbnailFromDiskCache( const std::wstring& filePath, double quantizedTimeSec, PreviewThumbnailFrame& outFrame,
-    const std::wstring& root = GetExeDir(), bool migrateLegacy = true );
 
 // Hub tier persistence (same directory and on-disk format, hub_ key prefix).
 bool SaveHubThumbnailToDiskCache( const PreviewThumbnailFrame& frame, const CacheBudgetConfig& config = GetGlobalCacheBudgets(),
@@ -436,10 +321,8 @@ bool SaveHubThumbnailToDiskCache( const PreviewThumbnailFrame& frame, const Cach
 bool LoadHubThumbnailFromDiskCache( const std::wstring& filePath, int width, int height, PreviewThumbnailFrame& outFrame,
     const std::wstring& root = GetExeDir(), bool migrateLegacy = true );
 
-// Removal hygiene for the durable thumbnail tier. The path-specific purge
-// handles the hub key plus every possible one-second seekbar key; the prune
-// removes orphaned/legacy hub keys while preserving current live media.
-size_t PurgeThumbnailDiskCacheForFile( const std::wstring& filePath, double durationSec, const std::wstring& root = GetExeDir() );
+// Remove the path's hub entry, or prune entries whose media is no longer live.
+size_t PurgeThumbnailDiskCacheForFile( const std::wstring& filePath, const std::wstring& root = GetExeDir() );
 
 size_t PruneOrphanedHubThumbnailDiskCache( const std::vector<std::wstring>& liveFilePaths, const std::wstring& root = GetExeDir() );
 
@@ -455,21 +338,11 @@ public:
     // Media Card hover preview
     void StartPreview(const std::wstring& filePath, double startSec);
     void StopPreview();
-    // Requested pixel size for card hover previews. The render buffer is (re)allocated from this when the next preview starts. Seekbar
-    // thumbnails keep using their own fixed small size.
+    // Requested pixel size, adopted when the next card preview starts.
     void SetPreviewOutputSize(int width, int height);
     bool IsActive() const { return isActive; }
     std::wstring GetCurrentPreviewPath() const;
     ID2D1Bitmap* GetPreviewBitmap() const { return previewBitmap.Get(); }
-    // Seekbar Thumbnail preview
-    bool RequestSeekbarThumbnail(const std::wstring& filePath, double rawTimeSec, double durationSec, uint64_t mediaToken, ID2D1DeviceContext* pD2DContext = nullptr);
-    void ResetSeekbarPreview();
-    bool IsSeekbarActive() const { return isSeekbarActive; }
-    bool HasSeekbarThumbnail() const { return hasSeekbarThumbnail; }
-    bool IsSeekbarThumbnailLoading() const { return isSeekbarLoading; }
-    ThumbnailMemoryCache& GetMemoryCache() { return memoryCache; }
-    bool IsPrivateMode() const { return isPrivateMode.load(); }
-    void SetPrivateMode(bool enabled) { isPrivateMode.store(enabled); }
     bool UpdateFrame(ID2D1DeviceContext* pD2DContext);
     void BindDeviceContext(ID2D1DeviceContext* context);
 
@@ -477,10 +350,8 @@ private:
     friend struct MpvPreviewTestAccess;
     static void OnRenderUpdate(void* ctx);
     void StopMpvLocked();
-    void DrainPreviewEventsLocked(bool acceptRestart);
-    bool IssueSeekbarSeekLocked(double time, uint64_t sequence, uint64_t mediaToken);
-    void ResetSeekbarPreviewLocked();
-    void EnsureBufferDimensionsLocked(int width, int height, ID2D1DeviceContext* pD2DContext);
+    void DrainPreviewEventsLocked();
+    void EnsureBufferDimensionsLocked(int width, int height);
     void BindDeviceContextLocked(ID2D1DeviceContext* context);
     bool UploadBitmapLocked(ComPtr<ID2D1Bitmap>& bitmap, ID2D1DeviceContext* context,
                             UINT width, UINT height, const uint8_t* pixels);
@@ -488,55 +359,22 @@ private:
     mpv_render_context* renderCtx = nullptr;
     std::wstring currentPreviewPath;
     std::atomic<bool> isActive{ false };
-    std::atomic<bool> isSeekbarActive{ false };
     std::atomic<bool> frameReady{ false };
-    // Seekbar preview state
-    std::atomic<uint64_t> currentSequenceId{ 0 };
-    std::atomic<uint64_t> requestedMediaToken{ 0 };
-    std::wstring requestedFilePath;
-    double requestedTime = 0.0;
-    uint64_t inFlightSequenceId = 0, inFlightMediaToken = 0;
-    double inFlightTime = 0.0;
-    bool seekbarCapturePending = false, seekbarRestarted = false;
-    bool seekbarRequestFailed = false;
-    bool hasPendingSeek = false;
-    double pendingSeekTime = 0.0;
-    uint64_t pendingSeekSeq = 0, pendingSeekMediaToken = 0;
-    std::chrono::steady_clock::time_point lastSeekTime{};
-    std::atomic<bool> hasSeekbarThumbnail{ false };
-    std::atomic<bool> isSeekbarLoading{ false };
-    double activeSeekbarTime = -1.0;
-    std::atomic<bool> isPrivateMode{ false };
-    ThumbnailMemoryCache memoryCache;
     std::vector<uint8_t> pixelBuffer;
-    // Seekbar thumbnails render at a fixed small size and feed the thumbnail caches, so their dimensions must stay stable. Card hover
-    // previews allocate from requestedPreviewWidth/Height. 960x540 stays sharp on the expanded card while halving the peak preview buffer
-    // versus 1280x720.
-    static constexpr int kSeekbarBufferWidth = 320, kSeekbarBufferHeight = 180, kMinPreviewBufferWidth = 640, kMaxPreviewBufferWidth = 960;
-    int requestedPreviewWidth = 960, requestedPreviewHeight = 540, bufferWidth = kSeekbarBufferWidth, bufferHeight = kSeekbarBufferHeight;
-    bool bufferIsPreviewSized = false;
-    ComPtr<ID2D1Bitmap> previewBitmap, seekbarBitmap;
+    // Keep card playback sharp while bounding its CPU render buffer.
+    static constexpr int kFallbackBufferWidth = 320, kFallbackBufferHeight = 180;
+    static constexpr int kMinPreviewBufferWidth = 640, kMaxPreviewBufferWidth = 960;
+    int requestedPreviewWidth = 960, requestedPreviewHeight = 540;
+    int bufferWidth = kFallbackBufferWidth, bufferHeight = kFallbackBufferHeight;
+    ComPtr<ID2D1Bitmap> previewBitmap;
     ComPtr<ID2D1Device> bitmapDevice;
-    std::mutex renderMutex;
     mutable std::mutex lifecycleMutex;
-    // Background disk-save queue: thumbnail persistence (directory budget scans + file I/O + flush) must never run on the render thread.
-    // UpdateFrame transfers its captured frame; the saver thread persists it
-    // under <root>\cache\thumbnails. Bounded and coalesced by key so fast scrubbing cannot pile up unbounded file writes.
-    static constexpr size_t kMaxPendingDiskSaves = 8;
-    void StopSaveWorker();
-    void SaveWorkerThread();
-    void QueueDiskSave(PreviewThumbnailFrame&& frame);
-    std::thread saveWorker;
-    std::mutex saveMutex;
-    std::condition_variable saveCv;
-    std::deque<PreviewThumbnailFrame> saveQueue;
-    bool saveStopping = false;
 
 };
 
 // Dedicated hub thumbnail extractor for files the Windows shell cannot thumbnail (notably MKV, which has no inbox Explorer handler). It
 // owns a separate mpv instance tuned purely for fast single-frame grabs — keyframe seeks, skipped loop filtering, tiny demuxer window — so
-// extraction never contends with hover previews, seekbar work, or playback decoding, and can run in parallel with them. The App drives it
+// extraction never contends with hover previews or playback decoding, and can run in parallel with them. The App drives it
 // while idle: Begin once, Pump every tick (needs no D2D device), TakeResult when ready.
 class MpvHubExtractor : private MpvApiOwner {
 public:

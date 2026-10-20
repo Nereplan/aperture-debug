@@ -1935,64 +1935,12 @@ bool ReadThumbnailBuffer(const std::string& bytes, const std::wstring& path, Pre
     return true;
 }
 
-// Read names only: corrupt/empty cache files still need removal. A bounded
-// inventory avoids turning a short-file purge into a scan of a huge directory.
-// On incomplete enumeration the caller retains the direct deletion fallback.
-bool ReadSeekThumbnailHashes(const std::wstring& dir, size_t maxEntries, std::vector<uint64_t>& hashes) {
-    WIN32_FIND_DATAW data{};
-    HANDLE find = FindFirstFileW((dir + L"thumb_*.bin").c_str(), &data);
-    if (find == INVALID_HANDLE_VALUE) {
-        const DWORD error = GetLastError();
-        return error == ERROR_FILE_NOT_FOUND || error == ERROR_PATH_NOT_FOUND;
-    }
-    struct FindGuard { HANDLE handle; ~FindGuard() { FindClose(handle); } } guard{find};
-    size_t visited = 0;
-    do {
-        if (++visited > maxEntries) return false;
-        if (data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) continue;
-        const std::wstring_view name(data.cFileName);
-        if (name.size() != 26 || _wcsnicmp(data.cFileName, L"thumb_", 6) != 0 ||
-            _wcsicmp(data.cFileName + 22, L".bin") != 0) continue;
-        uint64_t hash = 0;
-        bool valid = true;
-        for (size_t i = 6; i < 22; ++i) {
-            const wchar_t c = name[i];
-            const int digit = c >= L'0' && c <= L'9' ? c - L'0' :
-                c >= L'a' && c <= L'f' ? c - L'a' + 10 : c >= L'A' && c <= L'F' ? c - L'A' + 10 : -1;
-            if (digit < 0) { valid = false; break; }
-            hash = (hash << 4) | static_cast<uint64_t>(digit);
-        }
-        if (valid) hashes.push_back(hash);
-    } while (FindNextFileW(find, &data));
-    if (GetLastError() != ERROR_NO_MORE_FILES) return false;
-    std::sort(hashes.begin(), hashes.end());
-    return true;
-}
 } // namespace
-
-bool SaveThumbnailToDiskCache( const PreviewThumbnailFrame& frame, const CacheBudgetConfig& config, const std::wstring& root ) {
-    if (frame.filePath.empty() || frame.bgraPixels.empty() || frame.width <= 0 || frame.height <= 0) return false;
-    std::wstring key = MakeThumbnailCacheKey(frame.filePath, frame.timestampSec);
-    return WriteThumbnailBuffer(key, frame, config, root);
-}
 
 bool SaveHubThumbnailToDiskCache( const PreviewThumbnailFrame& frame, const CacheBudgetConfig& config, const std::wstring& root ) {
     if (frame.filePath.empty() || frame.bgraPixels.empty() || frame.width <= 0 || frame.height <= 0) return false;
     std::wstring key = MakeHubThumbnailCacheKey(frame.filePath, frame.width, frame.height);
     return WriteThumbnailBuffer(key, frame, config, root);
-}
-
-bool LoadThumbnailFromDiskCache( const std::wstring& filePath, double quantizedTimeSec, PreviewThumbnailFrame& outFrame,
-    const std::wstring& root, bool migrateLegacy ) {
-    if (filePath.empty()) return false;
-    std::wstring key = MakeThumbnailCacheKey(filePath, quantizedTimeSec);
-    std::string rawData;
-    StorageStatus status = ReadCacheFile(CacheClass::Thumbnails, key, rawData, root, migrateLegacy);
-    if (!status.is_ok() || rawData.size() < sizeof(ThumbnailDiskHeader)) { return false; }
-    if (!ReadThumbnailBuffer(rawData, filePath, outFrame)) return false;
-    if (migrateLegacy && GetGlobalCacheBudgets().IsEnabled(CacheClass::Thumbnails))
-        ThumbnailMigrations().Queue(root, key, rawData);
-    return true;
 }
 
 bool LoadHubThumbnailFromDiskCache( const std::wstring& filePath, int width, int height, PreviewThumbnailFrame& outFrame,
@@ -2008,31 +1956,12 @@ bool LoadHubThumbnailFromDiskCache( const std::wstring& filePath, int width, int
     return true;
 }
 
-size_t PurgeThumbnailDiskCacheForFile( const std::wstring& filePath, double durationSec, const std::wstring& root ) {
+size_t PurgeThumbnailDiskCacheForFile( const std::wstring& filePath, const std::wstring& root ) {
     if (filePath.empty()) return 0;
     std::lock_guard<std::recursive_mutex> ioLock(Detail::CacheIOMutex());
     InvalidateCacheAccounting(root);
-    const std::wstring dir = GetCacheDir(CacheClass::Thumbnails, root) + L"\\";
-    size_t removed = 0;
-    auto removeKey = [&dir, &removed](const std::wstring& key) { if (!key.empty() && DeleteFileW((dir + key).c_str())) ++removed; };
-    const ThumbnailKeyBuilder keys(filePath);
-    removeKey(keys.HubKey());
-    if (durationSec > 0.0 && std::isfinite(durationSec) && durationSec <= static_cast<double>((std::numeric_limits<int>::max)() - 1)) {
-        const int lastBucket = static_cast<int>(std::ceil(durationSec));
-        std::vector<uint64_t> existing;
-        const size_t inventoryLimit = (std::min)(static_cast<size_t>(lastBucket) + 1, size_t{16384});
-        const bool haveInventory = lastBucket > 64 && ReadSeekThumbnailHashes(dir, inventoryLimit, existing);
-        if (haveInventory && existing.empty()) return removed;
-        auto removeTime = [&](uint64_t milliseconds) {
-            const uint64_t hash = keys.SeekHash(milliseconds);
-            if (!haveInventory || std::binary_search(existing.begin(), existing.end(), hash))
-                removeKey(keys.SeekKey(hash));
-        };
-        for (int t = 0; t <= lastBucket; ++t) { removeTime(static_cast<uint64_t>(t) * 1000); }
-        // Quantization clamps a rounded final bucket back to a fractional duration, so the exact-duration key is possible as well.
-        removeTime(static_cast<uint64_t>(std::llround(durationSec * 1000.0)));
-    }
-    return removed;
+    const std::wstring target = GetCacheDir(CacheClass::Thumbnails, root) + L"\\" + MakeHubThumbnailCacheKey(filePath, 0, 0);
+    return DeleteFileW(target.c_str()) ? 1 : 0;
 }
 
 size_t PruneOrphanedHubThumbnailDiskCache( const std::vector<std::wstring>& liveFilePaths, const std::wstring& root ) {
@@ -2062,45 +1991,6 @@ size_t PruneOrphanedHubThumbnailDiskCache( const std::vector<std::wstring>& live
 
 MpvPreviewPlayer::MpvPreviewPlayer() {}
 
-void MpvPreviewPlayer::StopSaveWorker() {
-    { std::lock_guard<std::mutex> lock(saveMutex); saveStopping = true; }
-    saveCv.notify_all();
-    if (saveWorker.joinable()) { saveWorker.join(); }
-    std::lock_guard<std::mutex> lock(saveMutex);
-    saveQueue.clear();
-}
-
-void MpvPreviewPlayer::QueueDiskSave(PreviewThumbnailFrame&& frame) {
-    if (frame.filePath.empty() || frame.bgraPixels.empty() || frame.width <= 0 || frame.height <= 0) return;
-    if (isPrivateMode.load()) return;
-    std::lock_guard<std::mutex> lock(saveMutex);
-    if (saveStopping) return;
-    if (!saveWorker.joinable()) saveWorker = std::thread(&MpvPreviewPlayer::SaveWorkerThread, this);
-    // Coalesce: re-seeking the same quantized second replaces the pending
-    // copy instead of queueing duplicate file writes.
-    for (auto& queued : saveQueue) {
-        if (queued.filePath == frame.filePath && std::abs(queued.timestampSec - frame.timestampSec) < 0.001) { queued = std::move(frame); return; }
-    }
-    while (saveQueue.size() >= kMaxPendingDiskSaves) { saveQueue.pop_front(); }
-    saveQueue.push_back(std::move(frame));
-    saveCv.notify_one();
-}
-
-void MpvPreviewPlayer::SaveWorkerThread() {
-    while (true) {
-        PreviewThumbnailFrame frame;
-        {
-            std::unique_lock<std::mutex> lock(saveMutex);
-            saveCv.wait(lock, [this]() { return saveStopping || !saveQueue.empty(); });
-            if (saveStopping && saveQueue.empty()) break;
-            if (saveQueue.empty()) continue;
-            frame = std::move(saveQueue.front());
-            saveQueue.pop_front();
-        }
-        if (!isPrivateMode.load()) SaveThumbnailToDiskCache(frame);
-    }
-}
-
 MpvPreviewPlayer::~MpvPreviewPlayer() { Shutdown(); }
 
 void MpvPreviewPlayer::OnRenderUpdate(void* ctx) {
@@ -2111,10 +2001,9 @@ void MpvPreviewPlayer::OnRenderUpdate(void* ctx) {
 bool MpvPreviewPlayer::Initialize(ID2D1DeviceContext* pD2DContext, HMODULE hDll) {
     Shutdown();
     if (!LoadMpvApi(MpvApiProfile::SoftwareRenderer, "Hover preview", hDll)) return false;
-    // Seekbar captures must distinguish a completed seek from a redraw of
-    // the preceding frame. These exports also drain the client's event queue.
-    if (!fn_mpv_wait_event || !fn_mpv_get_property) {
-        RecordInitializationFailure("seek completion API", MPV_ERROR_UNSUPPORTED);
+    // Drain the client queue while consuming hover frames.
+    if (!fn_mpv_wait_event) {
+        RecordInitializationFailure("preview event API", MPV_ERROR_UNSUPPORTED);
         ResetMpvApi();
         return false;
     }
@@ -2124,8 +2013,7 @@ bool MpvPreviewPlayer::Initialize(ID2D1DeviceContext* pD2DContext, HMODULE hDll)
     SetMpvOption(mpv, "hwdec", "no", MpvOptionRequirement::Essential);
     SetMpvOption(mpv, "audio", "no", MpvOptionRequirement::Essential);
     SetMpvOption(mpv, "mute", "yes");
-    // No fixed vf scale: the software render target size is chosen per mode (small for seekbar extraction, row-sized for card hover
-    // previews) and mpv scales into that target directly.
+    // mpv scales directly into the card-sized software target.
     SetMpvOption(mpv, "sid", "no", MpvOptionRequirement::Essential);
     SetMpvOption(mpv, "sub-auto", "no", MpvOptionRequirement::Essential);
     SetMpvOption(mpv, "vd-lavc-threads", "2");
@@ -2173,24 +2061,15 @@ bool MpvPreviewPlayer::Initialize(ID2D1DeviceContext* pD2DContext, HMODULE hDll)
         return false;
     }
     if (fn_mpv_render_context_set_update_callback) { fn_mpv_render_context_set_update_callback(renderCtx, OnRenderUpdate, this); }
-    { std::lock_guard<std::mutex> lock(saveMutex); saveStopping = false; }
     BindDeviceContext(pD2DContext);
     return true;
 }
 
 void MpvPreviewPlayer::Shutdown() {
     std::lock_guard<std::mutex> lifecycleLock(lifecycleMutex);
-    StopSaveWorker();
-    isActive = false;    isSeekbarActive = false;
+    isActive = false;
     currentPreviewPath.clear();
     frameReady = false;
-    hasSeekbarThumbnail = false;
-    isSeekbarLoading = false;
-    hasPendingSeek = false;
-    seekbarCapturePending = false;
-    seekbarRestarted = false;
-    seekbarRequestFailed = false;
-    activeSeekbarTime = -1.0;
     if (mpv) {
         if (fn_mpv_command_string) { fn_mpv_command_string(mpv, "stop"); } else if (fn_mpv_command) {
             const char* cmd[] = { "stop", nullptr };
@@ -2204,10 +2083,8 @@ void MpvPreviewPlayer::Shutdown() {
     }
     if (mpv && fn_mpv_terminate_destroy) { fn_mpv_terminate_destroy(mpv); mpv = nullptr; }
     previewBitmap.Reset();
-    seekbarBitmap.Reset();
     bitmapDevice.Reset();
     std::vector<uint8_t>().swap(pixelBuffer);
-    memoryCache.Clear();
     ResetMpvApi();
 }
 
@@ -2224,22 +2101,18 @@ void MpvPreviewPlayer::SetPreviewOutputSize(int width, int height) {
 
 // Must hold lifecycleMutex. Resizes the shared software render buffer and drops the D2D bitmaps so they are recreated at the new size by
 // the next UpdateFrame call (which carries the device context).
-void MpvPreviewPlayer::EnsureBufferDimensionsLocked(int width, int height, ID2D1DeviceContext* pD2DContext) {
+void MpvPreviewPlayer::EnsureBufferDimensionsLocked(int width, int height) {
     if (width <= 0 || height <= 0) return;
     if (bufferWidth == width && bufferHeight == height && !pixelBuffer.empty()) return;
     bufferWidth = width;
     bufferHeight = height;
-    bufferIsPreviewSized = (width == requestedPreviewWidth && height == requestedPreviewHeight);
     try { pixelBuffer.assign(static_cast<size_t>(bufferWidth) * static_cast<size_t>(bufferHeight) * 4u, 0); } catch (...) {
         // Fall back to the small fixed size if a large allocation fails.
-        bufferWidth = kSeekbarBufferWidth;
-        bufferHeight = kSeekbarBufferHeight;
-        bufferIsPreviewSized = false;
+        bufferWidth = kFallbackBufferWidth;
+        bufferHeight = kFallbackBufferHeight;
         pixelBuffer.assign(static_cast<size_t>(bufferWidth) * static_cast<size_t>(bufferHeight) * 4u, 0);
     }
     previewBitmap.Reset();
-    seekbarBitmap.Reset();
-    BindDeviceContextLocked(pD2DContext);
 }
 
 void MpvPreviewPlayer::BindDeviceContext(ID2D1DeviceContext* context) {
@@ -2253,8 +2126,7 @@ void MpvPreviewPlayer::BindDeviceContextLocked(ID2D1DeviceContext* context) {
     if (device.Get() == bitmapDevice.Get()) return;
     // Keep the previous device alive until this comparison so pointer reuse
     // cannot conceal a device generation change.
-    previewBitmap.Reset(); seekbarBitmap.Reset(); bitmapDevice = device;
-    hasSeekbarThumbnail = false;
+    previewBitmap.Reset(); bitmapDevice = device;
     frameReady = true;
 }
 bool MpvPreviewPlayer::UploadBitmapLocked(ComPtr<ID2D1Bitmap>& bitmap, ID2D1DeviceContext* context,
@@ -2273,17 +2145,12 @@ bool MpvPreviewPlayer::UploadBitmapLocked(ComPtr<ID2D1Bitmap>& bitmap, ID2D1Devi
 void MpvPreviewPlayer::StartPreview(const std::wstring& filePath, double startSec) {
     std::lock_guard<std::mutex> lifecycleLock(lifecycleMutex);
     if (!mpv || filePath.empty()) return;
-    if (isActive && !isSeekbarActive && currentPreviewPath == filePath && bufferIsPreviewSized) return;
+    if (isActive && currentPreviewPath == filePath && bufferWidth == requestedPreviewWidth && bufferHeight == requestedPreviewHeight) return;
     if (!std::isfinite(startSec) || startSec < 0.0) startSec = 0.0;
-    hasPendingSeek = false;
-    seekbarCapturePending = false;
-    seekbarRestarted = false;
-    seekbarRequestFailed = false;
-    DrainPreviewEventsLocked(false);
-    EnsureBufferDimensionsLocked(requestedPreviewWidth, requestedPreviewHeight, nullptr);
+    DrainPreviewEventsLocked();
+    EnsureBufferDimensionsLocked(requestedPreviewWidth, requestedPreviewHeight);
     currentPreviewPath = filePath;
     isActive = true;
-    isSeekbarActive = false;
     frameReady = false;
     std::string pathUtf8 = Utf16ToUtf8(filePath);
     std::string startOption;
@@ -2323,253 +2190,34 @@ void MpvPreviewPlayer::StopPreview() {
     isActive = false;
     currentPreviewPath.clear();
     frameReady = false;
-    hasPendingSeek = false;
-    seekbarCapturePending = false;
-    seekbarRestarted = false;
-    seekbarRequestFailed = false;
     StopMpvLocked();
 }
 
-void MpvPreviewPlayer::DrainPreviewEventsLocked(bool acceptRestart) {
+void MpvPreviewPlayer::DrainPreviewEventsLocked() {
     if (!mpv || !fn_mpv_wait_event) return;
     while (auto* event = fn_mpv_wait_event(mpv, 0)) {
         if (event->event_id == MPV_EVENT_NONE) break;
-        if (!acceptRestart || !seekbarCapturePending) continue;
-        if (event->event_id == MPV_EVENT_SEEK || event->event_id == MPV_EVENT_START_FILE)
-            seekbarRestarted = false;
-        else if (event->event_id == MPV_EVENT_PLAYBACK_RESTART)
-            seekbarRestarted = true;
     }
 }
-
-bool MpvPreviewPlayer::IssueSeekbarSeekLocked(double time, uint64_t sequence, uint64_t mediaToken) {
-    DrainPreviewEventsLocked(false);
-    lastSeekTime = std::chrono::steady_clock::now();
-    inFlightSequenceId = sequence;
-    inFlightMediaToken = mediaToken;
-    inFlightTime = time;
-    hasPendingSeek = false;
-    seekbarCapturePending = true;
-    seekbarRestarted = false;
-    frameReady = false;
-    // A paused exact seek still decodes and presents its target frame. Keep
-    // extraction paused so it cannot play on or accumulate duplicate saves.
-    if (fn_mpv_set_property_string) fn_mpv_set_property_string(mpv, "pause", "yes");
-    std::ostringstream seekStr;
-    seekStr << std::fixed << std::setprecision(3) << time;
-    const std::string seekVal = seekStr.str();
-    const char* seekCmd[] = { "seek", seekVal.c_str(), "absolute+exact", nullptr };
-    int ret = fn_mpv_command ? fn_mpv_command(mpv, seekCmd) : MPV_ERROR_UNSUPPORTED;
-    if (ret < 0 && fn_mpv_command) {
-        const char* fallbackCmd[] = { "seek", seekVal.c_str(), "absolute", nullptr };
-        ret = fn_mpv_command(mpv, fallbackCmd);
-    }
-    if (ret < 0) { seekbarCapturePending = false; isSeekbarLoading = false; }
-    return ret >= 0;
-}
-
-bool MpvPreviewPlayer::RequestSeekbarThumbnail( const std::wstring& filePath, double rawTimeSec, double durationSec, uint64_t mediaToken,
-    ID2D1DeviceContext* pD2DContext ) {
-    std::lock_guard<std::mutex> lifecycleLock(lifecycleMutex);
-    BindDeviceContextLocked(pD2DContext);
-    if (filePath.empty() || durationSec <= 0.0) { ResetSeekbarPreviewLocked(); return false; }
-    double quantized = QuantizePreviewTime(rawTimeSec, durationSec, 1.0);
-    const bool sameRequest = isSeekbarActive && requestedFilePath == filePath && requestedMediaToken == mediaToken &&
-        std::abs(requestedTime - quantized) < 0.001;
-    if (sameRequest && seekbarRequestFailed) return false;
-    if (sameRequest && (seekbarCapturePending || hasPendingSeek ||
-        (hasSeekbarThumbnail && std::abs(activeSeekbarTime - quantized) < 0.001))) return true;
-    seekbarRequestFailed = false;
-    uint64_t seq = ++currentSequenceId;
-    requestedFilePath = filePath;
-    requestedTime = quantized;
-    requestedMediaToken = mediaToken;
-    isSeekbarActive = true;
-    // 1. Check in-memory cache
-    PreviewThumbnailFrame frame;
-    if (memoryCache.TryGet(filePath, quantized, frame)) {
-        hasPendingSeek = false;
-        seekbarCapturePending = false;
-        seekbarRestarted = false;
-        frameReady = false;
-        if (mpv && fn_mpv_set_property_string) fn_mpv_set_property_string(mpv, "pause", "yes");
-        std::lock_guard<std::mutex> lock(renderMutex);
-        if (pD2DContext && !frame.bgraPixels.empty()) {
-            if (!UploadBitmapLocked(seekbarBitmap, pD2DContext, frame.width, frame.height, frame.bgraPixels.data())) return false;
-        }
-        hasSeekbarThumbnail = true;
-        isSeekbarLoading = false;
-        activeSeekbarTime = quantized;
-        return true;
-    }
-    // 2. Check disk cache
-    if (LoadThumbnailFromDiskCache(filePath, quantized, frame, GetExeDir(), !isPrivateMode.load())) {
-        hasPendingSeek = false;
-        seekbarCapturePending = false;
-        seekbarRestarted = false;
-        frameReady = false;
-        if (mpv && fn_mpv_set_property_string) fn_mpv_set_property_string(mpv, "pause", "yes");
-        memoryCache.Put(frame);
-        std::lock_guard<std::mutex> lock(renderMutex);
-        if (pD2DContext && !frame.bgraPixels.empty()) {
-            if (!UploadBitmapLocked(seekbarBitmap, pD2DContext, frame.width, frame.height, frame.bgraPixels.data())) return false;
-        }
-        hasSeekbarThumbnail = true;
-        isSeekbarLoading = false;
-        activeSeekbarTime = quantized;
-        return true;
-    }
-    // 3. Cache miss - queue extraction
-    hasSeekbarThumbnail = false;
-    isSeekbarLoading = true;
-    if (!mpv) { return false; }
-    // Extracted thumbnails feed fixed-size cache entries; always extract at
-    // the small fixed size even if a card hover preview left the buffer large.
-    EnsureBufferDimensionsLocked(kSeekbarBufferWidth, kSeekbarBufferHeight, pD2DContext);
-    auto now = std::chrono::steady_clock::now();
-    bool needNewFile = (!isActive || currentPreviewPath != filePath);
-    if (needNewFile) {
-        currentPreviewPath = filePath;
-        isActive = true;
-        frameReady = false;
-        inFlightSequenceId = seq;
-        inFlightMediaToken = mediaToken;
-        inFlightTime = quantized;
-        hasPendingSeek = false;
-        seekbarCapturePending = true;
-        seekbarRestarted = false;
-        DrainPreviewEventsLocked(false);
-        lastSeekTime = now;
-        std::string pathUtf8 = Utf16ToUtf8(filePath);
-        std::ostringstream start;
-        start << "start=" << std::fixed << std::setprecision(3) << quantized;
-        std::string startOption = start.str();
-        if (fn_mpv_set_property_string) fn_mpv_set_property_string(mpv, "pause", "yes");
-        if (fn_mpv_command) {
-            const char* loadCmd[] = { "loadfile", pathUtf8.c_str(), "replace", "-1", startOption.c_str(), nullptr };
-            if (fn_mpv_command(mpv, loadCmd) < 0) {
-                seekbarCapturePending = false;
-                isSeekbarLoading = false;
-                isActive = false;
-                return false;
-            }
-        }
-        return true;
-    }
-    // Same file already loaded -> debounced seek
-    auto elapsedMs = std::chrono::duration_cast<std::chrono::milliseconds>(now - lastSeekTime).count();
-    if (elapsedMs < 40) {
-        hasPendingSeek = true;
-        pendingSeekTime = quantized;
-        pendingSeekSeq = seq;
-        pendingSeekMediaToken = mediaToken;
-    } else {
-        return IssueSeekbarSeekLocked(quantized, seq, mediaToken);
-    }
-    return true;
-}
-
-void MpvPreviewPlayer::ResetSeekbarPreviewLocked() {
-    isSeekbarActive = false;
-    hasSeekbarThumbnail = false;
-    isSeekbarLoading = false;
-    activeSeekbarTime = -1.0;
-    hasPendingSeek = false;
-    seekbarCapturePending = false;
-    seekbarRestarted = false;
-    seekbarRequestFailed = false;
-    ++currentSequenceId;
-    ++requestedMediaToken;
-    requestedFilePath.clear();
-    // A seekbar request uses the same libmpv handle as card previews. Once the
-    // request is no longer visible, stop that handle as well; otherwise the
-    // old request keeps decoding and UpdateFrame keeps converting frames even though no UI path can display them.
-    if (isActive) { isActive = false; currentPreviewPath.clear(); frameReady = false; StopMpvLocked(); }
-}
-
-void MpvPreviewPlayer::ResetSeekbarPreview() { std::lock_guard<std::mutex> lifecycleLock(lifecycleMutex); ResetSeekbarPreviewLocked(); }
 
 bool MpvPreviewPlayer::UpdateFrame(ID2D1DeviceContext* pD2DContext) {
     std::lock_guard<std::mutex> lifecycleLock(lifecycleMutex);
+    if (!isActive || !mpv || !renderCtx || !fn_mpv_render_context_render) return false;
     BindDeviceContextLocked(pD2DContext);
-    if (!mpv || !renderCtx || !fn_mpv_render_context_render) return false;
-    if (!isActive && !isSeekbarActive) return false;
-    auto now = std::chrono::steady_clock::now();
-    if (hasPendingSeek && isSeekbarActive) {
-        auto elapsedMs = std::chrono::duration_cast<std::chrono::milliseconds>(now - lastSeekTime).count();
-        if (elapsedMs >= 40) {
-            IssueSeekbarSeekLocked(pendingSeekTime, pendingSeekSeq, pendingSeekMediaToken);
-        }
-    }
-    DrainPreviewEventsLocked(true);
-    if (isSeekbarActive && !seekbarCapturePending) return false;
-    // Sparse/VFR media or unavailable position properties must never leave
-    // the renderer spinning forever while waiting for a matching target.
-    if (isSeekbarActive && !hasPendingSeek && now - lastSeekTime >= std::chrono::seconds(5)) {
-        seekbarCapturePending = false;
-        seekbarRestarted = false;
-        seekbarRequestFailed = true;
-        isSeekbarLoading = false;
-        frameReady = false;
-        return false;
-    }
+    DrainPreviewEventsLocked();
     uint64_t flags = 0;
-    if (fn_mpv_render_context_update) { flags = fn_mpv_render_context_update(renderCtx); }
-    // Rendering while a seek is starting lets libmpv complete its VO restart,
-    // but that frame must not be cached yet. Once restarted, render again even
-    // if paused playback produces no further callback.
-    if ((flags & MPV_RENDER_UPDATE_FRAME) || frameReady || (seekbarCapturePending && seekbarRestarted)) {
-        frameReady = false;
-        std::lock_guard<std::mutex> lock(renderMutex);
-        int size[2] = { bufferWidth, bufferHeight };
-        char format[] = "bgr0";
-        size_t stride = bufferWidth * 4;
-        mpv_render_param drawParams[] = {
-            { MPV_RENDER_PARAM_SW_SIZE, size }, { MPV_RENDER_PARAM_SW_FORMAT, format }, { MPV_RENDER_PARAM_SW_STRIDE, &stride },
-            { MPV_RENDER_PARAM_SW_POINTER, pixelBuffer.data() }, { MPV_RENDER_PARAM_INVALID, nullptr }
-        };
-        if (fn_mpv_render_context_render(renderCtx, drawParams) >= 0) {
-            bool didUpdate = false;
-            // 1. Update Media Card Live Preview Bitmap if active
-            if (isActive && !isSeekbarActive) {
-                didUpdate = UploadBitmapLocked(previewBitmap, pD2DContext, bufferWidth, bufferHeight, pixelBuffer.data());
-            }
-            // 2. Update Seekbar Thumbnail & Caches if seekbar is active
-            if (isSeekbarActive && seekbarCapturePending && seekbarRestarted && !hasPendingSeek &&
-                inFlightSequenceId == currentSequenceId && inFlightMediaToken == requestedMediaToken &&
-                currentPreviewPath == requestedFilePath && !currentPreviewPath.empty()) {
-                int seeking = 1;
-                double position = -1.0, fps = 0.0;
-                if (!fn_mpv_get_property ||
-                    fn_mpv_get_property(mpv, "seeking", MPV_FORMAT_FLAG, &seeking) < 0 || seeking ||
-                    fn_mpv_get_property(mpv, "time-pos", MPV_FORMAT_DOUBLE, &position) < 0) return false;
-                fn_mpv_get_property(mpv, "container-fps", MPV_FORMAT_DOUBLE, &fps);
-                const double tolerance = std::isfinite(fps) && fps > 0 ? std::max(0.001, 1.0 / fps) + 0.001 : 0.25;
-                if (!std::isfinite(position) || std::abs(position - inFlightTime) > tolerance) return false;
-                PreviewThumbnailFrame frame;
-                frame.filePath = currentPreviewPath;
-                frame.timestampSec = inFlightTime;
-                frame.width = bufferWidth;
-                frame.height = bufferHeight;
-                frame.bgraPixels = pixelBuffer;
-                memoryCache.Put(frame);
-                // Persist off the render thread: transfer this frame into the bounded background queue (skipped in private mode), so
-                // directory budget scans and file I/O never hitch scrubbing.
-                QueueDiskSave(std::move(frame));
-                seekbarCapturePending = false;
-                seekbarRestarted = false;
-                isSeekbarLoading = false;
-                if (fn_mpv_set_property_string) fn_mpv_set_property_string(mpv, "pause", "yes");
-                if (UploadBitmapLocked(seekbarBitmap, pD2DContext, bufferWidth, bufferHeight, pixelBuffer.data())) {
-                    hasSeekbarThumbnail = true;
-                    activeSeekbarTime = inFlightTime;
-                    didUpdate = true;
-                }
-            }
-            return didUpdate;
-        }
-    }
-    return false;
+    if (fn_mpv_render_context_update) flags = fn_mpv_render_context_update(renderCtx);
+    if (!(flags & MPV_RENDER_UPDATE_FRAME) && !frameReady) return false;
+    frameReady = false;
+    int size[2] = { bufferWidth, bufferHeight };
+    char format[] = "bgr0";
+    size_t stride = bufferWidth * 4;
+    mpv_render_param drawParams[] = {
+        { MPV_RENDER_PARAM_SW_SIZE, size }, { MPV_RENDER_PARAM_SW_FORMAT, format }, { MPV_RENDER_PARAM_SW_STRIDE, &stride },
+        { MPV_RENDER_PARAM_SW_POINTER, pixelBuffer.data() }, { MPV_RENDER_PARAM_INVALID, nullptr }
+    };
+    return fn_mpv_render_context_render(renderCtx, drawParams) >= 0 &&
+        UploadBitmapLocked(previewBitmap, pD2DContext, bufferWidth, bufferHeight, pixelBuffer.data());
 }
 
 std::wstring MpvPreviewPlayer::GetCurrentPreviewPath() const {

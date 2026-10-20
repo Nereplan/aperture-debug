@@ -787,7 +787,6 @@ void App::OpenAndPlayMedia(const std::wstring& filePath, double startPosSec, boo
         playbackSession.OnPlayerOpened(true);
         mediaGenerationToken++;
         previewPlayer.StopPreview();
-        previewPlayer.ResetSeekbarPreview();
         controlsOpacity = 1.0f;
         controlsIdleTimer = 0.0f;
         lastPlayerMouseX = -1.0f;
@@ -837,7 +836,6 @@ void App::ClosePlayer() {
         lastPlayerMouseY = -1.0f;
         mediaGenerationToken++;
         previewPlayer.StopPreview();
-        previewPlayer.ResetSeekbarPreview();
         if (playbackSession.CanPersistLocalTarget(player.GetCurrentFilePath())) {
             double curTime = player.GetCurrentTime();
             if (curTime >= 0.0 && std::isfinite(curTime)) { playbackSession.SetPlaybackPosition(curTime); }

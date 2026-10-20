@@ -186,7 +186,7 @@ private:
     bool startupPlayerPrepared = false;
     // Preview initialization is driven by hover intent; there is no idle
     // prewarm state to maintain alongside the lazy initialization flags.
-    // Dedicated mpv instances that extract hub thumbnails for files the Windows shell cannot thumbnail. Run parallel to hover/seekbar work.
+    // Dedicated mpv instances that extract hub thumbnails for files the Windows shell cannot thumbnail. Run parallel to hover previews.
     // Two handles double worst-case fill throughput for MKV-heavy folders.
     MpvHubExtractor hubExtractors[2];
     // Throttled snapshot of on-screen file paths feeding extraction priority and overscan prefetch.
@@ -599,7 +599,7 @@ private:
     void ClearSelectionInCurrentPane();
     void DeleteSelectedInCurrentPane();
     void ConfirmDeleteSelectedMedia();
-    void PurgeThumbnailCacheForFile(const std::wstring& filePath, double durationSec);
+    void PurgeThumbnailCacheForFile(const std::wstring& filePath);
     void PruneOrphanedHubThumbnailCache();
     struct LibraryUndoEntry {
         std::wstring label;

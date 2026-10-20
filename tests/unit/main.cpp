@@ -58,7 +58,7 @@
 
 #include "TestScreenshotCapture.h"
 
-#include "TestSeekbarThumbnailPreview.h"
+#include "TestHubThumbnailCache.h"
 
 #include "TestSmartPlaylists.h"
 

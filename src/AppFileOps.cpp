@@ -202,11 +202,9 @@ bool App::TakeScreenshot() {
     return true;
 }
 
-// Thumbnail cache keys are one-way hashes, so removing a media item must
-// regenerate its candidate keys and drop each cached file. The hub entry is
-// size-independent (one per file); seekbar entries are per-second buckets.
-void App::PurgeThumbnailCacheForFile(const std::wstring& filePath, double durationSec) {
-    PurgeThumbnailDiskCacheForFile(filePath, durationSec);
+// Hub cache keys are path-only hashes; regenerate the one key on removal.
+void App::PurgeThumbnailCacheForFile(const std::wstring& filePath) {
+    PurgeThumbnailDiskCacheForFile(filePath);
 }
 
 

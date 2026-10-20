@@ -247,7 +247,7 @@ void App::ConfirmDeleteSelectedMedia() {
             hubExtractors[1].Shutdown();
             renderer.ClearThumbnailCache();
             for (const auto& item : removedItems) {
-                PurgeThumbnailCacheForFile(item.filePath, item.durationSec);
+                PurgeThumbnailCacheForFile(item.filePath);
             }
             // Also removes dimension-dependent legacy hub keys, whose hashes cannot be reconstructed reliably after shell extraction.
             PruneOrphanedHubThumbnailCache();

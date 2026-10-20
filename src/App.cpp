@@ -1494,13 +1494,6 @@ bool App::Update(float dt) {
         if (previewPlayer.IsActive() && (currentTab == TabView::Media || currentTab == TabView::Playlists)) {
             previewLastActivity = NowSeconds();
             if (previewPlayer.UpdateFrame(renderer.GetD2DContext())) { needsRedraw = true; }
-        } else if (previewInitialized && !previewPlayer.IsActive() && !previewPlayer.IsSeekbarActive() &&
-                   NowSeconds() - previewLastActivity > 12.0) {
-            // No preview has been needed for 12s. Drop its independent DLL
-            // reference and frame cache as well as the decoder resources.
-            previewPlayer.Shutdown();
-            previewInitialized = false;
-            previewInitAttempted = false;
         }
         // Playlist "Continue Watching" card hover preview (same behavior as the media-row expanded preview).
         if (currentTab == TabView::Playlists && isPlaylistResumeHovered && !playbackSession.IsOpen() &&
@@ -1619,6 +1612,13 @@ bool App::Update(float dt) {
             if (systemRowPressAnim[i].Tick()) needsRedraw = true;
             if (systemRowPressAnim[i].current != prevPress) needsRedraw = true;
         }
+    }
+    if (previewInitialized && !previewPlayer.IsActive() && NowSeconds() - previewLastActivity > 12.0) {
+        // Apply the idle policy during playback too: opening a movie stops
+        // hub previews, but their decoder and frame cache otherwise stay warm.
+        previewPlayer.Shutdown();
+        previewInitialized = false;
+        previewInitAttempted = false;
     }
     // Non-blocking notification timer. Notifications from the same channel
     // coalesce in ShowOSD; distinct notifications are presented in order.
