@@ -1779,8 +1779,11 @@ double MpvPlayer::GetCacheDuration() const {
 
 PlayerDiagnostics MpvPlayer::GetDiagnostics() const {
     PlayerDiagnostics d;
+    std::string hdrMode, toneMapping;
     {
         std::lock_guard<std::mutex> lock(stateMutex);
+        hdrMode = lastColorPlan.normalizedHdrMode;
+        toneMapping = lastColorPlan.normalizedToneMapping;
         d.filePath = currentFilePath;
         d.fileName = GetFileTitleFromPath(currentFilePath);
         d.currentTime = currentTime;
@@ -1893,10 +1896,10 @@ PlayerDiagnostics MpvPlayer::GetDiagnostics() const {
         d.hdrType = L"HDR (BT.2020)";
     } else { d.hdrType = L"SDR"; }
     if (!isHdr) { d.activeOutputMode = L"SDR Native"; } else {
-        if (lastColorPlan.normalizedHdrMode == "passthrough") {
+        if (hdrMode == "passthrough") {
             d.activeOutputMode = L"HDR Passthrough";
-        } else if (lastColorPlan.normalizedHdrMode == "off") { d.activeOutputMode = L"SDR Clipped"; } else {
-            std::wstring tm = d.activeToneMapping.empty() ? Utf8ToUtf16(lastColorPlan.normalizedToneMapping) : d.activeToneMapping;
+        } else if (hdrMode == "off") { d.activeOutputMode = L"SDR Clipped"; } else {
+            std::wstring tm = d.activeToneMapping.empty() ? Utf8ToUtf16(toneMapping) : d.activeToneMapping;
             if (tm.empty() || tm == L"auto") tm = L"bt.2390";
             d.activeOutputMode = L"SDR Tone-Mapped (" + tm + L")";
         }

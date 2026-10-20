@@ -8,11 +8,13 @@
 #include <type_traits>
 
 namespace Aperture {
-// Exercise production track publication without a DLL, event thread, or timing races.
+// Exercise production track publication and diagnostics without a DLL or event thread.
 struct MpvTrackTestAccess {
     MpvPlayer player;
     int64_t secondaryId = 0;
     std::vector<uint64_t> callbackVersions;
+    std::function<void()> diagnosticReadHook;
+    std::string diagnosticTransfer, diagnosticToneMapping;
     MpvTrackTestAccess() {
         player.mpv = reinterpret_cast<mpv_handle*>(this);
         player.fn_mpv_get_property = &Property;
@@ -22,6 +24,11 @@ struct MpvTrackTestAccess {
     }
     ~MpvTrackTestAccess() { player.ClearCallbacks(); player.mpv = nullptr; }
     void Refresh() { player.RefreshTracks(); }
+    void SetColorPlan(const std::string& hdrMode, const std::string& toneMapping) {
+        std::lock_guard<std::mutex> lock(player.stateMutex);
+        player.lastColorPlan.normalizedHdrMode = hdrMode;
+        player.lastColorPlan.normalizedToneMapping = toneMapping;
+    }
     static std::string_view TrackField(const char* name, unsigned& index) {
         std::string_view path(name);
         constexpr std::string_view prefix = "track-list/";
@@ -51,11 +58,18 @@ struct MpvTrackTestAccess {
         }
         return MPV_ERROR_PROPERTY_NOT_FOUND;
     }
-    static char* StringProperty(mpv_handle*, const char* name) {
+    static char* StringProperty(mpv_handle* handle, const char* name) {
+        auto& fixture = *reinterpret_cast<MpvTrackTestAccess*>(handle);
+        if (std::strcmp(name, "hwdec-current") == 0 && fixture.diagnosticReadHook)
+            fixture.diagnosticReadHook();
         unsigned index = 0;
         const auto field = TrackField(name, index);
         const char* value = nullptr;
-        if (field == "type") value = index == 0 ? "audio" : "sub";
+        if (std::strcmp(name, "video-params/gamma") == 0 && !fixture.diagnosticTransfer.empty())
+            value = fixture.diagnosticTransfer.c_str();
+        else if (std::strcmp(name, "tone-mapping") == 0 && !fixture.diagnosticToneMapping.empty())
+            value = fixture.diagnosticToneMapping.c_str();
+        else if (field == "type") value = index == 0 ? "audio" : "sub";
         else if (field == "title") {
             constexpr const char* titles[] = { "Audio", "Primary", "Secondary two", "Secondary three" };
             value = titles[index];
@@ -127,6 +141,40 @@ TEST_CASE(MpvInitialization, SecondarySubtitleSelectionPublishesTrackVersion) {
         TEST_ASSERT(audio[0].isSelected && !audio[0].isSecondarySelected);
         previousSecondary = secondary;
     }
+}
+
+TEST_CASE(MpvInitialization, DiagnosticsSnapshotsColorPlanBeforePropertyReads) {
+    MpvTrackTestAccess fixture;
+    fixture.diagnosticTransfer = "pq";
+    struct Case {
+        const char* initialMode;
+        const char* updatedMode;
+        const char* rawToneMapping;
+        const wchar_t* expectedOutput;
+    };
+    for (const auto& test : {
+        Case{"passthrough", "off", "", L"HDR Passthrough"},
+        Case{"tone-map", "tone-map", "", L"SDR Tone-Mapped (hable)"},
+        Case{"tone-map", "off", "mobius", L"SDR Tone-Mapped (mobius)"}
+    }) {
+        fixture.SetColorPlan(test.initialMode, "hable");
+        fixture.diagnosticToneMapping = test.rawToneMapping;
+        unsigned updates = 0;
+        // Deterministically publish a newer plan after the state snapshot, during
+        // an mpv read. Taking the state lock here also checks it is released.
+        fixture.diagnosticReadHook = [&] {
+            ++updates;
+            fixture.SetColorPlan(test.updatedMode, "reinhard");
+        };
+        const auto diagnostics = fixture.player.GetDiagnostics();
+        TEST_ASSERT_EQ(updates, 1u);
+        TEST_ASSERT(diagnostics.isHdrSource);
+        TEST_ASSERT_EQ(diagnostics.colorTransfer, std::wstring(L"pq"));
+        TEST_ASSERT_EQ(diagnostics.activeOutputMode, std::wstring(test.expectedOutput));
+        TEST_ASSERT_EQ(diagnostics.activeToneMapping, Utf8ToUtf16(test.rawToneMapping));
+    }
+    fixture.diagnosticReadHook = {};
+    TEST_ASSERT_EQ(fixture.player.GetDiagnostics().activeOutputMode, std::wstring(L"SDR Clipped"));
 }
 
 TEST_CASE(MpvInitialization, ExportPolicyAndBundledLifecycle) {
