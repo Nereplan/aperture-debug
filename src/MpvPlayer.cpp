@@ -1856,8 +1856,8 @@ PlayerDiagnostics MpvPlayer::GetDiagnostics() const {
     readDouble(d.currentTime, {"time-pos"});
     readDouble(d.videoFps, {"container-fps", "estimated-vf-fps", "fps"}, true);
     readDouble(d.displayFps, {"display-fps", "estimated-display-fps"}, true);
-    readInteger(d.droppedFrames, {"drop-frame-count", "decoder-frame-drop-count"});
-    readInteger(d.voDroppedFrames, {"frame-drop-count", "vo-drop-frame-count"});
+    readInteger(d.droppedFrames, {"decoder-frame-drop-count"});
+    readInteger(d.voDroppedFrames, {"frame-drop-count"});
     readInteger(d.mistimedFrames, {"mistimed-frame-count"});
     readDouble(d.videoBitrate, {"video-bitrate"}, true, 1000.0);
     readDouble(d.audioBitrate, {"audio-bitrate"}, true, 1000.0);

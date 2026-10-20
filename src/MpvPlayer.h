@@ -76,7 +76,8 @@ struct PlayerDiagnostics {
     std::wstring resolutionStr, pixelFormat, videoCodec, audioCodec;
     std::wstring hwDec;
     double videoFps = 0.0, displayFps = 0.0;
-    int64_t droppedFrames = 0, voDroppedFrames = 0, mistimedFrames = 0;
+    // Frame counters are nonnegative; -1 means mpv could not provide a value.
+    int64_t droppedFrames = -1, voDroppedFrames = -1, mistimedFrames = -1;
     double videoBitrate = 0.0; // kbps
     double audioBitrate = 0.0; // kbps
     double cacheDuration = 0.0;

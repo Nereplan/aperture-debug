@@ -15,6 +15,10 @@ struct MpvTrackTestAccess {
     std::vector<uint64_t> callbackVersions;
     std::function<void()> diagnosticReadHook;
     std::string diagnosticTransfer, diagnosticToneMapping;
+    inline static constexpr const char* counterProperties[] = {"decoder-frame-drop-count", "frame-drop-count", "mistimed-frame-count"};
+    int64_t counterValues[3]{};
+    int counterResults[3]{MPV_ERROR_PROPERTY_NOT_FOUND, MPV_ERROR_PROPERTY_NOT_FOUND, MPV_ERROR_PROPERTY_NOT_FOUND};
+    std::vector<std::string> counterReads;
     MpvTrackTestAccess() {
         player.mpv = reinterpret_cast<mpv_handle*>(this);
         player.fn_mpv_get_property = &Property;
@@ -39,7 +43,15 @@ struct MpvTrackTestAccess {
         return path.substr(2);
     }
     static int Property(mpv_handle* handle, const char* name, mpv_format format, void* output) {
-        const auto& fixture = *reinterpret_cast<const MpvTrackTestAccess*>(handle);
+        auto& fixture = *reinterpret_cast<MpvTrackTestAccess*>(handle);
+        if (format == MPV_FORMAT_INT64) {
+            if (std::strstr(name, "frame")) fixture.counterReads.emplace_back(name);
+            for (size_t i = 0; i < 3; ++i) {
+                if (std::strcmp(name, counterProperties[i]) != 0) continue;
+                *static_cast<int64_t*>(output) = fixture.counterValues[i];
+                return fixture.counterResults[i];
+            }
+        }
         if (format == MPV_FORMAT_INT64 && std::strcmp(name, "secondary-sid") == 0) {
             *static_cast<int64_t*>(output) = fixture.secondaryId; return 0;
         }
@@ -175,6 +187,31 @@ TEST_CASE(MpvInitialization, DiagnosticsSnapshotsColorPlanBeforePropertyReads) {
     }
     fixture.diagnosticReadHook = {};
     TEST_ASSERT_EQ(fixture.player.GetDiagnostics().activeOutputMode, std::wstring(L"SDR Clipped"));
+}
+
+TEST_CASE(MpvInitialization, DiagnosticsDistinguishesUnavailableFrameCountersFromZero) {
+    MpvTrackTestAccess fixture;
+    struct Case { int results[3]; int64_t values[3], expected[3]; };
+    for (const auto& test : {
+        Case{{MPV_ERROR_PROPERTY_NOT_FOUND, MPV_ERROR_PROPERTY_NOT_FOUND, MPV_ERROR_PROPERTY_NOT_FOUND}, {99, 99, 99}, {-1, -1, -1}},
+        Case{{0, 0, 0}, {0, 0, 0}, {0, 0, 0}},
+        Case{{0, 0, 0}, {2, 3, 5}, {2, 3, 5}},
+        Case{{0, 0, MPV_ERROR_PROPERTY_UNAVAILABLE}, {0, 11, 99}, {0, 11, -1}},
+        Case{{MPV_ERROR_PROPERTY_UNAVAILABLE, MPV_ERROR_PROPERTY_NOT_FOUND, MPV_ERROR_PROPERTY_UNAVAILABLE}, {99, 99, 99}, {-1, -1, -1}}
+    }) {
+        for (size_t i = 0; i < 3; ++i) {
+            fixture.counterResults[i] = test.results[i];
+            fixture.counterValues[i] = test.values[i];
+        }
+        fixture.counterReads.clear();
+        const auto diagnostics = fixture.player.GetDiagnostics();
+        const int64_t actual[] = {diagnostics.droppedFrames, diagnostics.voDroppedFrames, diagnostics.mistimedFrames};
+        TEST_ASSERT_EQ(fixture.counterReads.size(), size_t{3});
+        for (size_t i = 0; i < 3; ++i) {
+            TEST_ASSERT_EQ(actual[i], test.expected[i]);
+            if (i < fixture.counterReads.size()) TEST_ASSERT_EQ(fixture.counterReads[i], std::string(MpvTrackTestAccess::counterProperties[i]));
+        }
+    }
 }
 
 TEST_CASE(MpvInitialization, ExportPolicyAndBundledLifecycle) {

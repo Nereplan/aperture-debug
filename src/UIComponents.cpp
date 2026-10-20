@@ -1999,7 +1999,8 @@ void UIComponents::DrawPlaybackDiagnostics(OverlayRenderer& r, const Settings& s
     // 3. Performance & Audio Tracks
     drawSection(L"PERFORMANCE & AUDIO");
     wchar_t perfBuf[128];
-    swprintf_s(perfBuf, L"Drops: %lld decoder, %lld vo, %lld mistimed", (long long)vm.diagnostics.droppedFrames, (long long)vm.diagnostics.voDroppedFrames, (long long)vm.diagnostics.mistimedFrames);
+    const auto frameCount = [](int64_t value) { return value < 0 ? std::wstring(L"N/A") : std::to_wstring(value); };
+    swprintf_s(perfBuf, L"Drops: %ls decoder, %ls vo, %ls mistimed", frameCount(vm.diagnostics.droppedFrames).c_str(), frameCount(vm.diagnostics.voDroppedFrames).c_str(), frameCount(vm.diagnostics.mistimedFrames).c_str());
     drawRow(L"Render Drops", perfBuf, (vm.diagnostics.droppedFrames > 0 || vm.diagnostics.voDroppedFrames > 0) ? th.red : th.textMuted);
     wchar_t bitrBuf[128];
     swprintf_s(bitrBuf, L"Video: %.0f kbps | Audio: %.0f kbps", vm.diagnostics.videoBitrate, vm.diagnostics.audioBitrate);
