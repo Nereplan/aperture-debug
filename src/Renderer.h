@@ -207,6 +207,7 @@ private:
     HWND hWnd = NULL;
     HANDLE frameLatencyWaitableObject = NULL;
     bool isOccluded = false;
+    bool buffersTrimmed = false;
     float dpi = 96.0f;
     UINT width = 0, height = 0;
     ComPtr<ID3D11Device> d3dDevice;
@@ -392,6 +393,7 @@ private:
     bool IsDeviceLost(HRESULT hr) const;
     bool RecreateDeviceResources();
     bool RecreateRenderTarget();
+    bool ResizeRenderTarget(UINT width, UINT height);
     void CreateTextRenderingParams();
     // Prevent an error reported by EndDraw/Present from recursively rebuilding
     // the device while the message loop is still inside a paint pass.

@@ -18,6 +18,9 @@ TEST_CASE(PlaybackRenderer, FactoriesStayCpuOnlyUntilGraphicsIntent) {
     TEST_ASSERT(renderer.GetD2DContext() == nullptr);
     TEST_ASSERT(!renderer.AreDeviceWorkersRunning());
     TEST_ASSERT(!renderer.HasPresentedFrame());
+    renderer.TrimHiddenLibraryCaches();
+    TEST_ASSERT(renderer.GetD2DContext() == nullptr);
+    TEST_ASSERT(!renderer.AreDeviceWorkersRunning());
 
     // Preview intent and returning to the library can acquire the context later.
     TEST_ASSERT(renderer.EnsureGraphicsContext());

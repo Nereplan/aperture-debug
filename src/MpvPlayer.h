@@ -519,12 +519,12 @@ private:
     std::mutex renderMutex;
     mutable std::mutex lifecycleMutex;
     // Background disk-save queue: thumbnail persistence (directory budget scans + file I/O + flush) must never run on the render thread.
-    // UpdateFrame enqueues a copy and returns; the saver thread persists it
+    // UpdateFrame transfers its captured frame; the saver thread persists it
     // under <root>\cache\thumbnails. Bounded and coalesced by key so fast scrubbing cannot pile up unbounded file writes.
     static constexpr size_t kMaxPendingDiskSaves = 8;
     void StopSaveWorker();
     void SaveWorkerThread();
-    void QueueDiskSave(const PreviewThumbnailFrame& frame);
+    void QueueDiskSave(PreviewThumbnailFrame&& frame);
     std::thread saveWorker;
     std::mutex saveMutex;
     std::condition_variable saveCv;

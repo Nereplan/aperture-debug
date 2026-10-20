@@ -35,6 +35,16 @@ struct MpvPreviewTestAccess {
     }
     static bool CapturePending(const MpvPreviewPlayer& player) { return player.seekbarCapturePending; }
     static bool SeekPending(const MpvPreviewPlayer& player) { return player.hasPendingSeek; }
+    static void HoldSaveQueue(MpvPreviewPlayer& player) { player.saveWorker = std::thread([] {}); }
+    static void QueueSave(MpvPreviewPlayer& player, PreviewThumbnailFrame&& frame) { player.QueueDiskSave(std::move(frame)); }
+    static const uint8_t* QueuedPixels(const MpvPreviewPlayer& player) { return player.saveQueue.back().bgraPixels.data(); }
+    static size_t QueuedCount(const MpvPreviewPlayer& player) { return player.saveQueue.size(); }
+    static double OldestSaveTime(const MpvPreviewPlayer& player) { return player.saveQueue.front().timestampSec; }
+    static void FlushSaveQueue(MpvPreviewPlayer& player) {
+        player.saveWorker.join();
+        player.saveWorker = std::thread(&MpvPreviewPlayer::SaveWorkerThread, &player);
+        player.StopSaveWorker();
+    }
     static void ExpireSeek(MpvPreviewPlayer& player) { player.lastSeekTime -= std::chrono::seconds(6); }
     inline static bool syntheticRestart = false, syntheticSeeking = false;
     inline static double syntheticPosition = 0;
@@ -93,6 +103,56 @@ static unsigned Hold(MpvPreviewPlayer& preview, ID2D1DeviceContext* context, DWO
     do { if (preview.UpdateFrame(context) && bitmapUpdates) ++*bitmapUpdates; Sleep(10); } while (GetTickCount64() < deadline);
     return MpvPreviewTestAccess::renders - before;
 }
+static void CheckDiskSaveOwnership() {
+    const auto file = L"C:\\Aperture-preview-save-" + std::to_wstring(GetCurrentProcessId()) + L".mp4";
+    auto makeFrame = [&](double time, uint8_t value) {
+        PreviewThumbnailFrame frame;
+        frame.filePath = file; frame.timestampSec = time; frame.width = 320; frame.height = 180;
+        frame.bgraPixels.assign(320 * 180 * 4, value);
+        return frame;
+    };
+    MpvPreviewPlayer preview;
+    MpvPreviewTestAccess::HoldSaveQueue(preview); // A joinable sentinel makes queue inspection deterministic.
+    auto frame = makeFrame(12, 31);
+    preview.GetMemoryCache().Put(frame);
+    const auto* firstBuffer = frame.bgraPixels.data();
+    MpvPreviewTestAccess::QueueSave(preview, std::move(frame));
+    Check(MpvPreviewTestAccess::QueuedPixels(preview) == firstBuffer, "Disk queue copied the captured pixel allocation");
+    PreviewThumbnailFrame cached;
+    Check(preview.GetMemoryCache().TryGet(file, 12, cached) && cached.bgraPixels == std::vector<uint8_t>(320 * 180 * 4, 31),
+        "Transferring the disk frame damaged the memory cache");
+
+    frame = makeFrame(12, 79);
+    preview.GetMemoryCache().Put(frame);
+    const auto expectedPixels = frame.bgraPixels;
+    const auto* replacementBuffer = frame.bgraPixels.data();
+    MpvPreviewTestAccess::QueueSave(preview, std::move(frame));
+    Check(MpvPreviewTestAccess::QueuedCount(preview) == 1 && MpvPreviewTestAccess::QueuedPixels(preview) == replacementBuffer,
+        "Coalesced disk save copied pixels or added a duplicate");
+    preview.SetPrivateMode(true);
+    frame = makeFrame(20, 100);
+    const auto* privateBuffer = frame.bgraPixels.data();
+    MpvPreviewTestAccess::QueueSave(preview, std::move(frame));
+    Check(frame.bgraPixels.data() == privateBuffer && MpvPreviewTestAccess::QueuedCount(preview) == 1,
+        "Private request consumed or queued captured pixels");
+    preview.SetPrivateMode(false);
+    MpvPreviewTestAccess::FlushSaveQueue(preview);
+    std::string stored, expected;
+    Check(ThumbnailCodec::Encode(expectedPixels, 320, 180, 12, expected), "Expected disk-frame encoding failed");
+    Check(ReadCacheFile(CacheClass::Thumbnails, MakeThumbnailCacheKey(file, 12), stored).is_ok() && stored == expected,
+        "Moved/coalesced disk save changed stored bytes");
+    Check(preview.GetMemoryCache().TryGet(file, 12, cached) && cached.bgraPixels == expectedPixels,
+        "Background persistence consumed the memory-cache frame");
+    PreviewThumbnailFrame persisted;
+    Check(LoadThumbnailFromDiskCache(file, 12, persisted) && persisted.width == 320 && persisted.height == 180 &&
+        persisted.timestampSec == 12 && persisted.bgraPixels.size() == expectedPixels.size(), "Saved frame did not round-trip");
+
+    MpvPreviewPlayer bounded;
+    MpvPreviewTestAccess::HoldSaveQueue(bounded);
+    for (int time = 0; time < 12; ++time) MpvPreviewTestAccess::QueueSave(bounded, makeFrame(time, static_cast<uint8_t>(time)));
+    Check(MpvPreviewTestAccess::QueuedCount(bounded) == 8 && MpvPreviewTestAccess::OldestSaveTime(bounded) == 4,
+        "Moving saves bypassed the bounded newest-frame queue");
+}
 static void CheckSyntheticCapture(ID2D1DeviceContext* context) {
     MpvPreviewPlayer preview;
     MpvPreviewTestAccess::MakeSynthetic(preview);
@@ -147,6 +207,7 @@ int wmain(int argc, wchar_t** argv) {
         Microsoft::WRL::ComPtr<ID2D1DeviceContext> first, second;
         Check(SUCCEEDED(firstDevice->CreateDeviceContext(D2D1_DEVICE_CONTEXT_OPTIONS_NONE, &first)), "First context failed");
         Check(SUCCEEDED(secondDevice->CreateDeviceContext(D2D1_DEVICE_CONTEXT_OPTIONS_NONE, &second)), "Second context failed");
+        CheckDiskSaveOwnership();
         CheckSyntheticCapture(first.Get());
         MpvPreviewPlayer preview;
         Check(preview.Initialize(first.Get(), nullptr), "Actual preview profile initialization failed");
@@ -210,7 +271,8 @@ int wmain(int argc, wchar_t** argv) {
         std::cout << "PASS actual_hover_decode=true dormant_seekbar_decode=true new_device_cache_upload=true actual_hub_decode=true"
             << " stationary_hold_render_calls=" << holdRenders << " continuous_hover_render_calls=" << hoverRenders
             << " stationary_hold_bitmap_updates=" << holdUpdates
-            << " forward_backward_target_verified=true repeated_request_count=100 cached_cancellation=true expired_request_bounded=true\n";
+            << " forward_backward_target_verified=true repeated_request_count=100 cached_cancellation=true expired_request_bounded=true"
+            << " disk_queue_pixel_ownership_transferred=true coalesced_stored_bytes_exact=true memory_cache_lifetime_preserved=true bounded_save_queue=true\n";
         if (SUCCEEDED(com)) CoUninitialize();
         return 0;
     } catch (const std::exception& error) {

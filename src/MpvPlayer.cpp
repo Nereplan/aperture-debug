@@ -2069,7 +2069,7 @@ void MpvPreviewPlayer::StopSaveWorker() {
     saveQueue.clear();
 }
 
-void MpvPreviewPlayer::QueueDiskSave(const PreviewThumbnailFrame& frame) {
+void MpvPreviewPlayer::QueueDiskSave(PreviewThumbnailFrame&& frame) {
     if (frame.filePath.empty() || frame.bgraPixels.empty() || frame.width <= 0 || frame.height <= 0) return;
     if (isPrivateMode.load()) return;
     std::lock_guard<std::mutex> lock(saveMutex);
@@ -2078,10 +2078,10 @@ void MpvPreviewPlayer::QueueDiskSave(const PreviewThumbnailFrame& frame) {
     // Coalesce: re-seeking the same quantized second replaces the pending
     // copy instead of queueing duplicate file writes.
     for (auto& queued : saveQueue) {
-        if (queued.filePath == frame.filePath && std::abs(queued.timestampSec - frame.timestampSec) < 0.001) { queued = frame; return; }
+        if (queued.filePath == frame.filePath && std::abs(queued.timestampSec - frame.timestampSec) < 0.001) { queued = std::move(frame); return; }
     }
     while (saveQueue.size() >= kMaxPendingDiskSaves) { saveQueue.pop_front(); }
-    saveQueue.push_back(frame);
+    saveQueue.push_back(std::move(frame));
     saveCv.notify_one();
 }
 
@@ -2552,9 +2552,9 @@ bool MpvPreviewPlayer::UpdateFrame(ID2D1DeviceContext* pD2DContext) {
                 frame.height = bufferHeight;
                 frame.bgraPixels = pixelBuffer;
                 memoryCache.Put(frame);
-                // Persist off the render thread: QueueDiskSave copies into a bounded background queue (skipped in private mode), so
+                // Persist off the render thread: transfer this frame into the bounded background queue (skipped in private mode), so
                 // directory budget scans and file I/O never hitch scrubbing.
-                QueueDiskSave(frame);
+                QueueDiskSave(std::move(frame));
                 seekbarCapturePending = false;
                 seekbarRestarted = false;
                 isSeekbarLoading = false;

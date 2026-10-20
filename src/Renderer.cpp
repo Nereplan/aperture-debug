@@ -188,6 +188,12 @@ bool Renderer::TrimThumbnailCache(uint64_t incomingBytes) {
 }
 
 void Renderer::TrimHiddenLibraryCaches(uint64_t retainedThumbnailBytes) {
+    // Playback uses a separate video/overlay surface. Retain the hub device and
+    // thumbnails, but release its two window-sized backbuffers until it draws.
+    if (swapChain && d2dContext && !buffersTrimmed) {
+        if (ResizeRenderTarget(1, 1)) buffersTrimmed = true;
+        else RecreateDeviceResources();
+    }
     deferredThumbnailUploads = false;
     thumbnailNotificationPosted.store(false, std::memory_order_release);
     // The hub is hidden. Keep its most recently used images for a quick return,
@@ -227,6 +233,7 @@ void Renderer::ReleaseDeviceResources() {
     // A fresh device has not presented anything yet; re-arm the pre-frame
     // background erase so a device transition cannot show stale/white content.
     hasPresentedFrame = false;
+    buffersTrimmed = false;
     if (frameLatencyWaitableObject) { CloseHandle(frameLatencyWaitableObject); frameLatencyWaitableObject = NULL; }
     if (d3dContext) { d3dContext->ClearState(); d3dContext->Flush(); }
     d2dContext.Reset();
@@ -505,21 +512,22 @@ void Renderer::Resize(UINT w, UINT h) {
     if (w == 0 || h == 0 || (w == width && h == height)) return;
     width = w;
     height = h;
-    if (swapChain && d2dContext) {
-        d2dContext->SetTarget(nullptr);
-        d2dTargetBitmap.Reset();
-        UINT flags = frameLatencyWaitableObject ? DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT : 0;
-        HRESULT hr = swapChain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, flags);
-        if (SUCCEEDED(hr)) { if (!RecreateRenderTarget()) RecreateDeviceResources(); } else {
-            // INVALID_CALL can mean a forgotten buffer reference; a full
-            // teardown is safe here and also handles removed/reset/hung GPUs.
-            RecreateDeviceResources();
-        }
-    }
+    if (swapChain && d2dContext && !buffersTrimmed && !ResizeRenderTarget(width, height)) RecreateDeviceResources();
+}
+
+bool Renderer::ResizeRenderTarget(UINT w, UINT h) {
+    d2dContext->SetTarget(nullptr);
+    d2dTargetBitmap.Reset();
+    const UINT flags = frameLatencyWaitableObject ? DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT : 0;
+    return SUCCEEDED(swapChain->ResizeBuffers(0, w, h, DXGI_FORMAT_UNKNOWN, flags)) && RecreateRenderTarget();
 }
 
 void Renderer::BeginDraw() {
-    if ((!d2dContext || !d2dTargetBitmap) && hWnd && !recoveringDevice) { RecreateDeviceResources(); }
+    if (buffersTrimmed) {
+        buffersTrimmed = false;
+        if (!ResizeRenderTarget(width, height)) RecreateDeviceResources();
+    }
+    if ((!d2dContext || !d2dTargetBitmap) && hWnd && !recoveringDevice) RecreateDeviceResources();
     ++thumbnailRequestFrame;
     for (auto it = thumbnailDemandFrames.begin(); it != thumbnailDemandFrames.end();) {
         if (thumbnailRequestFrame - it->second > 1) it = thumbnailDemandFrames.erase(it);
