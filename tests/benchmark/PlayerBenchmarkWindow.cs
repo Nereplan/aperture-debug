@@ -65,6 +65,7 @@ public static class PlayerBenchmarkWindow {
         return found;
     }
     public static bool Resize(IntPtr window, uint pid, int width, int height) { uint owner; GetWindowThreadProcessId(window, out owner); return owner == pid && SetWindowPos(window, IntPtr.Zero, 40, 40, width, height, 0x0014); }
+    public static bool Raise(IntPtr window, uint pid) { uint owner; GetWindowThreadProcessId(window, out owner); return owner == pid && IsWindowVisible(window) && GetWindow(window, 4) == IntPtr.Zero && SetWindowPos(window, new IntPtr(-1), 0, 0, 0, 0, 0x0003); }
     public static uint OwnerThread(IntPtr window, uint pid) { uint owner; uint thread = GetWindowThreadProcessId(window, out owner); return owner == pid ? thread : 0; }
     public static int[] Size(IntPtr window) { Rect rect; if(!GetWindowRect(window, out rect)) return null; return new[]{rect.right-rect.left, rect.bottom-rect.top}; }
     public static void Close(IntPtr window, uint pid) { uint owner; GetWindowThreadProcessId(window, out owner); if(owner == pid) PostMessage(window, 0x0010, IntPtr.Zero, IntPtr.Zero); }

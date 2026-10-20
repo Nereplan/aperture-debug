@@ -147,6 +147,11 @@ class RivalTests(unittest.TestCase):
         for key in ("private", "workingSet"):
             self.assertEqual(result["rows"][key]["status"], "unproven")
 
+    def test_controlled_visible_seek_is_not_resource_evidence(self):
+        self.run.update(status="sentinel-validated", samples=[],
+                        playbackVerification="visible-sentinel-and-seek-verified")
+        self.reject("failed|unverified")
+
     def test_equal_count_with_clustered_counter_snapshots_is_rejected(self):
         for sample, time in zip(self.run["samples"], (10, 10.1, 10.2, 10.3, 10.4, 39.9, 40)):
             sample["elapsedSeconds"] = time

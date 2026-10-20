@@ -89,7 +89,10 @@ does not establish the effective decoder or equal filtering/output in both apps.
 `player_comparison_identity.ps1` hashes every supplied runtime file using ordinal
 path ordering, rejects linked inputs, verifies staged copies, and records the
 OS/CPU/GPU/driver and logical-processor count. Each counter sample must pass owned,
-unoccluded video-canvas guards before and after collection. This is sampled
+foreign-window/cursor occlusion guards before and after collection. Each owned
+player is temporarily placed topmost at the same screen position. Video-host
+ancestors and the exact owned Aperture control layer are allowed at hit-test
+points; this does not prove transparent pixels. This is sampled
 visibility evidence, not continuous visibility or frame-presentation evidence.
 
 `evaluate_rival.py` rejects missing/failed rounds, mixed identities/configuration,
@@ -119,6 +122,15 @@ Its timing bounds include observation/control delay; these sparse samples do not
 prove general image quality, every presented frame or physical audio output.
 The contract suite tests identity, evidence rejection and readiness guards
 without launching a media player. It does not run the visible comparison.
+
+Pass `-SentinelFixtureManifest '<fixture-directory>/manifest.json'` with that
+fixture and a matched 1280x720 canvas to `compare_players.ps1` for controlled
+visible seek validation. After settling it recognizes phase 0 or 1, seeks to
+24 seconds, and requires two observations of phase 2. These runs have status
+`sentinel-validated`, contain no resource samples, and cannot qualify as resource
+or first-video startup evidence. Retain conservative timing bounds rather than
+treating their upper bounds as exact latency. Use `-FailFast` to close the owned
+run and retain a partial report immediately after a failed run.
 
 ## Media record memory
 

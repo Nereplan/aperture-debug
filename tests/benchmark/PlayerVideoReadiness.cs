@@ -14,6 +14,11 @@ public static class PlayerVideoReadiness {
     [StructLayout(LayoutKind.Sequential)] struct CursorInfo { public int size; public uint flags; public IntPtr cursor; public Point position; }
     [StructLayout(LayoutKind.Sequential)] struct IconInfo { public bool icon; public uint xHotspot, yHotspot; public IntPtr mask, color; }
     [StructLayout(LayoutKind.Sequential)] struct Bitmap { public int type, width, height, widthBytes; public ushort planes, bitsPixel; public IntPtr bits; }
+    [StructLayout(LayoutKind.Sequential)] struct BitmapInfoHeader {
+        public uint size; public int width, height; public ushort planes, bitCount;
+        public uint compression, sizeImage; public int xPelsPerMeter, yPelsPerMeter; public uint clrUsed, clrImportant;
+    }
+    [StructLayout(LayoutKind.Sequential)] struct BitmapInfo { public BitmapInfoHeader header; public uint colors; }
     delegate bool EnumProc(IntPtr window, IntPtr context);
     [DllImport("user32.dll")] static extern bool EnumWindows(EnumProc callback, IntPtr context);
     [DllImport("user32.dll")] static extern bool EnumChildWindows(IntPtr root, EnumProc callback, IntPtr context);
@@ -22,6 +27,7 @@ public static class PlayerVideoReadiness {
     [DllImport("user32.dll")] static extern bool IsIconic(IntPtr window);
     [DllImport("user32.dll")] static extern IntPtr GetAncestor(IntPtr window, uint flags);
     [DllImport("user32.dll")] static extern IntPtr GetWindow(IntPtr window, uint command);
+    [DllImport("user32.dll", EntryPoint="GetWindowLongPtrW")] static extern IntPtr GetWindowLongPtr(IntPtr window, int index);
     [DllImport("user32.dll")] static extern bool IsChild(IntPtr parent, IntPtr child);
     [DllImport("user32.dll")] static extern bool GetWindowRect(IntPtr window, out Rect rect);
     [DllImport("user32.dll")] static extern bool GetClientRect(IntPtr window, out Rect rect);
@@ -39,7 +45,12 @@ public static class PlayerVideoReadiness {
     [DllImport("gdi32.dll")] static extern bool DeleteObject(IntPtr obj);
     [DllImport("user32.dll")] static extern IntPtr GetDC(IntPtr window);
     [DllImport("user32.dll")] static extern int ReleaseDC(IntPtr window, IntPtr dc);
-    [DllImport("gdi32.dll")] static extern uint GetPixel(IntPtr dc, int x, int y);
+    [DllImport("gdi32.dll")] static extern IntPtr CreateCompatibleDC(IntPtr dc);
+    [DllImport("gdi32.dll")] static extern bool DeleteDC(IntPtr dc);
+    [DllImport("gdi32.dll")] static extern IntPtr SelectObject(IntPtr dc, IntPtr obj);
+    [DllImport("gdi32.dll")] static extern IntPtr CreateDIBSection(IntPtr dc, ref BitmapInfo info, uint usage, out IntPtr bits, IntPtr section, uint offset);
+    [DllImport("gdi32.dll")] static extern bool BitBlt(IntPtr dest, int x, int y, int width, int height, IntPtr source, int sourceX, int sourceY, uint operation);
+    [DllImport("gdi32.dll")] static extern bool GdiFlush();
 
     static readonly int[] palette = { 0xe62828, 0x28d73c, 0x3246e6, 0x1ed2dc, 0xdc28d2, 0xe6d21e };
     public static int[] Palette { get { return (int[])palette.Clone(); } }
@@ -47,6 +58,7 @@ public static class PlayerVideoReadiness {
     public sealed class Sample {
         public string status, reason;
         public bool safe;
+        public bool ownedOverlayPresent;
         public int phase = -1;
         public long qpcStart, qpcReadStart, qpcReadEnd, qpcEnd, root, canvas;
         public uint dpi;
@@ -61,7 +73,7 @@ public static class PlayerVideoReadiness {
         public double? lowerBoundMs, upperBoundMs, confirmationMs;
         public bool leftCensored;
         public Sample lastNegative, firstPositive, confirmation;
-        public string method = "Desktop GDI RGB at 54 owned sentinel points, with visibility/occlusion checks before and after readback; two consecutive matches. Bounds include observer/control latency. Not compositor frame IDs, physical display/audio output or pacing.";
+        public string method = "One desktop GDI BitBlt with layered windows into a bounded top-down DIB; retain only RGB at 54 owned sentinel points, with visibility/occlusion checks before and after readback; two consecutive matches. Bounds include observer/control latency. Not compositor frame IDs, physical display/audio output or pacing.";
     }
 
     public static int[] ExpectedRgb(int phase) {
@@ -81,6 +93,19 @@ public static class PlayerVideoReadiness {
             if (match) { if (recognized != -1) return -1; recognized=phase; }
         }
         return recognized;
+    }
+    public static int[] ExtractBgr32(IntPtr bits, int width, int height, int stride, int byteLength, int[] xy) {
+        if (bits==IntPtr.Zero || width<=0 || height<=0 || stride<=0 || width>stride/4 ||
+            (long)stride*height>byteLength) throw new ArgumentException("Invalid top-down BGR32 buffer bounds.");
+        if (xy==null || xy.Length!=108) throw new ArgumentException("Exactly 54 sentinel coordinates required.");
+        var values=new int[54];
+        for (int i=0;i<values.Length;++i) {
+            int x=xy[i*2], y=xy[i*2+1];
+            if (x<0 || x>=width || y<0 || y>=height) throw new ArgumentException("Sentinel outside readback bounds.");
+            int offset=checked(y*stride+x*4);
+            values[i]=(Marshal.ReadByte(bits,offset+2)<<16)|(Marshal.ReadByte(bits,offset+1)<<8)|Marshal.ReadByte(bits,offset);
+        }
+        return values;
     }
     static bool Owned(IntPtr window, uint pid) { uint owner; return window!=IntPtr.Zero && GetWindowThreadProcessId(window,out owner)!=0 && owner==pid; }
     static bool Intersects(Rect a, Rect b) { return a.left<b.right && b.left<a.right && a.top<b.bottom && b.top<a.bottom; }
@@ -107,7 +132,13 @@ public static class PlayerVideoReadiness {
             return Intersects(canvas,rect)?"cursor-occludes-canvas":null;
         } finally { if(icon.mask!=IntPtr.Zero) DeleteObject(icon.mask); if(icon.color!=IntPtr.Zero) DeleteObject(icon.color); }
     }
-    static string Guard(IntPtr root, IntPtr canvas, uint pid, out Rect rect) {
+    static bool OwnedPlayerOverlay(IntPtr window, IntPtr root, uint pid) {
+        if (!Owned(window,pid) || GetWindow(window,4)!=root ||
+            (GetWindowLongPtr(window,-20).ToInt64()&0x80000)==0) return false;
+        var name=new StringBuilder(256); GetClassName(window,name,name.Capacity);
+        return name.ToString()=="ApertureOverlay";
+    }
+    static string Guard(IntPtr root, IntPtr canvas, uint pid, out Rect rect, Sample info) {
         rect=new Rect();
         if (!Owned(root,pid) || !Owned(canvas,pid) || GetAncestor(canvas,2)!=root || root==canvas) return "unowned-or-invalid-canvas";
         if (!IsWindowVisible(root) || !IsWindowVisible(canvas) || IsIconic(root)) return "hidden-or-minimized";
@@ -124,12 +155,27 @@ public static class PlayerVideoReadiness {
             if (!GetWindowRect(above,out bounds)) return "occluder-geometry-unavailable";
             if (Intersects(rect,bounds)) {
                 uint cloaked;
-                if (DwmGetWindowAttribute(above,14,out cloaked,4)!=0 || cloaked==0) return "higher-window-intersects-canvas";
+                if (DwmGetWindowAttribute(above,14,out cloaked,4)!=0 || cloaked==0) {
+                    uint owner; GetWindowThreadProcessId(above,out owner);
+                    var name=new StringBuilder(256); GetClassName(above,name,name.Capacity);
+                    // This owned control surface is part of the player, even
+                    // when its transparent pixels retain input hit testing.
+                    // GDI recognition still requires the actual video colors.
+                    if (OwnedPlayerOverlay(above,root,pid)) {
+                        info.ownedOverlayPresent=true;
+                        continue;
+                    }
+                    return "higher-window-intersects-canvas (pid="+owner+",class="+name+")";
+                }
             }
         }
         foreach (Point sample in Points(rect)) {
             IntPtr hit=WindowFromPoint(sample);
-            if (!Owned(hit,pid) || (hit!=canvas && !IsChild(canvas,hit))) return "sentinel-occluded-or-unowned";
+            if (!Owned(hit,pid) || (hit!=canvas && !IsChild(canvas,hit) && !IsChild(hit,canvas) && !OwnedPlayerOverlay(hit,root,pid))) {
+                uint owner; GetWindowThreadProcessId(hit,out owner);
+                var name=new StringBuilder(256); GetClassName(hit,name,name.Capacity);
+                return "sentinel-occluded-or-unowned (pid="+owner+",class="+name+",hit="+hit+",root="+root+",canvas="+canvas+")";
+            }
         }
         return CursorOcclusion(rect);
     }
@@ -139,26 +185,48 @@ public static class PlayerVideoReadiness {
         if (previous==IntPtr.Zero) { sample.reason="physical-coordinate-context-unavailable"; sample.qpcEnd=Stopwatch.GetTimestamp(); return sample; }
         try {
             Rect before;
-            sample.reason=Guard(root,canvas,pid,out before);
+            sample.reason=Guard(root,canvas,pid,out before,sample);
             if (sample.reason!=null) return sample;
             uint beforeDpi=GetDpiForWindow(canvas);
             if (beforeDpi==0) { sample.reason="canvas-dpi-unavailable";return sample; }
-            var values=new int[54]; var points=Points(before);
-            IntPtr dc=GetDC(IntPtr.Zero);
-            if (dc==IntPtr.Zero) { sample.reason="desktop-dc-unavailable"; return sample; }
+            var points=Points(before);
+            int left=points[0].x,top=points[0].y,right=left,bottom=top;
+            foreach (Point point in points) { left=Math.Min(left,point.x);top=Math.Min(top,point.y);right=Math.Max(right,point.x);bottom=Math.Max(bottom,point.y); }
+            int width=checked(right-left+1),height=checked(bottom-top+1),stride=checked(width*4),byteLength=checked(stride*height);
+            var xy=new int[108];
+            for (int i=0;i<points.Length;++i) { xy[i*2]=points[i].x-left;xy[i*2+1]=points[i].y-top; }
+            int[] values;
+            IntPtr dc=IntPtr.Zero,memoryDc=IntPtr.Zero,bitmap=IntPtr.Zero,previousBitmap=IntPtr.Zero;
             try {
+                dc=GetDC(IntPtr.Zero);
+                if (dc==IntPtr.Zero) { sample.reason="desktop-dc-unavailable";return sample; }
+                memoryDc=CreateCompatibleDC(dc);
+                if (memoryDc==IntPtr.Zero) { sample.reason="readback-dc-unavailable";return sample; }
+                var info=new BitmapInfo { header=new BitmapInfoHeader { size=(uint)Marshal.SizeOf(typeof(BitmapInfoHeader)),width=width,height=-height,planes=1,bitCount=32,sizeImage=(uint)byteLength } };
+                IntPtr bits;
+                bitmap=CreateDIBSection(dc,ref info,0,out bits,IntPtr.Zero,0);
+                if (bitmap==IntPtr.Zero || bits==IntPtr.Zero) { sample.reason="readback-dib-unavailable";return sample; }
+                previousBitmap=SelectObject(memoryDc,bitmap);
+                if (previousBitmap==IntPtr.Zero || previousBitmap==new IntPtr(-1)) { sample.reason="readback-dib-selection-failed";return sample; }
                 sample.qpcReadStart=Stopwatch.GetTimestamp();
                 for (int i=0;i<points.Length;++i) {
                     IntPtr hit=WindowFromPoint(points[i]);
-                    if (!Owned(hit,pid) || (hit!=canvas && !IsChild(canvas,hit))) { sample.reason="sentinel-occluded-during-readback";return sample; }
-                    uint value=GetPixel(dc,points[i].x,points[i].y);
-                    if (value==0xffffffff) { sample.reason="desktop-pixel-unavailable"; return sample; }
-                    values[i]=(int)(((value&255)<<16)|(value&0xff00)|((value>>16)&255));
+                    if (!Owned(hit,pid) || (hit!=canvas && !IsChild(canvas,hit) && !IsChild(hit,canvas) && !OwnedPlayerOverlay(hit,root,pid))) { sample.reason="sentinel-occluded-during-readback";return sample; }
                 }
+                // CAPTUREBLT includes visible layered windows. Read the actual
+                // desktop once; never substitute a player-owned back buffer.
+                if (!BitBlt(memoryDc,0,0,width,height,dc,left,top,0x40cc0020)) { sample.reason="desktop-readback-failed";return sample; }
+                if (!GdiFlush()) { sample.reason="desktop-readback-flush-failed";return sample; }
+                values=ExtractBgr32(bits,width,height,stride,byteLength,xy);
                 sample.qpcReadEnd=Stopwatch.GetTimestamp();
-            } finally { ReleaseDC(IntPtr.Zero,dc); }
+            } finally {
+                if (memoryDc!=IntPtr.Zero && previousBitmap!=IntPtr.Zero && previousBitmap!=new IntPtr(-1)) SelectObject(memoryDc,previousBitmap);
+                if (memoryDc!=IntPtr.Zero) DeleteDC(memoryDc);
+                if (bitmap!=IntPtr.Zero) DeleteObject(bitmap);
+                if (dc!=IntPtr.Zero) ReleaseDC(IntPtr.Zero,dc);
+            }
             Rect after;
-            sample.reason=Guard(root,canvas,pid,out after);
+            sample.reason=Guard(root,canvas,pid,out after,sample);
             if (sample.reason!=null || !Same(before,after)) { if(sample.reason==null)sample.reason="canvas-moved-during-readback"; return sample; }
             if (GetDpiForWindow(canvas)!=beforeDpi) { sample.reason="canvas-dpi-changed";return sample; }
             sample.screenCanvas=after; sample.dpi=beforeDpi; sample.rgb=values;
@@ -188,7 +256,7 @@ public static class PlayerVideoReadiness {
         if (previous==IntPtr.Zero) { sample.reason="physical-coordinate-context-unavailable";sample.qpcEnd=Stopwatch.GetTimestamp();return sample; }
         try {
             Rect rect;
-            sample.reason=Guard(root,canvas,pid,out rect);
+            sample.reason=Guard(root,canvas,pid,out rect,sample);
             if (sample.reason!=null) return sample;
             sample.dpi=GetDpiForWindow(canvas);
             if (sample.dpi==0) { sample.reason="canvas-dpi-unavailable";return sample; }

@@ -20,6 +20,7 @@ param(
     [Parameter(Mandatory)][string]$MediaPath,
     [Parameter(Mandatory)][string]$OutputDir,
     [string]$ApertureStatusProbe = '',
+    [string]$SentinelFixtureManifest = '',
     [switch]$AllowVisiblePlayback,
     [switch]$RefreshVlcBaseline,
     [ValidateSet('Aperture','VLC','MPC-HC')][string[]]$PlayerNames = @('Aperture'),
@@ -31,6 +32,7 @@ param(
     [ValidateRange(0,2160)][int]$VideoHeight = 0,
     [switch]$ForceD3D11Linear,
     [switch]$CaptureThreadCounters,
+    [switch]$FailFast,
     [ValidateSet('Direct','HubThenOpen')][string]$LaunchMode = 'Direct',
     [ValidateRange(1,30)][int]$HubSettleSeconds = 3,
     [string]$ApertureVariantsFile = '',
@@ -40,6 +42,10 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'player_comparison_identity.ps1')
+$harnessSourceHashes=[ordered]@{}
+foreach($source in @('compare_players.ps1','PlayerBenchmarkWindow.cs','PlayerVideoReadiness.cs','player_comparison_identity.ps1','player_status_probe.cpp')) {
+    $harnessSourceHashes[$source]=(Get-FileHash -LiteralPath (Join-Path $PSScriptRoot $source) -Algorithm SHA256).Hash
+}
 if (!$AllowVisiblePlayback) { throw 'Visible player measurements are deferred by default. Use saved evidence unless the user requests a desktop test.' }
 if ('VLC' -in $PlayerNames -and !$RefreshVlcBaseline) { throw 'Reuse the saved matching VLC baseline. A new VLC test requires an explicitly requested baseline refresh.' }
 if ('VLC' -in $PlayerNames -and !$VlcPath) { throw 'A requested VLC baseline refresh requires -VlcPath.' }
@@ -63,6 +69,14 @@ Assert-NoReparseAncestors $OutputDir
 if (Test-Path -LiteralPath (Join-Path $OutputDir 'comparison.json')) { throw 'Comparison evidence already exists; choose a new output directory.' }
 $MediaPath = (Resolve-Path -LiteralPath $MediaPath).Path
 $mediaHash = (Get-FileHash -LiteralPath $MediaPath -Algorithm SHA256).Hash
+if ($SentinelFixtureManifest) {
+    $sentinelFixture = Get-Content -LiteralPath $SentinelFixtureManifest -Raw | ConvertFrom-Json
+    if ($sentinelFixture.mediaSha256 -ne $mediaHash -or $sentinelFixture.phaseSeconds -ne 12 -or
+        $sentinelFixture.phaseCount -ne 4 -or $sentinelFixture.width -ne 1280 -or $sentinelFixture.height -ne 720 -or
+        $VideoWidth -ne 1280 -or $VideoHeight -ne 720 -or 'MPC-HC' -in $PlayerNames) {
+        throw 'Sentinel validation requires the exact controlled fixture and a matched 1280x720 Aperture/VLC canvas.'
+    }
+}
 if ($ApertureStatusProbe) { $ApertureStatusProbe = (Resolve-Path -LiteralPath $ApertureStatusProbe).Path }
 function Runtime([string]$Name, [string]$Path, [string[]]$Names) {
     $resolved = (Resolve-Path -LiteralPath $Path).Path
@@ -118,6 +132,7 @@ foreach ($player in $players) {
     if (Get-Process -Name ([IO.Path]::GetFileNameWithoutExtension($player.exeName)) -ErrorAction SilentlyContinue) { throw "Close existing $($player.name) instances before comparing; nothing was closed." }
 }
 if (-not ('PlayerBenchmarkWindow' -as [type])) { Add-Type -Path (Join-Path $PSScriptRoot 'PlayerBenchmarkWindow.cs') }
+$visibilityObserverSourceHash=(Get-FileHash -LiteralPath (Join-Path $PSScriptRoot 'PlayerVideoReadiness.cs') -Algorithm SHA256).Hash
 if (-not ('PlayerVideoReadiness' -as [type])) { Add-Type -Path (Join-Path $PSScriptRoot 'PlayerVideoReadiness.cs') }
 if ($CaptureThreadCounters) {
     $threadCounterSourceHash = (Get-FileHash -LiteralPath (Join-Path $PSScriptRoot 'PlayerThreadCounters.cs') -Algorithm SHA256).Hash
@@ -149,7 +164,7 @@ function Gpu([int]$OwnedPid) {
         return @{dedicatedBytes=[int64](($dedicated | Measure-Object CookedValue -Sum).Sum);sharedBytes=[int64](($shared | Measure-Object CookedValue -Sum).Sum);unavailableReason=$null}
     } catch { return @{dedicatedBytes=$null;sharedBytes=$null;unavailableReason=$_.Exception.Message} }
 }
-function Vlc-Time([int]$Port, [int]$OwnedPid, [string]$OpenMediaUri = '') {
+function Vlc-Time([int]$Port, [int]$OwnedPid, [string]$OpenMediaUri = '', [int]$SeekSeconds = -1) {
     # Verify the listener's owning PID before sending any command. Fail closed on a race.
     $listener = @(Get-NetTCPConnection -LocalAddress '127.0.0.1' -LocalPort $Port -State Listen -ErrorAction Stop)
     if ($listener.Count -ne 1 -or $listener[0].OwningProcess -ne $OwnedPid) { throw 'RC listener is not owned by benchmark process.' }
@@ -158,7 +173,7 @@ function Vlc-Time([int]$Port, [int]$OwnedPid, [string]$OpenMediaUri = '') {
         $connect = $client.ConnectAsync('127.0.0.1',$Port)
         if (-not $connect.Wait(1500)) { throw 'RC connect timeout.' }
         $stream = $client.GetStream(); $stream.ReadTimeout = 1500; $stream.WriteTimeout = 1500
-        $request = if ($OpenMediaUri) { "add $OpenMediaUri`nget_time`n" } else { "get_time`n" }
+        $request = if ($OpenMediaUri) { "add $OpenMediaUri`nget_time`n" } elseif ($SeekSeconds -ge 0) { "seek $SeekSeconds`nget_time`n" } else { "get_time`n" }
         $command = [Text.Encoding]::ASCII.GetBytes($request)
         $stream.Write($command,0,$command.Length)
         $buffer = [byte[]]::new(4096); $reply = ''; $deadline = [DateTime]::UtcNow.AddSeconds(2)
@@ -172,17 +187,18 @@ function Vlc-Time([int]$Port, [int]$OwnedPid, [string]$OpenMediaUri = '') {
         throw 'RC returned no numeric playback time.'
     } finally { $client.Dispose() }
 }
-function Playback([string]$Name, [int]$OwnedPid, [int]$Port, $Environment, [switch]$OpenMedia) {
+function Playback([string]$Name, [int]$OwnedPid, [int]$Port, $Environment, [switch]$OpenMedia, [int]$SeekSeconds = -1) {
     try {
         if ($Name -eq 'VLC') {
             $uri = if ($OpenMedia) { [Uri]::new($MediaPath).AbsoluteUri } else { '' }
-            return @{positionSec=(Vlc-Time $Port $OwnedPid $uri);state=$null;reason=$null}
+            return @{positionSec=(Vlc-Time $Port $OwnedPid $uri $SeekSeconds);state=$null;reason=$null}
         }
         if ($Name -eq 'MPC-HC' -and $mpcObserver) { return @{positionSec=$mpcObserver.Query([uint32]$OwnedPid);state=$null;reason=$null} }
         if ($Name -eq 'Aperture' -and $ApertureStatusProbe) {
             $psi = [Diagnostics.ProcessStartInfo]::new($ApertureStatusProbe); $psi.UseShellExecute=$false; $psi.CreateNoWindow=$true; $psi.RedirectStandardOutput=$true
             $psi.ArgumentList.Add([string]$OwnedPid)
             if ($OpenMedia) { $psi.ArgumentList.Add('--open'); $psi.ArgumentList.Add($MediaPath) }
+            elseif ($SeekSeconds -ge 0) { $psi.ArgumentList.Add('--seek'); $psi.ArgumentList.Add([string]$SeekSeconds) }
             foreach($key in $Environment.Keys) { $psi.Environment[$key]=$Environment[$key] }
             $probe = [Diagnostics.Process]::Start($psi)
             try {
@@ -217,7 +233,7 @@ if (-not $ApertureStatusProbe -and 'Aperture' -in $players.name) {
     }
 }
 $results = [Collections.Generic.List[object]]::new()
-for ($round=0; $round -lt ($WarmupIterations+$Iterations); $round++) {
+:rounds for ($round=0; $round -lt ($WarmupIterations+$Iterations); $round++) {
     # Rotate player order to avoid giving one player every cache/order advantage.
     for($offset=0; $offset -lt $players.Count; $offset++) {
         $player = $players[($round+$offset)%$players.Count]
@@ -295,6 +311,7 @@ for ($round=0; $round -lt ($WarmupIterations+$Iterations); $round++) {
             $record.processToVisibleWindowMs=$timer.Elapsed.TotalMilliseconds
             if ($CaptureThreadCounters) { $record.uiThreadId = [PlayerBenchmarkWindow]::OwnerThread($window,[uint32]$process.Id) }
             if(-not [PlayerBenchmarkWindow]::Resize($window,[uint32]$process.Id,$WindowWidth,$WindowHeight)) { throw 'Owned-window resize failed.' }
+            if(-not [PlayerBenchmarkWindow]::Raise($window,[uint32]$process.Id)) { throw 'Owned-window raise failed.' }
             if ($LaunchMode -eq 'HubThenOpen') {
                 Start-Sleep -Seconds $HubSettleSeconds
                 $record.mediaOpenRequestedMs = $timer.Elapsed.TotalMilliseconds
@@ -307,7 +324,24 @@ for ($round=0; $round -lt ($WarmupIterations+$Iterations); $round++) {
             # Enforce the shared outer dimensions after that initial load too.
             if(-not [PlayerBenchmarkWindow]::Resize($window,[uint32]$process.Id,$WindowWidth,$WindowHeight)) { throw 'Post-load resize failed.' }
             if ($VideoWidth -and -not [PlayerBenchmarkWindow]::MatchVideoCanvas($window,[uint32]$process.Id,$player.name,$VideoWidth,$VideoHeight)) { throw 'Video canvas matching failed.' }
+            if(-not [PlayerBenchmarkWindow]::Raise($window,[uint32]$process.Id)) { throw 'Post-load owned-window raise failed.' }
+            $record.windowRaisedForVisibility = $true
             Start-Sleep -Seconds 2
+            if ($SentinelFixtureManifest) {
+                $before = [PlayerVideoReadiness]::Observe([uint32]$process.Id, $player.name)
+                $record.sentinelBeforeSeek = $before
+                if ($before.status -ne 'sampled' -or $before.phase -notin @(0,1)) { throw "Known preseek video phase unavailable: $($before.reason); phase=$($before.phase)" }
+                $origin = [Diagnostics.Stopwatch]::GetTimestamp()
+                $record.seekControlResponse = Playback $player.name $process.Id $port $envOverride -SeekSeconds 24
+                if ($record.seekControlResponse.reason) { throw "Owned-player seek failed: $($record.seekControlResponse.reason)" }
+                $record.seekVisiblePhase = [PlayerVideoReadiness]::WaitForPhase([uint32]$process.Id, $player.name, $origin, 2, 15000, 5)
+                if ($record.seekVisiblePhase.status -ne 'recognized') { throw "Visible seek validation failed: $($record.seekVisiblePhase.reason)" }
+                $record.windowDimensions=[PlayerBenchmarkWindow]::Size($window)
+                $record.videoCanvas=[PlayerBenchmarkWindow]::VideoCanvas($window,[uint32]$process.Id,$player.name)
+                $record.playbackVerification='visible-sentinel-and-seek-verified'
+                $record.status='sentinel-validated'
+                continue
+            }
             if ($SamplingStartMediaSeconds) {
                 $alignmentDeadline = [DateTime]::UtcNow.AddSeconds(60)
                 do {
@@ -396,6 +430,7 @@ for ($round=0; $round -lt ($WarmupIterations+$Iterations); $round++) {
             $record | ConvertTo-Json -Depth 12 | Set-Content -LiteralPath (Join-Path $dir 'result.json') -Encoding utf8
             Write-Output ("{0} round {1} ({2}): {3}; {4}" -f $variantName,$round, $(if($record.warmup){'warmup'}else{'measured'}),$record.status,$record.playbackVerification)
         }
+        if ($FailFast -and $record.status -ne 'sampled') { break rounds }
     }
 }
 $report=[ordered]@{schemaVersion=1;createdUtc=[DateTime]::UtcNow.ToString('o');mediaPath=$MediaPath;mediaSha256=$mediaHash;mediaBytes=(Get-Item -LiteralPath $MediaPath).Length;iterations=$Iterations;warmupIterations=$WarmupIterations;windowTarget=@($WindowWidth,$WindowHeight);startupMetric='Process launch to first visible unowned top-level window (not first frame)';sampling='8s after visible window plus 2s after post-load resize; 3 samples separated by at least 2s (counter/status overhead included)';apertureStatusProbe=$ApertureStatusProbe;limitations=@('Warm OS caches; no cold-cache claim.','Window outer rectangles match; video viewport and default decoder may differ.','Samples cover owned root process only; inspect unexpected child processes separately.','Playback status does not prove pixels are visible or decoder hardware equivalence.','Child environment redirects ordinary profile/temp writes; Windows Known Folder APIs may bypass environment variables (VLC additionally uses portable/).','VLC RC verification adds a control-interface overhead.','MPC-HC uses a hidden /slave window to verify position; no decoder equivalence claim.');players=$players;results=$results.ToArray()}
@@ -407,11 +442,16 @@ if ($CaptureThreadCounters) {
 if ($VideoWidth) { $report.videoCanvasTarget=@($VideoWidth,$VideoHeight); $report.limitations[1]='Video canvases match; actual child window dimensions/DPI are retained. Equal filter choices do not establish identical decoder or output pixels.' }
 $report.forcedVlcD3D11Linear=[bool]$ForceD3D11Linear
 $report.environment=$benchmarkEnvironment
-$report.visibilityMethod='Owned video canvas must be visible, unminimized, uncloaked, within one monitor, and free of detected window/cursor occlusion before and after each resource sample. Guards do not continuously observe the intervals or prove presented pixels.'
-$report.visibilityObserverSha256=(Get-FileHash -LiteralPath (Join-Path $PSScriptRoot 'PlayerVideoReadiness.cs') -Algorithm SHA256).Hash
+$report.harnessSourceSha256=$harnessSourceHashes
+if($ApertureStatusProbe){$report.apertureStatusProbeSha256=(Get-FileHash -LiteralPath $ApertureStatusProbe -Algorithm SHA256).Hash}
+$report.purpose=if($SentinelFixtureManifest){'Controlled visible sentinel and seek validation only; no resource or first-video startup ranking.'}else{'Resource comparison; no overall player ranking.'}
+if($SentinelFixtureManifest){$report.sentinelFixtureManifest=(Resolve-Path -LiteralPath $SentinelFixtureManifest).Path}
+$report.visibilityMethod='Only the owned player is raised topmost before settling. Its canvas must be visible, unminimized, uncloaked, within one monitor, and free of detected foreign-window/cursor occlusion before and after each resource sample. Hit-test sentinels may reach the video, an owned video-host ancestor/descendant, or its exact owned layered ApertureOverlay control surface. Ownership/hit tests do not prove layer transparency or presented pixels; controlled GDI sentinel recognition is separate. Guards do not continuously observe intervals or check every pixel.'
+$report.windowPlacement='Owned topmost comparison window at 40,40; not default window-manager placement.'
+$report.visibilityObserverSha256=$visibilityObserverSourceHash
 $report.launchMode=$LaunchMode
 if ($LaunchMode -eq 'HubThenOpen') { $report.hubSettleSeconds=$HubSettleSeconds }
 $report.runtimeManifestMethod='SHA-256 of ordinal-sorted UTF-8 lines: relative path with /, tab, byte length, tab, lowercase file SHA-256, LF. Source and staged runtime inventories must match before launch.'
 $report | ConvertTo-Json -Depth 14 | Set-Content -LiteralPath (Join-Path $OutputDir 'comparison.json') -Encoding utf8
 Write-Output (Join-Path $OutputDir 'comparison.json')
-if(@($results | Where-Object { $_.status -ne 'sampled' }).Count) { throw 'One or more player runs failed; see retained per-run results.' }
+if(@($results | Where-Object { $_.status -notin @('sampled','sentinel-validated') }).Count) { throw 'One or more player runs failed; see retained per-run results.' }
