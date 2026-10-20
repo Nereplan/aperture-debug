@@ -326,6 +326,7 @@
       "authoritativeSymbols": [
         "Aperture::Diagnostics::Initialize",
         "Aperture::Diagnostics::Shutdown",
+        "Aperture::Diagnostics::StartWatchdog",
         "Aperture::Diagnostics::Log",
         "Aperture::Diagnostics::RecordHeartbeat"
       ],

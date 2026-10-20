@@ -118,7 +118,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
         }
         LocalFree(argList);
     }
-    Diagnostics::RecordHeartbeat(L"process-start");
+    Diagnostics::RecordHeartbeat();
     Diagnostics::RecordStartupMilestone(L"process-entry");
     // 1. High precision timer for cold startup measurement
     LARGE_INTEGER qpcStart, qpcFreq;
@@ -203,7 +203,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
     startupSettings.Load();
     Localization::Instance().Initialize(GetExeDir(), startupSettings.appLanguage);
     Diagnostics::Initialize(startupSettings.diagnosticsLogging);
-    Diagnostics::RecordHeartbeat(L"settings-loaded");
+    Diagnostics::RecordHeartbeat();
     Diagnostics::RecordStartupMilestone(L"settings-available");
     WNDCLASSEX wc = { sizeof(WNDCLASSEX) };
     wc.lpfnWndProc = WindowProc;
@@ -410,7 +410,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
         DestroyWindow(hWnd);
         if (hSingleInstanceMutex) { CloseHandle(hSingleInstanceMutex); hSingleInstanceMutex = NULL; }
         Renderer::ShutdownPrewarm();
-        Diagnostics::RecordHeartbeat(L"benchmark-probe-exit");
+        Diagnostics::RecordHeartbeat();
         Diagnostics::Shutdown();
         CoUninitialize();
         return 0;
@@ -456,7 +456,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
         DestroyWindow(hWnd);
         if (hSingleInstanceMutex) { CloseHandle(hSingleInstanceMutex); hSingleInstanceMutex = NULL; }
         Renderer::ShutdownPrewarm();
-        Diagnostics::RecordHeartbeat(L"visual-capture-probe-exit");
+        Diagnostics::RecordHeartbeat();
         Diagnostics::Shutdown();
         CoUninitialize();
         return captureSuccess ? 0 : 1;
@@ -498,7 +498,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
 ExitApp:
     if (hSingleInstanceMutex) { CloseHandle(hSingleInstanceMutex); hSingleInstanceMutex = NULL; }
     Renderer::ShutdownPrewarm();
-    Diagnostics::RecordHeartbeat(L"process-exit");
+    Diagnostics::RecordHeartbeat();
     Diagnostics::Shutdown();
     CoUninitialize();
     return (int)msg.wParam;

@@ -13,13 +13,13 @@ int wmain(int argc, wchar_t** argv) {
     if (!Diagnostics::Initialize(true)) return 10;
 
     if (crashMode) {
-        Diagnostics::RecordHeartbeat(L"deliberate-crash-test");
+        Diagnostics::RecordHeartbeat();
         volatile int* invalid = nullptr;
         *invalid = 1;
         return 11;
     }
 
-    Diagnostics::RecordHeartbeat(L"diagnostics-test");
+    Diagnostics::RecordHeartbeat();
     Diagnostics::Log(AppError::Storage(7, ERROR_ACCESS_DENIED,
         L"Test storage failure", L"diagnostics verification", GetDataDir()));
 

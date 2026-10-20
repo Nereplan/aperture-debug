@@ -22,7 +22,6 @@ constexpr size_t kMaxStartupMilestones = 32;
 constexpr int kRetainedPerfReports = 20;
 std::mutex g_mutex;
 std::wstring g_directory;
-std::wstring g_heartbeat = L"startup";
 bool g_loggingEnabled = false;
 LPTOP_LEVEL_EXCEPTION_FILTER g_previousFilter = nullptr;
 std::atomic<ULONGLONG> g_lastHeartbeatTick{ 0 };
@@ -226,9 +225,8 @@ void Log(const AppError& error) {
     CloseHandle(file);
 }
 
-void RecordHeartbeat(const std::wstring& state) {
+void RecordHeartbeat() {
     if (g_shuttingDown.load(std::memory_order_acquire)) return;
-    { std::lock_guard<std::mutex> lock(g_mutex); if (g_shuttingDown.load(std::memory_order_acquire)) return; g_heartbeat = state; }
     g_lastHeartbeatTick.store(GetTickCount64(), std::memory_order_relaxed);
     g_hangCaptured.store(false, std::memory_order_relaxed);
 }

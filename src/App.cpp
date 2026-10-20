@@ -1100,7 +1100,7 @@ bool App::Initialize(HWND hwnd, HWND hVideoChild, HINSTANCE hinst, const Playbac
     if (!settings.GetLastLoadStatus().is_ok()) ReportStorageFailure(settings.GetLastLoadStatus(), L"settings load");
     systemVisualPreferences.Refresh();
     Diagnostics::SetLoggingEnabled(settings.diagnosticsLogging);
-    Diagnostics::RecordHeartbeat(L"app-initialized");
+    Diagnostics::RecordHeartbeat();
     playlistGridView = settings.playlistViewMode == "grid";
     if (settings.libraryGroupMode == "series" && settings.smartSeriesDetection) {
         libraryGroupMode = LibraryGroupMode::Series;
@@ -1257,7 +1257,7 @@ bool App::Update(float dt) {
     // Clamping elapsed time in the message loop stretched autosave/sleep timers.
     const float elapsedDt = std::isfinite(dt) ? std::max(0.0f, dt) : 0.0f;
     dt = std::min(elapsedDt, 0.05f);
-    Diagnostics::RecordHeartbeat(L"running");
+    Diagnostics::RecordHeartbeat();
     if (closeRequested) { PollClose(); return false; }
     bool needsRedraw = PumpLibrarySaveResults();
     pathAvailability.SetLibrarySize(library.mediaItems.size());
