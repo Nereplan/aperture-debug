@@ -1,0 +1,4 @@
+Package created: C:\Users\Alperen\AppData\Local\Codex\tools\scratch\aperture-rival-20261019\candidate-runtime-pruned
+Manifest: C:\Users\Alperen\AppData\Local\Codex\tools\scratch\aperture-rival-20261019\candidate-runtime-pruned\manifest.json
+Authenticode: Unsigned (standard reproducible package)
+Files: 10; binary SHA-256: cf645cdad2e206f9d0c4b1b334a5951fde368cf292ea0f4080e0945f8f57357d

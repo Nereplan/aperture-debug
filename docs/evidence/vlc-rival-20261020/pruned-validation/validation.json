@@ -1,0 +1,28 @@
+{
+  "sourceContentCommit": "dd687e0765acd385934772f8da82f5aade7d84d5",
+  "productionNetLinesRemoved": 491,
+  "productionLinesAdded": 94,
+  "productionLinesRemoved": 585,
+  "priorMeasuredExecutableBytes": 3464704,
+  "currentExecutableBytes": 3455488,
+  "executableBytesRemoved": 9216,
+  "fullPrGate": {
+    "passedSuites": 23,
+    "totalSuites": 23,
+    "durationSeconds": 420.62,
+    "unitRegistrations": 160,
+    "unitPassed": 159,
+    "unitSkipped": 1,
+    "skip": "Explicit visible-window geometry test not run by default.",
+    "scope": "Gate predates the final guard-before-bind follow-up; that follow-up is covered by the subsequent native preview test."
+  },
+  "nativePreview": "Actual hub hover decode, repeated-hover no reload, continuous frame updates, different-device bitmap drawing, stop/restart, resize, shutdown/reinitialize, no render/upload while stopped, no device reacquisition after shutdown, no hover persistence, actual hub extraction/private/normal/canceled persistence all passed.",
+  "hiddenUi": {
+    "passedChecks": 28,
+    "scope": "Real native main playback and hub hover; active/recent preview retention, expired teardown during main playback, continued playback time and lazy restart. No visible-window resource evidence."
+  },
+  "idleProbe": "Real metadata and shell-thumbnail probes release mapping/job/events/process handles between requests, retain outcome, and restart lazily; gate passed. No process RSS saving claimed from nominal mapping capacity.",
+  "hiddenRenderer": "Text/layout/sized-format/WIC caches clear and rebuild with same text dimensions, capture pixels and shared factories/context. Two-waiter generation notification invariant passed; not real blocked-producer integration.",
+  "package": "All10 manifest payload files were checked by byte length and SHA256. No publication.",
+  "remaining": "Fresh resource and coarse output comparisons for this frozen executable are recorded separately; these hidden correctness checks do not prove broad superiority over VLC."
+}

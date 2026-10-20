@@ -96,7 +96,7 @@ git diff --check</pre>
 <script id="checkpoint-data" type="application/json">
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-10-20T14:33:32+00:00",
+  "updatedAt": "2026-10-20T14:39:48+00:00",
   "metrics": {
     "visible-ms": {
       "label": "Visible window",
@@ -18053,6 +18053,58 @@ git diff --check</pre>
           "total": 2,
           "durationSeconds": null,
           "evidence": "docs/evidence/vlc-rival-20261020/controlled-seek/comparison.json"
+        }
+      ]
+    },
+    {
+      "id": "rival-pruned-validation-20261020",
+      "label": "Unused preview removal and idle resource lifetimes",
+      "measuredAt": "2026-10-20T14:39:48.377897+00:00",
+      "commit": "dd687e0765acd385934772f8da82f5aade7d84d5",
+      "dirty": false,
+      "sourceNote": "Production source committed in192778a anddd687e0; frozen Release EXE cf645cdad2e206f9d0c4b1b334a5951fde368cf292ea0f4080e0945f8f57357d. Source file hashes and package payload manifest retained in docs/evidence/vlc-rival-20261020/pruned-validation/build-identity.json. Benchmark-harness changes do not change this executable.",
+      "notes": "Removed491 net production lines and dormant seekbar thumbnail state, caches, save workers, disk-key inventory and obsolete purge microbenchmarks; no production consumer existed, so no active seekbar-image feature was removed. Hub hover playback and persistence remain. Expired hub preview resources now release after12s inactivity during main playback and restart lazily. Hidden text/capture caches release; thumbnail generation invalidation wakes waiters; idle isolation owners close mapped buffers and handles outside renderer locks. Actual decoder/device/privacy/lifecycle checks passed. Compiled executable9,216 bytes smaller than the prior measured build. Nominal1x1 hub backbuffers still have no observed GPU-memory benefit in the earlier comparison. No new resource or VLC measurement is attributed to these hidden checks. Full gate has one explicit geometry skip; final guard-before-bind ordering was added afterward and covered by the native preview probe.",
+      "results": [],
+      "tests": [
+        {
+          "name": "Local PR regression gate / includes media isolation, thumbnails and static analysis",
+          "status": "pass",
+          "passed": 23,
+          "total": 23,
+          "durationSeconds": 420.62,
+          "evidence": "docs/evidence/vlc-rival-20261020/pruned-validation/pr-gate.txt"
+        },
+        {
+          "name": "Unit registrations / visible-window geometry skipped",
+          "status": "partial",
+          "passed": 159,
+          "total": 160,
+          "durationSeconds": null,
+          "evidence": "docs/evidence/vlc-rival-20261020/pruned-validation/validation.json"
+        },
+        {
+          "name": "Actual preview decoder, graphics device and private persistence lifecycle",
+          "status": "pass",
+          "passed": null,
+          "total": null,
+          "durationSeconds": null,
+          "evidence": "docs/evidence/vlc-rival-20261020/pruned-validation/preview-native.txt"
+        },
+        {
+          "name": "Hidden playback and hub input interactions",
+          "status": "pass",
+          "passed": 28,
+          "total": 28,
+          "durationSeconds": null,
+          "evidence": "docs/evidence/vlc-rival-20261020/pruned-validation/hidden-ui.txt"
+        },
+        {
+          "name": "Release build and10 payload hashes",
+          "status": "pass",
+          "passed": 10,
+          "total": 10,
+          "durationSeconds": null,
+          "evidence": "docs/evidence/vlc-rival-20261020/pruned-validation/package-manifest.json"
         }
       ]
     }
