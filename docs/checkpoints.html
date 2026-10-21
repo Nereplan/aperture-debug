@@ -96,7 +96,7 @@ git diff --check</pre>
 <script id="checkpoint-data" type="application/json">
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-10-21T06:50:09+00:00",
+  "updatedAt": "2026-10-21T07:16:32+00:00",
   "metrics": {
     "visible-ms": {
       "label": "Visible window",
@@ -19745,6 +19745,32 @@ git diff --check</pre>
           "durationSeconds": null,
           "evidence": "docs/evidence/vlc-rival-20261020/polish-validation-20261021/cadence-preflight.json",
           "scope": "ETW session access denied; no completed capture and no presentation-cadence measurement."
+        }
+      ]
+    },
+    {
+      "id": "hidden-hub-trim-observation-20261021",
+      "label": "AV1 hidden-library trim state diagnostic",
+      "measuredAt": "2026-10-21T06:57:09.1029720Z",
+      "commit": "23fd026c2b114f8391465bfb5f7d28a79da02025",
+      "dirty": false,
+      "sourceNote": "Frozen clean 23fd026 / EXE SHA256 78b59f4e3e98e3f5f7a3e3a309c522f3ce1828e3f58e22c1a85a12c008fa9a7f. A separate external observer resolves existing PDB fields; no production instrumentation or new app APIs.",
+      "notes": [
+        "Both App and Renderer trim flags activate during visible AV1 playback and reset after returning to the library. Private committed memory does not materially change at this observed transition. A missed logical trim does not explain the qualified AV1 private-RAM gap.",
+        "The last untrimmed and first trimmed observations bound activation at [15031, 16125] milliseconds after hiddenLibrarySinceMs. The observed private-byte change across those adjacent snapshots is 0 bytes. Raw QPC/GetTickCount64 bounds and every snapshot are retained.",
+        "One diagnostic run with read-only cross-process PDB/state and process-memory observation. No resource ranking, causal allocation attribution, GPU-memory reclamation, actual cross-process swapchain-size query, or pixel restoration proof. Renderer desired dimensions are not actual trimmed buffer dimensions. Existing native unit tests separately verify logical 1x1 buffers and redraw restoration. PDB current hash is retained without an independently saved historical hash.",
+        "Return-to-library control reports state zero; both trim flags reset in the next observed hub state. Actual image restoration remains covered by existing renderer tests rather than inferred from desired width/height."
+      ],
+      "results": [],
+      "tests": [
+        {
+          "name": "Owned AV1 hidden-trim and return-to-library diagnostic",
+          "status": "pass",
+          "passed": 1,
+          "total": 1,
+          "durationSeconds": null,
+          "evidence": "docs/evidence/vlc-rival-20261020/hidden-hub-observation-20261021/review.json",
+          "scope": "One run with 34 nested snapshots, not that many independent tests or performance repetitions."
         }
       ]
     }

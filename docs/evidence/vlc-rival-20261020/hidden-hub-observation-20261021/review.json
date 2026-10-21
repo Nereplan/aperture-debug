@@ -1,0 +1,103 @@
+{
+  "recordedAtUtc": "2026-10-21T07:15:17.212183+00:00",
+  "sourceContentCommit": "23fd026c2b114f8391465bfb5f7d28a79da02025",
+  "productionSourceDirty": false,
+  "observations": 34,
+  "lastUntrimmed": {
+    "elapsedSeconds": 18.306115,
+    "qpcBegin": 814187013946,
+    "qpcEnd": 814187014114,
+    "ticksMsBefore": 81418671,
+    "ticksMsAfter": 81418671,
+    "hiddenLibrarySinceMs": 81403640,
+    "appTrimmed": false,
+    "rendererBuffersTrimmed": false,
+    "desiredWidth": 1280,
+    "desiredHeight": 720,
+    "privateBytes": 167583744,
+    "workingSetBytes": 151302144
+  },
+  "firstTrimmed": {
+    "elapsedSeconds": 19.403749,
+    "qpcBegin": 814197990283,
+    "qpcEnd": 814197990438,
+    "ticksMsBefore": 81419765,
+    "ticksMsAfter": 81419765,
+    "hiddenLibrarySinceMs": 81403640,
+    "appTrimmed": true,
+    "rendererBuffersTrimmed": true,
+    "desiredWidth": 1280,
+    "desiredHeight": 720,
+    "privateBytes": 167583744,
+    "workingSetBytes": 151318528
+  },
+  "trimActivationAgeMsBounds": [
+    15031,
+    16125
+  ],
+  "privateBytesChangeAcrossObservedTransition": 0,
+  "privateBytesDuringTrimmedPlayback": {
+    "min": 167583744,
+    "max": 167583744
+  },
+  "firstRestored": {
+    "elapsedSeconds": 29.111511,
+    "qpcBegin": 814295067908,
+    "qpcEnd": 814295068063,
+    "ticksMsBefore": 81429484,
+    "ticksMsAfter": 81429484,
+    "hiddenLibrarySinceMs": 0,
+    "appTrimmed": false,
+    "rendererBuffersTrimmed": false,
+    "desiredWidth": 1280,
+    "desiredHeight": 720,
+    "privateBytes": 135770112,
+    "workingSetBytes": 110125056
+  },
+  "conclusion": "Both App and Renderer trim flags activate during visible AV1 playback and reset after returning to the library. Private committed memory does not materially change at this observed transition. A missed logical trim does not explain the qualified AV1 private-RAM gap.",
+  "limits": "One diagnostic run with read-only cross-process PDB/state and process-memory observation. No resource ranking, causal allocation attribution, GPU-memory reclamation, actual cross-process swapchain-size query, or pixel restoration proof. Renderer desired dimensions are not actual trimmed buffer dimensions. Existing native unit tests separately verify logical 1x1 buffers and redraw restoration. PDB current hash is retained without an independently saved historical hash.",
+  "files": [
+    {
+      "path": "state.json",
+      "bytes": 10382,
+      "sha256": "f769519a5b52a73527e174b187df9269739f6c54ee9e2d332bbe6527bf5e2c1d",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-hub-observation-20261021\\state.json"
+    },
+    {
+      "path": "identity.json",
+      "bytes": 1495,
+      "sha256": "6fad4b512b8789fa15e70addbb845f5942dacdca6ddcebea4ba9c2907e0a4fb4",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-hub-observation-20261021\\identity.json"
+    },
+    {
+      "path": "observer-stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-hub-observation-20261021\\observer-stderr.txt"
+    },
+    {
+      "path": "observer.cpp",
+      "bytes": 13356,
+      "sha256": "5cc0fdf4baea82a3fd70dea16862b1b2d2fa1f86719d1bddad353c161c49ec9c",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-hub-probe-20261021\\profile_hidden_hub.cpp"
+    },
+    {
+      "path": "observer-build.txt",
+      "bytes": 78,
+      "sha256": "c9b6298c5f00b1dd19862d8620302b5f71787f55763031c956d6b763a85b7239",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-hub-probe-20261021\\build.txt"
+    },
+    {
+      "path": "launcher.ps1",
+      "bytes": 6414,
+      "sha256": "89df5d8f41a44d2321a9ef988b13ea18c1fbeebbb6c42553a5166e8e9ef12d05",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\observe-hidden-hub-20261021.ps1"
+    },
+    {
+      "path": "launch.txt",
+      "bytes": 66,
+      "sha256": "127db16da554a9f5fb63d8b5189f3285c74aa0ac6f98910e50624bfdb1844ab1",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-hub-observation-20261021.txt"
+    }
+  ]
+}

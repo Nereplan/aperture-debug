@@ -1,0 +1,1 @@
+Hidden hub observation completed; raw state and memory retained.

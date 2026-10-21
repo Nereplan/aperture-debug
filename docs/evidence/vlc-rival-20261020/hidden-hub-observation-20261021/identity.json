@@ -1,0 +1,41 @@
+{
+  "startedUtc": "2026-10-21T06:57:09.1029720Z",
+  "sourceCommit": "23fd026c2b114f8391465bfb5f7d28a79da02025",
+  "pid": 31052,
+  "scope": "Owned visible HubThenOpen AV1 state/memory diagnostic; observer overhead prevents ranking or causal allocation attribution.",
+  "executableSha256": "78B59F4E3E98E3F5F7A3E3A309C522F3CE1828E3F58E22C1A85A12C008FA9A7F",
+  "samplerSha256": "282C3DE4B0D833EA751C08C386C5AE5388F35BBD5895E6278D4905BD5E1AE2A6",
+  "samplerSourceSha256": "5CC0FDF4BAEA82A3FD70DEA16862B1B2D2FA1F86719D1BDDAD353C161C49EC9C",
+  "pdbSha256": "3979DC23B70913747EB496B1B9249C0357336828329BD0F3FB191E124ACBFA16",
+  "pdbProvenance": "Stored beside the original qualified build. Current hash recorded; no independently saved historical PDB hash. DbgHelp must resolve matching module/type fields.",
+  "cleanup": "owned-window-closed",
+  "observerStartUtc": "2026-10-21T06:57:09.2548684Z",
+  "openQpcStart": 814033070752,
+  "openStatus": {
+    "state": 2,
+    "positionSec": 0,
+    "durationSec": 90
+  },
+  "openQpcEnd": 814036766323,
+  "canvas": {
+    "handle": 1312244,
+    "className": "mpv",
+    "clientWidth": 1280,
+    "clientHeight": 720,
+    "dpi": 96
+  },
+  "playbackStatus": {
+    "state": 2,
+    "positionSec": 25.1,
+    "durationSec": 90
+  },
+  "stopQpcStart": 814288322418,
+  "stopStatus": {
+    "state": 0,
+    "positionSec": 0,
+    "durationSec": 0
+  },
+  "stopQpcEnd": 814289036883,
+  "status": "observed",
+  "qpcFrequency": 10000000
+}
