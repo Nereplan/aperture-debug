@@ -96,7 +96,7 @@ git diff --check</pre>
 <script id="checkpoint-data" type="application/json">
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-10-21T09:40:19+00:00",
+  "updatedAt": "2026-10-21T09:51:44+00:00",
   "metrics": {
     "visible-ms": {
       "label": "Visible window",
@@ -419,6 +419,11 @@ git diff --check</pre>
       "label": "Owned visible playback / calibrated half-second alignment",
       "category": "Playback",
       "method": "Explicitly authorized visible full-player comparison of official VLC3.0.24 and frozen clean Aperture23fd026 runtime. Fresh complete runtime/profile per run; one warmup plus three measured rounds/player, rotating order, 3s hub then owned open; SHA256-verified audio-enabled fixture and actual1280x720 canvas/matching DPI; default output settings. Predeclared sampling threshold20.5s (VLC integer get_time first reaches21s), seven uniformly spaced snapshots over about30s. Both owned windows temporarily topmost at40,40, with full-canvas/foreign-window/cursor guards before and after every observation. No builds/tests/profilers concurrent. Whole-batch evaluator keeps minimum3 measured runs/player,25s CPU window and1.1s segment endpoint tolerance unchanged; no runs discarded. Nominal media segments use quantized status, not identical per-frame timestamps. RAM/GPU uses per-run medians; CPU uses complete endpoint deltas. Accounts overlap and are not summed. Decoder/filter equivalence, full image quality, frame cadence, first-video readiness, physical audio and feature-matched storage remain unproven. Original failed20s-alignment batches remain under final-resource-matrix. Hardware-calibrated CPU is process-cycle delta / endpoint wall seconds / validated invariant-TSC ticks per second *100. Fresh calibration after both batches: 3799995727.714538 ticks/sec; five raw TSC/QPC intervals and independent busy-thread/process checks, same verified24LP CPU/OS/GPU/driver/boot, unchanged source/executable SHA256. Preserve conflicting Windows CPU-time readings as separate observations."
+    },
+    "playback-owned-av1-launch-footprint-30s-v1": {
+      "label": "Owned visible AV1 launch-mode footprint:30s snapshots",
+      "method": "Eight fresh owned processes: one warmup/mode, three measured pairs in Hub/Direct,Direct/Hub,Hub/Direct order. Same frozen executable and AV1 fixture, fresh copied runtimes/profiles, hub3s, actual1280x720at96DPI, sampling after20.5s. Seven guarded snapshots over30s. Summary is mean of seven snapshots per run, then mean across three runs; run ranges preserved. CPU counters are raw only and not interpreted. All eight calls validated advancement, actual canvas/DPI, owned-window close and14 visibility guards per call. Failed earlier PC-in-use batch retained separately; no splicing or replacement. No CPU/VLC/causal attribution; failed earlier batch preserved.",
+      "category": "Playback"
     }
   },
   "environments": {
@@ -19957,6 +19962,204 @@ git diff --check</pre>
           "durationSeconds": null,
           "evidence": "docs/evidence/vlc-rival-20261020/zero-warning-cleanup-20261021/scalar-arrays/result.json",
           "scope": "Extracted exact legacy/candidate helpers; I4/R8 counts0,2,4,1000,10000. No app or rivalry ranking."
+        }
+      ]
+    },
+    {
+      "id": "av1-launch-footprint-direct-20261021",
+      "label": "Frozen AV1 launch footprint: Direct",
+      "measuredAt": "2026-10-21T09:44:18.8694626Z",
+      "commit": "23fd026c2b114f8391465bfb5f7d28a79da02025",
+      "dirty": false,
+      "sourceNote": "Frozen23fd026 executable/hash and full runtime inventory verified before every call; separately installed601e629 is not measured here.",
+      "notes": [
+        "Eight fresh owned processes: one warmup/mode, three measured pairs in Hub/Direct,Direct/Hub,Hub/Direct order. Same frozen executable and AV1 fixture, fresh copied runtimes/profiles, hub3s, actual1280x720at96DPI, sampling after20.5s. Seven guarded snapshots over30s. Summary is mean of seven snapshots per run, then mean across three runs; run ranges preserved. CPU counters are raw only and not interpreted.",
+        "All eight calls validated advancement, actual canvas/DPI, owned-window close and14 visibility guards per call. Failed earlier PC-in-use batch retained separately; no splicing or replacement.",
+        "Hub-first minus direct private-memory run-mean differences: 23.9883, 19.2980, 16.6445MiB; mean19.9769MiB. Observed launch-mode difference, not isolated D3D causality, guaranteed reclamation, current installed-build measurement or VLC ranking.",
+        "Source-flow inference is not an observed device inventory. Failed startup, unexpected navigation or recovery can create hub graphics resources and invalidate the premise.",
+        "Launch modes also differ in hub-related startup, fonts/tooltips/queries and deferred work; a memory delta alone does not causally isolate the D3D device.",
+        "Only the qualified frozen executable is tested; results do not describe later installed builds.",
+        "Warm OS caches; no cache flush or cold-cache claim. Each call starts a fresh process and fresh copied runtime/profile.",
+        "Existing visibility guards sample endpoints, not continuous pixel coverage. Safe cursor placement remains required.",
+        "Raw harness records CPU counters but this diagnostic makes no CPU claim; no calibration/rival rerun is requested.",
+        "The original harness compiles its existing C# window/readiness helpers before player launch. The existing native status probe is supplied explicitly; no MSVC build is requested.",
+        "All attempts, raw samples and logs remain. Existing owned-process cleanup removes only generated runtime/profile copies; there is no automatic retry or selective replacement.",
+        "Measured memory deltas summarize seven guarded snapshots per run and three fresh measured processes per mode. GPU metrics overlap with process figures and are not additive. No CPU, VLC, unique-content, audio or causal D3D-allocation claim."
+      ],
+      "results": [
+        {
+          "metric": "private-mib",
+          "protocol": "playback-owned-av1-launch-footprint-30s-v1",
+          "environment": "ryzen3900x-4070super-20261020",
+          "workload": "1080p30 AV1 + AAC stereo / 1280x720 canvas / player defaults / Direct",
+          "session": "av1-launch-footprint-away-20261021",
+          "value": 140.76729910714286,
+          "samples": 3,
+          "evidence": "docs/evidence/vlc-rival-20261020/av1-launch-footprint-qualified-20261021/analysis.json",
+          "runRange": {
+            "min": 136.38392857142858,
+            "max": 143.34207589285714,
+            "runs": 3,
+            "scope": "Three fresh measured processes; means of seven guarded snapshots per run. Range of run means, not confidence intervals; warmup excluded."
+          }
+        },
+        {
+          "metric": "working-set-mib",
+          "protocol": "playback-owned-av1-launch-footprint-30s-v1",
+          "environment": "ryzen3900x-4070super-20261020",
+          "workload": "1080p30 AV1 + AAC stereo / 1280x720 canvas / player defaults / Direct",
+          "session": "av1-launch-footprint-away-20261021",
+          "value": 130.96558779761904,
+          "samples": 3,
+          "evidence": "docs/evidence/vlc-rival-20261020/av1-launch-footprint-qualified-20261021/analysis.json",
+          "runRange": {
+            "min": 130.67131696428572,
+            "max": 131.19196428571428,
+            "runs": 3,
+            "scope": "Three fresh measured processes; means of seven guarded snapshots per run. Range of run means, not confidence intervals; warmup excluded."
+          }
+        },
+        {
+          "metric": "gpu-mib",
+          "protocol": "playback-owned-av1-launch-footprint-30s-v1",
+          "environment": "ryzen3900x-4070super-20261020",
+          "workload": "1080p30 AV1 + AAC stereo / 1280x720 canvas / player defaults / Direct",
+          "session": "av1-launch-footprint-away-20261021",
+          "value": 74.6196056547619,
+          "samples": 3,
+          "evidence": "docs/evidence/vlc-rival-20261020/av1-launch-footprint-qualified-20261021/analysis.json",
+          "runRange": {
+            "min": 72.11830357142857,
+            "max": 75.87220982142857,
+            "runs": 3,
+            "scope": "Three fresh measured processes; means of seven guarded snapshots per run. Range of run means, not confidence intervals; warmup excluded."
+          }
+        },
+        {
+          "metric": "shared-gpu-mib",
+          "protocol": "playback-owned-av1-launch-footprint-30s-v1",
+          "environment": "ryzen3900x-4070super-20261020",
+          "workload": "1080p30 AV1 + AAC stereo / 1280x720 canvas / player defaults / Direct",
+          "session": "av1-launch-footprint-away-20261021",
+          "value": 14.518043154761905,
+          "samples": 3,
+          "evidence": "docs/evidence/vlc-rival-20261020/av1-launch-footprint-qualified-20261021/analysis.json",
+          "runRange": {
+            "min": 14.508370535714286,
+            "max": 14.523995535714286,
+            "runs": 3,
+            "scope": "Three fresh measured processes; means of seven guarded snapshots per run. Range of run means, not confidence intervals; warmup excluded."
+          }
+        }
+      ],
+      "tests": [
+        {
+          "name": "Full eight-call visible AV1 launch-mode diagnostic",
+          "status": "pass",
+          "passed": 8,
+          "total": 8,
+          "durationSeconds": null,
+          "evidence": "docs/evidence/vlc-rival-20261020/av1-launch-footprint-qualified-20261021/review.json",
+          "scope": "Shared batch validation; one warmup and three measured processes per mode. Counts duplicated across mode records, not additive."
+        }
+      ]
+    },
+    {
+      "id": "av1-launch-footprint-hubthenopen-20261021",
+      "label": "Frozen AV1 launch footprint: HubThenOpen",
+      "measuredAt": "2026-10-21T09:43:22.4450173Z",
+      "commit": "23fd026c2b114f8391465bfb5f7d28a79da02025",
+      "dirty": false,
+      "sourceNote": "Frozen23fd026 executable/hash and full runtime inventory verified before every call; separately installed601e629 is not measured here.",
+      "notes": [
+        "Eight fresh owned processes: one warmup/mode, three measured pairs in Hub/Direct,Direct/Hub,Hub/Direct order. Same frozen executable and AV1 fixture, fresh copied runtimes/profiles, hub3s, actual1280x720at96DPI, sampling after20.5s. Seven guarded snapshots over30s. Summary is mean of seven snapshots per run, then mean across three runs; run ranges preserved. CPU counters are raw only and not interpreted.",
+        "All eight calls validated advancement, actual canvas/DPI, owned-window close and14 visibility guards per call. Failed earlier PC-in-use batch retained separately; no splicing or replacement.",
+        "Hub-first minus direct private-memory run-mean differences: 23.9883, 19.2980, 16.6445MiB; mean19.9769MiB. Observed launch-mode difference, not isolated D3D causality, guaranteed reclamation, current installed-build measurement or VLC ranking.",
+        "Source-flow inference is not an observed device inventory. Failed startup, unexpected navigation or recovery can create hub graphics resources and invalidate the premise.",
+        "Launch modes also differ in hub-related startup, fonts/tooltips/queries and deferred work; a memory delta alone does not causally isolate the D3D device.",
+        "Only the qualified frozen executable is tested; results do not describe later installed builds.",
+        "Warm OS caches; no cache flush or cold-cache claim. Each call starts a fresh process and fresh copied runtime/profile.",
+        "Existing visibility guards sample endpoints, not continuous pixel coverage. Safe cursor placement remains required.",
+        "Raw harness records CPU counters but this diagnostic makes no CPU claim; no calibration/rival rerun is requested.",
+        "The original harness compiles its existing C# window/readiness helpers before player launch. The existing native status probe is supplied explicitly; no MSVC build is requested.",
+        "All attempts, raw samples and logs remain. Existing owned-process cleanup removes only generated runtime/profile copies; there is no automatic retry or selective replacement.",
+        "Measured memory deltas summarize seven guarded snapshots per run and three fresh measured processes per mode. GPU metrics overlap with process figures and are not additive. No CPU, VLC, unique-content, audio or causal D3D-allocation claim."
+      ],
+      "results": [
+        {
+          "metric": "private-mib",
+          "protocol": "playback-owned-av1-launch-footprint-30s-v1",
+          "environment": "ryzen3900x-4070super-20261020",
+          "workload": "1080p30 AV1 + AAC stereo / 1280x720 canvas / player defaults / HubThenOpen",
+          "session": "av1-launch-footprint-away-20261021",
+          "value": 160.74423363095238,
+          "samples": 3,
+          "evidence": "docs/evidence/vlc-rival-20261020/av1-launch-footprint-qualified-20261021/analysis.json",
+          "runRange": {
+            "min": 159.22042410714286,
+            "max": 162.64006696428572,
+            "runs": 3,
+            "scope": "Three fresh measured processes; means of seven guarded snapshots per run. Range of run means, not confidence intervals; warmup excluded."
+          }
+        },
+        {
+          "metric": "working-set-mib",
+          "protocol": "playback-owned-av1-launch-footprint-30s-v1",
+          "environment": "ryzen3900x-4070super-20261020",
+          "workload": "1080p30 AV1 + AAC stereo / 1280x720 canvas / player defaults / HubThenOpen",
+          "session": "av1-launch-footprint-away-20261021",
+          "value": 140.43973214285714,
+          "samples": 3,
+          "evidence": "docs/evidence/vlc-rival-20261020/av1-launch-footprint-qualified-20261021/analysis.json",
+          "runRange": {
+            "min": 140.02566964285714,
+            "max": 140.85881696428572,
+            "runs": 3,
+            "scope": "Three fresh measured processes; means of seven guarded snapshots per run. Range of run means, not confidence intervals; warmup excluded."
+          }
+        },
+        {
+          "metric": "gpu-mib",
+          "protocol": "playback-owned-av1-launch-footprint-30s-v1",
+          "environment": "ryzen3900x-4070super-20261020",
+          "workload": "1080p30 AV1 + AAC stereo / 1280x720 canvas / player defaults / HubThenOpen",
+          "session": "av1-launch-footprint-away-20261021",
+          "value": 91.17522321428572,
+          "samples": 3,
+          "evidence": "docs/evidence/vlc-rival-20261020/av1-launch-footprint-qualified-20261021/analysis.json",
+          "runRange": {
+            "min": 89.92633928571429,
+            "max": 93.67243303571429,
+            "runs": 3,
+            "scope": "Three fresh measured processes; means of seven guarded snapshots per run. Range of run means, not confidence intervals; warmup excluded."
+          }
+        },
+        {
+          "metric": "shared-gpu-mib",
+          "protocol": "playback-owned-av1-launch-footprint-30s-v1",
+          "environment": "ryzen3900x-4070super-20261020",
+          "workload": "1080p30 AV1 + AAC stereo / 1280x720 canvas / player defaults / HubThenOpen",
+          "session": "av1-launch-footprint-away-20261021",
+          "value": 16.134300595238095,
+          "samples": 3,
+          "evidence": "docs/evidence/vlc-rival-20261020/av1-launch-footprint-qualified-20261021/analysis.json",
+          "runRange": {
+            "min": 16.075334821428573,
+            "max": 16.198660714285715,
+            "runs": 3,
+            "scope": "Three fresh measured processes; means of seven guarded snapshots per run. Range of run means, not confidence intervals; warmup excluded."
+          }
+        }
+      ],
+      "tests": [
+        {
+          "name": "Full eight-call visible AV1 launch-mode diagnostic",
+          "status": "pass",
+          "passed": 8,
+          "total": 8,
+          "durationSeconds": null,
+          "evidence": "docs/evidence/vlc-rival-20261020/av1-launch-footprint-qualified-20261021/review.json",
+          "scope": "Shared batch validation; one warmup and three measured processes per mode. Counts duplicated across mode records, not additive."
         }
       ]
     }
