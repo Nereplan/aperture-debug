@@ -1,0 +1,14 @@
+**********************************************************************
+** Visual Studio 2022 Developer Command Prompt v17.14.37
+** Copyright (c) 2025 Microsoft Corporation
+**********************************************************************
+[vcvarsall.bat] Environment initialized for: 'x64'
+preview_pipeline.cpp
+MpvPlayer.cpp
+Json.cpp
+Settings.cpp
+Localization.cpp
+AudioConfig.cpp
+ChannelPolicy.cpp
+Generating Code...
+PASS actual_hover_decode=true unchanged_hover_loads=1 new_device_bitmap_draw=true stop_restart=true resized_same_file=true shutdown_reinitialize=true hover_persistence=false actual_hub_decode=true private_hub_persistence=false normal_hub_persistence=true cancelled_hub_persistence=false stopped_render_calls=0 stopped_bitmap_updates=0 continuous_hover_render_calls=14

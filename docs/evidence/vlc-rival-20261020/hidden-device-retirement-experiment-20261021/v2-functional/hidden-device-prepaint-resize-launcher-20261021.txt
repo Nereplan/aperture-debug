@@ -1,0 +1,19 @@
+PASS one timed A/B action cycles via Shift+A and submenu repositions intact
+PASS Hub Ctrl+Z undoes rename without reverting unrelated progress
+PASS Hub Ctrl+Z restores playlist rail order
+PASS Hub Ctrl+Z restores playlist item order
+PASS Hub right-click relocates existing context menu
+PASS Hub Ctrl+Z restores media order when view and storage orders differ
+PASS Hub Ctrl+Z restores folder order
+PASS Hub Ctrl+Z restores removed folder entries
+PASS Ctrl+Z history reverses rename, playlist addition and watched state in order
+PASS Ctrl+Z reverses playlist creation
+PASS Ctrl+Z restores smart playlist rules
+PASS Stale undo refuses to overwrite newer progress
+PASS Playlist watched menu actions participate in Ctrl+Z history
+PASS Ctrl+Z restores an individual history entry
+PASS Undo history bounds entry count and retained payload
+PASS playback retires hub graphics once and keeps them retired
+PASS hidden close stays lazy; later hub drawing restores the target
+30 hidden interaction checks passed
+C:\Users\Alperen\AppData\Local\Codex\tools\scratch\aperture-rival-20261019\hidden-device-prepaint-resize-interactions-20261021

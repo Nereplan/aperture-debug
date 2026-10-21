@@ -1,0 +1,5 @@
+main.cpp
+Accessibility.cpp.obj : MSIL .netmodule or module compiled with /GL found; restarting link with /LTCG; add /LTCG to the link command line to improve linker performance
+Generating code
+Finished generating code
+Native build: 0 production files compiled, 0 reused.

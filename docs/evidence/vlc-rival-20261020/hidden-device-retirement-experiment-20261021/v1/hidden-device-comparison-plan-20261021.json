@@ -1,0 +1,48 @@
+{
+  "preparedAtUtc": "2026-10-21T09:53:54.805273+00:00",
+  "baseSourceCommit": "601e62924ca31fb8e6a439958590887e1397afb0",
+  "candidateSourceDirty": true,
+  "candidatePatchSha256": "03ac29bc4863614156482eeaa951982c1a436b7981f9a466d3344e40222f18d5",
+  "candidateWorktree": "C:\\Users\\Alperen\\.codex\\worktrees\\hidden-library-device\\Aperture Final",
+  "baselineExecutableSha256": "d2f8744bca973d97609ec821a653cc9a903d23d07e3d9065d160704f7e44c81e",
+  "candidateExecutableSha256": "19b9ea164eb15a4272c3f74d82294063ff53030d60302b03fba8c4a356e07d7d",
+  "managedPayloadDifferences": [
+    "Aperture.exe"
+  ],
+  "inputs": [
+    {
+      "path": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-variants-20261021.json",
+      "sha256": "a02ad2e62ed75bd16a6d15be2a4795e3ffccad9d1d392b4f9f2f515c9814edf9"
+    },
+    {
+      "path": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-prototype-source-20261021.patch",
+      "sha256": "03ac29bc4863614156482eeaa951982c1a436b7981f9a466d3344e40222f18d5"
+    },
+    {
+      "path": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-payload-pinning-20261021.json",
+      "sha256": "d66ad84bc0853ae759744d48674d49deb36659568576e5570f9eee58cd5dd054"
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\tests\\benchmark\\compare_players.ps1",
+      "sha256": "049631b0d6bdf21f77ee9e408185ef7350d78f55c69dd20c6d1d2be9a29f5c9a"
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\tests\\benchmark\\PlayerBenchmarkWindow.cs",
+      "sha256": "e9731349d7203f8257b19e7a550c8907573e1cb8ba8056ec577ad7c17e81e921"
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\tests\\benchmark\\PlayerVideoReadiness.cs",
+      "sha256": "bd1316d4b4fdf235ef126076cb3e466cb707a567e923f4927e66ab6ae263f9e6"
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\tests\\benchmark\\player_comparison_identity.ps1",
+      "sha256": "74309055e3522269b4033f4b561d07a7430a5196a6426d6dc025b5965323e6fe"
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\tests\\benchmark\\player_status_probe.cpp",
+      "sha256": "a832805a0f250d2f4699c4bf42ef0b5c1b9b1cc05fb6b075f3349041e1c0a164"
+    }
+  ],
+  "protocol": "Fresh current-source stock601 versus isolated dirty prototype;9 managed runtime assets pinned byte-identically, only EXE differs. Original packaging representation variants retained separately. HubThenOpen3s, AV11080p30AAC fixture, actual1280x720 visible canvas,20.5s media alignment,30s seven guarded snapshots, one warmup plus three measured processes/variant, order rotates each round. No CPU claim; compare private/working-set/dedicated/shared memory separately. No VLC refresh or old/new session splicing. All completed measured runs required; no selective retry.",
+  "decision": "Measure full paired batch before deciding whether prototype merits return-to-library visual/latency validation and full regression gate; not installed."
+}

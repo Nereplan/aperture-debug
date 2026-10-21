@@ -1,0 +1,41 @@
+Building Aperture Unit Tests...
+Json.cpp
+Settings.cpp
+ChannelPolicy.cpp
+HttpTransport.cpp
+Localization.cpp
+MediaLibrary.cpp
+FolderWatcher.cpp
+MpvPlayer.cpp
+PlaybackSession.cpp
+CommandDispatcher.cpp
+MediaTransport.cpp
+TextInputModel.cpp
+GlobalSearch.cpp
+AudioConfig.cpp
+SubtitleDiscovery.cpp
+Subtitles.cpp
+OnlineSubtitles.cpp
+LibraryQuery.cpp
+Renderer.cpp
+OverlayRenderer.cpp
+Generating Code...
+Compiling...
+LibrarySnapshot.cpp
+MediaFoundation.cpp
+MediaProbeIsolation.cpp
+TooltipManager.cpp
+PlaylistIO.cpp
+NetworkStream.cpp
+TaskbarController.cpp
+Accessibility.cpp
+Generating Code...
+main.cpp
+Native build: 28 production files compiled, 0 reused.
+framework_self_test.cpp
+Native build: 0 production files compiled, 0 reused.
+Runner self-test: 14 scenarios, 0 failures
+Aperture unit tests (1 selected, 162 filtered)
+[       OK ] PlaybackRenderer::FactoriesStayCpuOnlyUntilGraphicsIntent (834.71 ms)
+
+1 passed, 0 failed, 0 skipped in 834.80 ms

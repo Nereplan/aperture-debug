@@ -1,0 +1,10 @@
+{
+  "recordedUtc": "2026-10-21T10:12:02.1594300Z",
+  "sourceCommit": "7eadccb19f4ce4e2178b528fd8e009bb66535805",
+  "dirty": true,
+  "mediaPath": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\av1-1080p30-audio.mp4",
+  "mediaSha256": "84630E2BEC31BBDA663D634E2A7FC13CF1C81F983565D3942094E8DC9808FDD8",
+  "nativeSha256": "E91032CBCE1DA22AEC5903468E814D4DF2494E74FE508A371EAF3446C7408DAE",
+  "sourceSha256": "B92183122004AA7BE5CA1ED400D72471748DE4F8731FA1EB48CAA4561DF1495E",
+  "scope": "Hidden native App interaction/render correctness only. No visible windows or VLC launch; no performance claims."
+}

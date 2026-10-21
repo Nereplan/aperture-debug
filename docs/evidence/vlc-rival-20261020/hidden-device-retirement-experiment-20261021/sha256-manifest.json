@@ -1,0 +1,371 @@
+{
+  "algorithm": "SHA-256",
+  "scope": "All retained text evidence including review.json; this manifest excludes itself.",
+  "files": [
+    {
+      "path": "review.json",
+      "bytes": 35971,
+      "sha256": "537d32f3d40e2c89253b39bbccff254b59d857d356c5e0b01bb416e7666d1ae4"
+    },
+    {
+      "path": "v1/analyze-hidden-device-comparison-20261021.py",
+      "bytes": 5820,
+      "sha256": "6f738d10dcb3ad4c371eca0f7fe90c516f28434f8dae2664ff6399291b0547df"
+    },
+    {
+      "path": "v1/analyze-hidden-device-comparison-clean-20261021.py",
+      "bytes": 5909,
+      "sha256": "9341b354afc4879d4a9680eb84dc89d199f1dbfe8985b1a639e1ee90ed72a86d"
+    },
+    {
+      "path": "v1/hidden-device-clean-variants-20261021.json",
+      "bytes": 370,
+      "sha256": "594d99bd8fbb0494589f4e7b66b2dd443a91186b464c4062f0e73b0f00ba1c1a"
+    },
+    {
+      "path": "v1/hidden-device-comparison-clean-analysis-20261021.json",
+      "bytes": 12025,
+      "sha256": "46f047216e5b4bd4044173ec2c7796266d197bfe66ea6429b7481487e64b98b8"
+    },
+    {
+      "path": "v1/hidden-device-comparison-clean-launcher-20261021.txt",
+      "bytes": 693,
+      "sha256": "bd186ec1b31521a88f536c1bb08340cd260c21d448986ab004c335a855fc1388"
+    },
+    {
+      "path": "v1/hidden-device-comparison-clean-plan-20261021.json",
+      "bytes": 4407,
+      "sha256": "c7a06face2d961eaeb726a6253f4e0d7960c31674fa01ad09e7965209ffb2676"
+    },
+    {
+      "path": "v1/hidden-device-comparison-clean-runs-20261021/comparison.json",
+      "bytes": 133171,
+      "sha256": "b50ecede210d4cdc39be44885a558ba3eb0323553c39dc5b2049f182b7f73e3a"
+    },
+    {
+      "path": "v1/hidden-device-comparison-clean-runs-20261021/runs-92a71fa3ac3e45bc91f2552a6b6810ed/0-retired-device/result.json",
+      "bytes": 13647,
+      "sha256": "43471a022d4922efd777f66d4b91da7291be519e832e264c92ec08850eaa199b"
+    },
+    {
+      "path": "v1/hidden-device-comparison-clean-runs-20261021/runs-92a71fa3ac3e45bc91f2552a6b6810ed/0-stock601/result.json",
+      "bytes": 13603,
+      "sha256": "e2b378df650ddd46bd518357291635b21f35282e172425d125764343f21f550c"
+    },
+    {
+      "path": "v1/hidden-device-comparison-clean-runs-20261021/runs-92a71fa3ac3e45bc91f2552a6b6810ed/1-retired-device/result.json",
+      "bytes": 13665,
+      "sha256": "f96b10397eaa057f0f71b8f36814db503ce384d3db3bb3c0d6bdcfab4efc40c4"
+    },
+    {
+      "path": "v1/hidden-device-comparison-clean-runs-20261021/runs-92a71fa3ac3e45bc91f2552a6b6810ed/1-stock601/result.json",
+      "bytes": 13553,
+      "sha256": "f300958d2adea72455bc2981356a852699f0791a7ba1c2c0c036673b85e38f0e"
+    },
+    {
+      "path": "v1/hidden-device-comparison-clean-runs-20261021/runs-92a71fa3ac3e45bc91f2552a6b6810ed/2-retired-device/result.json",
+      "bytes": 13663,
+      "sha256": "b727706f37eea5d8bcaaf82a92350c47d261246caf99f28c10fcd889d07f9554"
+    },
+    {
+      "path": "v1/hidden-device-comparison-clean-runs-20261021/runs-92a71fa3ac3e45bc91f2552a6b6810ed/2-stock601/result.json",
+      "bytes": 13578,
+      "sha256": "2bf3dd00d3fef803d97e378d628d1cdbe18aae77801237a63225c5220855c6e5"
+    },
+    {
+      "path": "v1/hidden-device-comparison-clean-runs-20261021/runs-92a71fa3ac3e45bc91f2552a6b6810ed/3-retired-device/result.json",
+      "bytes": 13657,
+      "sha256": "c3b532ca4fde31732d61abeb7ee63165f48be41994b91da812ce90828f9dfe89"
+    },
+    {
+      "path": "v1/hidden-device-comparison-clean-runs-20261021/runs-92a71fa3ac3e45bc91f2552a6b6810ed/3-stock601/result.json",
+      "bytes": 13596,
+      "sha256": "ec38ec72e664eb76b1801965ce394fb4be4bb99a2ec44e27bcbb399e2a5431d6"
+    },
+    {
+      "path": "v1/hidden-device-comparison-launcher-20261021.txt",
+      "bytes": 65,
+      "sha256": "d613e6646c20a7b6226840db26aef54265db4d015c24011d09a1c113930ee50c"
+    },
+    {
+      "path": "v1/hidden-device-comparison-plan-20261021.json",
+      "bytes": 3215,
+      "sha256": "7f9f6c75ad426be59b50c330f2478e5f6b3d4b823ab7a3a17949ad390037a446"
+    },
+    {
+      "path": "v1/hidden-device-comparison-runs-20261021/runs-695863f6f5a24e8bb6dcbc67205b5f38/0-stock601/result.json",
+      "bytes": 13556,
+      "sha256": "4f58d68618beb93839df4847f088e8410e318f6e2a4d3785b811710c28e44774"
+    },
+    {
+      "path": "v1/hidden-device-first-attempt-disposition-20261021.json",
+      "bytes": 986,
+      "sha256": "dbad7905b3d109f20496739bb3d365d4c13de74a3b6a26c344fc6f537041f9f7"
+    },
+    {
+      "path": "v1/hidden-device-lifecycle-test-20261021.txt",
+      "bytes": 980,
+      "sha256": "79058854f1da240a31c6c147d22e5bd040f62a8175c194225aaaaa1f84e06f8e"
+    },
+    {
+      "path": "v1/hidden-device-payload-pinning-20261021.json",
+      "bytes": 1413,
+      "sha256": "d66ad84bc0853ae759744d48674d49deb36659568576e5570f9eee58cd5dd054"
+    },
+    {
+      "path": "v1/hidden-device-preview-test-20261021.txt",
+      "bytes": 803,
+      "sha256": "12a0062fe2ed547e0ef90a9071aa35c8db4704deb4020aa1ca9bbd61a311df74"
+    },
+    {
+      "path": "v1/hidden-device-prototype-build-20261021.txt",
+      "bytes": 5820,
+      "sha256": "1af595b4d4c0f9b2d12f0b5e0ec7dbff3446b898f29f2041a1b63e9328881f7c"
+    },
+    {
+      "path": "v1/hidden-device-prototype-package-20261021.txt",
+      "bytes": 424,
+      "sha256": "11a60b962c0f4aaa31754c5c51ed759fd279fc9022ba8788c2f9fefc28a6266a"
+    },
+    {
+      "path": "v1/hidden-device-prototype-source-20261021.patch",
+      "bytes": 5719,
+      "sha256": "03ac29bc4863614156482eeaa951982c1a436b7981f9a466d3344e40222f18d5"
+    },
+    {
+      "path": "v1/hidden-device-variants-20261021.json",
+      "bytes": 364,
+      "sha256": "a02ad2e62ed75bd16a6d15be2a4795e3ffccad9d1d392b4f9f2f515c9814edf9"
+    },
+    {
+      "path": "v2-functional/hidden-device-prepaint-interactions-20261021/app-build.log",
+      "bytes": 2884,
+      "sha256": "9a2ee24f27fafd8045efbd80f7adfbdecd5d9ea371b3d21f6eeaa874ccdab064"
+    },
+    {
+      "path": "v2-functional/hidden-device-prepaint-interactions-20261021/checks.log",
+      "bytes": 1892,
+      "sha256": "607c15d8d9c77501dbd4d634086bd1be74080309302630d084f5fbb5877d4651"
+    },
+    {
+      "path": "v2-functional/hidden-device-prepaint-interactions-20261021/harness-build.log",
+      "bytes": 276,
+      "sha256": "396763e426ce53c88a46bd67dd32ed1858c667ebf59d46abf519bb9ddb4f5d85"
+    },
+    {
+      "path": "v2-functional/hidden-device-prepaint-interactions-20261021/identity.json",
+      "bytes": 658,
+      "sha256": "cebd3bd84a721c9b20f6c949edae99bedb65318f40017c8ecc71a119a44da72d"
+    },
+    {
+      "path": "v2-functional/hidden-device-prepaint-interactions-fixed-20261021/app-build.log",
+      "bytes": 1589,
+      "sha256": "839fb413a99c6627eb8917ad62d370e3f3204b0f98c3da3e7d9526149b377e9c"
+    },
+    {
+      "path": "v2-functional/hidden-device-prepaint-interactions-fixed-20261021/checks.log",
+      "bytes": 1981,
+      "sha256": "dab9988f0851e8de0d72b9e2c680cd782f25f24d42b53969fb88e51ac3cb2e00"
+    },
+    {
+      "path": "v2-functional/hidden-device-prepaint-interactions-fixed-20261021/harness-build.log",
+      "bytes": 276,
+      "sha256": "396763e426ce53c88a46bd67dd32ed1858c667ebf59d46abf519bb9ddb4f5d85"
+    },
+    {
+      "path": "v2-functional/hidden-device-prepaint-interactions-fixed-20261021/identity.json",
+      "bytes": 658,
+      "sha256": "ba55b35d42bcde21320de73d59717300595b6b705501e38338ef99b03c8614cb"
+    },
+    {
+      "path": "v2-functional/hidden-device-prepaint-interactions-fixed-launcher-20261021.txt",
+      "bytes": 1144,
+      "sha256": "7570482f93555fce3d2bbb402fd62bc942aef2f30e6017b38f62a8f5160e0f27"
+    },
+    {
+      "path": "v2-functional/hidden-device-prepaint-interactions-launcher-20261021.txt",
+      "bytes": 1095,
+      "sha256": "b7bb8bada8fe7c1696880a0e9348709d7809c5358e0f75a47241bc653ae13f1d"
+    },
+    {
+      "path": "v2-functional/hidden-device-prepaint-resize-interactions-20261021/app-build.log",
+      "bytes": 1684,
+      "sha256": "8a4736c91dc44e4c988101212ba3adce116c6c2436968ae4b1d1ee04bbd192b7"
+    },
+    {
+      "path": "v2-functional/hidden-device-prepaint-resize-interactions-20261021/checks.log",
+      "bytes": 1981,
+      "sha256": "dab9988f0851e8de0d72b9e2c680cd782f25f24d42b53969fb88e51ac3cb2e00"
+    },
+    {
+      "path": "v2-functional/hidden-device-prepaint-resize-interactions-20261021/harness-build.log",
+      "bytes": 276,
+      "sha256": "396763e426ce53c88a46bd67dd32ed1858c667ebf59d46abf519bb9ddb4f5d85"
+    },
+    {
+      "path": "v2-functional/hidden-device-prepaint-resize-interactions-20261021/identity.json",
+      "bytes": 658,
+      "sha256": "53775307341afcb05c53313213aa372b41aabf7bd1b907818d12bcff8418659b"
+    },
+    {
+      "path": "v2-functional/hidden-device-prepaint-resize-launcher-20261021.txt",
+      "bytes": 1145,
+      "sha256": "34b90cf77b3a11d172a04d73d3764336e1c97ef819ad1289e348546814a2e1bc"
+    },
+    {
+      "path": "v2-functional/hidden-device-visible-returns-20261021/app-build.log",
+      "bytes": 1660,
+      "sha256": "ba5aa3b2c7fbb95ca7b9959e0686bb82e0876bb74ba61bd7fe2d3b3c16ef9744"
+    },
+    {
+      "path": "v2-functional/hidden-device-visible-returns-20261021/checks.log",
+      "bytes": 2093,
+      "sha256": "11908a390f6121d9d7518a466051da655664c39e8990273dc898ca728c6ef738"
+    },
+    {
+      "path": "v2-functional/hidden-device-visible-returns-20261021/harness-build.log",
+      "bytes": 276,
+      "sha256": "396763e426ce53c88a46bd67dd32ed1858c667ebf59d46abf519bb9ddb4f5d85"
+    },
+    {
+      "path": "v2-functional/hidden-device-visible-returns-20261021/identity.json",
+      "bytes": 868,
+      "sha256": "8d616e38dc1f5ae6e555ef3400c300f77fa4114199bcd4873bd8f2f86a5da85d"
+    },
+    {
+      "path": "v2-functional/hidden-device-visible-returns-diagnostic-20261021/app-build.log",
+      "bytes": 1587,
+      "sha256": "96b7a03fdaa9d529c2214f1fd111d05542ca2f722c4a8ea9b83ca38635f11c98"
+    },
+    {
+      "path": "v2-functional/hidden-device-visible-returns-diagnostic-20261021/checks.log",
+      "bytes": 1944,
+      "sha256": "7fb95ec60972edee704f813bedf19f6b8024a03de8f482337af617b42da3307a"
+    },
+    {
+      "path": "v2-functional/hidden-device-visible-returns-diagnostic-20261021/harness-build.log",
+      "bytes": 276,
+      "sha256": "396763e426ce53c88a46bd67dd32ed1858c667ebf59d46abf519bb9ddb4f5d85"
+    },
+    {
+      "path": "v2-functional/hidden-device-visible-returns-diagnostic-20261021/identity.json",
+      "bytes": 868,
+      "sha256": "d283ff43e36324044a65f87b0c9951c0fdfce614403138819a8ffa9fdec664ca"
+    },
+    {
+      "path": "v2-functional/hidden-device-visible-returns-diagnostic-launcher-20261021.txt",
+      "bytes": 1152,
+      "sha256": "3f58fb254fdf39cebec602cc8cb1d13077f9784f948f61a9187b5e2f41d4fa82"
+    },
+    {
+      "path": "v2-functional/hidden-device-visible-returns-fresh-process-20261021/app-build.log",
+      "bytes": 1593,
+      "sha256": "aa9298fb6395117a8d0b734f05e221e0b738d3ae8d4a4f366eff36d9a0332f3b"
+    },
+    {
+      "path": "v2-functional/hidden-device-visible-returns-fresh-process-20261021/checks.log",
+      "bytes": 1981,
+      "sha256": "dab9988f0851e8de0d72b9e2c680cd782f25f24d42b53969fb88e51ac3cb2e00"
+    },
+    {
+      "path": "v2-functional/hidden-device-visible-returns-fresh-process-20261021/harness-build.log",
+      "bytes": 276,
+      "sha256": "396763e426ce53c88a46bd67dd32ed1858c667ebf59d46abf519bb9ddb4f5d85"
+    },
+    {
+      "path": "v2-functional/hidden-device-visible-returns-fresh-process-20261021/identity.json",
+      "bytes": 868,
+      "sha256": "4aa9ae031c4f63060c6ef28044ec00f9e56126da23414e83677e3be8ea972f20"
+    },
+    {
+      "path": "v2-functional/hidden-device-visible-returns-fresh-process-20261021/return-fullscreen.json",
+      "bytes": 250,
+      "sha256": "ddda9dba1eea6cdb04124080239c24dce6eaf3738461354794b04bf46cb1b256"
+    },
+    {
+      "path": "v2-functional/hidden-device-visible-returns-fresh-process-20261021/return-maximized.json",
+      "bytes": 250,
+      "sha256": "373f90efbf98b1c54410bdcf9a3a55341512abee2e66eaedf07abbae8260fbd5"
+    },
+    {
+      "path": "v2-functional/hidden-device-visible-returns-fresh-process-20261021/return-minimized.json",
+      "bytes": 249,
+      "sha256": "a0ff7082a94038dc6e0d448a330b7e5a2d49e07863aeb757787230241221ef6b"
+    },
+    {
+      "path": "v2-functional/hidden-device-visible-returns-fresh-process-20261021/return-pip.json",
+      "bytes": 243,
+      "sha256": "446209acd7dff2e6939aa0525f4836e5f957685ee9ef9cdfa2060d0df4682030"
+    },
+    {
+      "path": "v2-functional/hidden-device-visible-returns-fresh-process-20261021/return-state-fullscreen.json",
+      "bytes": 183,
+      "sha256": "5a94cc3d17f7b7d8e95b63fac2691b875051f8827e7d2fff9c248e2bc299e1c4"
+    },
+    {
+      "path": "v2-functional/hidden-device-visible-returns-fresh-process-20261021/return-state-maximized.json",
+      "bytes": 183,
+      "sha256": "5a94cc3d17f7b7d8e95b63fac2691b875051f8827e7d2fff9c248e2bc299e1c4"
+    },
+    {
+      "path": "v2-functional/hidden-device-visible-returns-fresh-process-20261021/return-state-minimized.json",
+      "bytes": 183,
+      "sha256": "d259eb40b237a39c3d129e7ad4008d0d3ab07d5a255443f6d029f306d644d829"
+    },
+    {
+      "path": "v2-functional/hidden-device-visible-returns-fresh-process-20261021/return-state-pip.json",
+      "bytes": 183,
+      "sha256": "5a94cc3d17f7b7d8e95b63fac2691b875051f8827e7d2fff9c248e2bc299e1c4"
+    },
+    {
+      "path": "v2-functional/hidden-device-visible-returns-fresh-process-20261021/return-state-windowed.json",
+      "bytes": 183,
+      "sha256": "5a94cc3d17f7b7d8e95b63fac2691b875051f8827e7d2fff9c248e2bc299e1c4"
+    },
+    {
+      "path": "v2-functional/hidden-device-visible-returns-fresh-process-20261021/return-windowed.json",
+      "bytes": 248,
+      "sha256": "75d611a76167f6177f8a80c9d8319131906dacd36643a06b673c1f0827a392f7"
+    },
+    {
+      "path": "v2-functional/hidden-device-visible-returns-fresh-process-20261021/visible-fullscreen.log",
+      "bytes": 129,
+      "sha256": "67af27ac2cd5ccaeacae8572ff4ef34ad07d34b30e729388f1b77e1dd99254ab"
+    },
+    {
+      "path": "v2-functional/hidden-device-visible-returns-fresh-process-20261021/visible-maximized.log",
+      "bytes": 128,
+      "sha256": "e41ea8ab3a50e6a9367632abeaed22b0a74df5f609dfa1778062aa96a177ac17"
+    },
+    {
+      "path": "v2-functional/hidden-device-visible-returns-fresh-process-20261021/visible-minimized.log",
+      "bytes": 128,
+      "sha256": "acc6261459f01f01f132277d1d7f92d9d8133ed0db7e9f94d597576ddc51b55a"
+    },
+    {
+      "path": "v2-functional/hidden-device-visible-returns-fresh-process-20261021/visible-pip.log",
+      "bytes": 122,
+      "sha256": "a8a3983ed8ef8838489d441b44c88dca279955de1492b279d647e538f8defccf"
+    },
+    {
+      "path": "v2-functional/hidden-device-visible-returns-fresh-process-20261021/visible-windowed.log",
+      "bytes": 127,
+      "sha256": "c7054e853957c16430de80e571572fd17c24e0179c1940bbe84762e8dbd79d3c"
+    },
+    {
+      "path": "v2-functional/hidden-device-visible-returns-fresh-process-launcher-20261021.txt",
+      "bytes": 1780,
+      "sha256": "2fadd6a63b21e5b5ae610af4fb80b96e3bd1698421ee3d8d13dfd58ba8758a61"
+    },
+    {
+      "path": "v2-functional/hidden-device-visible-returns-launcher-20261021.txt",
+      "bytes": 1099,
+      "sha256": "7d9a617636620deaf14920f04653607f26ce19c451e6ea91a29924a76f471eb2"
+    },
+    {
+      "path": "v2-functional/return-handoff-source-fd16d90.patch",
+      "bytes": 22728,
+      "sha256": "07740e4326a794d494e302b9626f6d32fbd5adc608cee00ba964376844afa829"
+    }
+  ]
+}

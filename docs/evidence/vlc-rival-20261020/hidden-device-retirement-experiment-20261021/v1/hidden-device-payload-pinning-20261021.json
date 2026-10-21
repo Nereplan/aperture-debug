@@ -1,0 +1,41 @@
+{
+  "reason": "Pin identical managed runtime inputs, leaving only the EXE changed. Original packaged non-EXE differences are representation only; no playback feature/settings changes.",
+  "originalDifferences": [
+    {
+      "path": "locales/en-US.json",
+      "baselineBytes": 552,
+      "originalCandidateBytes": 539,
+      "sameNormalizedText": true,
+      "reason": "BOM/line-ending representation only"
+    },
+    {
+      "path": "release-source.json",
+      "baselineBytes": 66,
+      "originalCandidateBytes": 66,
+      "sameNormalizedText": false,
+      "reason": "JSON object key order only"
+    },
+    {
+      "path": "runtime_update.ps1",
+      "baselineBytes": 15546,
+      "originalCandidateBytes": 15585,
+      "sameNormalizedText": true,
+      "reason": "BOM/line-ending representation only"
+    },
+    {
+      "path": "Update.cmd",
+      "baselineBytes": 115,
+      "originalCandidateBytes": 119,
+      "sameNormalizedText": true,
+      "reason": "BOM/line-ending representation only"
+    },
+    {
+      "path": "update.ps1",
+      "baselineBytes": 4993,
+      "originalCandidateBytes": 5060,
+      "sameNormalizedText": true,
+      "reason": "BOM/line-ending representation only"
+    }
+  ],
+  "originalAssetsDirectory": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-original-package-assets-20261021"
+}

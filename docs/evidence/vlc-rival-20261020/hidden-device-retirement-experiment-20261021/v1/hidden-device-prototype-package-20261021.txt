@@ -1,0 +1,4 @@
+Package created: C:\Users\Alperen\AppData\Local\Codex\tools\scratch\aperture-rival-20261019\hidden-device-candidate-runtime-20261021
+Manifest: C:\Users\Alperen\AppData\Local\Codex\tools\scratch\aperture-rival-20261019\hidden-device-candidate-runtime-20261021\manifest.json
+Authenticode: Unsigned (standard reproducible package)
+Files: 10; binary SHA-256: 19b9ea164eb15a4272c3f74d82294063ff53030d60302b03fba8c4a356e07d7d

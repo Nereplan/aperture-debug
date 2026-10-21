@@ -1,0 +1,572 @@
+{
+  "recordedAtUtc": "2026-10-21T10:37:49.438101+00:00",
+  "status": "qualified-complete-v1-resource-experiment-uninstalled",
+  "baseSourceCommit": "601e62924ca31fb8e6a439958590887e1397afb0",
+  "candidateSourceDirty": true,
+  "candidatePatchSha256": "03ac29bc4863614156482eeaa951982c1a436b7981f9a466d3344e40222f18d5",
+  "laterEquivalentV1Commit": "7eadccb19f4ce4e2178b528fd8e009bb66535805",
+  "baselineExecutableSha256": "d2f8744bca973d97609ec821a653cc9a903d23d07e3d9065d160704f7e44c81e",
+  "candidateExecutableSha256": "19b9ea164eb15a4272c3f74d82294063ff53030d60302b03fba8c4a356e07d7d",
+  "protocol": "One warmup and three measured fresh processes per variant; measured candidate/stock, stock/candidate, candidate/stock order. HubThenOpen with3s hub settle; AV1 1080p30/AAC stereo fixture84630e2bec31bbda663d634e2a7fc13cf1c81f983565d3942094e8dc9808fdd8; actual1280x720canvas at96DPI. Sampling after20.5s media alignment over30s, seven snapshots per run with before/after visibility guards. Warm OS caches, fresh runtime/profile each run. Mean of seven snapshots then mean of three run means; min/max run means retained.",
+  "qualification": "All eight calls sampled advancing playback, exact executable/runtime identities, actual canvas and14 successful visibility guards; owned windows closed normally. Nine managed non-EXE payloads were byte-identical; manifest files differ because executable identity differs. CPU counters are retained raw only.",
+  "aggregation": "Mean of seven guarded snapshots per run, mean across three fresh measured runs; all run-mean ranges and paired differences retained. Chosen before first duration/memory analysis; no significance test or overall pass threshold.",
+  "summaries": {
+    "stock601": {
+      "privateBytes": {
+        "meanOfRunMeans": 168575171.04761904,
+        "minRunMean": 165985718.85714287,
+        "maxRunMean": 172938386.2857143,
+        "runs": 3
+      },
+      "workingSetBytes": {
+        "meanOfRunMeans": 147073706.66666666,
+        "minRunMean": 146766701.7142857,
+        "maxRunMean": 147543186.2857143,
+        "runs": 3
+      },
+      "dedicatedGpuBytes": {
+        "meanOfRunMeans": 95791981.71428572,
+        "minRunMean": 94295186.28571428,
+        "maxRunMean": 98227346.28571428,
+        "runs": 3
+      },
+      "sharedGpuBytes": {
+        "meanOfRunMeans": 16911408.76190476,
+        "minRunMean": 16787748.57142857,
+        "maxRunMean": 17004836.57142857,
+        "runs": 3
+      }
+    },
+    "retired-device": {
+      "privateBytes": {
+        "meanOfRunMeans": 156168387.04761904,
+        "minRunMean": 155013705.14285713,
+        "maxRunMean": 158168210.2857143,
+        "runs": 3
+      },
+      "workingSetBytes": {
+        "meanOfRunMeans": 142790070.85714287,
+        "minRunMean": 142689426.2857143,
+        "maxRunMean": 142935186.2857143,
+        "runs": 3
+      },
+      "dedicatedGpuBytes": {
+        "meanOfRunMeans": 78070345.14285715,
+        "minRunMean": 77316096,
+        "maxRunMean": 79565970.28571428,
+        "runs": 3
+      },
+      "sharedGpuBytes": {
+        "meanOfRunMeans": 15224051.80952381,
+        "minRunMean": 15092004.57142857,
+        "maxRunMean": 15297389.714285715,
+        "runs": 3
+      }
+    }
+  },
+  "pairs": [
+    {
+      "round": 1,
+      "candidateMinusStockBytes": {
+        "privateBytes": -10972013.714285731,
+        "workingSetBytes": -3976045.7142857015,
+        "dedicatedGpuBytes": -16979090.285714284,
+        "sharedGpuBytes": -1849636.571428571
+      }
+    },
+    {
+      "round": 2,
+      "candidateMinusStockBytes": {
+        "privateBytes": -14770176.0,
+        "workingSetBytes": -4797586.2857142985,
+        "dedicatedGpuBytes": -18661376.0,
+        "sharedGpuBytes": -1707446.8571428563
+      }
+    },
+    {
+      "round": 3,
+      "candidateMinusStockBytes": {
+        "privateBytes": -11478162.285714298,
+        "workingSetBytes": -4077275.428571403,
+        "dedicatedGpuBytes": -17524443.428571418,
+        "sharedGpuBytes": -1504987.4285714272
+      }
+    }
+  ],
+  "finding": "Mean private bytes fell12406784bytes (11.83203125MiB), with reductions in all three measured pairs. Dedicated GPU bytes fell17721636.571428567bytes (~16.900669MiB). Memory accounts overlap and cannot be added.",
+  "limits": [
+    "Isolated prototype not installed; source patch and nine byte-identical non-EXE payloads retained. No CPU or VLC ranking.",
+    "Resource account figures overlap and are not additive. Three repeats and ranges do not establish a confidence interval.",
+    "Sampling begins after20.5s and does not characterize the15s retirement transition, presentation cadence, audio continuity or return-to-library visual/latency behavior. Those require independent functional checks before adoption.",
+    "No CPU, VLC ranking, effective decoder equivalence, picture-quality equivalence, dropped-frame, cadence, audio-continuity or component-causal claim.",
+    "V1 resource qualification does not apply to subsequent v2 return-handoff code or any later installed build. Sampling after20.5s misses the15s retirement transition.",
+    "V1 original analyzer validates the then-current dirty worktree diff and refuses to overwrite output. Replaying its full source qualification now requires reconstructing601e629 plus the exact sealed patch in a disposable worktree, satisfying recorded input paths/hashes and selecting a new output; the later equivalent commit does not change the original measurement identity.",
+    "Runtime binaries, PDBs, media, generated profiles and screenshots remain external; this record contains small text evidence and exact hashes."
+  ],
+  "firstAttempt": {
+    "status": "unqualified-incomplete",
+    "nativeExitCode": 1,
+    "disposition": "One stock warmup only; candidate rejected before launch because packaged runtime had preexisting empty data/. No measured pair; no values reused. A deletion request was automatically rejected as blocked by policy; original directory remains untouched and a fresh clean runtime was used for the independent full batch."
+  },
+  "v2Functional": {
+    "baseSourceCommit": "7eadccb19f4ce4e2178b528fd8e009bb66535805",
+    "dirtyDuringTests": true,
+    "laterEquivalentCommit": "fd16d9001774a93f50dacf64881b2fe6291e45d3",
+    "notIncludedInV1ResourceMeasurement": true,
+    "successfulFinalIdentity": "v2-functional/hidden-device-visible-returns-fresh-process-20261021/identity.json",
+    "finalResult": "Default hidden30/30 checks; five fresh visible mode processes each2/2 setup/return checks. Windowed includes rapid reopen/retire/close; fullscreen, maximized and PiP restore a prepared hub frame before video hide; minimized close keeps graphics lazy until restored. Resize does not re-show stopped video.",
+    "scope": "Forced15s retirement clock; native state/order assertions only. Present-success/frame state does not measure panel pixels, cadence, transition latency, audio continuity or GPU resource performance.",
+    "earlierAttempts": [
+      {
+        "path": "v2-functional/hidden-device-prepaint-interactions-20261021",
+        "status": "failed-fixture",
+        "detail": "Existing28checks passed; added retirement check began in hub state. Fixture corrected before subsequent runs."
+      },
+      {
+        "path": "v2-functional/hidden-device-visible-returns-20261021",
+        "status": "unqualified-failure",
+        "detail": "31checks passed before Video hidden before a restored hub frame was prepared. Multiple App lifetimes in one process differed from production; factory/cache contamination is a possibility, not a proven cause."
+      },
+      {
+        "path": "v2-functional/hidden-device-visible-returns-diagnostic-20261021",
+        "status": "unqualified-crash",
+        "nativeExitCode": -1073741819,
+        "detail": "Native execution bridge reported access violation after hidden30checks and before second setup completed; no return-state JSON. Cause unclassified. Source/test identities and logs retained."
+      }
+    ]
+  },
+  "files": [
+    {
+      "path": "v1/analyze-hidden-device-comparison-clean-20261021.py",
+      "bytes": 5909,
+      "sha256": "9341b354afc4879d4a9680eb84dc89d199f1dbfe8985b1a639e1ee90ed72a86d",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\analyze-hidden-device-comparison-clean-20261021.py"
+    },
+    {
+      "path": "v1/analyze-hidden-device-comparison-20261021.py",
+      "bytes": 5820,
+      "sha256": "6f738d10dcb3ad4c371eca0f7fe90c516f28434f8dae2664ff6399291b0547df",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\analyze-hidden-device-comparison-20261021.py"
+    },
+    {
+      "path": "v1/hidden-device-comparison-clean-analysis-20261021.json",
+      "bytes": 12025,
+      "sha256": "46f047216e5b4bd4044173ec2c7796266d197bfe66ea6429b7481487e64b98b8",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-comparison-clean-analysis-20261021.json"
+    },
+    {
+      "path": "v1/hidden-device-comparison-clean-plan-20261021.json",
+      "bytes": 4407,
+      "sha256": "c7a06face2d961eaeb726a6253f4e0d7960c31674fa01ad09e7965209ffb2676",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-comparison-clean-plan-20261021.json"
+    },
+    {
+      "path": "v1/hidden-device-comparison-plan-20261021.json",
+      "bytes": 3215,
+      "sha256": "7f9f6c75ad426be59b50c330f2478e5f6b3d4b823ab7a3a17949ad390037a446",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-comparison-plan-20261021.json"
+    },
+    {
+      "path": "v1/hidden-device-comparison-clean-launcher-20261021.txt",
+      "bytes": 693,
+      "sha256": "bd186ec1b31521a88f536c1bb08340cd260c21d448986ab004c335a855fc1388",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-comparison-clean-launcher-20261021.txt"
+    },
+    {
+      "path": "v1/hidden-device-comparison-launcher-20261021.txt",
+      "bytes": 65,
+      "sha256": "d613e6646c20a7b6226840db26aef54265db4d015c24011d09a1c113930ee50c",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-comparison-launcher-20261021.txt"
+    },
+    {
+      "path": "v1/hidden-device-first-attempt-disposition-20261021.json",
+      "bytes": 986,
+      "sha256": "dbad7905b3d109f20496739bb3d365d4c13de74a3b6a26c344fc6f537041f9f7",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-first-attempt-disposition-20261021.json"
+    },
+    {
+      "path": "v1/hidden-device-clean-variants-20261021.json",
+      "bytes": 370,
+      "sha256": "594d99bd8fbb0494589f4e7b66b2dd443a91186b464c4062f0e73b0f00ba1c1a",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-clean-variants-20261021.json"
+    },
+    {
+      "path": "v1/hidden-device-variants-20261021.json",
+      "bytes": 364,
+      "sha256": "a02ad2e62ed75bd16a6d15be2a4795e3ffccad9d1d392b4f9f2f515c9814edf9",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-variants-20261021.json"
+    },
+    {
+      "path": "v1/hidden-device-payload-pinning-20261021.json",
+      "bytes": 1413,
+      "sha256": "d66ad84bc0853ae759744d48674d49deb36659568576e5570f9eee58cd5dd054",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-payload-pinning-20261021.json"
+    },
+    {
+      "path": "v1/hidden-device-prototype-source-20261021.patch",
+      "bytes": 5719,
+      "sha256": "03ac29bc4863614156482eeaa951982c1a436b7981f9a466d3344e40222f18d5",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-prototype-source-20261021.patch"
+    },
+    {
+      "path": "v1/hidden-device-prototype-build-20261021.txt",
+      "bytes": 5820,
+      "sha256": "1af595b4d4c0f9b2d12f0b5e0ec7dbff3446b898f29f2041a1b63e9328881f7c",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-prototype-build-20261021.txt"
+    },
+    {
+      "path": "v1/hidden-device-prototype-package-20261021.txt",
+      "bytes": 424,
+      "sha256": "11a60b962c0f4aaa31754c5c51ed759fd279fc9022ba8788c2f9fefc28a6266a",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-prototype-package-20261021.txt"
+    },
+    {
+      "path": "v1/hidden-device-lifecycle-test-20261021.txt",
+      "bytes": 980,
+      "sha256": "79058854f1da240a31c6c147d22e5bd040f62a8175c194225aaaaa1f84e06f8e",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-lifecycle-test-20261021.txt"
+    },
+    {
+      "path": "v1/hidden-device-preview-test-20261021.txt",
+      "bytes": 803,
+      "sha256": "12a0062fe2ed547e0ef90a9071aa35c8db4704deb4020aa1ca9bbd61a311df74",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-preview-test-20261021.txt"
+    },
+    {
+      "path": "v1/hidden-device-comparison-clean-runs-20261021/comparison.json",
+      "bytes": 133171,
+      "sha256": "b50ecede210d4cdc39be44885a558ba3eb0323553c39dc5b2049f182b7f73e3a",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-comparison-clean-runs-20261021\\comparison.json"
+    },
+    {
+      "path": "v1/hidden-device-comparison-clean-runs-20261021/runs-92a71fa3ac3e45bc91f2552a6b6810ed/0-retired-device/result.json",
+      "bytes": 13647,
+      "sha256": "43471a022d4922efd777f66d4b91da7291be519e832e264c92ec08850eaa199b",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-comparison-clean-runs-20261021\\runs-92a71fa3ac3e45bc91f2552a6b6810ed\\0-retired-device\\result.json"
+    },
+    {
+      "path": "v1/hidden-device-comparison-clean-runs-20261021/runs-92a71fa3ac3e45bc91f2552a6b6810ed/0-stock601/result.json",
+      "bytes": 13603,
+      "sha256": "e2b378df650ddd46bd518357291635b21f35282e172425d125764343f21f550c",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-comparison-clean-runs-20261021\\runs-92a71fa3ac3e45bc91f2552a6b6810ed\\0-stock601\\result.json"
+    },
+    {
+      "path": "v1/hidden-device-comparison-clean-runs-20261021/runs-92a71fa3ac3e45bc91f2552a6b6810ed/1-retired-device/result.json",
+      "bytes": 13665,
+      "sha256": "f96b10397eaa057f0f71b8f36814db503ce384d3db3bb3c0d6bdcfab4efc40c4",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-comparison-clean-runs-20261021\\runs-92a71fa3ac3e45bc91f2552a6b6810ed\\1-retired-device\\result.json"
+    },
+    {
+      "path": "v1/hidden-device-comparison-clean-runs-20261021/runs-92a71fa3ac3e45bc91f2552a6b6810ed/1-stock601/result.json",
+      "bytes": 13553,
+      "sha256": "f300958d2adea72455bc2981356a852699f0791a7ba1c2c0c036673b85e38f0e",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-comparison-clean-runs-20261021\\runs-92a71fa3ac3e45bc91f2552a6b6810ed\\1-stock601\\result.json"
+    },
+    {
+      "path": "v1/hidden-device-comparison-clean-runs-20261021/runs-92a71fa3ac3e45bc91f2552a6b6810ed/2-retired-device/result.json",
+      "bytes": 13663,
+      "sha256": "b727706f37eea5d8bcaaf82a92350c47d261246caf99f28c10fcd889d07f9554",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-comparison-clean-runs-20261021\\runs-92a71fa3ac3e45bc91f2552a6b6810ed\\2-retired-device\\result.json"
+    },
+    {
+      "path": "v1/hidden-device-comparison-clean-runs-20261021/runs-92a71fa3ac3e45bc91f2552a6b6810ed/2-stock601/result.json",
+      "bytes": 13578,
+      "sha256": "2bf3dd00d3fef803d97e378d628d1cdbe18aae77801237a63225c5220855c6e5",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-comparison-clean-runs-20261021\\runs-92a71fa3ac3e45bc91f2552a6b6810ed\\2-stock601\\result.json"
+    },
+    {
+      "path": "v1/hidden-device-comparison-clean-runs-20261021/runs-92a71fa3ac3e45bc91f2552a6b6810ed/3-retired-device/result.json",
+      "bytes": 13657,
+      "sha256": "c3b532ca4fde31732d61abeb7ee63165f48be41994b91da812ce90828f9dfe89",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-comparison-clean-runs-20261021\\runs-92a71fa3ac3e45bc91f2552a6b6810ed\\3-retired-device\\result.json"
+    },
+    {
+      "path": "v1/hidden-device-comparison-clean-runs-20261021/runs-92a71fa3ac3e45bc91f2552a6b6810ed/3-stock601/result.json",
+      "bytes": 13596,
+      "sha256": "ec38ec72e664eb76b1801965ce394fb4be4bb99a2ec44e27bcbb399e2a5431d6",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-comparison-clean-runs-20261021\\runs-92a71fa3ac3e45bc91f2552a6b6810ed\\3-stock601\\result.json"
+    },
+    {
+      "path": "v1/hidden-device-comparison-runs-20261021/runs-695863f6f5a24e8bb6dcbc67205b5f38/0-stock601/result.json",
+      "bytes": 13556,
+      "sha256": "4f58d68618beb93839df4847f088e8410e318f6e2a4d3785b811710c28e44774",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-comparison-runs-20261021\\runs-695863f6f5a24e8bb6dcbc67205b5f38\\0-stock601\\result.json"
+    },
+    {
+      "path": "v2-functional/hidden-device-prepaint-interactions-20261021/app-build.log",
+      "bytes": 2884,
+      "sha256": "9a2ee24f27fafd8045efbd80f7adfbdecd5d9ea371b3d21f6eeaa874ccdab064",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-prepaint-interactions-20261021\\app-build.log"
+    },
+    {
+      "path": "v2-functional/hidden-device-prepaint-interactions-20261021/checks.log",
+      "bytes": 1892,
+      "sha256": "607c15d8d9c77501dbd4d634086bd1be74080309302630d084f5fbb5877d4651",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-prepaint-interactions-20261021\\checks.log"
+    },
+    {
+      "path": "v2-functional/hidden-device-prepaint-interactions-20261021/harness-build.log",
+      "bytes": 276,
+      "sha256": "396763e426ce53c88a46bd67dd32ed1858c667ebf59d46abf519bb9ddb4f5d85",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-prepaint-interactions-20261021\\harness-build.log"
+    },
+    {
+      "path": "v2-functional/hidden-device-prepaint-interactions-20261021/identity.json",
+      "bytes": 658,
+      "sha256": "cebd3bd84a721c9b20f6c949edae99bedb65318f40017c8ecc71a119a44da72d",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-prepaint-interactions-20261021\\identity.json"
+    },
+    {
+      "path": "v2-functional/hidden-device-prepaint-interactions-fixed-20261021/app-build.log",
+      "bytes": 1589,
+      "sha256": "839fb413a99c6627eb8917ad62d370e3f3204b0f98c3da3e7d9526149b377e9c",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-prepaint-interactions-fixed-20261021\\app-build.log"
+    },
+    {
+      "path": "v2-functional/hidden-device-prepaint-interactions-fixed-20261021/checks.log",
+      "bytes": 1981,
+      "sha256": "dab9988f0851e8de0d72b9e2c680cd782f25f24d42b53969fb88e51ac3cb2e00",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-prepaint-interactions-fixed-20261021\\checks.log"
+    },
+    {
+      "path": "v2-functional/hidden-device-prepaint-interactions-fixed-20261021/harness-build.log",
+      "bytes": 276,
+      "sha256": "396763e426ce53c88a46bd67dd32ed1858c667ebf59d46abf519bb9ddb4f5d85",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-prepaint-interactions-fixed-20261021\\harness-build.log"
+    },
+    {
+      "path": "v2-functional/hidden-device-prepaint-interactions-fixed-20261021/identity.json",
+      "bytes": 658,
+      "sha256": "ba55b35d42bcde21320de73d59717300595b6b705501e38338ef99b03c8614cb",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-prepaint-interactions-fixed-20261021\\identity.json"
+    },
+    {
+      "path": "v2-functional/hidden-device-prepaint-resize-interactions-20261021/app-build.log",
+      "bytes": 1684,
+      "sha256": "8a4736c91dc44e4c988101212ba3adce116c6c2436968ae4b1d1ee04bbd192b7",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-prepaint-resize-interactions-20261021\\app-build.log"
+    },
+    {
+      "path": "v2-functional/hidden-device-prepaint-resize-interactions-20261021/checks.log",
+      "bytes": 1981,
+      "sha256": "dab9988f0851e8de0d72b9e2c680cd782f25f24d42b53969fb88e51ac3cb2e00",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-prepaint-resize-interactions-20261021\\checks.log"
+    },
+    {
+      "path": "v2-functional/hidden-device-prepaint-resize-interactions-20261021/harness-build.log",
+      "bytes": 276,
+      "sha256": "396763e426ce53c88a46bd67dd32ed1858c667ebf59d46abf519bb9ddb4f5d85",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-prepaint-resize-interactions-20261021\\harness-build.log"
+    },
+    {
+      "path": "v2-functional/hidden-device-prepaint-resize-interactions-20261021/identity.json",
+      "bytes": 658,
+      "sha256": "53775307341afcb05c53313213aa372b41aabf7bd1b907818d12bcff8418659b",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-prepaint-resize-interactions-20261021\\identity.json"
+    },
+    {
+      "path": "v2-functional/hidden-device-visible-returns-20261021/app-build.log",
+      "bytes": 1660,
+      "sha256": "ba5aa3b2c7fbb95ca7b9959e0686bb82e0876bb74ba61bd7fe2d3b3c16ef9744",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-visible-returns-20261021\\app-build.log"
+    },
+    {
+      "path": "v2-functional/hidden-device-visible-returns-20261021/checks.log",
+      "bytes": 2093,
+      "sha256": "11908a390f6121d9d7518a466051da655664c39e8990273dc898ca728c6ef738",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-visible-returns-20261021\\checks.log"
+    },
+    {
+      "path": "v2-functional/hidden-device-visible-returns-20261021/harness-build.log",
+      "bytes": 276,
+      "sha256": "396763e426ce53c88a46bd67dd32ed1858c667ebf59d46abf519bb9ddb4f5d85",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-visible-returns-20261021\\harness-build.log"
+    },
+    {
+      "path": "v2-functional/hidden-device-visible-returns-20261021/identity.json",
+      "bytes": 868,
+      "sha256": "8d616e38dc1f5ae6e555ef3400c300f77fa4114199bcd4873bd8f2f86a5da85d",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-visible-returns-20261021\\identity.json"
+    },
+    {
+      "path": "v2-functional/hidden-device-visible-returns-diagnostic-20261021/app-build.log",
+      "bytes": 1587,
+      "sha256": "96b7a03fdaa9d529c2214f1fd111d05542ca2f722c4a8ea9b83ca38635f11c98",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-visible-returns-diagnostic-20261021\\app-build.log"
+    },
+    {
+      "path": "v2-functional/hidden-device-visible-returns-diagnostic-20261021/checks.log",
+      "bytes": 1944,
+      "sha256": "7fb95ec60972edee704f813bedf19f6b8024a03de8f482337af617b42da3307a",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-visible-returns-diagnostic-20261021\\checks.log"
+    },
+    {
+      "path": "v2-functional/hidden-device-visible-returns-diagnostic-20261021/harness-build.log",
+      "bytes": 276,
+      "sha256": "396763e426ce53c88a46bd67dd32ed1858c667ebf59d46abf519bb9ddb4f5d85",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-visible-returns-diagnostic-20261021\\harness-build.log"
+    },
+    {
+      "path": "v2-functional/hidden-device-visible-returns-diagnostic-20261021/identity.json",
+      "bytes": 868,
+      "sha256": "d283ff43e36324044a65f87b0c9951c0fdfce614403138819a8ffa9fdec664ca",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-visible-returns-diagnostic-20261021\\identity.json"
+    },
+    {
+      "path": "v2-functional/hidden-device-visible-returns-fresh-process-20261021/app-build.log",
+      "bytes": 1593,
+      "sha256": "aa9298fb6395117a8d0b734f05e221e0b738d3ae8d4a4f366eff36d9a0332f3b",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-visible-returns-fresh-process-20261021\\app-build.log"
+    },
+    {
+      "path": "v2-functional/hidden-device-visible-returns-fresh-process-20261021/checks.log",
+      "bytes": 1981,
+      "sha256": "dab9988f0851e8de0d72b9e2c680cd782f25f24d42b53969fb88e51ac3cb2e00",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-visible-returns-fresh-process-20261021\\checks.log"
+    },
+    {
+      "path": "v2-functional/hidden-device-visible-returns-fresh-process-20261021/harness-build.log",
+      "bytes": 276,
+      "sha256": "396763e426ce53c88a46bd67dd32ed1858c667ebf59d46abf519bb9ddb4f5d85",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-visible-returns-fresh-process-20261021\\harness-build.log"
+    },
+    {
+      "path": "v2-functional/hidden-device-visible-returns-fresh-process-20261021/identity.json",
+      "bytes": 868,
+      "sha256": "4aa9ae031c4f63060c6ef28044ec00f9e56126da23414e83677e3be8ea972f20",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-visible-returns-fresh-process-20261021\\identity.json"
+    },
+    {
+      "path": "v2-functional/hidden-device-visible-returns-fresh-process-20261021/return-fullscreen.json",
+      "bytes": 250,
+      "sha256": "ddda9dba1eea6cdb04124080239c24dce6eaf3738461354794b04bf46cb1b256",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-visible-returns-fresh-process-20261021\\return-fullscreen.json"
+    },
+    {
+      "path": "v2-functional/hidden-device-visible-returns-fresh-process-20261021/return-maximized.json",
+      "bytes": 250,
+      "sha256": "373f90efbf98b1c54410bdcf9a3a55341512abee2e66eaedf07abbae8260fbd5",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-visible-returns-fresh-process-20261021\\return-maximized.json"
+    },
+    {
+      "path": "v2-functional/hidden-device-visible-returns-fresh-process-20261021/return-minimized.json",
+      "bytes": 249,
+      "sha256": "a0ff7082a94038dc6e0d448a330b7e5a2d49e07863aeb757787230241221ef6b",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-visible-returns-fresh-process-20261021\\return-minimized.json"
+    },
+    {
+      "path": "v2-functional/hidden-device-visible-returns-fresh-process-20261021/return-pip.json",
+      "bytes": 243,
+      "sha256": "446209acd7dff2e6939aa0525f4836e5f957685ee9ef9cdfa2060d0df4682030",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-visible-returns-fresh-process-20261021\\return-pip.json"
+    },
+    {
+      "path": "v2-functional/hidden-device-visible-returns-fresh-process-20261021/return-state-fullscreen.json",
+      "bytes": 183,
+      "sha256": "5a94cc3d17f7b7d8e95b63fac2691b875051f8827e7d2fff9c248e2bc299e1c4",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-visible-returns-fresh-process-20261021\\return-state-fullscreen.json"
+    },
+    {
+      "path": "v2-functional/hidden-device-visible-returns-fresh-process-20261021/return-state-maximized.json",
+      "bytes": 183,
+      "sha256": "5a94cc3d17f7b7d8e95b63fac2691b875051f8827e7d2fff9c248e2bc299e1c4",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-visible-returns-fresh-process-20261021\\return-state-maximized.json"
+    },
+    {
+      "path": "v2-functional/hidden-device-visible-returns-fresh-process-20261021/return-state-minimized.json",
+      "bytes": 183,
+      "sha256": "d259eb40b237a39c3d129e7ad4008d0d3ab07d5a255443f6d029f306d644d829",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-visible-returns-fresh-process-20261021\\return-state-minimized.json"
+    },
+    {
+      "path": "v2-functional/hidden-device-visible-returns-fresh-process-20261021/return-state-pip.json",
+      "bytes": 183,
+      "sha256": "5a94cc3d17f7b7d8e95b63fac2691b875051f8827e7d2fff9c248e2bc299e1c4",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-visible-returns-fresh-process-20261021\\return-state-pip.json"
+    },
+    {
+      "path": "v2-functional/hidden-device-visible-returns-fresh-process-20261021/return-state-windowed.json",
+      "bytes": 183,
+      "sha256": "5a94cc3d17f7b7d8e95b63fac2691b875051f8827e7d2fff9c248e2bc299e1c4",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-visible-returns-fresh-process-20261021\\return-state-windowed.json"
+    },
+    {
+      "path": "v2-functional/hidden-device-visible-returns-fresh-process-20261021/return-windowed.json",
+      "bytes": 248,
+      "sha256": "75d611a76167f6177f8a80c9d8319131906dacd36643a06b673c1f0827a392f7",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-visible-returns-fresh-process-20261021\\return-windowed.json"
+    },
+    {
+      "path": "v2-functional/hidden-device-visible-returns-fresh-process-20261021/visible-fullscreen.log",
+      "bytes": 129,
+      "sha256": "67af27ac2cd5ccaeacae8572ff4ef34ad07d34b30e729388f1b77e1dd99254ab",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-visible-returns-fresh-process-20261021\\visible-fullscreen.log"
+    },
+    {
+      "path": "v2-functional/hidden-device-visible-returns-fresh-process-20261021/visible-maximized.log",
+      "bytes": 128,
+      "sha256": "e41ea8ab3a50e6a9367632abeaed22b0a74df5f609dfa1778062aa96a177ac17",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-visible-returns-fresh-process-20261021\\visible-maximized.log"
+    },
+    {
+      "path": "v2-functional/hidden-device-visible-returns-fresh-process-20261021/visible-minimized.log",
+      "bytes": 128,
+      "sha256": "acc6261459f01f01f132277d1d7f92d9d8133ed0db7e9f94d597576ddc51b55a",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-visible-returns-fresh-process-20261021\\visible-minimized.log"
+    },
+    {
+      "path": "v2-functional/hidden-device-visible-returns-fresh-process-20261021/visible-pip.log",
+      "bytes": 122,
+      "sha256": "a8a3983ed8ef8838489d441b44c88dca279955de1492b279d647e538f8defccf",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-visible-returns-fresh-process-20261021\\visible-pip.log"
+    },
+    {
+      "path": "v2-functional/hidden-device-visible-returns-fresh-process-20261021/visible-windowed.log",
+      "bytes": 127,
+      "sha256": "c7054e853957c16430de80e571572fd17c24e0179c1940bbe84762e8dbd79d3c",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-visible-returns-fresh-process-20261021\\visible-windowed.log"
+    },
+    {
+      "path": "v2-functional/hidden-device-prepaint-interactions-launcher-20261021.txt",
+      "bytes": 1095,
+      "sha256": "b7bb8bada8fe7c1696880a0e9348709d7809c5358e0f75a47241bc653ae13f1d",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-prepaint-interactions-launcher-20261021.txt"
+    },
+    {
+      "path": "v2-functional/hidden-device-prepaint-interactions-fixed-launcher-20261021.txt",
+      "bytes": 1144,
+      "sha256": "7570482f93555fce3d2bbb402fd62bc942aef2f30e6017b38f62a8f5160e0f27",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-prepaint-interactions-fixed-launcher-20261021.txt"
+    },
+    {
+      "path": "v2-functional/hidden-device-prepaint-resize-launcher-20261021.txt",
+      "bytes": 1145,
+      "sha256": "34b90cf77b3a11d172a04d73d3764336e1c97ef819ad1289e348546814a2e1bc",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-prepaint-resize-launcher-20261021.txt"
+    },
+    {
+      "path": "v2-functional/hidden-device-visible-returns-launcher-20261021.txt",
+      "bytes": 1099,
+      "sha256": "7d9a617636620deaf14920f04653607f26ce19c451e6ea91a29924a76f471eb2",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-visible-returns-launcher-20261021.txt"
+    },
+    {
+      "path": "v2-functional/hidden-device-visible-returns-diagnostic-launcher-20261021.txt",
+      "bytes": 1152,
+      "sha256": "3f58fb254fdf39cebec602cc8cb1d13077f9784f948f61a9187b5e2f41d4fa82",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-visible-returns-diagnostic-launcher-20261021.txt"
+    },
+    {
+      "path": "v2-functional/hidden-device-visible-returns-fresh-process-launcher-20261021.txt",
+      "bytes": 1780,
+      "sha256": "2fadd6a63b21e5b5ae610af4fb80b96e3bd1698421ee3d8d13dfd58ba8758a61",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-visible-returns-fresh-process-launcher-20261021.txt"
+    },
+    {
+      "path": "v2-functional/return-handoff-source-fd16d90.patch",
+      "bytes": 22728,
+      "sha256": "07740e4326a794d494e302b9626f6d32fbd5adc608cee00ba964376844afa829",
+      "source": "git diff --binary 7eadccb19f4ce4e2178b528fd8e009bb66535805 fd16d9001774a93f50dacf64881b2fe6291e45d3"
+    }
+  ]
+}

@@ -1,0 +1,3956 @@
+{
+  "schemaVersion": 1,
+  "createdUtc": "2026-10-21T10:07:37.5177572Z",
+  "mediaPath": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\av1-1080p30-audio.mp4",
+  "mediaSha256": "84630E2BEC31BBDA663D634E2A7FC13CF1C81F983565D3942094E8DC9808FDD8",
+  "mediaBytes": 114975176,
+  "iterations": 3,
+  "warmupIterations": 1,
+  "windowTarget": [
+    1280,
+    800
+  ],
+  "startupMetric": "Process launch to first visible unowned top-level window (not first frame)",
+  "sampling": "CPU window requested 30s with counter samples every ~5s; actual CPU/wall deltas retained; launch media position 0s, sampling begins after at least 20.5s media time and ten seconds settling. VLC media times are integer-quantized. Ordered variants rotate each round.",
+  "apertureStatusProbe": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\av1-hub-final-clean-20261020\\runs-865bcf94e4994b3683978c793825f961\\player_status_probe.exe",
+  "limitations": [
+    "Warm OS caches; no cold-cache claim.",
+    "Video canvases match; actual child window dimensions/DPI are retained. Equal filter choices do not establish identical decoder or output pixels.",
+    "Samples cover owned root process only; inspect unexpected child processes separately.",
+    "Playback status does not prove pixels are visible or decoder hardware equivalence.",
+    "Child environment redirects ordinary profile/temp writes; Windows Known Folder APIs may bypass environment variables (VLC additionally uses portable/).",
+    "VLC RC verification adds a control-interface overhead.",
+    "MPC-HC uses a hidden /slave window to verify position; no decoder equivalence claim."
+  ],
+  "players": [
+    {
+      "name": "Aperture",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-baseline-runtime-20261021",
+      "exeName": "Aperture.exe",
+      "exeHash": "D2F8744BCA973D97609EC821A653CC9A903D23D07E3D9065D160704F7E44C81E",
+      "version": "2.0.0.0",
+      "runtimeBytes": 32063738,
+      "runtimeFileCount": 11,
+      "runtimeManifestSha256": "781777e2a9bd25af73ef94c6527f54a0e193f8375ad65b669b2848808abfd54b",
+      "runtimeFiles": [
+        {
+          "path": "Aperture.exe",
+          "bytes": 3438080,
+          "sha256": "d2f8744bca973d97609ec821a653cc9a903d23d07e3d9065d160704f7e44c81e"
+        },
+        {
+          "path": "Update.cmd",
+          "bytes": 115,
+          "sha256": "6cc03e15614148057f34ee7c315505730a1427e00ee145eb78d52e89c49afa35"
+        },
+        {
+          "path": "fonts/Inter.ttf",
+          "bytes": 876576,
+          "sha256": "29160a80ff49ddcab2c97711247e08b1fab27a484a329ce8b813d820dc559031"
+        },
+        {
+          "path": "fonts/JetBrainsMono.ttf",
+          "bytes": 187208,
+          "sha256": "48715a42ec242c21e9f02692891e147d022299a52e48d5e413e1a942193ffeda"
+        },
+        {
+          "path": "fonts/SpaceGrotesk.ttf",
+          "bytes": 136676,
+          "sha256": "acad6de1fc93436f5c0f1f4137751ef04f1aea3063e7036535970ffcfbd79f72"
+        },
+        {
+          "path": "libmpv-2.dll",
+          "bytes": 27401728,
+          "sha256": "e91032cbce1da22aec5903468e814d4df2494e74fe508a371eaf3446c7408dae"
+        },
+        {
+          "path": "locales/en-US.json",
+          "bytes": 552,
+          "sha256": "c920104d636fa470ebc5b4603643512035d64287317561140aebcadd5840c7a0"
+        },
+        {
+          "path": "manifest.json",
+          "bytes": 2198,
+          "sha256": "647db8e9b57b6b163e083ee9cb156a2d210b3bb44fa5b610ca2ca8b21aa932d3"
+        },
+        {
+          "path": "release-source.json",
+          "bytes": 66,
+          "sha256": "1a0f8441416ec677d956cb017f056cf15be957c48166abbec096cc174ac87a13"
+        },
+        {
+          "path": "runtime_update.ps1",
+          "bytes": 15546,
+          "sha256": "6ef9dfb151703f5a4a61e929495257e7c9888ce0feb345c9b33e1ebec2f339c3"
+        },
+        {
+          "path": "update.ps1",
+          "bytes": 4993,
+          "sha256": "f9b2d606a60f6fbcf9c88b8422ca3bf75ffd3c1a339dd7f73fd033832e5d8775"
+        }
+      ],
+      "variant": "stock601",
+      "experimentalEnvironment": {}
+    },
+    {
+      "name": "Aperture",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-candidate-clean-runtime-20261021",
+      "exeName": "Aperture.exe",
+      "exeHash": "19B9EA164EB15A4272C3F74D82294063FF53030D60302B03FBA8C4A356E07D7D",
+      "version": "2.0.0.0",
+      "runtimeBytes": 32063738,
+      "runtimeFileCount": 11,
+      "runtimeManifestSha256": "f1d84f734c81c5f005133372c66d35cc127da4fcfd7e93ac5b35696d93964cfe",
+      "runtimeFiles": [
+        {
+          "path": "Aperture.exe",
+          "bytes": 3438080,
+          "sha256": "19b9ea164eb15a4272c3f74d82294063ff53030d60302b03fba8c4a356e07d7d"
+        },
+        {
+          "path": "Update.cmd",
+          "bytes": 115,
+          "sha256": "6cc03e15614148057f34ee7c315505730a1427e00ee145eb78d52e89c49afa35"
+        },
+        {
+          "path": "fonts/Inter.ttf",
+          "bytes": 876576,
+          "sha256": "29160a80ff49ddcab2c97711247e08b1fab27a484a329ce8b813d820dc559031"
+        },
+        {
+          "path": "fonts/JetBrainsMono.ttf",
+          "bytes": 187208,
+          "sha256": "48715a42ec242c21e9f02692891e147d022299a52e48d5e413e1a942193ffeda"
+        },
+        {
+          "path": "fonts/SpaceGrotesk.ttf",
+          "bytes": 136676,
+          "sha256": "acad6de1fc93436f5c0f1f4137751ef04f1aea3063e7036535970ffcfbd79f72"
+        },
+        {
+          "path": "libmpv-2.dll",
+          "bytes": 27401728,
+          "sha256": "e91032cbce1da22aec5903468e814d4df2494e74fe508a371eaf3446c7408dae"
+        },
+        {
+          "path": "locales/en-US.json",
+          "bytes": 552,
+          "sha256": "c920104d636fa470ebc5b4603643512035d64287317561140aebcadd5840c7a0"
+        },
+        {
+          "path": "manifest.json",
+          "bytes": 2198,
+          "sha256": "94a8bac8c907305aaa133115e97de860e040ff748efbc0a668a0b157c2481130"
+        },
+        {
+          "path": "release-source.json",
+          "bytes": 66,
+          "sha256": "1a0f8441416ec677d956cb017f056cf15be957c48166abbec096cc174ac87a13"
+        },
+        {
+          "path": "runtime_update.ps1",
+          "bytes": 15546,
+          "sha256": "6ef9dfb151703f5a4a61e929495257e7c9888ce0feb345c9b33e1ebec2f339c3"
+        },
+        {
+          "path": "update.ps1",
+          "bytes": 4993,
+          "sha256": "f9b2d606a60f6fbcf9c88b8422ca3bf75ffd3c1a339dd7f73fd033832e5d8775"
+        }
+      ],
+      "variant": "retired-device",
+      "experimentalEnvironment": {}
+    }
+  ],
+  "results": [
+    {
+      "player": "Aperture",
+      "round": 0,
+      "warmup": true,
+      "status": "sampled",
+      "failure": null,
+      "runtimeSource": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-baseline-runtime-20261021",
+      "runtimeBytes": 32063738,
+      "runtimeFileCount": 11,
+      "executableHash": "D2F8744BCA973D97609EC821A653CC9A903D23D07E3D9065D160704F7E44C81E",
+      "version": "2.0.0.0",
+      "runDirectory": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-comparison-clean-runs-20261021\\runs-92a71fa3ac3e45bc91f2552a6b6810ed\\0-stock601",
+      "arguments": [],
+      "childEnvironment": {
+        "APPDATA": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-comparison-clean-runs-20261021\\runs-92a71fa3ac3e45bc91f2552a6b6810ed\\0-stock601\\profile\\Roaming",
+        "TEMP": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-comparison-clean-runs-20261021\\runs-92a71fa3ac3e45bc91f2552a6b6810ed\\0-stock601\\profile\\Temp",
+        "TMP": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-comparison-clean-runs-20261021\\runs-92a71fa3ac3e45bc91f2552a6b6810ed\\0-stock601\\profile\\Temp",
+        "LOCALAPPDATA": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-comparison-clean-runs-20261021\\runs-92a71fa3ac3e45bc91f2552a6b6810ed\\0-stock601\\profile\\Local"
+      },
+      "configPath": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-comparison-clean-runs-20261021\\runs-92a71fa3ac3e45bc91f2552a6b6810ed\\0-stock601\\runtime\\data",
+      "initialConfig": "Fresh executable-adjacent data/ directory.",
+      "pid": 27376,
+      "processToVisibleWindowMs": 93.1292,
+      "windowDimensions": [
+        1296,
+        759
+      ],
+      "playbackVerification": "advancing-playback-verified",
+      "playbackReason": null,
+      "samples": [
+        {
+          "elapsedSeconds": 24.1813867,
+          "workingSetBytes": 146669568,
+          "privateBytes": 166662144,
+          "cpuSeconds": 1.84375,
+          "cpuCycles": 6955761300,
+          "dedicatedGpuBytes": 94294016,
+          "sharedGpuBytes": 17100800,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "positionSec": 20.7,
+            "reason": null,
+            "state": 2
+          },
+          "visibleCanvasBefore": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 924054710285,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 924054759023,
+            "root": 12847542,
+            "canvas": 11405408,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          },
+          "visibleCanvasAfter": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 924069616312,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 924069620094,
+            "root": 12847542,
+            "canvas": 11405408,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          }
+        },
+        {
+          "elapsedSeconds": 29.1702632,
+          "workingSetBytes": 146747392,
+          "privateBytes": 166735872,
+          "cpuSeconds": 1.90625,
+          "cpuCycles": 7766864460,
+          "dedicatedGpuBytes": 94289920,
+          "sharedGpuBytes": 16687104,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "positionSec": 25.6666666667,
+            "reason": null,
+            "state": 2
+          },
+          "visibleCanvasBefore": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 924104647498,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 924104655853,
+            "root": 12847542,
+            "canvas": 11405408,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          },
+          "visibleCanvasAfter": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 924115024317,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 924115027540,
+            "root": 12847542,
+            "canvas": 11405408,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          }
+        },
+        {
+          "elapsedSeconds": 34.1714645,
+          "workingSetBytes": 146391040,
+          "privateBytes": 166768640,
+          "cpuSeconds": 2.09375,
+          "cpuCycles": 8584367960,
+          "dedicatedGpuBytes": 94289920,
+          "sharedGpuBytes": 16687104,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "positionSec": 30.6666666667,
+            "reason": null,
+            "state": 2
+          },
+          "visibleCanvasBefore": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 924154663748,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 924154667903,
+            "root": 12847542,
+            "canvas": 11405408,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          },
+          "visibleCanvasAfter": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 924165181387,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 924165184947,
+            "root": 12847542,
+            "canvas": 11405408,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          }
+        },
+        {
+          "elapsedSeconds": 39.1822856,
+          "workingSetBytes": 146518016,
+          "privateBytes": 166842368,
+          "cpuSeconds": 2.21875,
+          "cpuCycles": 9368789040,
+          "dedicatedGpuBytes": 94289920,
+          "sharedGpuBytes": 16687104,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "positionSec": 35.6666666667,
+            "reason": null,
+            "state": 2
+          },
+          "visibleCanvasBefore": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 924204772861,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 924204775892,
+            "root": 12847542,
+            "canvas": 11405408,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          },
+          "visibleCanvasAfter": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 924215265777,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 924215270056,
+            "root": 12847542,
+            "canvas": 11405408,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          }
+        },
+        {
+          "elapsedSeconds": 44.1826408,
+          "workingSetBytes": 146653184,
+          "privateBytes": 166989824,
+          "cpuSeconds": 2.3125,
+          "cpuCycles": 10150969640,
+          "dedicatedGpuBytes": 94289920,
+          "sharedGpuBytes": 16687104,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "positionSec": 40.6666666667,
+            "reason": null,
+            "state": 2
+          },
+          "visibleCanvasBefore": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 924254775266,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 924254779648,
+            "root": 12847542,
+            "canvas": 11405408,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          },
+          "visibleCanvasAfter": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 924265202657,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 924265206339,
+            "root": 12847542,
+            "canvas": 11405408,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          }
+        },
+        {
+          "elapsedSeconds": 49.1936127,
+          "workingSetBytes": 146776064,
+          "privateBytes": 167100416,
+          "cpuSeconds": 2.515625,
+          "cpuCycles": 10925103740,
+          "dedicatedGpuBytes": 94289920,
+          "sharedGpuBytes": 16687104,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "positionSec": 45.7,
+            "reason": null,
+            "state": 2
+          },
+          "visibleCanvasBefore": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 924304885315,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 924304889405,
+            "root": 12847542,
+            "canvas": 11405408,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          },
+          "visibleCanvasAfter": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 924315276450,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 924315280153,
+            "root": 12847542,
+            "canvas": 11405408,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          }
+        },
+        {
+          "elapsedSeconds": 54.1790511,
+          "workingSetBytes": 146903040,
+          "privateBytes": 167247872,
+          "cpuSeconds": 2.765625,
+          "cpuCycles": 11784463860,
+          "dedicatedGpuBytes": 94289920,
+          "sharedGpuBytes": 16687104,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "positionSec": 50.6666666667,
+            "reason": null,
+            "state": 2
+          },
+          "visibleCanvasBefore": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 924354739623,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 924354743804,
+            "root": 12847542,
+            "canvas": 11405408,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          },
+          "visibleCanvasAfter": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 924365130160,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 924365134203,
+            "root": 12847542,
+            "canvas": 11405408,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          }
+        }
+      ],
+      "writableGrowthBytes": {
+        "runtimeDelta": 16649,
+        "profileDelta": 0
+      },
+      "cleanup": "owned-window-closed",
+      "artifactCleanup": "runtime-and-profile-copies-removed; metadata-retained",
+      "variant": "stock601",
+      "runtimeManifestSha256": "781777e2a9bd25af73ef94c6527f54a0e193f8375ad65b669b2848808abfd54b",
+      "launchMode": "HubThenOpen",
+      "mediaOpenRequestedMs": 3136.0327,
+      "openedMediaPath": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\av1-1080p30-audio.mp4",
+      "startedUtc": "2026-10-21T10:00:11.3042334Z",
+      "windowRaisedForVisibility": true,
+      "alignedPlaybackPosition": 20.6333333333,
+      "samplingStartedUtc": "2026-10-21T10:00:35.4800201Z",
+      "samplingEndedUtc": "2026-10-21T10:01:06.5312004Z",
+      "videoCanvas": {
+        "handle": 11405408,
+        "className": "mpv",
+        "clientWidth": 1280,
+        "clientHeight": 720,
+        "dpi": 96
+      },
+      "childWindows": [
+        {
+          "handle": 16517240,
+          "className": "Aperture_Native_Video_Child",
+          "clientWidth": 1280,
+          "clientHeight": 720,
+          "dpi": 96
+        },
+        {
+          "handle": 11405408,
+          "className": "mpv",
+          "clientWidth": 1280,
+          "clientHeight": 720,
+          "dpi": 96
+        }
+      ]
+    },
+    {
+      "player": "Aperture",
+      "round": 0,
+      "warmup": true,
+      "status": "sampled",
+      "failure": null,
+      "runtimeSource": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-candidate-clean-runtime-20261021",
+      "runtimeBytes": 32063738,
+      "runtimeFileCount": 11,
+      "executableHash": "19B9EA164EB15A4272C3F74D82294063FF53030D60302B03FBA8C4A356E07D7D",
+      "version": "2.0.0.0",
+      "runDirectory": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-comparison-clean-runs-20261021\\runs-92a71fa3ac3e45bc91f2552a6b6810ed\\0-retired-device",
+      "arguments": [],
+      "childEnvironment": {
+        "APPDATA": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-comparison-clean-runs-20261021\\runs-92a71fa3ac3e45bc91f2552a6b6810ed\\0-retired-device\\profile\\Roaming",
+        "TEMP": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-comparison-clean-runs-20261021\\runs-92a71fa3ac3e45bc91f2552a6b6810ed\\0-retired-device\\profile\\Temp",
+        "TMP": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-comparison-clean-runs-20261021\\runs-92a71fa3ac3e45bc91f2552a6b6810ed\\0-retired-device\\profile\\Temp",
+        "LOCALAPPDATA": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-comparison-clean-runs-20261021\\runs-92a71fa3ac3e45bc91f2552a6b6810ed\\0-retired-device\\profile\\Local"
+      },
+      "configPath": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-comparison-clean-runs-20261021\\runs-92a71fa3ac3e45bc91f2552a6b6810ed\\0-retired-device\\runtime\\data",
+      "initialConfig": "Fresh executable-adjacent data/ directory.",
+      "pid": 29848,
+      "processToVisibleWindowMs": 85.8269,
+      "windowDimensions": [
+        1296,
+        759
+      ],
+      "playbackVerification": "advancing-playback-verified",
+      "playbackReason": null,
+      "samples": [
+        {
+          "elapsedSeconds": 24.1106237,
+          "workingSetBytes": 143839232,
+          "privateBytes": 164843520,
+          "cpuSeconds": 1.71875,
+          "cpuCycles": 7053023440,
+          "dedicatedGpuBytes": 75644928,
+          "sharedGpuBytes": 15572992,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "positionSec": 20.6666666667,
+            "reason": null,
+            "state": 2
+          },
+          "visibleCanvasBefore": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 924613362109,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 924613366711,
+            "root": 12913078,
+            "canvas": 1312960,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          },
+          "visibleCanvasAfter": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 924623860998,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 924623864705,
+            "root": 12913078,
+            "canvas": 1312960,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          }
+        },
+        {
+          "elapsedSeconds": 29.1197088,
+          "workingSetBytes": 142295040,
+          "privateBytes": 151236608,
+          "cpuSeconds": 1.921875,
+          "cpuCycles": 7872572100,
+          "dedicatedGpuBytes": 75644928,
+          "sharedGpuBytes": 15572992,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "positionSec": 25.6666666667,
+            "reason": null,
+            "state": 2
+          },
+          "visibleCanvasBefore": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 924663454031,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 924663457413,
+            "root": 12913078,
+            "canvas": 1312960,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          },
+          "visibleCanvasAfter": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 924673820016,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 924673824461,
+            "root": 12913078,
+            "canvas": 1312960,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          }
+        },
+        {
+          "elapsedSeconds": 34.135845,
+          "workingSetBytes": 141881344,
+          "privateBytes": 151220224,
+          "cpuSeconds": 2.109375,
+          "cpuCycles": 8725107040,
+          "dedicatedGpuBytes": 75640832,
+          "sharedGpuBytes": 15134720,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "positionSec": 30.6666666667,
+            "reason": null,
+            "state": 2
+          },
+          "visibleCanvasBefore": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 924713614852,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 924713618826,
+            "root": 12913078,
+            "canvas": 1312960,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          },
+          "visibleCanvasAfter": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 924724016352,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 924724019181,
+            "root": 12913078,
+            "canvas": 1312960,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          }
+        },
+        {
+          "elapsedSeconds": 39.1194487,
+          "workingSetBytes": 141979648,
+          "privateBytes": 151220224,
+          "cpuSeconds": 2.4375,
+          "cpuCycles": 9518712340,
+          "dedicatedGpuBytes": 75640832,
+          "sharedGpuBytes": 15147008,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "positionSec": 35.6666666667,
+            "reason": null,
+            "state": 2
+          },
+          "visibleCanvasBefore": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 924763449639,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 924763454512,
+            "root": 12913078,
+            "canvas": 1312960,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          },
+          "visibleCanvasAfter": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 924773869351,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 924773873310,
+            "root": 12913078,
+            "canvas": 1312960,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          }
+        },
+        {
+          "elapsedSeconds": 44.120025,
+          "workingSetBytes": 142098432,
+          "privateBytes": 151220224,
+          "cpuSeconds": 2.640625,
+          "cpuCycles": 10355030780,
+          "dedicatedGpuBytes": 75640832,
+          "sharedGpuBytes": 15159296,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "positionSec": 40.6666666667,
+            "reason": null,
+            "state": 2
+          },
+          "visibleCanvasBefore": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 924813457523,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 924813460479,
+            "root": 12913078,
+            "canvas": 1312960,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          },
+          "visibleCanvasAfter": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 924823846590,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 924823849954,
+            "root": 12913078,
+            "canvas": 1312960,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          }
+        },
+        {
+          "elapsedSeconds": 49.1118268,
+          "workingSetBytes": 142192640,
+          "privateBytes": 151220224,
+          "cpuSeconds": 2.84375,
+          "cpuCycles": 11157631060,
+          "dedicatedGpuBytes": 75640832,
+          "sharedGpuBytes": 15159296,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "positionSec": 45.6333333333,
+            "reason": null,
+            "state": 2
+          },
+          "visibleCanvasBefore": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 924863375088,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 924863378709,
+            "root": 12913078,
+            "canvas": 1312960,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          },
+          "visibleCanvasAfter": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 924873866619,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 924873870228,
+            "root": 12913078,
+            "canvas": 1312960,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          }
+        },
+        {
+          "elapsedSeconds": 54.1196767,
+          "workingSetBytes": 142303232,
+          "privateBytes": 151355392,
+          "cpuSeconds": 3.0,
+          "cpuCycles": 11954309040,
+          "dedicatedGpuBytes": 75640832,
+          "sharedGpuBytes": 15159296,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "positionSec": 50.6666666667,
+            "reason": null,
+            "state": 2
+          },
+          "visibleCanvasBefore": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 924913451312,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 924913456994,
+            "root": 12913078,
+            "canvas": 1312960,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          },
+          "visibleCanvasAfter": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 924923956427,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 924923960270,
+            "root": 12913078,
+            "canvas": 1312960,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          }
+        }
+      ],
+      "writableGrowthBytes": {
+        "runtimeDelta": 16657,
+        "profileDelta": 0
+      },
+      "cleanup": "owned-window-closed",
+      "artifactCleanup": "runtime-and-profile-copies-removed; metadata-retained",
+      "variant": "retired-device",
+      "runtimeManifestSha256": "f1d84f734c81c5f005133372c66d35cc127da4fcfd7e93ac5b35696d93964cfe",
+      "launchMode": "HubThenOpen",
+      "mediaOpenRequestedMs": 3115.659,
+      "openedMediaPath": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\av1-1080p30-audio.mp4",
+      "startedUtc": "2026-10-21T10:01:07.2435062Z",
+      "windowRaisedForVisibility": true,
+      "alignedPlaybackPosition": 20.6333333333,
+      "samplingStartedUtc": "2026-10-21T10:01:31.3535293Z",
+      "samplingEndedUtc": "2026-10-21T10:02:02.4138057Z",
+      "videoCanvas": {
+        "handle": 1312960,
+        "className": "mpv",
+        "clientWidth": 1280,
+        "clientHeight": 720,
+        "dpi": 96
+      },
+      "childWindows": [
+        {
+          "handle": 5441792,
+          "className": "Aperture_Native_Video_Child",
+          "clientWidth": 1280,
+          "clientHeight": 720,
+          "dpi": 96
+        },
+        {
+          "handle": 1312960,
+          "className": "mpv",
+          "clientWidth": 1280,
+          "clientHeight": 720,
+          "dpi": 96
+        }
+      ]
+    },
+    {
+      "player": "Aperture",
+      "round": 1,
+      "warmup": false,
+      "status": "sampled",
+      "failure": null,
+      "runtimeSource": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-candidate-clean-runtime-20261021",
+      "runtimeBytes": 32063738,
+      "runtimeFileCount": 11,
+      "executableHash": "19B9EA164EB15A4272C3F74D82294063FF53030D60302B03FBA8C4A356E07D7D",
+      "version": "2.0.0.0",
+      "runDirectory": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-comparison-clean-runs-20261021\\runs-92a71fa3ac3e45bc91f2552a6b6810ed\\1-retired-device",
+      "arguments": [],
+      "childEnvironment": {
+        "APPDATA": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-comparison-clean-runs-20261021\\runs-92a71fa3ac3e45bc91f2552a6b6810ed\\1-retired-device\\profile\\Roaming",
+        "TEMP": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-comparison-clean-runs-20261021\\runs-92a71fa3ac3e45bc91f2552a6b6810ed\\1-retired-device\\profile\\Temp",
+        "TMP": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-comparison-clean-runs-20261021\\runs-92a71fa3ac3e45bc91f2552a6b6810ed\\1-retired-device\\profile\\Temp",
+        "LOCALAPPDATA": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-comparison-clean-runs-20261021\\runs-92a71fa3ac3e45bc91f2552a6b6810ed\\1-retired-device\\profile\\Local"
+      },
+      "configPath": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-comparison-clean-runs-20261021\\runs-92a71fa3ac3e45bc91f2552a6b6810ed\\1-retired-device\\runtime\\data",
+      "initialConfig": "Fresh executable-adjacent data/ directory.",
+      "pid": 32836,
+      "processToVisibleWindowMs": 86.15,
+      "windowDimensions": [
+        1296,
+        759
+      ],
+      "playbackVerification": "advancing-playback-verified",
+      "playbackReason": null,
+      "samples": [
+        {
+          "elapsedSeconds": 24.0386637,
+          "workingSetBytes": 144814080,
+          "privateBytes": 164265984,
+          "cpuSeconds": 1.875,
+          "cpuCycles": 6934497640,
+          "dedicatedGpuBytes": 75632640,
+          "sharedGpuBytes": 15572992,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "positionSec": 20.5666666667,
+            "reason": null,
+            "state": 2
+          },
+          "visibleCanvasBefore": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 925170990504,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 925170996224,
+            "root": 12978614,
+            "canvas": 17107550,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          },
+          "visibleCanvasAfter": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 925181444342,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 925181447618,
+            "root": 12978614,
+            "canvas": 17107550,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          }
+        },
+        {
+          "elapsedSeconds": 29.0435955,
+          "workingSetBytes": 142905344,
+          "privateBytes": 151732224,
+          "cpuSeconds": 1.96875,
+          "cpuCycles": 7741849440,
+          "dedicatedGpuBytes": 75628544,
+          "sharedGpuBytes": 15003648,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "positionSec": 25.5666666667,
+            "reason": null,
+            "state": 2
+          },
+          "visibleCanvasBefore": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 925221040671,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 925221045407,
+            "root": 12978614,
+            "canvas": 17107550,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          },
+          "visibleCanvasAfter": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 925231436192,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 925231438873,
+            "root": 12978614,
+            "canvas": 17107550,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          }
+        },
+        {
+          "elapsedSeconds": 34.0488454,
+          "workingSetBytes": 142405632,
+          "privateBytes": 151789568,
+          "cpuSeconds": 2.15625,
+          "cpuCycles": 8545900560,
+          "dedicatedGpuBytes": 75628544,
+          "sharedGpuBytes": 15003648,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "positionSec": 30.5666666667,
+            "reason": null,
+            "state": 2
+          },
+          "visibleCanvasBefore": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 925271093807,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 925271097971,
+            "root": 12978614,
+            "canvas": 17107550,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          },
+          "visibleCanvasAfter": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 925281501643,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 925281505227,
+            "root": 12978614,
+            "canvas": 17107550,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          }
+        },
+        {
+          "elapsedSeconds": 39.0429101,
+          "workingSetBytes": 142495744,
+          "privateBytes": 151789568,
+          "cpuSeconds": 2.40625,
+          "cpuCycles": 9336903240,
+          "dedicatedGpuBytes": 75628544,
+          "sharedGpuBytes": 15003648,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "positionSec": 35.5666666667,
+            "reason": null,
+            "state": 2
+          },
+          "visibleCanvasBefore": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 925321035352,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 925321038719,
+            "root": 12978614,
+            "canvas": 17107550,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          },
+          "visibleCanvasAfter": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 925331519662,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 925331523414,
+            "root": 12978614,
+            "canvas": 17107550,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          }
+        },
+        {
+          "elapsedSeconds": 44.0524461,
+          "workingSetBytes": 142548992,
+          "privateBytes": 151789568,
+          "cpuSeconds": 2.515625,
+          "cpuCycles": 10132304420,
+          "dedicatedGpuBytes": 79564800,
+          "sharedGpuBytes": 15003648,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "positionSec": 40.5666666667,
+            "reason": null,
+            "state": 2
+          },
+          "visibleCanvasBefore": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 925371130395,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 925371134075,
+            "root": 12978614,
+            "canvas": 17107550,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          },
+          "visibleCanvasAfter": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 925381569623,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 925381572349,
+            "root": 12978614,
+            "canvas": 17107550,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          }
+        },
+        {
+          "elapsedSeconds": 49.0512815,
+          "workingSetBytes": 142630912,
+          "privateBytes": 156782592,
+          "cpuSeconds": 2.640625,
+          "cpuCycles": 10908814660,
+          "dedicatedGpuBytes": 79564800,
+          "sharedGpuBytes": 15028224,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "positionSec": 45.5666666667,
+            "reason": null,
+            "state": 2
+          },
+          "visibleCanvasBefore": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 925421117779,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 925421122320,
+            "root": 12978614,
+            "canvas": 17107550,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          },
+          "visibleCanvasAfter": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 925431507306,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 925431510153,
+            "root": 12978614,
+            "canvas": 17107550,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          }
+        },
+        {
+          "elapsedSeconds": 54.0448877,
+          "workingSetBytes": 142745600,
+          "privateBytes": 156946432,
+          "cpuSeconds": 2.75,
+          "cpuCycles": 11697456020,
+          "dedicatedGpuBytes": 79564800,
+          "sharedGpuBytes": 15028224,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "positionSec": 50.5666666667,
+            "reason": null,
+            "state": 2
+          },
+          "visibleCanvasBefore": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 925471053659,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 925471058317,
+            "root": 12978614,
+            "canvas": 17107550,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          },
+          "visibleCanvasAfter": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 925481492037,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 925481494654,
+            "root": 12978614,
+            "canvas": 17107550,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          }
+        }
+      ],
+      "writableGrowthBytes": {
+        "runtimeDelta": 16657,
+        "profileDelta": 0
+      },
+      "cleanup": "owned-window-closed",
+      "artifactCleanup": "runtime-and-profile-copies-removed; metadata-retained",
+      "variant": "retired-device",
+      "runtimeManifestSha256": "f1d84f734c81c5f005133372c66d35cc127da4fcfd7e93ac5b35696d93964cfe",
+      "launchMode": "HubThenOpen",
+      "mediaOpenRequestedMs": 3121.2067,
+      "openedMediaPath": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\av1-1080p30-audio.mp4",
+      "startedUtc": "2026-10-21T10:02:03.0784623Z",
+      "windowRaisedForVisibility": true,
+      "alignedPlaybackPosition": 20.5333333333,
+      "samplingStartedUtc": "2026-10-21T10:02:27.1160423Z",
+      "samplingEndedUtc": "2026-10-21T10:02:58.1672282Z",
+      "videoCanvas": {
+        "handle": 17107550,
+        "className": "mpv",
+        "clientWidth": 1280,
+        "clientHeight": 720,
+        "dpi": 96
+      },
+      "childWindows": [
+        {
+          "handle": 16648312,
+          "className": "Aperture_Native_Video_Child",
+          "clientWidth": 1280,
+          "clientHeight": 720,
+          "dpi": 96
+        },
+        {
+          "handle": 17107550,
+          "className": "mpv",
+          "clientWidth": 1280,
+          "clientHeight": 720,
+          "dpi": 96
+        }
+      ]
+    },
+    {
+      "player": "Aperture",
+      "round": 1,
+      "warmup": false,
+      "status": "sampled",
+      "failure": null,
+      "runtimeSource": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-baseline-runtime-20261021",
+      "runtimeBytes": 32063738,
+      "runtimeFileCount": 11,
+      "executableHash": "D2F8744BCA973D97609EC821A653CC9A903D23D07E3D9065D160704F7E44C81E",
+      "version": "2.0.0.0",
+      "runDirectory": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-comparison-clean-runs-20261021\\runs-92a71fa3ac3e45bc91f2552a6b6810ed\\1-stock601",
+      "arguments": [],
+      "childEnvironment": {
+        "APPDATA": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-comparison-clean-runs-20261021\\runs-92a71fa3ac3e45bc91f2552a6b6810ed\\1-stock601\\profile\\Roaming",
+        "TEMP": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-comparison-clean-runs-20261021\\runs-92a71fa3ac3e45bc91f2552a6b6810ed\\1-stock601\\profile\\Temp",
+        "TMP": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-comparison-clean-runs-20261021\\runs-92a71fa3ac3e45bc91f2552a6b6810ed\\1-stock601\\profile\\Temp",
+        "LOCALAPPDATA": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-comparison-clean-runs-20261021\\runs-92a71fa3ac3e45bc91f2552a6b6810ed\\1-stock601\\profile\\Local"
+      },
+      "configPath": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-comparison-clean-runs-20261021\\runs-92a71fa3ac3e45bc91f2552a6b6810ed\\1-stock601\\runtime\\data",
+      "initialConfig": "Fresh executable-adjacent data/ directory.",
+      "pid": 32792,
+      "processToVisibleWindowMs": 89.4524,
+      "windowDimensions": [
+        1296,
+        759
+      ],
+      "playbackVerification": "advancing-playback-verified",
+      "playbackReason": null,
+      "samples": [
+        {
+          "elapsedSeconds": 24.0661375,
+          "workingSetBytes": 146915328,
+          "privateBytes": 165728256,
+          "cpuSeconds": 1.921875,
+          "cpuCycles": 6922268480,
+          "dedicatedGpuBytes": 94298112,
+          "sharedGpuBytes": 17231872,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "positionSec": 20.6,
+            "reason": null,
+            "state": 2
+          },
+          "visibleCanvasBefore": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 925728788705,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 925728795012,
+            "root": 13044150,
+            "canvas": 11602016,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          },
+          "visibleCanvasAfter": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 925739155104,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 925739157808,
+            "root": 13044150,
+            "canvas": 11602016,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          }
+        },
+        {
+          "elapsedSeconds": 29.0716306,
+          "workingSetBytes": 146984960,
+          "privateBytes": 165801984,
+          "cpuSeconds": 2.0625,
+          "cpuCycles": 7740705640,
+          "dedicatedGpuBytes": 94298112,
+          "sharedGpuBytes": 17231872,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "positionSec": 25.6,
+            "reason": null,
+            "state": 2
+          },
+          "visibleCanvasBefore": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 925778846933,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 925778849927,
+            "root": 13044150,
+            "canvas": 11602016,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          },
+          "visibleCanvasAfter": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 925789355813,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 925789359127,
+            "root": 13044150,
+            "canvas": 11602016,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          }
+        },
+        {
+          "elapsedSeconds": 34.0819122,
+          "workingSetBytes": 146636800,
+          "privateBytes": 165842944,
+          "cpuSeconds": 2.1875,
+          "cpuCycles": 8578019680,
+          "dedicatedGpuBytes": 94294016,
+          "sharedGpuBytes": 16805888,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "positionSec": 30.6,
+            "reason": null,
+            "state": 2
+          },
+          "visibleCanvasBefore": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 925828950119,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 925828952732,
+            "root": 13044150,
+            "canvas": 11602016,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          },
+          "visibleCanvasAfter": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 925839311184,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 925839315440,
+            "root": 13044150,
+            "canvas": 11602016,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          }
+        },
+        {
+          "elapsedSeconds": 39.0788979,
+          "workingSetBytes": 146767872,
+          "privateBytes": 165916672,
+          "cpuSeconds": 2.40625,
+          "cpuCycles": 9424573420,
+          "dedicatedGpuBytes": 94294016,
+          "sharedGpuBytes": 16830464,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "positionSec": 35.6,
+            "reason": null,
+            "state": 2
+          },
+          "visibleCanvasBefore": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 925878919608,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 925878922610,
+            "root": 13044150,
+            "canvas": 11602016,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          },
+          "visibleCanvasAfter": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 925889316518,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 925889319259,
+            "root": 13044150,
+            "canvas": 11602016,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          }
+        },
+        {
+          "elapsedSeconds": 44.0802675,
+          "workingSetBytes": 146898944,
+          "privateBytes": 166068224,
+          "cpuSeconds": 2.6875,
+          "cpuCycles": 10259102820,
+          "dedicatedGpuBytes": 94294016,
+          "sharedGpuBytes": 16830464,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "positionSec": 40.6,
+            "reason": null,
+            "state": 2
+          },
+          "visibleCanvasBefore": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 925928932441,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 925928936148,
+            "root": 13044150,
+            "canvas": 11602016,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          },
+          "visibleCanvasAfter": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 925939424868,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 925939430110,
+            "root": 13044150,
+            "canvas": 11602016,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          }
+        },
+        {
+          "elapsedSeconds": 49.0699634,
+          "workingSetBytes": 147025920,
+          "privateBytes": 166215680,
+          "cpuSeconds": 3.015625,
+          "cpuCycles": 11086442620,
+          "dedicatedGpuBytes": 94294016,
+          "sharedGpuBytes": 16830464,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "positionSec": 45.6,
+            "reason": null,
+            "state": 2
+          },
+          "visibleCanvasBefore": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 925978829755,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 925978833234,
+            "root": 13044150,
+            "canvas": 11602016,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          },
+          "visibleCanvasAfter": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 925989277610,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 925989280715,
+            "root": 13044150,
+            "canvas": 11602016,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          }
+        },
+        {
+          "elapsedSeconds": 54.0734254,
+          "workingSetBytes": 147148800,
+          "privateBytes": 166326272,
+          "cpuSeconds": 3.25,
+          "cpuCycles": 11905881840,
+          "dedicatedGpuBytes": 94294016,
+          "sharedGpuBytes": 16830464,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "positionSec": 50.6,
+            "reason": null,
+            "state": 2
+          },
+          "visibleCanvasBefore": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 926028864287,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 926028867833,
+            "root": 13044150,
+            "canvas": 11602016,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          },
+          "visibleCanvasAfter": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 926039274056,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 926039276828,
+            "root": 13044150,
+            "canvas": 11602016,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          }
+        }
+      ],
+      "writableGrowthBytes": {
+        "runtimeDelta": 16648,
+        "profileDelta": 0
+      },
+      "cleanup": "owned-window-closed",
+      "artifactCleanup": "runtime-and-profile-copies-removed; metadata-retained",
+      "variant": "stock601",
+      "runtimeManifestSha256": "781777e2a9bd25af73ef94c6527f54a0e193f8375ad65b669b2848808abfd54b",
+      "launchMode": "HubThenOpen",
+      "mediaOpenRequestedMs": 3122.3655,
+      "openedMediaPath": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\av1-1080p30-audio.mp4",
+      "startedUtc": "2026-10-21T10:02:58.8308494Z",
+      "windowRaisedForVisibility": true,
+      "alignedPlaybackPosition": 20.5666666667,
+      "samplingStartedUtc": "2026-10-21T10:03:22.8961387Z",
+      "samplingEndedUtc": "2026-10-21T10:03:53.9454382Z",
+      "videoCanvas": {
+        "handle": 11602016,
+        "className": "mpv",
+        "clientWidth": 1280,
+        "clientHeight": 720,
+        "dpi": 96
+      },
+      "childWindows": [
+        {
+          "handle": 5572864,
+          "className": "Aperture_Native_Video_Child",
+          "clientWidth": 1280,
+          "clientHeight": 720,
+          "dpi": 96
+        },
+        {
+          "handle": 11602016,
+          "className": "mpv",
+          "clientWidth": 1280,
+          "clientHeight": 720,
+          "dpi": 96
+        }
+      ]
+    },
+    {
+      "player": "Aperture",
+      "round": 2,
+      "warmup": false,
+      "status": "sampled",
+      "failure": null,
+      "runtimeSource": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-baseline-runtime-20261021",
+      "runtimeBytes": 32063738,
+      "runtimeFileCount": 11,
+      "executableHash": "D2F8744BCA973D97609EC821A653CC9A903D23D07E3D9065D160704F7E44C81E",
+      "version": "2.0.0.0",
+      "runDirectory": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-comparison-clean-runs-20261021\\runs-92a71fa3ac3e45bc91f2552a6b6810ed\\2-stock601",
+      "arguments": [],
+      "childEnvironment": {
+        "APPDATA": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-comparison-clean-runs-20261021\\runs-92a71fa3ac3e45bc91f2552a6b6810ed\\2-stock601\\profile\\Roaming",
+        "TEMP": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-comparison-clean-runs-20261021\\runs-92a71fa3ac3e45bc91f2552a6b6810ed\\2-stock601\\profile\\Temp",
+        "TMP": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-comparison-clean-runs-20261021\\runs-92a71fa3ac3e45bc91f2552a6b6810ed\\2-stock601\\profile\\Temp",
+        "LOCALAPPDATA": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-comparison-clean-runs-20261021\\runs-92a71fa3ac3e45bc91f2552a6b6810ed\\2-stock601\\profile\\Local"
+      },
+      "configPath": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-comparison-clean-runs-20261021\\runs-92a71fa3ac3e45bc91f2552a6b6810ed\\2-stock601\\runtime\\data",
+      "initialConfig": "Fresh executable-adjacent data/ directory.",
+      "pid": 18288,
+      "processToVisibleWindowMs": 79.9854,
+      "windowDimensions": [
+        1296,
+        759
+      ],
+      "playbackVerification": "advancing-playback-verified",
+      "playbackReason": null,
+      "samples": [
+        {
+          "elapsedSeconds": 24.0917873,
+          "workingSetBytes": 147509248,
+          "privateBytes": 172630016,
+          "cpuSeconds": 1.640625,
+          "cpuCycles": 6839582380,
+          "dedicatedGpuBytes": 98230272,
+          "sharedGpuBytes": 17317888,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "positionSec": 20.6,
+            "reason": null,
+            "state": 2
+          },
+          "visibleCanvasBefore": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 926286849367,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 926286854122,
+            "root": 13109686,
+            "canvas": 1509568,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          },
+          "visibleCanvasAfter": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 926297361436,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 926297365210,
+            "root": 13109686,
+            "canvas": 1509568,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          }
+        },
+        {
+          "elapsedSeconds": 29.1015216,
+          "workingSetBytes": 147636224,
+          "privateBytes": 172777472,
+          "cpuSeconds": 2.015625,
+          "cpuCycles": 7629115600,
+          "dedicatedGpuBytes": 98230272,
+          "sharedGpuBytes": 17317888,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "positionSec": 25.6333333333,
+            "reason": null,
+            "state": 2
+          },
+          "visibleCanvasBefore": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 926336948081,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 926336951415,
+            "root": 13109686,
+            "canvas": 1509568,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          },
+          "visibleCanvasAfter": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 926347359188,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 926347363375,
+            "root": 13109686,
+            "canvas": 1509568,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          }
+        },
+        {
+          "elapsedSeconds": 34.0978098,
+          "workingSetBytes": 147279872,
+          "privateBytes": 172781568,
+          "cpuSeconds": 2.375,
+          "cpuCycles": 8431186160,
+          "dedicatedGpuBytes": 98226176,
+          "sharedGpuBytes": 16879616,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "positionSec": 30.6,
+            "reason": null,
+            "state": 2
+          },
+          "visibleCanvasBefore": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 926386910553,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 926386914299,
+            "root": 13109686,
+            "canvas": 1509568,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          },
+          "visibleCanvasAfter": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 926397304865,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 926397308547,
+            "root": 13109686,
+            "canvas": 1509568,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          }
+        },
+        {
+          "elapsedSeconds": 39.0991053,
+          "workingSetBytes": 147402752,
+          "privateBytes": 172892160,
+          "cpuSeconds": 2.546875,
+          "cpuCycles": 9220378140,
+          "dedicatedGpuBytes": 98226176,
+          "sharedGpuBytes": 16879616,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "positionSec": 35.6333333333,
+            "reason": null,
+            "state": 2
+          },
+          "visibleCanvasBefore": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 926436924469,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 926436927258,
+            "root": 13109686,
+            "canvas": 1509568,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          },
+          "visibleCanvasAfter": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 926447383821,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 926447386573,
+            "root": 13109686,
+            "canvas": 1509568,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          }
+        },
+        {
+          "elapsedSeconds": 44.1020699,
+          "workingSetBytes": 147533824,
+          "privateBytes": 173039616,
+          "cpuSeconds": 2.78125,
+          "cpuCycles": 10016192000,
+          "dedicatedGpuBytes": 98226176,
+          "sharedGpuBytes": 16879616,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "positionSec": 40.6333333333,
+            "reason": null,
+            "state": 2
+          },
+          "visibleCanvasBefore": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 926486950792,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 926486956726,
+            "root": 13109686,
+            "canvas": 1509568,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          },
+          "visibleCanvasAfter": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 926497384290,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 926497387005,
+            "root": 13109686,
+            "canvas": 1509568,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          }
+        },
+        {
+          "elapsedSeconds": 49.1052646,
+          "workingSetBytes": 147656704,
+          "privateBytes": 173150208,
+          "cpuSeconds": 3.03125,
+          "cpuCycles": 10816572700,
+          "dedicatedGpuBytes": 98226176,
+          "sharedGpuBytes": 16879616,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "positionSec": 45.6333333333,
+            "reason": null,
+            "state": 2
+          },
+          "visibleCanvasBefore": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 926536985391,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 926536988725,
+            "root": 13109686,
+            "canvas": 1509568,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          },
+          "visibleCanvasAfter": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 926547375683,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 926547380459,
+            "root": 13109686,
+            "canvas": 1509568,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          }
+        },
+        {
+          "elapsedSeconds": 54.0922532,
+          "workingSetBytes": 147783680,
+          "privateBytes": 173297664,
+          "cpuSeconds": 3.1875,
+          "cpuCycles": 11605771520,
+          "dedicatedGpuBytes": 98226176,
+          "sharedGpuBytes": 16879616,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "positionSec": 50.6,
+            "reason": null,
+            "state": 2
+          },
+          "visibleCanvasBefore": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 926586856027,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 926586858738,
+            "root": 13109686,
+            "canvas": 1509568,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          },
+          "visibleCanvasAfter": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 926597232232,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 926597234967,
+            "root": 13109686,
+            "canvas": 1509568,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          }
+        }
+      ],
+      "writableGrowthBytes": {
+        "runtimeDelta": 16657,
+        "profileDelta": 0
+      },
+      "cleanup": "owned-window-closed",
+      "artifactCleanup": "runtime-and-profile-copies-removed; metadata-retained",
+      "variant": "stock601",
+      "runtimeManifestSha256": "781777e2a9bd25af73ef94c6527f54a0e193f8375ad65b669b2848808abfd54b",
+      "launchMode": "HubThenOpen",
+      "mediaOpenRequestedMs": 3119.2376,
+      "openedMediaPath": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\av1-1080p30-audio.mp4",
+      "startedUtc": "2026-10-21T10:03:54.6104411Z",
+      "windowRaisedForVisibility": true,
+      "alignedPlaybackPosition": 20.5666666667,
+      "samplingStartedUtc": "2026-10-21T10:04:18.7022404Z",
+      "samplingEndedUtc": "2026-10-21T10:04:49.7412513Z",
+      "videoCanvas": {
+        "handle": 1509568,
+        "className": "mpv",
+        "clientWidth": 1280,
+        "clientHeight": 720,
+        "dpi": 96
+      },
+      "childWindows": [
+        {
+          "handle": 16779384,
+          "className": "Aperture_Native_Video_Child",
+          "clientWidth": 1280,
+          "clientHeight": 720,
+          "dpi": 96
+        },
+        {
+          "handle": 1509568,
+          "className": "mpv",
+          "clientWidth": 1280,
+          "clientHeight": 720,
+          "dpi": 96
+        }
+      ]
+    },
+    {
+      "player": "Aperture",
+      "round": 2,
+      "warmup": false,
+      "status": "sampled",
+      "failure": null,
+      "runtimeSource": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-candidate-clean-runtime-20261021",
+      "runtimeBytes": 32063738,
+      "runtimeFileCount": 11,
+      "executableHash": "19B9EA164EB15A4272C3F74D82294063FF53030D60302B03FBA8C4A356E07D7D",
+      "version": "2.0.0.0",
+      "runDirectory": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-comparison-clean-runs-20261021\\runs-92a71fa3ac3e45bc91f2552a6b6810ed\\2-retired-device",
+      "arguments": [],
+      "childEnvironment": {
+        "APPDATA": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-comparison-clean-runs-20261021\\runs-92a71fa3ac3e45bc91f2552a6b6810ed\\2-retired-device\\profile\\Roaming",
+        "TEMP": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-comparison-clean-runs-20261021\\runs-92a71fa3ac3e45bc91f2552a6b6810ed\\2-retired-device\\profile\\Temp",
+        "TMP": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-comparison-clean-runs-20261021\\runs-92a71fa3ac3e45bc91f2552a6b6810ed\\2-retired-device\\profile\\Temp",
+        "LOCALAPPDATA": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-comparison-clean-runs-20261021\\runs-92a71fa3ac3e45bc91f2552a6b6810ed\\2-retired-device\\profile\\Local"
+      },
+      "configPath": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-comparison-clean-runs-20261021\\runs-92a71fa3ac3e45bc91f2552a6b6810ed\\2-retired-device\\runtime\\data",
+      "initialConfig": "Fresh executable-adjacent data/ directory.",
+      "pid": 7728,
+      "processToVisibleWindowMs": 81.217,
+      "windowDimensions": [
+        1296,
+        759
+      ],
+      "playbackVerification": "advancing-playback-verified",
+      "playbackReason": null,
+      "samples": [
+        {
+          "elapsedSeconds": 24.037384,
+          "workingSetBytes": 144535552,
+          "privateBytes": 165552128,
+          "cpuSeconds": 1.78125,
+          "cpuCycles": 6894098700,
+          "dedicatedGpuBytes": 79568896,
+          "sharedGpuBytes": 15589376,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "positionSec": 20.5666666667,
+            "reason": null,
+            "state": 2
+          },
+          "visibleCanvasBefore": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 926844465720,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 926844470347,
+            "root": 13175222,
+            "canvas": 17304158,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          },
+          "visibleCanvasAfter": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 926854956829,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 926854959596,
+            "root": 13175222,
+            "canvas": 17304158,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          }
+        },
+        {
+          "elapsedSeconds": 29.0480738,
+          "workingSetBytes": 142606336,
+          "privateBytes": 156774400,
+          "cpuSeconds": 1.96875,
+          "cpuCycles": 7715689100,
+          "dedicatedGpuBytes": 79568896,
+          "sharedGpuBytes": 15613952,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "positionSec": 25.5666666667,
+            "reason": null,
+            "state": 2
+          },
+          "visibleCanvasBefore": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 926894573640,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 926894577187,
+            "root": 13175222,
+            "canvas": 17304158,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          },
+          "visibleCanvasAfter": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 926905049199,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 926905051960,
+            "root": 13175222,
+            "canvas": 17304158,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          }
+        },
+        {
+          "elapsedSeconds": 34.0528787,
+          "workingSetBytes": 142196736,
+          "privateBytes": 156721152,
+          "cpuSeconds": 2.1875,
+          "cpuCycles": 8521099100,
+          "dedicatedGpuBytes": 79564800,
+          "sharedGpuBytes": 15175680,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "positionSec": 30.5666666667,
+            "reason": null,
+            "state": 2
+          },
+          "visibleCanvasBefore": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 926944622740,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 926944625418,
+            "root": 13175222,
+            "canvas": 17304158,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          },
+          "visibleCanvasAfter": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 926954951565,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 926954954326,
+            "root": 13175222,
+            "canvas": 17304158,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          }
+        },
+        {
+          "elapsedSeconds": 39.0470216,
+          "workingSetBytes": 142290944,
+          "privateBytes": 156872704,
+          "cpuSeconds": 2.375,
+          "cpuCycles": 9293270880,
+          "dedicatedGpuBytes": 79564800,
+          "sharedGpuBytes": 15175680,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "positionSec": 35.5666666667,
+            "reason": null,
+            "state": 2
+          },
+          "visibleCanvasBefore": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 926994563085,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 926994566665,
+            "root": 13175222,
+            "canvas": 17304158,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          },
+          "visibleCanvasAfter": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 927004930689,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 927004933469,
+            "root": 13175222,
+            "canvas": 17304158,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          }
+        },
+        {
+          "elapsedSeconds": 44.0379843,
+          "workingSetBytes": 142409728,
+          "privateBytes": 156966912,
+          "cpuSeconds": 2.59375,
+          "cpuCycles": 10058075600,
+          "dedicatedGpuBytes": 79564800,
+          "sharedGpuBytes": 15175680,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "positionSec": 40.5666666667,
+            "reason": null,
+            "state": 2
+          },
+          "visibleCanvasBefore": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 927044473477,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 927044476463,
+            "root": 13175222,
+            "canvas": 17304158,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          },
+          "visibleCanvasAfter": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 927054888795,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 927054891573,
+            "root": 13175222,
+            "canvas": 17304158,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          }
+        },
+        {
+          "elapsedSeconds": 49.0482969,
+          "workingSetBytes": 142512128,
+          "privateBytes": 157077504,
+          "cpuSeconds": 2.8125,
+          "cpuCycles": 10816618680,
+          "dedicatedGpuBytes": 79564800,
+          "sharedGpuBytes": 15175680,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "positionSec": 45.5666666667,
+            "reason": null,
+            "state": 2
+          },
+          "visibleCanvasBefore": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 927094575917,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 927094579443,
+            "root": 13175222,
+            "canvas": 17304158,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          },
+          "visibleCanvasAfter": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 927105045453,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 927105048245,
+            "root": 13175222,
+            "canvas": 17304158,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          }
+        },
+        {
+          "elapsedSeconds": 54.0538813,
+          "workingSetBytes": 142667776,
+          "privateBytes": 157212672,
+          "cpuSeconds": 2.921875,
+          "cpuCycles": 11593018340,
+          "dedicatedGpuBytes": 79564800,
+          "sharedGpuBytes": 15175680,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "positionSec": 50.5666666667,
+            "reason": null,
+            "state": 2
+          },
+          "visibleCanvasBefore": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 927144631743,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 927144635288,
+            "root": 13175222,
+            "canvas": 17304158,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          },
+          "visibleCanvasAfter": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 927155043892,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 927155047679,
+            "root": 13175222,
+            "canvas": 17304158,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          }
+        }
+      ],
+      "writableGrowthBytes": {
+        "runtimeDelta": 16648,
+        "profileDelta": 0
+      },
+      "cleanup": "owned-window-closed",
+      "artifactCleanup": "runtime-and-profile-copies-removed; metadata-retained",
+      "variant": "retired-device",
+      "runtimeManifestSha256": "f1d84f734c81c5f005133372c66d35cc127da4fcfd7e93ac5b35696d93964cfe",
+      "launchMode": "HubThenOpen",
+      "mediaOpenRequestedMs": 3116.4953,
+      "openedMediaPath": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\av1-1080p30-audio.mp4",
+      "startedUtc": "2026-10-21T10:04:50.4271738Z",
+      "windowRaisedForVisibility": true,
+      "alignedPlaybackPosition": 20.5333333333,
+      "samplingStartedUtc": "2026-10-21T10:05:14.4639362Z",
+      "samplingEndedUtc": "2026-10-21T10:05:45.5225597Z",
+      "videoCanvas": {
+        "handle": 17304158,
+        "className": "mpv",
+        "clientWidth": 1280,
+        "clientHeight": 720,
+        "dpi": 96
+      },
+      "childWindows": [
+        {
+          "handle": 5703936,
+          "className": "Aperture_Native_Video_Child",
+          "clientWidth": 1280,
+          "clientHeight": 720,
+          "dpi": 96
+        },
+        {
+          "handle": 17304158,
+          "className": "mpv",
+          "clientWidth": 1280,
+          "clientHeight": 720,
+          "dpi": 96
+        }
+      ]
+    },
+    {
+      "player": "Aperture",
+      "round": 3,
+      "warmup": false,
+      "status": "sampled",
+      "failure": null,
+      "runtimeSource": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-candidate-clean-runtime-20261021",
+      "runtimeBytes": 32063738,
+      "runtimeFileCount": 11,
+      "executableHash": "19B9EA164EB15A4272C3F74D82294063FF53030D60302B03FBA8C4A356E07D7D",
+      "version": "2.0.0.0",
+      "runDirectory": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-comparison-clean-runs-20261021\\runs-92a71fa3ac3e45bc91f2552a6b6810ed\\3-retired-device",
+      "arguments": [],
+      "childEnvironment": {
+        "APPDATA": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-comparison-clean-runs-20261021\\runs-92a71fa3ac3e45bc91f2552a6b6810ed\\3-retired-device\\profile\\Roaming",
+        "TEMP": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-comparison-clean-runs-20261021\\runs-92a71fa3ac3e45bc91f2552a6b6810ed\\3-retired-device\\profile\\Temp",
+        "TMP": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-comparison-clean-runs-20261021\\runs-92a71fa3ac3e45bc91f2552a6b6810ed\\3-retired-device\\profile\\Temp",
+        "LOCALAPPDATA": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-comparison-clean-runs-20261021\\runs-92a71fa3ac3e45bc91f2552a6b6810ed\\3-retired-device\\profile\\Local"
+      },
+      "configPath": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-comparison-clean-runs-20261021\\runs-92a71fa3ac3e45bc91f2552a6b6810ed\\3-retired-device\\runtime\\data",
+      "initialConfig": "Fresh executable-adjacent data/ directory.",
+      "pid": 26368,
+      "processToVisibleWindowMs": 81.0981,
+      "windowDimensions": [
+        1296,
+        759
+      ],
+      "playbackVerification": "advancing-playback-verified",
+      "playbackReason": null,
+      "samples": [
+        {
+          "elapsedSeconds": 24.0080587,
+          "workingSetBytes": 144564224,
+          "privateBytes": 165408768,
+          "cpuSeconds": 1.84375,
+          "cpuCycles": 6979868500,
+          "dedicatedGpuBytes": 75644928,
+          "sharedGpuBytes": 15572992,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "positionSec": 20.5333333333,
+            "reason": null,
+            "state": 2
+          },
+          "visibleCanvasBefore": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 927401701524,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 927401710676,
+            "root": 13240758,
+            "canvas": 11798624,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          },
+          "visibleCanvasAfter": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 927412137682,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 927412140482,
+            "root": 13240758,
+            "canvas": 11798624,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          }
+        },
+        {
+          "elapsedSeconds": 29.0226378,
+          "workingSetBytes": 142483456,
+          "privateBytes": 151838720,
+          "cpuSeconds": 2.0,
+          "cpuCycles": 7772843380,
+          "dedicatedGpuBytes": 75644928,
+          "sharedGpuBytes": 15572992,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "positionSec": 25.5666666667,
+            "reason": null,
+            "state": 2
+          },
+          "visibleCanvasBefore": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 927451852768,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 927451856475,
+            "root": 13240758,
+            "canvas": 11798624,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          },
+          "visibleCanvasAfter": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 927462227459,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 927462230058,
+            "root": 13240758,
+            "canvas": 11798624,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          }
+        },
+        {
+          "elapsedSeconds": 34.0093125,
+          "workingSetBytes": 142102528,
+          "privateBytes": 151941120,
+          "cpuSeconds": 2.21875,
+          "cpuCycles": 8588030400,
+          "dedicatedGpuBytes": 75640832,
+          "sharedGpuBytes": 15134720,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "positionSec": 30.5333333333,
+            "reason": null,
+            "state": 2
+          },
+          "visibleCanvasBefore": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 927501720550,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 927501723238,
+            "root": 13240758,
+            "canvas": 11798624,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          },
+          "visibleCanvasAfter": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 927512189195,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 927512194914,
+            "root": 13240758,
+            "canvas": 11798624,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          }
+        },
+        {
+          "elapsedSeconds": 39.0204251,
+          "workingSetBytes": 142204928,
+          "privateBytes": 151945216,
+          "cpuSeconds": 2.390625,
+          "cpuCycles": 9387547360,
+          "dedicatedGpuBytes": 75640832,
+          "sharedGpuBytes": 15147008,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "positionSec": 35.5666666667,
+            "reason": null,
+            "state": 2
+          },
+          "visibleCanvasBefore": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 927551830707,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 927551834222,
+            "root": 13240758,
+            "canvas": 11798624,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          },
+          "visibleCanvasAfter": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 927562241261,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 927562244091,
+            "root": 13240758,
+            "canvas": 11798624,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          }
+        },
+        {
+          "elapsedSeconds": 44.0155927,
+          "workingSetBytes": 142356480,
+          "privateBytes": 152055808,
+          "cpuSeconds": 2.75,
+          "cpuCycles": 10203877800,
+          "dedicatedGpuBytes": 79577088,
+          "sharedGpuBytes": 15159296,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "positionSec": 40.5666666667,
+            "reason": null,
+            "state": 2
+          },
+          "visibleCanvasBefore": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 927601783426,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 927601786032,
+            "root": 13240758,
+            "canvas": 11798624,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          },
+          "visibleCanvasAfter": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 927612137054,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 927612139628,
+            "root": 13240758,
+            "canvas": 11798624,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          }
+        },
+        {
+          "elapsedSeconds": 49.0260603,
+          "workingSetBytes": 142495744,
+          "privateBytes": 157036544,
+          "cpuSeconds": 2.890625,
+          "cpuCycles": 10975546460,
+          "dedicatedGpuBytes": 79577088,
+          "sharedGpuBytes": 15196160,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "positionSec": 45.5666666667,
+            "reason": null,
+            "state": 2
+          },
+          "visibleCanvasBefore": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 927651887381,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 927651890675,
+            "root": 13240758,
+            "canvas": 11798624,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          },
+          "visibleCanvasAfter": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 927662303609,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 927662306249,
+            "root": 13240758,
+            "canvas": 11798624,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          }
+        },
+        {
+          "elapsedSeconds": 54.0164594,
+          "workingSetBytes": 142618624,
+          "privateBytes": 157036544,
+          "cpuSeconds": 3.109375,
+          "cpuCycles": 11738539340,
+          "dedicatedGpuBytes": 79577088,
+          "sharedGpuBytes": 15196160,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "positionSec": 50.5333333333,
+            "reason": null,
+            "state": 2
+          },
+          "visibleCanvasBefore": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 927701791388,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 927701794568,
+            "root": 13240758,
+            "canvas": 11798624,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          },
+          "visibleCanvasAfter": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 927712251430,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 927712255962,
+            "root": 13240758,
+            "canvas": 11798624,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          }
+        }
+      ],
+      "writableGrowthBytes": {
+        "runtimeDelta": 16658,
+        "profileDelta": 0
+      },
+      "cleanup": "owned-window-closed",
+      "artifactCleanup": "runtime-and-profile-copies-removed; metadata-retained",
+      "variant": "retired-device",
+      "runtimeManifestSha256": "f1d84f734c81c5f005133372c66d35cc127da4fcfd7e93ac5b35696d93964cfe",
+      "launchMode": "HubThenOpen",
+      "mediaOpenRequestedMs": 3115.9417,
+      "openedMediaPath": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\av1-1080p30-audio.mp4",
+      "startedUtc": "2026-10-21T10:05:46.1805148Z",
+      "windowRaisedForVisibility": true,
+      "alignedPlaybackPosition": 20.5,
+      "samplingStartedUtc": "2026-10-21T10:06:10.1874480Z",
+      "samplingEndedUtc": "2026-10-21T10:06:41.2433620Z",
+      "videoCanvas": {
+        "handle": 11798624,
+        "className": "mpv",
+        "clientWidth": 1280,
+        "clientHeight": 720,
+        "dpi": 96
+      },
+      "childWindows": [
+        {
+          "handle": 16910456,
+          "className": "Aperture_Native_Video_Child",
+          "clientWidth": 1280,
+          "clientHeight": 720,
+          "dpi": 96
+        },
+        {
+          "handle": 11798624,
+          "className": "mpv",
+          "clientWidth": 1280,
+          "clientHeight": 720,
+          "dpi": 96
+        }
+      ]
+    },
+    {
+      "player": "Aperture",
+      "round": 3,
+      "warmup": false,
+      "status": "sampled",
+      "failure": null,
+      "runtimeSource": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-baseline-runtime-20261021",
+      "runtimeBytes": 32063738,
+      "runtimeFileCount": 11,
+      "executableHash": "D2F8744BCA973D97609EC821A653CC9A903D23D07E3D9065D160704F7E44C81E",
+      "version": "2.0.0.0",
+      "runDirectory": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-comparison-clean-runs-20261021\\runs-92a71fa3ac3e45bc91f2552a6b6810ed\\3-stock601",
+      "arguments": [],
+      "childEnvironment": {
+        "APPDATA": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-comparison-clean-runs-20261021\\runs-92a71fa3ac3e45bc91f2552a6b6810ed\\3-stock601\\profile\\Roaming",
+        "TEMP": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-comparison-clean-runs-20261021\\runs-92a71fa3ac3e45bc91f2552a6b6810ed\\3-stock601\\profile\\Temp",
+        "TMP": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-comparison-clean-runs-20261021\\runs-92a71fa3ac3e45bc91f2552a6b6810ed\\3-stock601\\profile\\Temp",
+        "LOCALAPPDATA": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-comparison-clean-runs-20261021\\runs-92a71fa3ac3e45bc91f2552a6b6810ed\\3-stock601\\profile\\Local"
+      },
+      "configPath": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-comparison-clean-runs-20261021\\runs-92a71fa3ac3e45bc91f2552a6b6810ed\\3-stock601\\runtime\\data",
+      "initialConfig": "Fresh executable-adjacent data/ directory.",
+      "pid": 26460,
+      "processToVisibleWindowMs": 77.6691,
+      "windowDimensions": [
+        1296,
+        759
+      ],
+      "playbackVerification": "advancing-playback-verified",
+      "playbackReason": null,
+      "samples": [
+        {
+          "elapsedSeconds": 24.2026191,
+          "workingSetBytes": 146710528,
+          "privateBytes": 166461440,
+          "cpuSeconds": 1.734375,
+          "cpuCycles": 6896100540,
+          "dedicatedGpuBytes": 94294016,
+          "sharedGpuBytes": 17100800,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "positionSec": 20.7333333333,
+            "reason": null,
+            "state": 2
+          },
+          "visibleCanvasBefore": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 927961046888,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 927961054580,
+            "root": 13306294,
+            "canvas": 1706176,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          },
+          "visibleCanvasAfter": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 927971520958,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 927971523666,
+            "root": 13306294,
+            "canvas": 1706176,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          }
+        },
+        {
+          "elapsedSeconds": 29.2153809,
+          "workingSetBytes": 146882560,
+          "privateBytes": 166682624,
+          "cpuSeconds": 1.921875,
+          "cpuCycles": 7696666680,
+          "dedicatedGpuBytes": 94294016,
+          "sharedGpuBytes": 17100800,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "positionSec": 25.7333333333,
+            "reason": null,
+            "state": 2
+          },
+          "visibleCanvasBefore": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 928011178546,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 928011182192,
+            "root": 13306294,
+            "canvas": 1706176,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          },
+          "visibleCanvasAfter": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 928021635537,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 928021638635,
+            "root": 13306294,
+            "canvas": 1706176,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          }
+        },
+        {
+          "elapsedSeconds": 34.2242405,
+          "workingSetBytes": 146505728,
+          "privateBytes": 166649856,
+          "cpuSeconds": 2.125,
+          "cpuCycles": 8498096180,
+          "dedicatedGpuBytes": 94289920,
+          "sharedGpuBytes": 16662528,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "positionSec": 30.7666666667,
+            "reason": null,
+            "state": 2
+          },
+          "visibleCanvasBefore": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 928061267325,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 928061270793,
+            "root": 13306294,
+            "canvas": 1706176,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          },
+          "visibleCanvasAfter": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 928071683642,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 928071686416,
+            "root": 13306294,
+            "canvas": 1706176,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          }
+        },
+        {
+          "elapsedSeconds": 39.2163274,
+          "workingSetBytes": 146624512,
+          "privateBytes": 166760448,
+          "cpuSeconds": 2.296875,
+          "cpuCycles": 9287591400,
+          "dedicatedGpuBytes": 94289920,
+          "sharedGpuBytes": 16662528,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "positionSec": 35.7333333333,
+            "reason": null,
+            "state": 2
+          },
+          "visibleCanvasBefore": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 928111188564,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 928111191680,
+            "root": 13306294,
+            "canvas": 1706176,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          },
+          "visibleCanvasAfter": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 928121603044,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 928121606957,
+            "root": 13306294,
+            "canvas": 1706176,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          }
+        },
+        {
+          "elapsedSeconds": 44.2096635,
+          "workingSetBytes": 146751488,
+          "privateBytes": 166871040,
+          "cpuSeconds": 2.4375,
+          "cpuCycles": 10136228300,
+          "dedicatedGpuBytes": 94289920,
+          "sharedGpuBytes": 16662528,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "positionSec": 40.7333333333,
+            "reason": null,
+            "state": 2
+          },
+          "visibleCanvasBefore": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 928161121837,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 928161125009,
+            "root": 13306294,
+            "canvas": 1706176,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          },
+          "visibleCanvasAfter": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 928171610538,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 928171613602,
+            "root": 13306294,
+            "canvas": 1706176,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          }
+        },
+        {
+          "elapsedSeconds": 49.2182722,
+          "workingSetBytes": 146882560,
+          "privateBytes": 167018496,
+          "cpuSeconds": 2.65625,
+          "cpuCycles": 10947960740,
+          "dedicatedGpuBytes": 94289920,
+          "sharedGpuBytes": 16662528,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "positionSec": 45.7333333333,
+            "reason": null,
+            "state": 2
+          },
+          "visibleCanvasBefore": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 928211208237,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 928211211262,
+            "root": 13306294,
+            "canvas": 1706176,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          },
+          "visibleCanvasAfter": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 928221546517,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 928221549546,
+            "root": 13306294,
+            "canvas": 1706176,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          }
+        },
+        {
+          "elapsedSeconds": 54.2107933,
+          "workingSetBytes": 147009536,
+          "privateBytes": 167165952,
+          "cpuSeconds": 2.921875,
+          "cpuCycles": 11768120820,
+          "dedicatedGpuBytes": 98226176,
+          "sharedGpuBytes": 16662528,
+          "gpuUnavailableReason": null,
+          "playback": {
+            "positionSec": 50.7333333333,
+            "reason": null,
+            "state": 2
+          },
+          "visibleCanvasBefore": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 928261133088,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 928261136307,
+            "root": 13306294,
+            "canvas": 1706176,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          },
+          "visibleCanvasAfter": {
+            "status": "validated",
+            "reason": null,
+            "safe": true,
+            "ownedOverlayPresent": true,
+            "phase": -1,
+            "qpcStart": 928271528908,
+            "qpcReadStart": 0,
+            "qpcReadEnd": 0,
+            "qpcEnd": 928271531778,
+            "root": 13306294,
+            "canvas": 1706176,
+            "dpi": 96,
+            "screenCanvas": {
+              "left": 48,
+              "top": 71,
+              "right": 1328,
+              "bottom": 791
+            },
+            "rgb": []
+          }
+        }
+      ],
+      "writableGrowthBytes": {
+        "runtimeDelta": 16654,
+        "profileDelta": 0
+      },
+      "cleanup": "owned-window-closed",
+      "artifactCleanup": "runtime-and-profile-copies-removed; metadata-retained",
+      "variant": "stock601",
+      "runtimeManifestSha256": "781777e2a9bd25af73ef94c6527f54a0e193f8375ad65b669b2848808abfd54b",
+      "launchMode": "HubThenOpen",
+      "mediaOpenRequestedMs": 3122.8964,
+      "openedMediaPath": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\av1-1080p30-audio.mp4",
+      "startedUtc": "2026-10-21T10:06:41.9203796Z",
+      "windowRaisedForVisibility": true,
+      "alignedPlaybackPosition": 20.7,
+      "samplingStartedUtc": "2026-10-21T10:07:06.1221061Z",
+      "samplingEndedUtc": "2026-10-21T10:07:37.1709276Z",
+      "videoCanvas": {
+        "handle": 1706176,
+        "className": "mpv",
+        "clientWidth": 1280,
+        "clientHeight": 720,
+        "dpi": 96
+      },
+      "childWindows": [
+        {
+          "handle": 5835008,
+          "className": "Aperture_Native_Video_Child",
+          "clientWidth": 1280,
+          "clientHeight": 720,
+          "dpi": 96
+        },
+        {
+          "handle": 1706176,
+          "className": "mpv",
+          "clientWidth": 1280,
+          "clientHeight": 720,
+          "dpi": 96
+        }
+      ]
+    }
+  ],
+  "videoCanvasTarget": [
+    1280,
+    720
+  ],
+  "forcedVlcD3D11Linear": false,
+  "environment": {
+    "osVersion": "Microsoft Windows 11 Pro 10.0.26200 build 26200",
+    "cpuName": "AMD Ryzen 9 3900X 12-Core Processor            ",
+    "logicalProcessors": 24,
+    "gpuName": "NVIDIA GeForce RTX 4070 SUPER",
+    "gpuDriverVersion": "32.0.16.1742",
+    "lastBootUpTimeUtc": "2026-10-20T08:20:30.5101550Z",
+    "source": "Win32_ComputerSystem, Win32_OperatingSystem, Win32_Processor and Win32_VideoController CIM instances"
+  },
+  "harnessSourceSha256": {
+    "compare_players.ps1": "049631B0D6BDF21F77EE9E408185EF7350D78F55C69DD20C6D1D2BE9A29F5C9A",
+    "PlayerBenchmarkWindow.cs": "E9731349D7203F8257B19E7A550C8907573E1CB8BA8056EC577AD7C17E81E921",
+    "PlayerVideoReadiness.cs": "BD1316D4B4FDF235EF126076CB3E466CB707A567E923F4927E66AB6AE263F9E6",
+    "player_comparison_identity.ps1": "74309055E3522269B4033F4B561D07A7430A5196A6426D6DC025B5965323E6FE",
+    "player_status_probe.cpp": "A832805A0F250D2F4699C4BF42EF0B5C1B9B1CC05FB6B075F3349041E1C0A164"
+  },
+  "apertureStatusProbeSha256": "FFFFA47050C6A3B04F34C7F26228FA01981345A3321725DDCD2D6676C09A0EC3",
+  "purpose": "Resource comparison; no overall player ranking.",
+  "visibilityMethod": "Only the owned player is raised topmost before settling. Its canvas must be visible, unminimized, uncloaked, within one monitor, and free of detected foreign-window/cursor occlusion before and after each resource sample. Hit-test sentinels may reach the video, an owned video-host ancestor/descendant, or its exact owned layered ApertureOverlay control surface. Ownership/hit tests do not prove layer transparency or presented pixels; controlled GDI sentinel recognition is separate. Guards do not continuously observe intervals or check every pixel.",
+  "windowPlacement": "Owned topmost comparison window at 40,40; not default window-manager placement.",
+  "visibilityObserverSha256": "BD1316D4B4FDF235EF126076CB3E466CB707A567E923F4927E66AB6AE263F9E6",
+  "launchMode": "HubThenOpen",
+  "hubSettleSeconds": 3,
+  "runtimeManifestMethod": "SHA-256 of ordinal-sorted UTF-8 lines: relative path with /, tab, byte length, tab, lowercase file SHA-256, LF. Source and staged runtime inventories must match before launch."
+}

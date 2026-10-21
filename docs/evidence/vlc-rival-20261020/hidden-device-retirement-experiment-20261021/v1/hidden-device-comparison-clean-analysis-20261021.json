@@ -1,0 +1,405 @@
+{
+  "recordedAtUtc": "2026-10-21T10:08:15.464561+00:00",
+  "qualified": true,
+  "reasons": [],
+  "baseSourceCommit": "601e62924ca31fb8e6a439958590887e1397afb0",
+  "candidateSourceDirty": true,
+  "candidatePatchSha256": "03ac29bc4863614156482eeaa951982c1a436b7981f9a466d3344e40222f18d5",
+  "planSha256": "c7a06face2d961eaeb726a6253f4e0d7960c31674fa01ad09e7965209ffb2676",
+  "comparisonSha256": "b50ecede210d4cdc39be44885a558ba3eb0323553c39dc5b2049f182b7f73e3a",
+  "aggregation": "Mean of seven guarded snapshots per run, mean across three fresh measured runs; all run-mean ranges and paired differences retained. Chosen before first duration/memory analysis; no significance test or overall pass threshold.",
+  "rows": [
+    {
+      "variant": "stock601",
+      "round": 0,
+      "warmup": true,
+      "pid": 27376,
+      "canvas": {
+        "handle": 11405408,
+        "className": "mpv",
+        "clientWidth": 1280,
+        "clientHeight": 720,
+        "dpi": 96
+      },
+      "startedUtc": "2026-10-21T10:00:11.3042334Z",
+      "samplingStartedUtc": "2026-10-21T10:00:35.4800201Z",
+      "samplingEndedUtc": "2026-10-21T10:01:06.5312004Z",
+      "metrics": {
+        "privateBytes": {
+          "mean": 166906733.7142857,
+          "minimum": 166662144,
+          "maximum": 167247872
+        },
+        "workingSetBytes": {
+          "mean": 146665472,
+          "minimum": 146391040,
+          "maximum": 146903040
+        },
+        "dedicatedGpuBytes": {
+          "mean": 94290505.14285715,
+          "minimum": 94289920,
+          "maximum": 94294016
+        },
+        "sharedGpuBytes": {
+          "mean": 16746203.42857143,
+          "minimum": 16687104,
+          "maximum": 17100800
+        }
+      }
+    },
+    {
+      "variant": "retired-device",
+      "round": 0,
+      "warmup": true,
+      "pid": 29848,
+      "canvas": {
+        "handle": 1312960,
+        "className": "mpv",
+        "clientWidth": 1280,
+        "clientHeight": 720,
+        "dpi": 96
+      },
+      "startedUtc": "2026-10-21T10:01:07.2435062Z",
+      "samplingStartedUtc": "2026-10-21T10:01:31.3535293Z",
+      "samplingEndedUtc": "2026-10-21T10:02:02.4138057Z",
+      "metrics": {
+        "privateBytes": {
+          "mean": 153188059.42857143,
+          "minimum": 151220224,
+          "maximum": 164843520
+        },
+        "workingSetBytes": {
+          "mean": 142369938.2857143,
+          "minimum": 141881344,
+          "maximum": 143839232
+        },
+        "dedicatedGpuBytes": {
+          "mean": 75642002.28571428,
+          "minimum": 75640832,
+          "maximum": 75644928
+        },
+        "sharedGpuBytes": {
+          "mean": 15272228.57142857,
+          "minimum": 15134720,
+          "maximum": 15572992
+        }
+      }
+    },
+    {
+      "variant": "retired-device",
+      "round": 1,
+      "warmup": false,
+      "pid": 32836,
+      "canvas": {
+        "handle": 17107550,
+        "className": "mpv",
+        "clientWidth": 1280,
+        "clientHeight": 720,
+        "dpi": 96
+      },
+      "startedUtc": "2026-10-21T10:02:03.0784623Z",
+      "samplingStartedUtc": "2026-10-21T10:02:27.1160423Z",
+      "samplingEndedUtc": "2026-10-21T10:02:58.1672282Z",
+      "metrics": {
+        "privateBytes": {
+          "mean": 155013705.14285713,
+          "minimum": 151732224,
+          "maximum": 164265984
+        },
+        "workingSetBytes": {
+          "mean": 142935186.2857143,
+          "minimum": 142405632,
+          "maximum": 144814080
+        },
+        "dedicatedGpuBytes": {
+          "mean": 77316096,
+          "minimum": 75628544,
+          "maximum": 79564800
+        },
+        "sharedGpuBytes": {
+          "mean": 15092004.57142857,
+          "minimum": 15003648,
+          "maximum": 15572992
+        }
+      }
+    },
+    {
+      "variant": "stock601",
+      "round": 1,
+      "warmup": false,
+      "pid": 32792,
+      "canvas": {
+        "handle": 11602016,
+        "className": "mpv",
+        "clientWidth": 1280,
+        "clientHeight": 720,
+        "dpi": 96
+      },
+      "startedUtc": "2026-10-21T10:02:58.8308494Z",
+      "samplingStartedUtc": "2026-10-21T10:03:22.8961387Z",
+      "samplingEndedUtc": "2026-10-21T10:03:53.9454382Z",
+      "metrics": {
+        "privateBytes": {
+          "mean": 165985718.85714287,
+          "minimum": 165728256,
+          "maximum": 166326272
+        },
+        "workingSetBytes": {
+          "mean": 146911232,
+          "minimum": 146636800,
+          "maximum": 147148800
+        },
+        "dedicatedGpuBytes": {
+          "mean": 94295186.28571428,
+          "minimum": 94294016,
+          "maximum": 94298112
+        },
+        "sharedGpuBytes": {
+          "mean": 16941641.14285714,
+          "minimum": 16805888,
+          "maximum": 17231872
+        }
+      }
+    },
+    {
+      "variant": "stock601",
+      "round": 2,
+      "warmup": false,
+      "pid": 18288,
+      "canvas": {
+        "handle": 1509568,
+        "className": "mpv",
+        "clientWidth": 1280,
+        "clientHeight": 720,
+        "dpi": 96
+      },
+      "startedUtc": "2026-10-21T10:03:54.6104411Z",
+      "samplingStartedUtc": "2026-10-21T10:04:18.7022404Z",
+      "samplingEndedUtc": "2026-10-21T10:04:49.7412513Z",
+      "metrics": {
+        "privateBytes": {
+          "mean": 172938386.2857143,
+          "minimum": 172630016,
+          "maximum": 173297664
+        },
+        "workingSetBytes": {
+          "mean": 147543186.2857143,
+          "minimum": 147279872,
+          "maximum": 147783680
+        },
+        "dedicatedGpuBytes": {
+          "mean": 98227346.28571428,
+          "minimum": 98226176,
+          "maximum": 98230272
+        },
+        "sharedGpuBytes": {
+          "mean": 17004836.57142857,
+          "minimum": 16879616,
+          "maximum": 17317888
+        }
+      }
+    },
+    {
+      "variant": "retired-device",
+      "round": 2,
+      "warmup": false,
+      "pid": 7728,
+      "canvas": {
+        "handle": 17304158,
+        "className": "mpv",
+        "clientWidth": 1280,
+        "clientHeight": 720,
+        "dpi": 96
+      },
+      "startedUtc": "2026-10-21T10:04:50.4271738Z",
+      "samplingStartedUtc": "2026-10-21T10:05:14.4639362Z",
+      "samplingEndedUtc": "2026-10-21T10:05:45.5225597Z",
+      "metrics": {
+        "privateBytes": {
+          "mean": 158168210.2857143,
+          "minimum": 156721152,
+          "maximum": 165552128
+        },
+        "workingSetBytes": {
+          "mean": 142745600,
+          "minimum": 142196736,
+          "maximum": 144535552
+        },
+        "dedicatedGpuBytes": {
+          "mean": 79565970.28571428,
+          "minimum": 79564800,
+          "maximum": 79568896
+        },
+        "sharedGpuBytes": {
+          "mean": 15297389.714285715,
+          "minimum": 15175680,
+          "maximum": 15613952
+        }
+      }
+    },
+    {
+      "variant": "retired-device",
+      "round": 3,
+      "warmup": false,
+      "pid": 26368,
+      "canvas": {
+        "handle": 11798624,
+        "className": "mpv",
+        "clientWidth": 1280,
+        "clientHeight": 720,
+        "dpi": 96
+      },
+      "startedUtc": "2026-10-21T10:05:46.1805148Z",
+      "samplingStartedUtc": "2026-10-21T10:06:10.1874480Z",
+      "samplingEndedUtc": "2026-10-21T10:06:41.2433620Z",
+      "metrics": {
+        "privateBytes": {
+          "mean": 155323245.7142857,
+          "minimum": 151838720,
+          "maximum": 165408768
+        },
+        "workingSetBytes": {
+          "mean": 142689426.2857143,
+          "minimum": 142102528,
+          "maximum": 144564224
+        },
+        "dedicatedGpuBytes": {
+          "mean": 77328969.14285715,
+          "minimum": 75640832,
+          "maximum": 79577088
+        },
+        "sharedGpuBytes": {
+          "mean": 15282761.142857144,
+          "minimum": 15134720,
+          "maximum": 15572992
+        }
+      }
+    },
+    {
+      "variant": "stock601",
+      "round": 3,
+      "warmup": false,
+      "pid": 26460,
+      "canvas": {
+        "handle": 1706176,
+        "className": "mpv",
+        "clientWidth": 1280,
+        "clientHeight": 720,
+        "dpi": 96
+      },
+      "startedUtc": "2026-10-21T10:06:41.9203796Z",
+      "samplingStartedUtc": "2026-10-21T10:07:06.1221061Z",
+      "samplingEndedUtc": "2026-10-21T10:07:37.1709276Z",
+      "metrics": {
+        "privateBytes": {
+          "mean": 166801408,
+          "minimum": 166461440,
+          "maximum": 167165952
+        },
+        "workingSetBytes": {
+          "mean": 146766701.7142857,
+          "minimum": 146505728,
+          "maximum": 147009536
+        },
+        "dedicatedGpuBytes": {
+          "mean": 94853412.57142857,
+          "minimum": 94289920,
+          "maximum": 98226176
+        },
+        "sharedGpuBytes": {
+          "mean": 16787748.57142857,
+          "minimum": 16662528,
+          "maximum": 17100800
+        }
+      }
+    }
+  ],
+  "summaries": {
+    "stock601": {
+      "privateBytes": {
+        "meanOfRunMeans": 168575171.04761904,
+        "minRunMean": 165985718.85714287,
+        "maxRunMean": 172938386.2857143,
+        "runs": 3
+      },
+      "workingSetBytes": {
+        "meanOfRunMeans": 147073706.66666666,
+        "minRunMean": 146766701.7142857,
+        "maxRunMean": 147543186.2857143,
+        "runs": 3
+      },
+      "dedicatedGpuBytes": {
+        "meanOfRunMeans": 95791981.71428572,
+        "minRunMean": 94295186.28571428,
+        "maxRunMean": 98227346.28571428,
+        "runs": 3
+      },
+      "sharedGpuBytes": {
+        "meanOfRunMeans": 16911408.76190476,
+        "minRunMean": 16787748.57142857,
+        "maxRunMean": 17004836.57142857,
+        "runs": 3
+      }
+    },
+    "retired-device": {
+      "privateBytes": {
+        "meanOfRunMeans": 156168387.04761904,
+        "minRunMean": 155013705.14285713,
+        "maxRunMean": 158168210.2857143,
+        "runs": 3
+      },
+      "workingSetBytes": {
+        "meanOfRunMeans": 142790070.85714287,
+        "minRunMean": 142689426.2857143,
+        "maxRunMean": 142935186.2857143,
+        "runs": 3
+      },
+      "dedicatedGpuBytes": {
+        "meanOfRunMeans": 78070345.14285715,
+        "minRunMean": 77316096,
+        "maxRunMean": 79565970.28571428,
+        "runs": 3
+      },
+      "sharedGpuBytes": {
+        "meanOfRunMeans": 15224051.80952381,
+        "minRunMean": 15092004.57142857,
+        "maxRunMean": 15297389.714285715,
+        "runs": 3
+      }
+    }
+  },
+  "pairs": [
+    {
+      "round": 1,
+      "candidateMinusStockBytes": {
+        "privateBytes": -10972013.714285731,
+        "workingSetBytes": -3976045.7142857015,
+        "dedicatedGpuBytes": -16979090.285714284,
+        "sharedGpuBytes": -1849636.571428571
+      }
+    },
+    {
+      "round": 2,
+      "candidateMinusStockBytes": {
+        "privateBytes": -14770176.0,
+        "workingSetBytes": -4797586.2857142985,
+        "dedicatedGpuBytes": -18661376.0,
+        "sharedGpuBytes": -1707446.8571428563
+      }
+    },
+    {
+      "round": 3,
+      "candidateMinusStockBytes": {
+        "privateBytes": -11478162.285714298,
+        "workingSetBytes": -4077275.428571403,
+        "dedicatedGpuBytes": -17524443.428571418,
+        "sharedGpuBytes": -1504987.4285714272
+      }
+    }
+  ],
+  "limits": [
+    "Isolated prototype not installed; source patch and nine byte-identical non-EXE payloads retained. No CPU or VLC ranking.",
+    "Resource account figures overlap and are not additive. Three repeats and ranges do not establish a confidence interval.",
+    "Sampling begins after20.5s and does not characterize the15s retirement transition, presentation cadence, audio continuity or return-to-library visual/latency behavior. Those require independent functional checks before adoption."
+  ]
+}

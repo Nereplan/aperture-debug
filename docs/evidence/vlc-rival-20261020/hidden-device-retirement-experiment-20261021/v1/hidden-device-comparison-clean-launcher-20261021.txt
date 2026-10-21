@@ -1,0 +1,9 @@
+stock601 round 0 (warmup): sampled; advancing-playback-verified
+retired-device round 0 (warmup): sampled; advancing-playback-verified
+retired-device round 1 (measured): sampled; advancing-playback-verified
+stock601 round 1 (measured): sampled; advancing-playback-verified
+stock601 round 2 (measured): sampled; advancing-playback-verified
+retired-device round 2 (measured): sampled; advancing-playback-verified
+retired-device round 3 (measured): sampled; advancing-playback-verified
+stock601 round 3 (measured): sampled; advancing-playback-verified
+C:\Users\Alperen\AppData\Local\Codex\tools\scratch\aperture-rival-20261019\hidden-device-comparison-clean-runs-20261021\comparison.json

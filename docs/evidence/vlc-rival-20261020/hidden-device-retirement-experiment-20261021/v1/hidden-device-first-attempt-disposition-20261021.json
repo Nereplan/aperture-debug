@@ -1,0 +1,13 @@
+{
+  "recordedAtUtc": "2026-10-21T10:00:08.152235+00:00",
+  "nativeExitCode": 1,
+  "disposition": "Initial attempt stopped during candidate prelaunch input validation: packaged candidate had an empty data/ directory. One stock warmup sampled; no candidate launched, no complete measured pair, no comparative conclusions. Original output and plan retained.",
+  "observedError": "Supply a clean Aperture runtime without preexisting data.",
+  "originalPlanSha256": "7f9f6c75ad426be59b50c330f2478e5f6b3d4b823ab7a3a17949ad390037a446",
+  "cleanupRejection": {
+    "action": "Remove verified empty candidate package data directory",
+    "target": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hidden-device-candidate-runtime-20261021\\data",
+    "reason": "blocked by policy",
+    "disposition": "No retry, deletion or move performed; original directory left untouched. Fresh runtime contains only verified managed files and manifest."
+  }
+}

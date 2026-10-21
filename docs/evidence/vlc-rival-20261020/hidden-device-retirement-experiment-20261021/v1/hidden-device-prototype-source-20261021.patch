@@ -1,0 +1,110 @@
+diff --git a/src/App.cpp b/src/App.cpp
+index 7ab572d..d6f8555 100644
+--- a/src/App.cpp
++++ b/src/App.cpp
+@@ -1278,7 +1278,10 @@ bool App::Update(float dt) {
+         const auto nowMs = GetTickCount64();
+         if (!hiddenLibrarySinceMs) hiddenLibrarySinceMs = nowMs;
+         if (!hiddenLibraryCachesTrimmed && nowMs - hiddenLibrarySinceMs >= 15000) {
+-            renderer.TrimHiddenLibraryCaches();
++            if (playbackSession.IsOpen()) {
++                previewPlayer.BindDeviceContext(nullptr);
++                renderer.TrimHiddenLibraryCaches(0, true);
++            } else renderer.TrimHiddenLibraryCaches();
+             hiddenLibraryCachesTrimmed = true;
+         }
+     } else {
+diff --git a/src/MpvPlayer.cpp b/src/MpvPlayer.cpp
+index 5e463fb..b691d18 100644
+--- a/src/MpvPlayer.cpp
++++ b/src/MpvPlayer.cpp
+@@ -2107,9 +2107,8 @@ void MpvPreviewPlayer::BindDeviceContext(ID2D1DeviceContext* context) {
+     BindDeviceContextLocked(context);
+ }
+ void MpvPreviewPlayer::BindDeviceContextLocked(ID2D1DeviceContext* context) {
+-    if (!context) return;
+     ComPtr<ID2D1Device> device;
+-    context->GetDevice(&device);
++    if (context) context->GetDevice(&device);
+     if (device.Get() == bitmapDevice.Get()) return;
+     // Keep the previous device alive until this comparison so pointer reuse
+     // cannot conceal a device generation change.
+diff --git a/src/Renderer.cpp b/src/Renderer.cpp
+index 05fe694..fb92a70 100644
+--- a/src/Renderer.cpp
++++ b/src/Renderer.cpp
+@@ -187,10 +187,11 @@ bool Renderer::TrimThumbnailCache(uint64_t incomingBytes) {
+     return thumbnailCacheBytes + incomingBytes <= kThumbnailCacheByteLimit;
+ }
+ 
+-void Renderer::TrimHiddenLibraryCaches(uint64_t retainedThumbnailBytes) {
+-    // Playback uses a separate video/overlay surface. Retain the hub device and
+-    // thumbnails, but release its two window-sized backbuffers until it draws.
+-    if (swapChain && d2dContext && !buffersTrimmed) {
++void Renderer::TrimHiddenLibraryCaches(uint64_t retainedThumbnailBytes, bool releaseDevice) {
++    // Playback uses a separate video/overlay surface. The hub can recreate its
++    // graphics device on the next draw; minimized hubs retain their device.
++    if (releaseDevice) ReleaseDeviceResources();
++    else if (swapChain && d2dContext && !buffersTrimmed) {
+         if (ResizeRenderTarget(1, 1)) buffersTrimmed = true;
+         else RecreateDeviceResources();
+     }
+diff --git a/src/Renderer.h b/src/Renderer.h
+index 226cede..71802a7 100644
+--- a/src/Renderer.h
++++ b/src/Renderer.h
+@@ -160,7 +160,7 @@ public:
+     bool InjectThumbnail(const std::wstring& filePath, UINT width, UINT height, const std::vector<uint8_t>& pixels);
+     size_t ClearThumbnailCache();
+     // Reclaim hidden hub resources without deleting the portable disk cache.
+-    void TrimHiddenLibraryCaches(uint64_t retainedThumbnailBytes = 8ull * 1024 * 1024);
++    void TrimHiddenLibraryCaches(uint64_t retainedThumbnailBytes = 8ull * 1024 * 1024, bool releaseDevice = false);
+     static constexpr UINT kThumbnailReadyMessage = WM_APP + 0x50;
+     void AcknowledgeThumbnailNotification() { thumbnailNotificationPosted.store(false, std::memory_order_release); }
+     bool HasDeferredThumbnailUploads() const { return deferredThumbnailUploads; }
+diff --git a/tests/native/preview_pipeline.cpp b/tests/native/preview_pipeline.cpp
+index 9c0d1d3..4ef298d 100644
+--- a/tests/native/preview_pipeline.cpp
++++ b/tests/native/preview_pipeline.cpp
+@@ -21,6 +21,7 @@ struct MpvPreviewTestAccess {
+         player.fn_mpv_render_context_render = &Render; player.fn_mpv_command = &Command;
+         renders = loads = 0;
+     }
++    static bool GraphicsReleased(const MpvPreviewPlayer& player) { return !player.previewBitmap && !player.bitmapDevice; }
+     static bool Released(const MpvPreviewPlayer& player) {
+         return !player.mpv && !player.renderCtx && !player.hMpvDll && !player.previewBitmap &&
+             !player.bitmapDevice && player.pixelBuffer.empty();
+@@ -88,6 +89,8 @@ int wmain(int argc, wchar_t** argv) {
+         second->SetTarget(nullptr);
+         preview.StopPreview();
+         Check(!preview.IsActive() && preview.GetCurrentPreviewPath().empty(), "Stop kept hover active");
++        preview.BindDeviceContext(nullptr);
++        Check(MpvPreviewTestAccess::GraphicsReleased(preview), "Detached preview kept graphics resources");
+         unsigned stoppedUpdates = 0;
+         const auto stoppedRenders = Hold(preview, second.Get(), 200, &stoppedUpdates);
+         Check(stoppedRenders == 0 && stoppedUpdates == 0, "Stopped hover kept rendering");
+diff --git a/tests/unit/TestPlaybackRenderer.h b/tests/unit/TestPlaybackRenderer.h
+index 9fc3ff1..b7ebf36 100644
+--- a/tests/unit/TestPlaybackRenderer.h
++++ b/tests/unit/TestPlaybackRenderer.h
+@@ -31,5 +31,20 @@ TEST_CASE(PlaybackRenderer, FactoriesStayCpuOnlyUntilGraphicsIntent) {
+     renderer.BeginDraw();
+     renderer.Clear(D2D1::ColorF(D2D1::ColorF::Black));
+     TEST_ASSERT(renderer.EndDraw(false));
++
++    for (int cycle = 0; cycle < 3; ++cycle) {
++        renderer.TrimHiddenLibraryCaches(0, true);
++        TEST_ASSERT(renderer.GetD2DContext() == nullptr);
++        TEST_ASSERT(renderer.GetD2DFactory() != nullptr);
++        TEST_ASSERT(renderer.GetDWriteFactory() != nullptr);
++        TEST_ASSERT(!renderer.HasPresentedFrame());
++        TEST_ASSERT(renderer.EnsureGraphicsContext());
++        renderer.BeginDraw();
++        renderer.Clear(D2D1::ColorF(D2D1::ColorF::Black));
++        TEST_ASSERT(renderer.EndDraw(false));
++        const auto size = renderer.GetD2DContext()->GetSize();
++        TEST_ASSERT_EQ(size.width, 320.0f);
++        TEST_ASSERT_EQ(size.height, 240.0f);
++    }
+ }
+ } // namespace Aperture::Test

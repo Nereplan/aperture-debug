@@ -1,0 +1,41 @@
+========================================
+  Building Aperture Native (Release)
+========================================
+Incremental build cache: C:\Users\Alperen\.codex\worktrees\hidden-library-device\Aperture Final\scratch\build\ninja-Release (use -Clean for an isolated rebuild)
+Configuring CMake (Ninja toolchain, Release)...
+**********************************************************************
+** Visual Studio 2022 Developer Command Prompt v17.14.37
+** Copyright (c) 2025 Microsoft Corporation
+**********************************************************************
+[vcvarsall.bat] Environment initialized for: 'x64'
+-- Configuring done (0.1s)
+-- Generating done (0.1s)
+-- Build files have been written to: C:/Users/Alperen/.codex/worktrees/hidden-library-device/Aperture Final/scratch/build/ninja-Release
+Building target Aperture (Release)...
+**********************************************************************
+** Visual Studio 2022 Developer Command Prompt v17.14.37
+** Copyright (c) 2025 Microsoft Corporation
+**********************************************************************
+[vcvarsall.bat] Environment initialized for: 'x64'
+[1/18] Building CXX object CMakeFiles\Aperture.dir\src\AppPlayback.cpp.obj
+[2/18] Building CXX object CMakeFiles\Aperture.dir\src\main.cpp.obj
+[3/18] Building CXX object CMakeFiles\Aperture.dir\src\AppPersistence.cpp.obj
+[4/18] Building CXX object CMakeFiles\Aperture.dir\src\AppHover.cpp.obj
+[5/18] Building CXX object CMakeFiles\Aperture.dir\src\AppLibrary.cpp.obj
+[6/18] Building CXX object CMakeFiles\Aperture.dir\src\AppTouch.cpp.obj
+[7/18] Building CXX object CMakeFiles\Aperture.dir\src\AppFileOps.cpp.obj
+[8/18] Building CXX object CMakeFiles\Aperture.dir\src\AppModals.cpp.obj
+[9/18] Building CXX object CMakeFiles\Aperture.dir\src\AppTooltips.cpp.obj
+[10/18] Building CXX object CMakeFiles\Aperture.dir\src\AppDragDrop.cpp.obj
+[11/18] Building CXX object CMakeFiles\Aperture.dir\src\AppKeyboard.cpp.obj
+[12/18] Building CXX object CMakeFiles\Aperture.dir\src\AppViewModels.cpp.obj
+[13/18] Building CXX object CMakeFiles\Aperture.dir\src\AppImportJobs.cpp.obj
+[14/18] Building CXX object CMakeFiles\Aperture.dir\src\AppSelection.cpp.obj
+[15/18] Building CXX object CMakeFiles\Aperture.dir\src\App.cpp.obj
+[16/18] Building CXX object CMakeFiles\Aperture.dir\src\AppMenus.cpp.obj
+[17/18] Building CXX object CMakeFiles\Aperture.dir\src\AppAccessibility.cpp.obj
+[18/18] Linking CXX executable Aperture.exe
+
+SUCCESS! Built native binary: C:\Users\Alperen\AppData\Local\Codex\tools\scratch\aperture-rival-20261019\hidden-device-prepaint-interactions-20261021\runtime\Aperture.exe
+Binary size: 3,438,592 bytes (3.28 MB)
+PDB size:    48,443,392 bytes (46.20 MB) -> C:\Users\Alperen\AppData\Local\Codex\tools\scratch\aperture-rival-20261019\hidden-device-prepaint-interactions-20261021\Aperture.pdb
