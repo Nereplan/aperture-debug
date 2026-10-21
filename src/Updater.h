@@ -147,10 +147,6 @@ bool ParseIso8601Utc(const std::string& str, std::chrono::system_clock::time_poi
 bool VerifyEcdsaP256Signature( const std::string& canonicalData, const std::string& signatureHexOrBase64,
     const std::vector<uint8_t>& publicKeyBlob);
 
-bool SignEcdsaP256( const std::string& canonicalData, const std::vector<uint8_t>& privateKeyBlob, std::string& outSignatureHex);
-
-bool GenerateEcdsaP256KeyPair( std::vector<uint8_t>& outPublicBlob, std::vector<uint8_t>& outPrivateBlob);
-
 bool VerifyAuthenticodeAndPin( const std::wstring& filePath, const std::string& expectedThumbprintHex, std::string& outActualThumbprint,
     std::string& outError);
 

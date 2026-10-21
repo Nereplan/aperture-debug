@@ -16,6 +16,7 @@
 #include <cctype>
 #include <random>
 #include <filesystem>
+#include <limits>
 
 #pragma comment(lib, "bcrypt.lib")
 #pragma comment(lib, "crypt32.lib")
@@ -398,7 +399,7 @@ std::string ReleaseManifest::SerializeJson() const {
 // --- Cryptographic & Hashing Implementations ---
 
 std::string ComputeSha256Hex(const void* data, size_t size) {
-    if (!data && size > 0) return "";
+    if ((!data && size > 0) || size > std::numeric_limits<ULONG>::max()) return "";
     // bcrypt is delay-loaded: system-only presence check first.
     if (!SystemDllPresent(L"bcrypt.dll")) return "";
     BCRYPT_ALG_HANDLE hAlg = NULL;
@@ -412,12 +413,12 @@ std::string ComputeSha256Hex(const void* data, size_t size) {
     BCRYPT_HASH_HANDLE hHash = NULL;
     status = BCryptCreateHash(hAlg, &hHash, hashObject.data(), hashObjectSize, NULL, 0, 0);
     if (!BCRYPT_SUCCESS(status)) { BCryptCloseAlgorithmProvider(hAlg, 0); return ""; }
-    if (size > 0) { BCryptHashData(hHash, (PUCHAR)data, static_cast<ULONG>(size), 0); }
     uint8_t hash[32] = { 0 };
-    BCryptFinishHash(hHash, hash, sizeof(hash), 0);
+    const bool hashOk = (size == 0 || BCRYPT_SUCCESS(BCryptHashData(hHash, (PUCHAR)data, static_cast<ULONG>(size), 0))) &&
+        BCRYPT_SUCCESS(BCryptFinishHash(hHash, hash, sizeof(hash), 0));
     BCryptDestroyHash(hHash);
     BCryptCloseAlgorithmProvider(hAlg, 0);
-    return ToHex(hash, sizeof(hash));
+    return hashOk ? ToHex(hash, sizeof(hash)) : "";
 }
 
 std::string ComputeFileSha256Hex(const std::wstring& path) {
@@ -449,54 +450,6 @@ std::string ComputeFileSha256Hex(const std::wstring& path) {
     BCryptCloseAlgorithmProvider(hAlg, 0);
     CloseHandle(hFile);
     return hashOk ? ToHex(hash, sizeof(hash)) : "";
-}
-
-bool GenerateEcdsaP256KeyPair(std::vector<uint8_t>& outPublicBlob, std::vector<uint8_t>& outPrivateBlob) {
-    if (!SystemDllPresent(L"bcrypt.dll")) return false;
-    BCRYPT_ALG_HANDLE hAlg = NULL;
-    NTSTATUS status = BCryptOpenAlgorithmProvider(&hAlg, BCRYPT_ECDSA_P256_ALGORITHM, NULL, 0);
-    if (!BCRYPT_SUCCESS(status)) return false;
-    BCRYPT_KEY_HANDLE hKey = NULL;
-    status = BCryptGenerateKeyPair(hAlg, &hKey, 256, 0);
-    if (!BCRYPT_SUCCESS(status)) { BCryptCloseAlgorithmProvider(hAlg, 0); return false; }
-    status = BCryptFinalizeKeyPair(hKey, 0);
-    if (!BCRYPT_SUCCESS(status)) { BCryptDestroyKey(hKey); BCryptCloseAlgorithmProvider(hAlg, 0); return false; }
-    DWORD pubLen = 0;
-    BCryptExportKey(hKey, NULL, BCRYPT_ECCPUBLIC_BLOB, NULL, 0, &pubLen, 0);
-    outPublicBlob.resize(pubLen);
-    BCryptExportKey(hKey, NULL, BCRYPT_ECCPUBLIC_BLOB, outPublicBlob.data(), pubLen, &pubLen, 0);
-    DWORD privLen = 0;
-    BCryptExportKey(hKey, NULL, BCRYPT_ECCPRIVATE_BLOB, NULL, 0, &privLen, 0);
-    outPrivateBlob.resize(privLen);
-    BCryptExportKey(hKey, NULL, BCRYPT_ECCPRIVATE_BLOB, outPrivateBlob.data(), privLen, &privLen, 0);
-    BCryptDestroyKey(hKey);
-    BCryptCloseAlgorithmProvider(hAlg, 0);
-    return true;
-}
-
-bool SignEcdsaP256(const std::string& canonicalData, const std::vector<uint8_t>& privateKeyBlob, std::string& outSignatureHex) {
-    outSignatureHex.clear();
-    if (privateKeyBlob.empty()) return false;
-    if (!SystemDllPresent(L"bcrypt.dll")) return false;
-    BCRYPT_ALG_HANDLE hAlg = NULL;
-    NTSTATUS status = BCryptOpenAlgorithmProvider(&hAlg, BCRYPT_ECDSA_P256_ALGORITHM, NULL, 0);
-    if (!BCRYPT_SUCCESS(status)) return false;
-    BCRYPT_KEY_HANDLE hKey = NULL;
-    status = BCryptImportKeyPair( hAlg, NULL, BCRYPT_ECCPRIVATE_BLOB, &hKey,
-        const_cast<PUCHAR>(privateKeyBlob.data()), static_cast<ULONG>(privateKeyBlob.size()), 0);
-    if (!BCRYPT_SUCCESS(status)) { BCryptCloseAlgorithmProvider(hAlg, 0); return false; }
-    std::string hashHex = ComputeSha256Hex(canonicalData.data(), canonicalData.size());
-    std::vector<uint8_t> hashBytes;
-    FromHex(hashHex, hashBytes);
-    DWORD sigLen = 0;
-    BCryptSignHash(hKey, NULL, hashBytes.data(), static_cast<ULONG>(hashBytes.size()), NULL, 0, &sigLen, 0);
-    std::vector<uint8_t> sig(sigLen);
-    status = BCryptSignHash(hKey, NULL, hashBytes.data(), static_cast<ULONG>(hashBytes.size()), sig.data(), sigLen, &sigLen, 0);
-    BCryptDestroyKey(hKey);
-    BCryptCloseAlgorithmProvider(hAlg, 0);
-    if (!BCRYPT_SUCCESS(status)) return false;
-    outSignatureHex = ToHex(sig.data(), sig.size());
-    return true;
 }
 
 bool VerifyEcdsaP256Signature(const std::string& canonicalData, const std::string& signatureHexOrBase64, const std::vector<uint8_t>& publicKeyBlob) {

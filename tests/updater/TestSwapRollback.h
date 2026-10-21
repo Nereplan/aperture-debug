@@ -2,6 +2,7 @@
 
 #include "../support/TestFramework.h"
 #include "../support/TestTempDir.h"
+#include "TestCryptoSupport.h"
 #include "../../src/Updater.h"
 #include "../../src/HttpTransport.h"
 #include <thread>

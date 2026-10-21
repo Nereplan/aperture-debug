@@ -2,7 +2,9 @@
 
 #include "../support/TestFramework.h"
 #include "../support/TestTempDir.h"
+#include "TestCryptoSupport.h"
 #include "../../src/Updater.h"
+#include <limits>
 #include <vector>
 #include <string>
 
@@ -16,6 +18,8 @@ static void step_UpdaterCryptoSignature_ComputeSha256() {
     std::string abc = "abc";
     std::string abcHash = ComputeSha256Hex(abc.data(), abc.size());
     TEST_ASSERT_EQ(abcHash, "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
+    TEST_ASSERT(ComputeSha256Hex(nullptr, 1).empty());
+    TEST_ASSERT(ComputeSha256Hex(abc.data(), static_cast<size_t>(std::numeric_limits<ULONG>::max()) + 1).empty());
 }
 static void step_UpdaterCryptoSignature_ComputeFileSha256() {
     ScopedTempDir tempDir;
