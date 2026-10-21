@@ -1278,7 +1278,10 @@ bool App::Update(float dt) {
         const auto nowMs = GetTickCount64();
         if (!hiddenLibrarySinceMs) hiddenLibrarySinceMs = nowMs;
         if (!hiddenLibraryCachesTrimmed && nowMs - hiddenLibrarySinceMs >= 15000) {
-            renderer.TrimHiddenLibraryCaches();
+            if (playbackSession.IsOpen()) {
+                previewPlayer.BindDeviceContext(nullptr);
+                renderer.TrimHiddenLibraryCaches(0, true);
+            } else renderer.TrimHiddenLibraryCaches();
             hiddenLibraryCachesTrimmed = true;
         }
     } else {

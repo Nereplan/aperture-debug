@@ -2107,9 +2107,8 @@ void MpvPreviewPlayer::BindDeviceContext(ID2D1DeviceContext* context) {
     BindDeviceContextLocked(context);
 }
 void MpvPreviewPlayer::BindDeviceContextLocked(ID2D1DeviceContext* context) {
-    if (!context) return;
     ComPtr<ID2D1Device> device;
-    context->GetDevice(&device);
+    if (context) context->GetDevice(&device);
     if (device.Get() == bitmapDevice.Get()) return;
     // Keep the previous device alive until this comparison so pointer reuse
     // cannot conceal a device generation change.

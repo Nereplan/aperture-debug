@@ -31,5 +31,20 @@ TEST_CASE(PlaybackRenderer, FactoriesStayCpuOnlyUntilGraphicsIntent) {
     renderer.BeginDraw();
     renderer.Clear(D2D1::ColorF(D2D1::ColorF::Black));
     TEST_ASSERT(renderer.EndDraw(false));
+
+    for (int cycle = 0; cycle < 3; ++cycle) {
+        renderer.TrimHiddenLibraryCaches(0, true);
+        TEST_ASSERT(renderer.GetD2DContext() == nullptr);
+        TEST_ASSERT(renderer.GetD2DFactory() != nullptr);
+        TEST_ASSERT(renderer.GetDWriteFactory() != nullptr);
+        TEST_ASSERT(!renderer.HasPresentedFrame());
+        TEST_ASSERT(renderer.EnsureGraphicsContext());
+        renderer.BeginDraw();
+        renderer.Clear(D2D1::ColorF(D2D1::ColorF::Black));
+        TEST_ASSERT(renderer.EndDraw(false));
+        const auto size = renderer.GetD2DContext()->GetSize();
+        TEST_ASSERT_EQ(size.width, 320.0f);
+        TEST_ASSERT_EQ(size.height, 240.0f);
+    }
 }
 } // namespace Aperture::Test

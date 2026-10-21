@@ -21,6 +21,7 @@ struct MpvPreviewTestAccess {
         player.fn_mpv_render_context_render = &Render; player.fn_mpv_command = &Command;
         renders = loads = 0;
     }
+    static bool GraphicsReleased(const MpvPreviewPlayer& player) { return !player.previewBitmap && !player.bitmapDevice; }
     static bool Released(const MpvPreviewPlayer& player) {
         return !player.mpv && !player.renderCtx && !player.hMpvDll && !player.previewBitmap &&
             !player.bitmapDevice && player.pixelBuffer.empty();
@@ -88,6 +89,8 @@ int wmain(int argc, wchar_t** argv) {
         second->SetTarget(nullptr);
         preview.StopPreview();
         Check(!preview.IsActive() && preview.GetCurrentPreviewPath().empty(), "Stop kept hover active");
+        preview.BindDeviceContext(nullptr);
+        Check(MpvPreviewTestAccess::GraphicsReleased(preview), "Detached preview kept graphics resources");
         unsigned stoppedUpdates = 0;
         const auto stoppedRenders = Hold(preview, second.Get(), 200, &stoppedUpdates);
         Check(stoppedRenders == 0 && stoppedUpdates == 0, "Stopped hover kept rendering");

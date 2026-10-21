@@ -187,10 +187,11 @@ bool Renderer::TrimThumbnailCache(uint64_t incomingBytes) {
     return thumbnailCacheBytes + incomingBytes <= kThumbnailCacheByteLimit;
 }
 
-void Renderer::TrimHiddenLibraryCaches(uint64_t retainedThumbnailBytes) {
-    // Playback uses a separate video/overlay surface. Retain the hub device and
-    // thumbnails, but release its two window-sized backbuffers until it draws.
-    if (swapChain && d2dContext && !buffersTrimmed) {
+void Renderer::TrimHiddenLibraryCaches(uint64_t retainedThumbnailBytes, bool releaseDevice) {
+    // Playback uses a separate video/overlay surface. The hub can recreate its
+    // graphics device on the next draw; minimized hubs retain their device.
+    if (releaseDevice) ReleaseDeviceResources();
+    else if (swapChain && d2dContext && !buffersTrimmed) {
         if (ResizeRenderTarget(1, 1)) buffersTrimmed = true;
         else RecreateDeviceResources();
     }
