@@ -1,0 +1,51 @@
+{
+  "purpose": "Evidence and handoff for the final installed-source AV1 resource comparison and post-build visible return checks.",
+  "recordedAtUtc": "2026-10-21T17:39:40.975431+00:00",
+  "source": {
+    "baselineCommit": "601e62924ca31fb8e6a439958590887e1397afb0",
+    "candidateCommit": "f868ad7ace002e1669014921f9000e5d15e815ae",
+    "candidateDirty": false
+  },
+  "measurement": {
+    "qualified": true,
+    "workload": "1080p30 AV1 + AAC stereo; 1280x720 visible canvas at 96 DPI; player defaults; HubThenOpen; 20.5s media alignment; 30s sampling; seven guarded snapshots per run. One warmup plus three measured processes per variant across three paired rounds.",
+    "meansMiB": {
+      "stockPrivate": 160.028,
+      "installedPrivate": 149.79,
+      "stockWorkingSet": 140.038,
+      "installedWorkingSet": 136.284,
+      "stockDedicatedGpu": 90.458,
+      "installedDedicatedGpu": 74.989,
+      "stockSharedGpu": 16.031,
+      "installedSharedGpu": 14.58
+    },
+    "pairedCandidateMinusStockMiB": {
+      "private": [
+        -10.72,
+        -7.73,
+        -12.26
+      ],
+      "dedicatedGpu": [
+        -16.18,
+        -14.04,
+        -16.19
+      ]
+    },
+    "limits": [
+      "Memory categories overlap; three run-pair deltas are not confidence intervals.",
+      "The saved historical VLC 3.0.24 AV1 private-memory observation is 136.473 MiB; current Aperture is about 13.317 MiB higher. This is not a fresh matched VLC comparison and does not support an overall player win.",
+      "No CPU, frame cadence, dropped-frame, audio continuity, decoder/output equivalence, picture-quality, or statistical-significance claim. Sampling starts after 20.5s and does not measure the 15s retirement transition."
+    ]
+  },
+  "validation": {
+    "buildAndRelease": "23/23 PR suites passed; release payload validated; source commit f868ad7 installed locally.",
+    "unitSuite": "164 passed, 0 failed, 1 skipped. The skipped case requires an explicit visible window; the fresh-process visible return suite is recorded separately.",
+    "visibleReturn": "Windowed, maximized, fullscreen, picture-in-picture, and minimized return modes passed their guarded checks.",
+    "svgGeometry": "Three factory ownership regressions passed after reproducing two failures with the shared-cache implementation. See before/after logs."
+  },
+  "handoff": {
+    "next": "Continue the broader efficiency audit from source commit f868ad7. The final resource comparison is evidence for source-vs-stock only; revisit the remaining rival and playback-quality gaps before drawing an overall comparison. Use saved VLC measurements for compatible historical workloads; do not call them fresh. Keep docs/checkpoints.html chronological.",
+    "currentCheckpointDashboard": "Updated with the final comparison and validation records; verify scripts/checkpoints.py --check, tests/benchmark/test_checkpoints.py, and node tests/benchmark/test_checkpoint_charts.cjs before concluding."
+  },
+  "evidenceHandling": "Build log trailing horizontal whitespace was trimmed only to satisfy git diff --check; recorded test content is unchanged. SHA256SUMS.json hashes the committed files."
+}

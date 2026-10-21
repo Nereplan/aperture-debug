@@ -1,0 +1,12 @@
+{
+  "recordedUtc": "2026-10-21T14:14:35.2788355Z",
+  "sourceCommit": "f868ad7ace002e1669014921f9000e5d15e815ae",
+  "dirty": true,
+  "mediaPath": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\av1-1080p30-audio.mp4",
+  "mediaSha256": "84630E2BEC31BBDA663D634E2A7FC13CF1C81F983565D3942094E8DC9808FDD8",
+  "nativeSha256": "E91032CBCE1DA22AEC5903468E814D4DF2494E74FE508A371EAF3446C7408DAE",
+  "sourceSha256": "B89D72DD6376804B1317A5E9856897CE42FD89905031AA9A9900320A37226873",
+  "scope": "Native interaction correctness plus explicitly opted-in visible owned-window return checks; forced trim clocks, no performance/cadence claims.",
+  "executableSha256": "840A76559F720C25D1961AF582B194BC82E2EEC6034E2937164F3394E25B155D",
+  "harnessSha256": "E1DEF41706DED8B2A8A3DEF128AE33C6DA9A2EB6A52066AFD0052221596EDE17"
+}

@@ -1,0 +1,87 @@
+{
+  "qualified": true,
+  "reasons": [],
+  "summaries": {
+    "stock601": {
+      "privateBytes": {
+        "meanOfRunMeans": 167801612.19047618,
+        "minRunMean": 166119716.57142857,
+        "maxRunMean": 170555684.57142857,
+        "runs": 3
+      },
+      "workingSetBytes": {
+        "meanOfRunMeans": 146840819.80952382,
+        "minRunMean": 146613394.2857143,
+        "maxRunMean": 146958628.57142857,
+        "runs": 3
+      },
+      "dedicatedGpuBytes": {
+        "meanOfRunMeans": 94852047.23809524,
+        "minRunMean": 94286994.28571428,
+        "maxRunMean": 95978057.14285715,
+        "runs": 3
+      },
+      "sharedGpuBytes": {
+        "meanOfRunMeans": 16809593.904761903,
+        "minRunMean": 16722212.57142857,
+        "maxRunMean": 16918820.57142857,
+        "runs": 3
+      }
+    },
+    "installed-retirement": {
+      "privateBytes": {
+        "meanOfRunMeans": 157066191.23809522,
+        "minRunMean": 154876781.7142857,
+        "maxRunMean": 158619355.42857143,
+        "runs": 3
+      },
+      "workingSetBytes": {
+        "meanOfRunMeans": 142904368.76190475,
+        "minRunMean": 142482285.7142857,
+        "maxRunMean": 143411492.57142857,
+        "runs": 3
+      },
+      "dedicatedGpuBytes": {
+        "meanOfRunMeans": 78631497.14285715,
+        "minRunMean": 77324873.14285715,
+        "maxRunMean": 79565970.28571428,
+        "runs": 3
+      },
+      "sharedGpuBytes": {
+        "meanOfRunMeans": 15288612.57142857,
+        "minRunMean": 15268717.714285715,
+        "maxRunMean": 15312603.42857143,
+        "runs": 3
+      }
+    }
+  },
+  "pairs": [
+    {
+      "round": 1,
+      "candidateMinusStockBytes": {
+        "privateBytes": -11242934.857142866,
+        "workingSetBytes": -4468150.857142866,
+        "dedicatedGpuBytes": -16966217.142857134,
+        "sharedGpuBytes": -1650102.8571428563
+      }
+    },
+    {
+      "round": 2,
+      "candidateMinusStockBytes": {
+        "privateBytes": -8110080.0,
+        "workingSetBytes": -3201901.7142857313,
+        "dedicatedGpuBytes": -14721024.0,
+        "sharedGpuBytes": -1503232.0
+      }
+    },
+    {
+      "round": 3,
+      "candidateMinusStockBytes": {
+        "privateBytes": -12853248.0,
+        "workingSetBytes": -4139300.571428567,
+        "dedicatedGpuBytes": -16974409.14285715,
+        "sharedGpuBytes": -1409609.1428571418
+      }
+    }
+  ]
+}

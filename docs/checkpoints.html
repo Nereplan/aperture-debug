@@ -96,7 +96,7 @@ git diff --check</pre>
 <script id="checkpoint-data" type="application/json">
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-10-21T10:38:09+00:00",
+  "updatedAt": "2026-10-21T17:40:39+00:00",
   "metrics": {
     "visible-ms": {
       "label": "Visible window",
@@ -429,6 +429,11 @@ git diff --check</pre>
       "label": "Experimental hidden-library device retirement: AV1 resource snapshots",
       "category": "Playback",
       "method": "One warmup and three measured fresh processes per variant; measured candidate/stock, stock/candidate, candidate/stock order. HubThenOpen with3s hub settle; AV1 1080p30/AAC stereo fixture84630e2bec31bbda663d634e2a7fc13cf1c81f983565d3942094e8dc9808fdd8; actual1280x720canvas at96DPI. Sampling after20.5s media alignment over30s, seven snapshots per run with before/after visibility guards. Warm OS caches, fresh runtime/profile each run. Mean of seven snapshots then mean of three run means; min/max run means retained. Source601e629 clean stock versus601e629 plus sealed v1 patch; nine managed non-EXE payloads pinned. No CPU/VLC ranking; no retirement-transition, cadence/audio or return-to-library guarantee. Subsequent v2 functional tests are separate."
+    },
+    "playback-installed-retirement-av1-resources-20261021-v1": {
+      "label": "Installed hidden-library graphics: fresh-source AV1 resource comparison",
+      "category": "Playback",
+      "method": "One warmup and three fresh measured processes per variant; HubThenOpen3s; AV11080p30/AAC stereo; actual1280x720 visible canvas at96DPI;20.5s playback alignment;30s observation with seven guarded snapshots per run. Fresh runtime and profile per process, warm OS cache. Compare frozen stock601e629 to clean installed sourcef868ad7; all eight calls must sample and close normally. Mean snapshots within runs; report all three run means and paired differences. Memory categories reported separately because they overlap. Scope is an observed resource comparison only; no CPU/VLC ranking, confidence interval, decoder/output quality equivalence, cadence/audio/drop or retirement-transition claim."
     }
   },
   "environments": {
@@ -20431,6 +20436,220 @@ git diff --check</pre>
           "durationSeconds": null,
           "evidence": "docs/evidence/vlc-rival-20261020/hidden-device-retirement-experiment-20261021/v2-functional/hidden-device-visible-returns-diagnostic-20261021/checks.log",
           "scope": "Native bridge reported access violation -1073741819 after30hidden checks; remaining checks never completed. Cause unclassified; no return-state JSON."
+        }
+      ]
+    },
+    {
+      "id": "installed-retirement-av1-stock601-20261021",
+      "label": "AV1 hidden-library graphics: installed source comparison, stock601",
+      "measuredAt": "2026-10-21T17:39:40.975431+00:00",
+      "commit": "601e62924ca31fb8e6a439958590887e1397afb0",
+      "dirty": false,
+      "sourceNote": "Source commit 601e62924ca31fb8e6a439958590887e1397afb0; EXE SHA-256 d2f8744bca973d97609ec821a653cc9a903d23d07e3d9065d160704f7e44c81e. Stock frozen source601e629 with current package assets; unmodified during the batch. Full two-runtime and source identities are retained in the external run manifest.",
+      "notes": [
+        "Fresh installed final sourcef868ad7 versus frozen stock601e629. One warmup and three measured processes per variant; three paired rounds rotate measured order. AV1 1080p30/AAC stereo; 1280x720 visible canvas at96DPI; HubThenOpen with3s hub settle; 20.5s media alignment; 30s sampling; seven snapshots/run with visibility guards. Fresh runtime/profile per process; warm OS caches. Mean of seven snapshots then mean and range across three run means.",
+        "The final installed process averaged about149.790MiB private bytes and74.989MiB dedicated GPU memory. Paired candidate-minus-stock reductions were10.72,7.73 and12.26MiB private and16.18,14.04 and16.19MiB dedicated GPU. Resource categories overlap. Three pairs describe this AV1 workload; they are not confidence intervals.",
+        "The saved VLC3.0.24 AV1 private-memory observation is136.473MiB, so Aperture remains13.317MiB higher in that historical workload. This is not a fresh matched VLC session. CPU, decode/output equivalence, picture quality, cadence, audio continuity, dropped frames and significance were not measured here. No overall player win is claimed.",
+        "Sampling starts after20.5s and does not profile the15s device-retirement transition. Visible functional return checks passed separately. See evidence index for exact build, failures and limits."
+      ],
+      "results": [
+        {
+          "metric": "private-mib",
+          "protocol": "playback-installed-retirement-av1-resources-20261021-v1",
+          "environment": "ryzen3900x-4070super-20261020",
+          "workload": "1080p30 AV1 + AAC stereo / actual1280x720 canvas / player defaults / HubThenOpen / 96 DPI",
+          "session": "installed-retirement-comparison-20261021",
+          "value": 160.02808779761904,
+          "samples": 3,
+          "evidence": "docs/evidence/vlc-rival-20261020/hidden-device-retirement-experiment-20261021/v3-final-installed/analysis.json",
+          "runRange": {
+            "min": 158.42410714285714,
+            "max": 162.65457589285714,
+            "runs": 3,
+            "scope": "Range of three means, each computed from seven guarded snapshots. Warmup excluded; not a confidence interval."
+          }
+        },
+        {
+          "metric": "working-set-mib",
+          "protocol": "playback-installed-retirement-av1-resources-20261021-v1",
+          "environment": "ryzen3900x-4070super-20261020",
+          "workload": "1080p30 AV1 + AAC stereo / actual1280x720 canvas / player defaults / HubThenOpen / 96 DPI",
+          "session": "installed-retirement-comparison-20261021",
+          "value": 140.03831845238096,
+          "samples": 3,
+          "evidence": "docs/evidence/vlc-rival-20261020/hidden-device-retirement-experiment-20261021/v3-final-installed/analysis.json",
+          "runRange": {
+            "min": 139.82142857142858,
+            "max": 140.15066964285714,
+            "runs": 3,
+            "scope": "Range of three means, each computed from seven guarded snapshots. Warmup excluded; not a confidence interval."
+          }
+        },
+        {
+          "metric": "gpu-mib",
+          "protocol": "playback-installed-retirement-av1-resources-20261021-v1",
+          "environment": "ryzen3900x-4070super-20261020",
+          "workload": "1080p30 AV1 + AAC stereo / actual1280x720 canvas / player defaults / HubThenOpen / 96 DPI",
+          "session": "installed-retirement-comparison-20261021",
+          "value": 90.45796130952381,
+          "samples": 3,
+          "evidence": "docs/evidence/vlc-rival-20261020/hidden-device-retirement-experiment-20261021/v3-final-installed/analysis.json",
+          "runRange": {
+            "min": 89.91908482142857,
+            "max": 91.53180803571429,
+            "runs": 3,
+            "scope": "Range of three means, each computed from seven guarded snapshots. Warmup excluded; not a confidence interval."
+          }
+        },
+        {
+          "metric": "shared-gpu-mib",
+          "protocol": "playback-installed-retirement-av1-resources-20261021-v1",
+          "environment": "ryzen3900x-4070super-20261020",
+          "workload": "1080p30 AV1 + AAC stereo / actual1280x720 canvas / player defaults / HubThenOpen / 96 DPI",
+          "session": "installed-retirement-comparison-20261021",
+          "value": 16.030877976190474,
+          "samples": 3,
+          "evidence": "docs/evidence/vlc-rival-20261020/hidden-device-retirement-experiment-20261021/v3-final-installed/analysis.json",
+          "runRange": {
+            "min": 15.947544642857142,
+            "max": 16.135044642857142,
+            "runs": 3,
+            "scope": "Range of three means, each computed from seven guarded snapshots. Warmup excluded; not a confidence interval."
+          }
+        }
+      ]
+    },
+    {
+      "id": "installed-retirement-av1-installed-retirement-20261021",
+      "label": "AV1 hidden-library graphics: installed source comparison, installed-retirement",
+      "measuredAt": "2026-10-21T17:39:40.975431+00:00",
+      "commit": "f868ad7ace002e1669014921f9000e5d15e815ae",
+      "dirty": false,
+      "sourceNote": "Source commit f868ad7ace002e1669014921f9000e5d15e815ae; EXE SHA-256 840a76559f720c25d1961af582b194bc82e2eec6034e2937164f3394e25b155d. Final installed sourcef868ad7; production tree clean during the batch; release EXE byte hash recorded. Full two-runtime and source identities are retained in the external run manifest.",
+      "notes": [
+        "Fresh installed final sourcef868ad7 versus frozen stock601e629. One warmup and three measured processes per variant; three paired rounds rotate measured order. AV1 1080p30/AAC stereo; 1280x720 visible canvas at96DPI; HubThenOpen with3s hub settle; 20.5s media alignment; 30s sampling; seven snapshots/run with visibility guards. Fresh runtime/profile per process; warm OS caches. Mean of seven snapshots then mean and range across three run means.",
+        "The final installed process averaged about149.790MiB private bytes and74.989MiB dedicated GPU memory. Paired candidate-minus-stock reductions were10.72,7.73 and12.26MiB private and16.18,14.04 and16.19MiB dedicated GPU. Resource categories overlap. Three pairs describe this AV1 workload; they are not confidence intervals.",
+        "The saved VLC3.0.24 AV1 private-memory observation is136.473MiB, so Aperture remains13.317MiB higher in that historical workload. This is not a fresh matched VLC session. CPU, decode/output equivalence, picture quality, cadence, audio continuity, dropped frames and significance were not measured here. No overall player win is claimed.",
+        "Sampling starts after20.5s and does not profile the15s device-retirement transition. Visible functional return checks passed separately. See evidence index for exact build, failures and limits."
+      ],
+      "results": [
+        {
+          "metric": "private-mib",
+          "protocol": "playback-installed-retirement-av1-resources-20261021-v1",
+          "environment": "ryzen3900x-4070super-20261020",
+          "workload": "1080p30 AV1 + AAC stereo / actual1280x720 canvas / player defaults / HubThenOpen / 96 DPI",
+          "session": "installed-retirement-comparison-20261021",
+          "value": 149.7899925595238,
+          "samples": 3,
+          "evidence": "docs/evidence/vlc-rival-20261020/hidden-device-retirement-experiment-20261021/v3-final-installed/analysis.json",
+          "runRange": {
+            "min": 147.70200892857142,
+            "max": 151.27120535714286,
+            "runs": 3,
+            "scope": "Range of three means, each computed from seven guarded snapshots. Warmup excluded; not a confidence interval."
+          }
+        },
+        {
+          "metric": "working-set-mib",
+          "protocol": "playback-installed-retirement-av1-resources-20261021-v1",
+          "environment": "ryzen3900x-4070super-20261020",
+          "workload": "1080p30 AV1 + AAC stereo / actual1280x720 canvas / player defaults / HubThenOpen / 96 DPI",
+          "session": "installed-retirement-comparison-20261021",
+          "value": 136.28422619047618,
+          "samples": 3,
+          "evidence": "docs/evidence/vlc-rival-20261020/hidden-device-retirement-experiment-20261021/v3-final-installed/analysis.json",
+          "runRange": {
+            "min": 135.88169642857142,
+            "max": 136.76785714285714,
+            "runs": 3,
+            "scope": "Range of three means, each computed from seven guarded snapshots. Warmup excluded; not a confidence interval."
+          }
+        },
+        {
+          "metric": "gpu-mib",
+          "protocol": "playback-installed-retirement-av1-resources-20261021-v1",
+          "environment": "ryzen3900x-4070super-20261020",
+          "workload": "1080p30 AV1 + AAC stereo / actual1280x720 canvas / player defaults / HubThenOpen / 96 DPI",
+          "session": "installed-retirement-comparison-20261021",
+          "value": 74.98883928571429,
+          "samples": 3,
+          "evidence": "docs/evidence/vlc-rival-20261020/hidden-device-retirement-experiment-20261021/v3-final-installed/analysis.json",
+          "runRange": {
+            "min": 73.74274553571429,
+            "max": 75.88002232142857,
+            "runs": 3,
+            "scope": "Range of three means, each computed from seven guarded snapshots. Warmup excluded; not a confidence interval."
+          }
+        },
+        {
+          "metric": "shared-gpu-mib",
+          "protocol": "playback-installed-retirement-av1-resources-20261021-v1",
+          "environment": "ryzen3900x-4070super-20261020",
+          "workload": "1080p30 AV1 + AAC stereo / actual1280x720 canvas / player defaults / HubThenOpen / 96 DPI",
+          "session": "installed-retirement-comparison-20261021",
+          "value": 14.580357142857142,
+          "samples": 3,
+          "evidence": "docs/evidence/vlc-rival-20261020/hidden-device-retirement-experiment-20261021/v3-final-installed/analysis.json",
+          "runRange": {
+            "min": 14.561383928571429,
+            "max": 14.603236607142858,
+            "runs": 3,
+            "scope": "Range of three means, each computed from seven guarded snapshots. Warmup excluded; not a confidence interval."
+          }
+        }
+      ],
+      "tests": [
+        {
+          "name": "Local PR build, test, package and install gate",
+          "status": "pass",
+          "passed": 23,
+          "total": 23,
+          "durationSeconds": 350.32,
+          "evidence": "docs/evidence/vlc-rival-20261020/hidden-device-retirement-experiment-20261021/v3-final-installed/build-and-release.log"
+        },
+        {
+          "name": "Native unit tests",
+          "status": "partial",
+          "passed": 164,
+          "total": 165,
+          "durationSeconds": 7.71,
+          "evidence": "docs/evidence/vlc-rival-20261020/hidden-device-retirement-experiment-20261021/v3-final-installed/build-and-release.log",
+          "scope": "165 selected;164 passed and one existing visible-window geometry case skipped by the default gate. Five explicit visible return modes are recorded separately."
+        },
+        {
+          "name": "Native hidden interaction suite",
+          "status": "pass",
+          "passed": 30,
+          "total": 30,
+          "durationSeconds": null,
+          "evidence": "docs/evidence/vlc-rival-20261020/hidden-device-retirement-experiment-20261021/v3-final-installed/visible-returns/checks.log"
+        },
+        {
+          "name": "Visible return modes",
+          "status": "pass",
+          "passed": 5,
+          "total": 5,
+          "durationSeconds": null,
+          "evidence": "docs/evidence/vlc-rival-20261020/hidden-device-retirement-experiment-20261021/v3-final-installed/review.json",
+          "scope": "Five fresh native App processes; each reports2/2 setup and return assertions, including a windowed rapid reopen."
+        },
+        {
+          "name": "Direct2D factory-owned SVG cache regression checks",
+          "status": "pass",
+          "passed": 3,
+          "total": 3,
+          "durationSeconds": 1.92,
+          "evidence": "docs/evidence/vlc-rival-20261020/hidden-device-retirement-experiment-20261021/v3-final-installed/review.json",
+          "scope": "Two new alternating factory/draw tests plus the existing graphics retirement test. Original static-cache source reproduced two failed assertions before the fix."
+        },
+        {
+          "name": "MSVC native analysis",
+          "status": "pass",
+          "passed": 49,
+          "total": 49,
+          "durationSeconds": 59.53,
+          "evidence": "docs/evidence/vlc-rival-20261020/hidden-device-retirement-experiment-20261021/v3-final-installed/build-and-release.log",
+          "scope": "49 source files analyzed; zero warnings against zero baseline; zero analysis errors."
         }
       ]
     }

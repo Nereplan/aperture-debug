@@ -1,0 +1,53 @@
+{
+  "preparedAtUtc": "2026-10-21T14:15:00.6127098Z",
+  "baselineSourceCommit": "601e62924ca31fb8e6a439958590887e1397afb0",
+  "candidateSourceCommit": "f868ad7ace002e1669014921f9000e5d15e815ae",
+  "candidateSourceDirty": false,
+  "baselineExecutableSha256": "d2f8744bca973d97609ec821a653cc9a903d23d07e3d9065d160704f7e44c81e",
+  "candidateExecutableSha256": "840a76559f720c25d1961af582b194bc82e2eec6034e2937164f3394e25b155d",
+  "managedPayloadDifferences": [
+    "Aperture.exe"
+  ],
+  "metadataNote": "Each runtime retains its valid package manifest and source metadata; these identify the respective build. Other non-EXE managed payloads are byte-identical.",
+  "inputs": [
+    {
+      "path": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\installed-retirement-payload-validation-20261021.json",
+      "sha256": "9b12c9f13e4192de40891dfb40087edc1992b21b1b9f1914db7938a3667e7d97"
+    },
+    {
+      "path": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\run-installed-retirement-comparison-20261021.ps1",
+      "sha256": "ce8bf1ce0f1f4c7a65572d23856ed990df8789653469157bc86b4ddcf428a863"
+    },
+    {
+      "path": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\installed-retirement-variants-20261021.json",
+      "sha256": "4b46dc10a96379800d68c34d4d313c24ca0a8a71848ce84bb418b7311723388a"
+    },
+    {
+      "path": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\analyze-installed-retirement-comparison-20261021.py",
+      "sha256": "04a486aa4673c95d6e9f44bb385fe15aac7199e4698a0e9486ed5016780bb314"
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\tests\\benchmark\\compare_players.ps1",
+      "sha256": "049631b0d6bdf21f77ee9e408185ef7350d78f55c69dd20c6d1d2be9a29f5c9a"
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\tests\\benchmark\\PlayerBenchmarkWindow.cs",
+      "sha256": "e9731349d7203f8257b19e7a550c8907573e1cb8ba8056ec577ad7c17e81e921"
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\tests\\benchmark\\PlayerVideoReadiness.cs",
+      "sha256": "bd1316d4b4fdf235ef126076cb3e466cb707a567e923f4927e66ab6ae263f9e6"
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\tests\\benchmark\\player_comparison_identity.ps1",
+      "sha256": "74309055e3522269b4033f4b561d07a7430a5196a6426d6dc025b5965323e6fe"
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\tests\\benchmark\\player_status_probe.cpp",
+      "sha256": "a832805a0f250d2f4699c4bf42ef0b5c1b9b1cc05fb6b075f3349041e1c0a164"
+    }
+  ],
+  "protocol": "Fresh stock601 versus installed final source. HubThenOpen3s, AV1 1080p30 AAC, actual1280x720 visible canvas,20.5s alignment,30s seven guarded snapshots, one warmup plus three measured processes each, rotating order. Analyze all complete runs, four memory accounts separately; no CPU/VLC/cadence/audio or statistical-significance claim.",
+  "aggregation": "Mean of seven guarded snapshots per run; mean and range of three run means, all paired deltas retained. Full batch required, no run splicing or selective retries.",
+  "outputDirectory": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\installed-retirement-comparison-runs-20261021"
+}

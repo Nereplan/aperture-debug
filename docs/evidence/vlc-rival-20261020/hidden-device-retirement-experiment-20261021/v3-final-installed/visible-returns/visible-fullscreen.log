@@ -1,0 +1,3 @@
+PASS hidden owner, overlay and muted native player
+PASS visible library return: fullscreen
+2 native interaction checks passed

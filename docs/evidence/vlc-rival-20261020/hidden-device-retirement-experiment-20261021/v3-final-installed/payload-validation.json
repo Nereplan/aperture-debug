@@ -1,0 +1,22 @@
+{
+  "verifiedAtUtc": "2026-10-21T14:14:12.143058+00:00",
+  "buildSourceCommit": "f868ad7ace002e1669014921f9000e5d15e815ae",
+  "productionSourceDirty": false,
+  "managedPayloadsVerified": {
+    "release": 10,
+    "debug": 10,
+    "zip": 10
+  },
+  "executable": {
+    "path": "Aperture.exe",
+    "size": 3438080,
+    "sha256": "840a76559f720c25d1961af582b194bc82e2eec6034e2937164f3394e25b155d"
+  },
+  "distribution": {
+    "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\dist\\Aperture-2.0.0.0-windows-x64.zip",
+    "bytes": 14440956,
+    "sha256": "5c84aa260c685de93ec078d5d5e20b2c135271a7121b5afe11eafc9a8a42f5a2"
+  },
+  "cleanBenchmarkRuntime": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\installed-retirement-clean-runtime-20261021",
+  "scope": "Exact locally built release/debug/ZIP managed payload verification; fresh benchmark runtime copies only verified managed files and manifest, without user data."
+}
