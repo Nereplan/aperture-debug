@@ -1,0 +1,48 @@
+{
+  "recordedAtUtc": "2026-10-21T06:45:57.6145925Z",
+  "scope": "Normal-permission ETW capture preflight for a coordinator-owned visible player; not a resource, cadence or quality ranking.",
+  "pid": 25624,
+  "sourceCommit": "23fd026c2b114f8391465bfb5f7d28a79da02025",
+  "executableSha256": "78B59F4E3E98E3F5F7A3E3A309C522F3CE1828E3F58E22C1A85A12C008FA9A7F",
+  "presentMonSha256": "B2A706BC6AD475749E3B7E3409263AA1E6906D45BDCF993F6DBC0F660188F1AF",
+  "cleanup": "owned-window-closed",
+  "canvas": {
+    "handle": 3016178,
+    "className": "mpv",
+    "clientWidth": 1280,
+    "clientHeight": 720,
+    "dpi": 96
+  },
+  "before": {
+    "state": 2,
+    "positionSec": 10.1666666667,
+    "durationSec": 180
+  },
+  "presentMonArguments": [
+    "--process_id",
+    "25624",
+    "--session_name",
+    "ApertureCadence-f2c8fb627e26459e841d1253e9e49465",
+    "--output_file",
+    "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\cadence-preflight-20261021\\presents.csv",
+    "--timed",
+    "3",
+    "--terminate_after_timed",
+    "--qpc_time",
+    "--write_display_metadata",
+    "--no_console_stats",
+    "--no_track_gpu",
+    "--no_track_input"
+  ],
+  "captureStartUtc": "2026-10-21T06:46:08.4878145Z",
+  "presentMonExit": 6,
+  "captureEndUtc": "2026-10-21T06:46:08.5389673Z",
+  "after": {
+    "state": 2,
+    "positionSec": 10.2333333333,
+    "durationSec": 180
+  },
+  "csvExists": false,
+  "lossWarning": false,
+  "status": "unavailable"
+}

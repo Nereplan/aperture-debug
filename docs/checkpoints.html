@@ -96,7 +96,7 @@ git diff --check</pre>
 <script id="checkpoint-data" type="application/json">
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-10-20T21:11:12+00:00",
+  "updatedAt": "2026-10-21T06:50:09+00:00",
   "metrics": {
     "visible-ms": {
       "label": "Visible window",
@@ -19639,6 +19639,112 @@ git diff --check</pre>
           "durationSeconds": null,
           "evidence": "docs/evidence/vlc-rival-20261020/halfsecond-resource-matrix/av1-calibrated.json",
           "scope": "Unchanged3run/25s/1.1s thresholds, exact calibration identity; no individual runs discarded."
+        }
+      ]
+    },
+    {
+      "id": "sparse-diagnostics-validation-20261021",
+      "label": "English overlay and frame-counter cleanup validation",
+      "measuredAt": "2026-10-21T06:48:56.743774+00:00",
+      "commit": "6f9cc1f94380468a12221f32578cff24176762b8",
+      "dirty": false,
+      "sourceNote": "Normal build/test/package workflow from clean commit 6f9cc1f, including the English overlay reduction (3113490) and frame-counter correction (f9ad8e3). Current EXE: 3,441,152 bytes; SHA256 7138ca978885356aeb7caf89d712837f50c45633bf3960147f0649f19a6b8e0a. Managed payloads and ZIP independently verified. No new resource measurement of this executable.",
+      "notes": [
+        "Removed 418 duplicate English JSON lines. The four effective wording overrides and all five metadata fields remain. Independent comparison confirms all 379 effective strings and 11 plural records are unchanged; the existing native test verifies loading, UTF-8/wide text, partial French fallback and discovery. The current English payload is 552 bytes / 13 CRLF lines; the previous Git blob is 23,418 bytes / 431 LF lines. Byte representations are explicitly labeled.",
+        "Removed unsupported mpv drop-counter aliases. Unavailable counters retain -1 and render as N/A; successful zero remains zero. The fake-mpv regression covers unavailable, zero, positive, mixed and unavailable-again snapshots, and verifies canonical query counts. The UI no longer invents an available mistimed counter outside display-sync.",
+        "The unit run passed 161 tests with zero failures and one expected desktop skip among 162 registered tests. This overlaps the 23-suite gate and must not be added to it. Native static analysis passed. The normal workflow installed release and debug copies while retaining saved data and the existing backup policy.",
+        "The previous 9f7290f gate and package remain historical correctness evidence. Resource comparisons still refer to frozen commit 23fd026; no CPU or memory improvement is attributed to this later build."
+      ],
+      "results": [],
+      "tests": [
+        {
+          "name": "Normal local build/test/package/install",
+          "status": "pass",
+          "passed": 23,
+          "total": 23,
+          "durationSeconds": 350.59,
+          "evidence": "docs/evidence/vlc-rival-20261020/polish-validation-20261021/build-test-package.txt",
+          "scope": "All 23 PR suites; build and test durations are correctness validation, not isolated resource evidence."
+        },
+        {
+          "name": "Native unit tests",
+          "status": "partial",
+          "passed": 161,
+          "total": 162,
+          "durationSeconds": null,
+          "evidence": "docs/evidence/vlc-rival-20261020/polish-validation-20261021/build-test-package.txt",
+          "scope": "161 passed, zero failed, one skipped visible WindowPresentationGeometry test; overlaps the 23-suite gate."
+        },
+        {
+          "name": "Independent effective English catalog comparison",
+          "status": "pass",
+          "passed": 1,
+          "total": 1,
+          "durationSeconds": null,
+          "evidence": "docs/evidence/vlc-rival-20261020/polish-validation-20261021/catalog-equivalence.json",
+          "scope": "One independent catalog comparison: 379 effective string entries, 11 plural records, and equal metadata; record counts are not separate tests."
+        },
+        {
+          "name": "Managed installed/package payload verification",
+          "status": "pass",
+          "passed": 3,
+          "total": 3,
+          "durationSeconds": null,
+          "evidence": "docs/evidence/vlc-rival-20261020/polish-validation-20261021/validation.json",
+          "scope": "The same ten managed payloads verified separately in release, debug and ZIP; three inventories, not thirty unique files."
+        }
+      ]
+    },
+    {
+      "id": "rival-sdr-colors-20261021",
+      "label": "Paused SDR sentinel comparison / VLC control validation",
+      "measuredAt": "2026-10-21T06:44:16.4032291Z",
+      "commit": "23fd026c2b114f8391465bfb5f7d28a79da02025",
+      "dirty": false,
+      "sourceNote": "Frozen commit 23fd026, EXE SHA256 78b59f4e3e98e3f5f7a3e3a309c522f3ce1828e3f58e22c1a85a12c008fa9a7f, as used in the qualified resource batches. The current harness includes the resume-before-seek correction (9c3f8ff). Fresh official VLC 3.0.24 portable session.",
+      "notes": [
+        "Both players sampled four known paused SDR phases at 6, 18, 30 and 42 seconds, using actual 1280x720 canvases with matched DPI and visibility guards. Each phase retained three 54-point readbacks per player, authoritative paused-position/status observations, and raw control/QPC evidence.",
+        "Twelve paired RGB comparisons show a maximum difference of two levels per 8-bit component. Mean absolute component differences range from 0.5493827160493827 to 0.5679012345679012. Repeated samples within each player are byte-identical at these points. Neither player is a color reference; no acceptance threshold or quality winner is defined.",
+        "Three previous failed attempts are retained: misinterpreting input presence as playback state, rejecting a valid pause without a playlist state, and seeking while paused. The corrected harness uses the actual pause guard, one toggle, and bounded read-only confirmation before each later seek. These were harness failures, not VLC product-quality defects.",
+        "Windows denied the owned-player PresentMon ETW preflight (exit 6, access denied, no CSV). Cadence remains unmeasured; the raw failure, help output, tool hash and command are retained. No UAC elevation or user-group change was performed. Broader image quality, HDR, motion, audio, unique content frames, first-video readiness and workflow rivalry remain unproven."
+      ],
+      "results": [],
+      "tests": [
+        {
+          "name": "Paused SDR color launch validation",
+          "status": "pass",
+          "passed": 2,
+          "total": 2,
+          "durationSeconds": null,
+          "evidence": "docs/evidence/vlc-rival-20261020/polish-validation-20261021/color-sequential.json",
+          "scope": "One fresh process per player; four phases and three repeated readbacks per phase are nested observations."
+        },
+        {
+          "name": "Player-free color contracts / PowerShell7",
+          "status": "pass",
+          "passed": 49,
+          "total": 49,
+          "durationSeconds": null,
+          "evidence": "docs/evidence/vlc-rival-20261020/polish-validation-20261021/color-contracts-pwsh7.txt",
+          "scope": "49 color helper contracts; evaluator, identity and readiness checks are separate, overlapping runner output."
+        },
+        {
+          "name": "Player-free color contracts / WindowsPowerShell5.1",
+          "status": "pass",
+          "passed": 49,
+          "total": 49,
+          "durationSeconds": null,
+          "evidence": "docs/evidence/vlc-rival-20261020/polish-validation-20261021/color-contracts-ps51.txt",
+          "scope": "The same 49 contracts under a second host; not 98 distinct behaviors."
+        },
+        {
+          "name": "Owned-player PresentMon normal-permission preflight",
+          "status": "partial",
+          "passed": 0,
+          "total": 1,
+          "durationSeconds": null,
+          "evidence": "docs/evidence/vlc-rival-20261020/polish-validation-20261021/cadence-preflight.json",
+          "scope": "ETW session access denied; no completed capture and no presentation-cadence measurement."
         }
       ]
     }

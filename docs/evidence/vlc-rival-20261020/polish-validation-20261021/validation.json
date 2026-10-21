@@ -1,0 +1,210 @@
+{
+  "recordedAtUtc": "2026-10-21T06:48:56.743774+00:00",
+  "buildContentCommit": "6f9cc1f94380468a12221f32578cff24176762b8",
+  "productionSourceDirty": false,
+  "sourceIdentityLimit": "Locally observed clean committed source and recorded build/package hashes; not a signed source-to-binary attestation.",
+  "managedPayloadsVerified": {
+    "release": 10,
+    "debug": 10,
+    "zip": 10
+  },
+  "executable": {
+    "path": "Aperture.exe",
+    "size": 3441152,
+    "sha256": "7138ca978885356aeb7caf89d712837f50c45633bf3960147f0649f19a6b8e0a"
+  },
+  "englishOverlay": {
+    "path": "locales/en-US.json",
+    "size": 552,
+    "sha256": "c920104d636fa470ebc5b4603643512035d64287317561140aebcadd5840c7a0"
+  },
+  "distribution": {
+    "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\dist\\Aperture-2.0.0.0-windows-x64.zip",
+    "bytes": 14443518,
+    "sha256": "1b0976b001f4d3e9e00cd3862e66f59e7c0f11f949b28ee4f0b7e92fb0282784"
+  },
+  "normalWorkflow": "build_and_release.ps1 -FailFast: built, passed 23 suites in 350.59 seconds, packaged ten managed payloads, and installed release/debug while preserving data and the existing three-backup policy. No GitHub release, upload or tag.",
+  "previousValidation": "Historical 9f7290f gate: 23/23 in 357.22 seconds. The intermediate 3,441,152-byte EXE and its ten payload hashes were verified separately; it is not the current installed binary or a new resource comparison.",
+  "color": {
+    "measuredAt": "2026-10-21T06:44:16.4032291Z",
+    "sourceContentCommit": "23fd026c2b114f8391465bfb5f7d28a79da02025",
+    "pairedSamples": 12,
+    "phases": 4,
+    "samplesPerPhase": 3,
+    "pointsPerSample": 54,
+    "componentsPerSample": 162,
+    "maximumAbsoluteComponentDifference": 2,
+    "meanAbsoluteComponentDifferenceRange": [
+      0.5493827160493827,
+      0.5679012345679012
+    ],
+    "withinPlayerRepeatMaximum": 0,
+    "limits": "Neither player is a color reference. The readiness tolerance only identifies scenes; it is not a quality threshold. No acceptance threshold, sharpness/scaling/chroma-edge/HDR/motion/audio or presentation-cadence claim."
+  },
+  "cadence": "The owned-player PresentMon 2.6.0 preflight failed with exit 6 / access denied before CSV creation. No cadence result. Official asset SHA256: b2a706bc6ad475749e3b7e3409263aa1e6906d45bdcf993f6dbc0f660188f1af; 980,320 bytes; https://github.com/GameTechDev/PresentMon/releases/tag/v2.6.0. One-time UAC permission requested; no group membership or configuration changed.",
+  "vlcControlSource": "https://raw.githubusercontent.com/videolan/vlc/3.0.24/modules/control/oldrc.c: is_playing is input presence; Playlist guard rejects seek/status while paused. Retain original failures, one-toggle pause/resume confirmations and exact raw/QPC observations.",
+  "files": [
+    {
+      "path": "build-test-package.txt",
+      "bytes": 56953,
+      "sha256": "01c2d8b5aa4225add6745e8501d5f4041efa7700cc13b99b22a27add78647de3",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\sparse-diagnostics-build-and-release-20261020.txt"
+    },
+    {
+      "path": "catalog-equivalence.json",
+      "bytes": 967,
+      "sha256": "8e331607e61448d13ad1f5e1f148be3e7c2cea6b5be3f316736f8f9959c29b4c",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\sparse-english-catalog-validation-20261020.json"
+    },
+    {
+      "path": "catalog-equivalence-check.py",
+      "bytes": 2597,
+      "sha256": "d6913d02f5b354640694c331f0081b5382518059e034896cf8b96d3d9e99b037",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\verify-sparse-english.py"
+    },
+    {
+      "path": "color-contracts-pwsh7.txt",
+      "bytes": 5623,
+      "sha256": "468e4dac68cda5130a9a526a4a4917a06155d6e0f96f43cbeb9bb22d636b4d03",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\color-resume-contracts-pwsh7-20261020.txt"
+    },
+    {
+      "path": "color-contracts-ps51.txt",
+      "bytes": 5623,
+      "sha256": "f614e93ad56d934e7d6b94c89d148825d74fb359bd7893c2d5ec5d6ddea336f2",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\color-resume-contracts-ps51-20261020.txt"
+    },
+    {
+      "path": "rc-semantics-pwsh7.txt",
+      "bytes": 4682,
+      "sha256": "b1044c25f2a95874791d0213a5ea54402f08b7908f36731fd8ceccc1c5216bb4",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\color-rc-semantics-contracts-pwsh7-20261020.txt"
+    },
+    {
+      "path": "rc-semantics-ps51.txt",
+      "bytes": 4682,
+      "sha256": "1108f313248468f72ede995a938bfdb734a5c8eb84fadea299f42fca25b8f2cd",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\color-rc-semantics-contracts-ps51-20261020.txt"
+    },
+    {
+      "path": "previous-9f7290f-pr-gate.txt",
+      "bytes": 51600,
+      "sha256": "1edaf590d79d8b754929b6d73fea44bd74f2f480035825c5fa96987a69918722",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\combined-pruned-pr-gate-20261020.txt"
+    },
+    {
+      "path": "previous-9f7290f-build.txt",
+      "bytes": 3128,
+      "sha256": "5f973c58762f8f802fa7fd6e16ba407245b2a1ff523dcdb564265e4b06ec13a3",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\candidate-diagnostics-pruned-build.txt"
+    },
+    {
+      "path": "previous-9f7290f-package.txt",
+      "bytes": 416,
+      "sha256": "d1fe5ed5f741ed51ad4106a07025f8e041fbee3c0a936000dd2e85c5774cbcdb",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\candidate-diagnostics-pruned-package.txt"
+    },
+    {
+      "path": "color-sequential-launch.txt",
+      "bytes": 309,
+      "sha256": "42b8f650d2475cbe66d7c706e67e39fbbb953cf2a326288dc6c79dbdafd8c41b",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\sentinel-colors-sequential-20261021.txt"
+    },
+    {
+      "path": "color-launcher.ps1",
+      "bytes": 3082,
+      "sha256": "a7a50e5a9b39457ac0cc837b185664e310255c9aed1182a5d96e67fe7627c861",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\run-sentinel-colors-qualified.ps1"
+    },
+    {
+      "path": "cadence-preflight-launch.txt",
+      "bytes": 570,
+      "sha256": "253ecfb2dccf88122a751cd3d34c89298a75714791eb698a14165c0a079bc261",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\cadence-preflight-20261021.txt"
+    },
+    {
+      "path": "cadence-preflight-launcher.ps1",
+      "bytes": 5374,
+      "sha256": "85c37c4bd1f35ec4fd1e6271d5c6ff794db9df41e6b3871d34a1489c2d6af02e",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\run-cadence-preflight-20261021.ps1"
+    },
+    {
+      "path": "presentmon-2.6.0-help.txt",
+      "bytes": 5435,
+      "sha256": "ca7852ce2d830eb00bda2f01fbbde4dae20d8266875d7d3049aaf71de42ccc53",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\presentmon-2.6.0-help.txt"
+    },
+    {
+      "path": "previous-9f7290f-manifest.json",
+      "bytes": 2200,
+      "sha256": "db8c3ac1555d429bdc7b239b2570b80faa023058eae244cfdf68767a046280e9",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\candidate-diagnostics-pruned-runtime\\manifest.json"
+    },
+    {
+      "path": "color-input-presence-rejected.json",
+      "bytes": 237815,
+      "sha256": "995c7db85b38b4ca982727ef2c6545071269bed7bbbe33c281297b6ee41d23fb",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\sentinel-colors-parked-20261020\\comparison.json"
+    },
+    {
+      "path": "color-pause-guard-rejected.json",
+      "bytes": 256583,
+      "sha256": "459efba2f73591431b498ec1588972842d098a5d9f4f2fe904defdcb451a5ee7",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\sentinel-colors-confirmed-pause-20261020\\comparison.json"
+    },
+    {
+      "path": "color-paused-seek-rejected.json",
+      "bytes": 262382,
+      "sha256": "49c21ae54eedb95706404f46c036938382a4d5bcf70bd8ab423781da5adc234d",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\sentinel-colors-rc-pause-20261020\\comparison.json"
+    },
+    {
+      "path": "color-sequential.json",
+      "bytes": 349194,
+      "sha256": "9db70ec4918acf3aabb430d4762e301f4b751b473865eadc78ee94c7300ec540",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\sentinel-colors-sequential-20261021\\comparison.json"
+    },
+    {
+      "path": "color-input-presence-rejected.txt",
+      "bytes": 270,
+      "sha256": "10dffbd7b85e9a0d464a8ce82e4bd2c51437038134a5be55a02509faf6769bdc",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\sentinel-colors-parked-20261020.txt"
+    },
+    {
+      "path": "color-pause-guard-rejected.txt",
+      "bytes": 279,
+      "sha256": "af0894e7f172405dd068b7a382cda20f108ea106794454c7cbaa6d16b8952a58",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\sentinel-colors-confirmed-pause-20261020.txt"
+    },
+    {
+      "path": "color-paused-seek-rejected.txt",
+      "bytes": 272,
+      "sha256": "f3edc7a04f4bc9371b6f99eed2782de400eb1bf576ed7d57e377bf9084f94200",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\sentinel-colors-rc-pause-20261020.txt"
+    },
+    {
+      "path": "cadence-preflight.json",
+      "bytes": 1519,
+      "sha256": "fc220312ecb4e11cc94cd43ee1806b6ed62bd439c8c4e15fc5934306f81612e7",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\cadence-preflight-20261021\\identity.json"
+    },
+    {
+      "path": "cadence-preflight.txt",
+      "bytes": 527,
+      "sha256": "7cbeccf70978be40e70b615ad89ec744f07a104b5f1c7b9925e64fa7b2e5a632",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\cadence-preflight-20261021\\presentmon.log"
+    },
+    {
+      "path": "current-release-manifest.json",
+      "bytes": 2198,
+      "sha256": "d0ce7dcf62fb83218976cd0cbde961ff34e636cded2feae3c18f93aeab3879b9",
+      "source": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\release\\manifest.json"
+    },
+    {
+      "path": "current-release-source.json",
+      "bytes": 66,
+      "sha256": "25b3c72694aa5ba85adfc0a1b3a4176f2c8b6807bc86d4dff3e93232afb873de",
+      "source": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\release\\release-source.json"
+    }
+  ]
+}

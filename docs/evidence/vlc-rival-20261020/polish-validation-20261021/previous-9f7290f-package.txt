@@ -1,0 +1,4 @@
+Package created: C:\Users\Alperen\AppData\Local\Codex\tools\scratch\aperture-rival-20261019\candidate-diagnostics-pruned-runtime
+Manifest: C:\Users\Alperen\AppData\Local\Codex\tools\scratch\aperture-rival-20261019\candidate-diagnostics-pruned-runtime\manifest.json
+Authenticode: Unsigned (standard reproducible package)
+Files: 10; binary SHA-256: 0f37ef0387dc24d8ce1a5d66e0e9414c952c1f74dba3e4c1af0618ce95215676

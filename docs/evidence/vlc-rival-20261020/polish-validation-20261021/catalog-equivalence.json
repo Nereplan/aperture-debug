@@ -1,0 +1,20 @@
+{
+  "scope": "Independent source/previous-Git-catalog semantic comparison; native loader behavior is verified separately by the regression gate.",
+  "allEffectiveStringsEqual": 379,
+  "allPluralRecordsEqual": 11,
+  "metadataEqual": true,
+  "retainedOverrides": [
+    "settings.appearance.theme_palette",
+    "settings.page.appearance",
+    "settings.playback.frame_step_desc",
+    "settings.playback.frame_step_header"
+  ],
+  "oldGitBlobBytes": 23418,
+  "newWorkingFileBytes": 552,
+  "oldGitLines": 431,
+  "newWorkingFileLines": 13,
+  "oldGitSha256": "d2659dbda9a0a1554ec3e09495744fc2cb9c38094e01c3ebfed9e59ae8977230",
+  "newWorkingFileSha256": "c920104d636fa470ebc5b4603643512035d64287317561140aebcadd5840c7a0",
+  "canonicalSourceSha256": "1f438a0c77b1eddb255716d0b75417f9abe2c1eeb65bd31b0a4804e5df27ad49",
+  "lineEndingNote": "Git stores LF; current Windows working file has CRLF. Compare byte counts only within the declared representation."
+}
