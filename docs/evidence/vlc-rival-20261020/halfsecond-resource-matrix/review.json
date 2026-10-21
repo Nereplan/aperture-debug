@@ -1,0 +1,254 @@
+{
+  "recordedAtUtc": "2026-10-20T21:11:05.298650+00:00",
+  "sourceContentCommit": "23fd026c2b114f8391465bfb5f7d28a79da02025",
+  "productionSourceDirty": false,
+  "alignmentPlan": "alignment-plan.json",
+  "overallWin": false,
+  "qualifiedBatches": {
+    "hevc": {
+      "createdUtc": "2026-10-20T21:00:06.8917052Z",
+      "qualified": true,
+      "rows": {
+        "cpu": {
+          "status": "rival-better",
+          "candidateMedian": 7.914699652744302,
+          "rivalMedian": 6.349746565750604
+        },
+        "capacity": {
+          "status": "rival-better",
+          "candidateMedian": 0.3297791521976792,
+          "rivalMedian": 0.26457277357294184
+        },
+        "cycles": {
+          "status": "candidate-better",
+          "candidateMedian": 295469453.87051636,
+          "rivalMedian": 304495932.6268382
+        },
+        "private": {
+          "status": "candidate-better",
+          "candidateMedian": 348.45703125,
+          "rivalMedian": 372.73046875
+        },
+        "workingSet": {
+          "status": "candidate-better",
+          "candidateMedian": 187.25390625,
+          "rivalMedian": 349.3828125
+        },
+        "dedicatedGpu": {
+          "status": "candidate-better",
+          "candidateMedian": 584.90625,
+          "rivalMedian": 874.1015625
+        },
+        "sharedGpu": {
+          "status": "candidate-better",
+          "candidateMedian": 18.1484375,
+          "rivalMedian": 30.828125
+        },
+        "runtime": {
+          "status": "candidate-better",
+          "candidateMedian": 30.61571979522705,
+          "rivalMedian": 190.01314163208008
+        },
+        "calibratedCpu": {
+          "status": "candidate-better",
+          "candidateMedian": 7.77552068586727,
+          "rivalMedian": 8.013059867569211
+        },
+        "calibratedCapacity": {
+          "status": "candidate-better",
+          "candidateMedian": 0.3239800285778029,
+          "rivalMedian": 0.33387749448205045
+        },
+        "quality": {
+          "status": "unproven",
+          "candidateMedian": null,
+          "rivalMedian": null
+        },
+        "readiness": {
+          "status": "unproven",
+          "candidateMedian": null,
+          "rivalMedian": null
+        },
+        "workflows": {
+          "status": "unproven",
+          "candidateMedian": null,
+          "rivalMedian": null
+        },
+        "featureMatchedStorage": {
+          "status": "unproven",
+          "candidateMedian": null,
+          "rivalMedian": null
+        }
+      }
+    },
+    "av1": {
+      "createdUtc": "2026-10-20T21:09:26.9154783Z",
+      "qualified": true,
+      "rows": {
+        "cpu": {
+          "status": "inconclusive-overlapping-ranges",
+          "candidateMedian": 4.893679168387935,
+          "rivalMedian": 3.5400851218382026
+        },
+        "capacity": {
+          "status": "inconclusive-overlapping-ranges",
+          "candidateMedian": 0.20390329868283064,
+          "rivalMedian": 0.14750354674325844
+        },
+        "cycles": {
+          "status": "candidate-better",
+          "candidateMedian": 157240882.7305505,
+          "rivalMedian": 165082917.66412008
+        },
+        "private": {
+          "status": "rival-better",
+          "candidateMedian": 159.11328125,
+          "rivalMedian": 136.47265625
+        },
+        "workingSet": {
+          "status": "candidate-better",
+          "candidateMedian": 140.171875,
+          "rivalMedian": 143.32421875
+        },
+        "dedicatedGpu": {
+          "status": "candidate-better",
+          "candidateMedian": 93.671875,
+          "rivalMedian": 94.59765625
+        },
+        "sharedGpu": {
+          "status": "rival-better",
+          "candidateMedian": 15.9140625,
+          "rivalMedian": 8.46875
+        },
+        "runtime": {
+          "status": "candidate-better",
+          "candidateMedian": 30.61571979522705,
+          "rivalMedian": 190.01314163208008
+        },
+        "calibratedCpu": {
+          "status": "candidate-better",
+          "candidateMedian": 4.137922618800447,
+          "rivalMedian": 4.34429219117589
+        },
+        "calibratedCapacity": {
+          "status": "candidate-better",
+          "candidateMedian": 0.17241344245001863,
+          "rivalMedian": 0.18101217463232874
+        },
+        "quality": {
+          "status": "unproven",
+          "candidateMedian": null,
+          "rivalMedian": null
+        },
+        "readiness": {
+          "status": "unproven",
+          "candidateMedian": null,
+          "rivalMedian": null
+        },
+        "workflows": {
+          "status": "unproven",
+          "candidateMedian": null,
+          "rivalMedian": null
+        },
+        "featureMatchedStorage": {
+          "status": "unproven",
+          "candidateMedian": null,
+          "rivalMedian": null
+        }
+      }
+    }
+  },
+  "limits": "Observed resources only; whole-player superiority remains unproven. Historical failed batches unchanged. H264 reuses its separately qualified original batch.",
+  "files": [
+    {
+      "path": "hevc-raw.json",
+      "bytes": 283833,
+      "sha256": "4911f3e62cde66ebdf2a7872bf41ce9b823fb0aac7e4df830298a3f8b8efaecc",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hevc-hub-halfsecond-qualified-20261020\\comparison.json"
+    },
+    {
+      "path": "hevc-qualification.json",
+      "bytes": 10772,
+      "sha256": "2d35fc54144b95abe777b29397377d12d779ad1730cf79a1f6c0659e5731e479",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hevc-hub-halfsecond-qualified-20261020\\qualification-complete.json"
+    },
+    {
+      "path": "hevc-calibrated.json",
+      "bytes": 13153,
+      "sha256": "4e1400976f4dbe2013e762cd5a8e01f914a396932ca903517265ea40220ea60e",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hevc-hub-halfsecond-qualified-20261020\\qualified-calibrated.json"
+    },
+    {
+      "path": "hevc-launch.log",
+      "bytes": 643,
+      "sha256": "76fdb561f8fbcf9baabe31f7b160b9b0dd3d9084a07080484d5657f309b83da6",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hevc-hub-halfsecond-qualified-20261020.log"
+    },
+    {
+      "path": "av1-raw.json",
+      "bytes": 283733,
+      "sha256": "cc5bb86161039894065d7a7ed643e9c2615d33937253693590443af847cb9eef",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\av1-hub-halfsecond-qualified-20261020\\comparison.json"
+    },
+    {
+      "path": "av1-qualification.json",
+      "bytes": 10780,
+      "sha256": "74070a1039b569c32bf1be17c3aa55134486e0f10ae3d4507e77dcad7f95187b",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\av1-hub-halfsecond-qualified-20261020\\qualification-complete.json"
+    },
+    {
+      "path": "av1-calibrated.json",
+      "bytes": 13155,
+      "sha256": "33e146b3ccdf714143378860f6121e09f3de2a9b5b680fb0913597cd1fc0c2bf",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\av1-hub-halfsecond-qualified-20261020\\qualified-calibrated.json"
+    },
+    {
+      "path": "av1-launch.log",
+      "bytes": 642,
+      "sha256": "70b9260732bdc4a867867cb3e44f03f32ef932e10ff4dee90524b462e7cfc5d1",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\av1-hub-halfsecond-qualified-20261020.log"
+    },
+    {
+      "path": "calibration.json",
+      "bytes": 811,
+      "sha256": "777be8b0af7d6b399f9329522b032df0023136ccd64219158c92a9367972b82c",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\calibration-halfsecond-20261020\\cpu-calibration.json"
+    },
+    {
+      "path": "calibration-identity.json",
+      "bytes": 1110,
+      "sha256": "d793020c26292bf704cb9403258a1cda5c0354111abf051843f10a7e85851d87",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\calibration-halfsecond-20261020\\identity.json"
+    },
+    {
+      "path": "calibration-stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\calibration-halfsecond-20261020\\stderr.txt"
+    },
+    {
+      "path": "alignment-plan.json",
+      "bytes": 1449,
+      "sha256": "4846dd0b4751d8f1192b6ea39002198ef03faaadd9da2461cfcd24f91b53e2ab",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\halfsecond-alignment-plan.json"
+    },
+    {
+      "path": "resource-launcher.ps1",
+      "bytes": 3038,
+      "sha256": "392381234addb259436fb69bc487724d522dddd11cb205f8a7a54bbdd44c1f10",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\run-resource-halfsecond-qualified.ps1"
+    },
+    {
+      "path": "calibration-launcher.ps1",
+      "bytes": 2585,
+      "sha256": "f9bac577c50f4eff85d66b40199d5633f4272618b0ae934b7bb03f39e6f4d384",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\run-calibration-halfsecond.ps1"
+    },
+    {
+      "path": "calibration-launch.txt",
+      "bytes": 108,
+      "sha256": "233f895b4a04e906bb8ad20348f0e0a640c3ec4a72ab626938467a3aca3c3544",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\calibration-halfsecond-20261020.txt"
+    }
+  ]
+}
