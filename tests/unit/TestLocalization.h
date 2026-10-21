@@ -13,17 +13,59 @@
 namespace Aperture::Test {
 
 TEST_CASE(Localization, CatalogSafetyFormattingAndConcurrency) {
+    auto& loc = Localization::Instance();
+    ScopedTempDir tempDir(L"Aperture_Loc_Test_");
+    TEST_ASSERT(tempDir.CreateSubDir(L"locales"));
+    // Check built-ins before loading any English overlay into the singleton fallback maps.
+    TEST_ASSERT(loc.Initialize(tempDir.GetPath(), "en-US"));
     const auto& catalog = Localization::GetCanonicalEnglishCatalog();
     TEST_ASSERT(catalog.size() >= 100);
     for (const auto& kv : catalog) {
         TEST_ASSERT(!kv.first.empty() && !kv.second.empty());
+        TEST_ASSERT_EQ(loc.GetUtf8(kv.first), kv.second);
+        TEST_ASSERT_EQ(loc.Get(kv.first), Utf8ToUtf16(kv.second));
     }
 
     const auto& plurals = Localization::GetCanonicalEnglishPlurals();
     TEST_ASSERT(!plurals.empty());
-    for (const auto& kv : plurals) {
-        TEST_ASSERT(!kv.first.empty() && (!kv.second.other.empty() || !kv.second.one.empty()));
+    auto verifyEnglishPlurals = [&]() {
+        for (const auto& kv : plurals) {
+            TEST_ASSERT(!kv.first.empty() && !kv.second.one.empty() && !kv.second.other.empty());
+            TEST_ASSERT(kv.second.zero.empty() && kv.second.two.empty() && kv.second.few.empty() && kv.second.many.empty());
+            for (int count : { 0, 1, 2, 5 }) {
+                const auto expected = Localization::FormatPatternUtf8(count == 1 ? kv.second.one : kv.second.other, { std::to_string(count) });
+                TEST_ASSERT_EQ(loc.FormatPluralUtf8(kv.first, count), expected);
+                TEST_ASSERT_EQ(loc.FormatPlural(kv.first, count), Utf8ToUtf16(expected));
+            }
+        }
+    };
+    verifyEnglishPlurals();
+
+    const auto sourceLocale = fs::path(__FILE__).parent_path().parent_path().parent_path() / L"locales" / L"en-US.json";
+    std::string englishJson;
+    TEST_ASSERT(ReadTextFile(sourceLocale.wstring(), englishJson).is_ok());
+    JsonValue englishRoot;
+    TEST_ASSERT(JsonValue::parse(englishJson, englishRoot));
+    TEST_ASSERT_EQ(englishRoot.get("schemaVersion").as_int(), 1);
+    const std::unordered_map<std::string, std::string> overrides = {
+        { "settings.page.appearance", "Set the look of the interface, its typography, and display language." },
+        { "settings.appearance.theme_palette", "THEME PRESET PALETTE" },
+        { "settings.playback.frame_step_header", "FRAME SEEK STEP (CTRL + ARROW KEYS)" },
+        { "settings.playback.frame_step_desc", "Number of video frames jumped per Ctrl + Left / Right arrow key" }
+    };
+    TEST_ASSERT_EQ(englishRoot.get("strings").as_object().size(), overrides.size());
+    auto expectedCatalog = catalog;
+    for (const auto& kv : overrides) {
+        TEST_ASSERT_EQ(englishRoot.get("strings").get(kv.first).as_string(), kv.second);
+        expectedCatalog[kv.first] = kv.second;
     }
+    TEST_ASSERT(tempDir.WriteFile(L"locales\\en-US.json", englishJson));
+    TEST_ASSERT(loc.SetLocale("en-US"));
+    for (const auto& kv : expectedCatalog) {
+        TEST_ASSERT_EQ(loc.GetUtf8(kv.first), kv.second);
+        TEST_ASSERT_EQ(loc.Get(kv.first), Utf8ToUtf16(kv.second));
+    }
+    verifyEnglishPlurals();
 
     TEST_ASSERT(Localization::IsValidLocaleTag("en-US"));
     TEST_ASSERT(Localization::IsValidLocaleTag("es-ES"));
@@ -57,7 +99,6 @@ TEST_CASE(Localization, CatalogSafetyFormattingAndConcurrency) {
     TEST_ASSERT_EQ(Localization::FormatPattern(L"Missing: {0}, {1}, {2}", { L"First" }), L"Missing: First, {1}, {2}");
     TEST_ASSERT_EQ(Localization::FormatPatternUtf8("Hello {0}!", { "Aperture" }), "Hello Aperture!");
 
-    auto& loc = Localization::Instance();
     loc.SetLocale("en-US");
     TEST_ASSERT_EQ(loc.FormatPlural("plural.videos", 1), L"1 video");
     TEST_ASSERT_EQ(loc.FormatPlural("plural.videos", 5), L"5 videos");
@@ -65,8 +106,6 @@ TEST_CASE(Localization, CatalogSafetyFormattingAndConcurrency) {
     TEST_ASSERT_EQ(loc.FormatPluralUtf8("plural.files", 1), "1 file");
     TEST_ASSERT_EQ(loc.FormatPluralUtf8("plural.files", 10), "10 files");
 
-    ScopedTempDir tempDir(L"Aperture_Loc_Test_");
-    tempDir.CreateSubDir(L"locales");
     tempDir.WriteFile(L"locales\\fr-FR.json",
         "{\"schemaVersion\":1,\"tag\":\"fr-FR\",\"displayName\":\"Français\",\"englishName\":\"French\","
         "\"strings\":{\"nav.media\":\"Médias\",\"nav.playlists\":\"Listes de lecture\"}}");
@@ -81,6 +120,12 @@ TEST_CASE(Localization, CatalogSafetyFormattingAndConcurrency) {
     TEST_ASSERT_EQ(loc.Get("nav.playlists"), L"Listes de lecture");
     TEST_ASSERT_EQ(loc.Get("nav.settings"), L"Settings");
     TEST_ASSERT_EQ(loc.Get("completely.unknown.key.123"), L"completely.unknown.key.123");
+    for (const auto& kv : expectedCatalog) {
+        if (kv.first == "nav.media" || kv.first == "nav.playlists") continue;
+        TEST_ASSERT_EQ(loc.GetUtf8(kv.first), kv.second);
+        TEST_ASSERT_EQ(loc.Get(kv.first), Utf8ToUtf16(kv.second));
+    }
+    verifyEnglishPlurals();
 
     TEST_ASSERT(!loc.SetLocale("../invalid/path"));
     TEST_ASSERT_EQ(loc.GetCurrentLocale(), "en-US");
@@ -94,6 +139,10 @@ TEST_CASE(Localization, CatalogSafetyFormattingAndConcurrency) {
     auto discovered = loc.DiscoverLocales(tempDir.SubPath(L"locales"));
     TEST_ASSERT(discovered.size() >= 3);
     TEST_ASSERT_EQ(discovered[0].tag, "en-US");
+    TEST_ASSERT_EQ(discovered[0].displayName, "English (US)");
+    TEST_ASSERT_EQ(discovered[0].englishName, "English (US)");
+    TEST_ASSERT_EQ(discovered[0].direction, "ltr");
+    TEST_ASSERT(!loc.IsRtl());
     bool hasEs = false, hasDe = false;
     for (const auto& item : discovered) {
         if (item.tag == "es-ES") hasEs = true;
