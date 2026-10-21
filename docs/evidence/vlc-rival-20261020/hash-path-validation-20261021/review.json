@@ -1,0 +1,52 @@
+{
+  "recordedAtUtc": "2026-10-21T09:02:28.726842+00:00",
+  "buildSourceCommit": "63a51b7f5657c89cd11f15ca359cbbdef0af4096",
+  "productionSourceDirty": false,
+  "toolingCommit": "7ebd41162ba709f7b04dd32134a70779b9463dce",
+  "sourceChanges": [
+    "ComputeSha256Hex checks BCrypt hashing/finalization status and rejects input exceeding ULONG_MAX before narrowing. Test-only signing/key-generation helpers moved out of production declarations/definitions into shared updater test support.",
+    "ICC/config containment share a bounded dynamic canonicalization helper; common short paths require one GetFullPathNameW fill, longer paths grow to32768includingNUL. Four64KiB stack arrays and repeated path-processing/lowercase copies removed. Existing distinct empty/root/trailing-root behavior preserved.",
+    "Production source119lines shorter across hash/helper and path changes; test growth is separate. Native EXE3438080bytes,2560bytes smaller than previously installed effective-decoder build. This is a measured package-size difference, not a playback speed claim.",
+    "Removed an ineffective duplicate Dictionary iteration in the local analysis script. Tightened stale76-warning allowance to observed16warnings across12fingerprints; separate actual analysis passes16/16 with zero new/count-increase/errors. No warnings suppressed or new allowances added."
+  ],
+  "validation": "Normal local build/package/install gate23/23 in352.83s. Native162passed,0failed,1expectedgeometryskip of163registered. Focused updater3/3; path contracts1/1each plus affected long-path rerun1/1. These scopes overlap and must not be added together. Exact10managed payload hashes independently matched in release/debug/ZIP. Saved data retained.",
+  "limits": "Frozen rivalry observations still use23fd026; these installed cleanups have no fresh resource ranking. Hash-provider failure handling was code-reviewed; tests cover vectors/null/oversized input and actual signatures/tampering, without synthetic BCrypt failure injection.",
+  "files": [
+    {
+      "path": "build-test-package.txt",
+      "bytes": 57470,
+      "sha256": "4e8484eb464179764af8f0c7c7a99ce215cb341a4da7d261cdc6d881e7832d4f",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hash-path-cleanup-build-and-release-20261021.txt"
+    },
+    {
+      "path": "payload-validation.json",
+      "bytes": 1290,
+      "sha256": "5dc2ad602e30660fb054b0ce3c86f5f46f0e5d24cf9ac7fcedd06b8a4fd88479",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\hash-path-payload-validation-20261021.json"
+    },
+    {
+      "path": "updater-focused.txt",
+      "bytes": 756,
+      "sha256": "595d5f0911bc67b55380d25161c88968fe85e674940ab354bfa90af477bcad21",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\updater-hash-test-support-20261021.txt"
+    },
+    {
+      "path": "settings-focused.txt",
+      "bytes": 1133,
+      "sha256": "b710278ab4b9b64679e1599470ead79647fd0c6c1717ebb7efaa1bf49b7b46a2",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\settings-path-focused-20261021.txt"
+    },
+    {
+      "path": "settings-long-focused.txt",
+      "bytes": 964,
+      "sha256": "decfdb319c4643accef7d373a59d9f8ec1a7ba9fe8dae401318751b1b470c8c9",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\settings-path-long-focused-20261021.txt"
+    },
+    {
+      "path": "strict-static-analysis.json",
+      "bytes": 399,
+      "sha256": "fce0854d187fe3da80c1b9873cbb908cb021aecd8c4c0991c26f6275c8f65cb4",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\static-tightening-20261021.json"
+    }
+  ]
+}

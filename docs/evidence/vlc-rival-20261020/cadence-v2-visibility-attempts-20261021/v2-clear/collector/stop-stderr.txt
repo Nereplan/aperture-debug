@@ -1,0 +1,2 @@
+warning: --terminate_existing_session exits without capturing anything; ignoring all other options.
+warning: --no_console_stats added because stdout does not support statistics reporting.

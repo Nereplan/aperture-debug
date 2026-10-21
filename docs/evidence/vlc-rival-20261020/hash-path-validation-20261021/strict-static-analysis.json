@@ -1,0 +1,18 @@
+{
+  "gate": "static_analysis",
+  "passed": true,
+  "durationSec": 57.81,
+  "configuration": "Release",
+  "warningsAsErrors": false,
+  "sourcesAnalyzed": 49,
+  "totalWarnings": 16,
+  "baselineMaxTotal": 16,
+  "newWarningCount": 0,
+  "increaseCount": 0,
+  "resolvedCount": 0,
+  "errorCount": 0,
+  "newWarnings": [],
+  "countIncreases": [],
+  "resolvedWarnings": [],
+  "errors": []
+}

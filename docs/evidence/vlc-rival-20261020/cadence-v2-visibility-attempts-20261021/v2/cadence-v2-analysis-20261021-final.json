@@ -1,0 +1,102 @@
+{
+  "recordedAtUtc": "2026-10-21T08:55:06.770395+00:00",
+  "mode": "final",
+  "sourceCsv": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\cadence-collector-v2-20261021\\presents.csv",
+  "sourceCsvSha256": "efa2d48b2916351ad0260eccede50adea1e5991f28fcefec74366946671bb1c2",
+  "hashScope": "entire closed final raw CSV",
+  "snapshotFileBytes": 146071,
+  "hashedPrefixBytes": 146071,
+  "batchReasons": [
+    "Coordinator did not complete the full planned batch",
+    "Collector did not qualify this complete capture"
+  ],
+  "rows": 911,
+  "fields": [
+    "Application",
+    "ProcessID",
+    "SwapChainAddress",
+    "PresentRuntime",
+    "SyncInterval",
+    "PresentFlags",
+    "VidPnSourceId",
+    "LayerIndex",
+    "AllowsTearing",
+    "PresentMode",
+    "CPUStartQPC",
+    "FrameTime",
+    "CPUBusy",
+    "CPUWait",
+    "DisplayLatency",
+    "DisplayedTime",
+    "AnimationError",
+    "AnimationTime",
+    "MsFlipDelay",
+    "PresentId"
+  ],
+  "unassignedPids": [],
+  "readErrors": [],
+  "percentileMethod": "Type7 linear interpolation of sorted finite positive durations, fixed in implementation before first duration inspection",
+  "runs": [
+    {
+      "player": "Aperture",
+      "workload": "h264",
+      "round": 0,
+      "warmup": true,
+      "pid": 24756,
+      "status": "failed",
+      "startedUtc": "2026-10-21T07:49:57.1722171Z",
+      "endedUtc": "2026-10-21T07:50:31.0629216Z",
+      "reasons": [
+        "Video canvas is not verifiably visible: higher-window-intersects-canvas (pid=26660,class=CodexComputerUseCursorOverlay)"
+      ],
+      "identified": false,
+      "evidenceValid": false,
+      "qualified": false,
+      "guardCount": 4,
+      "failureStage": "timed-window"
+    }
+  ],
+  "workloads": {
+    "h264": {
+      "completePlannedRuns": false,
+      "identifiedRuns": 0,
+      "evidenceValidRuns": 0,
+      "qualifiedRuns": 0,
+      "runCount": 1,
+      "captureQualified": false,
+      "qualified": false,
+      "reasons": [
+        "Coordinator did not complete the full planned batch",
+        "Collector did not qualify this complete capture",
+        "Incomplete planned eight fresh processes for this workload",
+        "One or more owned runs lack complete valid evidence",
+        "Display source differs or is unavailable across matched runs",
+        "DPI differs or is unavailable across matched runs"
+      ],
+      "displaySources": [],
+      "dpis": [],
+      "players": {}
+    },
+    "hevc": {
+      "completePlannedRuns": false,
+      "identifiedRuns": 0,
+      "evidenceValidRuns": 0,
+      "qualifiedRuns": 0,
+      "runCount": 0,
+      "captureQualified": false,
+      "qualified": false,
+      "reasons": [
+        "Coordinator did not complete the full planned batch",
+        "Collector did not qualify this complete capture",
+        "Incomplete planned eight fresh processes for this workload",
+        "One or more owned runs lack complete valid evidence",
+        "Display source differs or is unavailable across matched runs",
+        "DPI differs or is unavailable across matched runs"
+      ],
+      "displaySources": [],
+      "dpis": [],
+      "players": {}
+    }
+  },
+  "limits": "Operational video-chain identification only; no unique decoded-content, physical-panel, audio continuity, equal decoder/pixel quality, resource CPU or overall superiority claim. Interior rows selected by CPUStartQPC; final displayed intervals may extend past the interior boundary. Nominal164Hz OS display mode imposes noninteger30/60FPS refresh cadence."
+}

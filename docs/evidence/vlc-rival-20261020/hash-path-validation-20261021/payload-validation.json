@@ -1,0 +1,31 @@
+{
+  "verifiedAtUtc": "2026-10-21T09:00:15.621080+00:00",
+  "buildSourceCommit": "63a51b7f5657c89cd11f15ca359cbbdef0af4096",
+  "productionSourceDirty": false,
+  "toolingNote": "Static analysis allowance/script cleanup was prepared after the normal static suite passed; dedicated validation recorded separately. Production source remained unchanged.",
+  "managedPayloadsVerified": {
+    "release": 10,
+    "debug": 10,
+    "zip": 10
+  },
+  "executable": {
+    "path": "Aperture.exe",
+    "size": 3438080,
+    "sha256": "c4fd1fe6116b0b749563a80ed16238a6fa34daf0d299cb42e458a1be39306f6a"
+  },
+  "distribution": {
+    "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\dist\\Aperture-2.0.0.0-windows-x64.zip",
+    "bytes": 14441291,
+    "sha256": "61d725438f2a4e133e1dbac6330b45a4c407b21b68393a54bc42b9de2c2d4e86"
+  },
+  "gate": {
+    "suitesPassed": 23,
+    "suitesTotal": 23,
+    "durationSeconds": 352.83,
+    "nativePassed": 162,
+    "nativeFailed": 0,
+    "nativeSkipped": 1,
+    "nativeRegistered": 163
+  },
+  "scope": "Locally observed committed production source and exact payload verification, not signed source-to-binary attestation. Saved data retained by normal build/package/install. Frozen rivalry runtime remains separate23fd026."
+}

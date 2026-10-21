@@ -1,0 +1,174 @@
+{
+  "player": "VLC",
+  "workload": "h264",
+  "round": 3,
+  "warmup": false,
+  "mediaPath": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\h264-1080p30-audio.mp4",
+  "mediaSha256": "86C249A196158CA2479BB9DD6E0045F24CBCBD2E04A80A41E37C2F6B78F70E68",
+  "executableSha256": "63D0D02DF6E466D642B824DC66BE6B5A134BF98B26747FFAC8EC0D879DC180D7",
+  "runtimeManifestSha256": "a48412d2ee742a32192cf0c8389d2251c180160c2bc615492044d1a73aa5b2ff",
+  "arguments": [
+    "--intf=qt",
+    "--ignore-config",
+    "--config=C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\cadence-runs-v2-clear-20261021\\h264-3-VLC\\vlcrc",
+    "--no-one-instance",
+    "--no-one-instance-when-started-from-file",
+    "--no-media-library",
+    "--no-metadata-network-access",
+    "--no-qt-privacy-ask",
+    "--no-qt-updates-notif",
+    "--no-qt-recentplay",
+    "--qt-continue=0",
+    "--no-qt-video-autoresize",
+    "--extraintf=rc",
+    "--rc-quiet",
+    "--rc-host=127.0.0.1:60650"
+  ],
+  "startedUtc": "2026-10-21T08:04:47.8845268Z",
+  "status": "failed",
+  "guards": [
+    {
+      "status": "validated",
+      "reason": null,
+      "safe": true,
+      "ownedOverlayPresent": false,
+      "phase": -1,
+      "qpcStart": 854720007862,
+      "qpcReadStart": 0,
+      "qpcReadEnd": 0,
+      "qpcEnd": 854720010237,
+      "root": 1116598,
+      "canvas": 5441536,
+      "dpi": 96,
+      "screenCanvas": {
+        "left": 48,
+        "top": 92,
+        "right": 1328,
+        "bottom": 812
+      },
+      "rgb": []
+    },
+    {
+      "status": "validated",
+      "reason": null,
+      "safe": true,
+      "ownedOverlayPresent": false,
+      "phase": -1,
+      "qpcStart": 854771590921,
+      "qpcReadStart": 0,
+      "qpcReadEnd": 0,
+      "qpcEnd": 854771593752,
+      "root": 1116598,
+      "canvas": 5441536,
+      "dpi": 96,
+      "screenCanvas": {
+        "left": 48,
+        "top": 92,
+        "right": 1328,
+        "bottom": 812
+      },
+      "rgb": []
+    },
+    {
+      "status": "validated",
+      "reason": null,
+      "safe": true,
+      "ownedOverlayPresent": false,
+      "phase": -1,
+      "qpcStart": 854821530604,
+      "qpcReadStart": 0,
+      "qpcReadEnd": 0,
+      "qpcEnd": 854821532863,
+      "root": 1116598,
+      "canvas": 5441536,
+      "dpi": 96,
+      "screenCanvas": {
+        "left": 48,
+        "top": 92,
+        "right": 1328,
+        "bottom": 812
+      },
+      "rgb": []
+    },
+    {
+      "status": "validated",
+      "reason": null,
+      "safe": true,
+      "ownedOverlayPresent": false,
+      "phase": -1,
+      "qpcStart": 854871594370,
+      "qpcReadStart": 0,
+      "qpcReadEnd": 0,
+      "qpcEnd": 854871596379,
+      "root": 1116598,
+      "canvas": 5441536,
+      "dpi": 96,
+      "screenCanvas": {
+        "left": 48,
+        "top": 92,
+        "right": 1328,
+        "bottom": 812
+      },
+      "rgb": []
+    },
+    {
+      "status": "validated",
+      "reason": null,
+      "safe": true,
+      "ownedOverlayPresent": false,
+      "phase": -1,
+      "qpcStart": 854921580699,
+      "qpcReadStart": 0,
+      "qpcReadEnd": 0,
+      "qpcEnd": 854921584618,
+      "root": 1116598,
+      "canvas": 5441536,
+      "dpi": 96,
+      "screenCanvas": {
+        "left": 48,
+        "top": 92,
+        "right": 1328,
+        "bottom": 812
+      },
+      "rgb": []
+    }
+  ],
+  "cleanup": "owned-window-closed",
+  "qpcFrequency": 10000000,
+  "pid": 29964,
+  "processStartUtc": "2026-10-21T08:04:48.1310625Z",
+  "open": {
+    "positionSec": 0.0,
+    "state": null,
+    "reason": null
+  },
+  "canvas": {
+    "handle": 5441536,
+    "className": "VLC video main 0000010FE1C7FEB0",
+    "clientWidth": 1280,
+    "clientHeight": 720,
+    "dpi": 96
+  },
+  "before": {
+    "positionSec": 9.0,
+    "state": null,
+    "reason": null
+  },
+  "collectorSchema": {
+    "checkedQpc": 854721477047,
+    "header": "Application,ProcessID,SwapChainAddress,PresentRuntime,SyncInterval,PresentFlags,VidPnSourceId,LayerIndex,AllowsTearing,PresentMode,CPUStartQPC,FrameTime,CPUBusy,CPUWait,DisplayLatency,DisplayedTime,AnimationError,AnimationTime,MsFlipDelay,PresentId",
+    "requiredColumns": [
+      "Application",
+      "ProcessID",
+      "SwapChainAddress",
+      "DisplayedTime",
+      "CPUStartQPC",
+      "VidPnSourceId",
+      "LayerIndex",
+      "PresentId"
+    ]
+  },
+  "windowStartQpc": 854721477303,
+  "failure": "Video canvas is not verifiably visible: hidden-or-minimized",
+  "endedUtc": "2026-10-21T08:05:27.3882398Z"
+}

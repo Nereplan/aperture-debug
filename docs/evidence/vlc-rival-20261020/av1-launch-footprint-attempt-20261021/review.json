@@ -1,0 +1,108 @@
+{
+  "recordedAtUtc": "2026-10-21T09:09:07.249243+00:00",
+  "sourceContentCommit": "23fd026c2b114f8391465bfb5f7d28a79da02025",
+  "productionSourceDirty": false,
+  "status": "partial-unqualified",
+  "attemptedCalls": 4,
+  "validatedCalls": 3,
+  "findings": "Both warmups and measured HubThenOpen call validate. First measured Direct call fails hidden-or-minimized visibility before any resource samples; remaining four calls not attempted. The predeclared8-call plan is incomplete. No aggregate mode/resource ranking, no inferred graphics-device saving and no isolated failed-run replacement.",
+  "desktopContext": "User subsequently confirms they are using the PC. Visible tests deferred while it is in use. Exact cause of each earlier visibility transition remains unknown.",
+  "files": [
+    {
+      "path": "index.json",
+      "bytes": 9143,
+      "sha256": "7c694c8d1d30c3beb1accd35183771aec686d63475905f0a13f6a9d4ad6d95f8",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\av1-launch-footprint-runs-20261021\\index.json"
+    },
+    {
+      "path": "plan.json",
+      "bytes": 10278,
+      "sha256": "e48bd882c035da9b6a1252abe89c19adf070ab91ea52ca8bf3e2fe485d4173af",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\av1-launch-footprint-runs-20261021\\plan.json"
+    },
+    {
+      "path": "launcher.ps1",
+      "bytes": 6111,
+      "sha256": "d0d9ccb67dd66f03720ce98042357757618edca94cdb5174f905b525fc5218d2",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\av1-launch-footprint-preparation-20261021\\run.ps1"
+    },
+    {
+      "path": "launcher-output.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\av1-launch-footprint-20261021.txt"
+    },
+    {
+      "path": "01-warmup-Direct/comparison.json",
+      "bytes": 21948,
+      "sha256": "ea2cbad31fbf931394872bc92a90606008dde403daac816f8f255d06809d0bd8",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\av1-launch-footprint-runs-20261021\\01-warmup-Direct\\comparison.json"
+    },
+    {
+      "path": "01-warmup-Direct/call.json",
+      "bytes": 1903,
+      "sha256": "70ab0ed4e8f41418fc9cb969d3239f570548bb2209c56b6e6a96cc53eb3239db",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\av1-launch-footprint-runs-20261021\\01-warmup-Direct\\call.json"
+    },
+    {
+      "path": "01-warmup-Direct/launcher.log",
+      "bytes": 211,
+      "sha256": "7394199e24c88d5b94b46331138e858173c7ac6bc0ff57fe5b4615ab13239fa8",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\av1-launch-footprint-runs-20261021\\01-warmup-Direct\\launcher.log"
+    },
+    {
+      "path": "02-warmup-HubThenOpen/comparison.json",
+      "bytes": 22030,
+      "sha256": "93efacf5ab3ec1fc98dbc3b5eaf995827150cb3753cf3b886bda9fbe7ffd63ae",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\av1-launch-footprint-runs-20261021\\02-warmup-HubThenOpen\\comparison.json"
+    },
+    {
+      "path": "02-warmup-HubThenOpen/call.json",
+      "bytes": 1923,
+      "sha256": "10de18f52ceed364d1846583f46374a0fee5b8404712f71d94e2eeb57ccafd1c",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\av1-launch-footprint-runs-20261021\\02-warmup-HubThenOpen\\call.json"
+    },
+    {
+      "path": "02-warmup-HubThenOpen/launcher.log",
+      "bytes": 216,
+      "sha256": "d108b2db65dd131ae43e61ea273143d524a1b3ee03f92f63cfa038e6cb0f7e29",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\av1-launch-footprint-runs-20261021\\02-warmup-HubThenOpen\\launcher.log"
+    },
+    {
+      "path": "03-measured-HubThenOpen/comparison.json",
+      "bytes": 22049,
+      "sha256": "11cd29795d57e85b6599b80642daf9da2c4db034a72348cb6f44e076f0cf7348",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\av1-launch-footprint-runs-20261021\\03-measured-HubThenOpen\\comparison.json"
+    },
+    {
+      "path": "03-measured-HubThenOpen/call.json",
+      "bytes": 1930,
+      "sha256": "cca48ece116a72c57446222a22ded1ccef9ec836cac5344f65379af5fd1dc412",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\av1-launch-footprint-runs-20261021\\03-measured-HubThenOpen\\call.json"
+    },
+    {
+      "path": "03-measured-HubThenOpen/launcher.log",
+      "bytes": 218,
+      "sha256": "0d4646c4fd8543be0c0009387282a61cb8d36feca090304af22ab495b561c99e",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\av1-launch-footprint-runs-20261021\\03-measured-HubThenOpen\\launcher.log"
+    },
+    {
+      "path": "04-measured-Direct/comparison.json",
+      "bytes": 9507,
+      "sha256": "7440f6c4c5368b082fc21acd44f808c32597957fbfacb26db70d417e14d51a04",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\av1-launch-footprint-runs-20261021\\04-measured-Direct\\comparison.json"
+    },
+    {
+      "path": "04-measured-Direct/call.json",
+      "bytes": 1922,
+      "sha256": "5f9109c56f1808b384f1fe93b1ae9019ff34c0881e8f5341fc62b91b7d0eaf72",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\av1-launch-footprint-runs-20261021\\04-measured-Direct\\call.json"
+    },
+    {
+      "path": "04-measured-Direct/launcher.log",
+      "bytes": 554,
+      "sha256": "a5f2ea05db2e553580608915930b9760296000dd47c70892a09d386adade74d2",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\av1-launch-footprint-runs-20261021\\04-measured-Direct\\launcher.log"
+    }
+  ]
+}

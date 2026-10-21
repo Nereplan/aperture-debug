@@ -1,0 +1,24 @@
+{
+  "recordedAtUtc": "2026-10-21T07:37:56.481959+00:00",
+  "scope": "Revised independent plan fixed before new v2 capture. No duration metrics inspected from the earlier default-schema trace.",
+  "collector": "cadence-collector-v2-20261021",
+  "runs": "cadence-runs-v2-20261021",
+  "qualification": [
+    "Collector exit must be0; complete CSV and final stdout/stderr retained; any ETW lost-buffer/lost-event/overflow warning invalidates every resource-independent cadence result.",
+    "One warmup plus three measured fresh processes per player/workload; retain every attempted run. A workload with any incomplete or unidentified measured run remains unqualified.",
+    "Filter by exact coordinator-owned PID and recorded process lifetime/QPC windows. Reject foreign player processes; never reuse a swapchain address across processes.",
+    "For each fresh owned process, require exactly one chain whose CPUStartQPC submission rate is80..120% of nominal source FPS in the last5s of the40s playback window and last1.5s of confirmed resumed playback, and at most50% of nominal FPS during the pause interior excluding0.5s at each edge. This permits the independently observed VLC paused repaint behavior while requiring a substantial pause response. More than one candidate is ambiguous. A single video-rate chain is an operational identification, not proof of unique decoded content.",
+    "Require matching guarded1280x720 canvas/DPI, source fixture hash and display source metadata. Actual CPUStartQPC interior is windowStart+5s through+35s; no dropped/undisplayed rows excluded.",
+    "Only after identification, compute per-run distributions from finite positive DisplayedTime values in that fixed30s interior; retain NA as undisplayed and report its count/fraction. Also report submission count/rate, presented/displayed counts, median/p95/p99/max duration, and durations>1.5times nominal frame interval.",
+    "PresentMon presentation events and displayed durations do not establish unique decoded frames, physical panel timing, audio continuity, equal decoder/filter quality or overall player superiority. No process CPU comparison from these instrumented runs."
+  ],
+  "nominalFps": {
+    "h264": 30,
+    "hevc": 60
+  },
+  "protocolLimit": "Explicit v2 metrics, live-readable raw stdout CSV, header asserted before each playback window, maximum1800s capture with controlled stop of only its exact random owned session after coordinator cleanup. Any failure/incomplete measured workload remains unqualified; no splicing.",
+  "schemaSource": "https://raw.githubusercontent.com/GameTechDev/PresentMon/v2.6.0/PresentMon/CsvOutput.cpp",
+  "metricsSource": "DisplayedTime is the per-present display duration in milliseconds, NA when not displayed; CPUStartQPC identifies the event time under --qpc_time.",
+  "originalPlanDisposition": "Original capture lacks DisplayedTime because --v2_metrics was omitted. All 14 owned launches retained as diagnostic only; HEVC incomplete. Original <=1 paused presents/sec identification rule fails for VLC, whose single observed chain repaints at roughly13/sec. No original results promoted or sessions joined.",
+  "extraReporting": "Retain all chain-rate summaries and per-run duration distributions. Do not collapse jitter into a scalar superiority claim; the164Hz panel imposes noninteger30/60FPS refresh cadence. Report distributions/ranges and long intervals, unavailable rows and exact display modes. No automatic pass threshold for overall smoothness was declared."
+}

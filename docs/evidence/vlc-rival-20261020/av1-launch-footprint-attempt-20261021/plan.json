@@ -1,0 +1,251 @@
+{
+  "schemaVersion": 1,
+  "status": "prepared-not-executed",
+  "purpose": "Private-memory/working-set/GPU-allocation diagnostic between launch modes of the same frozen Aperture build; no CPU or rival ranking claims.",
+  "repository": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final",
+  "workRoot": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019",
+  "pwsh": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\pwsh\\pwsh.exe",
+  "defaultOutputRoot": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\av1-launch-footprint-runs-20261021",
+  "harness": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\tests\\benchmark\\compare_players.ps1",
+  "inputHashes": [
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\tests\\benchmark\\compare_players.ps1",
+      "sha256": "049631b0d6bdf21f77ee9e408185ef7350d78f55c69dd20c6d1d2be9a29f5c9a"
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\tests\\benchmark\\PlayerBenchmarkWindow.cs",
+      "sha256": "e9731349d7203f8257b19e7a550c8907573e1cb8ba8056ec577ad7c17e81e921"
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\tests\\benchmark\\PlayerVideoReadiness.cs",
+      "sha256": "bd1316d4b4fdf235ef126076cb3e466cb707a567e923f4927e66ab6ae263f9e6"
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\tests\\benchmark\\player_comparison_identity.ps1",
+      "sha256": "74309055e3522269b4033f4b561d07a7430a5196a6426d6dc025b5965323e6fe"
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\tests\\benchmark\\player_status_probe.cpp",
+      "sha256": "a832805a0f250d2f4699c4bf42ef0b5c1b9b1cc05fb6b075f3349041e1c0a164"
+    },
+    {
+      "path": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\av1-hub-final-clean-20261020\\runs-865bcf94e4994b3683978c793825f961\\player_status_probe.exe",
+      "sha256": "ffffa47050c6a3b04f34c7f26228fa01981345a3321725ddcd2d6676c09a0ec3"
+    },
+    {
+      "path": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\av1-1080p30-audio.mp4",
+      "sha256": "84630e2bec31bbda663d634e2a7fc13cf1c81f983565d3942094e8dc9808fdd8"
+    },
+    {
+      "path": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\frozen-qualified-build.json",
+      "sha256": "140d32c3327354e94a474ba1da172d3e19f0cb8df75cc69ecb2e63ec2108afab"
+    },
+    {
+      "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\docs\\evidence\\vlc-rival-20261020\\final-resource-matrix\\av1-raw.json",
+      "sha256": "545d0e6c4e19ef7f427ba8a9fe6969b3289afd9c908364daab5942685f82688b"
+    }
+  ],
+  "runtime": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\candidate-runtime-qualified",
+  "runtimeManifestSha256": "8a333e146c3153f0e00a350323a0402c265be4320fbc8bf08f70ac9530005ac8",
+  "runtimeFiles": [
+    {
+      "path": "Aperture.exe",
+      "bytes": 3453952,
+      "sha256": "78b59f4e3e98e3f5f7a3e3a309c522f3ce1828e3f58e22c1a85a12c008fa9a7f"
+    },
+    {
+      "path": "Update.cmd",
+      "bytes": 115,
+      "sha256": "6cc03e15614148057f34ee7c315505730a1427e00ee145eb78d52e89c49afa35"
+    },
+    {
+      "path": "fonts/Inter.ttf",
+      "bytes": 876576,
+      "sha256": "29160a80ff49ddcab2c97711247e08b1fab27a484a329ce8b813d820dc559031"
+    },
+    {
+      "path": "fonts/JetBrainsMono.ttf",
+      "bytes": 187208,
+      "sha256": "48715a42ec242c21e9f02692891e147d022299a52e48d5e413e1a942193ffeda"
+    },
+    {
+      "path": "fonts/SpaceGrotesk.ttf",
+      "bytes": 136676,
+      "sha256": "acad6de1fc93436f5c0f1f4137751ef04f1aea3063e7036535970ffcfbd79f72"
+    },
+    {
+      "path": "libmpv-2.dll",
+      "bytes": 27401728,
+      "sha256": "e91032cbce1da22aec5903468e814d4df2494e74fe508a371eaf3446c7408dae"
+    },
+    {
+      "path": "locales/en-US.json",
+      "bytes": 23849,
+      "sha256": "c1ef8802cc97b203f511b85b63881d22880e55cc3c09291e74e0855d7f1b4f2d"
+    },
+    {
+      "path": "manifest.json",
+      "bytes": 2200,
+      "sha256": "53955cf1808bbabaafbae72ef4bfdb41807cb5162f187bb305bb76c2a0faeb63"
+    },
+    {
+      "path": "release-source.json",
+      "bytes": 66,
+      "sha256": "1a0f8441416ec677d956cb017f056cf15be957c48166abbec096cc174ac87a13"
+    },
+    {
+      "path": "runtime_update.ps1",
+      "bytes": 15546,
+      "sha256": "6ef9dfb151703f5a4a61e929495257e7c9888ce0feb345c9b33e1ebec2f339c3"
+    },
+    {
+      "path": "update.ps1",
+      "bytes": 4993,
+      "sha256": "f9b2d606a60f6fbcf9c88b8422ca3bf75ffd3c1a339dd7f73fd033832e5d8775"
+    }
+  ],
+  "executableSha256": "78b59f4e3e98e3f5f7a3e3a309c522f3ce1828e3f58e22c1a85a12c008fa9a7f",
+  "statusProbe": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\av1-hub-final-clean-20261020\\runs-865bcf94e4994b3683978c793825f961\\player_status_probe.exe",
+  "statusProbeSourceSha256": "a832805a0f250d2f4699c4bf42ef0b5c1b9b1cc05fb6b075f3349041e1c0a164",
+  "probeProvenance": "Existing observer binary and matching source identities from final-resource-matrix/av1-raw.json; no observer compilation during this diagnostic.",
+  "media": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\av1-1080p30-audio.mp4",
+  "mediaSha256": "84630e2bec31bbda663d634e2a7fc13cf1c81f983565d3942094e8dc9808fdd8",
+  "mediaBytes": 114975176,
+  "sourceContentCommit": "23fd026c2b114f8391465bfb5f7d28a79da02025",
+  "sourceFlow": [
+    {
+      "path": "src/main.cpp",
+      "gitBlobSha256": "e5ac9cb570f7a2ccdf5777453e6e5a01dc4dada0cb4e9cd429ac97a96a950294",
+      "lines": [
+        194,
+        299,
+        320
+      ]
+    },
+    {
+      "path": "src/Renderer.cpp",
+      "gitBlobSha256": "741d120e6527341424858d9bd9a78d7b9d4ad1bcbaf09f7ab3bdfd415ad86952",
+      "lines": [
+        307,
+        311
+      ]
+    },
+    {
+      "path": "src/App.cpp",
+      "gitBlobSha256": "db42b051185b4ac507d64595174eeed0d61de035dfbfc373479922b79c25ebf4",
+      "lines": [
+        1137,
+        1174,
+        1210,
+        1294,
+        1700,
+        2048
+      ]
+    },
+    {
+      "path": "src/AppLibrary.cpp",
+      "gitBlobSha256": "ba50a1dcb473faefd48fb3a1ff127f252b51782fdf9fe997ebebe3d28ee18264",
+      "lines": [
+        145,
+        146
+      ]
+    }
+  ],
+  "sourcePremise": "Successful Direct startup with a media argument skips both hub prewarm paths; pending startup media keeps WM_PAINT on the GDI shell; snapshot adoption executes queued opens before repaint; open playback renders only the overlay. HubThenOpen prewarms and presents the hub before media open.",
+  "protocol": {
+    "playerNames": [
+      "Aperture"
+    ],
+    "iterationsPerCall": 1,
+    "harnessWarmupIterationsPerCall": 0,
+    "externalWarmupsPerMode": 1,
+    "measuredFreshProcessesPerMode": 3,
+    "expectedSamplesPerProcess": 7,
+    "videoWidth": 1280,
+    "videoHeight": 720,
+    "windowWidth": 1280,
+    "windowHeight": 800,
+    "samplingStartMediaSeconds": 20.5,
+    "samplingSeconds": 30,
+    "hubSettleSeconds": 3,
+    "launchMediaStartSeconds": 0
+  },
+  "classification": "The harness requires Iterations>=1, so each call uses one process with WarmupIterations=0. The first two complete calls are external warmups, explicitly excluded by this plan/index; raw harness warmup flags remain unchanged.",
+  "calls": [
+    {
+      "sequence": 1,
+      "pair": 0,
+      "phase": "warmup",
+      "mode": "Direct",
+      "excludeFromMeasuredSummary": true,
+      "outputName": "01-warmup-Direct"
+    },
+    {
+      "sequence": 2,
+      "pair": 0,
+      "phase": "warmup",
+      "mode": "HubThenOpen",
+      "excludeFromMeasuredSummary": true,
+      "outputName": "02-warmup-HubThenOpen"
+    },
+    {
+      "sequence": 3,
+      "pair": 1,
+      "phase": "measured",
+      "mode": "HubThenOpen",
+      "excludeFromMeasuredSummary": false,
+      "outputName": "03-measured-HubThenOpen"
+    },
+    {
+      "sequence": 4,
+      "pair": 1,
+      "phase": "measured",
+      "mode": "Direct",
+      "excludeFromMeasuredSummary": false,
+      "outputName": "04-measured-Direct"
+    },
+    {
+      "sequence": 5,
+      "pair": 2,
+      "phase": "measured",
+      "mode": "Direct",
+      "excludeFromMeasuredSummary": false,
+      "outputName": "05-measured-Direct"
+    },
+    {
+      "sequence": 6,
+      "pair": 2,
+      "phase": "measured",
+      "mode": "HubThenOpen",
+      "excludeFromMeasuredSummary": false,
+      "outputName": "06-measured-HubThenOpen"
+    },
+    {
+      "sequence": 7,
+      "pair": 3,
+      "phase": "measured",
+      "mode": "HubThenOpen",
+      "excludeFromMeasuredSummary": false,
+      "outputName": "07-measured-HubThenOpen"
+    },
+    {
+      "sequence": 8,
+      "pair": 3,
+      "phase": "measured",
+      "mode": "Direct",
+      "excludeFromMeasuredSummary": false,
+      "outputName": "08-measured-Direct"
+    }
+  ],
+  "limits": [
+    "Source-flow inference is not an observed device inventory. Failed startup, unexpected navigation or recovery can create hub graphics resources and invalidate the premise.",
+    "Launch modes also differ in hub-related startup, fonts/tooltips/queries and deferred work; a memory delta alone does not causally isolate the D3D device.",
+    "Only the qualified frozen executable is tested; results do not describe later installed builds.",
+    "Warm OS caches; no cache flush or cold-cache claim. Each call starts a fresh process and fresh copied runtime/profile.",
+    "Existing visibility guards sample endpoints, not continuous pixel coverage. Safe cursor placement remains required.",
+    "Raw harness records CPU counters but this diagnostic makes no CPU claim; no calibration/rival rerun is requested.",
+    "The original harness compiles its existing C# window/readiness helpers before player launch. The existing native status probe is supplied explicitly; no MSVC build is requested.",
+    "All attempts, raw samples and logs remain. Existing owned-process cleanup removes only generated runtime/profile copies; there is no automatic retry or selective replacement."
+  ],
+  "statusProbeSha256": "ffffa47050c6a3b04f34c7f26228fa01981345a3321725ddcd2d6676c09a0ec3"
+}

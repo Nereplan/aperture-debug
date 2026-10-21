@@ -96,7 +96,7 @@ git diff --check</pre>
 <script id="checkpoint-data" type="application/json">
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-10-21T07:43:31+00:00",
+  "updatedAt": "2026-10-21T09:09:07+00:00",
   "metrics": {
     "visible-ms": {
       "label": "Visible window",
@@ -19821,6 +19821,94 @@ git diff --check</pre>
           "durationSeconds": null,
           "evidence": "docs/evidence/vlc-rival-20261020/cadence-default-schema-20261021/review.json",
           "scope": "Harness/schema and incomplete capture; no cadence result or player failure."
+        }
+      ]
+    },
+    {
+      "id": "hash-path-cleanup-validation-20261021",
+      "label": "Smaller path handling and hashing cleanup: installed validation",
+      "measuredAt": "2026-10-21T09:02:28.726842+00:00",
+      "commit": "63a51b7f5657c89cd11f15ca359cbbdef0af4096",
+      "dirty": false,
+      "sourceNote": "Committed production source63a51b7; separate tooling cleanup7ebd411. Current installed EXE3438080bytes/SHA256c4fd1fe6116b0b749563a80ed16238a6fa34daf0d299cb42e458a1be39306f6a. Frozen rivalry source remains23fd026.",
+      "notes": [
+        "ComputeSha256Hex checks BCrypt hashing/finalization status and rejects input exceeding ULONG_MAX before narrowing. Test-only signing/key-generation helpers moved out of production declarations/definitions into shared updater test support.",
+        "ICC/config containment share a bounded dynamic canonicalization helper; common short paths require one GetFullPathNameW fill, longer paths grow to32768includingNUL. Four64KiB stack arrays and repeated path-processing/lowercase copies removed. Existing distinct empty/root/trailing-root behavior preserved.",
+        "Production source119lines shorter across hash/helper and path changes; test growth is separate. Native EXE3438080bytes,2560bytes smaller than previously installed effective-decoder build. This is a measured package-size difference, not a playback speed claim.",
+        "Removed an ineffective duplicate Dictionary iteration in the local analysis script. Tightened stale76-warning allowance to observed16warnings across12fingerprints; separate actual analysis passes16/16 with zero new/count-increase/errors. No warnings suppressed or new allowances added.",
+        "Normal local build/package/install gate23/23 in352.83s. Native162passed,0failed,1expectedgeometryskip of163registered. Focused updater3/3; path contracts1/1each plus affected long-path rerun1/1. These scopes overlap and must not be added together. Exact10managed payload hashes independently matched in release/debug/ZIP. Saved data retained.",
+        "Frozen rivalry observations still use23fd026; these installed cleanups have no fresh resource ranking. Hash-provider failure handling was code-reviewed; tests cover vectors/null/oversized input and actual signatures/tampering, without synthetic BCrypt failure injection."
+      ],
+      "results": [],
+      "tests": [
+        {
+          "name": "Normal local build, regression gate, package and install",
+          "status": "pass",
+          "passed": 23,
+          "total": 23,
+          "durationSeconds": 352.83,
+          "evidence": "docs/evidence/vlc-rival-20261020/hash-path-validation-20261021/review.json",
+          "scope": "Suites, not individual assertions. Expected native geometry skip retained."
+        },
+        {
+          "name": "Tightened local native static analysis",
+          "status": "pass",
+          "passed": 1,
+          "total": 1,
+          "durationSeconds": 57.81,
+          "evidence": "docs/evidence/vlc-rival-20261020/hash-path-validation-20261021/strict-static-analysis.json",
+          "scope": "49production sources,16observed warnings against16cap; zero new/count-regression/errors."
+        }
+      ]
+    },
+    {
+      "id": "cadence-v2-visibility-attempts-20261021",
+      "label": "Explicit-v2 cadence attempts: visibility qualification incomplete",
+      "measuredAt": "2026-10-21T08:05:27.5502236Z",
+      "commit": "23fd026c2b114f8391465bfb5f7d28a79da02025",
+      "dirty": false,
+      "sourceNote": "Verified frozen23fd026 runtime; two independent user-approved elevated PresentMon2.6.0 sessions, no joining.",
+      "notes": [
+        "Both collectors stopped only their exact UUID sessions via verified PresentMon; exit0/helper0, no forced cleanup, no reported event loss. Temporary user-approved elevation; no persistent security changes.",
+        "Explicit v2 schema available. Analyzer independently binds plan/source/runtime/executable/fixture/PID,11guards,QPCphases,confirmedpause/resume,DPI/displaymetadata. First six v2-clear processes have valid individual evidence but neither workload completes; all qualified flags false and aggregate player summaries empty. Preserve every attempt; no partial-session splicing.",
+        "v2: Owned warmup visibility guard rejects CodexComputerUseCursorOverlay; all processes cleaned up. Earlier timestamp preflight launched no player and was corrected by comparing identical UTC ticks.",
+        "v2-clear: VLC third measured H264 run loses verified visibility during the timed window after five guards, before pause. Exact hidden/root-minimized distinction and cause unavailable. Earlier round2 completed normally. FinalAperture/H264 and allHEVC runs not attempted."
+      ],
+      "results": [],
+      "tests": [
+        {
+          "name": "Full matched cadence protocol qualification",
+          "status": "partial",
+          "passed": 0,
+          "total": 1,
+          "durationSeconds": null,
+          "evidence": "docs/evidence/vlc-rival-20261020/cadence-v2-visibility-attempts-20261021/review.json",
+          "scope": "One warmup failed overlay guard; next independent batch six sampled launches plus failed seventh. No cadence quality ranking."
+        }
+      ]
+    },
+    {
+      "id": "av1-launch-footprint-attempt-20261021",
+      "label": "AV1 launch-mode diagnostic: desktop visibility incomplete",
+      "measuredAt": "2026-10-21T09:04:28.4385400Z",
+      "commit": "23fd026c2b114f8391465bfb5f7d28a79da02025",
+      "dirty": false,
+      "sourceNote": "Frozen qualified23fd026 runtime; same AV1fixture/canvas and20.5s alignment. Four attempted calls of predeclared8-call warmup/three-pair mode diagnostic.",
+      "notes": [
+        "Both warmups and measured HubThenOpen call validate. First measured Direct call fails hidden-or-minimized visibility before any resource samples; remaining four calls not attempted. The predeclared8-call plan is incomplete. No aggregate mode/resource ranking, no inferred graphics-device saving and no isolated failed-run replacement.",
+        "User subsequently confirms they are using the PC. Visible tests deferred while it is in use. Exact cause of each earlier visibility transition remains unknown.",
+        "Direct launch can avoid initial hub D3D creation per saved frozen source flow, but this incomplete attempt proves no memory saving and does not isolate ownership causally. Raw calls and all partial outcomes retained."
+      ],
+      "results": [],
+      "tests": [
+        {
+          "name": "Complete AV1 direct/hub footprint protocol",
+          "status": "partial",
+          "passed": 0,
+          "total": 1,
+          "durationSeconds": null,
+          "evidence": "docs/evidence/vlc-rival-20261020/av1-launch-footprint-attempt-20261021/review.json",
+          "scope": "Three calls validate, fourth fails visibility before sampling, remaining four not attempted; no performance conclusion."
         }
       ]
     }

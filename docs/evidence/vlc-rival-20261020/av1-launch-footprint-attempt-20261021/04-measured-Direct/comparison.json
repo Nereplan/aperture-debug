@@ -1,0 +1,169 @@
+{
+  "schemaVersion": 1,
+  "createdUtc": "2026-10-21T09:04:28.3142825Z",
+  "mediaPath": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\av1-1080p30-audio.mp4",
+  "mediaSha256": "84630E2BEC31BBDA663D634E2A7FC13CF1C81F983565D3942094E8DC9808FDD8",
+  "mediaBytes": 114975176,
+  "iterations": 1,
+  "warmupIterations": 0,
+  "windowTarget": [
+    1280,
+    800
+  ],
+  "startupMetric": "Process launch to first visible unowned top-level window (not first frame)",
+  "sampling": "CPU window requested 30s with counter samples every ~5s; actual CPU/wall deltas retained; launch media position 0s, sampling begins after at least 20.5s media time and ten seconds settling. VLC media times are integer-quantized. Ordered variants rotate each round.",
+  "apertureStatusProbe": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\av1-hub-final-clean-20261020\\runs-865bcf94e4994b3683978c793825f961\\player_status_probe.exe",
+  "limitations": [
+    "Warm OS caches; no cold-cache claim.",
+    "Video canvases match; actual child window dimensions/DPI are retained. Equal filter choices do not establish identical decoder or output pixels.",
+    "Samples cover owned root process only; inspect unexpected child processes separately.",
+    "Playback status does not prove pixels are visible or decoder hardware equivalence.",
+    "Child environment redirects ordinary profile/temp writes; Windows Known Folder APIs may bypass environment variables (VLC additionally uses portable/).",
+    "VLC RC verification adds a control-interface overhead.",
+    "MPC-HC uses a hidden /slave window to verify position; no decoder equivalence claim."
+  ],
+  "players": [
+    {
+      "name": "Aperture",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\candidate-runtime-qualified",
+      "exeName": "Aperture.exe",
+      "exeHash": "78B59F4E3E98E3F5F7A3E3A309C522F3CE1828E3F58E22C1A85A12C008FA9A7F",
+      "version": "2.0.0.0",
+      "runtimeBytes": 32102909,
+      "runtimeFileCount": 11,
+      "runtimeManifestSha256": "8a333e146c3153f0e00a350323a0402c265be4320fbc8bf08f70ac9530005ac8",
+      "runtimeFiles": [
+        {
+          "path": "Aperture.exe",
+          "bytes": 3453952,
+          "sha256": "78b59f4e3e98e3f5f7a3e3a309c522f3ce1828e3f58e22c1a85a12c008fa9a7f"
+        },
+        {
+          "path": "Update.cmd",
+          "bytes": 115,
+          "sha256": "6cc03e15614148057f34ee7c315505730a1427e00ee145eb78d52e89c49afa35"
+        },
+        {
+          "path": "fonts/Inter.ttf",
+          "bytes": 876576,
+          "sha256": "29160a80ff49ddcab2c97711247e08b1fab27a484a329ce8b813d820dc559031"
+        },
+        {
+          "path": "fonts/JetBrainsMono.ttf",
+          "bytes": 187208,
+          "sha256": "48715a42ec242c21e9f02692891e147d022299a52e48d5e413e1a942193ffeda"
+        },
+        {
+          "path": "fonts/SpaceGrotesk.ttf",
+          "bytes": 136676,
+          "sha256": "acad6de1fc93436f5c0f1f4137751ef04f1aea3063e7036535970ffcfbd79f72"
+        },
+        {
+          "path": "libmpv-2.dll",
+          "bytes": 27401728,
+          "sha256": "e91032cbce1da22aec5903468e814d4df2494e74fe508a371eaf3446c7408dae"
+        },
+        {
+          "path": "locales/en-US.json",
+          "bytes": 23849,
+          "sha256": "c1ef8802cc97b203f511b85b63881d22880e55cc3c09291e74e0855d7f1b4f2d"
+        },
+        {
+          "path": "manifest.json",
+          "bytes": 2200,
+          "sha256": "53955cf1808bbabaafbae72ef4bfdb41807cb5162f187bb305bb76c2a0faeb63"
+        },
+        {
+          "path": "release-source.json",
+          "bytes": 66,
+          "sha256": "1a0f8441416ec677d956cb017f056cf15be957c48166abbec096cc174ac87a13"
+        },
+        {
+          "path": "runtime_update.ps1",
+          "bytes": 15546,
+          "sha256": "6ef9dfb151703f5a4a61e929495257e7c9888ce0feb345c9b33e1ebec2f339c3"
+        },
+        {
+          "path": "update.ps1",
+          "bytes": 4993,
+          "sha256": "f9b2d606a60f6fbcf9c88b8422ca3bf75ffd3c1a339dd7f73fd033832e5d8775"
+        }
+      ]
+    }
+  ],
+  "results": [
+    {
+      "player": "Aperture",
+      "round": 0,
+      "warmup": false,
+      "status": "failed",
+      "failure": "Video canvas is not verifiably visible: hidden-or-minimized",
+      "runtimeSource": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\candidate-runtime-qualified",
+      "runtimeBytes": 32102909,
+      "runtimeFileCount": 11,
+      "executableHash": "78B59F4E3E98E3F5F7A3E3A309C522F3CE1828E3F58E22C1A85A12C008FA9A7F",
+      "version": "2.0.0.0",
+      "runDirectory": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\av1-launch-footprint-runs-20261021\\04-measured-Direct\\runs-477b6233db4a463da175360cb0c4b11d\\0-Aperture",
+      "arguments": [
+        "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\av1-1080p30-audio.mp4"
+      ],
+      "childEnvironment": {
+        "TMP": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\av1-launch-footprint-runs-20261021\\04-measured-Direct\\runs-477b6233db4a463da175360cb0c4b11d\\0-Aperture\\profile\\Temp",
+        "LOCALAPPDATA": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\av1-launch-footprint-runs-20261021\\04-measured-Direct\\runs-477b6233db4a463da175360cb0c4b11d\\0-Aperture\\profile\\Local",
+        "TEMP": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\av1-launch-footprint-runs-20261021\\04-measured-Direct\\runs-477b6233db4a463da175360cb0c4b11d\\0-Aperture\\profile\\Temp",
+        "APPDATA": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\av1-launch-footprint-runs-20261021\\04-measured-Direct\\runs-477b6233db4a463da175360cb0c4b11d\\0-Aperture\\profile\\Roaming"
+      },
+      "configPath": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\av1-launch-footprint-runs-20261021\\04-measured-Direct\\runs-477b6233db4a463da175360cb0c4b11d\\0-Aperture\\runtime\\data",
+      "initialConfig": "Fresh executable-adjacent data/ directory.",
+      "pid": 25148,
+      "processToVisibleWindowMs": 97.4706,
+      "windowDimensions": null,
+      "playbackVerification": "playback-unverified",
+      "playbackReason": null,
+      "samples": [],
+      "writableGrowthBytes": {
+        "runtimeDelta": 16653,
+        "profileDelta": 0
+      },
+      "cleanup": "owned-window-closed",
+      "artifactCleanup": "runtime-and-profile-copies-removed; metadata-retained",
+      "variant": "Aperture",
+      "runtimeManifestSha256": "8a333e146c3153f0e00a350323a0402c265be4320fbc8bf08f70ac9530005ac8",
+      "launchMode": "Direct",
+      "mediaOpenRequestedMs": null,
+      "openedMediaPath": null,
+      "startedUtc": "2026-10-21T09:04:06.6425291Z",
+      "windowRaisedForVisibility": true,
+      "alignedPlaybackPosition": 20.6333333333,
+      "samplingStartedUtc": "2026-10-21T09:04:27.9859564Z"
+    }
+  ],
+  "videoCanvasTarget": [
+    1280,
+    720
+  ],
+  "forcedVlcD3D11Linear": false,
+  "environment": {
+    "osVersion": "Microsoft Windows 11 Pro 10.0.26200 build 26200",
+    "cpuName": "AMD Ryzen 9 3900X 12-Core Processor            ",
+    "logicalProcessors": 24,
+    "gpuName": "NVIDIA GeForce RTX 4070 SUPER",
+    "gpuDriverVersion": "32.0.16.1742",
+    "lastBootUpTimeUtc": "2026-10-20T08:20:30.5101550Z",
+    "source": "Win32_ComputerSystem, Win32_OperatingSystem, Win32_Processor and Win32_VideoController CIM instances"
+  },
+  "harnessSourceSha256": {
+    "compare_players.ps1": "049631B0D6BDF21F77EE9E408185EF7350D78F55C69DD20C6D1D2BE9A29F5C9A",
+    "PlayerBenchmarkWindow.cs": "E9731349D7203F8257B19E7A550C8907573E1CB8BA8056EC577AD7C17E81E921",
+    "PlayerVideoReadiness.cs": "BD1316D4B4FDF235EF126076CB3E466CB707A567E923F4927E66AB6AE263F9E6",
+    "player_comparison_identity.ps1": "74309055E3522269B4033F4B561D07A7430A5196A6426D6DC025B5965323E6FE",
+    "player_status_probe.cpp": "A832805A0F250D2F4699C4BF42EF0B5C1B9B1CC05FB6B075F3349041E1C0A164"
+  },
+  "apertureStatusProbeSha256": "FFFFA47050C6A3B04F34C7F26228FA01981345A3321725DDCD2D6676C09A0EC3",
+  "purpose": "Resource comparison; no overall player ranking.",
+  "visibilityMethod": "Only the owned player is raised topmost before settling. Its canvas must be visible, unminimized, uncloaked, within one monitor, and free of detected foreign-window/cursor occlusion before and after each resource sample. Hit-test sentinels may reach the video, an owned video-host ancestor/descendant, or its exact owned layered ApertureOverlay control surface. Ownership/hit tests do not prove layer transparency or presented pixels; controlled GDI sentinel recognition is separate. Guards do not continuously observe intervals or check every pixel.",
+  "windowPlacement": "Owned topmost comparison window at 40,40; not default window-manager placement.",
+  "visibilityObserverSha256": "BD1316D4B4FDF235EF126076CB3E466CB707A567E923F4927E66AB6AE263F9E6",
+  "launchMode": "Direct",
+  "runtimeManifestMethod": "SHA-256 of ordinal-sorted UTF-8 lines: relative path with /, tab, byte length, tab, lowercase file SHA-256, LF. Source and staged runtime inventories must match before launch."
+}

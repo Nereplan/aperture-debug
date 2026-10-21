@@ -1,0 +1,7 @@
+Aperture round 0 (measured): failed; playback-unverified
+C:\Users\Alperen\AppData\Local\Codex\tools\scratch\aperture-rival-20261019\av1-launch-footprint-runs-20261021\04-measured-Direct\comparison.json
+Exception: C:\Users\Alperen\Desktop\Antigravity\Aperture Final\tests\benchmark\compare_players.ps1:644
+Line |
+ 644 |  … }).Count) { throw 'One or more player runs failed; see retained per-r …
+     |                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+     | One or more player runs failed; see retained per-run results.

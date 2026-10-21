@@ -1,0 +1,47 @@
+{
+  "protocol": "ApertureCadenceCollectorV2",
+  "startedUtc": "2026-10-21T07:56:57.2532659Z",
+  "collectorPid": 25392,
+  "collectorProcessStartUtc": "2026-10-21T07:56:56.8097324Z",
+  "presentMonPath": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\PresentMon\\2.6.0\\PresentMon-2.6.0-x64.exe",
+  "presentMonSha256": "b2a706bc6ad475749e3b7e3409263aa1e6906d45bdcf993f6dbc0f660188f1af",
+  "arguments": [
+    "--process_name",
+    "Aperture.exe",
+    "--process_name",
+    "vlc.exe",
+    "--session_name",
+    "ApertureCadenceV2-3edf0c7b170442849a59d81095191c3c",
+    "--v2_metrics",
+    "--output_stdout",
+    "--timed",
+    "1800",
+    "--terminate_after_timed",
+    "--qpc_time",
+    "--write_display_metadata",
+    "--no_console_stats",
+    "--no_track_gpu",
+    "--no_track_input"
+  ],
+  "sessionName": "ApertureCadenceV2-3edf0c7b170442849a59d81095191c3c",
+  "controlNonce": "139369337d1d4feb9d444a8a18e055c9",
+  "coordinatorMarkerPath": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\cadence-collector-v2-clear-20261021\\coordinator-finished.json",
+  "expectedRunDirectory": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\cadence-runs-v2-clear-20261021",
+  "maximumSeconds": 1800,
+  "cleanupGraceSeconds": 20,
+  "status": "running",
+  "captureQualified": false,
+  "scope": "Temporary elevated collector for Aperture.exe/vlc.exe; analysis retains only exact coordinator-owned PID/lifetime/windows. No resource CPU ranking. No global session stop or security changes.",
+  "previousCapture": {
+    "collectorDirectory": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\cadence-collector-20261021",
+    "disposition": "Original default-schema trace and partial coordinator retained as diagnostic only. No joining with v2.",
+    "hevcComplete": false,
+    "sampledRuns": 14,
+    "runDirectory": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\cadence-runs-20261021",
+    "missingRequiredColumns": [
+      "DisplayedTime"
+    ]
+  },
+  "presentMonPid": 23204,
+  "presentMonProcessStartUtc": "2026-10-21T07:56:57.2708569Z"
+}

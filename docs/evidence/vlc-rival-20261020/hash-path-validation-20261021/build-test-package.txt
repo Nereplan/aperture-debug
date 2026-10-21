@@ -1,0 +1,915 @@
+========================================
+  Building Aperture Native (Release)
+========================================
+Incremental build cache: C:\Users\Alperen\Desktop\Antigravity\Aperture Final\scratch\build\ninja-Release (use -Clean for an isolated rebuild)
+Configuring CMake (Ninja toolchain, Release)...
+**********************************************************************
+** Visual Studio 2022 Developer Command Prompt v17.14.37
+** Copyright (c) 2025 Microsoft Corporation
+**********************************************************************
+[vcvarsall.bat] Environment initialized for: 'x64'
+-- Configuring done (0.1s)
+-- Generating done (0.1s)
+-- Build files have been written to: C:/Users/Alperen/Desktop/Antigravity/Aperture Final/scratch/build/ninja-Release
+Building target Aperture (Release)...
+**********************************************************************
+** Visual Studio 2022 Developer Command Prompt v17.14.37
+** Copyright (c) 2025 Microsoft Corporation
+**********************************************************************
+[vcvarsall.bat] Environment initialized for: 'x64'
+[1/20] Building CXX object CMakeFiles\Aperture.dir\src\Settings.cpp.obj
+[2/20] Building CXX object CMakeFiles\Aperture.dir\src\Updater.cpp.obj
+[3/20] Building CXX object CMakeFiles\Aperture.dir\src\AppTooltips.cpp.obj
+[4/20] Building CXX object CMakeFiles\Aperture.dir\src\AppPersistence.cpp.obj
+[5/20] Building CXX object CMakeFiles\Aperture.dir\src\AppImportJobs.cpp.obj
+[6/20] Building CXX object CMakeFiles\Aperture.dir\src\AppHover.cpp.obj
+[7/20] Building CXX object CMakeFiles\Aperture.dir\src\AppTouch.cpp.obj
+[8/20] Building CXX object CMakeFiles\Aperture.dir\src\main.cpp.obj
+[9/20] Building CXX object CMakeFiles\Aperture.dir\src\AppFileOps.cpp.obj
+[10/20] Building CXX object CMakeFiles\Aperture.dir\src\AppKeyboard.cpp.obj
+[11/20] Building CXX object CMakeFiles\Aperture.dir\src\AppDragDrop.cpp.obj
+[12/20] Building CXX object CMakeFiles\Aperture.dir\src\AppLibrary.cpp.obj
+[13/20] Building CXX object CMakeFiles\Aperture.dir\src\AppModals.cpp.obj
+[14/20] Building CXX object CMakeFiles\Aperture.dir\src\AppViewModels.cpp.obj
+[15/20] Building CXX object CMakeFiles\Aperture.dir\src\AppPlayback.cpp.obj
+[16/20] Building CXX object CMakeFiles\Aperture.dir\src\AppSelection.cpp.obj
+[17/20] Building CXX object CMakeFiles\Aperture.dir\src\App.cpp.obj
+[18/20] Building CXX object CMakeFiles\Aperture.dir\src\AppMenus.cpp.obj
+[19/20] Building CXX object CMakeFiles\Aperture.dir\src\AppAccessibility.cpp.obj
+[20/20] Linking CXX executable Aperture.exe
+
+SUCCESS! Built native binary: C:\Users\Alperen\AppData\Local\Temp\Aperture-release-132b4307153c4c4c9713d43ff6a6e872\Aperture.exe
+Binary size: 3,438,080 bytes (3.28 MB)
+================================================================================
+  Aperture Test Runner: Executing 23 suite(s)
+================================================================================
+
+>>> [Suite: loading] Portable Library Loading Pipeline (Tier: pr, Category: persistence)
+    Script: tests\loading\run_tests.ps1 | Cleanup: isolated_temp | Timeout: 180s
+Json.cpp
+Settings.cpp
+ChannelPolicy.cpp
+Localization.cpp
+AudioConfig.cpp
+MediaLibrary.cpp
+LibraryQuery.cpp
+FolderWatcher.cpp
+MediaFoundation.cpp
+MediaProbeIsolation.cpp
+Generating Code...
+main.cpp
+Native build: 10 production files compiled, 0 reused.
+Aperture portable loading pipeline (8 selected, 0 filtered)
+[       OK ] BackendLoading::StreamingJsonMatchesDomAndRejectsMalformedSuffixes (2.16 ms)
+[       OK ] BackendLoading::StreamingJsonRetainsDepthStringAndElementLimits (191.75 ms)
+[       OK ] BackendLoading::ArrayAndWrappedStoresHaveIdenticalPortableRoundtrips (165.68 ms)
+[       OK ] BackendLoading::SmallRecordsAndEscapedDelimitersSurviveCapacityGrowth (52.96 ms)
+[       OK ] BackendLoading::TruncatedStreamDiscardsRecordsAndRecoversOnlyValidBackup (40.73 ms)
+[       OK ] BackendLoading::IncrementalEditsSurviveRestartAndCheckpoint (67.45 ms)
+[       OK ] BackendLoading::FutureSchemaIsProtectedAndReloadDropsOldRecords (21.95 ms)
+  Sparse load heap: streamed=8887618, DOM=9874788 bytes
+  Dense load heap: streamed=17997628, DOM=18255588 bytes
+[       OK ] BackendLoading::StreamingLoadBoundsPeakHeapWithoutRetainingGrowthSlack (307.91 ms)
+
+8 passed, 0 failed, 0 skipped in 850.75 ms
+<<< [PASS] loading (31.36s)
+
+>>> [Suite: backend] Backend Behavior and Resource Contracts (Tier: pr, Category: persistence)
+    Script: tests\backend\run_tests.ps1 | Cleanup: isolated_temp | Timeout: 180s
+main.cpp
+Native build: 0 production files compiled, 10 reused.
+Aperture backend behavior and resource contracts (9 selected, 0 filtered)
+[       OK ] BackendStores::SettingsDefaultsCustomBudgetsAndExtensionsSurviveRestart (28.61 ms)
+[       OK ] BackendStores::NestedPreferencesBookmarksAndUnknownFieldsSurviveSaveAndRelocation (61.23 ms)
+[       OK ] BackendStores::HistoryKeepsMostRecentHundredValidUniqueEntries (46.58 ms)
+[       OK ] BackendJson::NumericFormattingMatchesClassicStoreFormat (12.11 ms)
+[       OK ] BackendJson::LocaleCannotCorruptNumbersAndFormattingNeedsNoHeap (0.83 ms)
+[       OK ] BackendCache::ScanClassifiesNestedFilesAndHonorsLimits (341.64 ms)
+[       OK ] BackendCache::ScanningAndCleanupNeverFollowDirectoryLinks (1.03 ms)
+[       OK ] BackendCache::RealWritesRespectBudgetsReplacementAndLockedFiles (100.80 ms)
+[       OK ] BackendStores::CorruptStoreLeavesIndependentStoresAvailable (47.36 ms)
+
+9 passed, 0 failed, 0 skipped in 640.32 ms
+<<< [PASS] backend (6.73s)
+
+>>> [Suite: local_release] Local Release Publishing (Tier: pr, Category: package)
+    Script: tests\package\test_local_release.ps1 | Cleanup: isolated_temp | Timeout: 60s
+Prepared locally: C:\Users\Alperen\Desktop\Antigravity\Aperture Final\scratch\local-release-test-a05e2f2e7e0a491c8084e8eb543a7ce5\dist\Aperture-2.0.1.0-windows-x64.zip
+warning: in the working copy of 'scripts/publish_release.ps1', LF will be replaced by CRLF the next time Git touches it
+Release notes: C:\Users\Alperen\Desktop\Antigravity\Aperture Final\scratch\local-release-test-a05e2f2e7e0a491c8084e8eb543a7ce5\dist\Aperture-2.0.1.0-release-notes.md
+Nothing uploaded.
+Published: https://github.com/example/aperture/releases/tag/v2.0.1.0
+PASS local release: offline preparation, commit history, draft/upload/publish order, checksums, duplicate/version/build/source/runner guards
+<<< [PASS] local_release (3.18s)
+
+>>> [Suite: github_update] GitHub Release Update Workflow (Tier: pr, Category: package)
+    Script: tests\package\test_github_update.ps1 | Cleanup: isolated_temp | Timeout: 60s
+Checking for updates...
+Downloaded release failed checksum verification.
+Checking for updates...
+Installed Aperture 2.0.1.0. Saved data retained. Backup: C:\Users\Alperen\AppData\Local\Temp\Aperture-github-test-451f49663c3c4019beddcdf1d17989df\installed\update-backups\20261021-115355-6217569-4dea842550b443af83e6129d2f214b52
+Checking for updates...
+Aperture is up to date.
+PASS: GitHub update entry point, full ZIP deployment, checksum rejection, data retention, and no-op when current.
+<<< [PASS] github_update (2.78s)
+
+>>> [Suite: update_retention] Release Update and Data Retention (Tier: pr, Category: package)
+    Script: tests\package\test_update_retention.ps1 | Cleanup: isolated_temp | Timeout: 60s
+Installed Aperture 2.0.1.0. Saved data retained. Backup: C:\Users\Alperen\AppData\Local\Temp\Aperture-update-test-40d25e0504504b848844a72dab49d046\installed\update-backups\20261021-115357-0399025-ae30a56c5136453a9dab3e84254f7540
+Aperture 2.0.1.0 is already installed; runtime files match the package.
+Installed Aperture 2.0.1.0. Saved data retained. Backup: C:\Users\Alperen\AppData\Local\Temp\Aperture-update-test-40d25e0504504b848844a72dab49d046\installed\update-backups\20261021-115357-5966547-b6009f252dd9409f9232fdaff7de1626
+Installed Aperture 2.0.1.0. Saved data retained. Backup: C:\Users\Alperen\AppData\Local\Temp\Aperture-update-test-40d25e0504504b848844a72dab49d046\installed\update-backups\20261021-115357-9797394-33a2c0f512db42c591570172aa2e0663
+Installed Aperture 2.0.1.0. Saved data retained. Backup: C:\Users\Alperen\AppData\Local\Temp\Aperture-update-test-40d25e0504504b848844a72dab49d046\installed\update-backups\20261021-115358-3774219-69613c922b6f4254bb8aeb232031a584
+PASS: real installation, data retention, deduplicated backups, no-op reinstall, portable fallback, locked-file rollback, tampering, and protected paths.
+<<< [PASS] update_retention (2.79s)
+
+>>> [Suite: workspace_cleanup] Workspace Cleanup Behavior (Tier: pr, Category: package)
+    Script: tests\package\test_workspace_cleanup.ps1 | Cleanup: isolated_temp | Timeout: 60s
+PASS dry run identifies generated outputs without changing files
+PASS active native dependency builds block cleanup before deletion
+PASS apply removes binaries/caches and retains sources, media, profiles and evidence
+PASS repeated cleanup is empty
+PASS junction targets are rejected before deletion
+5 cleanup contract checks passed; fixture: C:\Users\Alperen\AppData\Local\Codex\tools\scratch\cleanup-contract-29cad6bc1f31471ca84a84b755513bf0
+<<< [PASS] workspace_cleanup (1.39s)
+
+>>> [Suite: workflows] Seeded Library and Portable Profile Workflows (Tier: pr, Category: integration)
+    Script: tests\workflows\run_tests.ps1 | Cleanup: isolated_temp | Timeout: 240s
+Workflow suite: library | seeds=20260918,731,42,866305645
+GlobalSearch.cpp
+TextInputModel.cpp
+Generating Code...
+library_workflows.cpp
+Native build: 2 production files compiled, 10 reused.
+PASS seed=20260918 checks=380244 elapsed_ms=2473.32
+PASS seed=731 checks=760466 elapsed_ms=2425.34
+PASS seed=42 checks=1140686 elapsed_ms=2397.07
+PASS seed=866305645 checks=1520904 elapsed_ms=2443.09
+<<< [PASS] workflows (18.27s)
+
+>>> [Suite: unit] Unit Tests (Tier: pr, Category: unit)
+    Script: tests\unit\run_tests.ps1 | Cleanup: isolated_temp | Timeout: 300s
+Building Aperture Unit Tests...
+HttpTransport.cpp
+MpvPlayer.cpp
+PlaybackSession.cpp
+CommandDispatcher.cpp
+MediaTransport.cpp
+SubtitleDiscovery.cpp
+Subtitles.cpp
+OnlineSubtitles.cpp
+Renderer.cpp
+OverlayRenderer.cpp
+LibrarySnapshot.cpp
+TooltipManager.cpp
+PlaylistIO.cpp
+NetworkStream.cpp
+TaskbarController.cpp
+Accessibility.cpp
+Generating Code...
+main.cpp
+Native build: 16 production files compiled, 12 reused.
+framework_self_test.cpp
+Native build: 0 production files compiled, 0 reused.
+Runner self-test: 14 scenarios, 0 failures
+Aperture unit tests (163 selected, 0 filtered)
+[       OK ] Accessibility::ProviderAndHierarchyContract (0.14 ms)
+[       OK ] AnimationPerformance::CurvesAndVirtualLayoutReuse (3.20 ms)
+[       OK ] AudioManagement::PlanCompositionAndDeviceFallback (0.10 ms)
+[       OK ] BackgroundAvailability::AsyncLookupDeduplicationAndBackoff (109.49 ms)
+[       OK ] BackendBalance::ImportStartsOnlyTheFirstSortedTargetAndHonorsNewIntent (0.01 ms)
+[       OK ] BackendBalance::SnapshotBlocksRemainIndependentAcrossBoundaries (0.20 ms)
+[       OK ] BackendBalance::PlaybackCapturePersistsAndPreservesPriorSnapshot (45.97 ms)
+[       OK ] BackendBalance::StartupUsesSavedOrderingWithoutRebuildingPlan (3.59 ms)
+[       OK ] BulkOperations::BatchSelectionRemovalAndWatchedState (34.54 ms)
+[       OK ] ColorManagement::IccContainmentAndToneMapPlan (0.21 ms)
+[       OK ] CommandDispatcher::KeyChordParsingAndActionPrecedence (12.64 ms)
+[       OK ] CustomMpvConfig::SecurityDenylistBoundsAndRecovery (14.95 ms)
+[       OK ] DeferredServices::LazySubsystemInitAndSafeShutdown (260.46 ms)
+[       OK ] PlaybackRenderer::FactoriesStayCpuOnlyUntilGraphicsIntent (197.17 ms)
+[       OK ] DuplicateDetection::ClusteringOracleAndSafeRemoval (113.64 ms)
+[       OK ] FolderRediscovery::MovePreservationAndGhostMerge (14.56 ms)
+[       OK ] FolderWatchConfiguration::NonBlockingWorkerLifecycle (2160.14 ms)
+[       OK ] GlobalSearch::CompactIndexScoringAndInvalidation (86.90 ms)
+[       OK ] LibraryQuery::SortingGroupingAndCappedProjection (16.82 ms)
+[       OK ] LibraryQuery::ColdCappedSelectionPreservesPinningFilteringAndAvailability (113.66 ms)
+[       OK ] LibrarySaving::BackgroundWriterCoalescesPendingAndFlushesLatest (25.17 ms)
+[       OK ] LibrarySaving::CaptureScheduleCoalescesBurstsWithoutStarvingSaves (0.01 ms)
+[       OK ] LibrarySaving::FailedBackgroundGenerationCanRetryAndReportsFailure (9.69 ms)
+[       OK ] LibrarySaving::AllocationFailurePublishesCompletionAndCanRetry (11.72 ms)
+[       OK ] LibrarySaving::CopiedModelDoesNotInvokeOriginalOwnerSaveHandler (21.35 ms)
+[       OK ] LibrarySaving::UnavailableRootIsNotCreatedByWritabilityProbe (1.21 ms)
+[       OK ] LibrarySaving::IncompleteSnapshotCannotWriteOrResetWriterState (0.01 ms)
+[       OK ] LibrarySaving::DirectEditsProduceImmutablePerStoreGenerations (0.65 ms)
+[       OK ] LibrarySaving::ReorderingAndRemovalReuseUnchangedRecords (0.65 ms)
+[       OK ] LibrarySaving::UnchangedStoresSkipSerializationAndDeletedStoreIsRecreated (16.82 ms)
+[       OK ] LibrarySaving::UnknownFieldsAndNestedDirectChangesSurviveRoundtrip (19.82 ms)
+[       OK ] LibrarySaving::OptionalRecordFieldsStayIndependentAcrossSnapshots (17.23 ms)
+[       OK ] LibrarySaving::MediaSerializationReusesCommittedBytesAcrossEditsAndReorders (52.57 ms)
+[       OK ] LibrarySaving::FailedStoreIsFencedWhileHealthyStoresCanSave (10.44 ms)
+[       OK ] LibrarySaving::EquivalentBytesAdvanceRecordIdentityAndNewSeriesDropsCache (25.24 ms)
+[       OK ] LibrarySaving::FailedWriteIsNotAcknowledgedAndCanRetrySameSnapshot (16.64 ms)
+[       OK ] LibrarySaving::MissingPortableRootIsProtectedAndReloadStartsANewSeries (11.32 ms)
+[       OK ] LibrarySnapshot::AsyncMailboxAndBackupRecovery (33.90 ms)
+[       OK ] Localization::CatalogSafetyFormattingAndConcurrency (28.51 ms)
+[       OK ] MediaTransport::SmtcProjectionAndLifecycle (18.57 ms)
+[       OK ] MetadataOverrides::ValidationAndMutationPreservation (64.58 ms)
+[       OK ] MpvInitialization::SecondarySubtitleSelectionPublishesTrackVersion (0.08 ms)
+[       OK ] MpvInitialization::DiagnosticsSnapshotsColorPlanBeforePropertyReads (0.03 ms)
+[       OK ] MpvInitialization::DiagnosticsDistinguishesUnavailableFrameCountersFromZero (0.01 ms)
+[       OK ] MpvInitialization::DiagnosticsReportsEffectiveHardwareDecoderAvailability (0.01 ms)
+[       OK ] MpvInitialization::ExportPolicyAndBundledLifecycle (284.68 ms)
+[       OK ] NetworkStream::UrlValidationRedactionAndDragDrop (0.11 ms)
+[       OK ] NetworkStream::RecentStoreIsOptInBoundedRedactedAndSurvivesRestart (19.39 ms)
+[       OK ] OnlineSubtitles::HttpsSearchValidationAndContainment (7.18 ms)
+[       OK ] OverlayPacing::CadenceAndRedrawSuppression (0.01 ms)
+[       OK ] OverlaySurface::EmptyBuffersReleaseAndVisibleContentSurvivesRecreation (204.07 ms)
+[       OK ] PlaybackSession::QueueProgressionAndPersistence (118.24 ms)
+[  SKIPPED ] PlaybackSession::WindowPresentationGeometry (0.01 ms) requires an explicitly requested visible-window test
+[       OK ] PlaybackFlyout::HeaderGapsAndPaddingStayDistinct (0.01 ms)
+[       OK ] PlaybackFlyout::SpeedPresetsAndSliderHaveSeparateTargets (0.00 ms)
+[       OK ] PlaybackFlyout::InvisibleTrackRowsCannotReceiveInput (0.00 ms)
+[       OK ] PlaybackFlyout::NumericSpeedEntryRejectsInvalidOrPartialValues (0.01 ms)
+[       OK ] RendererCache::ViewportUploadBudgetAndBitmapEviction (217.89 ms)
+[       OK ] RendererCache::HiddenLibraryRetainsRecentBitmapsAndDropsQueuedPixels (197.23 ms)
+[       OK ] RendererCache::HiddenTrimBroadcastsGenerationInvalidation (0.42 ms)
+[       OK ] RendererCache::HiddenTextAndCaptureCachesRebuildWithoutReplacingSharedResources (234.53 ms)
+[       OK ] RendererCache::HiddenBackbuffersRestoreWithoutReplacingDeviceOrThumbnails (217.59 ms)
+[       OK ] RtlComplexScripts::BidiIsolationAndDirectWriteShaping (27.17 ms)
+[       OK ] SubtitleDiscovery::PathContainmentAndEncodingDiscovery (26.52 ms)
+[       OK ] SubtitlesDual::IndexedCueOracleAndTrackProfiles (20.02 ms)
+[       OK ] TaskbarController::MockTaskbarAndExplorerThrottling (25.86 ms)
+[       OK ] WatchReconcile::BulkReconcileAndRenameIdentity (3.47 ms)
+[       OK ] AsyncNetworkJobs::SearchReturnsWhileTransportBlockedAndCachesAcrossDownload (8.27 ms)
+[       OK ] AsyncNetworkJobs::SupersededMediaRejectsAnIgnoringTransportCompletion (2.32 ms)
+[       OK ] AsyncNetworkJobs::SupersededDownloadCannotStoreOrApplyToNewMedia (2.27 ms)
+[       OK ] AsyncNetworkJobs::CancellationInterruptAndWorkerExceptionAreOwned (5.75 ms)
+[       OK ] AsyncNetworkJobs::ProviderLanguageAndOptOutInvalidateSearchCache (4.07 ms)
+[       OK ] AsyncNetworkJobs::PreCancelledServiceSkipsTransportAndStorage (0.51 ms)
+[       OK ] AsyncNetworkJobs::SamePathReopenAndPrivacyChangeInvalidateContext (0.02 ms)
+[       OK ] HistoryGrouping::EmptyHistoryProjection (0.00 ms)
+[       OK ] HistoryGrouping::DeterministicTimeGrouping (0.69 ms)
+[       OK ] HistoryGrouping::StableRecencyOrderingAndEqualTimestamps (0.01 ms)
+[       OK ] HistoryGrouping::BoundaryTimestampsAccuracy (0.01 ms)
+[       OK ] HistoryGrouping::MissingFileToleranceAndTitleFallback (0.00 ms)
+[       OK ] HistoryGrouping::HistoryTabViewModelInvariants (0.01 ms)
+[       OK ] HttpTransportFixes::InterruptedReadsNeverReturnPartialSuccess (0.01 ms)
+[       OK ] HttpTransportFixes::CleanEofAndDeclaredLengthAreDistinguished (0.00 ms)
+[       OK ] HttpTransportFixes::StreamingBodyUsesBoundedBufferAndNoAccumulation (1.45 ms)
+[       OK ] HttpTransportFixes::BoundsCancellationAndSinkFailuresAreReported (0.00 ms)
+[       OK ] HttpTransportFixes::DestinationPolicyAppliesToNativeRequestsAndInjectedFinalUrls (0.02 ms)
+[       OK ] HttpTransportFixes::StagedDownloadsAreCheckedAndPartialFilesAreRemoved (7.66 ms)
+[       OK ] ImportFingerprints::PersistedFingerprintSkipsRepeatProbeAndNoOpMerge (24.71 ms)
+[       OK ] ImportFingerprints::SameSizeModificationAndReplacementRequireProbe (9.06 ms)
+[       OK ] ImportFingerprints::OpenWriterAndChangingProbeCannotCreateTrustedFingerprint (4.20 ms)
+[       OK ] ImportFingerprints::FailedImportPreservesUsefulMetadataAndRejectsStaleMerge (2.84 ms)
+[       OK ] IncrementalSaving::ProgressPersistsWithoutRewritingTheCheckpoint (29.82 ms)
+[       OK ] IncrementalSaving::CumulativeChangesSupportRevertsAppendsAndTailRemoval (55.08 ms)
+[       OK ] IncrementalSaving::CheckpointCompactsChangesAndNeverReplaysOldChanges (65.34 ms)
+[       OK ] IncrementalSaving::FailedDeltaAndCheckpointDoNotAcknowledgeNewState (66.73 ms)
+[       OK ] IncrementalSaving::CorruptChangesRecoverOnlyAMatchingBackup (47.04 ms)
+[       OK ] IncrementalSaving::CheckpointRecoveryFindsThePairedChangesBackup (52.71 ms)
+[       OK ] IncrementalSaving::MissingChangesForceAFullCheckpointFromTheLatestSnapshot (35.50 ms)
+[       OK ] IncrementalSaving::FutureAndOrphanedChangesAreProtectedFromSaving (70.25 ms)
+[       OK ] IncrementalSaving::ValidationRejectsChecksumDamageDuplicateSlotsAndUnfilledAppends (0.08 ms)
+[       OK ] IncrementalSaving::IdleWorkerCheckpointBarrierPublishesTheLastAcceptedSnapshot (40.35 ms)
+[       OK ] LongPathSupport::ResolveFullPathLongBasics (0.02 ms)
+[       OK ] LongPathSupport::MultiSelectBufferParsingSingleFile (0.09 ms)
+[       OK ] LongPathSupport::MultiSelectBufferParsingMultipleFiles (0.02 ms)
+[       OK ] LongPathSupport::DynamicModuleFileNameResolution (0.00 ms)
+[       OK ] MetadataBackfill::ChainedBatchesVisitStableCatalogOnce (0.31 ms)
+[       OK ] MetadataBackfill::MergeKeepsLiveUserStateAndSearchIdentity (0.01 ms)
+[       OK ] MetadataBackfill::RetryBookkeepingAvoidsViewInvalidation (0.00 ms)
+[       OK ] MetadataBackfill::ChangedFileAndReplacementRejectStaleProbe (0.01 ms)
+[       OK ] PlaylistIO::BatchAppendUsesOrdinalIgnoreCaseAndKeepsFirstOrder (0.01 ms)
+[       OK ] PlaylistIO::BatchAppendUsesOrdinalCaseRulesForUnicode (0.00 ms)
+[       OK ] PlaylistIO::BatchAppendMatchesSequentialMembershipOracle (6.58 ms)
+[       OK ] Presentation::NavigationFitsAndMirrorsAtMinimumHubWidth (0.02 ms)
+[       OK ] Presentation::ResponsiveControlsDoNotOverlapAtSupportedWidths (0.01 ms)
+[       OK ] Presentation::ButtonTextAdaptsToLightAndDarkCustomAccents (0.00 ms)
+[       OK ] Presentation::StorageRecoveryDistinguishesDiskFullFromPermissions (0.00 ms)
+[       OK ] Presentation::QueueEndIsExplicitAndDirectOpenHasLibraryLabel (0.00 ms)
+[       OK ] RenderViewModel::ChapterSnapshotsChangeOnlyAtExactBoundaries (0.01 ms)
+[       OK ] RenderViewModel::ChapterSnapshotHandlesEmptyCappedAndInvalidTimes (0.07 ms)
+[       OK ] RenderViewModel::FlyoutBorrowsLargeQueueForTheFrame (1.89 ms)
+[       OK ] RenderViewModel::SettingsTabSystemActionMatching (0.00 ms)
+[       OK ] Reorder::EveryMoveMatchesTheDisplayedSlots (0.53 ms)
+[       OK ] Reorder::CenterTargetsChangeAtSlotMidpoints (0.00 ms)
+[       OK ] Reorder::GridCenterTargetIgnoresGrabOffsetAndGaps (0.00 ms)
+[       OK ] Reorder::EdgeScrollHasDeadZoneAndAccelerates (0.00 ms)
+[       OK ] Reorder::ManualProjectionKeepsSavedOrderWithAndWithoutPinnedItem (3.21 ms)
+[       OK ] ScreenshotCapture::NamingSanitizationSpecialCharsAndReservedNames (0.02 ms)
+[       OK ] ScreenshotCapture::TimestampFormattingAndDeterminism (0.01 ms)
+[       OK ] ScreenshotCapture::CollisionResolution (0.01 ms)
+[       OK ] ScreenshotCapture::LongPathSupport (0.01 ms)
+[       OK ] ScreenshotCapture::RootContainmentAndPathEscapeRejection (0.02 ms)
+[       OK ] ScreenshotCapture::UnavailableMediaRejection (0.00 ms)
+[       OK ] ScreenshotCapture::SuccessAndErrorProjection (0.01 ms)
+[       OK ] ScreenshotCapture::NoExternalFallbackInvariant (0.01 ms)
+[       OK ] HubThumbnailCache::DefaultWritersHonorActiveDisabledBudget (0.01 ms)
+[       OK ] HubThumbnailCache::PrivateReadDoesNotMigrateLegacyCache (17.09 ms)
+[       OK ] HubThumbnailCache::HubCacheKeyIsStableAcrossExtractorSizes (0.02 ms)
+[       OK ] HubThumbnailCache::DurableDiskCacheContainmentAndRoundTrip (6.39 ms)
+[       OK ] SmartPlaylists::RuleMatchingByTitleAndPath (0.02 ms)
+[       OK ] SmartPlaylists::RuleMatchingByStatusDurationAndProgress (0.01 ms)
+[       OK ] SmartPlaylists::CriteriaMatchAllAndMatchAny (0.01 ms)
+[       OK ] SmartPlaylists::DeterministicEvaluationAndProjection (0.01 ms)
+[       OK ] SmartPlaylists::SmartPlaylistLifecycleAndImmutability (24.74 ms)
+[       OK ] SmartPlaylists::SerializationAndUnknownFieldsPreservation (0.03 ms)
+[       OK ] SmartPlaylists::ProgressRefreshesPathsAndStatsWithoutStatusChange (0.02 ms)
+[       OK ] SmartPlaylists::LimitedEvaluationMatchesUnlimitedPrefix (2.15 ms)
+[       OK ] SmartPlaylists::LimitedSparseMatchesFollowNumericOracle (38.56 ms)
+[       OK ] SmartPlaylists::LargeLimitMatchesNumericOracle (169.04 ms)
+[       OK ] SmartPlaylists::PathGenerationTracksRefreshesWithoutUnrelatedEdits (0.06 ms)
+[       OK ] SmartPlaylists::PreparedRulesPreserveExistingOperatorSemantics (0.08 ms)
+[       OK ] SmartPlaylists::RelativeRulesShareClockAndExposeMembershipBoundaries (0.01 ms)
+[       OK ] SmartPlaylists::PlaybackIndependentMembershipAndRejectedDiskCandidatesAreReused (0.01 ms)
+[       OK ] TouchInput::QuickStillPressResolvesAsTap (0.00 ms)
+[       OK ] TouchInput::MovementPastSlopBecomesPanWithVerticalAxisLock (0.01 ms)
+[       OK ] TouchInput::HorizontalDragLocksHorizontalAxis (0.00 ms)
+[       OK ] TouchInput::SmallDriftInsideTapSlopStaysATap (0.00 ms)
+[       OK ] TouchInput::LongPressDueOnlyAfterHoldWithoutMovement (0.00 ms)
+[       OK ] TouchInput::HeldPressPastLongPressIsNotATap (0.00 ms)
+[       OK ] TouchInput::DoubleTapWindowAndSlop (0.00 ms)
+[       OK ] TouchInput::FlingVelocityTracksRecentMotion (0.00 ms)
+[       OK ] TouchInput::PauseBeforeLiftSuppressesFling (0.00 ms)
+[       OK ] TouchInput::SecondPointerBeginRestartsWithoutTapMemoryLoss (0.00 ms)
+[       OK ] TouchInput::OverscrollResistanceOnlyAppliesPastBounds (0.00 ms)
+[       OK ] TouchInput::SpringTowardApproachesTargetWithoutOvershooting (0.00 ms)
+
+162 passed, 0 failed, 1 skipped in 5988.17 ms
+<<< [PASS] unit (63.4s)
+
+>>> [Suite: corpus] Parser & Media Corpus Tests (Tier: pr, Category: corpus)
+    Script: tests\corpus\run_tests.ps1 | Cleanup: isolated_temp | Timeout: 180s
+Building Aperture Parser & Media Corpus Tests...
+main.cpp
+Native build: 0 production files compiled, 17 reused.
+========================================================
+  Aperture Native - Parser & Media Corpus Test Runner   
+========================================================
+[ PASS ] json_valid_kitchen_sink                    (json)
+[ PASS ] json_valid_unicode_escapes                 (json)
+[ PASS ] json_valid_nested_boundary                 (json)
+[ PASS ] json_malformed_unclosed_string             (json)
+[ PASS ] json_malformed_trailing_tokens             (json)
+[ PASS ] json_malformed_invalid_number              (json)
+[ PASS ] json_malformed_bad_escape                  (json)
+[ PASS ] json_truncated_mid_object                  (json)
+[ PASS ] json_boundary_exceeds_depth                (json)
+[ PASS ] playlist_valid_standard_m3u                (playlist)
+[ PASS ] playlist_valid_extended_m3u8_bom           (playlist)
+[ PASS ] playlist_valid_standard_pls                (playlist)
+[ PASS ] playlist_valid_multitrack_pls              (playlist)
+[ PASS ] playlist_malformed_no_header_pls           (playlist)
+[ PASS ] playlist_malformed_invalid_duration_m3u    (playlist)
+[ PASS ] playlist_truncated_m3u8                    (playlist)
+[ PASS ] playlist_content_disagreement_pls_in_m3u   (playlist)
+[ PASS ] playlist_content_disagreement_m3u_in_pls   (playlist)
+[ PASS ] playlist_unicode_paths                     (playlist)
+[ PASS ] playlist_empty_rejected                    (playlist)
+[ PASS ] sub_valid_standard_srt                     (subtitle)
+[ PASS ] sub_valid_standard_vtt                     (subtitle)
+[ PASS ] sub_valid_standard_ass                     (subtitle)
+[ PASS ] sub_valid_utf8_bom_srt                     (subtitle)
+[ PASS ] sub_valid_multiline_entities               (subtitle)
+[ PASS ] sub_malformed_missing_vtt_header           (subtitle)
+[ PASS ] sub_malformed_bad_timestamp                (subtitle)
+[ PASS ] sub_malformed_invalid_ass_events           (subtitle)
+[ PASS ] sub_truncated_cue                          (subtitle)
+[ PASS ] sub_unicode_cjk_cyrillic                   (subtitle)
+[ PASS ] url_valid_https_stream                     (url)
+[ PASS ] url_valid_rtsp_ipv4                        (url)
+[ PASS ] url_valid_ipv6_bracket                     (url)
+[ PASS ] url_valid_rtmp                             (url)
+[ PASS ] url_rejected_scheme_file                   (url)
+[ PASS ] url_rejected_scheme_javascript             (url)
+[ PASS ] url_rejected_embedded_credentials          (url)
+[ PASS ] url_rejected_malformed_port                (url)
+[ PASS ] url_rejected_control_characters            (url)
+[ PASS ] url_rejected_invalid_ipv6                  (url)
+[ PASS ] url_valid_dropped_candidate_text           (url)
+[ PASS ] cli_valid_full_options                     (command_line)
+[ PASS ] cli_valid_minimal_target                   (command_line)
+[ PASS ] cli_valid_seconds_start                    (command_line)
+[ PASS ] cli_rejected_unknown_flag                  (command_line)
+[ PASS ] cli_rejected_volume_out_of_range           (command_line)
+[ PASS ] cli_rejected_malformed_time                (command_line)
+[ PASS ] ipc_valid_envelope_bin                     (command_line)
+[ PASS ] ipc_rejected_corrupt_magic                 (command_line)
+[ PASS ] ipc_rejected_truncated_header              (command_line)
+[ PASS ] settings_valid_v1                          (settings)
+[ PASS ] settings_valid_unknown_fields              (settings)
+[ PASS ] settings_valid_channel_policy              (settings)
+[ PASS ] settings_malformed_syntax                  (settings)
+[ PASS ] settings_rejected_wrong_types              (settings)
+[ PASS ] media_valid_minimal_wav                    (media)
+[ PASS ] media_valid_minimal_aac                    (media)
+[ PASS ] media_malformed_corrupt_wav                (media)
+[ PASS ] media_malformed_truncated_aac              (media)
+[ PASS ] media_extension_disagreement_text_aac      (media)
+[ PASS ] media_extension_disagreement_text_wav      (media)
+
+========================================================
+                 CORPUS TEST SUMMARY                    
+========================================================
+  Category: command_line    Total: 9    Passed: 9    Failed: 0   
+  Category: json            Total: 9    Passed: 9    Failed: 0   
+  Category: media           Total: 6    Passed: 6    Failed: 0   
+  Category: playlist        Total: 11   Passed: 11   Failed: 0   
+  Category: settings        Total: 5    Passed: 5    Failed: 0   
+  Category: subtitle        Total: 10   Passed: 10   Failed: 0   
+  Category: url             Total: 11   Passed: 11   Failed: 0   
+--------------------------------------------------------
+  Total Fixtures Executed: 61 (58.24 ms)
+  ALL 61 CORPUS FIXTURES PASSED OBSERVED ACCEPT/REJECT BEHAVIOR
+========================================================
+<<< [PASS] corpus (6.42s)
+
+>>> [Suite: persistence] Persistence Tests (Tier: pr, Category: persistence)
+    Script: tests\persistence\run_tests.ps1 | Cleanup: isolated_temp | Timeout: 180s
+Building Aperture Persistence Tests...
+main.cpp
+Native build: 0 production files compiled, 11 reused.
+Aperture persistence tests (28 selected, 0 filtered)
+[       OK ] PortableRoot::ContainmentAndCacheIsolation (27.62 ms)
+[       OK ] UnwritableRoot::ReadOnlyFailureAndNoExternalFallback (3.94 ms)
+[       OK ] SchemaMigration::MigrationAndLegacyCompatibility (3.28 ms)
+[       OK ] RotatingBackups::RotationAndPartialRecovery (50.25 ms)
+[       OK ] JsonLimits::SerializationFormattingAndMoveInsertion (0.04 ms)
+[       OK ] JsonLimits::AppendSerializationCompatibility (0.02 ms)
+[       OK ] JsonLimits::ObjectKeyOrderAndDuplicateCompatibility (0.01 ms)
+[       OK ] JsonLimits::NestedArrayGrowthPreservesOwnedValues (5.70 ms)
+[       OK ] JsonLimits::SpanStringsAndEscapeBoundaries (88.92 ms)
+[       OK ] JsonLimits::DirectNumberParsingCompatibility (0.07 ms)
+[       OK ] JsonLimits::MaxInputBytesRejection (0.00 ms)
+[       OK ] JsonLimits::ArrayGrowthHonorsElementLimit (207.16 ms)
+[       OK ] JsonLimits::NestingDepthRejection (0.13 ms)
+[       OK ] JsonLimits::MalformedJsonRobustness (0.01 ms)
+[       OK ] JsonLimits::StrictParseFunctionality (0.01 ms)
+[       OK ] RelativePaths::ToRelocatablePathBasic (0.01 ms)
+[       OK ] RelativePaths::ToRelocatablePathCaseInsensitivity (0.00 ms)
+[       OK ] RelativePaths::ToRelocatablePathForwardSlashes (0.01 ms)
+[       OK ] RelativePaths::ResolveAppPathRelativeVariations (0.00 ms)
+[       OK ] RelativePaths::FullRoundTripIdentity (0.01 ms)
+[       OK ] RelativePaths::MediaLibraryItemPathRoundTrip (2.06 ms)
+[       OK ] RelativePaths::PlaylistsAndHistoryRoundTrip (0.39 ms)
+[       OK ] ImportConflictPolicy::KeepExistingDefaultPolicy (44.45 ms)
+[       OK ] ImportConflictPolicy::OverwritePolicy (13.55 ms)
+[       OK ] ImportConflictPolicy::SkipPolicy (5.67 ms)
+[       OK ] ImportConflictPolicy::CreateCopyPolicy (12.64 ms)
+[       OK ] ImportConflictPolicy::ReportsCompletedOutcome (5.43 ms)
+[       OK ] ImportConflictPolicy::ReportsCanceledOutcomeWithoutFailure (1.17 ms)
+
+28 passed, 0 failed, 0 skipped in 472.82 ms
+<<< [PASS] persistence (6.76s)
+
+>>> [Suite: ipc] IPC Tests (Tier: pr, Category: ipc)
+    Script: tests\ipc\run_tests.ps1 | Cleanup: isolated_temp | Timeout: 120s
+Building Aperture IPC Tests...
+**********************************************************************
+** Visual Studio 2022 Developer Command Prompt v17.14.37
+** Copyright (c) 2025 Microsoft Corporation
+**********************************************************************
+[vcvarsall.bat] Environment initialized for: 'x64'
+main.cpp
+Aperture ipc tests (3 selected, 0 filtered)
+[       OK ] IpcEnvelope::SerializationBoundsAndTokenAuth (9.33 ms)
+[       OK ] CommandLineParser::FlagPathAndUrlParsingContract (0.54 ms)
+[       OK ] AutomationIpc::DispatchAndReplayProtection (0.20 ms)
+
+3 passed, 0 failed, 0 skipped in 10.22 ms
+<<< [PASS] ipc (3.55s)
+
+>>> [Suite: loader] DLL Loader Tests (Tier: pr, Category: loader)
+    Script: tests\loader\run_tests.ps1 | Cleanup: isolated_temp | Timeout: 120s
+Building Aperture DLL Loader Tests...
+**********************************************************************
+** Visual Studio 2022 Developer Command Prompt v17.14.37
+** Copyright (c) 2025 Microsoft Corporation
+**********************************************************************
+[vcvarsall.bat] Environment initialized for: 'x64'
+Json.cpp
+Settings.cpp
+Localization.cpp
+AudioConfig.cpp
+ChannelPolicy.cpp
+Diagnostics.cpp
+MpvPlayer.cpp
+main.cpp
+Generating Code...
+Aperture loader tests (1 selected, 0 filtered)
+[       OK ] DllLoader::SearchOrderHardeningAndPackageLocalMpv (795.05 ms)
+
+1 passed, 0 failed, 0 skipped in 795.12 ms
+<<< [PASS] loader (20.9s)
+
+>>> [Suite: diagnostics] Diagnostics Tests (Tier: pr, Category: diagnostics)
+    Script: tests\diagnostics\run_tests.ps1 | Cleanup: isolated_temp | Timeout: 180s
+diagnostics_test.cpp
+Native build: 0 production files compiled, 1 reused.
+portable diagnostics log, startup report and live dump verified
+Diagnostics tests passed: root-local log, startup report, live dump writer, and crash dump
+<<< [PASS] diagnostics (6.25s)
+
+>>> [Suite: updater] Self-Updater Deterministic Tests (Tier: pr, Category: updater)
+    Script: tests\updater\run_tests.ps1 | Cleanup: isolated_temp | Timeout: 180s
+**********************************************************************
+** Visual Studio 2022 Developer Command Prompt v17.14.37
+** Copyright (c) 2025 Microsoft Corporation
+**********************************************************************
+[vcvarsall.bat] Environment initialized for: 'x64'
+ChannelPolicy.cpp
+Updater.cpp
+Json.cpp
+HttpTransport.cpp
+main.cpp
+Generating Code...
+Aperture updater tests (3 selected, 0 filtered)
+[       OK ] Updater::ManifestAndChannelPolicyContract (15.56 ms)
+[       OK ] Updater::CryptoAuthenticodeAndPeContract (70.13 ms)
+[       OK ] Updater::SwapRollbackHelperAndBoundsContract (89.01 ms)
+
+3 passed, 0 failed, 0 skipped in 174.78 ms
+
+All Aperture updater deterministic tests completed successfully.
+<<< [PASS] updater (13.77s)
+
+>>> [Suite: channel_policy] Release Channel Policy & Schema Validation (Tier: pr, Category: package)
+    Script: scripts\validate_channel_policy.ps1 | Cleanup: no_artifacts | Timeout: 30s
+Channel policy validation successful: 3 channels defined (default: stable).
+<<< [PASS] channel_policy (0.38s)
+
+>>> [Suite: dependencies] Dependency Inventory & Integrity Check (Tier: pr, Category: package)
+    Script: scripts\check_dependencies.ps1 | Cleanup: no_artifacts | Timeout: 60s
+
+================================================================================
+               Aperture Dependency Inventory & Validation Report                
+================================================================================
+Manifest: scripts/dependencies.json
+Total Registered Dependencies: 20
+
+--- Vendored Runtime & Header Artifacts (8/8 valid) ---
+  [OK           ] libmpv Shared Library (libmpv-2.dll)
+    Size: 27401728 bytes | SHA-256: e91032cbce1da22a... | License: GPL-2.0-or-later / LGPL-2.1-or-later
+  [OK           ] libmpv Client Header (include/mpv/client.h)
+    Size: 85973 bytes | SHA-256: 3c073236a09cb456... | License: ISC / LGPL-2.1-or-later
+  [OK           ] libmpv Render Header (include/mpv/render.h)
+    Size: 34271 bytes | SHA-256: 192691941602052f... | License: ISC / LGPL-2.1-or-later
+  [OK           ] libmpv Render GL Header (include/mpv/render_gl.h)
+    Size: 7328 bytes | SHA-256: 48662c0ed9872a14... | License: ISC / LGPL-2.1-or-later
+  [OK           ] libmpv Stream Callback Header (include/mpv/stream_cb.h)
+    Size: 9589 bytes | SHA-256: 188e58b6d14383e1... | License: ISC / LGPL-2.1-or-later
+  [OK           ] Inter Variable Font (fonts/Inter.ttf)
+    Size: 876576 bytes | SHA-256: 29160a80ff49ddca... | License: OFL-1.1
+  [OK           ] Space Grotesk Variable Font (fonts/SpaceGrotesk.ttf)
+    Size: 136676 bytes | SHA-256: acad6de1fc93436f... | License: OFL-1.1
+  [OK           ] JetBrains Mono Variable Font (fonts/JetBrainsMono.ttf)
+    Size: 187208 bytes | SHA-256: 48715a42ec242c21... | License: OFL-1.1
+
+--- Build & Test Toolchain ---
+  [OK                  ] Microsoft Visual C++ (MSVC) (Version: 19.44 (14.44.35207))
+    Details: Found Visual Studio 2022 MSVC toolset (19.44 (14.44.35207)) | License: Proprietary (Microsoft Visual Studio EULA)
+  [OK                  ] Windows 10/11 SDK (Version: 10.0.26100.0)
+    Details: Found Windows SDK (10.0.26100.0) | License: Proprietary (Microsoft Windows SDK EULA)
+  [OK                  ] CMake (Version: 4.4.0)
+    Details: CMake 4.4.0 located in PATH | License: BSD-3-Clause
+  [OPTIONAL_UNAVAILABLE] Ninja Build System
+    Details: Ninja is not installed (optional; CMake will use Visual Studio generator) | License: Apache-2.0
+  [OK                  ] Python (Version: 3.13.15)
+    Details: Python 3.13.15 located in PATH | License: PSF-2.0
+  [OK                  ] PowerShell (Version: 5.1.26100.9711)
+    Details: PowerShell 5.1.26100.9711 active | License: MIT / Windows Component
+  [OK                  ] Microsoft Application Verifier
+    Details: Microsoft Application Verifier present at System32\appverif.exe | License: Proprietary (Microsoft SDK)
+  [OK                  ] Microsoft SignTool
+    Details: Microsoft SignTool present at C:\Program Files (x86)\Windows Kits\10\bin\10.0.26100.0\x64\signtool.exe | License: Proprietary (Microsoft Windows SDK EULA)
+  [NOT_CONFIGURED      ] yt-dlp
+    Details: Not present in workspace tools folder (optional external tool; explicit opt-in only) | License: Unlicense
+
+--- Runtime Package Prerequisites ---
+
+--- CI Workflow Actions ---
+  [CI_STEP             ] actions/checkout (v4) - License: MIT
+  [CI_STEP             ] actions/setup-python (v5) - License: MIT
+  [CI_STEP             ] actions/upload-artifact (v4) - License: MIT
+
+--------------------------------------------------------------------------------
+STATUS: ALL REQUIRED DEPENDENCIES VALIDATED SUCCESSFULLY (20 tracked, 0 errors, 0 warnings)
+================================================================================
+
+<<< [PASS] dependencies (0.95s)
+
+>>> [Suite: runtime_layout] Runtime-Only Release Layout Tests (Tier: pr, Category: package)
+    Script: tests\package\test_runtime_layout.ps1 | Cleanup: isolated_temp | Timeout: 30s
+Runtime layout tests passed.
+<<< [PASS] runtime_layout (0.79s)
+
+>>> [Suite: threat_boundaries] Threat Boundary & Security Invariant Validation (Tier: pr, Category: hardening)
+    Script: scripts\validate_threat_boundaries.py | Cleanup: no_artifacts | Timeout: 30s
+================================================================================
+            Aperture Threat Boundary & Security Invariant Report            
+================================================================================
+Manifest:   docs\threat_boundaries_manifest.json
+Schema:     docs\threat_boundaries_manifest.schema.json
+Reference:  docs\THREAT_BOUNDARIES.md
+--------------------------------------------------------------------------------
+Status: VALID (All 12 threat boundaries verified successfully)
+
+--- Verified Security Boundaries ---
+  [01] updater_and_package_trust                | Symbols: 10 | Sources:  6 | Tests:  4
+  [02] same_user_ipc_and_automation             | Symbols: 10 | Sources:  4 | Tests:  1
+  [03] dll_loading_and_runtime_isolation        | Symbols:  5 | Sources:  4 | Tests:  3
+  [04] external_tool_execution                  | Symbols:  1 | Sources:  2 | Tests:  1
+  [05] network_streams_and_urls                 | Symbols:  3 | Sources:  4 | Tests:  2
+  [06] online_subtitles_service                 | Symbols:  5 | Sources:  4 | Tests:  1
+  [07] media_containers_and_playlist_parsing    | Symbols:  8 | Sources:  8 | Tests:  4
+  [08] portable_storage_and_root_containment    | Symbols: 11 | Sources:  7 | Tests:  5
+  [09] diagnostics_and_process_dumps            | Symbols:  5 | Sources:  3 | Tests:  2
+  [10] shell_registration_and_system_metadata   | Symbols:  2 | Sources:  4 | Tests:  1
+  [11] localization_and_mpv_configuration       | Symbols:  9 | Sources:  5 | Tests:  3
+  [12] ui_drag_drop_and_clipboard               | Symbols:  7 | Sources:  5 | Tests:  1
+
+Invariants: Portable-only containment, zero %APPDATA%/Registry state leakage verified.
+================================================================================
+<<< [PASS] threat_boundaries (0.13s)
+
+>>> [Suite: static_analysis] MSVC C++17 Native Static Code Analysis Gate (Tier: pr, Category: static_analysis)
+    Script: scripts\run_static_analysis.ps1 | Cleanup: isolated_temp | Timeout: 600s
+================================================================================
+  Aperture MSVC C++17 Native Static Code Analysis Gate
+================================================================================
+Configuration:     Release
+Generator:         Ninja
+MSVC Toolset:      14.44.35207
+Flags:             /analyze /analyze:external- /external:anglebrackets /external:W0
+Staging Directory: C:\Users\Alperen\AppData\Local\Temp\Aperture_static_analysis_a2178fdfa74749b09a5d520a8e7dd376
+Timeout:           600s
+--------------------------------------------------------------------------------
+
+[1/2] Configuring CMake with Static Analysis enabled...
+CMake configuration succeeded.
+
+[2/2] Running MSVC Static Analysis (/analyze) across 49 translation units...
+================================================================================
+  Static Analysis Summary
+================================================================================
+Duration:          58.87s
+Sources Analyzed:  49
+Total Warnings:    16 (Baseline: 76)
+New Warnings:      0
+Count Regressions: 0
+Resolved Warnings: 22
+Analysis Errors:   0
+Result:            PASS
+
+[RESOLVED] Resolved/Reduced Warnings (22):
+  - [Reduced by 2: now 0, was 2] src/App.cpp|C6031|Return value ignored: 'CoInitializeEx'.
+  - [Reduced by 2: now 0, was 2] src/App.cpp|C6246|Local declaration of 'btnSize' hides declaration of the same name in outer scope. For additional information, see previous declaration at line '<line>' of '<file>'.
+  - [Reduced by 30: now 0, was 30] src/Common.h|C6262|Function uses '196736' bytes of stack. Consider moving some data to heap.
+  - [Reduced by 1: now 0, was 1] src/Diagnostics.cpp|C28159|Consider using 'IsWindows*' instead of 'GetVersionExW'. Reason: Deprecated. Use VerifyVersionInfo* or IsWindows* macros from VersionHelpers.
+  - [Reduced by 1: now 0, was 1] src/MpvPlayer.cpp|C6011|Dereferencing NULL pointer 'fn_mpv_get_property'.
+  - [Reduced by 1: now 0, was 1] src/OverlayRenderer.cpp|C6246|Local declaration of 'it' hides declaration of the same name in outer scope. For additional information, see previous declaration at line '<line>' of '<file>'.
+  - [Reduced by 1: now 0, was 1] src/OverlayRenderer.cpp|C6387|'family' could be '0': this does not adhere to the specification for the function 'IDWriteFactory::CreateTextFormat'.
+  - [Reduced by 1: now 1, was 2] src/Renderer.cpp|C6031|Return value ignored: 'CoCreateInstance'.
+  - [Reduced by 1: now 0, was 1] src/Renderer.cpp|C6031|Return value ignored: 'CoInitialize'.
+  - [Reduced by 1: now 0, was 1] src/Renderer.cpp|C6246|Local declaration of 'it' hides declaration of the same name in outer scope. For additional information, see previous declaration at line '<line>' of '<file>'.
+  - [Reduced by 1: now 0, was 1] src/Renderer.cpp|C6387|'family' could be '0': this does not adhere to the specification for the function 'IDWriteFactory::CreateTextFormat'.
+  - [Reduced by 1: now 0, was 1] src/Settings.cpp|C6262|Function uses '65756' bytes of stack. Consider moving some data to heap.
+  - [Reduced by 1: now 0, was 1] src/Settings.cpp|C6262|Function uses '65836' bytes of stack. Consider moving some data to heap.
+  - [Reduced by 2: now 0, was 2] src/Settings.cpp|C6262|Function uses '65840' bytes of stack. Consider moving some data to heap.
+  - [Reduced by 1: now 0, was 1] src/UIComponents.cpp|C6246|Local declaration of 'durStr' hides declaration of the same name in outer scope. For additional information, see previous declaration at line '<line>' of '<file>'.
+  - [Reduced by 1: now 1, was 2] src/UIComponents.cpp|C6246|Local declaration of 'titleRect' hides declaration of the same name in outer scope. For additional information, see previous declaration at line '<line>' of '<file>'.
+  - [Reduced by 4: now 0, was 4] src/Updater.cpp|C6031|Return value ignored: 'BCryptExportKey'.
+  - [Reduced by 2: now 0, was 2] src/Updater.cpp|C6031|Return value ignored: 'BCryptFinishHash'.
+  - [Reduced by 2: now 0, was 2] src/Updater.cpp|C6031|Return value ignored: 'BCryptGetProperty'.
+  - [Reduced by 2: now 0, was 2] src/Updater.cpp|C6031|Return value ignored: 'BCryptHashData'.
+  - [Reduced by 1: now 0, was 1] src/Updater.cpp|C6031|Return value ignored: 'BCryptSignHash'.
+  - [Reduced by 1: now 0, was 1] src/main.cpp|C6262|Function uses '19900' bytes of stack. Consider moving some data to heap.
+<<< [PASS] static_analysis (59.69s)
+
+>>> [Suite: stress] Async Shutdown Stress Suite (Tier: pr, Category: stress)
+    Script: tests\stress\run_tests.ps1 | Cleanup: isolated_temp | Timeout: 180s
+Building Aperture Stress Tests...
+**********************************************************************
+** Visual Studio 2022 Developer Command Prompt v17.14.37
+** Copyright (c) 2025 Microsoft Corporation
+**********************************************************************
+[vcvarsall.bat] Environment initialized for: 'x64'
+Json.cpp
+Settings.cpp
+Localization.cpp
+MediaLibrary.cpp
+MediaFoundation.cpp
+MediaProbeIsolation.cpp
+FolderWatcher.cpp
+MpvPlayer.cpp
+PlaybackSession.cpp
+CommandDispatcher.cpp
+MediaTransport.cpp
+TextInputModel.cpp
+GlobalSearch.cpp
+AudioConfig.cpp
+SubtitleDiscovery.cpp
+Subtitles.cpp
+OnlineSubtitles.cpp
+LibraryQuery.cpp
+PlaylistIO.cpp
+TaskbarController.cpp
+Generating Code...
+Compiling...
+Accessibility.cpp
+Diagnostics.cpp
+Updater.cpp
+ChannelPolicy.cpp
+HttpTransport.cpp
+main.cpp
+Generating Code...
+Stress: 10 iterations, seed 5738069
+Aperture stress tests (1 selected, 0 filtered)
+[       OK ] Stress::CompositeMultiSubsystemConcurrentShutdown (1050.01 ms)
+
+1 passed, 0 failed, 0 skipped in 1050.06 ms
+<<< [PASS] stress (64.78s)
+
+>>> [Suite: media_probe_isolation] Native Media Probe Isolation and Cancellation (Tier: pr, Category: stress)
+    Script: tests\native\run_media_probe_isolation.ps1 | Cleanup: isolated_temp | Timeout: 120s
+**********************************************************************
+** Visual Studio 2022 Developer Command Prompt v17.14.37
+** Copyright (c) 2025 Microsoft Corporation
+**********************************************************************
+[vcvarsall.bat] Environment initialized for: 'x64'
+MediaProbeIsolation.cpp
+MediaFoundation.cpp
+media_probe_isolation.cpp
+Generating Code...
+case,status,value
+metadata-and-reuse,pass,0
+shell-thumbnail-and-bounds,pass,0
+explicit-idle-release-and-restart,pass,0
+blocked-provider-timeout-and-recovery,pass,500
+blocked-provider-cancellation,pass,31
+input-validation,pass,0
+helper-unavailable-and-handle-cleanup,pass,0
+scoped-probe-routing,pass,0
+resource-first-metadata-ms,pass,49.921
+resource-reused-metadata-ms,pass,1.575
+resource-single-helper-private-bytes,pass,3227648
+resource-single-helper-working-bytes,pass,17039360
+resource-four-shell-helpers-private-bytes,pass,12931072
+resource-idle-exit-ms,pass,5005.835
+idle-exit-and-restart,pass,0
+<<< [PASS] media_probe_isolation (12.96s)
+
+>>> [Suite: thumbnail_cache] Thumbnail Cache Workflows (Tier: pr, Category: persistence)
+    Script: tests\thumbnails\run_tests.ps1 | Cleanup: isolated_temp | Timeout: 120s
+main.cpp
+purge_tests.cpp
+Generating Code...
+Native build: 0 production files compiled, 6 reused.
+PASS thumbnail codec, purge, migration, budgets, concurrent writers, corruption and containment: 8549 assertions
+<<< [PASS] thumbnail_cache (22.85s)
+
+>>> [Suite: rival_contracts] Player Rival Evidence Contracts (Tier: pr, Category: benchmark)
+    Script: tests\benchmark\run_rival_contract_tests.ps1 | Cleanup: isolated_temp | Timeout: 60s
+PASS fractional alignment binds without rounding and invalid positions are rejected
+PASS location-independent complete runtime identity
+PASS ordinal inventory survives a Turkish sort culture
+PASS same-length dependency replacement changes identity
+PASS added and renamed zero-byte inputs change identity
+PASS linked inputs are rejected
+PASS recognize synthetic phase 0
+PASS recognize synthetic phase 1
+PASS recognize synthetic phase 2
+PASS recognize synthetic phase 3
+PASS bounded RGB conversion error preserves phase
+PASS all sentinel pixels must match
+PASS mixed scene phases are ambiguous
+PASS black shell is not recognized as video
+PASS incorrect sample count is rejected
+PASS invalid RGB encoding is rejected
+PASS strided BGR extraction preserves phase 0 and ignores alpha/padding
+PASS strided BGR extraction preserves phase 1 and ignores alpha/padding
+PASS strided BGR extraction preserves phase 2 and ignores alpha/padding
+PASS strided BGR extraction preserves phase 3 and ignores alpha/padding
+PASS extracted RGB at tolerance boundary retains phase
+PASS extracted RGB beyond tolerance boundary rejects phase
+PASS null BGR pointer is rejected before an invalid memory read
+PASS short BGR stride is rejected before an invalid memory read
+PASS truncated BGR storage is rejected before an invalid memory read
+PASS invalid BGR width is rejected before an invalid memory read
+PASS null sentinel coordinates is rejected before an invalid memory read
+PASS incorrect sentinel coordinate count is rejected before an invalid memory read
+PASS sentinel beyond row width is rejected before an invalid memory read
+PASS negative sentinel row is rejected before an invalid memory read
+PASS fixture and recognizer share phase/color definitions
+PASS fixture stays off screen
+PASS hidden window is rejected before any pixel read
+PASS capture restores caller DPI context
+PASS wrong PID is rejected before any pixel read
+PASS rejection retains JSON timing bounds
+PASS visibility-only guard rejects hidden canvas without pixel capture
+PASS visibility-only guard rejects foreign PID without pixel capture
+PASS missing canvas never becomes zero-latency readiness
+PASS invalid process never becomes readiness
+PASS visibility-only player discovery does not capture desktop pixels
+PASS complete readiness development check set
+36 checks passed; visible sentinel, occlusion, startup and seek validation remain deferred to the coordinated desktop session.
+PASS RC state/time batch parses complete numeric lines
+PASS partial TCP numeric line is not accepted
+PASS completed multi-digit value is preserved
+PASS extra RC numeric responses are rejected
+PASS oversized RC transcript is rejected
+PASS identical RGB samples have zero pairwise difference
+PASS channel-wise difference reaches full 8-bit range
+PASS packed RGB integers are split into independent components
+PASS pairwise metric treats neither player as reference
+PASS incomplete RGB samples are rejected
+PASS out-of-range RGB is rejected
+PASS playing status cannot validate paused color
+PASS missing position cannot validate paused color
+PASS nonfinite position cannot validate paused color
+PASS wrong phase midpoint is rejected
+PASS motion during paused sampling is rejected
+PASS stable near-midpoint paused position is accepted
+PASS already-paused VLC is never toggled into playing
+PASS playing VLC toggles once and retains both raw state/time responses
+PASS VLC stopped state cannot masquerade as paused
+PASS VLC missing status cannot masquerade as paused
+PASS control observation retains conservative QPC bounds
+PASS unconfirmed VLC pause is rejected
+PASS invalid VLC state is rejected
+PASS ordinary seek/time control remains compatible
+PASS Aperture uses its explicit pause control and retained status
+PASS Aperture sampled status does not issue another control
+PASS asynchronous pause requires a later consistent status
+PASS pause confirmation never repeats the toggle
+PASS settling retains initial replies and conservative QPC bounds
+PASS unconfirmed pause times out with its observations retained
+PASS settled pause still rejects the wrong midpoint
+PASS already-settled pause needs no further control request
+PASS old RC blocked status proves paused input without inventing a playlist state
+PASS stale pause text cannot validate an absent input
+PASS guard-only paused VLC resumes with authoritative playing confirmation
+PASS resume uses one owned toggle with one expected numeric reply
+PASS resume retains pre-control, toggle and confirmation raw/QPC evidence
+PASS resume waits past stale playing text while the input pause guard remains
+PASS asynchronous resume confirmations never repeat the toggle
+PASS already-playing VLC needs no toggle or further confirmation request
+PASS absent, unknown or stopped input fails resume without toggling
+PASS absent, unknown or stopped input fails resume without toggling
+PASS absent, unknown or stopped input fails resume without toggling
+PASS unconfirmed resume reaches its deadline without another request
+PASS resume timeout retains the one toggle and conservative QPC bounds
+PASS input loss during resume fails with its observations and toggle retained
+PASS failed resume transport is retained and never retried as another toggle
+PASS complete coarse color contract set
+49 checks passed; no player or desktop capture was used.
+Rival observer/evidence contracts passed without launching players.
+.............................................
+----------------------------------------------------------------------
+Ran 45 tests in 0.603s
+
+OK
+<<< [PASS] rival_contracts (2.65s)
+
+================================================================================
+  Test Execution Summary
+================================================================================
+
+Suite                 Tier Category        Result Duration ExitCode
+-----                 ---- --------        ------ -------- --------
+loading               pr   persistence     PASS   31.36s          0
+backend               pr   persistence     PASS   6.73s           0
+local_release         pr   package         PASS   3.18s           0
+github_update         pr   package         PASS   2.78s           0
+update_retention      pr   package         PASS   2.79s           0
+workspace_cleanup     pr   package         PASS   1.39s           0
+workflows             pr   integration     PASS   18.27s          0
+unit                  pr   unit            PASS   63.4s           0
+corpus                pr   corpus          PASS   6.42s           0
+persistence           pr   persistence     PASS   6.76s           0
+ipc                   pr   ipc             PASS   3.55s           0
+loader                pr   loader          PASS   20.9s           0
+diagnostics           pr   diagnostics     PASS   6.25s           0
+updater               pr   updater         PASS   13.77s          0
+channel_policy        pr   package         PASS   0.38s           0
+dependencies          pr   package         PASS   0.95s           0
+runtime_layout        pr   package         PASS   0.79s           0
+threat_boundaries     pr   hardening       PASS   0.13s           0
+static_analysis       pr   static_analysis PASS   59.69s          0
+stress                pr   stress          PASS   64.78s          0
+media_probe_isolation pr   stress          PASS   12.96s          0
+thumbnail_cache       pr   persistence     PASS   22.85s          0
+rival_contracts       pr   benchmark       PASS   2.65s           0
+
+
+
+Total Suites: 23 | Passed: 23 | Failed: 0 (Timeouts: 0) | Total Time: 352.83s
+Package created: C:\Users\Alperen\AppData\Local\Temp\Aperture-release-132b4307153c4c4c9713d43ff6a6e872\package
+Manifest: C:\Users\Alperen\AppData\Local\Temp\Aperture-release-132b4307153c4c4c9713d43ff6a6e872\package\manifest.json
+Authenticode: Unsigned (standard reproducible package)
+Files: 10; binary SHA-256: c4fd1fe6116b0b749563a80ed16238a6fa34daf0d299cb42e458a1be39306f6a
+Installed Aperture 2.0.0.0. Saved data retained. Backup: C:\Users\Alperen\Desktop\Antigravity\Aperture Final\release\update-backups\20261021-115907-0345025-96e2784325004118a8c7623b8a928735
+Installed Aperture 2.0.0.0. Saved data retained. Backup: C:\Users\Alperen\Desktop\Antigravity\Aperture Final\debug\update-backups\20261021-115911-4148733-b39e2f13b78348e98ed7efecd9b9f342
+Ready: C:\Users\Alperen\Desktop\Antigravity\Aperture Final\dist\Aperture-2.0.0.0-windows-x64.zip

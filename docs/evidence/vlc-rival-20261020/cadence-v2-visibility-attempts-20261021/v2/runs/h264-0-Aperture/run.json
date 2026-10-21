@@ -1,0 +1,137 @@
+{
+  "player": "Aperture",
+  "workload": "h264",
+  "round": 0,
+  "warmup": true,
+  "mediaPath": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\h264-1080p30-audio.mp4",
+  "mediaSha256": "86C249A196158CA2479BB9DD6E0045F24CBCBD2E04A80A41E37C2F6B78F70E68",
+  "executableSha256": "78B59F4E3E98E3F5F7A3E3A309C522F3CE1828E3F58E22C1A85A12C008FA9A7F",
+  "runtimeManifestSha256": "8a333e146c3153f0e00a350323a0402c265be4320fbc8bf08f70ac9530005ac8",
+  "arguments": [],
+  "startedUtc": "2026-10-21T07:49:57.1722171Z",
+  "status": "failed",
+  "guards": [
+    {
+      "status": "validated",
+      "reason": null,
+      "safe": true,
+      "ownedOverlayPresent": true,
+      "phase": -1,
+      "qpcStart": 845808150781,
+      "qpcReadStart": 0,
+      "qpcReadEnd": 0,
+      "qpcEnd": 845808200591,
+      "root": 2033254,
+      "canvas": 2360566,
+      "dpi": 96,
+      "screenCanvas": {
+        "left": 48,
+        "top": 71,
+        "right": 1328,
+        "bottom": 791
+      },
+      "rgb": []
+    },
+    {
+      "status": "validated",
+      "reason": null,
+      "safe": true,
+      "ownedOverlayPresent": true,
+      "phase": -1,
+      "qpcStart": 845858896995,
+      "qpcReadStart": 0,
+      "qpcReadEnd": 0,
+      "qpcEnd": 845858901080,
+      "root": 2033254,
+      "canvas": 2360566,
+      "dpi": 96,
+      "screenCanvas": {
+        "left": 48,
+        "top": 71,
+        "right": 1328,
+        "bottom": 791
+      },
+      "rgb": []
+    },
+    {
+      "status": "validated",
+      "reason": null,
+      "safe": true,
+      "ownedOverlayPresent": true,
+      "phase": -1,
+      "qpcStart": 845908845229,
+      "qpcReadStart": 0,
+      "qpcReadEnd": 0,
+      "qpcEnd": 845908849305,
+      "root": 2033254,
+      "canvas": 2360566,
+      "dpi": 96,
+      "screenCanvas": {
+        "left": 48,
+        "top": 71,
+        "right": 1328,
+        "bottom": 791
+      },
+      "rgb": []
+    },
+    {
+      "status": "validated",
+      "reason": null,
+      "safe": true,
+      "ownedOverlayPresent": true,
+      "phase": -1,
+      "qpcStart": 845958915209,
+      "qpcReadStart": 0,
+      "qpcReadEnd": 0,
+      "qpcEnd": 845958918045,
+      "root": 2033254,
+      "canvas": 2360566,
+      "dpi": 96,
+      "screenCanvas": {
+        "left": 48,
+        "top": 71,
+        "right": 1328,
+        "bottom": 791
+      },
+      "rgb": []
+    }
+  ],
+  "cleanup": "owned-window-closed",
+  "qpcFrequency": 10000000,
+  "pid": 24756,
+  "processStartUtc": "2026-10-21T07:49:57.2140053Z",
+  "open": {
+    "reason": null,
+    "state": 2,
+    "positionSec": 0
+  },
+  "canvas": {
+    "handle": 2360566,
+    "className": "mpv",
+    "clientWidth": 1280,
+    "clientHeight": 720,
+    "dpi": 96
+  },
+  "before": {
+    "reason": null,
+    "state": 2,
+    "positionSec": 10.1666666667
+  },
+  "collectorSchema": {
+    "requiredColumns": [
+      "Application",
+      "ProcessID",
+      "SwapChainAddress",
+      "DisplayedTime",
+      "CPUStartQPC",
+      "VidPnSourceId",
+      "LayerIndex",
+      "PresentId"
+    ],
+    "checkedQpc": 845808707003,
+    "header": "Application,ProcessID,SwapChainAddress,PresentRuntime,SyncInterval,PresentFlags,VidPnSourceId,LayerIndex,AllowsTearing,PresentMode,CPUStartQPC,FrameTime,CPUBusy,CPUWait,DisplayLatency,DisplayedTime,AnimationError,AnimationTime,MsFlipDelay,PresentId"
+  },
+  "windowStartQpc": 845808710096,
+  "failure": "Video canvas is not verifiably visible: higher-window-intersects-canvas (pid=26660,class=CodexComputerUseCursorOverlay)",
+  "endedUtc": "2026-10-21T07:50:31.0629216Z"
+}

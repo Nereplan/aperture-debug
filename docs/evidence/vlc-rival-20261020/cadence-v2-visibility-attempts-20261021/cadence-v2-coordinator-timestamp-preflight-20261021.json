@@ -1,0 +1,12 @@
+{
+  "recordedAtUtc": "2026-10-21T07:49:53.084589+00:00",
+  "stage": "coordinator identity preflight, before output directory/player creation",
+  "failure": "Collector PID was reused (false guard caused by DateTime/string comparison)",
+  "savedTimestampType": "System.DateTime",
+  "savedStartTicks": 639281657368233331,
+  "actualStartTicks": 639281657368233331,
+  "presentMonPid": 588,
+  "ownedPlayersLaunched": 0,
+  "correction": "Compare UTC ticks from explicit DateTime conversion. Keep exact PID/start-time validation. Existing owned session may continue since no player attempt occurred.",
+  "coordinatorSha256": "622bd683294b1bacbe00e936860ae97d54ee24e9b8d854eccd8ed01947478872"
+}

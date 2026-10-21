@@ -1,0 +1,454 @@
+{
+  "recordedAtUtc": "2026-10-21T08:54:36.414500+00:00",
+  "mode": "final",
+  "sourceCsv": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\cadence-collector-v2-clear-20261021\\presents.csv",
+  "sourceCsvSha256": "5e3836dbabdac932bcf78ab8ea4a39e182cdd22d992618a24c87a287edb1eb97",
+  "hashScope": "entire closed final raw CSV",
+  "snapshotFileBytes": 1761360,
+  "hashedPrefixBytes": 1761360,
+  "batchReasons": [
+    "Coordinator did not complete the full planned batch",
+    "Collector did not qualify this complete capture"
+  ],
+  "rows": 11154,
+  "fields": [
+    "Application",
+    "ProcessID",
+    "SwapChainAddress",
+    "PresentRuntime",
+    "SyncInterval",
+    "PresentFlags",
+    "VidPnSourceId",
+    "LayerIndex",
+    "AllowsTearing",
+    "PresentMode",
+    "CPUStartQPC",
+    "FrameTime",
+    "CPUBusy",
+    "CPUWait",
+    "DisplayLatency",
+    "DisplayedTime",
+    "AnimationError",
+    "AnimationTime",
+    "MsFlipDelay",
+    "PresentId"
+  ],
+  "unassignedPids": [],
+  "readErrors": [],
+  "percentileMethod": "Type7 linear interpolation of sorted finite positive durations, fixed in implementation before first duration inspection",
+  "runs": [
+    {
+      "player": "Aperture",
+      "workload": "h264",
+      "round": 0,
+      "warmup": true,
+      "pid": 31760,
+      "status": "sampled",
+      "startedUtc": "2026-10-21T07:57:01.1742610Z",
+      "endedUtc": "2026-10-21T07:58:03.2515811Z",
+      "reasons": [],
+      "identified": true,
+      "evidenceValid": true,
+      "qualified": false,
+      "guardCount": 11,
+      "chains": [
+        {
+          "chain": "0x2552EBD18F0",
+          "rows": 1663,
+          "playingRate": 30.0,
+          "pausedRate": 0.0,
+          "resumedRate": 29.333333333333332,
+          "candidate": true
+        }
+      ],
+      "videoChain": "0x2552EBD18F0",
+      "interior": {
+        "startQpc": 850098747071,
+        "endQpc": 850398747071,
+        "seconds": 30,
+        "submittedRows": 900,
+        "submissionRate": 30.0,
+        "displayedRows": 900,
+        "undisplayedRows": 0,
+        "undisplayedFraction": 0.0,
+        "invalidDurationRows": 0,
+        "displaySources": [
+          "0"
+        ],
+        "layers": [
+          "0"
+        ],
+        "presentModes": {
+          "Hardware Composed: Independent Flip": 900
+        },
+        "syncIntervals": {
+          "1": 900
+        },
+        "dpi": 96
+      },
+      "durationsMs": {
+        "median": 36.3258,
+        "p95": 36.381710000000005,
+        "p99": 36.394802,
+        "maximum": 36.4982,
+        "aboveOneAndHalfNominal": 0,
+        "longThresholdMs": 50.0
+      }
+    },
+    {
+      "player": "VLC",
+      "workload": "h264",
+      "round": 0,
+      "warmup": true,
+      "pid": 23888,
+      "status": "sampled",
+      "startedUtc": "2026-10-21T07:58:25.6795697Z",
+      "endedUtc": "2026-10-21T07:59:29.9523527Z",
+      "reasons": [],
+      "identified": true,
+      "evidenceValid": true,
+      "qualified": false,
+      "guardCount": 11,
+      "chains": [
+        {
+          "chain": "0x13A2D0B8F80",
+          "rows": 1708,
+          "playingRate": 30.0,
+          "pausedRate": 13.15815814733885,
+          "resumedRate": 30.0,
+          "candidate": true
+        }
+      ],
+      "videoChain": "0x13A2D0B8F80",
+      "interior": {
+        "startQpc": 850956427642,
+        "endQpc": 851256427642,
+        "seconds": 30,
+        "submittedRows": 900,
+        "submissionRate": 30.0,
+        "displayedRows": 900,
+        "undisplayedRows": 0,
+        "undisplayedFraction": 0.0,
+        "invalidDurationRows": 0,
+        "displaySources": [
+          "0"
+        ],
+        "layers": [
+          "0"
+        ],
+        "presentModes": {
+          "Hardware Composed: Independent Flip": 900
+        },
+        "syncIntervals": {
+          "0": 900
+        },
+        "dpi": 96
+      },
+      "durationsMs": {
+        "median": 33.33155,
+        "p95": 36.37841,
+        "p99": 36.391836000000005,
+        "maximum": 42.4321,
+        "aboveOneAndHalfNominal": 0,
+        "longThresholdMs": 50.0
+      }
+    },
+    {
+      "player": "VLC",
+      "workload": "h264",
+      "round": 1,
+      "warmup": false,
+      "pid": 22664,
+      "status": "sampled",
+      "startedUtc": "2026-10-21T07:59:51.9747498Z",
+      "endedUtc": "2026-10-21T08:00:55.5078597Z",
+      "reasons": [],
+      "identified": true,
+      "evidenceValid": true,
+      "qualified": false,
+      "guardCount": 11,
+      "chains": [
+        {
+          "chain": "0x2424E18DC60",
+          "rows": 1710,
+          "playingRate": 29.8,
+          "pausedRate": 13.096009935755651,
+          "resumedRate": 30.0,
+          "candidate": true
+        }
+      ],
+      "videoChain": "0x2424E18DC60",
+      "interior": {
+        "startQpc": 851811481353,
+        "endQpc": 852111481353,
+        "seconds": 30,
+        "submittedRows": 900,
+        "submissionRate": 30.0,
+        "displayedRows": 900,
+        "undisplayedRows": 0,
+        "undisplayedFraction": 0.0,
+        "invalidDurationRows": 0,
+        "displaySources": [
+          "0"
+        ],
+        "layers": [
+          "0"
+        ],
+        "presentModes": {
+          "Hardware Composed: Independent Flip": 900
+        },
+        "syncIntervals": {
+          "0": 900
+        },
+        "dpi": 96
+      },
+      "durationsMs": {
+        "median": 33.33885,
+        "p95": 36.380105,
+        "p99": 36.412448999999995,
+        "maximum": 42.4253,
+        "aboveOneAndHalfNominal": 0,
+        "longThresholdMs": 50.0
+      }
+    },
+    {
+      "player": "Aperture",
+      "workload": "h264",
+      "round": 1,
+      "warmup": false,
+      "pid": 31064,
+      "status": "sampled",
+      "startedUtc": "2026-10-21T08:00:55.9728110Z",
+      "endedUtc": "2026-10-21T08:01:57.7530204Z",
+      "reasons": [],
+      "identified": true,
+      "evidenceValid": true,
+      "qualified": false,
+      "guardCount": 11,
+      "chains": [
+        {
+          "chain": "0x1F01290BF70",
+          "rows": 1657,
+          "playingRate": 30.0,
+          "pausedRate": 0.0,
+          "resumedRate": 30.0,
+          "candidate": true
+        }
+      ],
+      "videoChain": "0x1F01290BF70",
+      "interior": {
+        "startQpc": 852443976340,
+        "endQpc": 852743976340,
+        "seconds": 30,
+        "submittedRows": 900,
+        "submissionRate": 30.0,
+        "displayedRows": 900,
+        "undisplayedRows": 0,
+        "undisplayedFraction": 0.0,
+        "invalidDurationRows": 0,
+        "displaySources": [
+          "0"
+        ],
+        "layers": [
+          "0"
+        ],
+        "presentModes": {
+          "Hardware Composed: Independent Flip": 900
+        },
+        "syncIntervals": {
+          "1": 900
+        },
+        "dpi": 96
+      },
+      "durationsMs": {
+        "median": 36.3198,
+        "p95": 36.38691,
+        "p99": 36.401023,
+        "maximum": 42.416,
+        "aboveOneAndHalfNominal": 0,
+        "longThresholdMs": 50.0
+      }
+    },
+    {
+      "player": "Aperture",
+      "workload": "h264",
+      "round": 2,
+      "warmup": false,
+      "pid": 9880,
+      "status": "sampled",
+      "startedUtc": "2026-10-21T08:01:58.2190165Z",
+      "endedUtc": "2026-10-21T08:03:00.1821757Z",
+      "reasons": [],
+      "identified": true,
+      "evidenceValid": true,
+      "qualified": false,
+      "guardCount": 11,
+      "chains": [
+        {
+          "chain": "0x19F384C9BD0",
+          "rows": 1662,
+          "playingRate": 30.0,
+          "pausedRate": 0.0,
+          "resumedRate": 30.0,
+          "candidate": true
+        }
+      ],
+      "videoChain": "0x19F384C9BD0",
+      "interior": {
+        "startQpc": 853068200927,
+        "endQpc": 853368200927,
+        "seconds": 30,
+        "submittedRows": 900,
+        "submissionRate": 30.0,
+        "displayedRows": 900,
+        "undisplayedRows": 0,
+        "undisplayedFraction": 0.0,
+        "invalidDurationRows": 0,
+        "displaySources": [
+          "0"
+        ],
+        "layers": [
+          "0"
+        ],
+        "presentModes": {
+          "Hardware Composed: Independent Flip": 900
+        },
+        "syncIntervals": {
+          "1": 900
+        },
+        "dpi": 96
+      },
+      "durationsMs": {
+        "median": 36.2697,
+        "p95": 36.382105,
+        "p99": 36.395306,
+        "maximum": 36.4168,
+        "aboveOneAndHalfNominal": 0,
+        "longThresholdMs": 50.0
+      }
+    },
+    {
+      "player": "VLC",
+      "workload": "h264",
+      "round": 2,
+      "warmup": false,
+      "pid": 7940,
+      "status": "sampled",
+      "startedUtc": "2026-10-21T08:03:22.4484436Z",
+      "endedUtc": "2026-10-21T08:04:25.9636288Z",
+      "reasons": [],
+      "identified": true,
+      "evidenceValid": true,
+      "qualified": false,
+      "guardCount": 11,
+      "chains": [
+        {
+          "chain": "0x29BA2B2CC10",
+          "rows": 1709,
+          "playingRate": 30.0,
+          "pausedRate": 12.696320380641328,
+          "resumedRate": 30.0,
+          "candidate": true
+        }
+      ],
+      "videoChain": "0x29BA2B2CC10",
+      "interior": {
+        "startQpc": 853916714467,
+        "endQpc": 854216714467,
+        "seconds": 30,
+        "submittedRows": 900,
+        "submissionRate": 30.0,
+        "displayedRows": 900,
+        "undisplayedRows": 0,
+        "undisplayedFraction": 0.0,
+        "invalidDurationRows": 0,
+        "displaySources": [
+          "0"
+        ],
+        "layers": [
+          "0"
+        ],
+        "presentModes": {
+          "Hardware Composed: Independent Flip": 900
+        },
+        "syncIntervals": {
+          "0": 900
+        },
+        "dpi": 96
+      },
+      "durationsMs": {
+        "median": 33.4392,
+        "p95": 36.38102,
+        "p99": 42.422903999999996,
+        "maximum": 42.4348,
+        "aboveOneAndHalfNominal": 0,
+        "longThresholdMs": 50.0
+      }
+    },
+    {
+      "player": "VLC",
+      "workload": "h264",
+      "round": 3,
+      "warmup": false,
+      "pid": 29964,
+      "status": "failed",
+      "startedUtc": "2026-10-21T08:04:47.8845268Z",
+      "endedUtc": "2026-10-21T08:05:27.3882398Z",
+      "reasons": [
+        "Video canvas is not verifiably visible: hidden-or-minimized"
+      ],
+      "identified": false,
+      "evidenceValid": false,
+      "qualified": false,
+      "guardCount": 5,
+      "failureStage": "timed-window"
+    }
+  ],
+  "workloads": {
+    "h264": {
+      "completePlannedRuns": false,
+      "identifiedRuns": 6,
+      "evidenceValidRuns": 6,
+      "qualifiedRuns": 0,
+      "runCount": 7,
+      "captureQualified": false,
+      "qualified": false,
+      "reasons": [
+        "Coordinator did not complete the full planned batch",
+        "Collector did not qualify this complete capture",
+        "Incomplete planned eight fresh processes for this workload",
+        "One or more owned runs lack complete valid evidence"
+      ],
+      "displaySources": [
+        [
+          "0"
+        ]
+      ],
+      "dpis": [
+        96
+      ],
+      "players": {}
+    },
+    "hevc": {
+      "completePlannedRuns": false,
+      "identifiedRuns": 0,
+      "evidenceValidRuns": 0,
+      "qualifiedRuns": 0,
+      "runCount": 0,
+      "captureQualified": false,
+      "qualified": false,
+      "reasons": [
+        "Coordinator did not complete the full planned batch",
+        "Collector did not qualify this complete capture",
+        "Incomplete planned eight fresh processes for this workload",
+        "One or more owned runs lack complete valid evidence",
+        "Display source differs or is unavailable across matched runs",
+        "DPI differs or is unavailable across matched runs"
+      ],
+      "displaySources": [],
+      "dpis": [],
+      "players": {}
+    }
+  },
+  "limits": "Operational video-chain identification only; no unique decoded-content, physical-panel, audio continuity, equal decoder/pixel quality, resource CPU or overall superiority claim. Interior rows selected by CPUStartQPC; final displayed intervals may extend past the interior boundary. Nominal164Hz OS display mode imposes noninteger30/60FPS refresh cadence."
+}

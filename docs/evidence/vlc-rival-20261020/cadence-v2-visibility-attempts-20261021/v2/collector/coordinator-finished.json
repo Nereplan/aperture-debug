@@ -1,0 +1,13 @@
+{
+  "protocol": "ApertureCadenceCollectorV2",
+  "controlNonce": "a10a996583da405f8562b5a6db484d5c",
+  "sessionName": "ApertureCadenceV2-2f6b60c4fae544a982385da40715ea32",
+  "presentMonPid": 588,
+  "collectorPid": 27176,
+  "runDirectory": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\cadence-runs-v2-20261021",
+  "coordinatorPid": 29100,
+  "completionStatus": "aborted",
+  "allOwnedPlayersClosed": true,
+  "createdUtc": "2026-10-21T07:50:31.0910984Z",
+  "failure": "Video canvas is not verifiably visible: higher-window-intersects-canvas (pid=26660,class=CodexComputerUseCursorOverlay)"
+}

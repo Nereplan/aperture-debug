@@ -1,0 +1,349 @@
+{
+  "player": "Aperture",
+  "workload": "h264",
+  "round": 1,
+  "warmup": false,
+  "mediaPath": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\h264-1080p30-audio.mp4",
+  "mediaSha256": "86C249A196158CA2479BB9DD6E0045F24CBCBD2E04A80A41E37C2F6B78F70E68",
+  "executableSha256": "78B59F4E3E98E3F5F7A3E3A309C522F3CE1828E3F58E22C1A85A12C008FA9A7F",
+  "runtimeManifestSha256": "8a333e146c3153f0e00a350323a0402c265be4320fbc8bf08f70ac9530005ac8",
+  "arguments": [],
+  "startedUtc": "2026-10-21T08:00:55.9728110Z",
+  "status": "sampled",
+  "guards": [
+    {
+      "status": "validated",
+      "reason": null,
+      "safe": true,
+      "ownedOverlayPresent": false,
+      "phase": -1,
+      "qpcStart": 852393612525,
+      "qpcReadStart": 0,
+      "qpcReadEnd": 0,
+      "qpcEnd": 852393614762,
+      "root": 2557450,
+      "canvas": 8456548,
+      "dpi": 96,
+      "screenCanvas": {
+        "left": 48,
+        "top": 71,
+        "right": 1328,
+        "bottom": 791
+      },
+      "rgb": []
+    },
+    {
+      "status": "validated",
+      "reason": null,
+      "safe": true,
+      "ownedOverlayPresent": false,
+      "phase": -1,
+      "qpcStart": 852444091949,
+      "qpcReadStart": 0,
+      "qpcReadEnd": 0,
+      "qpcEnd": 852444094969,
+      "root": 2557450,
+      "canvas": 8456548,
+      "dpi": 96,
+      "screenCanvas": {
+        "left": 48,
+        "top": 71,
+        "right": 1328,
+        "bottom": 791
+      },
+      "rgb": []
+    },
+    {
+      "status": "validated",
+      "reason": null,
+      "safe": true,
+      "ownedOverlayPresent": false,
+      "phase": -1,
+      "qpcStart": 852494063454,
+      "qpcReadStart": 0,
+      "qpcReadEnd": 0,
+      "qpcEnd": 852494067497,
+      "root": 2557450,
+      "canvas": 8456548,
+      "dpi": 96,
+      "screenCanvas": {
+        "left": 48,
+        "top": 71,
+        "right": 1328,
+        "bottom": 791
+      },
+      "rgb": []
+    },
+    {
+      "status": "validated",
+      "reason": null,
+      "safe": true,
+      "ownedOverlayPresent": false,
+      "phase": -1,
+      "qpcStart": 852544082402,
+      "qpcReadStart": 0,
+      "qpcReadEnd": 0,
+      "qpcEnd": 852544084655,
+      "root": 2557450,
+      "canvas": 8456548,
+      "dpi": 96,
+      "screenCanvas": {
+        "left": 48,
+        "top": 71,
+        "right": 1328,
+        "bottom": 791
+      },
+      "rgb": []
+    },
+    {
+      "status": "validated",
+      "reason": null,
+      "safe": true,
+      "ownedOverlayPresent": false,
+      "phase": -1,
+      "qpcStart": 852594126272,
+      "qpcReadStart": 0,
+      "qpcReadEnd": 0,
+      "qpcEnd": 852594128153,
+      "root": 2557450,
+      "canvas": 8456548,
+      "dpi": 96,
+      "screenCanvas": {
+        "left": 48,
+        "top": 71,
+        "right": 1328,
+        "bottom": 791
+      },
+      "rgb": []
+    },
+    {
+      "status": "validated",
+      "reason": null,
+      "safe": true,
+      "ownedOverlayPresent": false,
+      "phase": -1,
+      "qpcStart": 852644031428,
+      "qpcReadStart": 0,
+      "qpcReadEnd": 0,
+      "qpcEnd": 852644033282,
+      "root": 2557450,
+      "canvas": 8456548,
+      "dpi": 96,
+      "screenCanvas": {
+        "left": 48,
+        "top": 71,
+        "right": 1328,
+        "bottom": 791
+      },
+      "rgb": []
+    },
+    {
+      "status": "validated",
+      "reason": null,
+      "safe": true,
+      "ownedOverlayPresent": false,
+      "phase": -1,
+      "qpcStart": 852694113610,
+      "qpcReadStart": 0,
+      "qpcReadEnd": 0,
+      "qpcEnd": 852694115505,
+      "root": 2557450,
+      "canvas": 8456548,
+      "dpi": 96,
+      "screenCanvas": {
+        "left": 48,
+        "top": 71,
+        "right": 1328,
+        "bottom": 791
+      },
+      "rgb": []
+    },
+    {
+      "status": "validated",
+      "reason": null,
+      "safe": true,
+      "ownedOverlayPresent": false,
+      "phase": -1,
+      "qpcStart": 852744111799,
+      "qpcReadStart": 0,
+      "qpcReadEnd": 0,
+      "qpcEnd": 852744114892,
+      "root": 2557450,
+      "canvas": 8456548,
+      "dpi": 96,
+      "screenCanvas": {
+        "left": 48,
+        "top": 71,
+        "right": 1328,
+        "bottom": 791
+      },
+      "rgb": []
+    },
+    {
+      "status": "validated",
+      "reason": null,
+      "safe": true,
+      "ownedOverlayPresent": false,
+      "phase": -1,
+      "qpcStart": 852794246885,
+      "qpcReadStart": 0,
+      "qpcReadEnd": 0,
+      "qpcEnd": 852794249150,
+      "root": 2557450,
+      "canvas": 8456548,
+      "dpi": 96,
+      "screenCanvas": {
+        "left": 48,
+        "top": 71,
+        "right": 1328,
+        "bottom": 791
+      },
+      "rgb": []
+    },
+    {
+      "status": "validated",
+      "reason": null,
+      "safe": true,
+      "ownedOverlayPresent": false,
+      "phase": -1,
+      "qpcStart": 852825130053,
+      "qpcReadStart": 0,
+      "qpcReadEnd": 0,
+      "qpcEnd": 852825131946,
+      "root": 2557450,
+      "canvas": 8456548,
+      "dpi": 96,
+      "screenCanvas": {
+        "left": 48,
+        "top": 71,
+        "right": 1328,
+        "bottom": 791
+      },
+      "rgb": []
+    },
+    {
+      "status": "validated",
+      "reason": null,
+      "safe": true,
+      "ownedOverlayPresent": false,
+      "phase": -1,
+      "qpcStart": 852875742204,
+      "qpcReadStart": 0,
+      "qpcReadEnd": 0,
+      "qpcEnd": 852875744893,
+      "root": 2557450,
+      "canvas": 8456548,
+      "dpi": 96,
+      "screenCanvas": {
+        "left": 48,
+        "top": 71,
+        "right": 1328,
+        "bottom": 791
+      },
+      "rgb": []
+    }
+  ],
+  "cleanup": "owned-window-closed",
+  "qpcFrequency": 10000000,
+  "pid": 31064,
+  "processStartUtc": "2026-10-21T08:00:56.0105250Z",
+  "open": {
+    "positionSec": 0,
+    "state": 2,
+    "reason": null
+  },
+  "canvas": {
+    "handle": 8456548,
+    "className": "mpv",
+    "clientWidth": 1280,
+    "clientHeight": 720,
+    "dpi": 96
+  },
+  "before": {
+    "positionSec": 9.93333333333,
+    "state": 2,
+    "reason": null
+  },
+  "collectorSchema": {
+    "checkedQpc": 852393976142,
+    "header": "Application,ProcessID,SwapChainAddress,PresentRuntime,SyncInterval,PresentFlags,VidPnSourceId,LayerIndex,AllowsTearing,PresentMode,CPUStartQPC,FrameTime,CPUBusy,CPUWait,DisplayLatency,DisplayedTime,AnimationError,AnimationTime,MsFlipDelay,PresentId",
+    "requiredColumns": [
+      "Application",
+      "ProcessID",
+      "SwapChainAddress",
+      "DisplayedTime",
+      "CPUStartQPC",
+      "VidPnSourceId",
+      "LayerIndex",
+      "PresentId"
+    ]
+  },
+  "windowStartQpc": 852393976340,
+  "windowEndQpc": 852794249462,
+  "after": {
+    "positionSec": 50,
+    "state": 2,
+    "reason": null
+  },
+  "pause": {
+    "reason": null,
+    "qpcStart": 852794499908,
+    "qpcEnd": 852794834873,
+    "paused": true,
+    "state": 3,
+    "positionSec": 50,
+    "raw": {
+      "positionSec": 50,
+      "state": 3,
+      "reason": null
+    }
+  },
+  "pauseSettlement": {
+    "qpcEnd": 852794858474,
+    "status": "settled",
+    "observations": [
+      {
+        "reason": null,
+        "qpcStart": 852794499908,
+        "qpcEnd": 852794834873,
+        "paused": true,
+        "state": 3,
+        "positionSec": 50,
+        "raw": {
+          "positionSec": 50,
+          "state": 3,
+          "reason": null
+        }
+      }
+    ],
+    "qpcStart": 852794836406
+  },
+  "pauseStartQpc": 852794858566,
+  "pauseConfirmation": {
+    "reason": null,
+    "qpcStart": 852824866581,
+    "qpcEnd": 852825108450,
+    "paused": true,
+    "state": 3,
+    "positionSec": 50,
+    "raw": {
+      "positionSec": 50,
+      "state": 3,
+      "reason": null
+    }
+  },
+  "pauseEndQpc": 852825127523,
+  "resume": {
+    "positionSec": 50.0333333333,
+    "state": 2,
+    "reason": null
+  },
+  "resumeStartQpc": 852825441735,
+  "resumeEndQpc": 852875485862,
+  "resumedStatus": {
+    "positionSec": 55.0333333333,
+    "state": 2,
+    "reason": null
+  },
+  "endedUtc": "2026-10-21T08:01:57.7530204Z"
+}
