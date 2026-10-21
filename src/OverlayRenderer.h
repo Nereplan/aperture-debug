@@ -105,6 +105,7 @@ private:
     void RefreshCadence(HWND hOverlayWnd, double now);
     void ArmFrameTimer(double now);
     ComPtr<ID2D1Factory1> d2dFactory;
+    std::unordered_map<std::string, ComPtr<ID2D1PathGeometry>> svgGeometryCache;
     ComPtr<IDWriteRenderingParams3> textRenderingParams;
     ComPtr<IDWriteRenderingParams3> menuTextRenderingParams;
     ComPtr<ID2D1DCRenderTarget> dcRenderTarget;

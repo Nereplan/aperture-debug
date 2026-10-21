@@ -79,6 +79,7 @@ void Renderer::Shutdown() {
     ShutdownPrewarm();
     if (deviceWorker.joinable()) deviceWorker.join();
     ReleaseDeviceResources();
+    svgGeometryCache.clear();
     asyncD3dDevice.Reset();
     asyncD3dContext.Reset();
     layoutCache.clear();
@@ -1252,13 +1253,12 @@ void Renderer::DrawAmbientBackground(const D2D1_RECT_F&, const Settings& s) {
 
 void Renderer::DrawSvgPath(const char* svgPath, const D2D1_RECT_F& rect, const D2D1_COLOR_F& color, float viewBox, bool fill, float strokeWidth) {
     if (!d2dContext || !solidBrush || !d2dFactory || !svgPath) return;
-    static std::unordered_map<std::string, ComPtr<ID2D1PathGeometry>> g_svgCache;
-    auto it = g_svgCache.find(svgPath);
-    if (it == g_svgCache.end()) {
-        if (g_svgCache.size() > 512) g_svgCache.clear();
+    auto it = svgGeometryCache.find(svgPath);
+    if (it == svgGeometryCache.end()) {
+        if (svgGeometryCache.size() > 512) svgGeometryCache.clear();
         auto geom = SvgGeometry::Build(d2dFactory.Get(), svgPath);
-        g_svgCache[svgPath] = geom;
-        it = g_svgCache.find(svgPath);
+        svgGeometryCache[svgPath] = geom;
+        it = svgGeometryCache.find(svgPath);
     }
     ID2D1PathGeometry* geom = it->second.Get();
     if (!geom) return;

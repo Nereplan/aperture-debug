@@ -214,6 +214,8 @@ private:
     ComPtr<ID3D11DeviceContext> d3dContext;
     ComPtr<IDXGISwapChain1> swapChain;
     ComPtr<ID2D1Factory1> d2dFactory;
+    // Geometry belongs to this factory and survives device-only retirement.
+    std::unordered_map<std::string, ComPtr<ID2D1PathGeometry>> svgGeometryCache;
     ComPtr<ID2D1Device> d2dDevice;
     ComPtr<ID2D1DeviceContext> d2dContext;
     ComPtr<ID2D1Bitmap1> d2dTargetBitmap;

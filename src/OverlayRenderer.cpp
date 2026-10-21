@@ -53,10 +53,12 @@ void OverlayRenderer::Shutdown() {
     innerHighlightBrushCache.clear();
     customFontCollection.Reset();
     dwriteFactory.Reset();
+    svgGeometryCache.clear();
     d2dFactory.Reset();
 }
 
 bool OverlayRenderer::Initialize(ID2D1Factory1* pFactory, IDWriteFactory* pDWriteFactory, float scale, IDWriteFontCollection1* sharedCollection) {
+    if (d2dFactory.Get() != pFactory) svgGeometryCache.clear();
     d2dFactory = pFactory;
     if (pDWriteFactory) { pDWriteFactory->QueryInterface(__uuidof(IDWriteFactory3), (void**)&dwriteFactory); }
     dpiScale = scale;
@@ -462,13 +464,12 @@ D2D1_SIZE_F OverlayRenderer::MeasureString(const std::wstring& text, FontType fo
 
 void OverlayRenderer::DrawSvgPath(const char* svgPath, const D2D1_RECT_F& rect, const D2D1_COLOR_F& color, float viewBox, bool fill, float strokeWidth) {
     if (!dcRenderTarget || !solidBrush || !d2dFactory || !svgPath) return;
-    static std::unordered_map<std::string, ComPtr<ID2D1PathGeometry>> g_svgOverlayCache;
-    auto it = g_svgOverlayCache.find(svgPath);
-    if (it == g_svgOverlayCache.end()) {
-        if (g_svgOverlayCache.size() >= 512) g_svgOverlayCache.clear();
+    auto it = svgGeometryCache.find(svgPath);
+    if (it == svgGeometryCache.end()) {
+        if (svgGeometryCache.size() >= 512) svgGeometryCache.clear();
         auto geom = SvgGeometry::Build(d2dFactory.Get(), svgPath);
-        g_svgOverlayCache[svgPath] = geom;
-        it = g_svgOverlayCache.find(svgPath);
+        svgGeometryCache[svgPath] = geom;
+        it = svgGeometryCache.find(svgPath);
     }
     ID2D1PathGeometry* geom = it->second.Get();
     if (!geom) return;
