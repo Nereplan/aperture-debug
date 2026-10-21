@@ -1,0 +1,19 @@
+h264 Aperture round0: sampled
+h264 VLC round0: sampled
+h264 VLC round1: sampled
+h264 Aperture round1: sampled
+h264 Aperture round2: sampled
+h264 VLC round2: sampled
+h264 VLC round3: sampled
+h264 Aperture round3: sampled
+hevc Aperture round0: sampled
+hevc VLC round0: sampled
+hevc VLC round1: sampled
+hevc Aperture round1: sampled
+hevc Aperture round2: sampled
+hevc VLC round2: sampled
+Exception: C:\Users\Alperen\AppData\Local\Codex\tools\scratch\aperture-rival-20261019\run-cadence-batches-20261021.ps1:36
+Line |
+  36 |  … on SilentlyContinue)){throw 'Collector ended before remaining runs.'}
+     |                          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+     | Collector ended before remaining runs.

@@ -1,0 +1,272 @@
+{
+  "scope": "Diagnostic chain-identification rates only. Default schema lacks predeclared DisplayedTime; no duration metric or quality ranking. Incomplete HEVC batch retained without splicing.",
+  "csvFields": [
+    "Application",
+    "ProcessID",
+    "SwapChainAddress",
+    "PresentRuntime",
+    "SyncInterval",
+    "PresentFlags",
+    "VidPnSourceId",
+    "LayerIndex",
+    "AllowsTearing",
+    "PresentMode",
+    "TimeInQPC",
+    "MsBetweenSimulationStart",
+    "MsBetweenPresents",
+    "MsBetweenDisplayChange",
+    "MsInPresentAPI",
+    "MsRenderPresentLatency",
+    "MsUntilDisplayed",
+    "CPUStartQPC",
+    "MsBetweenAppStart",
+    "MsCPUBusy",
+    "MsCPUWait",
+    "MsAnimationError",
+    "AnimationTime",
+    "MsFlipDelay",
+    "PresentId"
+  ],
+  "rowCount": 32012,
+  "foreignPids": [],
+  "runs": [
+    {
+      "player": "Aperture",
+      "workload": "h264",
+      "round": 0,
+      "pid": 3040,
+      "chains": [
+        {
+          "chain": "0x21BC3B62F40",
+          "rows": 1664,
+          "playingRate": 30.0,
+          "pausedRate": 0.0,
+          "resumedRate": 30.0,
+          "candidate": true
+        }
+      ],
+      "candidates": 1
+    },
+    {
+      "player": "VLC",
+      "workload": "h264",
+      "round": 0,
+      "pid": 28120,
+      "chains": [
+        {
+          "chain": "0x1AAC643A250",
+          "rows": 1705,
+          "playingRate": 30.0,
+          "pausedRate": 12.722930481059656,
+          "resumedRate": 30.0,
+          "candidate": false
+        }
+      ],
+      "candidates": 0
+    },
+    {
+      "player": "VLC",
+      "workload": "h264",
+      "round": 1,
+      "pid": 18060,
+      "chains": [
+        {
+          "chain": "0x2923BAFC0B0",
+          "rows": 1706,
+          "playingRate": 30.0,
+          "pausedRate": 13.146478058528121,
+          "resumedRate": 30.0,
+          "candidate": false
+        }
+      ],
+      "candidates": 0
+    },
+    {
+      "player": "Aperture",
+      "workload": "h264",
+      "round": 1,
+      "pid": 27832,
+      "chains": [
+        {
+          "chain": "0x242209B8E50",
+          "rows": 1662,
+          "playingRate": 30.0,
+          "pausedRate": 0.0,
+          "resumedRate": 30.0,
+          "candidate": true
+        }
+      ],
+      "candidates": 1
+    },
+    {
+      "player": "Aperture",
+      "workload": "h264",
+      "round": 2,
+      "pid": 27448,
+      "chains": [
+        {
+          "chain": "0x1C8ABF705C0",
+          "rows": 1661,
+          "playingRate": 30.0,
+          "pausedRate": 0.0,
+          "resumedRate": 29.333333333333332,
+          "candidate": true
+        }
+      ],
+      "candidates": 1
+    },
+    {
+      "player": "VLC",
+      "workload": "h264",
+      "round": 2,
+      "pid": 26972,
+      "chains": [
+        {
+          "chain": "0x1F7FC69C4D0",
+          "rows": 1706,
+          "playingRate": 30.0,
+          "pausedRate": 13.060126068464072,
+          "resumedRate": 30.0,
+          "candidate": false
+        }
+      ],
+      "candidates": 0
+    },
+    {
+      "player": "VLC",
+      "workload": "h264",
+      "round": 3,
+      "pid": 20696,
+      "chains": [
+        {
+          "chain": "0x1F71CC419A0",
+          "rows": 1711,
+          "playingRate": 30.0,
+          "pausedRate": 13.02576039504526,
+          "resumedRate": 30.0,
+          "candidate": false
+        }
+      ],
+      "candidates": 0
+    },
+    {
+      "player": "Aperture",
+      "workload": "h264",
+      "round": 3,
+      "pid": 21492,
+      "chains": [
+        {
+          "chain": "0x1A00C302FD0",
+          "rows": 1662,
+          "playingRate": 30.0,
+          "pausedRate": 0.0,
+          "resumedRate": 30.0,
+          "candidate": true
+        }
+      ],
+      "candidates": 1
+    },
+    {
+      "player": "Aperture",
+      "workload": "hevc",
+      "round": 0,
+      "pid": 2560,
+      "chains": [
+        {
+          "chain": "0x29DAB8763B0",
+          "rows": 3319,
+          "playingRate": 60.0,
+          "pausedRate": 0.0,
+          "resumedRate": 59.333333333333336,
+          "candidate": true
+        }
+      ],
+      "candidates": 1
+    },
+    {
+      "player": "VLC",
+      "workload": "hevc",
+      "round": 0,
+      "pid": 25084,
+      "chains": [
+        {
+          "chain": "0x20840709EA0",
+          "rows": 3369,
+          "playingRate": 60.0,
+          "pausedRate": 13.107039669298155,
+          "resumedRate": 60.0,
+          "candidate": false
+        }
+      ],
+      "candidates": 0
+    },
+    {
+      "player": "VLC",
+      "workload": "hevc",
+      "round": 1,
+      "pid": 26664,
+      "chains": [
+        {
+          "chain": "0x2152F5183A0",
+          "rows": 3379,
+          "playingRate": 60.0,
+          "pausedRate": 13.078402876650765,
+          "resumedRate": 60.0,
+          "candidate": false
+        }
+      ],
+      "candidates": 0
+    },
+    {
+      "player": "Aperture",
+      "workload": "hevc",
+      "round": 1,
+      "pid": 9528,
+      "chains": [
+        {
+          "chain": "0x2562ABE4F30",
+          "rows": 3319,
+          "playingRate": 60.0,
+          "pausedRate": 0.0,
+          "resumedRate": 60.0,
+          "candidate": true
+        }
+      ],
+      "candidates": 1
+    },
+    {
+      "player": "Aperture",
+      "workload": "hevc",
+      "round": 2,
+      "pid": 25580,
+      "chains": [
+        {
+          "chain": "0x1D9B5369D70",
+          "rows": 3318,
+          "playingRate": 60.0,
+          "pausedRate": 0.0,
+          "resumedRate": 60.0,
+          "candidate": true
+        }
+      ],
+      "candidates": 1
+    },
+    {
+      "player": "VLC",
+      "workload": "hevc",
+      "round": 2,
+      "pid": 4932,
+      "chains": [
+        {
+          "chain": "0x2333B7A40A0",
+          "rows": 1831,
+          "playingRate": 0.0,
+          "pausedRate": 0.0,
+          "resumedRate": 0.0,
+          "candidate": false
+        }
+      ],
+      "candidates": 0
+    }
+  ]
+}

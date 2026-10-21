@@ -1,0 +1,26 @@
+{
+  "recordedAtUtc": "2026-10-21T07:43:31.463373+00:00",
+  "buildSourceCommit": "2e5372016c0be5462c169c7cffefc0679ad33621",
+  "productionSourceDirty": false,
+  "files": [
+    {
+      "path": "build-test-package.txt",
+      "bytes": 55603,
+      "sha256": "60a0168f8fa0e96da5fcfd391c5a6cbead18aaecbe50af565ee0ea24eda57e53",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\effective-decoder-build-and-release-20261021.txt"
+    },
+    {
+      "path": "payload-validation.json",
+      "bytes": 1150,
+      "sha256": "3efee8fb925a19f0427a90728426b8c5651b946d691f29d48785ca0243df16bb",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\effective-decoder-payload-validation-20261021.json"
+    },
+    {
+      "path": "focused-native.log",
+      "bytes": 1354,
+      "sha256": "958811815e4cec4c4daccf65d0e2c7f827adeb66559884d3c3a8e145386dcbeb",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-hwdec-availability-20261021-170b0e474e0a4524965c5cd1e80bd05d\\MpvInitialization.log"
+    }
+  ],
+  "scope": "Validated effective-decoder availability cleanup only; no new resource performance measurement. Test counts overlap and are not added together. Unit suite162 passed/1 expected geometry skip; full gate23/23. Ten managed payload hashes independently verified in release/debug/ZIP."
+}

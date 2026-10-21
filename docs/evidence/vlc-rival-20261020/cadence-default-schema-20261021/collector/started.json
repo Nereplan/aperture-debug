@@ -1,0 +1,27 @@
+{
+  "startedUtc": "2026-10-21T07:04:40.5478781Z",
+  "scope": "One temporarily elevated, bounded PresentMon collector. Only Aperture.exe/vlc.exe names are collected; analysis must retain only the exact coordinator-owned PID/start-time/run windows and reject any foreign player. No resource CPU ranking.",
+  "presentMonPid": 29892,
+  "presentMonSha256": "b2a706bc6ad475749e3b7e3409263aa1e6906d45bdcf993f6dbc0f660188f1af",
+  "arguments": [
+    "--process_name",
+    "Aperture.exe",
+    "--process_name",
+    "vlc.exe",
+    "--session_name",
+    "ApertureCadence-353c09a483464175987e6d98c9e36381",
+    "--output_file",
+    "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\cadence-collector-20261021\\presents.csv",
+    "--timed",
+    "1200",
+    "--terminate_after_timed",
+    "--qpc_time",
+    "--write_display_metadata",
+    "--no_console_stats",
+    "--no_track_gpu",
+    "--no_track_input"
+  ],
+  "sessionName": "ApertureCadence-353c09a483464175987e6d98c9e36381",
+  "maximumSeconds": 1200,
+  "status": "running"
+}

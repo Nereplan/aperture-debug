@@ -96,7 +96,7 @@ git diff --check</pre>
 <script id="checkpoint-data" type="application/json">
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-10-21T07:16:32+00:00",
+  "updatedAt": "2026-10-21T07:43:31+00:00",
   "metrics": {
     "visible-ms": {
       "label": "Visible window",
@@ -19771,6 +19771,56 @@ git diff --check</pre>
           "durationSeconds": null,
           "evidence": "docs/evidence/vlc-rival-20261020/hidden-hub-observation-20261021/review.json",
           "scope": "One run with 34 nested snapshots, not that many independent tests or performance repetitions."
+        }
+      ]
+    },
+    {
+      "id": "effective-decoder-validation-20261021",
+      "label": "Effective decoder availability: installed cleanup validation",
+      "measuredAt": "2026-10-21T07:43:31.463373+00:00",
+      "commit": "2e5372016c0be5462c169c7cffefc0679ad33621",
+      "dirty": false,
+      "sourceNote": "Clean committed production source2e53720. Current installed EXE3,440,640bytes/SHA25619933169c047ad056c820e6277cd9a3fdedc11c078046771e084b92073c12bcf; frozen rivalry observations remain23fd026.",
+      "notes": [
+        "Removed unsupported hwdec-active fallback. Report only effective hwdec-current; unavailable values render muted HW:N/A rather than a configured auto-safe guess.",
+        "Normal build_and_release.ps1 -FailFast passed23/23 suites in393.06s, built/package/installed release and debug while retaining saved data. Native suite162 passed,0failed,1expected visible-geometry skip among163registered. Focused native5/5 is overlapping validation, not five additional full-gate cases.",
+        "Independent verification matched all10managed payload hashes in each installed copy andZIP. EXE512bytes smaller than previous installed cleanup; no attribution to execution speed or current rivalry resource results. No GitHub upload/tag."
+      ],
+      "results": [],
+      "tests": [
+        {
+          "name": "Normal local build, regression gate, package and install",
+          "status": "pass",
+          "passed": 23,
+          "total": 23,
+          "durationSeconds": 393.06,
+          "evidence": "docs/evidence/vlc-rival-20261020/effective-decoder-validation-20261021/review.json",
+          "scope": "Suites, not individual checks; expected native geometry skip retained."
+        }
+      ]
+    },
+    {
+      "id": "cadence-default-schema-diagnostic-20261021",
+      "label": "PresentMon default-schema capture: unqualified diagnostic",
+      "measuredAt": "2026-10-21T07:24:40.6657897Z",
+      "commit": "23fd026c2b114f8391465bfb5f7d28a79da02025",
+      "dirty": false,
+      "sourceNote": "Frozen clean23fd026 runtime, verified official PresentMon2.6.0 SHA256b2a706bc6ad475749e3b7e3409263aa1e6906d45bdcf993f6dbc0f660188f1af. Temporary user-approved elevation; no permanent security changes.",
+      "notes": [
+        "Collector exits0 without reported ETW loss. Original plan is unqualified: default CSV lacks DisplayedTime, and VLC paused repaint rate fails the original at-most1present/sec identification rule. These are harness limitations, not product quality failures.",
+        "All14attempted launches and32,012rows retained. H2648launches completed; HEVC6attempted and last VLC run straddles collector end. Do not join sessions or replace an individual failed run. No duration distributions or quality ranking computed.",
+        "Raw7,555,466-byte CSV stored losslessly as gzip with original/decompressed hash and exact compressed hash. Original plans, launchers, run statuses and diagnostic chain-rate summaries retained. A revised plan precedes a separate full capture."
+      ],
+      "results": [],
+      "tests": [
+        {
+          "name": "Planned cadence comparison qualification",
+          "status": "partial",
+          "passed": 0,
+          "total": 1,
+          "durationSeconds": null,
+          "evidence": "docs/evidence/vlc-rival-20261020/cadence-default-schema-20261021/review.json",
+          "scope": "Harness/schema and incomplete capture; no cadence result or player failure."
         }
       ]
     }

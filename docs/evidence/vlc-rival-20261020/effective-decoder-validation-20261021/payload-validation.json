@@ -1,0 +1,30 @@
+{
+  "verifiedAtUtc": "2026-10-21T07:42:22.200428+00:00",
+  "buildSourceCommit": "2e5372016c0be5462c169c7cffefc0679ad33621",
+  "productionSourceDirty": false,
+  "managedPayloadsVerified": {
+    "release": 10,
+    "debug": 10,
+    "zip": 10
+  },
+  "executable": {
+    "path": "Aperture.exe",
+    "size": 3440640,
+    "sha256": "19933169c047ad056c820e6277cd9a3fdedc11c078046771e084b92073c12bcf"
+  },
+  "distribution": {
+    "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\dist\\Aperture-2.0.0.0-windows-x64.zip",
+    "bytes": 14443075,
+    "sha256": "f3c21e2b06dee3e9c4e118720c0f1eeb8e8e1e8f37808812f5504fbfbdce3e67"
+  },
+  "gate": {
+    "suitesPassed": 23,
+    "suitesTotal": 23,
+    "durationSeconds": 393.06,
+    "nativePassed": 162,
+    "nativeFailed": 0,
+    "nativeSkipped": 1,
+    "nativeRegistered": 163
+  },
+  "scope": "Locally observed committed production source and managed payload hashes; not a signed source-to-binary attestation. Diagnostic-only HW availability change. Saved data retained by normal local build/package/install workflow. Frozen rivalry runtime remains separate23fd026."
+}

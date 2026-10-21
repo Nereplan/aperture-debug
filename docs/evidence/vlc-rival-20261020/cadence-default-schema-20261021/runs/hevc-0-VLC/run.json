@@ -1,0 +1,453 @@
+{
+  "player": "VLC",
+  "workload": "hevc",
+  "round": 0,
+  "warmup": true,
+  "mediaPath": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\hevc-2160p60-audio.mp4",
+  "mediaSha256": "05C53F25A63790BB4F6B5D9B83B8818C405E35C6DBF44FA4A65D62B29D947161",
+  "executableSha256": "63D0D02DF6E466D642B824DC66BE6B5A134BF98B26747FFAC8EC0D879DC180D7",
+  "runtimeManifestSha256": "a48412d2ee742a32192cf0c8389d2251c180160c2bc615492044d1a73aa5b2ff",
+  "arguments": [
+    "--intf=qt",
+    "--ignore-config",
+    "--config=C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\cadence-runs-20261021\\hevc-0-VLC\\vlcrc",
+    "--no-one-instance",
+    "--no-one-instance-when-started-from-file",
+    "--no-media-library",
+    "--no-metadata-network-access",
+    "--no-qt-privacy-ask",
+    "--no-qt-updates-notif",
+    "--no-qt-recentplay",
+    "--qt-continue=0",
+    "--no-qt-video-autoresize",
+    "--extraintf=rc",
+    "--rc-quiet",
+    "--rc-host=127.0.0.1:51898"
+  ],
+  "startedUtc": "2026-10-21T07:19:06.4279775Z",
+  "status": "sampled",
+  "guards": [
+    {
+      "status": "validated",
+      "reason": null,
+      "safe": true,
+      "ownedOverlayPresent": false,
+      "phase": -1,
+      "qpcStart": 827315725856,
+      "qpcReadStart": 0,
+      "qpcReadEnd": 0,
+      "qpcEnd": 827315732526,
+      "root": 48235602,
+      "canvas": 27723742,
+      "dpi": 96,
+      "screenCanvas": {
+        "left": 48,
+        "top": 92,
+        "right": 1328,
+        "bottom": 812
+      },
+      "rgb": []
+    },
+    {
+      "status": "validated",
+      "reason": null,
+      "safe": true,
+      "ownedOverlayPresent": false,
+      "phase": -1,
+      "qpcStart": 827367283098,
+      "qpcReadStart": 0,
+      "qpcReadEnd": 0,
+      "qpcEnd": 827367285528,
+      "root": 48235602,
+      "canvas": 27723742,
+      "dpi": 96,
+      "screenCanvas": {
+        "left": 48,
+        "top": 92,
+        "right": 1328,
+        "bottom": 812
+      },
+      "rgb": []
+    },
+    {
+      "status": "validated",
+      "reason": null,
+      "safe": true,
+      "ownedOverlayPresent": false,
+      "phase": -1,
+      "qpcStart": 827417384657,
+      "qpcReadStart": 0,
+      "qpcReadEnd": 0,
+      "qpcEnd": 827417386732,
+      "root": 48235602,
+      "canvas": 27723742,
+      "dpi": 96,
+      "screenCanvas": {
+        "left": 48,
+        "top": 92,
+        "right": 1328,
+        "bottom": 812
+      },
+      "rgb": []
+    },
+    {
+      "status": "validated",
+      "reason": null,
+      "safe": true,
+      "ownedOverlayPresent": false,
+      "phase": -1,
+      "qpcStart": 827467407171,
+      "qpcReadStart": 0,
+      "qpcReadEnd": 0,
+      "qpcEnd": 827467410316,
+      "root": 48235602,
+      "canvas": 27723742,
+      "dpi": 96,
+      "screenCanvas": {
+        "left": 48,
+        "top": 92,
+        "right": 1328,
+        "bottom": 812
+      },
+      "rgb": []
+    },
+    {
+      "status": "validated",
+      "reason": null,
+      "safe": true,
+      "ownedOverlayPresent": false,
+      "phase": -1,
+      "qpcStart": 827517440682,
+      "qpcReadStart": 0,
+      "qpcReadEnd": 0,
+      "qpcEnd": 827517442716,
+      "root": 48235602,
+      "canvas": 27723742,
+      "dpi": 96,
+      "screenCanvas": {
+        "left": 48,
+        "top": 92,
+        "right": 1328,
+        "bottom": 812
+      },
+      "rgb": []
+    },
+    {
+      "status": "validated",
+      "reason": null,
+      "safe": true,
+      "ownedOverlayPresent": false,
+      "phase": -1,
+      "qpcStart": 827567385631,
+      "qpcReadStart": 0,
+      "qpcReadEnd": 0,
+      "qpcEnd": 827567388521,
+      "root": 48235602,
+      "canvas": 27723742,
+      "dpi": 96,
+      "screenCanvas": {
+        "left": 48,
+        "top": 92,
+        "right": 1328,
+        "bottom": 812
+      },
+      "rgb": []
+    },
+    {
+      "status": "validated",
+      "reason": null,
+      "safe": true,
+      "ownedOverlayPresent": false,
+      "phase": -1,
+      "qpcStart": 827617309578,
+      "qpcReadStart": 0,
+      "qpcReadEnd": 0,
+      "qpcEnd": 827617311590,
+      "root": 48235602,
+      "canvas": 27723742,
+      "dpi": 96,
+      "screenCanvas": {
+        "left": 48,
+        "top": 92,
+        "right": 1328,
+        "bottom": 812
+      },
+      "rgb": []
+    },
+    {
+      "status": "validated",
+      "reason": null,
+      "safe": true,
+      "ownedOverlayPresent": false,
+      "phase": -1,
+      "qpcStart": 827667341645,
+      "qpcReadStart": 0,
+      "qpcReadEnd": 0,
+      "qpcEnd": 827667343521,
+      "root": 48235602,
+      "canvas": 27723742,
+      "dpi": 96,
+      "screenCanvas": {
+        "left": 48,
+        "top": 92,
+        "right": 1328,
+        "bottom": 812
+      },
+      "rgb": []
+    },
+    {
+      "status": "validated",
+      "reason": null,
+      "safe": true,
+      "ownedOverlayPresent": false,
+      "phase": -1,
+      "qpcStart": 827717271665,
+      "qpcReadStart": 0,
+      "qpcReadEnd": 0,
+      "qpcEnd": 827717273688,
+      "root": 48235602,
+      "canvas": 27723742,
+      "dpi": 96,
+      "screenCanvas": {
+        "left": 48,
+        "top": 92,
+        "right": 1328,
+        "bottom": 812
+      },
+      "rgb": []
+    },
+    {
+      "status": "validated",
+      "reason": null,
+      "safe": true,
+      "ownedOverlayPresent": false,
+      "phase": -1,
+      "qpcStart": 827752509724,
+      "qpcReadStart": 0,
+      "qpcReadEnd": 0,
+      "qpcEnd": 827752513915,
+      "root": 48235602,
+      "canvas": 27723742,
+      "dpi": 96,
+      "screenCanvas": {
+        "left": 48,
+        "top": 92,
+        "right": 1328,
+        "bottom": 812
+      },
+      "rgb": []
+    },
+    {
+      "status": "validated",
+      "reason": null,
+      "safe": true,
+      "ownedOverlayPresent": false,
+      "phase": -1,
+      "qpcStart": 827807902818,
+      "qpcReadStart": 0,
+      "qpcReadEnd": 0,
+      "qpcEnd": 827807905332,
+      "root": 48235602,
+      "canvas": 27723742,
+      "dpi": 96,
+      "screenCanvas": {
+        "left": 48,
+        "top": 92,
+        "right": 1328,
+        "bottom": 812
+      },
+      "rgb": []
+    }
+  ],
+  "cleanup": "owned-window-closed",
+  "qpcFrequency": 10000000,
+  "pid": 25084,
+  "processStartUtc": "2026-10-21T07:19:06.6778341Z",
+  "open": {
+    "positionSec": 0.0,
+    "reason": null,
+    "state": null
+  },
+  "canvas": {
+    "handle": 27723742,
+    "className": "VLC video main 00000207F99FA970",
+    "clientWidth": 1280,
+    "clientHeight": 720,
+    "dpi": 96
+  },
+  "before": {
+    "positionSec": 9.0,
+    "reason": null,
+    "state": null
+  },
+  "windowStartQpc": 827317270996,
+  "windowEndQpc": 827717274053,
+  "after": {
+    "positionSec": 49.0,
+    "reason": null,
+    "state": null
+  },
+  "pause": {
+    "paused": true,
+    "hasInput": true,
+    "qpcStart": 827718542030,
+    "pauseEvidence": "input-pause-guard",
+    "reason": null,
+    "state": 4,
+    "raw": [
+      {
+        "qpcStart": 827719861505,
+        "values": [
+          1.0,
+          49.0
+        ],
+        "request": "status\nis_playing\nget_time\n",
+        "qpcEnd": 827719866995,
+        "raw": "status change: ( new input: file:///C:/Users/Alperen/AppData/Local/Codex/tools/scratch/aperture-vlc-performance-20261017/hevc-2160p60-audio.mp4 )\r\nstatus change: ( audio volume: 256 )\r\nstatus change: ( play state: 3 )\r\nstatus: returned 0 (no error)\r\n1\r\n49\r\n"
+      },
+      {
+        "qpcStart": 827721132117,
+        "values": [
+          1.0,
+          50.0
+        ],
+        "request": "pause\nstatus\nis_playing\nget_time\n",
+        "qpcEnd": 827721139788,
+        "raw": "pause: returned 0 (no error)\r\nstatus change: ( pause state: 3 ): Pause\r\nstatus change: ( pause state: 4 )\r\nType 'pause' to continue.\r\nstatus: returned 0 (no error)\r\n1\r\n50\r\n"
+      }
+    ],
+    "positionSec": 50.0,
+    "qpcEnd": 827721142147
+  },
+  "pauseSettlement": {
+    "qpcStart": 827721142793,
+    "status": "settled",
+    "qpcEnd": 827721144314,
+    "observations": [
+      {
+        "paused": true,
+        "hasInput": true,
+        "qpcStart": 827718542030,
+        "pauseEvidence": "input-pause-guard",
+        "reason": null,
+        "state": 4,
+        "raw": [
+          {
+            "qpcStart": 827719861505,
+            "values": [
+              1.0,
+              49.0
+            ],
+            "request": "status\nis_playing\nget_time\n",
+            "qpcEnd": 827719866995,
+            "raw": "status change: ( new input: file:///C:/Users/Alperen/AppData/Local/Codex/tools/scratch/aperture-vlc-performance-20261017/hevc-2160p60-audio.mp4 )\r\nstatus change: ( audio volume: 256 )\r\nstatus change: ( play state: 3 )\r\nstatus: returned 0 (no error)\r\n1\r\n49\r\n"
+          },
+          {
+            "qpcStart": 827721132117,
+            "values": [
+              1.0,
+              50.0
+            ],
+            "request": "pause\nstatus\nis_playing\nget_time\n",
+            "qpcEnd": 827721139788,
+            "raw": "pause: returned 0 (no error)\r\nstatus change: ( pause state: 3 ): Pause\r\nstatus change: ( pause state: 4 )\r\nType 'pause' to continue.\r\nstatus: returned 0 (no error)\r\n1\r\n50\r\n"
+          }
+        ],
+        "positionSec": 50.0,
+        "qpcEnd": 827721142147
+      }
+    ]
+  },
+  "pauseStartQpc": 827721144451,
+  "pauseConfirmation": {
+    "paused": true,
+    "hasInput": true,
+    "qpcStart": 827751227998,
+    "pauseEvidence": "input-pause-guard",
+    "reason": null,
+    "state": null,
+    "raw": [
+      {
+        "qpcStart": 827752497541,
+        "values": [
+          1.0,
+          50.0
+        ],
+        "request": "status\nis_playing\nget_time\n",
+        "qpcEnd": 827752504306,
+        "raw": "Type 'pause' to continue.\r\nstatus: returned 0 (no error)\r\n1\r\n50\r\n"
+      }
+    ],
+    "positionSec": 50.0,
+    "qpcEnd": 827752506492
+  },
+  "pauseEndQpc": 827752507017,
+  "resume": {
+    "qpcStart": 827752515256,
+    "status": "settled",
+    "toggle": {
+      "qpcStart": 827754932593,
+      "values": [
+        50.0
+      ],
+      "request": "pause\nget_time\n",
+      "qpcEnd": 827754936853,
+      "raw": "pause: returned 0 (no error)\r\nstatus change: ( play state: 2 ): Play\r\nstatus change: ( play state: 3 )\r\n50\r\n"
+    },
+    "observations": [
+      {
+        "paused": true,
+        "hasInput": true,
+        "qpcStart": 827752515690,
+        "pauseEvidence": "input-pause-guard",
+        "reason": null,
+        "state": null,
+        "raw": [
+          {
+            "qpcStart": 827753702405,
+            "values": [
+              1.0,
+              50.0
+            ],
+            "request": "status\nis_playing\nget_time\n",
+            "qpcEnd": 827753709220,
+            "raw": "Type 'pause' to continue.\r\nstatus: returned 0 (no error)\r\n1\r\n50\r\n"
+          }
+        ],
+        "positionSec": 50.0,
+        "qpcEnd": 827753711493
+      },
+      {
+        "paused": false,
+        "hasInput": true,
+        "qpcStart": 827755219290,
+        "pauseEvidence": "playlist-state",
+        "reason": null,
+        "state": 3,
+        "raw": [
+          {
+            "qpcStart": 827756523535,
+            "values": [
+              1.0,
+              50.0
+            ],
+            "request": "status\nis_playing\nget_time\n",
+            "qpcEnd": 827756528852,
+            "raw": "status change: ( new input: file:///C:/Users/Alperen/AppData/Local/Codex/tools/scratch/aperture-vlc-performance-20261017/hevc-2160p60-audio.mp4 )\r\nstatus change: ( audio volume: 256 )\r\nstatus change: ( play state: 3 )\r\nstatus: returned 0 (no error)\r\n1\r\n50\r\n"
+          }
+        ],
+        "positionSec": 50.0,
+        "qpcEnd": 827756531369
+      }
+    ],
+    "qpcEnd": 827756531838
+  },
+  "resumeStartQpc": 827756531953,
+  "resumeEndQpc": 827806622980,
+  "resumedStatus": {
+    "positionSec": 55.0,
+    "reason": null,
+    "state": null
+  },
+  "endedUtc": "2026-10-21T07:20:10.0422125Z"
+}

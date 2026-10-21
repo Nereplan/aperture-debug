@@ -1,0 +1,174 @@
+{
+  "recordedAtUtc": "2026-10-21T07:40:56.986773+00:00",
+  "scope": "Diagnostic only; original predeclared cadence protocol not qualified.",
+  "sourceContentCommit": "23fd026c2b114f8391465bfb5f7d28a79da02025",
+  "productionSourceDirty": false,
+  "findings": [
+    "Approved temporary elevated collector exited0 without lost-event warnings. No permanent security/group changes.",
+    "Fourteen fresh player launches captured; H2648 complete and HEVC6 attempted. Last HEVC VLC run straddles collector termination; remaining two never launched. No joining or selected-run replacement.",
+    "PresentMon2.6.0 default mode omits the predeclared DisplayedTime field. Official CsvOutput.cpp shows explicit --v2_metrics is needed. No DisplayedTime distribution or quality ranking computed.",
+    "Diagnostic rates reveal one chain per owned PID, no foreign PIDs. All complete Aperture runs meet original pause<=1/sec criterion; VLC keeps repainting roughly13/sec while confirmed paused and fails that criterion. These are harness qualification failures, not product quality defects.",
+    "A revised independent v2 plan was recorded before any fresh capture. Original plan and all attempts retained."
+  ],
+  "files": [
+    {
+      "path": "collector/started.json",
+      "bytes": 1077,
+      "sha256": "9c14a9d462d6cf1163a695725b02aa61d6dacf392e6031107a16dcf6241fee70",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\cadence-collector-20261021\\started.json"
+    },
+    {
+      "path": "collector/finished.json",
+      "bytes": 1220,
+      "sha256": "27086f36e3e6b130481965955ec70f9bf54a6d983e83aeae902acc0c37aa5940",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\cadence-collector-20261021\\finished.json"
+    },
+    {
+      "path": "collector/stdout.txt",
+      "bytes": 40,
+      "sha256": "cbf5730be32edae5d0ad1618e2375f3c4c472da75350c4971980e20d98aca0e6",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\cadence-collector-20261021\\stdout.txt"
+    },
+    {
+      "path": "collector/stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\cadence-collector-20261021\\stderr.txt"
+    },
+    {
+      "path": "collector/capture-owned-players.ps1",
+      "bytes": 2967,
+      "sha256": "bb2fb1e48043d5d3e58158e095fc7aabf78531914dccfc2e6128bdf981381cd0",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\cadence-collector-20261021\\capture-owned-players.ps1"
+    },
+    {
+      "path": "collector/presents.csv.gz",
+      "bytes": 1528925,
+      "sha256": "ce0827008660cc1901974847cf62b2339e9dde49e2c56433b903621ec90656aa",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\cadence-collector-20261021\\presents.csv",
+      "encoding": "gzip lossless raw CSV",
+      "uncompressedBytes": 7555466,
+      "uncompressedSha256": "9fbf7a8a3bbe59ca854c3fb6796a1b00d6ab44cd1a35b22cb2c4452d43ec1b0c"
+    },
+    {
+      "path": "cadence-analysis-plan-20261021.json",
+      "bytes": 2550,
+      "sha256": "9a376b23894165d014d1a1e9a57787f9c34bf42d472e5679b1f4c245d0bead52",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\cadence-analysis-plan-20261021.json"
+    },
+    {
+      "path": "cadence-default-schema-identification-20261021.json",
+      "bytes": 6113,
+      "sha256": "245f705012363db77ffb42f08af9c7d4ae6e2e36cbd4c6b8afdcfebe745228ec",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\cadence-default-schema-identification-20261021.json"
+    },
+    {
+      "path": "identify-default-cadence-20261021.py",
+      "bytes": 2098,
+      "sha256": "3d63f7f2f6dd9d7fcd7879895b2f98343b3e42a104ef7941201255b97bd67aff",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\identify-default-cadence-20261021.py"
+    },
+    {
+      "path": "run-cadence-batches-20261021.ps1",
+      "bytes": 11035,
+      "sha256": "7f0227228eb7f751f282d3a2a59ffe819ee334e94442dcd632c6368553f86f0b",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\run-cadence-batches-20261021.ps1"
+    },
+    {
+      "path": "cadence-batches-20261021.txt",
+      "bytes": 740,
+      "sha256": "a8d47e814e419b1673e364eb6298b541ff0fe412fcd1d6fdee09197a4758abe3",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\cadence-batches-20261021.txt"
+    },
+    {
+      "path": "runs/identity.json",
+      "bytes": 313107,
+      "sha256": "eb483b883840c6ec80dda08e4b6e1be7ac2945adb2a912dec6e14fb59f169556",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\cadence-runs-20261021\\identity.json"
+    },
+    {
+      "path": "runs/h264-0-Aperture/run.json",
+      "bytes": 7728,
+      "sha256": "4d9eaa7339c0e92a5a61fb15b31d938874080a0b076f23766a3afb71df3a66e1",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\cadence-runs-20261021\\h264-0-Aperture\\run.json"
+    },
+    {
+      "path": "runs/h264-0-VLC/run.json",
+      "bytes": 12268,
+      "sha256": "e9ea554c6f2ed090ecae5fe2edab85b41e590c34829c6364a23cc0a949e82273",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\cadence-runs-20261021\\h264-0-VLC\\run.json"
+    },
+    {
+      "path": "runs/h264-1-Aperture/run.json",
+      "bytes": 7706,
+      "sha256": "dacea758195b77f068dec017aa7c63a244020d3cc249db58fc7832602897b2da",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\cadence-runs-20261021\\h264-1-Aperture\\run.json"
+    },
+    {
+      "path": "runs/h264-1-VLC/run.json",
+      "bytes": 12257,
+      "sha256": "a3e67442c39954f3ba8bad4319b8788a16b2b9bca4c2d1845615a6a4e129ea8a",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\cadence-runs-20261021\\h264-1-VLC\\run.json"
+    },
+    {
+      "path": "runs/h264-2-Aperture/run.json",
+      "bytes": 7761,
+      "sha256": "094f4260b217083cb76bd55d1b78db375285a2858b17e50dc4842dc2f14917a7",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\cadence-runs-20261021\\h264-2-Aperture\\run.json"
+    },
+    {
+      "path": "runs/h264-2-VLC/run.json",
+      "bytes": 12268,
+      "sha256": "f23155044b4d9f8a8a368c2667fe019587a62c70ff76a18d95b282d6e4176097",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\cadence-runs-20261021\\h264-2-VLC\\run.json"
+    },
+    {
+      "path": "runs/h264-3-Aperture/run.json",
+      "bytes": 7694,
+      "sha256": "0bec76e0c14196a77250e6de833365f53de4047f0f1f6e737d4b7da06884b4b3",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\cadence-runs-20261021\\h264-3-Aperture\\run.json"
+    },
+    {
+      "path": "runs/h264-3-VLC/run.json",
+      "bytes": 12245,
+      "sha256": "c0ad615376ecfffc20540ee743c3d3aa2c637f70a55a1df116527c9552467b04",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\cadence-runs-20261021\\h264-3-VLC\\run.json"
+    },
+    {
+      "path": "runs/hevc-0-Aperture/run.json",
+      "bytes": 7761,
+      "sha256": "d694cadb8343fe8ae5b3d0b769d1d1dd7515818a96127ad46898af4a91cfb050",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\cadence-runs-20261021\\hevc-0-Aperture\\run.json"
+    },
+    {
+      "path": "runs/hevc-0-VLC/run.json",
+      "bytes": 12267,
+      "sha256": "db55df4ec3d22ed09883ac8003d4dbbb07a08c34bc59f3c714237618dba895c9",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\cadence-runs-20261021\\hevc-0-VLC\\run.json"
+    },
+    {
+      "path": "runs/hevc-1-Aperture/run.json",
+      "bytes": 7777,
+      "sha256": "e6d8a2a71db8d47d98e30ef7e0818b78e09d066c9f1beec1863731852c7d0b94",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\cadence-runs-20261021\\hevc-1-Aperture\\run.json"
+    },
+    {
+      "path": "runs/hevc-1-VLC/run.json",
+      "bytes": 12257,
+      "sha256": "d9ea8879ae61d2e90ea1782332de1e7b7112d8df479c29d3d25b781b5863b373",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\cadence-runs-20261021\\hevc-1-VLC\\run.json"
+    },
+    {
+      "path": "runs/hevc-2-Aperture/run.json",
+      "bytes": 7762,
+      "sha256": "67faa69eb5edb2324cfee1eeb1d04ef9ceaf4a6879a8be6d60956627ba518d5e",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\cadence-runs-20261021\\hevc-2-Aperture\\run.json"
+    },
+    {
+      "path": "runs/hevc-2-VLC/run.json",
+      "bytes": 12268,
+      "sha256": "477aeadebddcdccedc7bde7a19c460568941f2a24e9833a57789abdf0d683b9f",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\cadence-runs-20261021\\hevc-2-VLC\\run.json"
+    }
+  ]
+}

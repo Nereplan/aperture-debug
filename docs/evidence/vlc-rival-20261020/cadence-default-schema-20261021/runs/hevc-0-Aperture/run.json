@@ -1,0 +1,335 @@
+{
+  "player": "Aperture",
+  "workload": "hevc",
+  "round": 0,
+  "warmup": true,
+  "mediaPath": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-vlc-performance-20261017\\hevc-2160p60-audio.mp4",
+  "mediaSha256": "05C53F25A63790BB4F6B5D9B83B8818C405E35C6DBF44FA4A65D62B29D947161",
+  "executableSha256": "78B59F4E3E98E3F5F7A3E3A309C522F3CE1828E3F58E22C1A85A12C008FA9A7F",
+  "runtimeManifestSha256": "8a333e146c3153f0e00a350323a0402c265be4320fbc8bf08f70ac9530005ac8",
+  "arguments": [],
+  "startedUtc": "2026-10-21T07:17:41.1788877Z",
+  "status": "sampled",
+  "guards": [
+    {
+      "status": "validated",
+      "reason": null,
+      "safe": true,
+      "ownedOverlayPresent": false,
+      "phase": -1,
+      "qpcStart": 826457916732,
+      "qpcReadStart": 0,
+      "qpcReadEnd": 0,
+      "qpcEnd": 826457920184,
+      "root": 5966390,
+      "canvas": 7342214,
+      "dpi": 96,
+      "screenCanvas": {
+        "left": 48,
+        "top": 71,
+        "right": 1328,
+        "bottom": 791
+      },
+      "rgb": []
+    },
+    {
+      "status": "validated",
+      "reason": null,
+      "safe": true,
+      "ownedOverlayPresent": false,
+      "phase": -1,
+      "qpcStart": 826508263024,
+      "qpcReadStart": 0,
+      "qpcReadEnd": 0,
+      "qpcEnd": 826508265044,
+      "root": 5966390,
+      "canvas": 7342214,
+      "dpi": 96,
+      "screenCanvas": {
+        "left": 48,
+        "top": 71,
+        "right": 1328,
+        "bottom": 791
+      },
+      "rgb": []
+    },
+    {
+      "status": "validated",
+      "reason": null,
+      "safe": true,
+      "ownedOverlayPresent": false,
+      "phase": -1,
+      "qpcStart": 826558342940,
+      "qpcReadStart": 0,
+      "qpcReadEnd": 0,
+      "qpcEnd": 826558346856,
+      "root": 5966390,
+      "canvas": 7342214,
+      "dpi": 96,
+      "screenCanvas": {
+        "left": 48,
+        "top": 71,
+        "right": 1328,
+        "bottom": 791
+      },
+      "rgb": []
+    },
+    {
+      "status": "validated",
+      "reason": null,
+      "safe": true,
+      "ownedOverlayPresent": false,
+      "phase": -1,
+      "qpcStart": 826608478652,
+      "qpcReadStart": 0,
+      "qpcReadEnd": 0,
+      "qpcEnd": 826608480317,
+      "root": 5966390,
+      "canvas": 7342214,
+      "dpi": 96,
+      "screenCanvas": {
+        "left": 48,
+        "top": 71,
+        "right": 1328,
+        "bottom": 791
+      },
+      "rgb": []
+    },
+    {
+      "status": "validated",
+      "reason": null,
+      "safe": true,
+      "ownedOverlayPresent": false,
+      "phase": -1,
+      "qpcStart": 826658216229,
+      "qpcReadStart": 0,
+      "qpcReadEnd": 0,
+      "qpcEnd": 826658218093,
+      "root": 5966390,
+      "canvas": 7342214,
+      "dpi": 96,
+      "screenCanvas": {
+        "left": 48,
+        "top": 71,
+        "right": 1328,
+        "bottom": 791
+      },
+      "rgb": []
+    },
+    {
+      "status": "validated",
+      "reason": null,
+      "safe": true,
+      "ownedOverlayPresent": false,
+      "phase": -1,
+      "qpcStart": 826708249355,
+      "qpcReadStart": 0,
+      "qpcReadEnd": 0,
+      "qpcEnd": 826708252108,
+      "root": 5966390,
+      "canvas": 7342214,
+      "dpi": 96,
+      "screenCanvas": {
+        "left": 48,
+        "top": 71,
+        "right": 1328,
+        "bottom": 791
+      },
+      "rgb": []
+    },
+    {
+      "status": "validated",
+      "reason": null,
+      "safe": true,
+      "ownedOverlayPresent": false,
+      "phase": -1,
+      "qpcStart": 826758355962,
+      "qpcReadStart": 0,
+      "qpcReadEnd": 0,
+      "qpcEnd": 826758358348,
+      "root": 5966390,
+      "canvas": 7342214,
+      "dpi": 96,
+      "screenCanvas": {
+        "left": 48,
+        "top": 71,
+        "right": 1328,
+        "bottom": 791
+      },
+      "rgb": []
+    },
+    {
+      "status": "validated",
+      "reason": null,
+      "safe": true,
+      "ownedOverlayPresent": false,
+      "phase": -1,
+      "qpcStart": 826808359233,
+      "qpcReadStart": 0,
+      "qpcReadEnd": 0,
+      "qpcEnd": 826808361306,
+      "root": 5966390,
+      "canvas": 7342214,
+      "dpi": 96,
+      "screenCanvas": {
+        "left": 48,
+        "top": 71,
+        "right": 1328,
+        "bottom": 791
+      },
+      "rgb": []
+    },
+    {
+      "status": "validated",
+      "reason": null,
+      "safe": true,
+      "ownedOverlayPresent": false,
+      "phase": -1,
+      "qpcStart": 826858443678,
+      "qpcReadStart": 0,
+      "qpcReadEnd": 0,
+      "qpcEnd": 826858445419,
+      "root": 5966390,
+      "canvas": 7342214,
+      "dpi": 96,
+      "screenCanvas": {
+        "left": 48,
+        "top": 71,
+        "right": 1328,
+        "bottom": 791
+      },
+      "rgb": []
+    },
+    {
+      "status": "validated",
+      "reason": null,
+      "safe": true,
+      "ownedOverlayPresent": false,
+      "phase": -1,
+      "qpcStart": 826889398421,
+      "qpcReadStart": 0,
+      "qpcReadEnd": 0,
+      "qpcEnd": 826889409003,
+      "root": 5966390,
+      "canvas": 7342214,
+      "dpi": 96,
+      "screenCanvas": {
+        "left": 48,
+        "top": 71,
+        "right": 1328,
+        "bottom": 791
+      },
+      "rgb": []
+    },
+    {
+      "status": "validated",
+      "reason": null,
+      "safe": true,
+      "ownedOverlayPresent": false,
+      "phase": -1,
+      "qpcStart": 826940081858,
+      "qpcReadStart": 0,
+      "qpcReadEnd": 0,
+      "qpcEnd": 826940091504,
+      "root": 5966390,
+      "canvas": 7342214,
+      "dpi": 96,
+      "screenCanvas": {
+        "left": 48,
+        "top": 71,
+        "right": 1328,
+        "bottom": 791
+      },
+      "rgb": []
+    }
+  ],
+  "cleanup": "owned-window-closed",
+  "qpcFrequency": 10000000,
+  "pid": 2560,
+  "processStartUtc": "2026-10-21T07:17:41.2169358Z",
+  "open": {
+    "positionSec": 0.0166666666667,
+    "reason": null,
+    "state": 2
+  },
+  "canvas": {
+    "handle": 7342214,
+    "className": "mpv",
+    "clientWidth": 1280,
+    "clientHeight": 720,
+    "dpi": 96
+  },
+  "before": {
+    "positionSec": 10.1333333333,
+    "reason": null,
+    "state": 2
+  },
+  "windowStartQpc": 826458206136,
+  "windowEndQpc": 826858445764,
+  "after": {
+    "positionSec": 50.1833333333,
+    "reason": null,
+    "state": 2
+  },
+  "pause": {
+    "positionSec": 50.2166666667,
+    "paused": true,
+    "qpcStart": 826858703030,
+    "raw": {
+      "positionSec": 50.2166666667,
+      "reason": null,
+      "state": 3
+    },
+    "state": 3,
+    "reason": null,
+    "qpcEnd": 826859059195
+  },
+  "pauseSettlement": {
+    "qpcStart": 826859059906,
+    "status": "settled",
+    "qpcEnd": 826859060805,
+    "observations": [
+      {
+        "positionSec": 50.2166666667,
+        "paused": true,
+        "qpcStart": 826858703030,
+        "raw": {
+          "positionSec": 50.2166666667,
+          "reason": null,
+          "state": 3
+        },
+        "state": 3,
+        "reason": null,
+        "qpcEnd": 826859059195
+      }
+    ]
+  },
+  "pauseStartQpc": 826859060878,
+  "pauseConfirmation": {
+    "positionSec": 50.2166666667,
+    "paused": true,
+    "qpcStart": 826889144478,
+    "raw": {
+      "positionSec": 50.2166666667,
+      "reason": null,
+      "state": 3
+    },
+    "state": 3,
+    "reason": null,
+    "qpcEnd": 826889394421
+  },
+  "pauseEndQpc": 826889395395,
+  "resume": {
+    "positionSec": 50.2166666667,
+    "reason": null,
+    "state": 2
+  },
+  "resumeStartQpc": 826889742092,
+  "resumeEndQpc": 826939812224,
+  "resumedStatus": {
+    "positionSec": 55.25,
+    "reason": null,
+    "state": 2
+  },
+  "endedUtc": "2026-10-21T07:18:43.1484282Z"
+}

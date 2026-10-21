@@ -1,0 +1,22 @@
+{
+  "recordedAtUtc": "2026-10-21T07:12:36.8654425Z",
+  "scope": "Analysis plan fixed before CSV inspection; active CSV is exclusively locked until collector shutdown.",
+  "collector": "cadence-collector-20261021",
+  "runs": "cadence-runs-20261021",
+  "qualification": [
+    "Collector exit must be0; complete CSV and final stdout/stderr retained; any ETW lost-buffer/lost-event/overflow warning invalidates every resource-independent cadence result.",
+    "One warmup plus three measured fresh processes per player/workload; retain every attempted run. A workload with any incomplete or unidentified measured run remains unqualified.",
+    "Filter by exact coordinator-owned PID and recorded process lifetime/QPC windows. Reject foreign player processes; never reuse a swapchain address across processes.",
+    "For each process, require exactly one chain whose CPUStartQPC submission rate is80..120% of nominal source FPS in the last5s of the40s playback window and last1.5s of confirmed resumed playback, and at most1present/sec in the pause interior after excluding0.5s at each edge. More than one candidate is ambiguous and unqualified.",
+    "Require matching guarded1280x720 canvas/DPI, source fixture hash and display source metadata. Actual CPUStartQPC interior is windowStart+5s through+35s; no dropped/undisplayed rows excluded.",
+    "Only after identification, compute per-run distributions from finite positive DisplayedTime values in that fixed30s interior; retain NA as undisplayed and report its count/fraction. Also report submission count/rate, presented/displayed counts, median/p95/p99/max duration, and durations>1.5times nominal frame interval.",
+    "PresentMon presentation events and displayed durations do not establish unique decoded frames, physical panel timing, audio continuity, equal decoder/filter quality or overall player superiority. No process CPU comparison from these instrumented runs."
+  ],
+  "nominalFps": {
+    "h264": 30,
+    "hevc": 60
+  },
+  "protocolLimit": "The1200s collector started before coordinator staging. If it ends before a complete workload, retain that workload as partial and repeat a complete independently captured batch; do not splice different sessions or drop the affected run.",
+  "schemaSource": "https://raw.githubusercontent.com/GameTechDev/PresentMon/v2.6.0/README-ConsoleApplication.md",
+  "metricsSource": "DisplayedTime is the per-present display duration in milliseconds, NA when not displayed; CPUStartQPC identifies the event time under --qpc_time."
+}
