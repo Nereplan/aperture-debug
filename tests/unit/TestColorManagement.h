@@ -22,6 +22,15 @@ TEST_CASE(ColorManagement, IccContainmentAndToneMapPlan) {
     TEST_ASSERT(Settings::IsRootContainedIccPath("color\\calibrated.icc", exeDir));
     TEST_ASSERT(Settings::IsRootContainedIccPath("C:\\Apps\\Aperture\\color\\profile.icc", exeDir));
     TEST_ASSERT_EQ(Settings::NormalizeIccPath("C:\\Apps\\Aperture\\color\\profile.icc", exeDir), std::string("color\\profile.icc"));
+    TEST_ASSERT(Settings::IsRootContainedIccPath("C:\\Apps\\Aperture", exeDir));
+    TEST_ASSERT_EQ(Settings::NormalizeIccPath("C:\\Apps\\Aperture", exeDir), std::string(""));
+    TEST_ASSERT_EQ(Settings::NormalizeIccPath("  c:/APPS/aperture/color/../Profile.icc  ", exeDir + L"\\"), std::string("Profile.icc"));
+    TEST_ASSERT(!Settings::IsRootContainedIccPath("C:\\Apps\\Aperture-other\\profile.icc", exeDir));
+    TEST_ASSERT_EQ(Settings::NormalizeIccPath(std::string(32768, 'a'), exeDir), std::string(""));
+    std::string longRelativePath;
+    for (int i = 0; i < 30; ++i) longRelativePath += "profiles\\";
+    longRelativePath += "calibrated.icc";
+    TEST_ASSERT_EQ(Settings::NormalizeIccPath(longRelativePath, exeDir), longRelativePath);
 
     TEST_ASSERT(!Settings::IsRootContainedIccPath("..\\..\\Windows\\System32\\spool\\drivers\\color\\sRGB.icm", exeDir));
     TEST_ASSERT_EQ(Settings::NormalizeIccPath("..\\..\\Windows\\System32\\spool\\drivers\\color\\sRGB.icm", exeDir), std::string(""));

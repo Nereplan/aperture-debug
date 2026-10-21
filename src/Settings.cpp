@@ -47,6 +47,33 @@ std::string LowerAscii(std::string value) {
     for (char& ch : value) ch = static_cast<char>(std::tolower(static_cast<unsigned char>(ch)));
     return value;
 }
+
+std::optional<std::wstring> ContainedRelativePath(const std::string& rawPath, const std::wstring& exeDir, bool allowEmptyOrRoot) {
+    std::wstring input = Utf8ToUtf16(TrimAscii(rawPath));
+    if (input.empty()) return allowEmptyOrRoot ? std::optional<std::wstring>(L"") : std::nullopt;
+    for (wchar_t& ch : input) {
+        if (ch < 32 || ch == L'<' || ch == L'>' || ch == L'"' || ch == L'|' || ch == L'?' || ch == L'*') return std::nullopt;
+        if (ch == L'/') ch = L'\\';
+    }
+    std::wstring baseDir = exeDir;
+    while (!baseDir.empty() && (baseDir.back() == L'\\' || baseDir.back() == L'/')) baseDir.pop_back();
+    if (baseDir.empty()) return std::nullopt;
+    const std::wstring candidate = PathIsRelativeW(input.c_str()) ? baseDir + L"\\" + input : input;
+    std::wstring canonicalPath(MAX_PATH, L'\0');
+    for (;;) {
+        const DWORD written = GetFullPathNameW(candidate.c_str(), static_cast<DWORD>(canonicalPath.size()), canonicalPath.data(), nullptr);
+        if (written == 0) return std::nullopt;
+        if (written < canonicalPath.size()) { canonicalPath.resize(written); break; }
+        if (written > 32768 || canonicalPath.size() == 32768) return std::nullopt;
+        canonicalPath.resize(std::min<size_t>(32768, std::max<size_t>(written, canonicalPath.size() * 2)));
+    }
+    if (canonicalPath.size() < baseDir.size() ||
+        !std::equal(baseDir.begin(), baseDir.end(), canonicalPath.begin(),
+            [](wchar_t a, wchar_t b) { return towlower(a) == towlower(b); })) return std::nullopt;
+    if (canonicalPath.size() == baseDir.size()) return allowEmptyOrRoot ? std::optional<std::wstring>(L"") : std::nullopt;
+    if (canonicalPath[baseDir.size()] != L'\\') return std::nullopt;
+    return canonicalPath.substr(baseDir.size() + 1);
+}
 }
 
 Settings::Settings() { ResetToDefaults(); }
@@ -965,116 +992,21 @@ std::string Settings::NormalizeGamutMapping(const std::string& gm) {
 }
 
 bool Settings::IsRootContainedIccPath(const std::string& rawPath, const std::wstring& exeDir) {
-    std::string trimmed = TrimAscii(rawPath);
-    if (trimmed.empty()) return true; // empty is valid (no profile selected)
-    std::wstring wInput = Utf8ToUtf16(trimmed);
-    if (wInput.empty()) return true;
-    for (wchar_t ch : wInput) {
-        if (ch < 32 || ch == L'<' || ch == L'>' || ch == L'"' || ch == L'|' || ch == L'?' || ch == L'*') { return false; }
-    }
-    std::wstring normalizedInput = wInput;
-    for (wchar_t& ch : normalizedInput) { if (ch == L'/') ch = L'\\'; }
-    std::wstring baseDir = exeDir;
-    while (!baseDir.empty() && (baseDir.back() == L'\\' || baseDir.back() == L'/')) { baseDir.pop_back(); }
-    if (baseDir.empty()) return false;
-    std::wstring fullCandidate;
-    if (PathIsRelativeW(normalizedInput.c_str())) {
-        fullCandidate = baseDir + L"\\" + normalizedInput;
-    } else { fullCandidate = normalizedInput; }
-    wchar_t canonicalBuf[32768] = { 0 };
-    DWORD len = GetFullPathNameW(fullCandidate.c_str(), 32768, canonicalBuf, nullptr);
-    if (len == 0 || len >= 32768) return false;
-    std::wstring canonicalPath = canonicalBuf;
-    std::wstring baseDirLower = baseDir;
-    for (auto& c : baseDirLower) c = (wchar_t)towlower(c);
-    std::wstring canonicalLower = canonicalPath;
-    for (auto& c : canonicalLower) c = (wchar_t)towlower(c);
-    if (canonicalLower == baseDirLower) return true;
-    if (canonicalLower.size() > baseDirLower.size() && canonicalLower.compare(0, baseDirLower.size(), baseDirLower) == 0 &&
-        canonicalLower[baseDirLower.size()] == L'\\') {
-        return true;
-    }
-    return false;
+    return ContainedRelativePath(rawPath, exeDir, true).has_value();
 }
 
 std::string Settings::NormalizeIccPath(const std::string& rawPath, const std::wstring& exeDir) {
-    std::string trimmed = TrimAscii(rawPath);
-    if (trimmed.empty()) return "";
-    if (!IsRootContainedIccPath(trimmed, exeDir)) { return ""; }
-    std::wstring wInput = Utf8ToUtf16(trimmed);
-    for (wchar_t& ch : wInput) { if (ch == L'/') ch = L'\\'; }
-    std::wstring baseDir = exeDir;
-    while (!baseDir.empty() && (baseDir.back() == L'\\' || baseDir.back() == L'/')) { baseDir.pop_back(); }
-    if (baseDir.empty()) return "";
-    std::wstring fullCandidate = PathIsRelativeW(wInput.c_str()) ? (baseDir + L"\\" + wInput) : wInput;
-    wchar_t canonicalBuf[32768] = { 0 };
-    DWORD len = GetFullPathNameW(fullCandidate.c_str(), 32768, canonicalBuf, nullptr);
-    if (len == 0 || len >= 32768) return "";
-    std::wstring canonicalPath = canonicalBuf;
-    std::wstring baseDirLower = baseDir;
-    for (auto& c : baseDirLower) c = (wchar_t)towlower(c);
-    std::wstring canonicalLower = canonicalPath;
-    for (auto& c : canonicalLower) c = (wchar_t)towlower(c);
-    if (canonicalLower.size() > baseDirLower.size() && canonicalLower.compare(0, baseDirLower.size(), baseDirLower) == 0 &&
-        canonicalLower[baseDirLower.size()] == L'\\') {
-        std::wstring relPart = canonicalPath.substr(baseDirLower.size() + 1);
-        return Utf16ToUtf8(relPart);
-    }
-    return "";
+    const auto relative = ContainedRelativePath(rawPath, exeDir, true);
+    return relative ? Utf16ToUtf8(*relative) : "";
 }
 
 bool Settings::IsRootContainedMpvConfigPath(const std::string& rawPath, const std::wstring& exeDir) {
-    std::string trimmed = TrimAscii(rawPath);
-    if (trimmed.empty()) return false;
-    std::wstring wInput = Utf8ToUtf16(trimmed);
-    if (wInput.empty()) return false;
-    for (wchar_t ch : wInput) {
-        if (ch < 32 || ch == L'<' || ch == L'>' || ch == L'"' || ch == L'|' || ch == L'?' || ch == L'*') { return false; }
-    }
-    std::wstring normalizedInput = wInput;
-    for (wchar_t& ch : normalizedInput) { if (ch == L'/') ch = L'\\'; }
-    std::wstring baseDir = exeDir;
-    while (!baseDir.empty() && (baseDir.back() == L'\\' || baseDir.back() == L'/')) { baseDir.pop_back(); }
-    if (baseDir.empty()) return false;
-    std::wstring fullCandidate;
-    if (PathIsRelativeW(normalizedInput.c_str())) {
-        fullCandidate = baseDir + L"\\" + normalizedInput;
-    } else { fullCandidate = normalizedInput; }
-    wchar_t canonicalBuf[32768] = { 0 };
-    DWORD len = GetFullPathNameW(fullCandidate.c_str(), 32768, canonicalBuf, nullptr);
-    if (len == 0 || len >= 32768) return false;
-    std::wstring canonicalPath = canonicalBuf;
-    std::wstring baseDirLower = baseDir;
-    for (auto& c : baseDirLower) c = (wchar_t)towlower(c);
-    std::wstring canonicalLower = canonicalPath;
-    for (auto& c : canonicalLower) c = (wchar_t)towlower(c);
-    if (canonicalLower.size() > baseDirLower.size() && canonicalLower.compare(0, baseDirLower.size(), baseDirLower) == 0 &&
-        canonicalLower[baseDirLower.size()] == L'\\') {
-        return true;
-    }
-    return false;
+    return ContainedRelativePath(rawPath, exeDir, false).has_value();
 }
 
 std::string Settings::NormalizeMpvConfigPath(const std::string& rawPath, const std::wstring& exeDir) {
-    std::string trimmed = TrimAscii(rawPath);
-    if (trimmed.empty()) return "mpv.conf";
-    if (!IsRootContainedMpvConfigPath(trimmed, exeDir)) { return "mpv.conf"; }
-    std::wstring wInput = Utf8ToUtf16(trimmed);
-    for (wchar_t& ch : wInput) { if (ch == L'/') ch = L'\\'; }
-    std::wstring baseDir = exeDir;
-    while (!baseDir.empty() && (baseDir.back() == L'\\' || baseDir.back() == L'/')) { baseDir.pop_back(); }
-    if (baseDir.empty()) return "mpv.conf";
-    std::wstring fullCandidate = PathIsRelativeW(wInput.c_str()) ? (baseDir + L"\\" + wInput) : wInput;
-    wchar_t canonicalBuf[32768] = { 0 };
-    DWORD len = GetFullPathNameW(fullCandidate.c_str(), 32768, canonicalBuf, nullptr);
-    if (len == 0 || len >= 32768) return "mpv.conf";
-    std::wstring canonicalPath = canonicalBuf;
-    if (canonicalPath.size() > baseDir.size() && _wcsnicmp(canonicalPath.c_str(), baseDir.c_str(), baseDir.size()) == 0 &&
-        canonicalPath[baseDir.size()] == L'\\') {
-        std::wstring rel = canonicalPath.substr(baseDir.size() + 1);
-        return Utf16ToUtf8(rel);
-    }
-    return "mpv.conf";
+    const auto relative = ContainedRelativePath(rawPath, exeDir, false);
+    return relative ? Utf16ToUtf8(*relative) : "mpv.conf";
 }
 
 std::wstring Settings::ResolveMpvConfigPath(const std::string& path, const std::wstring& exeDir) {

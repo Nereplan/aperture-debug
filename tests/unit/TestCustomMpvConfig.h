@@ -18,6 +18,14 @@ TEST_CASE(CustomMpvConfig, SecurityDenylistBoundsAndRecovery) {
     TEST_ASSERT(!Settings::IsRootContainedMpvConfigPath("../outside.conf", testExeDir));
     TEST_ASSERT(!Settings::IsRootContainedMpvConfigPath("mpv|evil.conf", testExeDir));
     TEST_ASSERT_EQ(Settings::NormalizeMpvConfigPath("../outside.conf", testExeDir), std::string("mpv.conf"));
+    TEST_ASSERT(!Settings::IsRootContainedMpvConfigPath("", testExeDir));
+    TEST_ASSERT(!Settings::IsRootContainedMpvConfigPath("C:\\ApertureApp", testExeDir));
+    TEST_ASSERT_EQ(Settings::NormalizeMpvConfigPath("C:\\ApertureApp", testExeDir), std::string("mpv.conf"));
+    TEST_ASSERT(Settings::IsRootContainedMpvConfigPath("C:\\ApertureApp\\", testExeDir));
+    TEST_ASSERT_EQ(Settings::NormalizeMpvConfigPath("C:\\ApertureApp\\", testExeDir), std::string(""));
+    TEST_ASSERT_EQ(Settings::NormalizeMpvConfigPath("  c:/APERTUREAPP/config/../Custom.conf  ", testExeDir + L"\\"), std::string("Custom.conf"));
+    TEST_ASSERT(!Settings::IsRootContainedMpvConfigPath("C:\\ApertureApp-other\\mpv.conf", testExeDir));
+    TEST_ASSERT_EQ(Settings::NormalizeMpvConfigPath(std::string(32768, 'a'), testExeDir), std::string("mpv.conf"));
 
     const std::vector<std::string> unsafeOptions = {
         "script", "scripts", "script-opts", "lua", "js", "load-scripts",
