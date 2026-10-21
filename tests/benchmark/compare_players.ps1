@@ -293,6 +293,34 @@ function Wait-ColorPaused([string]$Name, [int]$OwnedPid, [int]$Port, $Environmen
     } catch { $Trace.status='failed'; $Trace.reason=$_.Exception.Message; throw }
     finally { $Trace.qpcEnd=[Diagnostics.Stopwatch]::GetTimestamp() }
 }
+function Resume-ColorVlc([int]$OwnedPid, [int]$Port, $Environment, $Trace,
+                         [ValidateRange(0,5000)][int]$TimeoutMs = 3000) {
+    $Trace.qpcStart=[Diagnostics.Stopwatch]::GetTimestamp()
+    $Trace.observations=[Collections.Generic.List[object]]::new()
+    $Trace.status='pending'
+    try {
+        $status=Color-Status VLC $OwnedPid $Port $Environment
+        $Trace.observations.Add($status)
+        if($status.reason -or -not $status.hasInput) { throw 'Cannot confirm VLC input before resuming.' }
+        if($status.paused -eq $true) {
+            # old RC blocks seek while paused. Toggle once, then only query.
+            $Trace.toggle=Vlc-Numbers $Port $OwnedPid "pause`nget_time`n" 1
+        } elseif($status.state -ne 3) { throw 'Cannot confirm VLC is playing or paused before resuming.' }
+        $deadline=[Diagnostics.Stopwatch]::GetTimestamp()+$TimeoutMs*[Diagnostics.Stopwatch]::Frequency/1000.0
+        while($true) {
+            if($status.reason -or -not $status.hasInput) { throw 'VLC input unavailable while confirming resume.' }
+            if($status.paused -eq $false -and $status.state -eq 3) {
+                $Trace.status='settled'
+                return $status
+            }
+            if([Diagnostics.Stopwatch]::GetTimestamp() -ge $deadline) { throw 'Timed out confirming resumed VLC playback.' }
+            Start-Sleep -Milliseconds 25
+            $status=Color-Status VLC $OwnedPid $Port $Environment
+            $Trace.observations.Add($status)
+        }
+    } catch { $Trace.status='failed'; $Trace.reason=$_.Exception.Message; throw }
+    finally { $Trace.qpcEnd=[Diagnostics.Stopwatch]::GetTimestamp() }
+}
 function Color-Difference([int[]]$Left, [int[]]$Right) {
     if ($Left.Count -ne 54 -or $Right.Count -ne 54) { throw 'Color difference requires two complete 54-point RGB arrays.' }
     [long]$sum=0; $maximum=0
@@ -312,6 +340,10 @@ function Sentinel-Colors($Run, [string]$Name, [int]$OwnedPid, [int]$Port, $Envir
         $target=$phase*12+6
         $entry=[ordered]@{phase=$phase;targetSec=$target;status='pending';samples=[Collections.Generic.List[object]]::new()}
         $phases.Add($entry)
+        if($Name -eq 'VLC' -and $phase -gt 0) {
+            $entry.resume=@{}
+            Resume-ColorVlc $OwnedPid $Port $Environment $entry.resume | Out-Null
+        }
         $entry.seekQpcStart=[Diagnostics.Stopwatch]::GetTimestamp()
         $entry.seekResponse=Playback $Name $OwnedPid $Port $Environment -SeekSeconds $target
         $entry.seekQpcEnd=[Diagnostics.Stopwatch]::GetTimestamp()

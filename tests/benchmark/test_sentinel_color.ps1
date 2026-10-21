@@ -5,7 +5,7 @@ $source = Join-Path $PSScriptRoot 'compare_players.ps1'
 $tokens=$null; $errors=$null
 $ast=[Management.Automation.Language.Parser]::ParseFile($source,[ref]$tokens,[ref]$errors)
 if($errors.Count) { throw ($errors.Message -join '; ') }
-$names=@('Vlc-ReplyValues','Vlc-Time','Vlc-ColorState','Color-Status','Assert-ColorPaused','Wait-ColorPaused','Color-Difference')
+$names=@('Vlc-ReplyValues','Vlc-Time','Vlc-ColorState','Color-Status','Assert-ColorPaused','Wait-ColorPaused','Resume-ColorVlc','Color-Difference')
 foreach($name in $names) {
     $definition=$ast.Find({param($node) $node -is [Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq $name},$false)
     if(-not $definition) { throw "Missing tested function: $name" }
@@ -51,11 +51,17 @@ Check $true 'stable near-midpoint paused position is accepted'
 
 $script:replies=[Collections.Generic.Queue[object]]::new()
 $script:requests=[Collections.Generic.List[string]]::new()
+$script:expectedCounts=[Collections.Generic.List[int]]::new()
 function Vlc-Numbers([int]$Port,[int]$OwnedPid,[string]$Request,[int]$ExpectedCount=1) {
     if($OwnedPid -ne 123 -or $Port -ne 456) { throw 'Control lost explicit owned PID/port.' }
     $script:requests.Add($Request)
+    $script:expectedCounts.Add($ExpectedCount)
     if(-not $script:replies.Count) { throw 'Unexpected extra control request.' }
-    $script:replies.Dequeue()
+    $reply=$script:replies.Dequeue()
+    $reply.request=$Request
+    $reply.qpcStart=[Diagnostics.Stopwatch]::GetTimestamp()
+    $reply.qpcEnd=[Diagnostics.Stopwatch]::GetTimestamp()
+    $reply
 }
 $script:replies.Enqueue(@{values=@(1,6);raw="status change: ( pause state: 4 )`n"})
 $status=Color-Status VLC 123 456 @{} -Pause
@@ -110,5 +116,61 @@ $state=Vlc-ColorState @{values=@(1,6);raw="Type 'pause' to continue.`r`n"}
 Check ($state.paused -and $state.evidence -eq 'input-pause-guard' -and $null -eq $state.state) 'old RC blocked status proves paused input without inventing a playlist state'
 $state=Vlc-ColorState @{values=@(0,6);raw="Type 'pause' to continue.`r`nstatus change: ( pause state: 4 )`r`n"}
 Check (-not $state.paused) 'stale pause text cannot validate an absent input'
-Check ($count -eq 35) 'complete coarse color contract set'
+
+$script:requests.Clear(); $script:expectedCounts.Clear()
+$script:replies.Enqueue(@{values=@(1,6);raw="Type 'pause' to continue.`r`n"})
+$script:replies.Enqueue(@{values=@(6);raw="6`r`n"})
+$script:replies.Enqueue(@{values=@(1,6);raw="status change: ( play state: 3 )`r`n"})
+$trace=@{}
+$resumed=Resume-ColorVlc 123 456 @{} $trace
+Check ($trace.status -eq 'settled' -and $trace.observations.Count -eq 2 -and $resumed.hasInput -and -not $resumed.paused -and $resumed.state -eq 3) 'guard-only paused VLC resumes with authoritative playing confirmation'
+Check ($requests.Count -eq 3 -and $requests[1] -eq "pause`nget_time`n" -and $expectedCounts[1] -eq 1) 'resume uses one owned toggle with one expected numeric reply'
+Check ($trace.toggle.raw -eq "6`r`n" -and $trace.toggle.request -eq $requests[1] -and $trace.qpcStart -le $trace.observations[0].qpcStart -and $trace.toggle.qpcStart -ge $trace.qpcStart -and $trace.qpcEnd -ge $trace.observations[1].qpcEnd) 'resume retains pre-control, toggle and confirmation raw/QPC evidence'
+
+$script:requests.Clear()
+$script:replies.Enqueue(@{values=@(1,18);raw="status change: ( pause state: 4 )`r`n"})
+$script:replies.Enqueue(@{values=@(18);raw="18`r`n"})
+$script:replies.Enqueue(@{values=@(1,18);raw="Type 'pause' to continue.`r`nstatus change: ( play state: 3 )`r`n"})
+$script:replies.Enqueue(@{values=@(1,18);raw="status change: ( play state: 3 )`r`n"})
+$trace=@{}
+$resumed=Resume-ColorVlc 123 456 @{} $trace
+Check ($trace.observations.Count -eq 3 -and $trace.observations[1].paused -and -not $resumed.paused -and $resumed.state -eq 3) 'resume waits past stale playing text while the input pause guard remains'
+Check ($requests.Count -eq 4 -and @($requests | Where-Object { $_ -match '(?m)^pause$' }).Count -eq 1) 'asynchronous resume confirmations never repeat the toggle'
+
+$script:requests.Clear()
+$script:replies.Enqueue(@{values=@(1,30);raw="status change: ( play state: 3 )`r`n"})
+$trace=@{}
+$resumed=Resume-ColorVlc 123 456 @{} $trace -TimeoutMs 0
+Check ($requests.Count -eq 1 -and -not $trace.ContainsKey('toggle') -and $trace.status -eq 'settled' -and $resumed.state -eq 3) 'already-playing VLC needs no toggle or further confirmation request'
+foreach($invalid in @(
+    @{values=@(0,6);raw="Type 'pause' to continue.`r`nstatus change: ( pause state: 4 )`r`n"},
+    @{values=@(1,6);raw='no authoritative state'},
+    @{values=@(1,6);raw="status change: ( stop state: 5 )`r`n"}
+)) {
+    $script:requests.Clear(); $script:replies.Enqueue($invalid); $trace=@{}
+    $rejected=Rejects { Resume-ColorVlc 123 456 @{} $trace }
+    Check ($rejected -and $trace.status -eq 'failed' -and $requests.Count -eq 1 -and -not $trace.ContainsKey('toggle') -and $trace.observations.Count -eq 1) 'absent, unknown or stopped input fails resume without toggling'
+}
+
+$script:requests.Clear()
+$script:replies.Enqueue(@{values=@(1,42);raw="Type 'pause' to continue.`r`n"})
+$script:replies.Enqueue(@{values=@(42);raw="42`r`n"})
+$trace=@{}
+$timedOut=Rejects { Resume-ColorVlc 123 456 @{} $trace -TimeoutMs 0 }
+Check ($timedOut -and $trace.status -eq 'failed' -and $trace.reason -like 'Timed out*' -and $requests.Count -eq 2 -and $trace.observations.Count -eq 1) 'unconfirmed resume reaches its deadline without another request'
+Check ($trace.toggle.raw -eq "42`r`n" -and $trace.qpcStart -gt 0 -and $trace.qpcEnd -ge $trace.toggle.qpcEnd -and @($requests | Where-Object { $_ -match '(?m)^pause$' }).Count -eq 1) 'resume timeout retains the one toggle and conservative QPC bounds'
+
+$script:requests.Clear()
+$script:replies.Enqueue(@{values=@(1,6);raw="Type 'pause' to continue.`r`n"})
+$script:replies.Enqueue(@{values=@(6);raw="6`r`n"})
+$script:replies.Enqueue(@{values=@(0,6);raw="status change: ( stop state: 5 )`r`n"})
+$trace=@{}
+$rejected=Rejects { Resume-ColorVlc 123 456 @{} $trace }
+Check ($rejected -and $trace.status -eq 'failed' -and $requests.Count -eq 3 -and $trace.observations.Count -eq 2 -and $trace.toggle) 'input loss during resume fails with its observations and toggle retained'
+$script:requests.Clear()
+$script:replies.Enqueue(@{values=@(1,6);raw="Type 'pause' to continue.`r`n"})
+$trace=@{}
+$rejected=Rejects { Resume-ColorVlc 123 456 @{} $trace }
+Check ($rejected -and $trace.status -eq 'failed' -and $trace.reason -and $requests.Count -eq 2 -and $trace.observations.Count -eq 1 -and $trace.qpcEnd -ge $trace.qpcStart) 'failed resume transport is retained and never retried as another toggle'
+Check ($count -eq 48) 'complete coarse color contract set'
 Write-Output "$count checks passed; no player or desktop capture was used."
