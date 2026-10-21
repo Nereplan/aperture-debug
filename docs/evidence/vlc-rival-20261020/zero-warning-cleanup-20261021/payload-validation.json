@@ -1,0 +1,21 @@
+{
+  "verifiedAtUtc": "2026-10-21T09:36:36.155689+00:00",
+  "buildSourceCommit": "601e62924ca31fb8e6a439958590887e1397afb0",
+  "productionSourceDirty": false,
+  "managedPayloadsVerified": {
+    "release": 10,
+    "debug": 10,
+    "zip": 10
+  },
+  "executable": {
+    "path": "Aperture.exe",
+    "size": 3438080,
+    "sha256": "d2f8744bca973d97609ec821a653cc9a903d23d07e3d9065d160704f7e44c81e"
+  },
+  "distribution": {
+    "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\dist\\Aperture-2.0.0.0-windows-x64.zip",
+    "bytes": 14440982,
+    "sha256": "cb94fcbfb19ccc992d669d08f05d3877f9db8fc4b71123800ab38b5aee0980ca"
+  },
+  "scope": "Exact local managed payload and package verification. Normal local build/test/package/install; frozen rivalry runtime is separate23fd026. Gate details retained in build log."
+}

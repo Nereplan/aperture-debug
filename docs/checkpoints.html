@@ -96,7 +96,7 @@ git diff --check</pre>
 <script id="checkpoint-data" type="application/json">
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-10-21T09:09:07+00:00",
+  "updatedAt": "2026-10-21T09:40:19+00:00",
   "metrics": {
     "visible-ms": {
       "label": "Visible window",
@@ -19909,6 +19909,54 @@ git diff --check</pre>
           "durationSeconds": null,
           "evidence": "docs/evidence/vlc-rival-20261020/av1-launch-footprint-attempt-20261021/review.json",
           "scope": "Three calls validate, fourth fails visibility before sampling, remaining four not attempted; no performance conclusion."
+        }
+      ]
+    },
+    {
+      "id": "zero-warning-cleanup-validation-20261021",
+      "label": "Native cleanup: zero warnings and installed regression validation",
+      "measuredAt": "2026-10-21T09:36:36.155689+00:00",
+      "commit": "601e62924ca31fb8e6a439958590887e1397afb0",
+      "dirty": false,
+      "sourceNote": "Committed source601e629; exact release/debug/ZIP payloads verified. EXE3438080bytes/SHA256d2f8744bca973d97609ec821a653cc9a903d23d07e3d9065d160704f7e44c81e. Frozen rivalry runtime remains23fd026.",
+      "notes": [
+        "Balanced successful COM initialization with scope cleanup after later objects destruct; startup argument storage now freed for no-argument launches as well as helper/normal argument launches.",
+        "Removed a fifth64KiB stack array and redundant full-path expansion from ICC plan construction, four duplicate virtual-key numeric aliases, duplicate client geometry reads and remaining shadowed names. Added malformed-host validation and checked WIC factory creation.",
+        "Shared scalar UIA SAFEARRAY bulk fill retains SafeArrayCreate, flags and resize behavior. Ten paired type/count cases verify exact bounds, type, bit-exact values including signed zero/NaN, flags and successful resizing. Rejected vector-allocation exploration remains externally retained and is not the current implementation.",
+        "MSVC analysis baseline tightened16to0 with no suppressions or allowances. Preserved-artifacts mode now retains exact captured build stdout/stderr for warning audits. Production source16lines shorter; total12-file change80netlines shorter, including obsolete warning allowances.",
+        "Allocation/fill/destruction medians and ranges are retained per type/count. Large1000/10000-element isolated helper medians favor bulk copy; common2/4-element cases have overlapping noisy ranges. Host was in desktop use, not idle. No significance, whole-UI responsiveness or rival-performance claim.",
+        "Native tests and full suites overlap; counts must not be added. Native geometry desktop skip retained.",
+        "Current EXE3438080bytes is the same length as the previous hash/path build, with a different hash. Source/LoC savings are not a binary-size or playback-speed claim.",
+        "Rivalry measurements and ongoing direct/hub diagnostic use the separately verified frozen23fd026 runtime; current installed601e629 has no new matched playback result."
+      ],
+      "results": [],
+      "tests": [
+        {
+          "name": "Normal local build, regression gate, package and install",
+          "status": "pass",
+          "passed": 23,
+          "total": 23,
+          "durationSeconds": 357.89,
+          "evidence": "docs/evidence/vlc-rival-20261020/zero-warning-cleanup-20261021/review.json",
+          "scope": "Suites;162native passed,1expected geometry skip of163registered; exact10managed payloads each in release/debug/ZIP."
+        },
+        {
+          "name": "Native MSVC C++17 zero-warning analysis",
+          "status": "pass",
+          "passed": 1,
+          "total": 1,
+          "durationSeconds": 59.87,
+          "evidence": "docs/evidence/vlc-rival-20261020/zero-warning-cleanup-20261021/build-test-package.txt",
+          "scope": "49production sources;0warnings against0cap,0new/count-regressions/errors. Included in23suite gate."
+        },
+        {
+          "name": "Scalar SAFEARRAY helper compatibility",
+          "status": "pass",
+          "passed": 10,
+          "total": 10,
+          "durationSeconds": null,
+          "evidence": "docs/evidence/vlc-rival-20261020/zero-warning-cleanup-20261021/scalar-arrays/result.json",
+          "scope": "Extracted exact legacy/candidate helpers; I4/R8 counts0,2,4,1000,10000. No app or rivalry ranking."
         }
       ]
     }

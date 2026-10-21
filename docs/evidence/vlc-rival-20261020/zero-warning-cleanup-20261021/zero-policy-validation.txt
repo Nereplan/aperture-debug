@@ -1,0 +1,25 @@
+================================================================================
+  Aperture Static Analysis Gate: Validation Mode
+================================================================================
+Toolchain Discovery:
+  VS 2022 Path:       C:\Program Files\Microsoft Visual Studio\2022\Community
+  vcvars64.bat:       C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat
+  MSVC Toolset:       14.44.35207
+  CMake Executable:   C:\Program Files\CMake\bin\cmake.exe (4.4.0)
+  Ninja Executable:   C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\Ninja\ninja.exe (1.12.1)
+  Target Generator:   Ninja
+--------------------------------------------------------------------------------
+Source Inventory (from CMakeLists.txt):
+  Total Sources:      49 translation units
+  Missing Sources:    0
+Analysis Configuration:
+  Configuration:      Release
+  Compiler Flags:     /analyze /analyze:external- /external:anglebrackets /external:W0
+  WarningsAsErrors:   False
+  Isolation:          External temporary directory in $env:TEMP (guaranteed cleanup)
+Baseline Policy:
+  Baseline File:      C:\Users\Alperen\Desktop\Antigravity\Aperture Final\scripts\static_analysis_baseline.json
+  Max Total Warnings: 0
+  Unique Allowed:     0 fingerprints
+
+[PASS] Static analysis gate configuration and toolchain validated successfully.

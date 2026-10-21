@@ -1,0 +1,19 @@
+**********************************************************************
+** Visual Studio 2022 Developer Command Prompt v17.14.37
+** Copyright (c) 2025 Microsoft Corporation
+**********************************************************************
+[vcvarsall.bat] Environment initialized for: 'x64'
+ChannelPolicy.cpp
+Updater.cpp
+Json.cpp
+HttpTransport.cpp
+main.cpp
+Generating Code...
+Aperture updater tests (3 selected, 0 filtered)
+[       OK ] Updater::ManifestAndChannelPolicyContract (15.44 ms)
+[       OK ] Updater::CryptoAuthenticodeAndPeContract (47.11 ms)
+[       OK ] Updater::SwapRollbackHelperAndBoundsContract (97.43 ms)
+
+3 passed, 0 failed, 0 skipped in 160.07 ms
+
+All Aperture updater deterministic tests completed successfully.

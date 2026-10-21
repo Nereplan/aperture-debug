@@ -1,0 +1,11 @@
+{
+  "preparedAtUtc": "2026-10-21T09:25:52.316307+00:00",
+  "legacySourceCommit": "3b898621a1cb306f0dd66f490e2311604b69346a",
+  "candidateSource": "Current dirty Accessibility.cpp; copied exact private helper definitions only, without changes",
+  "legacyHelperSha256": "f263c97effdb09fc331a170a445c56021c9ab783a78596beb392ea6deb22d737",
+  "candidateHelperSha256": "682290f3d1b53b2398a3333467fbacca1929975590f193fb6c0d04129f5eee6e",
+  "sourceSha256": "c6bb25eed15156f8cc869e3f2027cd8e4f294bb60490ae11c6a95c783aa5944e",
+  "protocol": "Ten type/count cases; verify dimension, VARTYPE, zero lower bound, exact values including signed zero/NaN, then10warmups and9alternating blocks. Allocation/destruction included. No visible windows, full-app CPU/RAM, statistical significance or rivalry claim.",
+  "compatibility": "Verify original fFeatures and resize success in addition to dimension/type/bounds/bit-exact contents. Original SafeArrayCreate retained; only fill strategy changes.",
+  "priorCandidateDisposition": "Vector-allocation exploratory candidate is not adopted because SafeArrayCreateVector can change fixed-size/feature flags. Prior files/timings retained externally without current-candidate performance claims."
+}

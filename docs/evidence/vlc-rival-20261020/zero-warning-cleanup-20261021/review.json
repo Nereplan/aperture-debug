@@ -1,0 +1,111 @@
+{
+  "recordedAtUtc": "2026-10-21T09:37:38.728409+00:00",
+  "buildSourceCommit": "601e62924ca31fb8e6a439958590887e1397afb0",
+  "productionSourceDirty": false,
+  "sourceChanges": [
+    "Balanced successful COM initialization with scope cleanup after later objects destruct; startup argument storage now freed for no-argument launches as well as helper/normal argument launches.",
+    "Removed a fifth64KiB stack array and redundant full-path expansion from ICC plan construction, four duplicate virtual-key numeric aliases, duplicate client geometry reads and remaining shadowed names. Added malformed-host validation and checked WIC factory creation.",
+    "Shared scalar UIA SAFEARRAY bulk fill retains SafeArrayCreate, flags and resize behavior. Ten paired type/count cases verify exact bounds, type, bit-exact values including signed zero/NaN, flags and successful resizing. Rejected vector-allocation exploration remains externally retained and is not the current implementation.",
+    "MSVC analysis baseline tightened16to0 with no suppressions or allowances. Preserved-artifacts mode now retains exact captured build stdout/stderr for warning audits. Production source16lines shorter; total12-file change80netlines shorter, including obsolete warning allowances."
+  ],
+  "gate": {
+    "suitesPassed": 23,
+    "suitesTotal": 23,
+    "durationSeconds": 357.89,
+    "nativePassed": 162,
+    "nativeFailed": 0,
+    "nativeSkipped": 1,
+    "nativeRegistered": 163,
+    "staticSources": 49,
+    "staticWarnings": 0,
+    "staticWarningCap": 0,
+    "staticDurationSeconds": 59.87
+  },
+  "executable": {
+    "path": "Aperture.exe",
+    "size": 3438080,
+    "sha256": "d2f8744bca973d97609ec821a653cc9a903d23d07e3d9065d160704f7e44c81e"
+  },
+  "distribution": {
+    "path": "C:\\Users\\Alperen\\Desktop\\Antigravity\\Aperture Final\\dist\\Aperture-2.0.0.0-windows-x64.zip",
+    "bytes": 14440982,
+    "sha256": "cb94fcbfb19ccc992d669d08f05d3877f9db8fc4b71123800ab38b5aee0980ca"
+  },
+  "managedPayloadsVerified": {
+    "release": 10,
+    "debug": 10,
+    "zip": 10
+  },
+  "isolatedArrayStudy": {
+    "verifiedCases": 10,
+    "measuredBlocksPerCase": 9,
+    "description": "Allocation/fill/destruction medians and ranges are retained per type/count. Large1000/10000-element isolated helper medians favor bulk copy; common2/4-element cases have overlapping noisy ranges. Host was in desktop use, not idle. No significance, whole-UI responsiveness or rival-performance claim."
+  },
+  "limits": [
+    "Native tests and full suites overlap; counts must not be added. Native geometry desktop skip retained.",
+    "Current EXE3438080bytes is the same length as the previous hash/path build, with a different hash. Source/LoC savings are not a binary-size or playback-speed claim.",
+    "Rivalry measurements and ongoing direct/hub diagnostic use the separately verified frozen23fd026 runtime; current installed601e629 has no new matched playback result."
+  ],
+  "files": [
+    {
+      "path": "build-test-package.txt",
+      "bytes": 53371,
+      "sha256": "7b7cdbee3a86164a7adf152ee7fa47fcfe3caef865c87083a309673db198868e",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\zero-warning-cleanup-build-and-release-20261021.txt"
+    },
+    {
+      "path": "payload-validation.json",
+      "bytes": 848,
+      "sha256": "e9ed9fc58e0a68c580a573887d2fb7585468b9ed84490f161970beb9a58b0939",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\zero-warning-payload-validation-20261021.json"
+    },
+    {
+      "path": "updater-focused.txt",
+      "bytes": 756,
+      "sha256": "60b66f876aaa0d81d81c345f2f3e002407fc3b1d1c986490f8c724b91a5f91e6",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\malformed-host-updater-focused-20261021.txt"
+    },
+    {
+      "path": "zero-policy-validation.txt",
+      "bytes": 1435,
+      "sha256": "9df9c23df2a9d79a42d6924d2de8c7f4563d5b03829df171744c0a62f727663f",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\zero-warning-policy-validation-20261021.txt"
+    },
+    {
+      "path": "scalar-arrays/array_check.cpp",
+      "bytes": 5351,
+      "sha256": "efa88dbe1e20928323b65e9931e3e5e3123f98eef8d2ec522386c0e61816400f",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\uia-array-preserved-shape-20261021\\array_check.cpp"
+    },
+    {
+      "path": "scalar-arrays/identity.json",
+      "bytes": 1234,
+      "sha256": "f1208d17ab1bb9422edde7a428b6d457d9a0d3bc18a7635c1f92d8173316d279",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\uia-array-preserved-shape-20261021\\identity.json"
+    },
+    {
+      "path": "scalar-arrays/timing-context.json",
+      "bytes": 346,
+      "sha256": "1badb5485ac7d7631b2330a6fc2b48762909d2bbefedc46ebb4bdadcca75b1e3",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\uia-array-preserved-shape-20261021\\timing-context.json"
+    },
+    {
+      "path": "scalar-arrays/result.json",
+      "bytes": 2182,
+      "sha256": "1e0daba93ced17539a008692c89a74a3a7f0ee6ce2c6f709ba2d88189996a38d",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\uia-array-preserved-shape-20261021\\result.json"
+    },
+    {
+      "path": "scalar-arrays/build.txt",
+      "bytes": 71,
+      "sha256": "531d724e83ac3694fada76d6eee2382ad98fb94ed613647d45a146d810f7e58a",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\uia-array-preserved-shape-20261021\\build.txt"
+    },
+    {
+      "path": "scalar-arrays/stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source": "C:\\Users\\Alperen\\AppData\\Local\\Codex\\tools\\scratch\\aperture-rival-20261019\\uia-array-preserved-shape-20261021\\stderr.txt"
+    }
+  ]
+}
