@@ -131,6 +131,7 @@ public:
     HubRenderViewModel BuildHubRenderViewModel();
     ModalViewModel BuildModalViewModel() const;
 private:
+    bool RenderHubFrame();
     HWND hWnd = NULL;
     HINSTANCE hInstance = NULL;
     Settings settings;

@@ -784,6 +784,8 @@ void App::OpenAndPlayMedia(const std::wstring& filePath, double startPosSec, boo
     player.SetVideoVisible(true);
     if (player.Open(resolvedPath, seekPos)) {
         playbackSession.OnPlayerOpened(true);
+        hiddenLibrarySinceMs = 0;
+        hiddenLibraryCachesTrimmed = false;
         mediaGenerationToken++;
         previewPlayer.StopPreview();
         controlsOpacity = 1.0f;
@@ -829,6 +831,8 @@ void App::ClosePlayer() {
     playerKeyboardFocusId = 0;
     isKeyboardNavActive = false;
     if (playbackSession.IsOpen()) {
+        hiddenLibrarySinceMs = 0;
+        hiddenLibraryCachesTrimmed = false;
         isOverlayMouseTracking = false;
         isVideoMouseTracking = false;
         lastPlayerMouseX = -1.0f;
@@ -851,16 +855,22 @@ void App::ClosePlayer() {
         isJumpAheadHovered = false;
         isJumpAheadPressed = false;
         jumpAheadAnim.SnapTo(0.0f);
-        player.Close();
-        player.SetVideoVisible(false);
-        if (hOverlayWnd) ShowWindow(hOverlayWnd, SW_HIDE);
-        if (isCursorHidden) { isCursorHidden = false; SetCursor(LoadCursor(NULL, IDC_ARROW)); }
+        isSettingsFlyoutOpen = false;
+        isContextMenuOpen = false;
+        flyoutClosing = false; contextMenuClosing = false;
+        flyoutAnim.SnapTo(0.0f); contextMenuAnim.SnapTo(0.0f);
         inPresentationTransition = true;
         playbackSession.ResetPresentation(hWnd);
         inPresentationTransition = false;
         RECT rc;
         GetClientRect(hWnd, &rc);
         renderer.Resize(rc.right - rc.left, rc.bottom - rc.top);
+        // Keep the video covering the hub while its retired device is recreated.
+        if (!renderer.HasPresentedFrame() && IsWindowVisible(hWnd) && !IsIconic(hWnd)) RenderHubFrame();
+        if (hOverlayWnd) ShowWindow(hOverlayWnd, SW_HIDE);
+        player.SetVideoVisible(false);
+        player.Close();
+        if (isCursorHidden) { isCursorHidden = false; SetCursor(LoadCursor(NULL, IDC_ARROW)); }
         // A stopped libmpv handle still owns demuxer state, decoder surfaces,
         // audio buffers, and its event thread.  Closing a session must release
         // those media-only resources instead of keeping them attached to the
@@ -889,10 +899,6 @@ void App::ClosePlayer() {
         playerTooltips.SetActive(false);
         playerTooltips.HideForKeyboard();
         playerTooltipSignature = 0;
-        isSettingsFlyoutOpen = false;
-        isContextMenuOpen = false;
-        flyoutClosing = false; contextMenuClosing = false;
-        flyoutAnim.SnapTo(0.0f); contextMenuAnim.SnapTo(0.0f);
         SetWindowTextW(hWnd, std::wstring(Version::ProductNameWide).c_str());
         InvalidateRect(hWnd, NULL, FALSE);
         UpdateDisplayPowerRequest();

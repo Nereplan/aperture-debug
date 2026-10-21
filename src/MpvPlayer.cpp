@@ -1896,7 +1896,7 @@ PlayerDiagnostics MpvPlayer::GetDiagnostics() const {
 }
 
 void MpvPlayer::SetVideoBounds(int x, int y, int w, int h) {
-    if (hVideoWnd) { SetWindowPos(hVideoWnd, HWND_TOP, x, y, w, h, SWP_NOACTIVATE | SWP_SHOWWINDOW); }
+    if (hVideoWnd) { SetWindowPos(hVideoWnd, HWND_TOP, x, y, w, h, SWP_NOACTIVATE); }
 }
 
 void MpvPlayer::SetVideoVisible(bool visible) {

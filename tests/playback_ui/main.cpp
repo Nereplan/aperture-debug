@@ -266,6 +266,32 @@ struct PlaybackUiTestAccess {
         a.controlsOpacity = 1.0f; a.controlsIdleTimer = 0.0f;
         Pass("expired hub preview resources release during main playback; active/recent previews survive and fresh hover restarts lazily");
     }
+    static void HiddenLibraryRetirement(App& a, const std::wstring& media) {
+        Require(a.playbackSession.OpenDirect(media) && a.playbackSession.OnPlayerOpened(true), "Hidden playback setup for retirement");
+        a.player.Play();
+        Require(a.renderer.EnsureGraphicsContext(), "Hub graphics setup for retirement");
+        a.previewPlayer.StopPreview();
+        a.previewPlayer.BindDeviceContext(a.renderer.GetD2DContext());
+        a.hiddenLibrarySinceMs = GetTickCount64() - 16000;
+        a.hiddenLibraryCachesTrimmed = false;
+        a.Update(0);
+        Require(a.hiddenLibraryCachesTrimmed && !a.renderer.GetD2DContext(), "Hidden playback retained hub graphics");
+        for (int i = 0; i < 3; ++i) a.Update(0);
+        Require(!a.renderer.GetD2DContext(), "Hidden playback reacquired hub graphics");
+        Pass("playback retires hub graphics once and keeps them retired");
+        a.ClosePlayer();
+        Require(!a.playbackSession.IsOpen() && !a.playerInitialized, "Hidden player did not close");
+        Require(!a.renderer.GetD2DContext(), "Hidden close eagerly recreated hub graphics");
+        a.player.SetVideoBounds(0, 0, 1024, 640);
+        Require(!(GetWindowLongPtrW(a.hVideoWnd, GWL_STYLE) & WS_VISIBLE), "Resizing revealed the stopped video host");
+        Require(!a.hiddenLibrarySinceMs && !a.hiddenLibraryCachesTrimmed, "Close retained a completed trim state");
+        NoVisibleWindows();
+        a.Render();
+        Require(a.renderer.GetD2DContext(), "Hub draw did not lazily recreate graphics");
+        const auto size = a.renderer.GetD2DContext()->GetSize();
+        Require(size.width == 1024 && size.height == 640, "Restored hub target dimensions changed");
+        Pass("hidden close stays lazy; later hub drawing restores the target");
+    }
     static void DiagnosticsClose(App& a) {
         Key(a, 'I'); Require(a.showPlaybackDiagnostics, "Diagnostics keyboard toggle did not open panel");
         const float dp = a.overlayRenderer.GetDpiScale();
@@ -540,8 +566,100 @@ struct PlaybackUiTestAccess {
         a.libraryUndoHistory.clear();
         Pass("Undo history bounds entry count and retained payload");
     }
+    struct ReturnObservation {
+        App* app;
+        bool watching = false, prepared = true;
+        bool hasContext = false, hasFrame = false, occluded = false, menusClosed = false;
+        unsigned presentation = 0;
+        int hideEvents = 0;
+    };
+    static LRESULT CALLBACK ObserveVideoHide(HWND window, UINT message, WPARAM w, LPARAM l, UINT_PTR, DWORD_PTR data) {
+        auto& observation = *reinterpret_cast<ReturnObservation*>(data);
+        if (observation.watching && message == WM_SHOWWINDOW && !w) {
+            ++observation.hideEvents;
+            const auto& a = *observation.app;
+            observation.hasContext = a.renderer.GetD2DContext() != nullptr;
+            observation.hasFrame = a.renderer.HasPresentedFrame();
+            observation.occluded = a.renderer.IsOccluded();
+            observation.menusClosed = !a.isSettingsFlyoutOpen && !a.isContextMenuOpen;
+            observation.presentation = static_cast<unsigned>(a.playbackSession.GetPresentationMode());
+            observation.prepared &= observation.hasContext && observation.hasFrame && !observation.occluded &&
+                observation.menusClosed && a.playbackSession.GetPresentationMode() == PresentationMode::Windowed;
+        }
+        return DefSubclassProc(window, message, w, l);
+    }
+    static void VisibleReturns(const std::wstring& media, const std::string& mode) {
+            auto a = std::make_unique<App>();
+            ReturnObservation observation{a.get()};
+            try {
+                Setup(*a, media);
+                a->player.Pause(); a->playbackSession.Close();
+                SetWindowLongPtrW(a->hWnd, GWL_STYLE, WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN | WS_CLIPSIBLINGS);
+                SetWindowPos(a->hWnd, nullptr, 80, 80, 1040, 680, SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED);
+                ShowWindow(a->hWnd, mode == "maximized" ? SW_MAXIMIZE : SW_SHOW);
+                a->Render(); Pump(50);
+                // A completed minimized-hub trim must not suppress playback retirement.
+                a->hiddenLibrarySinceMs = GetTickCount64() - 16000; a->hiddenLibraryCachesTrimmed = true;
+                a->OpenAndPlayMedia(media);
+                Require(a->playbackSession.IsOpen() && !a->hiddenLibraryCachesTrimmed && !a->hiddenLibrarySinceMs, "Playback inherited an old trim state");
+                Until([&]() { return a->player.IsPlaying() && a->player.GetCurrentTime() > .1; }, "Visible playback did not start");
+                if (mode == "fullscreen") a->ToggleFullscreen();
+                if (mode == "pip") a->TogglePiP();
+                Pump(100);
+                a->hiddenLibrarySinceMs = GetTickCount64() - 16000; a->hiddenLibraryCachesTrimmed = false;
+                a->Update(0);
+                Require(!a->renderer.GetD2DContext() && !a->renderer.HasPresentedFrame(), "Visible playback did not retire graphics");
+                if (mode == "minimized") ShowWindow(a->hWnd, SW_MINIMIZE);
+                Require(SetWindowSubclass(a->hVideoWnd, ObserveVideoHide, 1, reinterpret_cast<DWORD_PTR>(&observation)), "Video hide observer installation");
+                a->isSettingsFlyoutOpen = a->isContextMenuOpen = true;
+                observation.watching = mode != "minimized";
+                const bool visibleBeforeClose = IsWindowVisible(a->hWnd) != FALSE;
+                const bool minimizedBeforeClose = IsIconic(a->hWnd) != FALSE;
+                a->ClosePlayer(); observation.watching = false;
+                std::ofstream diagnostic(output + L"/return-state-" + Utf8ToUtf16(mode) + L".json");
+                diagnostic << "{\"hideEvents\":" << observation.hideEvents << ",\"prepared\":" << observation.prepared
+                    << ",\"hasContextAtHide\":" << observation.hasContext << ",\"hasFrameAtHide\":" << observation.hasFrame
+                    << ",\"occludedAtHide\":" << observation.occluded << ",\"menusClosedAtHide\":" << observation.menusClosed
+                    << ",\"presentationAtHide\":" << observation.presentation << ",\"visibleBeforeClose\":" << visibleBeforeClose
+                    << ",\"minimizedBeforeClose\":" << minimizedBeforeClose << "}\n";
+                diagnostic.close();
+                Require(!a->playbackSession.IsOpen() && !a->hiddenLibrarySinceMs && !a->hiddenLibraryCachesTrimmed, "Close retained playback/trim state");
+                if (mode == "minimized") {
+                    Require(IsIconic(a->hWnd) && !a->renderer.GetD2DContext(), "Minimized stop allocated graphics or restored the window");
+                    ShowWindow(a->hWnd, SW_RESTORE); a->Render();
+                } else {
+                    Require(observation.hideEvents > 0 && observation.prepared, "Video hidden before a restored hub frame was prepared");
+                    Require(a->renderer.HasPresentedFrame() && !a->renderer.IsOccluded(), "Restored hub frame unavailable");
+                }
+                Require(a->renderer.GetD2DContext(), "Restored hub has no graphics context");
+                RECT client{}; GetClientRect(a->hWnd, &client);
+                const auto size = a->renderer.GetD2DContext()->GetSize();
+                Require(size.width == client.right && size.height == client.bottom, "Hub target differs from restored client dimensions");
+                Require((mode == "maximized") == (IsZoomed(a->hWnd) != FALSE), "Restored maximized state changed");
+                SetWindowPos(a->hWnd, nullptr, 80, 80, 900, 600, SWP_NOZORDER | SWP_NOACTIVATE);
+                a->Render();
+                Require(!(GetWindowLongPtrW(a->hVideoWnd, GWL_STYLE) & WS_VISIBLE), "Hub resize exposed a stopped video host");
+                if (mode == "windowed") {
+                    // No intervening hub Update: a new session still needs a new trim timer.
+                    a->OpenAndPlayMedia(media);
+                    Require(a->playbackSession.IsOpen() && !a->hiddenLibraryCachesTrimmed && !a->hiddenLibrarySinceMs, "Rapid reopen inherited trim state");
+                    a->hiddenLibrarySinceMs = GetTickCount64() - 16000; a->Update(0);
+                    Require(!a->renderer.GetD2DContext(), "Rapid reopen retained recreated hub graphics");
+                    observation.watching = true; a->ClosePlayer(); observation.watching = false;
+                    Require(observation.hideEvents >= 2 && observation.prepared, "Rapid reopen lost covered frame preparation");
+                }
+                RemoveWindowSubclass(a->hVideoWnd, ObserveVideoHide, 1);
+                std::ofstream record(output + L"/return-" + Utf8ToUtf16(mode) + L".json");
+                record << "{\"mode\":\"" << mode << "\",\"hideEvents\":" << observation.hideEvents
+                    << ",\"preparedBeforeVideoHide\":" << (observation.prepared ? "true" : "false")
+                    << ",\"restoredClientWidth\":" << client.right << ",\"restoredClientHeight\":" << client.bottom
+                    << ",\"scope\":\"Opt-in visible functional state/order checks; forced15s trim clock, no cadence or physical-panel/latency measurement\"}\n";
+            } catch (...) { Release(*a); throw; }
+            Release(*a); Pass(("visible library return: " + mode).c_str());
+    }
     static void Run(App& a, const std::wstring& media) {
-        Setup(a, media); PacedInputBookkeeping(a); PreviewIdleTeardown(a, media); DiagnosticsClose(a); Controls(a); Subtitles(a); Bookmark(a); RepeatAndMenu(a); RenameUndo(a); MoveUndo(a); MediaAndFolderUndo(a); EditHistory(a); NoVisibleWindows();
+        Require(!a.RenderHubFrame(), "Uninitialized hub renderer accepted a frame");
+        Setup(a, media); PacedInputBookkeeping(a); PreviewIdleTeardown(a, media); DiagnosticsClose(a); Controls(a); Subtitles(a); Bookmark(a); RepeatAndMenu(a); RenameUndo(a); MoveUndo(a); MediaAndFolderUndo(a); EditHistory(a); HiddenLibraryRetirement(a, media); NoVisibleWindows();
     }
     static void Release(App& a) {
         if (a.hWnd) SetWindowLongPtrW(a.hWnd, GWLP_USERDATA, 0);
@@ -560,12 +678,23 @@ static LRESULT CALLBACK HarnessProc(HWND window, UINT message, WPARAM w, LPARAM 
     return PlaybackUiTestAccess::IsOverlay(*app, window) ? app->HandleOverlayMessage(window, message, w, l) : app->HandleMessage(window, message, w, l);
 }
 int wmain(int argc, wchar_t** argv) {
-    if (argc != 3) { std::cerr << "Usage: playback-ui-tests.exe <media> <new-output-dir>\n"; return 2; }
+    const bool visibleReturns = argc == 5 && std::wstring(argv[3]) == L"--visible-return";
+    const std::string mode = visibleReturns ? Utf16ToUtf8(argv[4]) : "";
+    if ((argc != 3 && !visibleReturns) || (visibleReturns && mode != "windowed" && mode != "maximized" && mode != "fullscreen" && mode != "pip" && mode != "minimized")) {
+        std::cerr << "Usage: playback-ui-tests.exe <media> <new-output-dir> [--visible-return <windowed|maximized|fullscreen|pip|minimized>]\n"; return 2;
+    }
     OleInitialize(nullptr);
     PlaybackUiTestAccess::output = argv[2];
-    auto app = std::make_unique<App>(); int result = 0;
-    try { PlaybackUiTestAccess::Run(*app, argv[1]); }
-    catch (const std::exception& e) { std::cerr << "FAIL " << e.what() << std::endl; result = 1; }
-    PlaybackUiTestAccess::Release(*app); app.reset(); OleUninitialize();
-    std::cout << PlaybackUiTestAccess::passed << " hidden interaction checks passed\n"; return result;
+    int result = 0;
+    if (visibleReturns) {
+        try { PlaybackUiTestAccess::VisibleReturns(argv[1], mode); }
+        catch (const std::exception& e) { std::cerr << "FAIL " << e.what() << std::endl; result = 1; }
+    } else {
+        auto app = std::make_unique<App>();
+        try { PlaybackUiTestAccess::Run(*app, argv[1]); }
+        catch (const std::exception& e) { std::cerr << "FAIL " << e.what() << std::endl; result = 1; }
+        PlaybackUiTestAccess::Release(*app);
+    }
+    OleUninitialize();
+    std::cout << PlaybackUiTestAccess::passed << (visibleReturns ? " native interaction checks passed\n" : " hidden interaction checks passed\n"); return result;
 }

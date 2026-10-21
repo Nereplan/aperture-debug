@@ -1698,6 +1698,16 @@ bool App::Update(float dt) {
     return needsRedraw;
 }
 
+bool App::RenderHubFrame() {
+    if (renderer.AreDeviceWorkersRunning()) return false;
+    renderer.BeginDraw();
+    if (!renderer.GetD2DContext()) return false;
+    previewPlayer.BindDeviceContext(renderer.GetD2DContext());
+    HubRenderViewModel vm = BuildHubRenderViewModel();
+    UIComponents::DrawHub(renderer, settings, vm);
+    return renderer.EndDraw() && !renderer.IsOccluded();
+}
+
 void App::Render() {
     if (renderer.AreDeviceWorkersRunning()) return;
     if (playbackSession.IsOpen()) {
@@ -1722,15 +1732,10 @@ void App::Render() {
     playerTooltips.HideForKeyboard();
     RefreshHubTooltips();
     // --- Hub Library View (Rendered directly on main window) ---
-    // Hide-once guards: ShowWindow churn every rendered hub frame would emit
-    // redundant WM_SHOWWINDOW traffic on the video/overlay windows.
+    if (!RenderHubFrame()) return;
+    // Reveal a complete hub frame before removing playback surfaces.
     if (hVideoWnd && IsWindowVisible(hVideoWnd)) ShowWindow(hVideoWnd, SW_HIDE);
     if (hOverlayWnd && IsWindowVisible(hOverlayWnd)) ShowWindow(hOverlayWnd, SW_HIDE);
-    renderer.BeginDraw();
-    previewPlayer.BindDeviceContext(renderer.GetD2DContext());
-    HubRenderViewModel vm = BuildHubRenderViewModel();
-    UIComponents::DrawHub(renderer, settings, vm);
-    if (!renderer.EndDraw() || renderer.IsOccluded()) return;
     if (!firstGpuShellRecorded) { firstGpuShellRecorded = true; Diagnostics::RecordStartupMilestone(L"first-gpu-shell", false); }
     if (libraryReady && !librarySnapshotFrameRendered) {
         librarySnapshotFrameRendered = true;
