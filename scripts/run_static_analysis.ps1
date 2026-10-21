@@ -735,20 +735,6 @@ finally {
         }
     }
 
-    # Check for resolved / fixed warnings
-    foreach ($kvp in $baselineMap) {
-        $key = $kvp.Key
-        $maxAllowed = $kvp.Value
-        $actual = if ($observedCounts.ContainsKey($key)) { $observedCounts[$key] } else { 0 }
-        if ($actual -lt $maxAllowed) {
-            $resolvedWarnings.Add([PSCustomObject]@{
-                Fingerprint = $key
-                BaselineMax = $maxAllowed
-                ActualCount = $actual
-                Resolved    = ($maxAllowed - $actual)
-            })
-        }
-    }
 
     $totalWarningCount = $parsedWarnings.Count
     $totalExceeded = ($totalWarningCount -gt $baseline.maxTotalWarnings)
