@@ -1851,7 +1851,7 @@ PlayerDiagnostics MpvPlayer::GetDiagnostics() const {
             if (fn_mpv_get_property(mpv, key, MPV_FORMAT_INT64, &result) >= 0) { value = result; return; }
         }
     };
-    readString(d.hwDec, "hwdec-current", "hwdec-active");
+    readString(d.hwDec, "hwdec-current");
     readString(d.pixelFormat, "video-params/pixelformat", "video-format");
     readDouble(d.currentTime, {"time-pos"});
     readDouble(d.videoFps, {"container-fps", "estimated-vf-fps", "fps"}, true);

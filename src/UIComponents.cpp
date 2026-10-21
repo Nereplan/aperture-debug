@@ -1986,9 +1986,9 @@ void UIComponents::DrawPlaybackDiagnostics(OverlayRenderer& r, const Settings& s
     swprintf_s(vCodecBuf, L"%ls%ls", vCodec.c_str(), pixFmt.c_str());
     drawRow(L"Video Codec", vCodecBuf, th.text);
     wchar_t decBuf[128];
-    std::wstring hw = vm.diagnostics.hwDec.empty() ? (s.hwAccel ? L"auto-safe" : L"no (software)") : vm.diagnostics.hwDec;
-    swprintf_s(decBuf, L"HW: %ls", hw.c_str());
-    drawRow(L"Decoder", decBuf, hw != L"no" && hw != L"no (software)" ? th.accent : th.textMuted);
+    const auto& hw = vm.diagnostics.hwDec;
+    swprintf_s(decBuf, L"HW: %ls", hw.empty() ? L"N/A" : hw.c_str());
+    drawRow(L"Decoder", decBuf, !hw.empty() && hw != L"no" ? th.accent : th.textMuted);
     wchar_t fpsBuf[128];
     if (vm.diagnostics.videoFps > 0.0) {
         if (vm.diagnostics.displayFps > 0.0) {

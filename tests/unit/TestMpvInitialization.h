@@ -14,11 +14,11 @@ struct MpvTrackTestAccess {
     int64_t secondaryId = 0;
     std::vector<uint64_t> callbackVersions;
     std::function<void()> diagnosticReadHook;
-    std::string diagnosticTransfer, diagnosticToneMapping;
+    std::string diagnosticTransfer, diagnosticToneMapping, diagnosticHwDec;
     inline static constexpr const char* counterProperties[] = {"decoder-frame-drop-count", "frame-drop-count", "mistimed-frame-count"};
     int64_t counterValues[3]{};
     int counterResults[3]{MPV_ERROR_PROPERTY_NOT_FOUND, MPV_ERROR_PROPERTY_NOT_FOUND, MPV_ERROR_PROPERTY_NOT_FOUND};
-    std::vector<std::string> counterReads;
+    std::vector<std::string> counterReads, hwdecReads;
     MpvTrackTestAccess() {
         player.mpv = reinterpret_cast<mpv_handle*>(this);
         player.fn_mpv_get_property = &Property;
@@ -72,12 +72,15 @@ struct MpvTrackTestAccess {
     }
     static char* StringProperty(mpv_handle* handle, const char* name) {
         auto& fixture = *reinterpret_cast<MpvTrackTestAccess*>(handle);
+        if (std::strncmp(name, "hwdec-", 6) == 0) fixture.hwdecReads.emplace_back(name);
         if (std::strcmp(name, "hwdec-current") == 0 && fixture.diagnosticReadHook)
             fixture.diagnosticReadHook();
         unsigned index = 0;
         const auto field = TrackField(name, index);
         const char* value = nullptr;
-        if (std::strcmp(name, "video-params/gamma") == 0 && !fixture.diagnosticTransfer.empty())
+        if (std::strcmp(name, "hwdec-current") == 0 && !fixture.diagnosticHwDec.empty())
+            value = fixture.diagnosticHwDec.c_str();
+        else if (std::strcmp(name, "video-params/gamma") == 0 && !fixture.diagnosticTransfer.empty())
             value = fixture.diagnosticTransfer.c_str();
         else if (std::strcmp(name, "tone-mapping") == 0 && !fixture.diagnosticToneMapping.empty())
             value = fixture.diagnosticToneMapping.c_str();
@@ -211,6 +214,17 @@ TEST_CASE(MpvInitialization, DiagnosticsDistinguishesUnavailableFrameCountersFro
             TEST_ASSERT_EQ(actual[i], test.expected[i]);
             if (i < fixture.counterReads.size()) TEST_ASSERT_EQ(fixture.counterReads[i], std::string(MpvTrackTestAccess::counterProperties[i]));
         }
+    }
+}
+
+TEST_CASE(MpvInitialization, DiagnosticsReportsEffectiveHardwareDecoderAvailability) {
+    MpvTrackTestAccess fixture;
+    for (const auto* value : {"", "d3d11va", "d3d11va-copy", "no", ""}) {
+        fixture.diagnosticHwDec = value;
+        fixture.hwdecReads.clear();
+        TEST_ASSERT_EQ(fixture.player.GetDiagnostics().hwDec, Utf8ToUtf16(value));
+        TEST_ASSERT_EQ(fixture.hwdecReads.size(), size_t{1});
+        if (!fixture.hwdecReads.empty()) TEST_ASSERT_EQ(fixture.hwdecReads.front(), std::string("hwdec-current"));
     }
 }
 
