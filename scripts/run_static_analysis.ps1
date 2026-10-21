@@ -610,6 +610,10 @@ exit /b %ERRORLEVEL%
     $buildResult = Invoke-BoundedProcessRunner -Executable "cmd.exe" -ArgumentList @("/d", "/c", $buildCmdScript) -WorkingDirectory $repoRoot -TimeoutSec $TimeoutSeconds
     $combinedOutput = ($buildResult.StdOut + "`n" + $buildResult.StdErr)
     $analysisOutput = $combinedOutput
+    if ($PreserveArtifacts) {
+        [IO.File]::WriteAllText((Join-Path $tempDir 'build-stdout.txt'), $buildResult.StdOut, [Text.UTF8Encoding]::new($false))
+        [IO.File]::WriteAllText((Join-Path $tempDir 'build-stderr.txt'), $buildResult.StdErr, [Text.UTF8Encoding]::new($false))
+    }
 
     # Parse output for compiler/analyzer warnings and errors
     $outputLines = $combinedOutput -split "[\r\n]+"

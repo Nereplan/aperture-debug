@@ -49,25 +49,21 @@ LONG RoleToControlTypeId(LONG role) {
     }
 }
 
-SAFEARRAY* CreateIntArray(const int* values, size_t count) {
-    SAFEARRAYBOUND bound{};
-    bound.cElements = static_cast<ULONG>(count);
-    bound.lLbound = 0;
-    SAFEARRAY* sa = SafeArrayCreate(VT_I4, 1, &bound);
-    if (!sa) return nullptr;
-    for (LONG i = 0; i < static_cast<LONG>(count); ++i) { SafeArrayPutElement(sa, &i, const_cast<int*>(&values[i])); }
-    return sa;
+template<VARTYPE Type, typename T>
+SAFEARRAY* CreateScalarArray(const T* values, size_t count) {
+    if (count > LONG_MAX || (!values && count)) return nullptr;
+    SAFEARRAYBOUND bound{static_cast<ULONG>(count), 0};
+    SAFEARRAY* array = SafeArrayCreate(Type, 1, &bound);
+    if (!array || !count) return array;
+    void* data = nullptr;
+    if (FAILED(SafeArrayAccessData(array, &data))) { SafeArrayDestroy(array); return nullptr; }
+    std::copy_n(values, count, static_cast<T*>(data));
+    if (FAILED(SafeArrayUnaccessData(array))) { SafeArrayDestroy(array); return nullptr; }
+    return array;
 }
 
-SAFEARRAY* CreateDoubleArray(const double* values, size_t count) {
-    SAFEARRAYBOUND bound{};
-    bound.cElements = static_cast<ULONG>(count);
-    bound.lLbound = 0;
-    SAFEARRAY* sa = SafeArrayCreate(VT_R8, 1, &bound);
-    if (!sa) return nullptr;
-    for (LONG i = 0; i < static_cast<LONG>(count); ++i) { SafeArrayPutElement(sa, &i, const_cast<double*>(&values[i])); }
-    return sa;
-}
+SAFEARRAY* CreateIntArray(const int* values, size_t count) { return CreateScalarArray<VT_I4>(values, count); }
+SAFEARRAY* CreateDoubleArray(const double* values, size_t count) { return CreateScalarArray<VT_R8>(values, count); }
 
 class UiaValue {
 public:

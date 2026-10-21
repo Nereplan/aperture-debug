@@ -1103,11 +1103,7 @@ ColorManagementPlan MpvPlayer::BuildColorManagementPlan( const std::string& hdrM
     if (!plan.normalizedIccProfile.empty()) {
         std::wstring baseDir = exeDir;
         while (!baseDir.empty() && (baseDir.back() == L'\\' || baseDir.back() == L'/')) { baseDir.pop_back(); }
-        std::wstring resolved = baseDir + L"\\" + Utf8ToUtf16(plan.normalizedIccProfile);
-        wchar_t buf[32768] = { 0 };
-        if (GetFullPathNameW(resolved.c_str(), 32768, buf, nullptr)) {
-            plan.resolvedIccPath = buf;
-        } else { plan.resolvedIccPath = resolved; }
+        plan.resolvedIccPath = baseDir + L"\\" + Utf8ToUtf16(plan.normalizedIccProfile);
     }
     // Generate property actions
     if (plan.normalizedHdrMode == "passthrough") {

@@ -3385,8 +3385,8 @@ void UIComponents::DrawPlaylistDetailPane(Renderer& r, const Settings& s, const 
             // Title rendering:
             if (hoverState == 3 || expandP <= 0.0f || !isLongTitle) {
                 // Collapsed resting single-line (or State 3 where card internal layout is not modified)
-                const D2D1_RECT_F titleRect = D2D1::RectF(textLeft, normalTextTop, textRight, normalTextTop + 23.0f * dp);
-                r.DrawString(singleLineText, titleRect, titleCol, FontType::Medium, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+                const D2D1_RECT_F episodeTitleRect = D2D1::RectF(textLeft, normalTextTop, textRight, normalTextTop + 23.0f * dp);
+                r.DrawString(singleLineText, episodeTitleRect, titleCol, FontType::Medium, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
             } else {
                 // State 1 or State 2 expansion:
                 const float currentTextTop = normalTextTop - activeBorrow;

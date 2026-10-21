@@ -31,6 +31,8 @@ TEST_CASE(ColorManagement, IccContainmentAndToneMapPlan) {
     for (int i = 0; i < 30; ++i) longRelativePath += "profiles\\";
     longRelativePath += "calibrated.icc";
     TEST_ASSERT_EQ(Settings::NormalizeIccPath(longRelativePath, exeDir), longRelativePath);
+    const auto longIccPlan = MpvPlayer::BuildColorManagementPlan("auto", "auto", 0, "auto", longRelativePath, exeDir);
+    TEST_ASSERT_EQ(longIccPlan.resolvedIccPath, exeDir + L"\\" + Utf8ToUtf16(longRelativePath));
 
     TEST_ASSERT(!Settings::IsRootContainedIccPath("..\\..\\Windows\\System32\\spool\\drivers\\color\\sRGB.icm", exeDir));
     TEST_ASSERT_EQ(Settings::NormalizeIccPath("..\\..\\Windows\\System32\\spool\\drivers\\color\\sRGB.icm", exeDir), std::string(""));

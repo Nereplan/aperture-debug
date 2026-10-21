@@ -100,7 +100,7 @@ LRESULT CALLBACK VideoWndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam
     return DefWindowProc(hWnd, uMsg, wParam, lParam);
 }
 
-int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, int nCmdShow) {
+int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPWSTR lpCmdLine, _In_ int nCmdShow) {
     // Check if invoked in update-helper mode before mutex acquisition or UI creation
     int argCount = 0;
     LPWSTR* argList = CommandLineToArgvW(GetCommandLineW(), &argCount);
@@ -116,8 +116,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
                 return helperRes;
             }
         }
-        LocalFree(argList);
     }
+    if (argList) LocalFree(argList);
     Diagnostics::RecordHeartbeat();
     Diagnostics::RecordStartupMilestone(L"process-entry");
     // 1. High precision timer for cold startup measurement
@@ -128,7 +128,10 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
     SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
     DllLoader::HardenProcessDllSearch();
     // 3. Initialize COM
-    CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
+    struct ComScope {
+        HRESULT result = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
+        ~ComScope() { if (SUCCEEDED(result)) CoUninitialize(); }
+    } comScope;
     const wchar_t CLASS_NAME[] = L"Aperture_Native_Direct2D_Class";
     // The libmpv child surface uses a private class with a black brush so it can never flash the STATIC control's white COLOR_WINDOW
     // background before the first video frame arrives.
@@ -139,7 +142,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
         MessageBoxW(NULL, cmdLineParse.errorMessage.c_str(), L"Aperture Command-Line Error", MB_ICONERROR | MB_OK);
         Renderer::ShutdownPrewarm();
         Diagnostics::Shutdown();
-        CoUninitialize();
         return 1;
     }
     const PlaybackCommandLineOptions& initialOptions = cmdLineParse.options;
@@ -176,7 +178,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
             }
             CloseHandle(hSingleInstanceMutex);
             Renderer::ShutdownPrewarm();
-            CoUninitialize();
             if (!delivered) {
                 MessageBoxW(nullptr, L"The running Aperture window could not accept this request. Wait for it to respond, then try again.",
                     L"Aperture", MB_OK | MB_ICONWARNING);
@@ -272,7 +273,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
         if (hSingleInstanceMutex) { CloseHandle(hSingleInstanceMutex); hSingleInstanceMutex = NULL; }
         Renderer::ShutdownPrewarm();
         Diagnostics::Shutdown();
-        CoUninitialize();
         return -1;
     }
     ChangeWindowMessageFilterEx(hWnd, WM_COPYDATA, MSGFLT_ALLOW, NULL);
@@ -310,7 +310,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
         if (hSingleInstanceMutex) { CloseHandle(hSingleInstanceMutex); hSingleInstanceMutex = NULL; }
         Renderer::ShutdownPrewarm();
         Diagnostics::Shutdown();
-        CoUninitialize();
         return -1;
     }
     if (windowReadyEvent) SetEvent(windowReadyEvent.get());
@@ -412,7 +411,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
         Renderer::ShutdownPrewarm();
         Diagnostics::RecordHeartbeat();
         Diagnostics::Shutdown();
-        CoUninitialize();
         return 0;
     }
     if (initialOptions.visualCaptureProbe) {
@@ -458,7 +456,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
         Renderer::ShutdownPrewarm();
         Diagnostics::RecordHeartbeat();
         Diagnostics::Shutdown();
-        CoUninitialize();
         return captureSuccess ? 0 : 1;
     }
     // 7. Event-driven message loop. A short wait caps idle polling while
@@ -500,6 +497,5 @@ ExitApp:
     Renderer::ShutdownPrewarm();
     Diagnostics::RecordHeartbeat();
     Diagnostics::Shutdown();
-    CoUninitialize();
     return (int)msg.wParam;
 }

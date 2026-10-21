@@ -198,10 +198,10 @@ AppCommand CommandDispatcher::TranslateKeyChord(UINT vkCode, bool isCtrl, bool i
             if (vkCode == 'N') return AppCommand::PlayNext;
             if (vkCode == VK_NEXT) return AppCommand::NextChapter;
             if (vkCode == VK_PRIOR) return AppCommand::PreviousChapter;
-            if (vkCode == VK_OEM_PERIOD || vkCode == 190) return AppCommand::FrameStepForward;
-            if (vkCode == VK_OEM_COMMA || vkCode == 188) return AppCommand::FrameStepBackward;
-            if (vkCode == VK_OEM_6 || vkCode == 221) return AppCommand::SpeedUp;
-            if (vkCode == VK_OEM_4 || vkCode == 219) return AppCommand::SpeedDown;
+            if (vkCode == VK_OEM_PERIOD) return AppCommand::FrameStepForward;
+            if (vkCode == VK_OEM_COMMA) return AppCommand::FrameStepBackward;
+            if (vkCode == VK_OEM_6) return AppCommand::SpeedUp;
+            if (vkCode == VK_OEM_4) return AppCommand::SpeedDown;
             if (vkCode == VK_BACK) return AppCommand::SpeedReset;
             if (vkCode == 'I' || vkCode == 'D') return AppCommand::TogglePlaybackDiagnostics;
             if (vkCode == VK_ESCAPE) return AppCommand::ClosePlayer;

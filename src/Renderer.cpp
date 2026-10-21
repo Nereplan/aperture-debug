@@ -1311,7 +1311,7 @@ void Renderer::DrawIconRotated(IconType icon, const D2D1_RECT_F& rect, const D2D
 
 
 IWICImagingFactory* Renderer::EnsureWicFactory() {
-    if (!wicFactory) { CoCreateInstance(CLSID_WICImagingFactory, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&wicFactory)); }
+    if (!wicFactory && FAILED(CoCreateInstance(CLSID_WICImagingFactory, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&wicFactory)))) return nullptr;
     return wicFactory.Get();
 }
 

@@ -2954,10 +2954,6 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                 return 0;
             }
             if (playbackSession.IsOpen()) {
-                RECT rc;
-                GetClientRect(hWnd, &rc);
-                float winW = (float)(rc.right - rc.left);
-                float winH = (float)(rc.bottom - rc.top);
                 if (playbackSession.IsPiP()) {
                     const auto pip = Presentation::PiP(winW, winH, dp);
                     isKeyboardNavActive = false;
@@ -4061,10 +4057,10 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
             if (pendingDragType != DragType::None) { CancelCardDrag(); return 0; }
             if (activeDragType != DragType::None) {
                 RECT client{}; GetClientRect(hWnd, &client);
-                const float dp = renderer.GetDpiScale();
-                const float dropTop = activeDragType == DragType::PlaylistItem ? 336.0f * dp : 128.0f * dp;
-                if (!isPlaylistsNavDropHovered && (x < 18.0f * dp || x > client.right - 18.0f * dp ||
-                    y < dropTop || y > client.bottom - 14.0f * dp)) { CancelCardDrag(); return 0; }
+                const float dropDpi = renderer.GetDpiScale();
+                const float dropTop = activeDragType == DragType::PlaylistItem ? 336.0f * dropDpi : 128.0f * dropDpi;
+                if (!isPlaylistsNavDropHovered && (x < 18.0f * dropDpi || x > client.right - 18.0f * dropDpi ||
+                    y < dropTop || y > client.bottom - 14.0f * dropDpi)) { CancelCardDrag(); return 0; }
                 if (activeDragType == DragType::MediaList) {
                     if (isPlaylistsNavDropHovered) {
                         if (dragFromIndex >= 0 && dragFromIndex < (int)library.mediaItems.size()) {

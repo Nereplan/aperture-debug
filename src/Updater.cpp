@@ -786,7 +786,7 @@ UpdateCheckResult ValidateReleaseManifest(const ReleaseManifest &manifest, const
     urlComp.dwSchemeLength = (DWORD)-1;
     urlComp.dwHostNameLength = (DWORD)-1;
     std::wstring wUrl = Utf8ToUtf16(manifest.downloadUrl);
-    if (!WinHttpCrackUrl(wUrl.c_str(), (DWORD)wUrl.length(), 0, &urlComp)) {
+    if (!WinHttpCrackUrl(wUrl.c_str(), (DWORD)wUrl.length(), 0, &urlComp) || !urlComp.lpszHostName || urlComp.dwHostNameLength == 0) {
         result.status = UpdaterStatusCode::InvalidManifestJson;
         result.message = "Malformed downloadUrl structure";
         return result;

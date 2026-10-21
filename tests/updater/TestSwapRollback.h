@@ -391,6 +391,9 @@ static void step_UpdaterNetworkBounds_PackageStagingUsesStreamingTransportAndFil
     config.allowSameVersion = true; manifest.downloadUrl = "http://insecure.example.com/package";
     TEST_ASSERT_EQ(DownloadAndStageUpdate(manifest, config, &transport, nullptr, root.GetPath()).status, UpdaterStatusCode::DisallowedRedirect);
     TEST_ASSERT_EQ(transport.streamedCalls, 1);
+    manifest.downloadUrl = "https:///package";
+    TEST_ASSERT_EQ(DownloadAndStageUpdate(manifest, config, &transport, nullptr, root.GetPath()).status, UpdaterStatusCode::InvalidManifestJson);
+    TEST_ASSERT_EQ(transport.streamedCalls, 1);
 }
 static void step_UpdaterTempCleanup_ScopedTempDirectoryCleanup() {
     std::wstring createdPath;
