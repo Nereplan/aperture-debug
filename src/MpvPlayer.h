@@ -150,7 +150,10 @@ public:
     void SetLoop(bool loop);
     bool GetLoop() const;
     void SetAspectRatio(const std::string& mode);
-    void SetDeinterlace(const std::string& mode);
+    // Returns true when the requested end state was applied ("off" always
+    // succeeds); false when a requested deinterlace filter could not be added
+    // (e.g. a lean libmpv build without bwdif/yadif).
+    bool SetDeinterlace(const std::string& mode);
     void SetAudioDelay(double delaySec);
     void SetSubDelay(double delaySec);
     void SetVideoRotate(int degrees);
@@ -166,6 +169,13 @@ public:
     void SetHue(int hue);
     int GetHue() const;
     void ResetVideoAdjustments();
+    // Zoom & pan are session state (mpv runtime properties); they are never
+    // persisted and reset on every file open. video-zoom is logarithmic:
+    // the on-screen multiplier is exp(zoom).
+    void AdjustVideoZoom(double delta);
+    void NudgeVideoPan(double dx, double dy);
+    void ResetVideoZoomPan();
+    double GetVideoZoom() const;
     // Runtime playback preferences. These are safe to call before a file is
     // loaded; they take effect immediately when libmpv accepts the property.
     void SetHardwareAcceleration(bool enabled);
@@ -312,6 +322,7 @@ private:
     std::vector<AudioPropertyResult> lastAudioResults;
     int videoRotate = 0, brightness = 0, contrast = 0, saturation = 0;
     int gamma = 0, hue = 0;
+    double videoZoomCur = 0.0, videoPanXCur = 0.0, videoPanYCur = 0.0;
     std::string lastDeinterlaceMode = "off";
     bool customMpvConfigEnabled = false;
     std::string customMpvConfigPath = "mpv.conf";

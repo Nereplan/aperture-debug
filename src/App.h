@@ -396,6 +396,9 @@ private:
     double scrubTargetTime = -1.0, lastMpvSeekTime = -1.0;
     std::chrono::steady_clock::time_point lastMpvSeekTimestamp{};
     bool isVolumeScrubbing = false, isVolumeHovered = false, isTimelineHovered = false, isBackHovered = false;
+    // Ctrl+drag pan on the video surface (grab semantics; session-only state).
+    bool isVideoPanDragging = false;
+    float panDragLastX = 0.0f, panDragLastY = 0.0f;
     int hoveredPlayerButtonId = 0;
     LONG playerKeyboardFocusId = 0;
     bool showPlaybackDiagnostics = false;

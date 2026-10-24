@@ -17,6 +17,7 @@ enum class FeatureId {
     AlwaysOnTop, JumpToTime, MetadataEditor,
     ForcedSubsOnly, SubtitleCodepage, SubtitleFont, DualSubtitleStyle,
     CustomAspect, CustomRotation, ScreenshotFormat, JumpSize, LogViewer,
+    ZoomPan,
     Count
 };
 
@@ -108,6 +109,9 @@ inline const std::array<FeatureInfo, static_cast<size_t>(FeatureId::Count)>& Cat
         { FeatureId::Deinterlace, "deinterlace", FeatureTier::Advanced, "video",
           "settings.experience.feature.deinterlace",
           { "deinterlace_menu", "di_off", "di_bwdif", "di_bwdif_field", "di_yadif" } },
+        { FeatureId::ZoomPan, "zoom_pan", FeatureTier::Advanced, "video",
+          "settings.experience.feature.zoom_pan",
+          { "zoom_in", "zoom_out", "pan_reset" } },
         { FeatureId::ABRepeat, "ab_repeat", FeatureTier::Advanced, "playback",
           "settings.experience.feature.ab_repeat",
           { "ab_cycle" } },

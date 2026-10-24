@@ -128,6 +128,7 @@ constexpr StringEntryView kCanonicalStringEntries[] = {
     { "settings.experience.feature.audio_passthrough", "Bitstream Passthrough" },
     { "settings.experience.feature.pitch_correction", "Pitch Correction" },
     { "settings.experience.feature.log_viewer", "Diagnostics Log Viewer" },
+    { "settings.experience.feature.zoom_pan", "Zoom & Pan" },
     { "settings.page.appearance", "Set the look of the interface and the display language." },
     { "settings.page.playback", "Default behavior, seek granularity, and advanced mpv configuration." },
     { "settings.page.subtitles", "Choose default tracks and how subtitles look during playback." },

@@ -427,7 +427,14 @@ void App::ApplyPlayerPreferences() {
     player.SetColorPreferences(settings.hdrMode, settings.toneMappingAlgorithm, settings.targetPeak, settings.gamutMapping, settings.iccProfilePath);
     player.SetAudioPreferences(settings.audioDevice, settings.audioLayout, settings.audioChannelMix, settings.audioNormalizeDownmix, settings.nightMode, settings.audioBalance, settings.audioChannelMap,
                                settings.replayGainMode, settings.replayGainPreampDb, settings.audioPassthrough, settings.pitchCorrection);
-    player.SetDeinterlace(settings.deinterlaceMode);
+    if (!player.SetDeinterlace(settings.deinterlaceMode)) {
+        // A lean libmpv build may lack bwdif/yadif. Degrade silently to "off"
+        // (the media-open path must not nag) so an unapplied mode is not kept.
+        if (settings.deinterlaceMode != "off") {
+            settings.deinterlaceMode = "off";
+            SaveSettings();
+        }
+    }
     player.SetCustomMpvConfigEnabled(settings.customMpvConfigEnabled);
     player.SetCustomMpvConfigPath(settings.customMpvConfigPath);
     if (settings.customMpvConfigEnabled)
@@ -683,6 +690,7 @@ void App::OpenAndPlayMedia(const std::wstring& filePath, double startPosSec, boo
     abLoopA = -1.0;
     abLoopB = -1.0;
     player.ClearABLoop();
+    player.ResetVideoZoomPan();
     if (preserveQueue) {
         playbackSession.OpenPreserveQueue(resolvedPath, startPosSec);
     } else { playbackSession.OpenDirect(resolvedPath, startPosSec); }

@@ -1385,28 +1385,56 @@ void App::OpenDeinterlaceContextMenu(float x, float y) {
         } });
     const std::string curDi = Settings::NormalizeDeinterlaceMode(settings.deinterlaceMode);
     contextMenuItems.push_back({ "di_off", L"Off", L"", IconType::SettingsGear, false, curDi == "off", false, [this, x, y]() {
+        const std::string oldMode = settings.deinterlaceMode;
         settings.deinterlaceMode = "off";
+        if (!player.SetDeinterlace(settings.deinterlaceMode)) {
+            settings.deinterlaceMode = oldMode;
+            SaveSettings();
+            ShowOSD(IconType::VolumeMuted, L"Deinterlace Unavailable (engine build)");
+            return;
+        }
         ApplyPlayerPreferences();
         SaveSettings();
         ShowOSD(IconType::SettingsGear, L"Deinterlace: Off");
         OpenDeinterlaceContextMenu(x, y);
     }, false, false, true});
     contextMenuItems.push_back({ "di_bwdif", L"Bwdif (Frame)", L"", IconType::SettingsGear, false, curDi == "bwdif", false, [this, x, y]() {
+        const std::string oldMode = settings.deinterlaceMode;
         settings.deinterlaceMode = "bwdif";
+        if (!player.SetDeinterlace(settings.deinterlaceMode)) {
+            settings.deinterlaceMode = oldMode;
+            SaveSettings();
+            ShowOSD(IconType::VolumeMuted, L"Deinterlace Unavailable (engine build)");
+            return;
+        }
         ApplyPlayerPreferences();
         SaveSettings();
         ShowOSD(IconType::SettingsGear, L"Deinterlace: Bwdif (Frame)");
         OpenDeinterlaceContextMenu(x, y);
     }, false, false, true});
     contextMenuItems.push_back({ "di_bwdif_field", L"Bwdif (Field)", L"", IconType::SettingsGear, false, curDi == "bwdif_field", false, [this, x, y]() {
+        const std::string oldMode = settings.deinterlaceMode;
         settings.deinterlaceMode = "bwdif_field";
+        if (!player.SetDeinterlace(settings.deinterlaceMode)) {
+            settings.deinterlaceMode = oldMode;
+            SaveSettings();
+            ShowOSD(IconType::VolumeMuted, L"Deinterlace Unavailable (engine build)");
+            return;
+        }
         ApplyPlayerPreferences();
         SaveSettings();
         ShowOSD(IconType::SettingsGear, L"Deinterlace: Bwdif (Field)");
         OpenDeinterlaceContextMenu(x, y);
     }, false, false, true});
     contextMenuItems.push_back({ "di_yadif", L"Yadif", L"", IconType::SettingsGear, false, curDi == "yadif", false, [this, x, y]() {
+        const std::string oldMode = settings.deinterlaceMode;
         settings.deinterlaceMode = "yadif";
+        if (!player.SetDeinterlace(settings.deinterlaceMode)) {
+            settings.deinterlaceMode = oldMode;
+            SaveSettings();
+            ShowOSD(IconType::VolumeMuted, L"Deinterlace Unavailable (engine build)");
+            return;
+        }
         ApplyPlayerPreferences();
         SaveSettings();
         ShowOSD(IconType::SettingsGear, L"Deinterlace: Yadif");
@@ -1483,6 +1511,25 @@ void App::OpenVideoAdjustmentsContextMenu(float x, float y) {
                                 [this]() { ShowCustomAspectModal(); }});
     contextMenuItems.push_back({"rot_custom", L"Custom Rotation...", L"", IconType::AspectFrame, false, false, false,
                                 [this]() { ShowCustomRotationModal(); }});
+    contextMenuItems.push_back({"zoom_in", L"Zoom In", L"", IconType::AspectFrame, false, false, false, [this, x, y]() {
+        player.AdjustVideoZoom(0.15);
+        wchar_t zoomBuf[64];
+        swprintf_s(zoomBuf, L"Zoom: %.2f\u00D7", std::exp(player.GetVideoZoom()));
+        ShowOSD(IconType::AspectFrame, zoomBuf);
+        OpenVideoAdjustmentsContextMenu(x, y);
+    }, false, false, true});
+    contextMenuItems.push_back({"zoom_out", L"Zoom Out", L"", IconType::AspectFrame, false, false, false, [this, x, y]() {
+        player.AdjustVideoZoom(-0.15);
+        wchar_t zoomBuf[64];
+        swprintf_s(zoomBuf, L"Zoom: %.2f\u00D7", std::exp(player.GetVideoZoom()));
+        ShowOSD(IconType::AspectFrame, zoomBuf);
+        OpenVideoAdjustmentsContextMenu(x, y);
+    }, false, false, true});
+    contextMenuItems.push_back({"pan_reset", L"Reset Zoom & Pan", L"", IconType::AspectFrame, false, false, false, [this, x, y]() {
+        player.ResetVideoZoomPan();
+        ShowOSD(IconType::AspectFrame, L"Zoom & Pan Reset");
+        OpenVideoAdjustmentsContextMenu(x, y);
+    }, false, false, true});
     wchar_t brightBuf[64];
     swprintf_s(brightBuf, L"Brightness: %+d...", player.GetBrightness());
     contextMenuItems.push_back({"vadjust_bright", brightBuf, L"\u25B8", IconType::SettingsGear, false, false, false,

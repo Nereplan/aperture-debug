@@ -12,7 +12,7 @@ namespace Aperture::Test {
 
 TEST_CASE(FeatureGate, CatalogIntegrity) {
     const auto& catalog = FeatureGate::Catalog();
-    TEST_ASSERT_EQ(catalog.size(), static_cast<size_t>(32));
+    TEST_ASSERT_EQ(catalog.size(), static_cast<size_t>(33));
     for (size_t i = 0; i < catalog.size(); ++i) {
         TEST_ASSERT(catalog[i].key != nullptr && catalog[i].key[0] != '\0');
         TEST_ASSERT(catalog[i].group != nullptr && catalog[i].group[0] != '\0');

@@ -472,7 +472,7 @@ void App::RestoreLogicalFocus(const FocusSnapshot& snapshot) {
                 int rowCount = (currentSettingsCat == SettingsCategory::Appearance) ? 2 :
                                (currentSettingsCat == SettingsCategory::Playback) ? 12 :
                                (currentSettingsCat == SettingsCategory::Subtitles) ? 6 :
-                               (currentSettingsCat == SettingsCategory::Experience) ? ((FeatureGate::ModeFromString(settings.experienceMode) == ExperienceMode::Custom) ? 33 : 1) :
+                               (currentSettingsCat == SettingsCategory::Experience) ? ((FeatureGate::ModeFromString(settings.experienceMode) == ExperienceMode::Custom) ? 34 : 1) :
                                (currentSettingsCat == SettingsCategory::System) ? SettingsLayout::kSystemRowCount : 1;
                 keyboardFocusedIndex = std::clamp(snapshot.keyboardIndex, 0, std::max(0, rowCount - 1));
                 keyboardFocusedSubIndex = snapshot.keyboardSubIndex;
@@ -4900,7 +4900,7 @@ LRESULT App::HandleOverlayMessage(HWND hOverlay, UINT uMsg, WPARAM wParam, LPARA
                 return 0;
             }
             // If controls are hidden and not scrubbing/flying out, suppress hover calculations
-            if (controlsOpacity <= 0.02f && controlsIdleTimer >= (player.IsPlaying() ? 1.2f : 2.0f) && !isScrubbing && !isVolumeScrubbing && !isSettingsFlyoutOpen && !isContextMenuOpen && !isJumpAheadVisible) {
+            if (controlsOpacity <= 0.02f && controlsIdleTimer >= (player.IsPlaying() ? 1.2f : 2.0f) && !isScrubbing && !isVolumeScrubbing && !isSettingsFlyoutOpen && !isContextMenuOpen && !isJumpAheadVisible && !isVideoPanDragging) {
                 hoveredPlayerButtonId = 0;
                 isBackHovered = false;
                 isVolumeHovered = false;
@@ -4928,6 +4928,17 @@ LRESULT App::HandleOverlayMessage(HWND hOverlay, UINT uMsg, WPARAM wParam, LPARA
                 if (vol > 0.01) playbackSession.SetPriorUnmutedVolume(vol);
                 int pct = (int)std::round(vol * 100.0);
                 ShowOSD(vol <= 0.01 ? IconType::VolumeMuted : (vol > 0.5 ? IconType::VolumeHigh : IconType::VolumeLow), std::to_wstring(pct) + L"%");
+            }
+            // Ctrl+drag pan: grabbing the image moves it with the cursor.
+            // mpv's video-pan-x is positive to the right and video-pan-y is
+            // positive upward, so vertical deltas are inverted — dragging
+            // right moves the image right, dragging down moves it down.
+            if (isVideoPanDragging && playbackSession.IsOpen() && !playbackSession.IsPiP()) {
+                const float panW = std::max(1.0f, winW), panH = std::max(1.0f, winH);
+                player.NudgeVideoPan((double)(x - panDragLastX) / panW, -(double)(y - panDragLastY) / panH);
+                panDragLastX = x;
+                panDragLastY = y;
+                InvalidateRect(hWnd, NULL, FALSE);
             }
             // Re-evaluate all overlay hit targets (backBtn, timeline track, buttons, volume, flyouts, menus)
             RefreshOverlayHitTargets(x, y);
@@ -5131,6 +5142,16 @@ LRESULT App::HandleOverlayMessage(HWND hOverlay, UINT uMsg, WPARAM wParam, LPARA
             else if (hoveredPlayerButtonId == 7) { commandDispatcher.Execute(AppCommand::ToggleFullscreen); }
             else if (hoveredPlayerButtonId == 8) {
                 if (playbackSession.GetQueueIndex() > 0 || settings.loop) commandDispatcher.Execute(AppCommand::PlayPrevious);
+            } else if ((wParam & MK_CONTROL) != 0 && playbackSession.IsOpen() && y > topBarH && y < winH - bottomBarH) {
+                // Ctrl+left-drag on the video area pans the image (grab
+                // semantics). Every bar/button/flyout hit target has already
+                // declined above, so the drag never fights timeline scrubbing,
+                // volume scrubbing, or the control buttons; PiP returns
+                // earlier and keeps its window-drag gesture.
+                isVideoPanDragging = true;
+                panDragLastX = x;
+                panDragLastY = y;
+                SetCapture(hOverlayWnd ? hOverlayWnd : hOverlay);
             } else {
                 // Click on the central video area toggles playback immediately.
                 if (y > topBarH && y < winH - bottomBarH) { commandDispatcher.Execute(AppCommand::TogglePlay); }
@@ -5157,6 +5178,7 @@ LRESULT App::HandleOverlayMessage(HWND hOverlay, UINT uMsg, WPARAM wParam, LPARA
                 playerTouch.volumeDrag = false;
                 Render();
             }
+            isVideoPanDragging = false;
             return 0;
         }
         case WM_LBUTTONUP: {
@@ -5204,6 +5226,10 @@ LRESULT App::HandleOverlayMessage(HWND hOverlay, UINT uMsg, WPARAM wParam, LPARA
                 scrubTargetTime = -1.0;
                 isVolumeScrubbing = false;
                 isPiPVolumeDragging = false;
+                ReleaseCapture();
+            }
+            if (isVideoPanDragging) {
+                isVideoPanDragging = false;
                 ReleaseCapture();
             }
             RefreshOverlayHitTargets((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam));

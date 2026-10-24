@@ -653,6 +653,13 @@ void MpvPlayer::Close() {
                 commandIssued = true;
                 ret = fn_mpv_command(mpv, cmd);
             }
+            // Zoom & pan are session state; clear the runtime properties with
+            // the file so the next open never inherits them.
+            if (fn_mpv_set_property_string) {
+                fn_mpv_set_property_string(mpv, "video-zoom", "0");
+                fn_mpv_set_property_string(mpv, "video-pan-x", "0");
+                fn_mpv_set_property_string(mpv, "video-pan-y", "0");
+            }
         }
     }
     {
@@ -670,6 +677,9 @@ void MpvPlayer::Close() {
         tracksVersion.fetch_add(1, std::memory_order_release);
         currentChapter = -1;
         lastError.clear();
+        videoZoomCur = 0.0;
+        videoPanXCur = 0.0;
+        videoPanYCur = 0.0;
     }
     ended = true;
     if (commandIssued && ret < 0) ReportError("Unable to close media", ret);
@@ -887,7 +897,7 @@ void MpvPlayer::SetAspectRatio(const std::string& mode) {
     if (ret < 0) ReportError("Unable to set aspect ratio", ret);
 }
 
-void MpvPlayer::SetDeinterlace(const std::string& mode) {
+bool MpvPlayer::SetDeinterlace(const std::string& mode) {
     // mpv has no deinterlace property under vo=gpu, so the filter chain is
     // driven with "vf add"/"vf remove" commands. Unknown values fall back to
     // off; a failed "vf add" (e.g. a lean libmpv build without bwdif/yadif)
@@ -895,8 +905,10 @@ void MpvPlayer::SetDeinterlace(const std::string& mode) {
     std::string normalized = mode;
     if (normalized != "bwdif" && normalized != "bwdif_field" && normalized != "yadif") normalized = "off";
     std::lock_guard<std::mutex> apiLock(mpvMutex);
-    if (normalized == lastDeinterlaceMode) return;
-    if (!mpv || !fn_mpv_command) return;
+    if (normalized == lastDeinterlaceMode) return true;
+    // "off" is always appliable; a filter mode cannot be applied without a
+    // live command channel, so report failure instead of pretending success.
+    if (!mpv || !fn_mpv_command) return normalized == "off";
     auto runVf = [&](const char* subcommand, const char* filter) {
         const char* cmd[] = { "vf", subcommand, filter, nullptr };
         return fn_mpv_command(mpv, cmd);
@@ -910,7 +922,7 @@ void MpvPlayer::SetDeinterlace(const std::string& mode) {
         runVf("remove", "yadif");
         runVf("remove", "yadif=mode=send_frame");
         lastDeinterlaceMode = "off";
-        return;
+        return true;
     }
     // Switching modes removes the previously-added filter first; the unchecked
     // removes also clear variants added before this cache existed.
@@ -925,7 +937,11 @@ void MpvPlayer::SetDeinterlace(const std::string& mode) {
     const int ret = runVf("add", filter);
     // Only cache the mode when the add succeeded, so a later preference
     // refresh retries instead of assuming the filter is active.
-    if (ret >= 0) lastDeinterlaceMode = normalized;
+    if (ret >= 0) {
+        lastDeinterlaceMode = normalized;
+        return true;
+    }
+    return false;
 }
 
 void MpvPlayer::SetVideoRotate(int degrees) {
@@ -989,6 +1005,75 @@ void MpvPlayer::ResetVideoAdjustments() {
     SetSaturation(0);
     SetGamma(0);
     SetHue(0);
+}
+
+double MpvPlayer::GetVideoZoom() const { return videoZoomCur; }
+
+void MpvPlayer::AdjustVideoZoom(double delta) {
+    if (!std::isfinite(delta)) return;
+    videoZoomCur = std::clamp(videoZoomCur + delta, -1.0, 2.0);
+    int ret = 0;
+    {
+        std::lock_guard<std::mutex> apiLock(mpvMutex);
+        if (!mpv) return;
+        std::ostringstream value;
+        value << std::fixed << std::setprecision(3) << videoZoomCur;
+        if (fn_mpv_set_property) {
+            double val = videoZoomCur;
+            ret = fn_mpv_set_property(mpv, "video-zoom", MPV_FORMAT_DOUBLE, &val);
+        } else if (fn_mpv_set_property_string) {
+            ret = fn_mpv_set_property_string(mpv, "video-zoom", value.str().c_str());
+        }
+    }
+    if (ret < 0) ReportError("Unable to set video-zoom", ret);
+}
+
+void MpvPlayer::NudgeVideoPan(double dx, double dy) {
+    if (!std::isfinite(dx) || !std::isfinite(dy)) return;
+    videoPanXCur = std::clamp(videoPanXCur + dx, -1.0, 1.0);
+    videoPanYCur = std::clamp(videoPanYCur + dy, -1.0, 1.0);
+    int retX = 0, retY = 0;
+    {
+        std::lock_guard<std::mutex> apiLock(mpvMutex);
+        if (!mpv) return;
+        std::ostringstream valueX, valueY;
+        valueX << std::fixed << std::setprecision(3) << videoPanXCur;
+        valueY << std::fixed << std::setprecision(3) << videoPanYCur;
+        if (fn_mpv_set_property) {
+            double valX = videoPanXCur, valY = videoPanYCur;
+            retX = fn_mpv_set_property(mpv, "video-pan-x", MPV_FORMAT_DOUBLE, &valX);
+            retY = fn_mpv_set_property(mpv, "video-pan-y", MPV_FORMAT_DOUBLE, &valY);
+        } else if (fn_mpv_set_property_string) {
+            retX = fn_mpv_set_property_string(mpv, "video-pan-x", valueX.str().c_str());
+            retY = fn_mpv_set_property_string(mpv, "video-pan-y", valueY.str().c_str());
+        }
+    }
+    if (retX < 0) ReportError("Unable to set video-pan-x", retX);
+    if (retY < 0) ReportError("Unable to set video-pan-y", retY);
+}
+
+void MpvPlayer::ResetVideoZoomPan() {
+    videoZoomCur = 0.0;
+    videoPanXCur = 0.0;
+    videoPanYCur = 0.0;
+    int retZ = 0, retX = 0, retY = 0;
+    {
+        std::lock_guard<std::mutex> apiLock(mpvMutex);
+        if (!mpv) return;
+        if (fn_mpv_set_property) {
+            double zero = 0.0;
+            retZ = fn_mpv_set_property(mpv, "video-zoom", MPV_FORMAT_DOUBLE, &zero);
+            retX = fn_mpv_set_property(mpv, "video-pan-x", MPV_FORMAT_DOUBLE, &zero);
+            retY = fn_mpv_set_property(mpv, "video-pan-y", MPV_FORMAT_DOUBLE, &zero);
+        } else if (fn_mpv_set_property_string) {
+            retZ = fn_mpv_set_property_string(mpv, "video-zoom", "0");
+            retX = fn_mpv_set_property_string(mpv, "video-pan-x", "0");
+            retY = fn_mpv_set_property_string(mpv, "video-pan-y", "0");
+        }
+    }
+    if (retZ < 0) ReportError("Unable to set video-zoom", retZ);
+    if (retX < 0) ReportError("Unable to set video-pan-x", retX);
+    if (retY < 0) ReportError("Unable to set video-pan-y", retY);
 }
 
 void MpvPlayer::SetAudioDelay(double delaySec) {
