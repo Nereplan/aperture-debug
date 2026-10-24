@@ -80,7 +80,7 @@ public:
     using FontResources::MeasureStringSized;
     using FontResources::GetOrCreateSizedFormat;
     void DrawIcon(IconType icon, const D2D1_RECT_F& rect, const D2D1_COLOR_F& color, float strokeWidth = 1.6f);
-    void DrawSvgPath(const char* svgPath, const D2D1_RECT_F& rect, const D2D1_COLOR_F& color, float viewBox = 24.0f, bool fill = true, float strokeWidth = 1.4f);
+    void DrawSvgPath(const char* svgPath, const D2D1_RECT_F& rect, const D2D1_COLOR_F& color, float viewBox = 24.0f, bool fill = true, float strokeWidth = 1.4f, bool cacheGeometry = true);
     void DrawSubtitle(const std::wstring& text, const D2D1_RECT_F& bounds, const std::string& style, const D2D1_COLOR_F& textColor, float fontSizePoints, const std::string& position);
     void PushClip(const D2D1_RECT_F& rect);
     void PopClip();

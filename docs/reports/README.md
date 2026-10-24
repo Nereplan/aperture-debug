@@ -35,6 +35,7 @@ Reports capture empirical observations on specific machines and source revisions
 - [libmpv size build integration (30 Sep 2026)](LIBMPV_INTEGRATION_REPORT.md) — Lean libmpv compilation recipe, shader chain `-Os` optimization, binary footprint reduction, playback validation.
 
 ### Maintenance, code cleanup and test efficiency
+- [Playback, Hub and cleanup checklist (19 Oct 2026)](PLAYBACK_CLEANUP_TODO.md) — Completed work order: playback and Hub interaction fixes with hidden validation, then workspace and dead-code cleanup (4.63 GB to 1.31 GB). Raw evidence: [workspace-cleanup-20261019](../evidence/workspace-cleanup-20261019/).
 - [Bulk removal and cache eviction follow-up (4 Oct 2026)](MAINTENANCE_FOLLOWUP.md) — Source `79840ed` vs `1e89ccd`. Elimination of quadratic UI cleanup scans, borrowed eviction records, redundant subtitle work elimination, shared allocation probe harness. Raw evidence: [removal-eviction-evidence](../evidence/removal-eviction-evidence/).
 - [Test efficiency and disk usage (4 Oct 2026)](TEST_AND_STORAGE_OPTIMIZATION.md) — Source `4b30177` vs `ea0a340`. Removal of ineffective tests, shared native suite compilation, adaptive thumbnail encoding, deduplicated rollback storage. Raw evidence: [size-evidence](../evidence/size-evidence/).
 - [Measured performance improvements (4 Oct 2026)](PERFORMANCE_OPTIMIZATION.md) — Source `17ed90a`. Search tokens and scoring optimization, duplicate connectivity graphs, filtering and grouping improvements. Raw evidence: [performance-evidence](../evidence/performance-evidence/).

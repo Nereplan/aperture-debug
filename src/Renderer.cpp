@@ -1251,16 +1251,23 @@ void Renderer::DrawAmbientBackground(const D2D1_RECT_F&, const Settings& s) {
     Clear(th.bg);
 }
 
-void Renderer::DrawSvgPath(const char* svgPath, const D2D1_RECT_F& rect, const D2D1_COLOR_F& color, float viewBox, bool fill, float strokeWidth) {
+void Renderer::DrawSvgPath(const char* svgPath, const D2D1_RECT_F& rect, const D2D1_COLOR_F& color, float viewBox, bool fill, float strokeWidth, bool cacheGeometry) {
     if (!d2dContext || !solidBrush || !d2dFactory || !svgPath) return;
-    auto it = svgGeometryCache.find(svgPath);
-    if (it == svgGeometryCache.end()) {
-        if (svgGeometryCache.size() > 512) svgGeometryCache.clear();
-        auto geom = SvgGeometry::Build(d2dFactory.Get(), svgPath);
-        svgGeometryCache[svgPath] = geom;
-        it = svgGeometryCache.find(svgPath);
+    ComPtr<ID2D1PathGeometry> transientGeom;
+    ID2D1PathGeometry* geom = nullptr;
+    if (cacheGeometry) {
+        auto it = svgGeometryCache.find(svgPath);
+        if (it == svgGeometryCache.end()) {
+            if (svgGeometryCache.size() >= 512) svgGeometryCache.clear();
+            auto built = SvgGeometry::Build(d2dFactory.Get(), svgPath);
+            if (!built) return;
+            it = svgGeometryCache.emplace(svgPath, std::move(built)).first;
+        }
+        geom = it->second.Get();
+    } else {
+        transientGeom = SvgGeometry::Build(d2dFactory.Get(), svgPath);
+        geom = transientGeom.Get();
     }
-    ID2D1PathGeometry* geom = it->second.Get();
     if (!geom) return;
     solidBrush->SetColor(color);
     float destW = RectWidth(rect);

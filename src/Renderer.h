@@ -138,7 +138,7 @@ public:
     // Vector Icons
     void DrawIcon(IconType icon, const D2D1_RECT_F& rect, const D2D1_COLOR_F& color, float strokeWidth = 1.6f);
     void DrawIconRotated(IconType icon, const D2D1_RECT_F& rect, const D2D1_COLOR_F& color, float angleDegrees, float strokeWidth = 1.6f);
-    void DrawSvgPath(const char* svgPath, const D2D1_RECT_F& rect, const D2D1_COLOR_F& color, float viewBox = 24.0f, bool fill = true, float strokeWidth = 1.4f);
+    void DrawSvgPath(const char* svgPath, const D2D1_RECT_F& rect, const D2D1_COLOR_F& color, float viewBox = 24.0f, bool fill = true, float strokeWidth = 1.4f, bool cacheGeometry = true);
     // Shadows & Effects
     void DrawCardShadow(const D2D1_RECT_F& rect, float radius, float elevation = 4.0f);
     void PushClip(const D2D1_RECT_F& rect);
