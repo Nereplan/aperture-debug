@@ -661,6 +661,91 @@ static void Scenario_AudioFeatures(const std::string& media) {
     }
 }
 
+static void Scenario_EngineFilters(const std::string& media) {
+    const char* testName = "enginefilters: playback started";
+    HWND hwnd = CreateTestWindow(320, 180);
+    std::vector<std::pair<std::string, std::string>> opts = {
+        {"vo", "gpu"}, {"gpu-api", "d3d11"}, {"gpu-context", "d3d11"},
+        {"hwdec", "no"}, {"force-window", "yes"}, {"keep-open", "yes"}, {"volume", "0"},
+    };
+    mpv_handle* mpv = NewPlayer(opts, hwnd);
+    if (!mpv) { Report(testName, false, "init"); DestroyWindow(hwnd); return; }
+    std::string path = media + "/h264_aac_720p.mp4";
+    const char* cmd[] = {"loadfile", path.c_str(), nullptr};
+    fn_command(mpv, cmd);
+    std::string log;
+    bool started = WaitForCondition(mpv, [&]{ return GetDbl(mpv, "time-pos") > 0.2; }, 25.0, &log);
+    Report(testName, started, log);
+    if (!started) { DestroyPlayer(mpv); DestroyWindow(hwnd); return; }
+
+    // Video filter acceptance: add, read back the chain, remove. Informational
+    // only — a DLL built without one of these filters must not fail the run.
+    const char* vfFilters[] = {
+        "bwdif", "bwdif=mode=send_field", "yadif", "hqdn3d", "unsharp",
+        "stereo3d", "drawtext", "crop", "gradfun", "format",
+    };
+    for (const char* f : vfFilters) {
+        const char* addCmd[] = {"vf", "add", f, nullptr};
+        int err = fn_command(mpv, addCmd);
+        std::string vf = GetStr(mpv, "vf");
+        std::string base(f);
+        size_t eq = base.find('=');
+        if (eq != std::string::npos) base.resize(eq);
+        bool found = vf.find(base) != std::string::npos;
+        printf("[INFO] vf %-24s %s%s\n", f, err == 0 && found ? "present" : "ABSENT", err != 0 ? " (command error)" : "");
+        const char* rmCmd[] = {"vf", "remove", base.c_str(), nullptr};
+        fn_command(mpv, rmCmd);
+    }
+
+    // Audio filter acceptance via the same lavfi bridge AudioConfig uses.
+    const char* afFilters[] = {
+        "superequalizer", "acompressor", "rubberband=tempo=1.0", "loudnorm",
+        "equalizer=f=1000:t=q:w=1:g=0",
+    };
+    for (const char* f : afFilters) {
+        char afCmd[256];
+        snprintf(afCmd, sizeof(afCmd), "af set lavfi=[%s]", f);
+        int err = fn_command_string(mpv, afCmd);
+        std::string af = GetStr(mpv, "af");
+        std::string base(f);
+        size_t eq = base.find('=');
+        if (eq != std::string::npos) base.resize(eq);
+        bool found = af.find("lavfi") != std::string::npos && af.find(base) != std::string::npos;
+        printf("[INFO] af %-24s %s%s\n", f, err == 0 && found ? "present" : "ABSENT", err != 0 ? " (command error)" : "");
+        fn_set_property_string(mpv, "af", "");
+    }
+
+    // Option acceptance (option exists / parses), informational only.
+    struct OptProbe { const char* prop; const char* value; };
+    const OptProbe optProbes[] = {
+        {"audio-spdif", "ac3,dts,eac3,dtshd,truehd"},
+        {"replaygain", "track"},
+        {"replaygain-preamp", "6.0"},
+        {"video-zoom", "1.5"},
+        {"video-pan-x", "0.1"},
+        {"lavfi-complex", "[aid1]asplit[a][out1];[a]showspectrum=size=320x180[vo]"},
+    };
+    for (const OptProbe& p : optProbes) {
+        int err = fn_set_property_string(mpv, p.prop, p.value);
+        printf("[INFO] opt %-20s %-46s %s\n", p.prop, p.value, err == 0 ? "accepted" : "rejected");
+        // restore defaults so later probes start from a clean state
+        if (!strcmp(p.prop, "audio-spdif")) fn_set_property_string(mpv, "audio-spdif", "no");
+        else if (!strcmp(p.prop, "replaygain")) fn_set_property_string(mpv, "replaygain", "no");
+        else if (!strcmp(p.prop, "video-zoom")) fn_set_property_string(mpv, "video-zoom", "0");
+        else if (!strcmp(p.prop, "video-pan-x")) fn_set_property_string(mpv, "video-pan-x", "0");
+        else if (!strcmp(p.prop, "lavfi-complex")) fn_set_property_string(mpv, "lavfi-complex", "");
+    }
+
+    // All that probing must not have derailed playback.
+    double t0 = GetDbl(mpv, "time-pos");
+    Sleep(1000);
+    PumpMessages(50);
+    double t1 = GetDbl(mpv, "time-pos");
+    Report("enginefilters: playback unaffected", t1 > t0 + 0.5);
+    DestroyPlayer(mpv);
+    DestroyWindow(hwnd);
+}
+
 static bool WaitForEof(mpv_handle* mpv, double timeoutSec, std::string* activeHwdec = nullptr) {
     const auto deadline = std::chrono::steady_clock::now() + std::chrono::duration<double>(timeoutSec);
     while (std::chrono::steady_clock::now() < deadline) {
@@ -951,6 +1036,9 @@ int main(int argc, char** argv) {
         if (all || scenario == "geometry") Scenario_Geometry(media);
         if (all || scenario == "swrender") Scenario_SoftwareRender(media);
         if (all || scenario == "audio") Scenario_AudioFeatures(media);
+        // explicit-only: engine filter/option capability probe, never part of
+        // "all"/"functional" so the PR gate does not depend on filter presence
+        if (scenario == "enginefilters") Scenario_EngineFilters(media);
         if (scenario == "all" || scenario == "bench") Scenario_DecodeBench(media, swWall, swCpu, hwWall, hwCpu, drops);
         if (all || scenario == "network") Scenario_Network(media, benchPort);
         if (scenario == "url") Scenario_PlaybackBasics("", {url.c_str(), "", "", "network URL"}, false);
