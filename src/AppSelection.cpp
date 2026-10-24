@@ -530,7 +530,8 @@ void App::AutoScrollToFocusedItem() {
     } else if (currentTab == TabView::Settings && activeFocusPane == FocusPane::SettingsContent) {
         int rowCount = currentSettingsCat == SettingsCategory::Appearance ? 2 :
             (currentSettingsCat == SettingsCategory::Shortcuts ? (int)settings.GetShortcutActionListRef().size() + 1 :
-                (currentSettingsCat == SettingsCategory::System ? SettingsLayout::kSystemRowCount : 6));
+                (currentSettingsCat == SettingsCategory::System ? SettingsLayout::kSystemRowCount :
+                    (currentSettingsCat == SettingsCategory::Experience ? static_cast<int>(FeatureGate::Catalog().size()) + 1 : 6)));
         if (keyboardFocusedIndex < 0 || keyboardFocusedIndex >= rowCount) return;
         const float sectionTop = (SettingsLayout::kContentStartOffset +
             (currentSettingsCat == SettingsCategory::Subtitles ? SettingsLayout::kSubtitlePageHeaderReserve : SettingsLayout::kPageHeaderReserve)) * dp;
@@ -587,6 +588,13 @@ void App::AutoScrollToFocusedItem() {
             focusTop = sectionTop + SettingsLayout::kSubtitlePreviewCardHeight * dp + cardGap;
             for (int i = 0; i < row; ++i) focusTop += cardHeights[i] + cardGap;
             focusH = cardHeights[row];
+        } else if (currentSettingsCat == SettingsCategory::Experience) {
+            const D2D1_RECT_F content = SettingsLayout::ContentBounds(Presentation::HubView(rcW, winH, dp), dp);
+            const float padX = SettingsLayout::kContentPadX * dp;
+            const auto layout = SettingsLayout::MakeExperienceLayout(content.left + padX, content.right - padX, sectionTop, dp);
+            const D2D1_RECT_F focusRect = keyboardFocusedIndex == 0 ? layout.modeTiles[0] : layout.rows[keyboardFocusedIndex - 1];
+            focusTop = focusRect.top;
+            focusH = RectHeight(focusRect);
         } else if (currentSettingsCat == SettingsCategory::Shortcuts) {
             if (keyboardFocusedIndex == 0) {
                 focusTop = (SettingsLayout::kContentStartOffset * dp) - 2.0f * dp;

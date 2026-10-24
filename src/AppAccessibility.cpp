@@ -1648,6 +1648,9 @@ void App::RefreshAccessibilityTree(bool force) {
             const float rowTop = view.top + (SettingsLayout::kContentStartOffset +
                 (currentSettingsCat == SettingsCategory::Subtitles ? SettingsLayout::kSubtitlePageHeaderReserve : SettingsLayout::kPageHeaderReserve)) * dp - settingsScrollY;
             std::vector<std::pair<std::wstring, std::wstring>> rows;
+            // Simple mode tail-truncates the advanced rows on the Playback and
+            // System pages; visible row indexes stay stable.
+            const bool simpleSettings = FeatureGate::ModeFromString(settings.experienceMode) == ExperienceMode::Simple;
             if (currentSettingsCat == SettingsCategory::Appearance) {
                 rows = {{Loc::Tr("settings.appearance.theme_palette"), Utf8ToUtf16(settings.themePreset)},
                         {Loc::Tr("settings.appearance.display_language"), Utf8ToUtf16(settings.appLanguage)}};
@@ -1658,14 +1661,20 @@ void App::RefreshAccessibilityTree(bool force) {
                     { L"Loop Playback", settings.loop ? L"On" : L"Off" },
                     { L"Arrow Keys Seek Step", std::to_wstring(static_cast<int>(settings.arrowSeekStepSec)) + L" sec" },
                     { L"Frame Step Size", std::to_wstring(settings.ctrlSeekFrames) + (settings.ctrlSeekFrames == 1 ? L" frame" : L" frames") },
-                    { L"Default Playback Speed", std::to_wstring(settings.defaultSpeed) + L"x" },
-                    { L"Enable Custom MPV Configuration", settings.customMpvConfigEnabled ? L"On" : L"Off" },
-                    {L"Custom MPV Configuration Actions", L"Open / Reset / Revert"},
-                    { L"Global Media Hotkeys", settings.globalHotkeysEnabled ? L"On" : L"Off" },
-                    { L"Show Tray Icon", settings.trayIconEnabled ? L"On" : L"Off" },
-                    { L"Minimize to Tray", settings.minimizeToTray ? L"On" : L"Off" },
-                    { L"Network Cache (Forward)", std::to_wstring(settings.networkForwardCacheMB) + L" MB" },
-                    { L"Network Cache (Back)", settings.networkBackCacheMB == 0 ? L"Off" : std::to_wstring(settings.networkBackCacheMB) + L" MB" }};
+                    { L"Default Playback Speed", std::to_wstring(settings.defaultSpeed) + L"x" }};
+                // Rows 7-13 (custom MPV config, global hotkeys, tray, minimize, network
+                // caches) are the Simple-mode tail rows; the index-based bounds branches
+                // below never see them because the loop runs over rows.size().
+                if (!simpleSettings) {
+                    rows.insert(rows.end(), {
+                        { L"Enable Custom MPV Configuration", settings.customMpvConfigEnabled ? L"On" : L"Off" },
+                        {L"Custom MPV Configuration Actions", L"Open / Reset / Revert"},
+                        { L"Global Media Hotkeys", settings.globalHotkeysEnabled ? L"On" : L"Off" },
+                        { L"Show Tray Icon", settings.trayIconEnabled ? L"On" : L"Off" },
+                        { L"Minimize to Tray", settings.minimizeToTray ? L"On" : L"Off" },
+                        { L"Network Cache (Forward)", std::to_wstring(settings.networkForwardCacheMB) + L" MB" },
+                        { L"Network Cache (Back)", settings.networkBackCacheMB == 0 ? L"Off" : std::to_wstring(settings.networkBackCacheMB) + L" MB" }});
+                }
             } else if (currentSettingsCat == SettingsCategory::Subtitles) {
                 rows = {{L"Preferred Audio Track", Utf8ToUtf16(settings.audioLang)},
                     { L"Preferred Subtitle Track", Utf8ToUtf16(settings.subLang) },
@@ -1682,57 +1691,38 @@ void App::RefreshAccessibilityTree(bool force) {
                 const ExperienceMode expMode = FeatureGate::ModeFromString(settings.experienceMode);
                 rows.push_back({ Loc::Tr("settings.experience.title"),
                                  Loc::Tr(std::string("settings.experience.mode.") + FeatureGate::ModeToString(expMode)) });
-                if (expMode == ExperienceMode::Custom) {
-                    for (const auto& info : FeatureGate::Catalog()) {
-                        const bool enabled = std::find(settings.customEnabledFeatures.begin(), settings.customEnabledFeatures.end(),
-                                                       info.key) != settings.customEnabledFeatures.end();
-                        rows.push_back({ Loc::Tr(info.displayNameKey), enabled ? L"On" : L"Off" });
-                    }
+                for (size_t c = 0; c < FeatureGate::Catalog().size(); ++c) {
+                    const bool enabled = FeatureGate::FeatureEnabledAt(expMode, settings.customEnabledFeatures, c);
+                    rows.push_back({ Loc::Tr(FeatureGate::Catalog()[c].displayNameKey), enabled ? L"On" : L"Off" });
                 }
             } else {
+                // Display order mirrors SettingsLayout::kSystemActions: register/remove
+                // file types stay at the end so Simple mode can tail-truncate them.
                 rows = {
                     { Loc::Tr("settings.system.check_updates"), L"Update" },
                     { Loc::Tr("settings.system.hover_previews"), settings.hoverPreviewEnabled ? L"On" : L"Off" },
                     { Loc::Tr("settings.system.reduce_motion"), settings.reduceMotionEnabled ? L"On" : L"Windows setting" },
                     { Loc::Tr("settings.system.smart_series"), settings.smartSeriesDetection ? L"On" : L"Off" },
                     { Loc::Tr("settings.system.jump_list"), settings.jumpListEnabled ? L"On" : L"Off" },
-                    { Loc::Tr("settings.system.register_types"), L"Register" },
-                    { Loc::Tr("settings.system.remove_types"), L"Remove" },
                     { Loc::Tr("settings.system.open_data"), L"Open" },
                     { Loc::Tr("settings.system.clear_disk_cache"), L"Clear" },
                     { Loc::Tr("settings.system.clear_history"), L"Clear" },
-                    { Loc::Tr("settings.system.reset_defaults"), L"Reset" }
+                    { Loc::Tr("settings.system.reset_defaults"), L"Reset" },
+                    { Loc::Tr("settings.system.register_types"), L"Register" },
+                    { Loc::Tr("settings.system.remove_types"), L"Remove" }
                 };
+                if (simpleSettings) { rows.resize(SettingsLayout::kSystemSimpleRowCount); }
             }
             for (size_t i = 0; i < rows.size(); ++i) {
                 RECT bounds{};
                 if (currentSettingsCat == SettingsCategory::Experience) {
                     const float contentLeft = view.left + SettingsLayout::kSidebarWidth * dp + 16.0f * dp + SettingsLayout::kContentPadX * dp;
                     const float contentRight = view.right - SettingsLayout::kContentPadX * dp;
-                    if (i == 0) {
-                        const float chipTop = rowTop + SettingsLayout::kExperienceCardTitleHeight * dp;
-                        bounds = screenRect(contentLeft, chipTop, contentRight, chipTop + SettingsLayout::kControlHeight * dp);
-                    } else {
-                        const float featuresTop = rowTop + SettingsLayout::kExperienceModeCardHeight * dp + SettingsLayout::kSectionCardGap * dp;
-                        const float rowH = SettingsLayout::kExperienceFeatureRowHeight * dp;
-                        const auto& catalog = FeatureGate::Catalog();
-                        float rowY = featuresTop + SettingsLayout::kExperienceCardTitleHeight * dp;
-                        const char* lastGroup = nullptr;
-                        bool found = false;
-                        for (size_t c = 0; c < catalog.size(); ++c) {
-                            if (!lastGroup || std::string(lastGroup) != catalog[c].group) {
-                                lastGroup = catalog[c].group;
-                                rowY += SettingsLayout::kExperienceGroupHeaderHeight * dp;
-                            }
-                            if (c + 1 == i) {
-                                bounds = screenRect(contentLeft, rowY, contentRight, rowY + rowH);
-                                found = true;
-                                break;
-                            }
-                            rowY += rowH;
-                        }
-                        if (!found) bounds = screenRect(contentLeft, featuresTop, contentRight, featuresTop + 10.0f * dp);
-                    }
+                    const auto layout = SettingsLayout::MakeExperienceLayout(contentLeft, contentRight, rowTop, dp);
+                    const D2D1_RECT_F target = i == 0
+                        ? D2D1::RectF(layout.modeTiles[0].left, layout.modeTiles[0].top, layout.modeTiles[2].right, layout.modeTiles[2].bottom)
+                        : layout.rows[i - 1];
+                    bounds = screenRect(target.left, target.top, target.right, target.bottom);
                 } else if (currentSettingsCat == SettingsCategory::System) {
                     float sysRowTop = rowTop + SettingsLayout::kSystemActionsTop * dp;
                     bounds = screenRect(view.left + (SettingsLayout::kSidebarWidth + 16.0f + SettingsLayout::kContentPadX) * dp, sysRowTop + i * (58.0f + 10.0f) * dp, view.right - SettingsLayout::kContentPadX * dp, sysRowTop + i * (58.0f + 10.0f) * dp + 58.0f * dp);
@@ -1867,11 +1857,9 @@ void App::RefreshAccessibilityTree(bool force) {
                             };
                         }
                         if (currentSettingsCat == SettingsCategory::Experience && i >= 1) {
-                            const auto& catalog = FeatureGate::Catalog();
-                            const int fi = std::clamp(static_cast<int>(i) - 1, 0, static_cast<int>(catalog.size()) - 1);
-                            const std::string key = catalog[fi].key;
-                            const bool enabled = std::find(settings.customEnabledFeatures.begin(), settings.customEnabledFeatures.end(),
-                                                           key) != settings.customEnabledFeatures.end();
+                            const int fi = std::clamp(static_cast<int>(i) - 1, 0, static_cast<int>(FeatureGate::Catalog().size()) - 1);
+                            const bool enabled = FeatureGate::FeatureEnabledAt(FeatureGate::ModeFromString(settings.experienceMode),
+                                                                               settings.customEnabledFeatures, static_cast<size_t>(fi));
                             n.hasToggle = true;
                             n.toggleState = enabled ? ToggleState_On : ToggleState_Off;
                             n.onToggle = [this, i](LONG, ToggleState) {

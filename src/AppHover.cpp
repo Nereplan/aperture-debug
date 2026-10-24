@@ -194,12 +194,15 @@ int App::HitTestSystemSettingsRow(const D2D1_RECT_F& contentBounds, float conten
     const float dp = renderer.GetDpiScale();
     const float padX = SettingsLayout::kContentPadX * dp;
     if (x < contentBounds.left + padX || x > contentBounds.right - padX) return -1;
+    // Simple mode tail-truncates the advanced rows; hidden rows must not hover or press.
+    const bool simpleSettings = FeatureGate::ModeFromString(settings.experienceMode) == ExperienceMode::Simple;
+    const int rowCount = SettingsLayout::SystemRowCount(simpleSettings);
     const float rowH = 58.0f * dp, rowGap = 10.0f * dp;
     const float relY = y - (contentY + SettingsLayout::kSystemActionsTop * dp);
     if (relY < 0.0f) return -1;
     const float pitch = rowH + rowGap;
     const int idx = static_cast<int>(relY / pitch);
-    if (idx < 0 || idx >= SettingsLayout::kSystemRowCount) return -1;
+    if (idx < 0 || idx >= rowCount) return -1;
     if ((relY - idx * pitch) > rowH) return -1;
     return idx;
 }

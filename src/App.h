@@ -385,7 +385,8 @@ private:
     // Silent force-disable used by the close/PiP/fullscreen entry paths; the
     // video child must never remain owned by the shell.
     void DisableWallpaperMode();
-    void ApplyExperienceModeSelection(ExperienceMode mode);
+    void ApplyExperienceModeSelection(ExperienceMode mode, bool forkFromPreview = false);
+    void ResolveSettingsHover(float x, float y);
     void ToggleExperienceFeature(const std::string& key);
     // System-wide hotkeys (Settings > Playback, row 9). Unregisters all four
     // fixed actions then registers the CURRENT bound chord of each action from

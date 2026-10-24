@@ -1098,12 +1098,13 @@ bool App::HandleGlobalKeyDown(WPARAM wParam, LPARAM lParam) {
                 auto scList = settings.GetShortcutActionListRef();
                 size_t midSc = (scList.size() + 1) / 2;
                 int maxRows = 1;
+                const bool simpleSettings = FeatureGate::ModeFromString(settings.experienceMode) == ExperienceMode::Simple;
                 if (currentSettingsCat == SettingsCategory::Appearance) maxRows = 2;
-                else if (currentSettingsCat == SettingsCategory::Playback) maxRows = 14;
+                else if (currentSettingsCat == SettingsCategory::Playback) maxRows = SettingsLayout::PlaybackRowCount(simpleSettings);
                 else if (currentSettingsCat == SettingsCategory::Subtitles) maxRows = 6;
-                else if (currentSettingsCat == SettingsCategory::Experience) maxRows = (FeatureGate::ModeFromString(settings.experienceMode) == ExperienceMode::Custom) ? static_cast<int>(FeatureGate::Catalog().size()) + 1 : 1;
+                else if (currentSettingsCat == SettingsCategory::Experience) maxRows = static_cast<int>(FeatureGate::Catalog().size()) + 1;
                 else if (currentSettingsCat == SettingsCategory::Shortcuts) maxRows = (int)midSc + 1;
-                else if (currentSettingsCat == SettingsCategory::System) maxRows = SettingsLayout::kSystemRowCount;
+                else if (currentSettingsCat == SettingsCategory::System) maxRows = SettingsLayout::SystemRowCount(simpleSettings);
                 auto getMaxSubIndex = [&](int row) -> int {
                     if (currentSettingsCat == SettingsCategory::Appearance) {
                         auto languages = settings.GetAvailableLanguages();
@@ -1120,7 +1121,7 @@ bool App::HandleGlobalKeyDown(WPARAM wParam, LPARAM lParam) {
                         if (row == 12) return 1; // Network Cache Forward Dropdown (0) and Custom (1)
                         if (row == 13) return 1; // Network Cache Back Dropdown (0) and Custom (1)
                     } else if (currentSettingsCat == SettingsCategory::Experience) {
-                        if (row == 0) return 2; // Mode chips: Simple, Advanced, Custom
+                        if (row == 0) return 2; // Mode tiles: Simple, Advanced, Custom
                         return 0;
                     } else if (currentSettingsCat == SettingsCategory::Subtitles) {
                         if (row == 0) return 6; // Audio: 6 languages + Default

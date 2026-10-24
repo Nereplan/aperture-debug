@@ -666,135 +666,136 @@ void UIComponents::DrawSettingsView(Renderer& r, const Settings& s, const Settin
     };
     if (vm.activeCat == SettingsCategory::Experience) {
         drawPageHeader(Loc::Tr("settings.category.experience"), Loc::Tr("settings.experience.description"));
-        // The Experience page follows the playback card rhythm: a mode picker
-        // card, plus a Custom-features card that only exists in Custom mode.
         const ExperienceMode expMode = FeatureGate::ModeFromString(s.experienceMode);
-        const size_t catalogTotal = FeatureGate::Catalog().size();
-        const float cardGap = SettingsLayout::kSectionCardGap * dp, cardLeft = contentBounds.left + padX - 10.0f * dp;
-        const float cardRight = contentBounds.right - padX + 10.0f * dp, contentLeft = contentBounds.left + padX;
-        const float contentRight = contentBounds.right - padX, cardTitleH = SettingsLayout::kExperienceCardTitleHeight * dp;
-        auto drawExperienceCard = [&](float top, float height) {
-            drawFlatPanel(D2D1::RectF(cardLeft, top, cardRight, top + height), SettingsLayout::kSectionCardRadius, panelFill, panelBorder);
+        const auto& catalog = FeatureGate::Catalog();
+        const std::wstring catalogTotal = std::to_wstring(catalog.size());
+        const float contentLeft = contentBounds.left + padX, contentRight = contentBounds.right - padX;
+        const SettingsLayout::ExperienceLayout layout = SettingsLayout::MakeExperienceLayout(contentLeft, contentRight, contentY, dp);
+        const float cardRadius = SettingsLayout::kSectionCardRadius;
+        auto drawFocusRing = [&](const D2D1_RECT_F& rect, float radius) {
+            r.DrawRoundedRect(InsetRectF(rect, -2.0f * dp, -2.0f * dp), (radius + 2.0f) * dp, th.focusRing, 1.5f * dp);
         };
-        auto drawExperienceTitle = [&](float top, const std::wstring& title) {
-            const D2D1_RECT_F titleRect = D2D1::RectF(contentLeft + 22.0f * dp, top + 10.0f * dp,
-                                                       contentRight - 22.0f * dp, top + 34.0f * dp);
-            r.DrawString(title, titleRect, textPri, FontType::Medium, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-        };
-        auto drawModeChip = [&](const D2D1_RECT_F& rect, const std::wstring& label, bool selected, bool focused, bool pressed) {
-            SurfaceStyle style = makeFlatSurface(SettingsLayout::kControlRadius);
-            if (pressed) {
-                style.fill = ColorWithAlpha(accentCol, 0.34f);
-                style.border = accentCol;
-                style.borderWidth = 2.0f;
-            } else if (selected) {
-                style.fill = accentCol;
-                style.border = accentCol;
-                style.borderWidth = focused ? 2.0f : 1.0f;
-            } else if (focused) {
-                style.fill = ColorWithAlpha(accentCol, 0.12f);
-                style.border = accentCol;
-                style.borderWidth = 2.0f;
-            } else { style.fill = surfaceCard; style.border = clearColor; style.borderWidth = 0.0f; }
-            r.DrawSurface(rect, style);
-            r.DrawString(label, rect, (selected && !pressed) ? textOnAccent : textPri,
-                         (selected || focused || pressed) ? FontType::Medium : FontType::Regular,
-                         DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-        };
-        // Card 1: Experience Mode (Row 0; chips 0..2)
-        const float modeCardH = SettingsLayout::kExperienceModeCardHeight * dp, modeTop = contentY;
-        drawExperienceCard(modeTop, modeCardH);
-        drawExperienceTitle(modeTop, Loc::Tr("settings.experience.title"));
-        const char* modeKeys[] = { "settings.experience.mode.simple", "settings.experience.mode.advanced",
-                                   "settings.experience.mode.custom" };
-        const char* modeDescKeys[] = { "settings.experience.mode.simple_desc", "settings.experience.mode.advanced_desc",
-                                       "settings.experience.mode.custom_desc" };
-        const float chipGap = 8.0f * dp;
-        const float chipW = (contentW - 2.0f * chipGap) / 3.0f, chipH = SettingsLayout::kControlHeight * dp;
-        const float chipTop = modeTop + cardTitleH;
+        const char* modeNames[] = { "simple", "advanced", "custom" };
         for (int i = 0; i < 3; ++i) {
-            const D2D1_RECT_F chipRect = D2D1::RectF(contentLeft + i * (chipW + chipGap), chipTop,
-                                                     contentLeft + i * (chipW + chipGap) + chipW, chipTop + chipH);
-            drawModeChip(chipRect, Loc::Tr(modeKeys[i]), expMode == static_cast<ExperienceMode>(i),
-                         showContentKbFocus && vm.keyboardFocusedRow == 0 && vm.keyboardFocusedSubIndex == i,
-                         vm.pressState.IsOptionPressed(0, i));
+            const ExperienceMode mode = static_cast<ExperienceMode>(i);
+            const D2D1_RECT_F& tile = layout.modeTiles[i];
+            const bool selected = expMode == mode;
+            const bool focused = showContentKbFocus && vm.keyboardFocusedRow == 0 && vm.keyboardFocusedSubIndex == i;
+            const bool pressed = vm.pressState.IsOptionPressed(0, i);
+            const bool hover = !pressed && pointerIn(tile);
+            D2D1_COLOR_F fill = panelFill, border = panelBorder;
+            float borderWidth = 1.0f;
+            if (pressed) {
+                fill = ColorWithAlpha(accentCol, 0.22f); border = accentCol; borderWidth = 1.5f;
+            } else if (selected) {
+                fill = ColorWithAlpha(accentCol, hover ? 0.14f : 0.10f); border = accentCol; borderWidth = 1.5f;
+            } else if (hover) {
+                fill = surfaceHover; border = ColorWithAlpha(surfaceBorder, 0.6f);
+            }
+            drawFlatPanel(tile, cardRadius, fill, border, borderWidth);
+            if (focused) drawFocusRing(tile, cardRadius);
+
+            const float pad = 14.0f * dp, radioR = 7.0f * dp;
+            const float radioCx = tile.left + pad + radioR, radioCy = tile.top + pad + 11.0f * dp;
+            r.DrawCircle(radioCx, radioCy, radioR, selected ? accentCol : textMute, 1.5f * dp);
+            if (selected) r.FillCircle(radioCx, radioCy, 3.5f * dp, accentCol);
+            const std::string modeKey = std::string("settings.experience.mode.") + modeNames[i];
+            const D2D1_RECT_F nameRect = D2D1::RectF(radioCx + radioR + 10.0f * dp, tile.top + pad, tile.right - pad, tile.top + pad + 22.0f * dp);
+            r.DrawString(Loc::Tr(modeKey), nameRect, textPri, FontType::Subheading, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+            const D2D1_RECT_F descRect = D2D1::RectF(tile.left + pad, tile.top + 40.0f * dp, tile.right - pad, tile.bottom - pad - 20.0f * dp);
+            r.PushClip(descRect);
+            r.DrawStringWrapped(Loc::Tr(modeKey + "_desc"), descRect, textMute, FontType::Small);
+            r.PopClip();
+
+            // Meter: how much of the catalog this mode puts on screen.
+            const size_t visible = FeatureGate::EnabledFeatureCount(mode, s.customEnabledFeatures);
+            const std::wstring countText = Loc::Format("settings.experience.tile_count", std::to_wstring(visible), catalogTotal);
+            const float meterBottom = tile.bottom - pad, meterTop = meterBottom - 16.0f * dp;
+            const float countW = r.MeasureString(countText, FontType::Small).width + 2.0f * dp;
+            r.DrawString(countText, D2D1::RectF(tile.right - pad - countW, meterTop, tile.right - pad, meterBottom),
+                         selected ? textPri : textMute, FontType::Small, DWRITE_TEXT_ALIGNMENT_TRAILING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+            const float barH = 4.0f * dp, barTop = meterTop + (16.0f * dp - barH) * 0.5f;
+            const D2D1_RECT_F track = D2D1::RectF(tile.left + pad, barTop, tile.right - pad - countW - 10.0f * dp, barTop + barH);
+            if (track.right > track.left && !catalog.empty()) {
+                r.FillRoundedRect(track, barH * 0.5f, toggleOff);
+                const float fraction = static_cast<float>(visible) / static_cast<float>(catalog.size());
+                if (visible > 0) {
+                    const float fillRight = track.left + std::max(barH, (track.right - track.left) * fraction);
+                    r.FillRoundedRect(D2D1::RectF(track.left, track.top, fillRight, track.bottom), barH * 0.5f,
+                                      selected ? accentCol : ColorWithAlpha(textMute, 0.6f));
+                }
+            }
         }
-        const float descTop = chipTop + chipH + 8.0f * dp;
-        r.DrawString(Loc::Tr(modeDescKeys[static_cast<int>(expMode)]),
-                     D2D1::RectF(contentLeft, descTop, contentRight - 130.0f * dp, descTop + 18.0f * dp),
+
+        const bool isCustom = expMode == ExperienceMode::Custom;
+        const float sectionTop = layout.sectionTop;
+        r.DrawString(Loc::Tr("settings.experience.features_title"),
+                     D2D1::RectF(contentLeft, sectionTop, contentRight, sectionTop + 22.0f * dp),
+                     textPri, FontType::Title, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+        const std::wstring sectionHint = isCustom
+            ? Loc::Tr("settings.experience.features_hint")
+            : Loc::Format("settings.experience.preview_hint", Loc::Tr(std::string("settings.experience.mode.") + modeNames[static_cast<int>(expMode)]));
+        r.DrawString(FitSingleLine(r, sectionHint, FontType::Small, contentW),
+                     D2D1::RectF(contentLeft, sectionTop + 24.0f * dp, contentRight, sectionTop + 42.0f * dp),
                      textMute, FontType::Small, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-        // Live summary of the active surface (right-aligned beside the description).
-        {
-            const size_t visibleCount = FeatureGate::EnabledFeatureCount(expMode, s.customEnabledFeatures);
-            r.DrawString(Loc::Format(expMode == ExperienceMode::Custom ? "settings.experience.count_enabled"
-                                                                       : "settings.experience.count_visible",
-                                     std::to_wstring(visibleCount), std::to_wstring(catalogTotal)),
-                         D2D1::RectF(contentRight - 140.0f * dp, descTop, contentRight, descTop + 18.0f * dp),
+
+        const float groupTitleH = SettingsLayout::kExperienceGroupTitleHeight * dp;
+        for (const auto& group : layout.groups) {
+            drawFlatPanel(group.card, cardRadius, panelFill, panelBorder);
+            size_t groupEnabled = 0;
+            for (size_t k = 0; k < group.count; ++k) {
+                if (FeatureGate::FeatureEnabledAt(expMode, s.customEnabledFeatures, group.first + k)) ++groupEnabled;
+            }
+            const std::string_view groupId = group.id;
+            const IconType groupIcon = groupId == "audio" ? IconType::VolumeHigh
+                                     : groupId == "subtitles" ? IconType::Subtitles
+                                     : groupId == "video" ? IconType::MediaFilm : IconType::Play;
+            const float badgeSz = 28.0f * dp, badgeLeft = contentLeft + 12.0f * dp;
+            const float badgeTop = group.card.top + (groupTitleH - badgeSz) * 0.5f;
+            const D2D1_RECT_F badgeRect = D2D1::RectF(badgeLeft, badgeTop, badgeLeft + badgeSz, badgeTop + badgeSz);
+            r.FillRoundedRect(badgeRect, 8.0f * dp, ColorWithAlpha(accentCol, 0.14f));
+            r.DrawIcon(groupIcon, InsetRectF(badgeRect, 6.0f * dp, 6.0f * dp), accentCol, 1.4f * dp);
+            const std::wstring groupCount = Loc::Format("settings.experience.count_enabled", std::to_wstring(groupEnabled), std::to_wstring(group.count));
+            const float groupCountW = r.MeasureString(groupCount, FontType::Small).width + 2.0f * dp;
+            r.DrawString(groupCount, D2D1::RectF(contentRight - 12.0f * dp - groupCountW, group.card.top, contentRight - 12.0f * dp, group.card.top + groupTitleH),
                          textMute, FontType::Small, DWRITE_TEXT_ALIGNMENT_TRAILING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-        }
-        contentY = modeTop + modeCardH + cardGap;
-        // Card 2: Custom Features (catalog order, one row per feature)
-        if (expMode == ExperienceMode::Custom) {
-            const float featuresTop = contentY;
-            drawExperienceCard(featuresTop, SettingsLayout::kExperienceFeaturesCardHeight * dp);
-            const D2D1_RECT_F titleRect = D2D1::RectF(contentLeft + 22.0f * dp, featuresTop + 10.0f * dp,
-                                                      contentRight - 190.0f * dp, featuresTop + 34.0f * dp);
-            r.DrawString(Loc::Tr("settings.experience.features_title"), titleRect, textPri, FontType::Medium,
-                         DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-            const D2D1_RECT_F hintRect = D2D1::RectF(contentRight - 190.0f * dp, featuresTop + 10.0f * dp,
-                                                     contentRight - 22.0f * dp, featuresTop + 34.0f * dp);
-            r.DrawString(Loc::Format("settings.experience.count_enabled",
-                                     std::to_wstring(FeatureGate::EnabledFeatureCount(ExperienceMode::Custom, s.customEnabledFeatures)),
-                                     std::to_wstring(catalogTotal)),
-                         hintRect, textMute, FontType::Small,
-                         DWRITE_TEXT_ALIGNMENT_TRAILING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-            const float rowH = SettingsLayout::kExperienceFeatureRowHeight * dp;
-            const auto& catalog = FeatureGate::Catalog();
-            float rowY = featuresTop + cardTitleH;
-            const char* lastGroup = nullptr;
-            for (int i = 0; i < static_cast<int>(catalog.size()); ++i) {
+            r.DrawString(Loc::Tr(std::string("settings.experience.group.") + group.id),
+                         D2D1::RectF(badgeRect.right + 12.0f * dp, group.card.top, contentRight - 24.0f * dp - groupCountW, group.card.top + groupTitleH),
+                         textPri, FontType::Subheading, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+            const float dividerY = group.card.top + groupTitleH - 4.0f * dp;
+            r.DrawLine(contentLeft + 12.0f * dp, dividerY, contentRight - 12.0f * dp, dividerY, ColorWithAlpha(surfaceBorder, 0.5f), 1.0f);
+
+            for (size_t k = 0; k < group.count; ++k) {
+                const int i = static_cast<int>(group.first + k);
                 const auto& info = catalog[i];
-                if (!lastGroup || std::string(lastGroup) != info.group) {
-                    lastGroup = info.group;
-                    const D2D1_RECT_F groupRect = D2D1::RectF(contentLeft + 22.0f * dp, rowY,
-                                                              contentRight - 22.0f * dp, rowY + SettingsLayout::kExperienceGroupHeaderHeight * dp);
-                    r.DrawString(Loc::Tr(std::string("settings.experience.group.") + info.group), groupRect, textMute,
-                                 FontType::Caption, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-                    rowY += SettingsLayout::kExperienceGroupHeaderHeight * dp;
-                }
-                D2D1_RECT_F rRect = D2D1::RectF(contentLeft, rowY, contentRight, rowY + rowH);
-                const bool value = FeatureGate::FeatureEnabled(ExperienceMode::Custom, s.customEnabledFeatures, info.id);
-                bool isKbFocused = showContentKbFocus && (vm.keyboardFocusedRow == i + 1);
-                bool isPressed = vm.pressState.IsOptionPressed(i + 1);
-                bool isHover = !isPressed && !isKbFocused && pointerIn(rRect);
+                const D2D1_RECT_F& rRect = layout.rows[i];
+                const bool value = FeatureGate::FeatureEnabledAt(expMode, s.customEnabledFeatures, static_cast<size_t>(i));
+                const bool isKbFocused = showContentKbFocus && (vm.keyboardFocusedRow == i + 1);
+                const bool isPressed = vm.pressState.IsOptionPressed(i + 1);
+                const bool isHover = !isPressed && !isKbFocused && pointerIn(rRect);
+                const D2D1_RECT_F hlRect = InsetRectF(rRect, 0.0f, 2.0f * dp);
                 if (isPressed || isKbFocused || isHover) {
-                    SurfaceStyle rowFocusStyle = makeFlatSurface();
-                    rowFocusStyle.fill = isPressed ? ColorWithAlpha(accentCol, 0.20f) : isKbFocused ? ColorWithAlpha(accentCol, 0.10f)
-                                                     : surfaceHover;
-                    rowFocusStyle.border = (isPressed || isKbFocused) ? accentCol : clearColor;
-                    rowFocusStyle.borderWidth = (isPressed || isKbFocused) ? 1.5f : 0.0f;
-                    r.DrawSurface(rRect, rowFocusStyle);
+                    SurfaceStyle rowStyle = makeFlatSurface(SettingsLayout::kControlRadius);
+                    rowStyle.fill = isPressed ? ColorWithAlpha(accentCol, 0.20f) : isKbFocused ? ColorWithAlpha(accentCol, 0.10f) : surfaceHover;
+                    rowStyle.border = (isPressed || isKbFocused) ? accentCol : clearColor;
+                    rowStyle.borderWidth = (isPressed || isKbFocused) ? 1.5f : 0.0f;
+                    r.DrawSurface(hlRect, rowStyle);
                 }
-                const D2D1_RECT_F rowTextRect = InsetRectF(rRect, 14.0f * dp, 0.0f);
-                r.DrawString(Loc::Tr(info.displayNameKey), rowTextRect, isKbFocused ? textPri : textNorm, FontType::Medium,
+                const float swW = 34.0f * dp, swH = 18.0f * dp;
+                const D2D1_RECT_F swRect = D2D1::RectF(rRect.right - swW - 12.0f * dp, rRect.top + (RectHeight(rRect) - swH) * 0.5f,
+                                                       rRect.right - 12.0f * dp, rRect.top + (RectHeight(rRect) + swH) * 0.5f);
+                const float nameW = std::max(0.0f, swRect.left - 10.0f * dp - (rRect.left + 12.0f * dp));
+                r.DrawString(FitSingleLine(r, Loc::Tr(info.displayNameKey), FontType::Regular, nameW),
+                             D2D1::RectF(rRect.left + 12.0f * dp, rRect.top, swRect.left - 10.0f * dp, rRect.bottom),
+                             (value || isKbFocused) ? textPri : textMute, FontType::Regular,
                              DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-                // Compact switch (34px x 18px); eased progress mirrors the playback behavior rows.
-                float swW = 34.0f * dp, swH = 18.0f * dp;
-                D2D1_RECT_F swRect = D2D1::RectF(rRect.right - swW - 12.0f * dp, rRect.top + (rowH - swH) * 0.5f, rRect.right - 12.0f * dp, rRect.top + (rowH + swH) * 0.5f);
                 float t = std::clamp(vm.experienceToggleAnim[i], 0.0f, 1.0f);
                 if (t <= 0.0f && value) t = 1.0f; // Secondary render paths receive no eased anim; fall back to the static state.
-                D2D1_COLOR_F trackCol = LerpColor(toggleOff, accentCol, t);
-                r.FillRoundedRect(swRect, swH * 0.5f, trackCol);
+                r.FillRoundedRect(swRect, swH * 0.5f, LerpColor(toggleOff, accentCol, t));
                 r.DrawRoundedRect(swRect, swH * 0.5f, LerpColor(surfaceBorder, accentCol, t), 1.0f);
-                float knobRadius = 7.0f * dp;
-                float knobX = (swRect.left + 2.0f * dp + knobRadius) + t * (swW - 4.0f * dp - 2.0f * knobRadius);
-                float knobY = swRect.top + swH * 0.5f;
-                D2D1_COLOR_F knobCol = LerpColor(knobOff, surfaceBg, t);
-                r.FillCircle(knobX, knobY, knobRadius, knobCol);
-                if (i + 1 < static_cast<int>(catalog.size())) {
-                    r.DrawLine(rRect.left + 8.0f * dp, rRect.bottom, rRect.right - 8.0f * dp, rRect.bottom, surfaceBorder, 1.0f);
-                }
-                rowY += rowH;
+                const float knobRadius = 7.0f * dp;
+                const float knobX = (swRect.left + 2.0f * dp + knobRadius) + t * (swW - 4.0f * dp - 2.0f * knobRadius);
+                r.FillCircle(knobX, swRect.top + swH * 0.5f, knobRadius, LerpColor(knobOff, surfaceBg, t));
             }
         }
     } else if (vm.activeCat == SettingsCategory::Appearance) {
@@ -885,6 +886,9 @@ void UIComponents::DrawSettingsView(Renderer& r, const Settings& s, const Settin
         contentY += (languageRows * (langH + 8.0f * dp)) + 16.0f * dp;
     } else if (vm.activeCat == SettingsCategory::Playback) {
         drawPageHeader(Loc::Tr("settings.category.playback"), Loc::Tr("settings.page.playback"));
+        // Simple mode tail-truncates the advanced rows (custom MPV config, global
+        // hotkeys, tray, minimize, network caches); row indexes stay stable.
+        const bool simpleSettings = FeatureGate::ModeFromString(s.experienceMode) == ExperienceMode::Simple;
         // Playback follows the same card-first rhythm as Audio & Subtitles: section labels live inside their cards, while controls share
         // the card surface and only selected/focused controls receive emphasis.
         const float cardGap = SettingsLayout::kSectionCardGap * dp, cardLeft = contentBounds.left + padX - 10.0f * dp;
@@ -1057,195 +1061,199 @@ void UIComponents::DrawSettingsView(Renderer& r, const Settings& s, const Settin
             r.DrawSurface(pRect, pStyle);
             r.DrawString(speedLabels[i], pRect, isSel ? textOnAccent : textNorm, (isSel || isKbFocused) ? FontType::Medium : FontType::Regular, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
         }
-        // Section 5: Custom MPV Configuration (Rows 7 & 8)
-        const float mpvCardTop = speedCardTop + speedCardH + cardGap, mpvCardH = SettingsLayout::kPlaybackMpvCardHeight * dp;
-        drawPlaybackCard(mpvCardTop, mpvCardH);
-        drawPlaybackTitle(mpvCardTop, Loc::Tr("settings.playback.mpv_conf_header"), true);
-        contentY = mpvCardTop + cardTitleH;
-        // Row 7: Enable Custom MPV Config Switch
-        D2D1_RECT_F mpvSwitchRect = D2D1::RectF(contentLeft, contentY, contentRight, contentY + SettingsLayout::kPlaybackMpvSwitchHeight * dp);
-        bool isMpvKb = showContentKbFocus && (vm.keyboardFocusedRow == 7);
-        bool isMpvPressed = vm.pressState.IsOptionPressed(7);
-        bool isMpvHover = !isMpvPressed && !isMpvKb && pointerIn(mpvSwitchRect);
-        SurfaceStyle mpvSwitchStyle = makeFlatSurface();
-        mpvSwitchStyle.fill = isMpvPressed ? ColorWithAlpha(accentCol, 0.20f) : isMpvKb ? surfaceSelected
-                            : isMpvHover ? surfaceHover : clearColor;
-        mpvSwitchStyle.border = (isMpvPressed || isMpvKb) ? accentCol : clearColor;
-        mpvSwitchStyle.borderWidth = (isMpvPressed || isMpvKb) ? 1.5f : 0.0f;
-        r.DrawSurface(mpvSwitchRect, mpvSwitchStyle);
-        D2D1_RECT_F mpvLabelRect = D2D1::RectF(mpvSwitchRect.left + 14.0f * dp, mpvSwitchRect.top + 6.0f * dp, mpvSwitchRect.right - 80.0f * dp, mpvSwitchRect.top + 26.0f * dp);
-        r.DrawString(Loc::Tr("settings.playback.mpv_conf_enable"), mpvLabelRect, isMpvKb ? textPri : textNorm, FontType::Medium, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-        D2D1_RECT_F mpvSubRect = D2D1::RectF(mpvSwitchRect.left + 14.0f * dp, mpvSwitchRect.top + 26.0f * dp, mpvSwitchRect.right - 80.0f * dp, mpvSwitchRect.bottom - 6.0f * dp);
-        r.DrawString(Loc::Tr("settings.playback.mpv_conf_desc"), mpvSubRect, textMute, FontType::Small, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-        // Switch on right
-        float mpvSwW = 34.0f * dp, mpvSwH = 18.0f * dp;
-        D2D1_RECT_F mpvSwRect = D2D1::RectF(mpvSwitchRect.right - mpvSwW - 14.0f * dp, mpvSwitchRect.top + (50.0f * dp - mpvSwH) * 0.5f, mpvSwitchRect.right - 14.0f * dp, mpvSwitchRect.top + (50.0f * dp + mpvSwH) * 0.5f);
-        float mpvT = std::clamp(vm.customMpvConfigProg, 0.0f, 1.0f);
-        D2D1_COLOR_F mpvTrackCol = LerpColor(toggleOff, accentCol, mpvT);
-        r.FillRoundedRect(mpvSwRect, mpvSwH * 0.5f, mpvTrackCol);
-        r.DrawRoundedRect(mpvSwRect, mpvSwH * 0.5f, LerpColor(surfaceBorder, accentCol, mpvT), 1.0f);
-        float mpvKnobRadius = 7.0f * dp;
-        float mpvKnobX = (mpvSwRect.left + 2.0f * dp + mpvKnobRadius) + mpvT * (mpvSwW - 4.0f * dp - 2.0f * mpvKnobRadius);
-        float mpvKnobY = mpvSwRect.top + mpvSwH * 0.5f;
-        D2D1_COLOR_F mpvKnobCol = LerpColor(knobOff, surfaceBg, mpvT);
-        r.FillCircle(mpvKnobX, mpvKnobY, mpvKnobRadius, mpvKnobCol);
-        r.DrawLine(mpvSwitchRect.left + 8.0f * dp, mpvSwitchRect.bottom + 5.0f * dp,
-                   mpvSwitchRect.right - 8.0f * dp, mpvSwitchRect.bottom + 5.0f * dp, panelBorder, 1.0f * dp);
-        contentY = mpvCardTop + SettingsLayout::kPlaybackMpvActionTop * dp;
-        // Row 8: Actions (Edit, Reset, Revert)
-        struct MpvActionBtn { std::wstring title; std::wstring desc; std::wstring tag; bool isDanger; };
-        MpvActionBtn mpvBtns[] = {
-            { Loc::Tr("settings.playback.mpv_edit_title"), Loc::Tr("settings.playback.mpv_edit_desc"), Loc::Tr("settings.playback.mpv_edit_btn"), false },
-            { Loc::Tr("settings.playback.mpv_reset_title"), Loc::Tr("settings.playback.mpv_reset_desc"), Loc::Tr("settings.playback.mpv_reset_btn"), true },
-            { Loc::Tr("settings.playback.mpv_revert_title"), Loc::Tr("settings.playback.mpv_revert_desc"), Loc::Tr("settings.playback.mpv_revert_btn"), false }
-        };
-        const float mpvActCardH = SettingsLayout::kPlaybackMpvActionHeight * dp, mpvActGap = SettingsLayout::kPlaybackMpvActionGap * dp;
-        for (int i = 0; i < 3; ++i) {
-            D2D1_RECT_F actRowRect = D2D1::RectF(contentLeft, contentY + i * (mpvActCardH + mpvActGap),
-                                                contentRight, contentY + i * (mpvActCardH + mpvActGap) + mpvActCardH);
-            bool isActKb = showContentKbFocus && (vm.keyboardFocusedRow == 8) && (vm.keyboardFocusedSubIndex == i);
-            bool isActPressed = vm.pressState.IsOptionPressed(8, i);
-            bool isActHover = !isActPressed && !isActKb && pointerIn(actRowRect);
-            SurfaceStyle actStyle = makeFlatSurface();
-            if (isActPressed) {
-                actStyle.fill = mpvBtns[i].isDanger ? ColorWithAlpha(dangerCol, 0.28f) : ColorWithAlpha(accentCol, 0.22f);
-                actStyle.border = mpvBtns[i].isDanger ? dangerCol : accentCol;
-                actStyle.borderWidth = 1.5f;
-            } else if (isActKb) {
-                actStyle.fill = mpvBtns[i].isDanger ? ColorWithAlpha(dangerCol, 0.16f) : surfaceSelected;
-                actStyle.border = mpvBtns[i].isDanger ? dangerCol : accentCol;
-                actStyle.borderWidth = 2.0f;
-            } else if (isActHover) {
-                actStyle.fill = surfaceHover;
-                actStyle.border = clearColor;
-                actStyle.borderWidth = 0.0f;
-            } else { actStyle.fill = clearColor; actStyle.border = clearColor; actStyle.borderWidth = 0.0f; }
-            r.DrawSurface(actRowRect, actStyle);
-            if (i < 2) {
-                r.DrawLine(actRowRect.left + 8.0f * dp, actRowRect.bottom + 4.0f * dp,
-                           actRowRect.right - 8.0f * dp, actRowRect.bottom + 4.0f * dp, panelBorder, 1.0f * dp);
+        // Sections 5-8 hide in Simple mode: neither their drawing nor the
+        // contentY advancement inside them runs, so the page ends after the speed card.
+        if (!simpleSettings) {
+            // Section 5: Custom MPV Configuration (Rows 7 & 8)
+            const float mpvCardTop = speedCardTop + speedCardH + cardGap, mpvCardH = SettingsLayout::kPlaybackMpvCardHeight * dp;
+            drawPlaybackCard(mpvCardTop, mpvCardH);
+            drawPlaybackTitle(mpvCardTop, Loc::Tr("settings.playback.mpv_conf_header"), true);
+            contentY = mpvCardTop + cardTitleH;
+            // Row 7: Enable Custom MPV Config Switch
+            D2D1_RECT_F mpvSwitchRect = D2D1::RectF(contentLeft, contentY, contentRight, contentY + SettingsLayout::kPlaybackMpvSwitchHeight * dp);
+            bool isMpvKb = showContentKbFocus && (vm.keyboardFocusedRow == 7);
+            bool isMpvPressed = vm.pressState.IsOptionPressed(7);
+            bool isMpvHover = !isMpvPressed && !isMpvKb && pointerIn(mpvSwitchRect);
+            SurfaceStyle mpvSwitchStyle = makeFlatSurface();
+            mpvSwitchStyle.fill = isMpvPressed ? ColorWithAlpha(accentCol, 0.20f) : isMpvKb ? surfaceSelected
+                                : isMpvHover ? surfaceHover : clearColor;
+            mpvSwitchStyle.border = (isMpvPressed || isMpvKb) ? accentCol : clearColor;
+            mpvSwitchStyle.borderWidth = (isMpvPressed || isMpvKb) ? 1.5f : 0.0f;
+            r.DrawSurface(mpvSwitchRect, mpvSwitchStyle);
+            D2D1_RECT_F mpvLabelRect = D2D1::RectF(mpvSwitchRect.left + 14.0f * dp, mpvSwitchRect.top + 6.0f * dp, mpvSwitchRect.right - 80.0f * dp, mpvSwitchRect.top + 26.0f * dp);
+            r.DrawString(Loc::Tr("settings.playback.mpv_conf_enable"), mpvLabelRect, isMpvKb ? textPri : textNorm, FontType::Medium, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+            D2D1_RECT_F mpvSubRect = D2D1::RectF(mpvSwitchRect.left + 14.0f * dp, mpvSwitchRect.top + 26.0f * dp, mpvSwitchRect.right - 80.0f * dp, mpvSwitchRect.bottom - 6.0f * dp);
+            r.DrawString(Loc::Tr("settings.playback.mpv_conf_desc"), mpvSubRect, textMute, FontType::Small, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+            // Switch on right
+            float mpvSwW = 34.0f * dp, mpvSwH = 18.0f * dp;
+            D2D1_RECT_F mpvSwRect = D2D1::RectF(mpvSwitchRect.right - mpvSwW - 14.0f * dp, mpvSwitchRect.top + (50.0f * dp - mpvSwH) * 0.5f, mpvSwitchRect.right - 14.0f * dp, mpvSwitchRect.top + (50.0f * dp + mpvSwH) * 0.5f);
+            float mpvT = std::clamp(vm.customMpvConfigProg, 0.0f, 1.0f);
+            D2D1_COLOR_F mpvTrackCol = LerpColor(toggleOff, accentCol, mpvT);
+            r.FillRoundedRect(mpvSwRect, mpvSwH * 0.5f, mpvTrackCol);
+            r.DrawRoundedRect(mpvSwRect, mpvSwH * 0.5f, LerpColor(surfaceBorder, accentCol, mpvT), 1.0f);
+            float mpvKnobRadius = 7.0f * dp;
+            float mpvKnobX = (mpvSwRect.left + 2.0f * dp + mpvKnobRadius) + mpvT * (mpvSwW - 4.0f * dp - 2.0f * mpvKnobRadius);
+            float mpvKnobY = mpvSwRect.top + mpvSwH * 0.5f;
+            D2D1_COLOR_F mpvKnobCol = LerpColor(knobOff, surfaceBg, mpvT);
+            r.FillCircle(mpvKnobX, mpvKnobY, mpvKnobRadius, mpvKnobCol);
+            r.DrawLine(mpvSwitchRect.left + 8.0f * dp, mpvSwitchRect.bottom + 5.0f * dp,
+                       mpvSwitchRect.right - 8.0f * dp, mpvSwitchRect.bottom + 5.0f * dp, panelBorder, 1.0f * dp);
+            contentY = mpvCardTop + SettingsLayout::kPlaybackMpvActionTop * dp;
+            // Row 8: Actions (Edit, Reset, Revert)
+            struct MpvActionBtn { std::wstring title; std::wstring desc; std::wstring tag; bool isDanger; };
+            MpvActionBtn mpvBtns[] = {
+                { Loc::Tr("settings.playback.mpv_edit_title"), Loc::Tr("settings.playback.mpv_edit_desc"), Loc::Tr("settings.playback.mpv_edit_btn"), false },
+                { Loc::Tr("settings.playback.mpv_reset_title"), Loc::Tr("settings.playback.mpv_reset_desc"), Loc::Tr("settings.playback.mpv_reset_btn"), true },
+                { Loc::Tr("settings.playback.mpv_revert_title"), Loc::Tr("settings.playback.mpv_revert_desc"), Loc::Tr("settings.playback.mpv_revert_btn"), false }
+            };
+            const float mpvActCardH = SettingsLayout::kPlaybackMpvActionHeight * dp, mpvActGap = SettingsLayout::kPlaybackMpvActionGap * dp;
+            for (int i = 0; i < 3; ++i) {
+                D2D1_RECT_F actRowRect = D2D1::RectF(contentLeft, contentY + i * (mpvActCardH + mpvActGap),
+                                                    contentRight, contentY + i * (mpvActCardH + mpvActGap) + mpvActCardH);
+                bool isActKb = showContentKbFocus && (vm.keyboardFocusedRow == 8) && (vm.keyboardFocusedSubIndex == i);
+                bool isActPressed = vm.pressState.IsOptionPressed(8, i);
+                bool isActHover = !isActPressed && !isActKb && pointerIn(actRowRect);
+                SurfaceStyle actStyle = makeFlatSurface();
+                if (isActPressed) {
+                    actStyle.fill = mpvBtns[i].isDanger ? ColorWithAlpha(dangerCol, 0.28f) : ColorWithAlpha(accentCol, 0.22f);
+                    actStyle.border = mpvBtns[i].isDanger ? dangerCol : accentCol;
+                    actStyle.borderWidth = 1.5f;
+                } else if (isActKb) {
+                    actStyle.fill = mpvBtns[i].isDanger ? ColorWithAlpha(dangerCol, 0.16f) : surfaceSelected;
+                    actStyle.border = mpvBtns[i].isDanger ? dangerCol : accentCol;
+                    actStyle.borderWidth = 2.0f;
+                } else if (isActHover) {
+                    actStyle.fill = surfaceHover;
+                    actStyle.border = clearColor;
+                    actStyle.borderWidth = 0.0f;
+                } else { actStyle.fill = clearColor; actStyle.border = clearColor; actStyle.borderWidth = 0.0f; }
+                r.DrawSurface(actRowRect, actStyle);
+                if (i < 2) {
+                    r.DrawLine(actRowRect.left + 8.0f * dp, actRowRect.bottom + 4.0f * dp,
+                               actRowRect.right - 8.0f * dp, actRowRect.bottom + 4.0f * dp, panelBorder, 1.0f * dp);
+                }
+                D2D1_RECT_F actTitleRect = D2D1::RectF(actRowRect.left + 14.0f * dp, actRowRect.top + 6.0f * dp, actRowRect.right - 120.0f * dp, actRowRect.top + 24.0f * dp);
+                D2D1_RECT_F actDescRect = D2D1::RectF(actRowRect.left + 14.0f * dp, actRowRect.top + 24.0f * dp, actRowRect.right - 120.0f * dp, actRowRect.bottom - 4.0f * dp);
+                r.DrawString(mpvBtns[i].title, actTitleRect, mpvBtns[i].isDanger ? dangerCol : (isActKb ? textPri : textNorm), FontType::Medium, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+                r.DrawString(mpvBtns[i].desc, actDescRect, textMute, FontType::Small, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+                // Badge button
+                float badgeW = 96.0f * dp, badgeH = 26.0f * dp;
+                D2D1_RECT_F badgeRect = D2D1::RectF(actRowRect.right - badgeW - 12.0f * dp, actRowRect.top + (mpvActCardH - badgeH) * 0.5f, actRowRect.right - 12.0f * dp, actRowRect.top + (mpvActCardH + badgeH) * 0.5f);
+                D2D1_COLOR_F bBg = isActPressed ? (mpvBtns[i].isDanger ? dangerCol : accentCol) : (isActKb ? (mpvBtns[i].isDanger ? ColorWithAlpha(dangerCol, 0.25f) : accentCol) : surfaceBg);
+                D2D1_COLOR_F bBorder = (isActPressed || isActKb) ? (mpvBtns[i].isDanger ? dangerCol : accentCol) : surfaceBorder;
+                D2D1_COLOR_F bText = (isActPressed) ? (mpvBtns[i].isDanger ? D2D1::ColorF(1.0f, 1.0f, 1.0f) : surfaceBg) : (isActKb ? (mpvBtns[i].isDanger ? dangerCol : surfaceBg) : (mpvBtns[i].isDanger ? dangerCol : textNorm));
+                r.FillRoundedRect(badgeRect, 6.0f * dp, bBg);
+                r.DrawRoundedRect(badgeRect, 6.0f * dp, bBorder, 1.0f);
+                r.DrawString(mpvBtns[i].tag, badgeRect, bText, FontType::Small, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
             }
-            D2D1_RECT_F actTitleRect = D2D1::RectF(actRowRect.left + 14.0f * dp, actRowRect.top + 6.0f * dp, actRowRect.right - 120.0f * dp, actRowRect.top + 24.0f * dp);
-            D2D1_RECT_F actDescRect = D2D1::RectF(actRowRect.left + 14.0f * dp, actRowRect.top + 24.0f * dp, actRowRect.right - 120.0f * dp, actRowRect.bottom - 4.0f * dp);
-            r.DrawString(mpvBtns[i].title, actTitleRect, mpvBtns[i].isDanger ? dangerCol : (isActKb ? textPri : textNorm), FontType::Medium, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-            r.DrawString(mpvBtns[i].desc, actDescRect, textMute, FontType::Small, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-            // Badge button
-            float badgeW = 96.0f * dp, badgeH = 26.0f * dp;
-            D2D1_RECT_F badgeRect = D2D1::RectF(actRowRect.right - badgeW - 12.0f * dp, actRowRect.top + (mpvActCardH - badgeH) * 0.5f, actRowRect.right - 12.0f * dp, actRowRect.top + (mpvActCardH + badgeH) * 0.5f);
-            D2D1_COLOR_F bBg = isActPressed ? (mpvBtns[i].isDanger ? dangerCol : accentCol) : (isActKb ? (mpvBtns[i].isDanger ? ColorWithAlpha(dangerCol, 0.25f) : accentCol) : surfaceBg);
-            D2D1_COLOR_F bBorder = (isActPressed || isActKb) ? (mpvBtns[i].isDanger ? dangerCol : accentCol) : surfaceBorder;
-            D2D1_COLOR_F bText = (isActPressed) ? (mpvBtns[i].isDanger ? D2D1::ColorF(1.0f, 1.0f, 1.0f) : surfaceBg) : (isActKb ? (mpvBtns[i].isDanger ? dangerCol : surfaceBg) : (mpvBtns[i].isDanger ? dangerCol : textNorm));
-            r.FillRoundedRect(badgeRect, 6.0f * dp, bBg);
-            r.DrawRoundedRect(badgeRect, 6.0f * dp, bBorder, 1.0f);
-            r.DrawString(mpvBtns[i].tag, badgeRect, bText, FontType::Small, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+            // Section 6: System Integration (Rows 9, 10 & 11): Global Media Hotkeys, Show Tray Icon, Minimize to Tray.
+            contentY = mpvCardTop + SettingsLayout::kPlaybackMpvCardHeight * dp + cardGap;
+            auto drawSimpleToggleCard = [&](int row, float cardTop, const std::wstring& label, const std::wstring& desc, float t) {
+                drawPlaybackCard(cardTop, simpleCardH);
+                const D2D1_RECT_F rowRect = D2D1::RectF(contentLeft, cardTop + 8.0f * dp, contentRight, cardTop + simpleCardH - 8.0f * dp);
+                const bool isKb = showContentKbFocus && (vm.keyboardFocusedRow == row);
+                const bool isPressed = vm.pressState.IsOptionPressed(row);
+                const bool isHover = !isPressed && !isKb && pointerIn(rowRect);
+                if (isPressed || isKb || isHover) {
+                    SurfaceStyle rowFocusStyle = makeFlatSurface();
+                    rowFocusStyle.fill = isPressed ? ColorWithAlpha(accentCol, 0.20f) : isKb ? ColorWithAlpha(accentCol, 0.10f)
+                                     : surfaceHover;
+                    rowFocusStyle.border = (isPressed || isKb) ? accentCol : clearColor;
+                    rowFocusStyle.borderWidth = (isPressed || isKb) ? 1.5f : 0.0f;
+                    r.DrawSurface(rowRect, rowFocusStyle);
+                }
+                const D2D1_RECT_F labelRect = D2D1::RectF(rowRect.left + 14.0f * dp, rowRect.top + 5.0f * dp, rowRect.right - 80.0f * dp, rowRect.top + 25.0f * dp);
+                const D2D1_RECT_F descRect = D2D1::RectF(rowRect.left + 14.0f * dp, rowRect.top + 25.0f * dp, rowRect.right - 80.0f * dp, rowRect.bottom - 5.0f * dp);
+                r.DrawString(label, labelRect, isKb ? textPri : textNorm, FontType::Medium, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+                r.DrawString(desc, descRect, textMute, FontType::Small, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+                // Same compact switch as the behavior rows (34px x 18px).
+                float swW = 34.0f * dp, swH = 18.0f * dp;
+                D2D1_RECT_F swRect = D2D1::RectF(rowRect.right - swW - 14.0f * dp, rowRect.top + (rowRect.bottom - rowRect.top - swH) * 0.5f,
+                                                 rowRect.right - 14.0f * dp, rowRect.top + (rowRect.bottom - rowRect.top + swH) * 0.5f);
+                const float prog = std::clamp(t, 0.0f, 1.0f);
+                r.FillRoundedRect(swRect, swH * 0.5f, LerpColor(toggleOff, accentCol, prog));
+                r.DrawRoundedRect(swRect, swH * 0.5f, LerpColor(surfaceBorder, accentCol, prog), 1.0f);
+                float knobRadius = 7.0f * dp;
+                float knobX = (swRect.left + 2.0f * dp + knobRadius) + prog * (swW - 4.0f * dp - 2.0f * knobRadius);
+                r.FillCircle(knobX, swRect.top + swH * 0.5f, knobRadius, LerpColor(knobOff, surfaceBg, prog));
+            };
+            drawSimpleToggleCard(9, contentY, L"Global Media Hotkeys", Loc::Tr("settings.playback.global_hotkeys_desc"), vm.globalHotkeysProg);
+            contentY += simpleCardH + cardGap;
+            drawSimpleToggleCard(10, contentY, L"Show Tray Icon", L"Show the Aperture icon in the system notification area", vm.trayIconProg);
+            contentY += simpleCardH + cardGap;
+            drawSimpleToggleCard(11, contentY, L"Minimize to Tray",
+                s.trayIconEnabled ? L"Hide to the notification area instead of the taskbar when minimized" : L"Requires Show Tray Icon",
+                vm.minimizeToTrayProg);
+            contentY += simpleCardH + cardGap;
+            // Section 7: Network Cache Forward (Row 12)
+            const float fwdCacheCardTop = contentY;
+            drawPlaybackCard(fwdCacheCardTop, simpleCardH);
+            D2D1_RECT_F fwdCacheRowRect = D2D1::RectF(contentLeft, fwdCacheCardTop + 8.0f * dp, contentRight, fwdCacheCardTop + simpleCardH - 8.0f * dp);
+            bool isFwdCacheRowKbFocused = showContentKbFocus && (vm.keyboardFocusedRow == 12);
+            D2D1_RECT_F fwdCacheLabelRect = D2D1::RectF(fwdCacheRowRect.left + 14.0f * dp, fwdCacheRowRect.top + 6.0f * dp, fwdCacheRowRect.right - 230.0f * dp, fwdCacheRowRect.top + 26.0f * dp);
+            r.DrawString(L"Network Cache (Forward)", fwdCacheLabelRect, textPri, FontType::Medium, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+            D2D1_RECT_F fwdCacheSubRect = D2D1::RectF(fwdCacheRowRect.left + 14.0f * dp, fwdCacheRowRect.top + 26.0f * dp, fwdCacheRowRect.right - 230.0f * dp, fwdCacheRowRect.bottom - 6.0f * dp);
+            r.DrawString(L"Readahead buffer for network streams", fwdCacheSubRect, textMute, FontType::Small, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+            // Dropdown picker button
+            D2D1_RECT_F fwdDropRect = D2D1::RectF(fwdCacheRowRect.right - 220.0f * dp, fwdCacheRowRect.top + 8.0f * dp, fwdCacheRowRect.right - 100.0f * dp, fwdCacheRowRect.bottom - 8.0f * dp);
+            bool isFwdDropKb = isFwdCacheRowKbFocused && (vm.keyboardFocusedSubIndex == 0);
+            bool isFwdDropPressed = vm.pressState.IsOptionPressed(12, 0);
+            bool isFwdDropHover = !isFwdDropPressed && !isFwdDropKb && pointerIn(fwdDropRect);
+            SurfaceStyle fwdDropStyle = makeFlatSurface();
+            fwdDropStyle.fill = isFwdDropPressed ? ColorWithAlpha(accentCol, 0.32f) : (isFwdDropKb ? surfaceSelected : (isFwdDropHover ? surfaceHover : surfaceBg));
+            fwdDropStyle.border = (isFwdDropPressed || isFwdDropKb) ? accentCol : surfaceBorder;
+            fwdDropStyle.borderWidth = (isFwdDropPressed || isFwdDropKb) ? 1.5f : 1.0f;
+            r.DrawSurface(fwdDropRect, fwdDropStyle);
+            wchar_t fwdCacheValStr[32];
+            swprintf_s(fwdCacheValStr, L"%d MB  v", s.networkForwardCacheMB);
+            r.DrawString(fwdCacheValStr, fwdDropRect, isFwdDropKb ? textPri : textNorm, FontType::Medium, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+            // Custom manual input button
+            D2D1_RECT_F fwdCustBtnRect = D2D1::RectF(fwdCacheRowRect.right - 92.0f * dp, fwdCacheRowRect.top + 8.0f * dp, fwdCacheRowRect.right - 10.0f * dp, fwdCacheRowRect.bottom - 8.0f * dp);
+            bool isFwdCustKb = isFwdCacheRowKbFocused && (vm.keyboardFocusedSubIndex == 1);
+            bool isFwdCustPressed = vm.pressState.IsOptionPressed(12, 1);
+            bool isFwdCustHover = !isFwdCustPressed && !isFwdCustKb && pointerIn(fwdCustBtnRect);
+            SurfaceStyle fwdCustStyle = makeFlatSurface();
+            fwdCustStyle.fill = isFwdCustPressed ? ColorWithAlpha(accentCol, 0.32f) : (isFwdCustKb ? surfaceSelected : (isFwdCustHover ? surfaceHover : surfaceBg));
+            fwdCustStyle.border = (isFwdCustPressed || isFwdCustKb) ? accentCol : surfaceBorder;
+            fwdCustStyle.borderWidth = (isFwdCustPressed || isFwdCustKb) ? 1.5f : 1.0f;
+            r.DrawSurface(fwdCustBtnRect, fwdCustStyle);
+            r.DrawString(Loc::Tr("settings.playback.custom"), fwdCustBtnRect, isFwdCustKb ? accentCol : textMute, FontType::Small, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+            contentY = fwdCacheCardTop + simpleCardH + cardGap;
+            // Section 8: Network Cache Back (Row 13)
+            const float backCacheCardTop = contentY;
+            drawPlaybackCard(backCacheCardTop, simpleCardH);
+            D2D1_RECT_F backCacheRowRect = D2D1::RectF(contentLeft, backCacheCardTop + 8.0f * dp, contentRight, backCacheCardTop + simpleCardH - 8.0f * dp);
+            bool isBackCacheRowKbFocused = showContentKbFocus && (vm.keyboardFocusedRow == 13);
+            D2D1_RECT_F backCacheLabelRect = D2D1::RectF(backCacheRowRect.left + 14.0f * dp, backCacheRowRect.top + 6.0f * dp, backCacheRowRect.right - 230.0f * dp, backCacheRowRect.top + 26.0f * dp);
+            r.DrawString(L"Network Cache (Back)", backCacheLabelRect, textPri, FontType::Medium, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+            D2D1_RECT_F backCacheSubRect = D2D1::RectF(backCacheRowRect.left + 14.0f * dp, backCacheRowRect.top + 26.0f * dp, backCacheRowRect.right - 230.0f * dp, backCacheRowRect.bottom - 6.0f * dp);
+            r.DrawString(L"Backward buffer kept after seeking network streams", backCacheSubRect, textMute, FontType::Small, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+            // Dropdown picker button
+            D2D1_RECT_F backDropRect = D2D1::RectF(backCacheRowRect.right - 220.0f * dp, backCacheRowRect.top + 8.0f * dp, backCacheRowRect.right - 100.0f * dp, backCacheRowRect.bottom - 8.0f * dp);
+            bool isBackDropKb = isBackCacheRowKbFocused && (vm.keyboardFocusedSubIndex == 0);
+            bool isBackDropPressed = vm.pressState.IsOptionPressed(13, 0);
+            bool isBackDropHover = !isBackDropPressed && !isBackDropKb && pointerIn(backDropRect);
+            SurfaceStyle backDropStyle = makeFlatSurface();
+            backDropStyle.fill = isBackDropPressed ? ColorWithAlpha(accentCol, 0.32f) : (isBackDropKb ? surfaceSelected : (isBackDropHover ? surfaceHover : surfaceBg));
+            backDropStyle.border = (isBackDropPressed || isBackDropKb) ? accentCol : surfaceBorder;
+            backDropStyle.borderWidth = (isBackDropPressed || isBackDropKb) ? 1.5f : 1.0f;
+            r.DrawSurface(backDropRect, backDropStyle);
+            wchar_t backCacheValStr[32];
+            if (s.networkBackCacheMB == 0) wcscpy_s(backCacheValStr, L"Off  v");
+            else swprintf_s(backCacheValStr, L"%d MB  v", s.networkBackCacheMB);
+            r.DrawString(backCacheValStr, backDropRect, isBackDropKb ? textPri : textNorm, FontType::Medium, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+            // Custom manual input button
+            D2D1_RECT_F backCustBtnRect = D2D1::RectF(backCacheRowRect.right - 92.0f * dp, backCacheRowRect.top + 8.0f * dp, backCacheRowRect.right - 10.0f * dp, backCacheRowRect.bottom - 8.0f * dp);
+            bool isBackCustKb = isBackCacheRowKbFocused && (vm.keyboardFocusedSubIndex == 1);
+            bool isBackCustPressed = vm.pressState.IsOptionPressed(13, 1);
+            bool isBackCustHover = !isBackCustPressed && !isBackCustKb && pointerIn(backCustBtnRect);
+            SurfaceStyle backCustStyle = makeFlatSurface();
+            backCustStyle.fill = isBackCustPressed ? ColorWithAlpha(accentCol, 0.32f) : (isBackCustKb ? surfaceSelected : (isBackCustHover ? surfaceHover : surfaceBg));
+            backCustStyle.border = (isBackCustPressed || isBackCustKb) ? accentCol : surfaceBorder;
+            backCustStyle.borderWidth = (isBackCustPressed || isBackCustKb) ? 1.5f : 1.0f;
+            r.DrawSurface(backCustBtnRect, backCustStyle);
+            r.DrawString(Loc::Tr("settings.playback.custom"), backCustBtnRect, isBackCustKb ? accentCol : textMute, FontType::Small, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
         }
-        // Section 6: System Integration (Rows 9, 10 & 11): Global Media Hotkeys, Show Tray Icon, Minimize to Tray.
-        contentY = mpvCardTop + SettingsLayout::kPlaybackMpvCardHeight * dp + cardGap;
-        auto drawSimpleToggleCard = [&](int row, float cardTop, const std::wstring& label, const std::wstring& desc, float t) {
-            drawPlaybackCard(cardTop, simpleCardH);
-            const D2D1_RECT_F rowRect = D2D1::RectF(contentLeft, cardTop + 8.0f * dp, contentRight, cardTop + simpleCardH - 8.0f * dp);
-            const bool isKb = showContentKbFocus && (vm.keyboardFocusedRow == row);
-            const bool isPressed = vm.pressState.IsOptionPressed(row);
-            const bool isHover = !isPressed && !isKb && pointerIn(rowRect);
-            if (isPressed || isKb || isHover) {
-                SurfaceStyle rowFocusStyle = makeFlatSurface();
-                rowFocusStyle.fill = isPressed ? ColorWithAlpha(accentCol, 0.20f) : isKb ? ColorWithAlpha(accentCol, 0.10f)
-                                 : surfaceHover;
-                rowFocusStyle.border = (isPressed || isKb) ? accentCol : clearColor;
-                rowFocusStyle.borderWidth = (isPressed || isKb) ? 1.5f : 0.0f;
-                r.DrawSurface(rowRect, rowFocusStyle);
-            }
-            const D2D1_RECT_F labelRect = D2D1::RectF(rowRect.left + 14.0f * dp, rowRect.top + 5.0f * dp, rowRect.right - 80.0f * dp, rowRect.top + 25.0f * dp);
-            const D2D1_RECT_F descRect = D2D1::RectF(rowRect.left + 14.0f * dp, rowRect.top + 25.0f * dp, rowRect.right - 80.0f * dp, rowRect.bottom - 5.0f * dp);
-            r.DrawString(label, labelRect, isKb ? textPri : textNorm, FontType::Medium, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-            r.DrawString(desc, descRect, textMute, FontType::Small, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-            // Same compact switch as the behavior rows (34px x 18px).
-            float swW = 34.0f * dp, swH = 18.0f * dp;
-            D2D1_RECT_F swRect = D2D1::RectF(rowRect.right - swW - 14.0f * dp, rowRect.top + (rowRect.bottom - rowRect.top - swH) * 0.5f,
-                                             rowRect.right - 14.0f * dp, rowRect.top + (rowRect.bottom - rowRect.top + swH) * 0.5f);
-            const float prog = std::clamp(t, 0.0f, 1.0f);
-            r.FillRoundedRect(swRect, swH * 0.5f, LerpColor(toggleOff, accentCol, prog));
-            r.DrawRoundedRect(swRect, swH * 0.5f, LerpColor(surfaceBorder, accentCol, prog), 1.0f);
-            float knobRadius = 7.0f * dp;
-            float knobX = (swRect.left + 2.0f * dp + knobRadius) + prog * (swW - 4.0f * dp - 2.0f * knobRadius);
-            r.FillCircle(knobX, swRect.top + swH * 0.5f, knobRadius, LerpColor(knobOff, surfaceBg, prog));
-        };
-        drawSimpleToggleCard(9, contentY, L"Global Media Hotkeys", Loc::Tr("settings.playback.global_hotkeys_desc"), vm.globalHotkeysProg);
-        contentY += simpleCardH + cardGap;
-        drawSimpleToggleCard(10, contentY, L"Show Tray Icon", L"Show the Aperture icon in the system notification area", vm.trayIconProg);
-        contentY += simpleCardH + cardGap;
-        drawSimpleToggleCard(11, contentY, L"Minimize to Tray",
-            s.trayIconEnabled ? L"Hide to the notification area instead of the taskbar when minimized" : L"Requires Show Tray Icon",
-            vm.minimizeToTrayProg);
-        contentY += simpleCardH + cardGap;
-        // Section 7: Network Cache Forward (Row 12)
-        const float fwdCacheCardTop = contentY;
-        drawPlaybackCard(fwdCacheCardTop, simpleCardH);
-        D2D1_RECT_F fwdCacheRowRect = D2D1::RectF(contentLeft, fwdCacheCardTop + 8.0f * dp, contentRight, fwdCacheCardTop + simpleCardH - 8.0f * dp);
-        bool isFwdCacheRowKbFocused = showContentKbFocus && (vm.keyboardFocusedRow == 12);
-        D2D1_RECT_F fwdCacheLabelRect = D2D1::RectF(fwdCacheRowRect.left + 14.0f * dp, fwdCacheRowRect.top + 6.0f * dp, fwdCacheRowRect.right - 230.0f * dp, fwdCacheRowRect.top + 26.0f * dp);
-        r.DrawString(L"Network Cache (Forward)", fwdCacheLabelRect, textPri, FontType::Medium, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-        D2D1_RECT_F fwdCacheSubRect = D2D1::RectF(fwdCacheRowRect.left + 14.0f * dp, fwdCacheRowRect.top + 26.0f * dp, fwdCacheRowRect.right - 230.0f * dp, fwdCacheRowRect.bottom - 6.0f * dp);
-        r.DrawString(L"Readahead buffer for network streams", fwdCacheSubRect, textMute, FontType::Small, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-        // Dropdown picker button
-        D2D1_RECT_F fwdDropRect = D2D1::RectF(fwdCacheRowRect.right - 220.0f * dp, fwdCacheRowRect.top + 8.0f * dp, fwdCacheRowRect.right - 100.0f * dp, fwdCacheRowRect.bottom - 8.0f * dp);
-        bool isFwdDropKb = isFwdCacheRowKbFocused && (vm.keyboardFocusedSubIndex == 0);
-        bool isFwdDropPressed = vm.pressState.IsOptionPressed(12, 0);
-        bool isFwdDropHover = !isFwdDropPressed && !isFwdDropKb && pointerIn(fwdDropRect);
-        SurfaceStyle fwdDropStyle = makeFlatSurface();
-        fwdDropStyle.fill = isFwdDropPressed ? ColorWithAlpha(accentCol, 0.32f) : (isFwdDropKb ? surfaceSelected : (isFwdDropHover ? surfaceHover : surfaceBg));
-        fwdDropStyle.border = (isFwdDropPressed || isFwdDropKb) ? accentCol : surfaceBorder;
-        fwdDropStyle.borderWidth = (isFwdDropPressed || isFwdDropKb) ? 1.5f : 1.0f;
-        r.DrawSurface(fwdDropRect, fwdDropStyle);
-        wchar_t fwdCacheValStr[32];
-        swprintf_s(fwdCacheValStr, L"%d MB  v", s.networkForwardCacheMB);
-        r.DrawString(fwdCacheValStr, fwdDropRect, isFwdDropKb ? textPri : textNorm, FontType::Medium, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-        // Custom manual input button
-        D2D1_RECT_F fwdCustBtnRect = D2D1::RectF(fwdCacheRowRect.right - 92.0f * dp, fwdCacheRowRect.top + 8.0f * dp, fwdCacheRowRect.right - 10.0f * dp, fwdCacheRowRect.bottom - 8.0f * dp);
-        bool isFwdCustKb = isFwdCacheRowKbFocused && (vm.keyboardFocusedSubIndex == 1);
-        bool isFwdCustPressed = vm.pressState.IsOptionPressed(12, 1);
-        bool isFwdCustHover = !isFwdCustPressed && !isFwdCustKb && pointerIn(fwdCustBtnRect);
-        SurfaceStyle fwdCustStyle = makeFlatSurface();
-        fwdCustStyle.fill = isFwdCustPressed ? ColorWithAlpha(accentCol, 0.32f) : (isFwdCustKb ? surfaceSelected : (isFwdCustHover ? surfaceHover : surfaceBg));
-        fwdCustStyle.border = (isFwdCustPressed || isFwdCustKb) ? accentCol : surfaceBorder;
-        fwdCustStyle.borderWidth = (isFwdCustPressed || isFwdCustKb) ? 1.5f : 1.0f;
-        r.DrawSurface(fwdCustBtnRect, fwdCustStyle);
-        r.DrawString(Loc::Tr("settings.playback.custom"), fwdCustBtnRect, isFwdCustKb ? accentCol : textMute, FontType::Small, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-        contentY = fwdCacheCardTop + simpleCardH + cardGap;
-        // Section 8: Network Cache Back (Row 13)
-        const float backCacheCardTop = contentY;
-        drawPlaybackCard(backCacheCardTop, simpleCardH);
-        D2D1_RECT_F backCacheRowRect = D2D1::RectF(contentLeft, backCacheCardTop + 8.0f * dp, contentRight, backCacheCardTop + simpleCardH - 8.0f * dp);
-        bool isBackCacheRowKbFocused = showContentKbFocus && (vm.keyboardFocusedRow == 13);
-        D2D1_RECT_F backCacheLabelRect = D2D1::RectF(backCacheRowRect.left + 14.0f * dp, backCacheRowRect.top + 6.0f * dp, backCacheRowRect.right - 230.0f * dp, backCacheRowRect.top + 26.0f * dp);
-        r.DrawString(L"Network Cache (Back)", backCacheLabelRect, textPri, FontType::Medium, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-        D2D1_RECT_F backCacheSubRect = D2D1::RectF(backCacheRowRect.left + 14.0f * dp, backCacheRowRect.top + 26.0f * dp, backCacheRowRect.right - 230.0f * dp, backCacheRowRect.bottom - 6.0f * dp);
-        r.DrawString(L"Backward buffer kept after seeking network streams", backCacheSubRect, textMute, FontType::Small, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-        // Dropdown picker button
-        D2D1_RECT_F backDropRect = D2D1::RectF(backCacheRowRect.right - 220.0f * dp, backCacheRowRect.top + 8.0f * dp, backCacheRowRect.right - 100.0f * dp, backCacheRowRect.bottom - 8.0f * dp);
-        bool isBackDropKb = isBackCacheRowKbFocused && (vm.keyboardFocusedSubIndex == 0);
-        bool isBackDropPressed = vm.pressState.IsOptionPressed(13, 0);
-        bool isBackDropHover = !isBackDropPressed && !isBackDropKb && pointerIn(backDropRect);
-        SurfaceStyle backDropStyle = makeFlatSurface();
-        backDropStyle.fill = isBackDropPressed ? ColorWithAlpha(accentCol, 0.32f) : (isBackDropKb ? surfaceSelected : (isBackDropHover ? surfaceHover : surfaceBg));
-        backDropStyle.border = (isBackDropPressed || isBackDropKb) ? accentCol : surfaceBorder;
-        backDropStyle.borderWidth = (isBackDropPressed || isBackDropKb) ? 1.5f : 1.0f;
-        r.DrawSurface(backDropRect, backDropStyle);
-        wchar_t backCacheValStr[32];
-        if (s.networkBackCacheMB == 0) wcscpy_s(backCacheValStr, L"Off  v");
-        else swprintf_s(backCacheValStr, L"%d MB  v", s.networkBackCacheMB);
-        r.DrawString(backCacheValStr, backDropRect, isBackDropKb ? textPri : textNorm, FontType::Medium, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-        // Custom manual input button
-        D2D1_RECT_F backCustBtnRect = D2D1::RectF(backCacheRowRect.right - 92.0f * dp, backCacheRowRect.top + 8.0f * dp, backCacheRowRect.right - 10.0f * dp, backCacheRowRect.bottom - 8.0f * dp);
-        bool isBackCustKb = isBackCacheRowKbFocused && (vm.keyboardFocusedSubIndex == 1);
-        bool isBackCustPressed = vm.pressState.IsOptionPressed(13, 1);
-        bool isBackCustHover = !isBackCustPressed && !isBackCustKb && pointerIn(backCustBtnRect);
-        SurfaceStyle backCustStyle = makeFlatSurface();
-        backCustStyle.fill = isBackCustPressed ? ColorWithAlpha(accentCol, 0.32f) : (isBackCustKb ? surfaceSelected : (isBackCustHover ? surfaceHover : surfaceBg));
-        backCustStyle.border = (isBackCustPressed || isBackCustKb) ? accentCol : surfaceBorder;
-        backCustStyle.borderWidth = (isBackCustPressed || isBackCustKb) ? 1.5f : 1.0f;
-        r.DrawSurface(backCustBtnRect, backCustStyle);
-        r.DrawString(Loc::Tr("settings.playback.custom"), backCustBtnRect, isBackCustKb ? accentCol : textMute, FontType::Small, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
     } else if (vm.activeCat == SettingsCategory::Subtitles) {
         // The subtitle page uses its vertical budget for an always-visible
         // preview, so keep the title but omit the secondary page description.
@@ -1588,6 +1596,10 @@ void UIComponents::DrawSettingsView(Renderer& r, const Settings& s, const Settin
         }
     } else if (vm.activeCat == SettingsCategory::System) {
         drawPageHeader(Loc::Tr("settings.category.system"), Loc::Tr("settings.page.system"));
+        // Simple mode tail-truncates the advanced rows; the register/remove file-type
+        // actions sit at the end of the display order so they hide with the tail.
+        const bool simpleSettings = FeatureGate::ModeFromString(s.experienceMode) == ExperienceMode::Simple;
+        const int systemRowCount = SettingsLayout::SystemRowCount(simpleSettings);
         drawHeader(Loc::Tr("settings.system.about_header").c_str());
         float aboutCardH = SettingsLayout::kSystemAboutHeight * dp;
         const auto aboutRect = D2D1::RectF(contentBounds.left + padX, contentY, contentBounds.right - padX, contentY + aboutCardH);
@@ -1621,24 +1633,26 @@ void UIComponents::DrawSettingsView(Renderer& r, const Settings& s, const Settin
         contentY += aboutCardH + 18.0f * dp;
         drawHeader(Loc::Tr("settings.system.actions_header").c_str());
         struct SysBtn { std::wstring label; std::wstring desc; bool isDanger; IconType icon; };
+        // Display order mirrors SettingsLayout::kSystemActions: register/remove
+        // file types stay at the end so Simple mode can tail-truncate them.
         SysBtn btns[] = {
             { Loc::Tr("settings.system.check_updates"), Loc::Tr("settings.system.check_updates_desc"), false, IconType::Refresh },
             { Loc::Tr("settings.system.hover_previews"), s.hoverPreviewEnabled ? Loc::Tr("settings.system.hover_previews_on") : Loc::Tr("settings.system.hover_previews_off"), false, IconType::MediaFilm },
             { Loc::Tr("settings.system.reduce_motion"), s.reduceMotionEnabled ? Loc::Tr("settings.system.reduce_motion_on") : Loc::Tr("settings.system.reduce_motion_off"), false, IconType::SpeedGauge },
             { Loc::Tr("settings.system.smart_series"), s.smartSeriesDetection ? Loc::Tr("settings.system.smart_series_on") : Loc::Tr("settings.system.smart_series_off"), false, IconType::FolderPlaylist },
             { Loc::Tr("settings.system.jump_list"), s.jumpListEnabled ? Loc::Tr("settings.system.jump_list_on") : Loc::Tr("settings.system.jump_list_off"), false, IconType::HistoryClock },
-            { Loc::Tr("settings.system.register_types"), Loc::Tr("settings.system.register_types_desc"), false, IconType::MediaFilm },
-            { Loc::Tr("settings.system.remove_types"), Loc::Tr("settings.system.remove_types_desc"), false, IconType::Trash },
             { Loc::Tr("settings.system.open_data"), Loc::Tr("settings.system.open_data_desc"), false, IconType::AspectFrame },
             { Loc::Tr("settings.system.clear_disk_cache"), Loc::Tr("settings.system.clear_disk_cache_desc"), false, IconType::Trash },
             { Loc::Tr("settings.system.clear_history"), Loc::Tr("settings.system.clear_history_desc"), true, IconType::HistoryClock },
-            { Loc::Tr("settings.system.reset_defaults"), Loc::Tr("settings.system.reset_defaults_desc"), true, IconType::Refresh }};
+            { Loc::Tr("settings.system.reset_defaults"), Loc::Tr("settings.system.reset_defaults_desc"), true, IconType::Refresh },
+            { Loc::Tr("settings.system.register_types"), Loc::Tr("settings.system.register_types_desc"), false, IconType::MediaFilm },
+            { Loc::Tr("settings.system.remove_types"), Loc::Tr("settings.system.remove_types_desc"), false, IconType::Trash }};
         float bCardH = 58.0f * dp;
-        const float systemListH = SettingsLayout::kSystemRowCount * bCardH + (SettingsLayout::kSystemRowCount - 1) * 10.0f * dp;
+        const float systemListH = systemRowCount * bCardH + (systemRowCount - 1) * 10.0f * dp;
         drawFlatPanel(D2D1::RectF(contentBounds.left + padX - 10.0f * dp, contentY - 8.0f * dp,
                                   contentBounds.right - padX + 10.0f * dp, contentY + systemListH + 8.0f * dp),
                       12.0f, panelFill, panelBorder);
-        for (int i = 0; i < SettingsLayout::kSystemRowCount; ++i) {
+        for (int i = 0; i < systemRowCount; ++i) {
             D2D1_RECT_F bRect = D2D1::RectF(contentBounds.left + padX, contentY + i * (bCardH + 10.0f * dp), contentBounds.right - padX, contentY + i * (bCardH + 10.0f * dp) + bCardH);
             bool isKbFocused = showContentKbFocus && (vm.keyboardFocusedRow == i);
             bool isPressed = vm.pressState.IsSystemActionPressed(i);
@@ -1670,7 +1684,7 @@ void UIComponents::DrawSettingsView(Renderer& r, const Settings& s, const Settin
             }
             r.DrawSurface(bRect, bStyle);
 
-            if (i < SettingsLayout::kSystemRowCount - 1) {
+            if (i < systemRowCount - 1) {
                 r.DrawLine(bRect.left + 8.0f * dp, bRect.bottom + 5.0f * dp, bRect.right - 8.0f * dp, bRect.bottom + 5.0f * dp,
                            panelBorder, 1.0f * dp);
             }

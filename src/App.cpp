@@ -470,11 +470,12 @@ void App::RestoreLogicalFocus(const FocusSnapshot& snapshot) {
                     targetAccessibilityId = 600 + static_cast<LONG>(actualIdx) + 1;
                 }
             } else {
+                const bool simpleSettings = FeatureGate::ModeFromString(settings.experienceMode) == ExperienceMode::Simple;
                 int rowCount = (currentSettingsCat == SettingsCategory::Appearance) ? 2 :
-                               (currentSettingsCat == SettingsCategory::Playback) ? 14 :
+                               (currentSettingsCat == SettingsCategory::Playback) ? SettingsLayout::PlaybackRowCount(simpleSettings) :
                                (currentSettingsCat == SettingsCategory::Subtitles) ? 6 :
-                               (currentSettingsCat == SettingsCategory::Experience) ? ((FeatureGate::ModeFromString(settings.experienceMode) == ExperienceMode::Custom) ? static_cast<int>(FeatureGate::Catalog().size()) + 1 : 1) :
-                               (currentSettingsCat == SettingsCategory::System) ? SettingsLayout::kSystemRowCount : 1;
+                               (currentSettingsCat == SettingsCategory::Experience) ? static_cast<int>(FeatureGate::Catalog().size()) + 1 :
+                               (currentSettingsCat == SettingsCategory::System) ? SettingsLayout::SystemRowCount(simpleSettings) : 1;
                 keyboardFocusedIndex = std::clamp(snapshot.keyboardIndex, 0, std::max(0, rowCount - 1));
                 keyboardFocusedSubIndex = snapshot.keyboardSubIndex;
                 targetAccessibilityId = 600 + keyboardFocusedIndex;
@@ -897,15 +898,18 @@ void App::SnapVisualAnimations() {
     }
 }
 
-void App::ApplyExperienceModeSelection(ExperienceMode mode) {
+void App::ApplyExperienceModeSelection(ExperienceMode mode, bool forkFromPreview) {
     const ExperienceMode oldMode = FeatureGate::ModeFromString(settings.experienceMode);
     if (mode == ExperienceMode::Custom && oldMode != ExperienceMode::Custom) {
-        // Seed the custom list from the surface the user was just looking at,
-        // so switching to Custom preserves what they already see.
-        settings.customEnabledFeatures.clear();
-        for (const auto& info : FeatureGate::Catalog()) {
-            if (FeatureGate::FeatureEnabled(oldMode, settings.customEnabledFeatures, info.id)) {
-                settings.customEnabledFeatures.push_back(info.key);
+        // Forking from a preview starts Custom from the surface the user was
+        // just looking at. A plain mode switch restores their saved list; only
+        // a first-ever visit (empty list) seeds it.
+        if (forkFromPreview || settings.customEnabledFeatures.empty()) {
+            settings.customEnabledFeatures.clear();
+            for (const auto& info : FeatureGate::Catalog()) {
+                if (FeatureGate::FeatureEnabled(oldMode, settings.customEnabledFeatures, info.id)) {
+                    settings.customEnabledFeatures.push_back(info.key);
+                }
             }
         }
     }
@@ -913,7 +917,73 @@ void App::ApplyExperienceModeSelection(ExperienceMode mode) {
     SaveSettings();
 }
 
+// Re-resolves the App-side tracked hover state for the Settings tab (sidebar
+// category, System rows, shortcuts list). Render-time pointerIn hovers do not
+// need this, but every tracked hover must be re-resolved whenever rows move
+// under a stationary cursor (wheel scrolling) — not only on WM_MOUSEMOVE.
+void App::ResolveSettingsHover(float x, float y) {
+    if (currentTab != TabView::Settings) return;
+    const float dp = std::max(0.5f, renderer.GetDpiScale());
+    RECT rc{};
+    GetClientRect(hWnd, &rc);
+    const float winW = (float)std::max<LONG>(1, rc.right - rc.left);
+    const float winH = (float)std::max<LONG>(1, rc.bottom - rc.top);
+    const D2D1_RECT_F viewBounds = Presentation::HubView(winW, winH, dp);
+    float sideW = SettingsLayout::kSidebarWidth * dp, catH = SettingsLayout::kSidebarItemHeight * dp;
+    float curCatY = viewBounds.top + SettingsLayout::kSidebarTopInset * dp;
+    hoveredSettingsCat = (SettingsCategory)-1;
+    hoveredSettingsRow = -1;
+    hoveredShortcutIndex = -1;
+    isResetShortcutsHovered = false;
+    SettingsCategory settingsHoverCats[] = {SettingsCategory::Experience, SettingsCategory::Appearance, SettingsCategory::Playback,
+                                            SettingsCategory::Subtitles, SettingsCategory::Shortcuts, SettingsCategory::System};
+    for (int i = 0; i < 6; ++i) {
+        float cy = curCatY + i * (catH + SettingsLayout::kSidebarItemGap * dp);
+        if (x >= viewBounds.left + 8.0f * dp && x <= viewBounds.left + sideW - 8.0f * dp && y >= cy && y <= cy + catH) {
+            hoveredSettingsCat = settingsHoverCats[i];
+            break;
+        }
+    }
+    D2D1_RECT_F contentBounds = SettingsLayout::ContentBounds(viewBounds, dp);
+    float padX = SettingsLayout::kContentPadX * dp;
+    const float headerReserve = currentSettingsCat == SettingsCategory::Subtitles
+        ? SettingsLayout::kSubtitlePageHeaderReserve : SettingsLayout::kPageHeaderReserve;
+    float contentY = SettingsLayout::ContentTop(contentBounds, dp, settingsScrollY, headerReserve);
+    float contentW = RectWidth(contentBounds) - padX * 2.0f;
+    if (currentSettingsCat == SettingsCategory::System) {
+        hoveredSettingsRow = HitTestSystemSettingsRow(contentBounds, contentY, x, y);
+    } else if (currentSettingsCat == SettingsCategory::Shortcuts) {
+        float resetW = 150.0f * dp, resetH = 26.0f * dp;
+        const float pageHeaderTop = contentY - SettingsLayout::kPageHeaderReserve * dp;
+        D2D1_RECT_F resetRect = D2D1::RectF(contentBounds.right - padX - resetW, pageHeaderTop - 2.0f * dp, contentBounds.right - padX, pageHeaderTop - 2.0f * dp + resetH);
+        isResetShortcutsHovered = PtInRectF(resetRect, x, y);
+        float scTop = contentY + 32.0f * dp;
+        auto scList = settings.GetShortcutActionListRef();
+        size_t totalCount = scList.size();
+        size_t mid = (totalCount + 1) / 2;
+        float colGap = 16.0f * dp;
+        float colW = (contentW - colGap) * 0.5f;
+        float scRowH = 38.0f * dp, rowGap = 5.0f * dp;
+        for (size_t rowIdx = 0; rowIdx < mid; ++rowIdx) {
+            float rTop = scTop + rowIdx * (scRowH + rowGap);
+            if (rowIdx < totalCount) {
+                D2D1_RECT_F leftRect = D2D1::RectF(contentBounds.left + padX, rTop, contentBounds.left + padX + colW, rTop + scRowH);
+                if (PtInRectF(leftRect, x, y)) { hoveredShortcutIndex = (int)rowIdx; break; }
+            }
+            if (mid + rowIdx < totalCount) {
+                D2D1_RECT_F rightRect = D2D1::RectF(contentBounds.left + padX + colW + colGap, rTop, contentBounds.right - padX, rTop + scRowH);
+                if (PtInRectF(rightRect, x, y)) { hoveredShortcutIndex = (int)(mid + rowIdx); break; }
+            }
+        }
+    }
+}
+
 void App::ToggleExperienceFeature(const std::string& key) {
+    // Simple and Advanced show a read-only preview of their surface; editing a
+    // feature there forks that surface into Custom before applying the change.
+    if (FeatureGate::ModeFromString(settings.experienceMode) != ExperienceMode::Custom) {
+        ApplyExperienceModeSelection(ExperienceMode::Custom, /*forkFromPreview=*/true);
+    }
     auto& enabled = settings.customEnabledFeatures;
     auto it = std::find(enabled.begin(), enabled.end(), key);
     if (it != enabled.end()) {
@@ -929,22 +999,37 @@ float App::GetSettingsContentHeight(float dp) const {
         (currentSettingsCat == SettingsCategory::Subtitles ? SettingsLayout::kSubtitlePageHeaderReserve : SettingsLayout::kPageHeaderReserve)) * dp;
     float settingsCardH = 164.0f * dp;
     if (currentSettingsCat == SettingsCategory::Playback) {
-        // Behavior card + 7 simple cards (seek, frame, global hotkeys, tray, minimize, network forward cache, network back cache) +
-        // speed + MPV, with one gap between each of the 10 cards.
-        settingsCardH = (SettingsLayout::kPlaybackBehaviorCardHeight + 7.0f * SettingsLayout::kPlaybackSimpleCardHeight +
-            SettingsLayout::kPlaybackSpeedCardHeight + SettingsLayout::kPlaybackMpvCardHeight +
-            9.0f * SettingsLayout::kSectionCardGap) * dp;
+        const bool simpleSettings = FeatureGate::ModeFromString(settings.experienceMode) == ExperienceMode::Simple;
+        if (simpleSettings) {
+            // Behavior card + 2 simple cards (seek, frame) + speed, with one gap
+            // between each of the 4 cards. The advanced tail (MPV config, global
+            // hotkeys, tray, minimize, network caches) is hidden in Simple.
+            settingsCardH = (SettingsLayout::kPlaybackBehaviorCardHeight + 2.0f * SettingsLayout::kPlaybackSimpleCardHeight +
+                SettingsLayout::kPlaybackSpeedCardHeight +
+                3.0f * SettingsLayout::kSectionCardGap) * dp;
+        } else {
+            // Behavior card + 7 simple cards (seek, frame, global hotkeys, tray, minimize, network forward cache, network back cache) +
+            // speed + MPV, with one gap between each of the 10 cards.
+            settingsCardH = (SettingsLayout::kPlaybackBehaviorCardHeight + 7.0f * SettingsLayout::kPlaybackSimpleCardHeight +
+                SettingsLayout::kPlaybackSpeedCardHeight + SettingsLayout::kPlaybackMpvCardHeight +
+                9.0f * SettingsLayout::kSectionCardGap) * dp;
+        }
     } else if (currentSettingsCat == SettingsCategory::Subtitles) {
         settingsCardH = (SettingsLayout::kSubtitlePreviewCardHeight + 2.0f * SettingsLayout::kSubtitleTrackCardHeight +
             SettingsLayout::kSubtitleFontCardHeight + SettingsLayout::kSubtitleColorCardHeight +
             SettingsLayout::kSubtitleStyleCardHeight + SettingsLayout::kSubtitlePositionCardHeight +
             6.0f * SettingsLayout::kSubtitleCardGap + SettingsLayout::kSubtitleBottomPadding) * dp;
     } else if (currentSettingsCat == SettingsCategory::Experience) {
-        const ExperienceMode expMode = FeatureGate::ModeFromString(settings.experienceMode);
-        settingsCardH = (SettingsLayout::kExperienceModeCardHeight + SettingsLayout::kSectionCardGap +
-            (expMode == ExperienceMode::Custom ? SettingsLayout::kExperienceFeaturesCardHeight : 0.0f)) * dp;
+        RECT rc{};
+        GetClientRect(hWnd, &rc);
+        const D2D1_RECT_F view = Presentation::HubView(static_cast<float>(std::max<LONG>(1, rc.right - rc.left)),
+                                                       static_cast<float>(std::max<LONG>(1, rc.bottom - rc.top)), dp);
+        const D2D1_RECT_F content = SettingsLayout::ContentBounds(view, dp);
+        const float padX = SettingsLayout::kContentPadX * dp;
+        settingsCardH = SettingsLayout::MakeExperienceLayout(content.left + padX, content.right - padX, 0.0f, dp).bottom;
     } else if (currentSettingsCat == SettingsCategory::System) {
-        settingsCardH = (SettingsLayout::kSystemActionsTop + SettingsLayout::kSystemRowCount * 68.0f + 16.0f) * dp;
+        const bool simpleSettings = FeatureGate::ModeFromString(settings.experienceMode) == ExperienceMode::Simple;
+        settingsCardH = (SettingsLayout::kSystemActionsTop + SettingsLayout::SystemRowCount(simpleSettings) * 68.0f + 16.0f) * dp;
     } else if (currentSettingsCat == SettingsCategory::Shortcuts) {
         settingsCardH = 24.0f * dp + 54.0f * dp + 6.0f * dp + settings.GetShortcutActionListRef().size() * 44.0f * dp + 20.0f * dp;
     }
@@ -2722,20 +2807,12 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                     historyScrollY = std::max(0.0f, historyScrollY - scrollDelta);
                 } else if (currentTab == TabView::Settings) {
                     settingsScrollY = std::max(0.0f, settingsScrollY - scrollDelta);
-                    if (currentSettingsCat == SettingsCategory::System) {
-                        // Rows move under a stationary cursor while scrolling; re-resolve the
-                        // hovered row here so the highlight never trails the list.
-                        POINT wheelPt{ GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
-                        ScreenToClient(hWnd, &wheelPt);
-                        RECT wheelRc;
-                        GetClientRect(hWnd, &wheelRc);
-                        const float wx = (float)wheelPt.x, wy = (float)wheelPt.y;
-                        const float winWw = (float)(wheelRc.right - wheelRc.left), winHw = (float)(wheelRc.bottom - wheelRc.top);
-                        const D2D1_RECT_F viewBoundsW = Presentation::HubView(winWw, winHw, dp);
-                        const D2D1_RECT_F contentBoundsW = SettingsLayout::ContentBounds(viewBoundsW, dp);
-                        const float contentYW = SettingsLayout::ContentTop(contentBoundsW, dp, settingsScrollY);
-                        hoveredSettingsRow = HitTestSystemSettingsRow(contentBoundsW, contentYW, wx, wy);
-                    }
+                    // Rows move under a stationary cursor while scrolling; re-resolve
+                    // every tracked hover (sidebar, System rows, shortcuts) so the
+                    // highlight never trails the list.
+                    POINT wheelPt{ GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
+                    ScreenToClient(hWnd, &wheelPt);
+                    ResolveSettingsHover((float)wheelPt.x, (float)wheelPt.y);
                 }
                 ClampScrollOffsets();
                 InvalidateRect(hWnd, NULL, FALSE);
@@ -3165,55 +3242,7 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                         }
                     }
                 } else if (currentTab == TabView::Settings) {
-                    float sideW = SettingsLayout::kSidebarWidth * dp, catH = SettingsLayout::kSidebarItemHeight * dp;
-                    float curCatY = viewBounds.top + SettingsLayout::kSidebarTopInset * dp;
-                    hoveredSettingsCat = (SettingsCategory)-1;
-                    hoveredSettingsRow = -1;
-                    hoveredShortcutIndex = -1;
-                    isResetShortcutsHovered = false;
-                    SettingsCategory settingsHoverCats[] = {SettingsCategory::Experience, SettingsCategory::Appearance, SettingsCategory::Playback,
-                                                            SettingsCategory::Subtitles, SettingsCategory::Shortcuts, SettingsCategory::System};
-                    for (int i = 0; i < 6; ++i) {
-                        float cy = curCatY + i * (catH + SettingsLayout::kSidebarItemGap * dp);
-                        if (x >= viewBounds.left + 8.0f * dp && x <= viewBounds.left + sideW - 8.0f * dp && y >= cy && y <= cy + catH) {
-                            hoveredSettingsCat = settingsHoverCats[i];
-                            break;
-                        }
-                    }
-                    D2D1_RECT_F contentBounds = SettingsLayout::ContentBounds(viewBounds, dp);
-                    float padX = SettingsLayout::kContentPadX * dp;
-                    const float headerReserve = currentSettingsCat == SettingsCategory::Subtitles
-                        ? SettingsLayout::kSubtitlePageHeaderReserve : SettingsLayout::kPageHeaderReserve;
-                    float contentY = SettingsLayout::ContentTop(contentBounds, dp, settingsScrollY, headerReserve);
-                    float contentW = RectWidth(contentBounds) - padX * 2.0f;
-                    if (currentSettingsCat == SettingsCategory::System) {
-                        // The System rows resolve hover from tracked state (not at draw time),
-                        // so crossing between rows here must mark hover as changed and repaint.
-                        hoveredSettingsRow = HitTestSystemSettingsRow(contentBounds, contentY, x, y);
-                    } else if (currentSettingsCat == SettingsCategory::Shortcuts) {
-                        float resetW = 150.0f * dp, resetH = 26.0f * dp;
-                        const float pageHeaderTop = contentY - SettingsLayout::kPageHeaderReserve * dp;
-                        D2D1_RECT_F resetRect = D2D1::RectF(contentBounds.right - padX - resetW, pageHeaderTop - 2.0f * dp, contentBounds.right - padX, pageHeaderTop - 2.0f * dp + resetH);
-                        isResetShortcutsHovered = PtInRectF(resetRect, x, y);
-                        float scTop = contentY + 32.0f * dp;
-                        auto scList = settings.GetShortcutActionListRef();
-                        size_t totalCount = scList.size();
-                        size_t mid = (totalCount + 1) / 2;
-                        float colGap = 16.0f * dp;
-                        float colW = (contentW - colGap) * 0.5f;
-                        float scRowH = 38.0f * dp, rowGap = 5.0f * dp;
-                        for (size_t rowIdx = 0; rowIdx < mid; ++rowIdx) {
-                            float rTop = scTop + rowIdx * (scRowH + rowGap);
-                            if (rowIdx < totalCount) {
-                                D2D1_RECT_F leftRect = D2D1::RectF(contentBounds.left + padX, rTop, contentBounds.left + padX + colW, rTop + scRowH);
-                                if (PtInRectF(leftRect, x, y)) { hoveredShortcutIndex = (int)rowIdx; break; }
-                            }
-                            if (mid + rowIdx < totalCount) {
-                                D2D1_RECT_F rightRect = D2D1::RectF(contentBounds.left + padX + colW + colGap, rTop, contentBounds.right - padX, rTop + scRowH);
-                                if (PtInRectF(rightRect, x, y)) { hoveredShortcutIndex = (int)(mid + rowIdx); break; }
-                            }
-                        }
-                    }
+                    ResolveSettingsHover(x, y);
                 }
             }
             if (isContextMenuOpen) {
@@ -3246,7 +3275,10 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                 oldHoveredContextMenuItem != hoveredContextMenuItem ||
                 oldHoveredIrisShoulder != hoveredIrisShoulder ||
                 oldActiveIrisDialIndex != activeIrisDialIndex;
-            if (hoverChanged) InvalidateRect(hWnd, NULL, FALSE);
+            // Settings rows resolve hover at draw time (pointerIn), so any
+            // mousemove over the tab must repaint even when tracked state is
+            // unchanged — otherwise highlights lag behind the cursor.
+            if (hoverChanged || currentTab == TabView::Settings) InvalidateRect(hWnd, NULL, FALSE);
             return 0;
         }
         case WM_MOUSELEAVE: { OnMouseLeave(); InvalidateRect(hWnd, NULL, FALSE); return 0; }
@@ -3890,44 +3922,23 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                     float contentY = SettingsLayout::ContentTop(contentBounds, dp, settingsScrollY, headerReserve);
                     float contentW = RectWidth(contentBounds) - padX * 2.0f;
                     if (currentSettingsCat == SettingsCategory::Experience) {
-                        // Card 1: mode chips (row 0, sub 0..2); Card 2: feature rows
-                        // (catalog order, custom mode only). Geometry mirrors the renderer,
-                        // including the group-header advancement inside the feature card.
-                        const ExperienceMode expMode = FeatureGate::ModeFromString(settings.experienceMode);
-                        const float contentLeft = contentBounds.left + padX, contentRight = contentBounds.right - padX;
-                        const float chipGap = 8.0f * dp;
-                        const float chipW = (contentW - 2.0f * chipGap) / 3.0f, chipH = SettingsLayout::kControlHeight * dp;
-                        const float chipTop = contentY + SettingsLayout::kExperienceCardTitleHeight * dp;
+                        // Mode tiles are row 0 (sub 0..2); features are rows 1..N in
+                        // catalog order. Clicking a feature outside Custom switches to Custom.
+                        const auto layout = SettingsLayout::MakeExperienceLayout(contentBounds.left + padX, contentBounds.right - padX, contentY, dp);
                         for (int i = 0; i < 3; ++i) {
-                            const D2D1_RECT_F chipRect = D2D1::RectF(contentLeft + i * (chipW + chipGap), chipTop,
-                                                                     contentLeft + i * (chipW + chipGap) + chipW, chipTop + chipH);
-                            if (PtInRectF(chipRect, x, y)) {
+                            if (PtInRectF(layout.modeTiles[i], x, y)) {
                                 settingsPressState = { SettingsPressState::Target::OptionRow, 0, i };
                                 SetCapture(hWnd);
                                 InvalidateRect(hWnd, NULL, FALSE);
                                 return 0;
                             }
                         }
-                        if (expMode == ExperienceMode::Custom) {
-                            const float featuresTop = contentY + SettingsLayout::kExperienceModeCardHeight * dp +
-                                SettingsLayout::kSectionCardGap * dp;
-                            const float rowH = SettingsLayout::kExperienceFeatureRowHeight * dp;
-                            const auto& catalog = FeatureGate::Catalog();
-                            float rowY = featuresTop + SettingsLayout::kExperienceCardTitleHeight * dp;
-                            const char* lastGroup = nullptr;
-                            for (int i = 0; i < static_cast<int>(catalog.size()); ++i) {
-                                if (!lastGroup || std::string(lastGroup) != catalog[i].group) {
-                                    lastGroup = catalog[i].group;
-                                    rowY += SettingsLayout::kExperienceGroupHeaderHeight * dp;
-                                }
-                                const D2D1_RECT_F rRect = D2D1::RectF(contentLeft, rowY, contentRight, rowY + rowH);
-                                if (PtInRectF(rRect, x, y)) {
-                                    settingsPressState = { SettingsPressState::Target::OptionRow, i + 1, 0 };
-                                    SetCapture(hWnd);
-                                    InvalidateRect(hWnd, NULL, FALSE);
-                                    return 0;
-                                }
-                                rowY += rowH;
+                        for (size_t i = 0; i < FeatureGate::Catalog().size(); ++i) {
+                            if (PtInRectF(layout.rows[i], x, y)) {
+                                settingsPressState = { SettingsPressState::Target::OptionRow, static_cast<int>(i) + 1, 0 };
+                                SetCapture(hWnd);
+                                InvalidateRect(hWnd, NULL, FALSE);
+                                return 0;
                             }
                         }
                     } else if (currentSettingsCat == SettingsCategory::Appearance) {
@@ -3968,6 +3979,7 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                         }
                     } else if (currentSettingsCat == SettingsCategory::Playback) {
                         // Playback uses card geometry shared with the native renderer.
+                        const bool simpleSettings = FeatureGate::ModeFromString(settings.experienceMode) == ExperienceMode::Simple;
                         const float cardGap = SettingsLayout::kSectionCardGap * dp, titleH = SettingsLayout::kPlaybackCardTitleHeight * dp;
                         const float rowH = SettingsLayout::kPlaybackBehaviorRowHeight * dp;
                         const float simpleCardH = SettingsLayout::kPlaybackSimpleCardHeight * dp, contentLeft = contentBounds.left + padX;
@@ -4039,76 +4051,79 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                                 return 0;
                             }
                         }
-                        // Section 5: Custom MPV Configuration (Rows 7 & 8)
-                        const float mpvCardTop = speedCardTop + SettingsLayout::kPlaybackSpeedCardHeight * dp + cardGap;
-                        contentY = mpvCardTop + titleH;
-                        D2D1_RECT_F mpvSwitchRect = D2D1::RectF(contentLeft, contentY, contentRight,
-                                                               contentY + SettingsLayout::kPlaybackMpvSwitchHeight * dp);
-                        if (PtInRectF(mpvSwitchRect, x, y)) {
-                            settingsPressState = { SettingsPressState::Target::OptionRow, 7, 0 };
-                            SetCapture(hWnd);
-                            InvalidateRect(hWnd, NULL, FALSE);
-                            return 0;
-                        }
-                        contentY = mpvCardTop + SettingsLayout::kPlaybackMpvActionTop * dp;
-                        const float mpvActCardH = SettingsLayout::kPlaybackMpvActionHeight * dp;
-                        const float mpvActGap = SettingsLayout::kPlaybackMpvActionGap * dp;
-                        for (int i = 0; i < 3; ++i) {
-                            D2D1_RECT_F actRowRect = D2D1::RectF(contentLeft, contentY + i * (mpvActCardH + mpvActGap),
-                                                                 contentRight, contentY + i * (mpvActCardH + mpvActGap) + mpvActCardH);
-                            if (PtInRectF(actRowRect, x, y)) {
-                                settingsPressState = { SettingsPressState::Target::OptionRow, 8, i };
+                        // Sections 5-8 hide in Simple mode; the press targets must hide with them.
+                        if (!simpleSettings) {
+                            // Section 5: Custom MPV Configuration (Rows 7 & 8)
+                            const float mpvCardTop = speedCardTop + SettingsLayout::kPlaybackSpeedCardHeight * dp + cardGap;
+                            contentY = mpvCardTop + titleH;
+                            D2D1_RECT_F mpvSwitchRect = D2D1::RectF(contentLeft, contentY, contentRight,
+                                                                   contentY + SettingsLayout::kPlaybackMpvSwitchHeight * dp);
+                            if (PtInRectF(mpvSwitchRect, x, y)) {
+                                settingsPressState = { SettingsPressState::Target::OptionRow, 7, 0 };
                                 SetCapture(hWnd);
                                 InvalidateRect(hWnd, NULL, FALSE);
                                 return 0;
                             }
-                        }
-                        // Section 6: System Integration (Rows 9, 10 & 11)
-                        contentY = mpvCardTop + SettingsLayout::kPlaybackMpvCardHeight * dp + cardGap;
-                        for (int i = 9; i <= 11; ++i) {
-                            D2D1_RECT_F sysCardRect = D2D1::RectF(contentLeft, contentY, contentRight, contentY + simpleCardH);
-                            if (PtInRectF(sysCardRect, x, y)) {
-                                settingsPressState = { SettingsPressState::Target::OptionRow, i, 0 };
+                            contentY = mpvCardTop + SettingsLayout::kPlaybackMpvActionTop * dp;
+                            const float mpvActCardH = SettingsLayout::kPlaybackMpvActionHeight * dp;
+                            const float mpvActGap = SettingsLayout::kPlaybackMpvActionGap * dp;
+                            for (int i = 0; i < 3; ++i) {
+                                D2D1_RECT_F actRowRect = D2D1::RectF(contentLeft, contentY + i * (mpvActCardH + mpvActGap),
+                                                                     contentRight, contentY + i * (mpvActCardH + mpvActGap) + mpvActCardH);
+                                if (PtInRectF(actRowRect, x, y)) {
+                                    settingsPressState = { SettingsPressState::Target::OptionRow, 8, i };
+                                    SetCapture(hWnd);
+                                    InvalidateRect(hWnd, NULL, FALSE);
+                                    return 0;
+                                }
+                            }
+                            // Section 6: System Integration (Rows 9, 10 & 11)
+                            contentY = mpvCardTop + SettingsLayout::kPlaybackMpvCardHeight * dp + cardGap;
+                            for (int i = 9; i <= 11; ++i) {
+                                D2D1_RECT_F sysCardRect = D2D1::RectF(contentLeft, contentY, contentRight, contentY + simpleCardH);
+                                if (PtInRectF(sysCardRect, x, y)) {
+                                    settingsPressState = { SettingsPressState::Target::OptionRow, i, 0 };
+                                    SetCapture(hWnd);
+                                    InvalidateRect(hWnd, NULL, FALSE);
+                                    return 0;
+                                }
+                                contentY += simpleCardH + cardGap;
+                            }
+                            // Section 7: Network Cache Forward (Row 12)
+                            D2D1_RECT_F fwdCacheRowRect = D2D1::RectF(contentLeft, contentY + 8.0f * dp,
+                                                                      contentRight, contentY + simpleCardH - 8.0f * dp);
+                            D2D1_RECT_F fwdDropRect = D2D1::RectF(fwdCacheRowRect.right - 220.0f * dp, fwdCacheRowRect.top + 8.0f * dp, fwdCacheRowRect.right - 100.0f * dp, fwdCacheRowRect.bottom - 8.0f * dp);
+                            D2D1_RECT_F fwdCustBtnRect = D2D1::RectF(fwdCacheRowRect.right - 92.0f * dp, fwdCacheRowRect.top + 8.0f * dp, fwdCacheRowRect.right - 10.0f * dp, fwdCacheRowRect.bottom - 8.0f * dp);
+                            if (PtInRectF(fwdDropRect, x, y)) {
+                                settingsPressState = { SettingsPressState::Target::OptionRow, 12, 0 };
                                 SetCapture(hWnd);
                                 InvalidateRect(hWnd, NULL, FALSE);
                                 return 0;
                             }
+                            if (PtInRectF(fwdCustBtnRect, x, y)) {
+                                settingsPressState = { SettingsPressState::Target::OptionRow, 12, 1 };
+                                SetCapture(hWnd);
+                                InvalidateRect(hWnd, NULL, FALSE);
+                                return 0;
+                            }
+                            // Section 8: Network Cache Back (Row 13)
                             contentY += simpleCardH + cardGap;
-                        }
-                        // Section 7: Network Cache Forward (Row 12)
-                        D2D1_RECT_F fwdCacheRowRect = D2D1::RectF(contentLeft, contentY + 8.0f * dp,
-                                                                  contentRight, contentY + simpleCardH - 8.0f * dp);
-                        D2D1_RECT_F fwdDropRect = D2D1::RectF(fwdCacheRowRect.right - 220.0f * dp, fwdCacheRowRect.top + 8.0f * dp, fwdCacheRowRect.right - 100.0f * dp, fwdCacheRowRect.bottom - 8.0f * dp);
-                        D2D1_RECT_F fwdCustBtnRect = D2D1::RectF(fwdCacheRowRect.right - 92.0f * dp, fwdCacheRowRect.top + 8.0f * dp, fwdCacheRowRect.right - 10.0f * dp, fwdCacheRowRect.bottom - 8.0f * dp);
-                        if (PtInRectF(fwdDropRect, x, y)) {
-                            settingsPressState = { SettingsPressState::Target::OptionRow, 12, 0 };
-                            SetCapture(hWnd);
-                            InvalidateRect(hWnd, NULL, FALSE);
-                            return 0;
-                        }
-                        if (PtInRectF(fwdCustBtnRect, x, y)) {
-                            settingsPressState = { SettingsPressState::Target::OptionRow, 12, 1 };
-                            SetCapture(hWnd);
-                            InvalidateRect(hWnd, NULL, FALSE);
-                            return 0;
-                        }
-                        // Section 8: Network Cache Back (Row 13)
-                        contentY += simpleCardH + cardGap;
-                        D2D1_RECT_F backCacheRowRect = D2D1::RectF(contentLeft, contentY + 8.0f * dp,
-                                                                   contentRight, contentY + simpleCardH - 8.0f * dp);
-                        D2D1_RECT_F backDropRect = D2D1::RectF(backCacheRowRect.right - 220.0f * dp, backCacheRowRect.top + 8.0f * dp, backCacheRowRect.right - 100.0f * dp, backCacheRowRect.bottom - 8.0f * dp);
-                        D2D1_RECT_F backCustBtnRect = D2D1::RectF(backCacheRowRect.right - 92.0f * dp, backCacheRowRect.top + 8.0f * dp, backCacheRowRect.right - 10.0f * dp, backCacheRowRect.bottom - 8.0f * dp);
-                        if (PtInRectF(backDropRect, x, y)) {
-                            settingsPressState = { SettingsPressState::Target::OptionRow, 13, 0 };
-                            SetCapture(hWnd);
-                            InvalidateRect(hWnd, NULL, FALSE);
-                            return 0;
-                        }
-                        if (PtInRectF(backCustBtnRect, x, y)) {
-                            settingsPressState = { SettingsPressState::Target::OptionRow, 13, 1 };
-                            SetCapture(hWnd);
-                            InvalidateRect(hWnd, NULL, FALSE);
-                            return 0;
+                            D2D1_RECT_F backCacheRowRect = D2D1::RectF(contentLeft, contentY + 8.0f * dp,
+                                                                       contentRight, contentY + simpleCardH - 8.0f * dp);
+                            D2D1_RECT_F backDropRect = D2D1::RectF(backCacheRowRect.right - 220.0f * dp, backCacheRowRect.top + 8.0f * dp, backCacheRowRect.right - 100.0f * dp, backCacheRowRect.bottom - 8.0f * dp);
+                            D2D1_RECT_F backCustBtnRect = D2D1::RectF(backCacheRowRect.right - 92.0f * dp, backCacheRowRect.top + 8.0f * dp, backCacheRowRect.right - 10.0f * dp, backCacheRowRect.bottom - 8.0f * dp);
+                            if (PtInRectF(backDropRect, x, y)) {
+                                settingsPressState = { SettingsPressState::Target::OptionRow, 13, 0 };
+                                SetCapture(hWnd);
+                                InvalidateRect(hWnd, NULL, FALSE);
+                                return 0;
+                            }
+                            if (PtInRectF(backCustBtnRect, x, y)) {
+                                settingsPressState = { SettingsPressState::Target::OptionRow, 13, 1 };
+                                SetCapture(hWnd);
+                                InvalidateRect(hWnd, NULL, FALSE);
+                                return 0;
+                            }
                         }
                     } else if (currentSettingsCat == SettingsCategory::Subtitles) {
                         const float usableW = contentW, subLeft = contentBounds.left + padX, controlH = SettingsLayout::kControlHeight * dp;
