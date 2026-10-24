@@ -61,6 +61,8 @@ fi
 # Use built static libraries and headers, rather than installed shared metadata.
 python recipe/static_pkgconfig.py "$PREFIX"
 if [ ! -f "$PREFIX/.ffmpeg-done" ]; then
+# hqdn3d and stereo3d are intentionally absent from the filter allowlist: this
+# is an LGPL build and configure silently disables GPL-only filters.
 mkdir -p ffmpeg-build
 cd ffmpeg-build
 "$SRC/ffmpeg/configure" \
@@ -112,8 +114,13 @@ cd ffmpeg-build
   --enable-protocol=file --enable-protocol=pipe --enable-protocol=http --enable-protocol=https \
   --enable-protocol=tcp --enable-protocol=tls --enable-protocol=rtmp --enable-protocol=rtp --enable-protocol=udp \
   --enable-protocol=data --enable-protocol=subfile --enable-protocol=concat --enable-protocol=crypto --enable-protocol=hls \
+  --enable-protocol=mmsh --enable-protocol=mmst --enable-protocol=ftp \
   --disable-filters --enable-filter=scale --enable-filter=format --enable-filter=fps --enable-filter=aformat --enable-filter=aresample \
   --enable-filter=dynaudnorm --enable-filter=pan \
+  --enable-filter=equalizer --enable-filter=superequalizer --enable-filter=acompressor --enable-filter=loudnorm \
+  --enable-filter=bwdif --enable-filter=yadif \
+  --enable-filter=unsharp --enable-filter=gradfun --enable-filter=crop \
+  --enable-filter=showspectrum --enable-filter=showwaves --enable-filter=showfreqs --enable-filter=avectorscope \
   --disable-bsfs \
   --enable-bsf=aac_adtstoasc --enable-bsf=h264_mp4toannexb --enable-bsf=hevc_mp4toannexb \
   --enable-bsf=mpeg4_unpack_bframes --enable-bsf=vp9_superframe --enable-bsf=av1_frame_merge \

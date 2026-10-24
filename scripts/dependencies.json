@@ -99,11 +99,11 @@
       "abiVersion": "2.0.0.0",
       "clientApiVersion": "2.5",
       "architecture": "x64",
-      "size": 27401728,
-      "sha256": "e91032cbce1da22aec5903468e814d4df2494e74fe508a371eaf3446c7408dae",
+      "size": 27627008,
+      "sha256": "9eb0ca1c0a4ca09ea93f4a27dc69af49e611a86cf4d0455c6703920e74745395",
       "license": "GPL-2.0-or-later / LGPL-2.1-or-later",
       "source": "https://github.com/mpv-player/mpv/tree/v0.41.0",
-      "description": "Balanced O2 D3D11/WASAPI engine with guarded direct NV12 filtering and retained frame resources; hash-pinned rebuild recipe: scripts/build_lean_libmpv.ps1."
+      "description": "Balanced O2 D3D11/WASAPI engine with guarded direct NV12 filtering and retained frame resources; expands the lavfi filter allowlist (equalizer family, deinterlace, unsharp/gradfun/crop, visualizers) and adds mmsh/mmst/ftp protocols; hash-pinned rebuild recipe: scripts/build_lean_libmpv.ps1."
     },
     {
       "id": "mpv_client_h",
