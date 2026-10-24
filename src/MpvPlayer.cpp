@@ -229,8 +229,8 @@ bool MpvPlayer::Initialize(HWND hParentWnd, HWND hChildVideoWnd) {
     SetMpvOption(mpv, "secondary-sub-pos", "10");
     SetMpvOption(mpv, "secondary-sub-visibility", "yes");
     SetMpvOption(mpv, "secondary-sid", "no");
-    // This is a local-file player, so keep readahead small.  A large
-    // forward/backward demuxer cache is redundant with the OS file cache and becomes especially expensive when seeking through HEVC.
+    // Local files lean on the OS file cache, so keep readahead small by default. ApplyPlayerPreferences overrides both limits from
+    // settings for network playback, where a larger forward/backward demuxer cache absorbs latency jitter.
     SetMpvOption(mpv, "demuxer-max-bytes", "8MiB");
     SetMpvOption(mpv, "demuxer-max-back-bytes", "0");
     // Let libass resolve the shipped private fonts (Inter, Space Grotesk, JetBrains Mono) for subtitles without a system-wide install.
@@ -1122,6 +1122,21 @@ void MpvPlayer::SetHardwareAcceleration(bool enabled) {
         ret = fn_mpv_set_property_string(mpv, "hwdec", enabled ? "d3d11va" : "no");
     }
     if (ret < 0) ReportError("Unable to set hardware acceleration", ret);
+}
+
+void MpvPlayer::SetNetworkCache(int forwardCacheMB, int backCacheMB) {
+    const long long forwardBytes = static_cast<long long>(std::max(0, forwardCacheMB)) * 1024LL * 1024LL;
+    const long long backBytes = static_cast<long long>(std::max(0, backCacheMB)) * 1024LL * 1024LL;
+    const std::string forwardStr = std::to_string(forwardBytes);
+    const std::string backStr = std::to_string(backBytes);
+    int ret = -1;
+    {
+        std::lock_guard<std::mutex> apiLock(mpvMutex);
+        if (!mpv || !fn_mpv_set_property_string) return;
+        fn_mpv_set_property_string(mpv, "demuxer-max-bytes", forwardStr.c_str());
+        ret = fn_mpv_set_property_string(mpv, "demuxer-max-back-bytes", backStr.c_str());
+    }
+    if (ret < 0) ReportError("Unable to set network cache limits", ret);
 }
 
 void MpvPlayer::SetPreferredAudioLanguage(const std::string& language) {

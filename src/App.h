@@ -30,6 +30,7 @@
 #include "LibrarySaveWorker.h"
 #include "MetadataBackfillCursor.h"
 #include "OnlineSubtitleJobs.h"
+#include "InternetRadio.h"
 #include "AsyncOwnedJob.h"
 #include "BackgroundPathAvailability.h"
 #include "IpcProtocol.h"
@@ -156,11 +157,14 @@ private:
     bool PumpLibrarySaveResults();
     bool ReportLibrarySaveResult(const MediaLibrarySaveResult& result);
     OnlineSubtitleJobs onlineSubtitleJobs;
+    RadioDirectoryJobs radioJobs;
     AsyncOwnedJob<UpdateCheckResult> updateCheckJob;
     AsyncOwnedJob<UpdateDownloadResult> updateDownloadJob;
     bool updateCheckManual = true, updateCheckPersistState = false, updateJobsPrivateMode = false;
     std::string updateJobChannel, updateJobUrl;
     bool PumpOnlineSubtitleJobs();
+    bool PumpRadioDirectoryJobs();
+    void OpenInternetRadioContextMenu();
     bool PumpUpdateJobs();
     void CancelNetworkJobs();
     bool AreNetworkJobsRunning() const;
@@ -961,6 +965,10 @@ private:
     void ShowCustomFrameSeekModal();
     void OpenSeekStepContextMenu(float x, float y);
     void OpenFrameSeekContextMenu(float x, float y);
+    void OpenNetworkForwardCacheContextMenu(float x, float y);
+    void OpenNetworkBackCacheContextMenu(float x, float y);
+    void ShowCustomNetworkForwardCacheModal();
+    void ShowCustomNetworkBackCacheModal();
     void ToggleCustomMpvConfig();
     void EditCustomMpvConfigFile();
     void ResetCustomMpvConfigToDefault();

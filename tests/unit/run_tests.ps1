@@ -25,6 +25,7 @@ $srcFiles = @(
     "`"$rootDir\src\Settings.cpp`"",
     "`"$rootDir\src\ChannelPolicy.cpp`"",
     "`"$rootDir\src\HttpTransport.cpp`"",
+    "`"$rootDir\src\InternetRadio.cpp`"",
     "`"$rootDir\src\Localization.cpp`"",
     "`"$rootDir\src\MediaLibrary.cpp`"",
     "`"$rootDir\src\FolderWatcher.cpp`"",

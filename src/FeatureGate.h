@@ -18,6 +18,7 @@ enum class FeatureId {
     ForcedSubsOnly, SubtitleCodepage, SubtitleFont, DualSubtitleStyle, SubtitleSync,
     CustomAspect, CustomRotation, ScreenshotFormat, JumpSize, LogViewer,
     ZoomPan,
+    InternetRadio,
     Count
 };
 
@@ -62,6 +63,10 @@ inline const std::array<FeatureInfo, static_cast<size_t>(FeatureId::Count)>& Cat
         { FeatureId::PitchCorrection, "pitch_correction", FeatureTier::Advanced, "audio",
           "settings.experience.feature.pitch_correction",
           { "pitch_correction" } },
+        { FeatureId::InternetRadio, "internet_radio", FeatureTier::Simple, "audio",
+          "settings.experience.feature.internet_radio",
+          { "internet_radio" },
+          { "radio_" } },
         { FeatureId::SubtitleDelay, "subtitle_delay", FeatureTier::Advanced, "subtitles",
           "settings.experience.feature.subtitle_delay",
           { "sdelay_title", "sdelay_inc", "sdelay_dec", "sdelay_rst" } },

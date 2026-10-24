@@ -470,9 +470,9 @@ void App::RestoreLogicalFocus(const FocusSnapshot& snapshot) {
                 }
             } else {
                 int rowCount = (currentSettingsCat == SettingsCategory::Appearance) ? 2 :
-                               (currentSettingsCat == SettingsCategory::Playback) ? 12 :
+                               (currentSettingsCat == SettingsCategory::Playback) ? 14 :
                                (currentSettingsCat == SettingsCategory::Subtitles) ? 6 :
-                               (currentSettingsCat == SettingsCategory::Experience) ? ((FeatureGate::ModeFromString(settings.experienceMode) == ExperienceMode::Custom) ? 35 : 1) :
+                               (currentSettingsCat == SettingsCategory::Experience) ? ((FeatureGate::ModeFromString(settings.experienceMode) == ExperienceMode::Custom) ? 36 : 1) :
                                (currentSettingsCat == SettingsCategory::System) ? SettingsLayout::kSystemRowCount : 1;
                 keyboardFocusedIndex = std::clamp(snapshot.keyboardIndex, 0, std::max(0, rowCount - 1));
                 keyboardFocusedSubIndex = snapshot.keyboardSubIndex;
@@ -797,10 +797,11 @@ float App::GetSettingsContentHeight(float dp) const {
         (currentSettingsCat == SettingsCategory::Subtitles ? SettingsLayout::kSubtitlePageHeaderReserve : SettingsLayout::kPageHeaderReserve)) * dp;
     float settingsCardH = 164.0f * dp;
     if (currentSettingsCat == SettingsCategory::Playback) {
-        // Behavior card + 5 simple cards (seek, frame, global hotkeys, tray, minimize) + speed + MPV, with one gap between each of the 8 cards.
-        settingsCardH = (SettingsLayout::kPlaybackBehaviorCardHeight + 5.0f * SettingsLayout::kPlaybackSimpleCardHeight +
+        // Behavior card + 7 simple cards (seek, frame, global hotkeys, tray, minimize, network forward cache, network back cache) +
+        // speed + MPV, with one gap between each of the 10 cards.
+        settingsCardH = (SettingsLayout::kPlaybackBehaviorCardHeight + 7.0f * SettingsLayout::kPlaybackSimpleCardHeight +
             SettingsLayout::kPlaybackSpeedCardHeight + SettingsLayout::kPlaybackMpvCardHeight +
-            7.0f * SettingsLayout::kSectionCardGap) * dp;
+            9.0f * SettingsLayout::kSectionCardGap) * dp;
     } else if (currentSettingsCat == SettingsCategory::Subtitles) {
         settingsCardH = (SettingsLayout::kSubtitlePreviewCardHeight + 2.0f * SettingsLayout::kSubtitleTrackCardHeight +
             SettingsLayout::kSubtitleFontCardHeight + SettingsLayout::kSubtitleColorCardHeight +
@@ -1148,7 +1149,7 @@ void App::Shutdown() {
     CancelNetworkJobs();
     if (importWorker.joinable()) importWorker.join();
     if (backfillWorker.joinable()) backfillWorker.join();
-    updateCheckJob.StopAndJoin(); updateDownloadJob.StopAndJoin(); onlineSubtitleJobs.StopAndJoin();
+    updateCheckJob.StopAndJoin(); updateDownloadJob.StopAndJoin(); onlineSubtitleJobs.StopAndJoin(); radioJobs.StopAndJoin();
     // Workers have joined above, so no probe can still hold MF. Balance only
     // when MF was ever acquired; a hub that never probed skips MFShutdown.
     MediaFoundation::ShutdownIfInitialized();
@@ -1507,6 +1508,7 @@ bool App::Update(float dt) {
     if (libraryReady && (watchReconcileWorker.HasCompleted() ||
         (!watchReconcileWorker.IsRunning() && watchReconcileWorker.HasPending()))) HandleFolderWatchEvents();
     needsRedraw = PumpOnlineSubtitleJobs() || needsRedraw;
+    needsRedraw = PumpRadioDirectoryJobs() || needsRedraw;
     needsRedraw = PumpUpdateJobs() || needsRedraw;
     // A graphics driver can hold the process loader lock while it initializes.
     // Avoid UI-thread joins or mpv export binding until that worker has finished.
@@ -3919,6 +3921,41 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                             }
                             contentY += simpleCardH + cardGap;
                         }
+                        // Section 7: Network Cache Forward (Row 12)
+                        D2D1_RECT_F fwdCacheRowRect = D2D1::RectF(contentLeft, contentY + 8.0f * dp,
+                                                                  contentRight, contentY + simpleCardH - 8.0f * dp);
+                        D2D1_RECT_F fwdDropRect = D2D1::RectF(fwdCacheRowRect.right - 220.0f * dp, fwdCacheRowRect.top + 8.0f * dp, fwdCacheRowRect.right - 100.0f * dp, fwdCacheRowRect.bottom - 8.0f * dp);
+                        D2D1_RECT_F fwdCustBtnRect = D2D1::RectF(fwdCacheRowRect.right - 92.0f * dp, fwdCacheRowRect.top + 8.0f * dp, fwdCacheRowRect.right - 10.0f * dp, fwdCacheRowRect.bottom - 8.0f * dp);
+                        if (PtInRectF(fwdDropRect, x, y)) {
+                            settingsPressState = { SettingsPressState::Target::OptionRow, 12, 0 };
+                            SetCapture(hWnd);
+                            InvalidateRect(hWnd, NULL, FALSE);
+                            return 0;
+                        }
+                        if (PtInRectF(fwdCustBtnRect, x, y)) {
+                            settingsPressState = { SettingsPressState::Target::OptionRow, 12, 1 };
+                            SetCapture(hWnd);
+                            InvalidateRect(hWnd, NULL, FALSE);
+                            return 0;
+                        }
+                        // Section 8: Network Cache Back (Row 13)
+                        contentY += simpleCardH + cardGap;
+                        D2D1_RECT_F backCacheRowRect = D2D1::RectF(contentLeft, contentY + 8.0f * dp,
+                                                                   contentRight, contentY + simpleCardH - 8.0f * dp);
+                        D2D1_RECT_F backDropRect = D2D1::RectF(backCacheRowRect.right - 220.0f * dp, backCacheRowRect.top + 8.0f * dp, backCacheRowRect.right - 100.0f * dp, backCacheRowRect.bottom - 8.0f * dp);
+                        D2D1_RECT_F backCustBtnRect = D2D1::RectF(backCacheRowRect.right - 92.0f * dp, backCacheRowRect.top + 8.0f * dp, backCacheRowRect.right - 10.0f * dp, backCacheRowRect.bottom - 8.0f * dp);
+                        if (PtInRectF(backDropRect, x, y)) {
+                            settingsPressState = { SettingsPressState::Target::OptionRow, 13, 0 };
+                            SetCapture(hWnd);
+                            InvalidateRect(hWnd, NULL, FALSE);
+                            return 0;
+                        }
+                        if (PtInRectF(backCustBtnRect, x, y)) {
+                            settingsPressState = { SettingsPressState::Target::OptionRow, 13, 1 };
+                            SetCapture(hWnd);
+                            InvalidateRect(hWnd, NULL, FALSE);
+                            return 0;
+                        }
                     } else if (currentSettingsCat == SettingsCategory::Subtitles) {
                         const float usableW = contentW, subLeft = contentBounds.left + padX, controlH = SettingsLayout::kControlHeight * dp;
                         const float controlGap = 8.0f * dp, trackCardH = SettingsLayout::kSubtitleTrackCardHeight * dp;
@@ -4363,6 +4400,30 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                             settings.minimizeToTray = !settings.minimizeToTray;
                             SaveSettings();
                             ShowOSD(IconType::SettingsGear, settings.minimizeToTray ? L"Minimize to Tray: On" : L"Minimize to Tray: Off");
+                        } else if (pressed.index == 12) {
+                            if (pressed.subIndex == 0) {
+                                activeFocusPane = FocusPane::SettingsContent;
+                                keyboardFocusedIndex = 12;
+                                keyboardFocusedSubIndex = 0;
+                                OpenNetworkForwardCacheContextMenu(x, y);
+                            } else if (pressed.subIndex == 1) {
+                                activeFocusPane = FocusPane::SettingsContent;
+                                keyboardFocusedIndex = 12;
+                                keyboardFocusedSubIndex = 1;
+                                ShowCustomNetworkForwardCacheModal();
+                            }
+                        } else if (pressed.index == 13) {
+                            if (pressed.subIndex == 0) {
+                                activeFocusPane = FocusPane::SettingsContent;
+                                keyboardFocusedIndex = 13;
+                                keyboardFocusedSubIndex = 0;
+                                OpenNetworkBackCacheContextMenu(x, y);
+                            } else if (pressed.subIndex == 1) {
+                                activeFocusPane = FocusPane::SettingsContent;
+                                keyboardFocusedIndex = 13;
+                                keyboardFocusedSubIndex = 1;
+                                ShowCustomNetworkBackCacheModal();
+                            }
                         }
                     } else if (currentSettingsCat == SettingsCategory::Subtitles) {
                         const char* audioLangCodes[] = { "eng", "jpn", "fra", "deu", "spa", "ita", "auto" };

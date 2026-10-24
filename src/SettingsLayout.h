@@ -49,11 +49,11 @@ inline constexpr float kPlaybackMpvCardHeight = kPlaybackMpvActionTop + 3.0f * k
 
 // Experience uses the playback card rhythm for its mode picker and the
 // Custom-mode feature card. The feature card height derives from the catalog
-// feature count (34 features, 4 group headers) so the page scrolls correctly.
+// feature count (35 features, 4 group headers) so the page scrolls correctly.
 inline constexpr float kExperienceCardTitleHeight = kPlaybackCardTitleHeight;
 inline constexpr float kExperienceFeatureRowHeight = kPlaybackBehaviorRowHeight;
 inline constexpr float kExperienceGroupHeaderHeight = 28.0f;
-inline constexpr float kExperienceFeatureCount = 34.0f;
+inline constexpr float kExperienceFeatureCount = 35.0f;
 inline constexpr float kExperienceFeaturesCardHeight = kExperienceCardTitleHeight +
     kExperienceFeatureCount * kExperienceFeatureRowHeight + 4.0f * kExperienceGroupHeaderHeight + 8.0f;
 inline constexpr float kExperienceModeCardHeight = kExperienceCardTitleHeight + kControlHeight +

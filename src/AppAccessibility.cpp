@@ -1663,7 +1663,9 @@ void App::RefreshAccessibilityTree(bool force) {
                     {L"Custom MPV Configuration Actions", L"Open / Reset / Revert"},
                     { L"Global Media Hotkeys", settings.globalHotkeysEnabled ? L"On" : L"Off" },
                     { L"Show Tray Icon", settings.trayIconEnabled ? L"On" : L"Off" },
-                    { L"Minimize to Tray", settings.minimizeToTray ? L"On" : L"Off" }};
+                    { L"Minimize to Tray", settings.minimizeToTray ? L"On" : L"Off" },
+                    { L"Network Cache (Forward)", std::to_wstring(settings.networkForwardCacheMB) + L" MB" },
+                    { L"Network Cache (Back)", settings.networkBackCacheMB == 0 ? L"Off" : std::to_wstring(settings.networkBackCacheMB) + L" MB" }};
             } else if (currentSettingsCat == SettingsCategory::Subtitles) {
                 rows = {{L"Preferred Audio Track", Utf8ToUtf16(settings.audioLang)},
                     { L"Preferred Subtitle Track", Utf8ToUtf16(settings.subLang) },
@@ -1764,7 +1766,7 @@ void App::RefreshAccessibilityTree(bool force) {
                             2.0f * SettingsLayout::kPlaybackMpvActionGap * dp;
                         bounds = screenRect(cardLeft, actionTop, cardRight, actionTop + actionAreaH);
                     } else {
-                        // Rows 9-11: simple system-integration cards stacked after the MPV card.
+                        // Rows 9-13: simple cards stacked after the MPV card (system-integration toggles, then network cache pickers).
                         const float mpvCardTop = behaviorTop + SettingsLayout::kPlaybackBehaviorCardHeight * dp +
                             2.0f * (SettingsLayout::kPlaybackSimpleCardHeight * dp + cardGap) +
                             SettingsLayout::kPlaybackSpeedCardHeight * dp + 2.0f * cardGap;

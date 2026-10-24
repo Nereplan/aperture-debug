@@ -71,6 +71,77 @@ void App::OpenShortcutOverlay() {
 }
 
 
+// Centered overlay surface reusing the shortcut-sheet mechanism: plain
+// contextMenuItems presented through the shared context-menu renderer, closed
+// by the backdrop click / Esc handling that surface already owns.
+void App::OpenInternetRadioContextMenu() {
+    PushFocusSnapshot(TransientSurfaceType::ShortcutOverlay);
+    contextMenuItems.clear();
+    contextMenuItems.push_back({ "radio_title", L"Internet Radio (click to play)", L"", IconType::Play, false, false, false, nullptr, true });
+    contextMenuItems.push_back({ "sep_radio1", L"", L"", IconType::Play, true });
+    radioJobs.EnsureFetch();
+    if (radioJobs.GetFetchState() == RadioDirectoryJobs::FetchState::Loading) {
+        contextMenuItems.push_back({ "radio_loading", L"Loading stations...", L"", IconType::Play, false, false, false, nullptr, true });
+    } else {
+        const RadioDirectoryResult& result = radioJobs.GetResult();
+        if (result.stale) ShowOSD(IconType::VolumeMuted, L"Radio directory unavailable");
+        if (!result.success) {
+            contextMenuItems.push_back({ "radio_err", L"Radio directory unavailable", L"", IconType::VolumeMuted, false, false, false, nullptr, true });
+        } else {
+            // The centered overlay menu has no scrolling; cap the visible
+            // stations to the rows that fit the window height.
+            RECT fitRc{};
+            GetClientRect(hWnd, &fitRc);
+            const float fitDp = renderer.GetDpiScale();
+            const int maxVisible = std::max(4, static_cast<int>((static_cast<float>(fitRc.bottom - fitRc.top) * 0.9f / fitDp - 48.0f) / 32.0f));
+            const size_t count = std::min(result.stations.size(), static_cast<size_t>(maxVisible));
+            for (size_t i = 0; i < count; ++i) {
+                const RadioStation& station = result.stations[i];
+                std::wstring label = station.name;
+                if (station.bitrateKbps > 0 || !station.codec.empty()) {
+                    label += L" \u2014 ";
+                    if (station.bitrateKbps > 0) label += std::to_wstring(station.bitrateKbps) + L" kbps";
+                    if (!station.codec.empty()) {
+                        if (station.bitrateKbps > 0) label += L" ";
+                        label += station.codec;
+                    }
+                }
+                contextMenuItems.push_back({ "radio_" + std::to_string(i), label, L"", IconType::Play, false, false, false,
+                    [this, url = station.url]() {
+                        // Same path the network-stream modal uses: URL validation, recent-stream
+                        // bookkeeping, then the shared open-and-play entry point.
+                        NetworkStreamUrl parsed = NetworkStreamValidator::ValidateAndParse(url);
+                        if (!parsed.isValid) {
+                            ShowOSD(IconType::VolumeMuted, NetworkStreamValidator::GetSafeErrorMessage(parsed.error, url), 4.0f);
+                            return;
+                        }
+                        if (playbackSession.CanPersistRecentStreams(networkStreamModel.IsRecentStreamsEnabled())) {
+                            networkStreamModel.AddRecentStream(parsed.rawUrl);
+                            networkStreamModel.SaveRecentStreams(GetExeDir());
+                        }
+                        OpenAndPlayMedia(parsed.rawUrl);
+                    }, false, false, true});
+            }
+        }
+    }
+    RECT rc{};
+    GetClientRect(playbackSession.IsOpen() && hOverlayWnd ? hOverlayWnd : hWnd, &rc);
+    const float dp = playbackSession.IsOpen() ? overlayRenderer.GetDpiScale() : renderer.GetDpiScale();
+    const float menuW = 220.0f * dp;
+    const float menuH = (8.0f + contextMenuItems.size() * 32.0f) * dp;
+    contextMenuOrigin = {std::max(8.0f * dp, (static_cast<float>(rc.right - rc.left) - menuW) * 0.5f),
+                         std::max(8.0f * dp, (static_cast<float>(rc.bottom - rc.top) - menuH) * 0.5f)};
+    hoveredContextMenuItem = -1;
+    contextMenuAnim.SnapTo(0.0f);
+    AnimateVisual(contextMenuAnim, 1.0f, MotionTokens::kFast, MotionTokens::Standard());
+    isContextMenuOpen = true;
+    contextMenuClosing = false;
+    accessibilityDirty = true;
+    if (playbackSession.IsOpen()) Render();
+    else InvalidateRect(hWnd, NULL, FALSE);
+}
+
+
 // Second-level page for the specialist controls that used to clutter the main
 // player menu. Every entry remains reachable, one step further away.
 
@@ -770,11 +841,11 @@ bool App::PumpUpdateJobs() {
 }
 
 void App::CancelNetworkJobs() {
-    onlineSubtitleJobs.Cancel(); updateCheckJob.Cancel(); updateDownloadJob.Cancel();
+    onlineSubtitleJobs.Cancel(); updateCheckJob.Cancel(); updateDownloadJob.Cancel(); radioJobs.Cancel();
 }
 
 bool App::AreNetworkJobsRunning() const {
-    return onlineSubtitleJobs.IsRunning() || updateCheckJob.IsRunning() || updateDownloadJob.IsRunning();
+    return onlineSubtitleJobs.IsRunning() || updateCheckJob.IsRunning() || updateDownloadJob.IsRunning() || radioJobs.IsRunning();
 }
 
 
@@ -1034,6 +1105,59 @@ void App::ShowCustomFrameSeekModal() {
                 ShowOSD(IconType::SettingsGear, L"Frame Seek: " + std::to_wstring(frames) + (frames == 1 ? L" frame" : L" frames"));
             }
         } catch (...) {}
+        activeModal = ModalType::None;
+        BlurTextInput();
+        PopAndRestoreFocus(TransientSurfaceType::Modal);
+    };
+    FocusTextInput(TextInputField::Modal);
+    InvalidateRect(hWnd, NULL, FALSE);
+}
+
+
+void App::ShowCustomNetworkForwardCacheModal() {
+    PushFocusSnapshot(TransientSurfaceType::Modal);
+    BlurTextInput();
+    activeModal = ModalType::CustomSettingInput;
+    modalPrompt = L"Enter forward cache size in MB (8 - 512):";
+    modalInput.SetText(WideStringToText16(std::to_wstring(settings.networkForwardCacheMB)));
+    modalOnConfirm = [this]() {
+        const std::wstring val = Text16ToWideString(modalInput.GetText());
+        try {
+            int mb = std::stoi(val);
+            if (mb >= 8 && mb <= 512) {
+                settings.networkForwardCacheMB = mb;
+                SaveSettings();
+                ApplyPlayerPreferences();
+                ShowOSD(IconType::SettingsGear, L"Network Cache (Forward): " + std::to_wstring(mb) + L" MB");
+            } else { ShowOSD(IconType::VolumeMuted, L"Invalid cache size (8 - 512 MB)"); }
+        } catch (...) { ShowOSD(IconType::VolumeMuted, L"Invalid cache size (8 - 512 MB)"); }
+        activeModal = ModalType::None;
+        BlurTextInput();
+        PopAndRestoreFocus(TransientSurfaceType::Modal);
+    };
+    FocusTextInput(TextInputField::Modal);
+    InvalidateRect(hWnd, NULL, FALSE);
+}
+
+
+void App::ShowCustomNetworkBackCacheModal() {
+    PushFocusSnapshot(TransientSurfaceType::Modal);
+    BlurTextInput();
+    activeModal = ModalType::CustomSettingInput;
+    modalPrompt = L"Enter backward cache size in MB (0 = off, 0 - 256):";
+    modalInput.SetText(WideStringToText16(std::to_wstring(settings.networkBackCacheMB)));
+    modalOnConfirm = [this]() {
+        const std::wstring val = Text16ToWideString(modalInput.GetText());
+        try {
+            int mb = std::stoi(val);
+            if (mb >= 0 && mb <= 256) {
+                settings.networkBackCacheMB = mb;
+                SaveSettings();
+                ApplyPlayerPreferences();
+                ShowOSD(IconType::SettingsGear, mb == 0 ? L"Network Cache (Back): Off"
+                                                        : L"Network Cache (Back): " + std::to_wstring(mb) + L" MB");
+            } else { ShowOSD(IconType::VolumeMuted, L"Invalid cache size (0 - 256 MB)"); }
+        } catch (...) { ShowOSD(IconType::VolumeMuted, L"Invalid cache size (0 - 256 MB)"); }
         activeModal = ModalType::None;
         BlurTextInput();
         PopAndRestoreFocus(TransientSurfaceType::Modal);

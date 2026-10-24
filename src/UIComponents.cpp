@@ -1164,6 +1164,75 @@ void UIComponents::DrawSettingsView(Renderer& r, const Settings& s, const Settin
         drawSimpleToggleCard(11, contentY, L"Minimize to Tray",
             s.trayIconEnabled ? L"Hide to the notification area instead of the taskbar when minimized" : L"Requires Show Tray Icon",
             vm.minimizeToTrayProg);
+        contentY += simpleCardH + cardGap;
+        // Section 7: Network Cache Forward (Row 12)
+        const float fwdCacheCardTop = contentY;
+        drawPlaybackCard(fwdCacheCardTop, simpleCardH);
+        D2D1_RECT_F fwdCacheRowRect = D2D1::RectF(contentLeft, fwdCacheCardTop + 8.0f * dp, contentRight, fwdCacheCardTop + simpleCardH - 8.0f * dp);
+        bool isFwdCacheRowKbFocused = showContentKbFocus && (vm.keyboardFocusedRow == 12);
+        D2D1_RECT_F fwdCacheLabelRect = D2D1::RectF(fwdCacheRowRect.left + 14.0f * dp, fwdCacheRowRect.top + 6.0f * dp, fwdCacheRowRect.right - 230.0f * dp, fwdCacheRowRect.top + 26.0f * dp);
+        r.DrawString(L"Network Cache (Forward)", fwdCacheLabelRect, textPri, FontType::Medium, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+        D2D1_RECT_F fwdCacheSubRect = D2D1::RectF(fwdCacheRowRect.left + 14.0f * dp, fwdCacheRowRect.top + 26.0f * dp, fwdCacheRowRect.right - 230.0f * dp, fwdCacheRowRect.bottom - 6.0f * dp);
+        r.DrawString(L"Readahead buffer for network streams", fwdCacheSubRect, textMute, FontType::Small, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+        // Dropdown picker button
+        D2D1_RECT_F fwdDropRect = D2D1::RectF(fwdCacheRowRect.right - 220.0f * dp, fwdCacheRowRect.top + 8.0f * dp, fwdCacheRowRect.right - 100.0f * dp, fwdCacheRowRect.bottom - 8.0f * dp);
+        bool isFwdDropKb = isFwdCacheRowKbFocused && (vm.keyboardFocusedSubIndex == 0);
+        bool isFwdDropPressed = vm.pressState.IsOptionPressed(12, 0);
+        bool isFwdDropHover = !isFwdDropPressed && !isFwdDropKb && pointerIn(fwdDropRect);
+        SurfaceStyle fwdDropStyle = makeFlatSurface();
+        fwdDropStyle.fill = isFwdDropPressed ? ColorWithAlpha(accentCol, 0.32f) : (isFwdDropKb ? surfaceSelected : (isFwdDropHover ? surfaceHover : surfaceBg));
+        fwdDropStyle.border = (isFwdDropPressed || isFwdDropKb) ? accentCol : surfaceBorder;
+        fwdDropStyle.borderWidth = (isFwdDropPressed || isFwdDropKb) ? 1.5f : 1.0f;
+        r.DrawSurface(fwdDropRect, fwdDropStyle);
+        wchar_t fwdCacheValStr[32];
+        swprintf_s(fwdCacheValStr, L"%d MB  v", s.networkForwardCacheMB);
+        r.DrawString(fwdCacheValStr, fwdDropRect, isFwdDropKb ? textPri : textNorm, FontType::Medium, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+        // Custom manual input button
+        D2D1_RECT_F fwdCustBtnRect = D2D1::RectF(fwdCacheRowRect.right - 92.0f * dp, fwdCacheRowRect.top + 8.0f * dp, fwdCacheRowRect.right - 10.0f * dp, fwdCacheRowRect.bottom - 8.0f * dp);
+        bool isFwdCustKb = isFwdCacheRowKbFocused && (vm.keyboardFocusedSubIndex == 1);
+        bool isFwdCustPressed = vm.pressState.IsOptionPressed(12, 1);
+        bool isFwdCustHover = !isFwdCustPressed && !isFwdCustKb && pointerIn(fwdCustBtnRect);
+        SurfaceStyle fwdCustStyle = makeFlatSurface();
+        fwdCustStyle.fill = isFwdCustPressed ? ColorWithAlpha(accentCol, 0.32f) : (isFwdCustKb ? surfaceSelected : (isFwdCustHover ? surfaceHover : surfaceBg));
+        fwdCustStyle.border = (isFwdCustPressed || isFwdCustKb) ? accentCol : surfaceBorder;
+        fwdCustStyle.borderWidth = (isFwdCustPressed || isFwdCustKb) ? 1.5f : 1.0f;
+        r.DrawSurface(fwdCustBtnRect, fwdCustStyle);
+        r.DrawString(Loc::Tr("settings.playback.custom"), fwdCustBtnRect, isFwdCustKb ? accentCol : textMute, FontType::Small, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+        contentY = fwdCacheCardTop + simpleCardH + cardGap;
+        // Section 8: Network Cache Back (Row 13)
+        const float backCacheCardTop = contentY;
+        drawPlaybackCard(backCacheCardTop, simpleCardH);
+        D2D1_RECT_F backCacheRowRect = D2D1::RectF(contentLeft, backCacheCardTop + 8.0f * dp, contentRight, backCacheCardTop + simpleCardH - 8.0f * dp);
+        bool isBackCacheRowKbFocused = showContentKbFocus && (vm.keyboardFocusedRow == 13);
+        D2D1_RECT_F backCacheLabelRect = D2D1::RectF(backCacheRowRect.left + 14.0f * dp, backCacheRowRect.top + 6.0f * dp, backCacheRowRect.right - 230.0f * dp, backCacheRowRect.top + 26.0f * dp);
+        r.DrawString(L"Network Cache (Back)", backCacheLabelRect, textPri, FontType::Medium, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+        D2D1_RECT_F backCacheSubRect = D2D1::RectF(backCacheRowRect.left + 14.0f * dp, backCacheRowRect.top + 26.0f * dp, backCacheRowRect.right - 230.0f * dp, backCacheRowRect.bottom - 6.0f * dp);
+        r.DrawString(L"Backward buffer kept after seeking network streams", backCacheSubRect, textMute, FontType::Small, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+        // Dropdown picker button
+        D2D1_RECT_F backDropRect = D2D1::RectF(backCacheRowRect.right - 220.0f * dp, backCacheRowRect.top + 8.0f * dp, backCacheRowRect.right - 100.0f * dp, backCacheRowRect.bottom - 8.0f * dp);
+        bool isBackDropKb = isBackCacheRowKbFocused && (vm.keyboardFocusedSubIndex == 0);
+        bool isBackDropPressed = vm.pressState.IsOptionPressed(13, 0);
+        bool isBackDropHover = !isBackDropPressed && !isBackDropKb && pointerIn(backDropRect);
+        SurfaceStyle backDropStyle = makeFlatSurface();
+        backDropStyle.fill = isBackDropPressed ? ColorWithAlpha(accentCol, 0.32f) : (isBackDropKb ? surfaceSelected : (isBackDropHover ? surfaceHover : surfaceBg));
+        backDropStyle.border = (isBackDropPressed || isBackDropKb) ? accentCol : surfaceBorder;
+        backDropStyle.borderWidth = (isBackDropPressed || isBackDropKb) ? 1.5f : 1.0f;
+        r.DrawSurface(backDropRect, backDropStyle);
+        wchar_t backCacheValStr[32];
+        if (s.networkBackCacheMB == 0) wcscpy_s(backCacheValStr, L"Off  v");
+        else swprintf_s(backCacheValStr, L"%d MB  v", s.networkBackCacheMB);
+        r.DrawString(backCacheValStr, backDropRect, isBackDropKb ? textPri : textNorm, FontType::Medium, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+        // Custom manual input button
+        D2D1_RECT_F backCustBtnRect = D2D1::RectF(backCacheRowRect.right - 92.0f * dp, backCacheRowRect.top + 8.0f * dp, backCacheRowRect.right - 10.0f * dp, backCacheRowRect.bottom - 8.0f * dp);
+        bool isBackCustKb = isBackCacheRowKbFocused && (vm.keyboardFocusedSubIndex == 1);
+        bool isBackCustPressed = vm.pressState.IsOptionPressed(13, 1);
+        bool isBackCustHover = !isBackCustPressed && !isBackCustKb && pointerIn(backCustBtnRect);
+        SurfaceStyle backCustStyle = makeFlatSurface();
+        backCustStyle.fill = isBackCustPressed ? ColorWithAlpha(accentCol, 0.32f) : (isBackCustKb ? surfaceSelected : (isBackCustHover ? surfaceHover : surfaceBg));
+        backCustStyle.border = (isBackCustPressed || isBackCustKb) ? accentCol : surfaceBorder;
+        backCustStyle.borderWidth = (isBackCustPressed || isBackCustKb) ? 1.5f : 1.0f;
+        r.DrawSurface(backCustBtnRect, backCustStyle);
+        r.DrawString(Loc::Tr("settings.playback.custom"), backCustBtnRect, isBackCustKb ? accentCol : textMute, FontType::Small, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
     } else if (vm.activeCat == SettingsCategory::Subtitles) {
         // The subtitle page uses its vertical budget for an always-visible
         // preview, so keep the title but omit the secondary page description.

@@ -414,6 +414,7 @@ void App::ApplyPlayerPreferences() {
     // The player setters are intentionally no-ops until libmpv is available, so this can also be used during initialization before the
     // first file is opened.
     player.SetHardwareAcceleration(settings.hwAccel);
+    player.SetNetworkCache(settings.networkForwardCacheMB, settings.networkBackCacheMB);
     player.SetPreferredAudioLanguage(settings.audioLang);
     player.SetPreferredSubtitleLanguage(settings.subLang);
     playbackSession.SetShuffle(settings.shuffleQueue);

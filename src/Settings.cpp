@@ -99,6 +99,8 @@ void Settings::ResetToDefaults() {
     arrowSeekStepSec = 5.0;
     largeSeekStepSec = 10.0;
     ctrlSeekFrames = 1;
+    networkForwardCacheMB = 8;
+    networkBackCacheMB = 0;
     customMpvConfigEnabled = false;
     customMpvConfigPath = "mpv.conf";
     globalHotkeysEnabled = false;
@@ -650,6 +652,8 @@ StorageStatus Settings::Load() {
     arrowSeekStepSec = Number(root.get("arrowSeekStep"), arrowSeekStepSec);
     largeSeekStepSec = Number(root.get("largeSeekStep"), largeSeekStepSec);
     ctrlSeekFrames = Integer(root.get("ctrlSeekFrames"), ctrlSeekFrames);
+    networkForwardCacheMB = Integer(root.get("networkForwardCacheMB"), networkForwardCacheMB);
+    networkBackCacheMB = Integer(root.get("networkBackCacheMB"), networkBackCacheMB);
     customMpvConfigEnabled = root.get("customMpvConfigEnabled").as_bool(customMpvConfigEnabled);
     customMpvConfigPath = NormalizeMpvConfigPath(root.get("customMpvConfigPath").as_string(customMpvConfigPath));
     globalHotkeysEnabled = root.get("globalHotkeysEnabled").as_bool(globalHotkeysEnabled);
@@ -847,6 +851,8 @@ StorageStatus Settings::Load() {
     largeSeekStepSec = std::clamp(largeSeekStepSec, 1.0, 600.0);
     if (screenshotFormat != "png" && screenshotFormat != "jpg") screenshotFormat = "png";
     ctrlSeekFrames = std::clamp(ctrlSeekFrames, 1, 100);
+    networkForwardCacheMB = std::clamp(networkForwardCacheMB, 8, 512);
+    networkBackCacheMB = std::clamp(networkBackCacheMB, 0, 256);
     hdrMode = NormalizeHdrMode(hdrMode);
     toneMappingAlgorithm = NormalizeToneMapping(toneMappingAlgorithm);
     targetPeak = NormalizeTargetPeak(targetPeak);
@@ -941,6 +947,8 @@ StorageStatus Settings::Save() {
     root["arrowSeekStep"] = arrowSeekStepSec;
     root["largeSeekStep"] = largeSeekStepSec;
     root["ctrlSeekFrames"] = ctrlSeekFrames;
+    root["networkForwardCacheMB"] = networkForwardCacheMB;
+    root["networkBackCacheMB"] = networkBackCacheMB;
     root["customMpvConfigEnabled"] = customMpvConfigEnabled;
     root["customMpvConfigPath"] = customMpvConfigPath;
     root["globalHotkeysEnabled"] = globalHotkeysEnabled;

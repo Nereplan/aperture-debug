@@ -697,6 +697,8 @@ void App::OpenBackgroundContextMenu(float x, float y) {
             }});
         }
     }
+    contextMenuItems.push_back({ "internet_radio", L"Internet Radio...", L"", IconType::Play, false, false, false,
+                                [this]() { OpenInternetRadioContextMenu(); }});
     contextMenuItems.push_back({ "sep_bg_2", L"", L"", IconType::Play, true });
     contextMenuItems.push_back({ "refresh", L"Refresh", L"F5", IconType::Refresh, false, false, false, [this]() {
         if (!libraryLoadInProgress) { StartLibraryLoad(libraryGroupMode, true); ShowOSD(IconType::Refresh, L"Refreshing library\x2026"); }
@@ -2053,6 +2055,15 @@ bool App::PumpOnlineSubtitleJobs() {
     return changed;
 }
 
+bool App::PumpRadioDirectoryJobs() {
+    if (!radioJobs.Pump()) return false;
+    const RadioDirectoryResult& result = radioJobs.GetResult();
+    if (!result.success || result.stale) ShowOSD(IconType::VolumeMuted, L"Radio directory unavailable");
+    if (isContextMenuOpen && !contextMenuItems.empty() && contextMenuItems.front().id == "radio_title")
+        OpenInternetRadioContextMenu();
+    return true;
+}
+
 void App::OpenOnlineSubtitlesContextMenu(float x, float y) {
     const bool refreshing = isContextMenuOpen && !contextMenuItems.empty() && contextMenuItems.front().id == "onl_title";
     const int oldHovered = hoveredContextMenuItem;
@@ -2249,6 +2260,66 @@ void App::OpenFrameSeekContextMenu(float x, float y) {
         customLabel = L"Custom (" + std::to_wstring(settings.ctrlSeekFrames) + (settings.ctrlSeekFrames == 1 ? L" frame" : L" frames") + L")...";
     contextMenuItems.push_back({"frame_custom", customLabel, isCustom ? L"✓" : L"", IconType::SettingsGear, false, false, false,
                                 [this]() { ShowCustomFrameSeekModal(); }});
+    PresentHubContextMenu(x, y, 220.0f);
+}
+
+void App::OpenNetworkForwardCacheContextMenu(float x, float y) {
+    PushFocusSnapshot(TransientSurfaceType::ContextMenu);
+    contextMenuItems.clear();
+    int presets[] = { 8, 32, 64, 128, 256 };
+    const wchar_t* presetLabels[] = { L"8 MB (Default)", L"32 MB", L"64 MB", L"128 MB", L"256 MB" };
+    for (int i = 0; i < 5; ++i) {
+        int val = presets[i];
+        bool isSel = (settings.networkForwardCacheMB == val);
+        contextMenuItems.push_back({
+            "netfwdcache_" + std::to_string(val), presetLabels[i], isSel ? L"✓" : L"", IconType::SettingsGear, false, false, false,
+            [this, val]() { settings.networkForwardCacheMB = val; SaveSettings(); ApplyPlayerPreferences(); InvalidateRect(hWnd, NULL, FALSE); }
+        });
+    }
+    // Separator
+    contextMenuItems.push_back({ "", L"", L"", IconType::Play, true, false, false, nullptr });
+    // Custom option
+    bool isCustom = true;
+    for (int p : presets) {
+        if (settings.networkForwardCacheMB == p) { isCustom = false; break; }
+    }
+    std::wstring customLabel = L"Custom Size... (Type Value)";
+    if (isCustom) customLabel = L"Custom (" + std::to_wstring(settings.networkForwardCacheMB) + L" MB)...";
+    contextMenuItems.push_back({
+        "netfwdcache_custom", customLabel, isCustom ? L"✓" : L"", IconType::SettingsGear, false, false, false,
+        [this]() { ShowCustomNetworkForwardCacheModal(); }
+    });
+    PresentHubContextMenu(x, y, 220.0f);
+}
+
+void App::OpenNetworkBackCacheContextMenu(float x, float y) {
+    PushFocusSnapshot(TransientSurfaceType::ContextMenu);
+    contextMenuItems.clear();
+    int presets[] = { 0, 16, 64, 128 };
+    const wchar_t* presetLabels[] = { L"Off (Default)", L"16 MB", L"64 MB", L"128 MB" };
+    for (int i = 0; i < 4; ++i) {
+        int val = presets[i];
+        bool isSel = (settings.networkBackCacheMB == val);
+        contextMenuItems.push_back({
+            "netbackcache_" + std::to_string(val), presetLabels[i], isSel ? L"✓" : L"", IconType::SettingsGear, false, false, false,
+            [this, val]() { settings.networkBackCacheMB = val; SaveSettings(); ApplyPlayerPreferences(); InvalidateRect(hWnd, NULL, FALSE); }
+        });
+    }
+    // Separator
+    contextMenuItems.push_back({ "", L"", L"", IconType::Play, true, false, false, nullptr });
+    // Custom option
+    bool isCustom = true;
+    for (int p : presets) {
+        if (settings.networkBackCacheMB == p) { isCustom = false; break; }
+    }
+    std::wstring customLabel = L"Custom Size... (Type Value)";
+    if (isCustom) customLabel = settings.networkBackCacheMB == 0
+        ? L"Custom (Off)..."
+        : L"Custom (" + std::to_wstring(settings.networkBackCacheMB) + L" MB)...";
+    contextMenuItems.push_back({
+        "netbackcache_custom", customLabel, isCustom ? L"✓" : L"", IconType::SettingsGear, false, false, false,
+        [this]() { ShowCustomNetworkBackCacheModal(); }
+    });
     PresentHubContextMenu(x, y, 220.0f);
 }
 

@@ -45,6 +45,8 @@
 
 #include "TestIncrementalSaving.h"
 
+#include "TestInternetRadio.h"
+
 #include "TestLongPathSupport.h"
 
 #include "TestMetadataBackfill.h"

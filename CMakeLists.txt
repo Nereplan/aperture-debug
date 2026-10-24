@@ -112,6 +112,7 @@ set(APERTURE_SOURCES
     src/FolderWatcher.cpp
     src/GlobalSearch.cpp
     src/HttpTransport.cpp
+    src/InternetRadio.cpp
     src/Json.cpp
     src/LibraryQuery.cpp
     src/LibrarySnapshot.cpp

@@ -1097,9 +1097,9 @@ bool App::HandleGlobalKeyDown(WPARAM wParam, LPARAM lParam) {
                 size_t midSc = (scList.size() + 1) / 2;
                 int maxRows = 1;
                 if (currentSettingsCat == SettingsCategory::Appearance) maxRows = 2;
-                else if (currentSettingsCat == SettingsCategory::Playback) maxRows = 12;
+                else if (currentSettingsCat == SettingsCategory::Playback) maxRows = 14;
                 else if (currentSettingsCat == SettingsCategory::Subtitles) maxRows = 6;
-                else if (currentSettingsCat == SettingsCategory::Experience) maxRows = (FeatureGate::ModeFromString(settings.experienceMode) == ExperienceMode::Custom) ? 35 : 1;
+                else if (currentSettingsCat == SettingsCategory::Experience) maxRows = (FeatureGate::ModeFromString(settings.experienceMode) == ExperienceMode::Custom) ? 36 : 1;
                 else if (currentSettingsCat == SettingsCategory::Shortcuts) maxRows = (int)midSc + 1;
                 else if (currentSettingsCat == SettingsCategory::System) maxRows = SettingsLayout::kSystemRowCount;
                 auto getMaxSubIndex = [&](int row) -> int {
@@ -1115,6 +1115,8 @@ bool App::HandleGlobalKeyDown(WPARAM wParam, LPARAM lParam) {
                         if (row == 7) return 0; // Custom MPV Config Toggle
                         if (row == 8) return 2; // Edit (0), Reset (1), Revert (2)
                         if (row >= 9 && row <= 11) return 0; // Global Hotkeys / Tray Icon / Minimize to Tray toggles
+                        if (row == 12) return 1; // Network Cache Forward Dropdown (0) and Custom (1)
+                        if (row == 13) return 1; // Network Cache Back Dropdown (0) and Custom (1)
                     } else if (currentSettingsCat == SettingsCategory::Experience) {
                         if (row == 0) return 2; // Mode chips: Simple, Advanced, Custom
                         return 0;
@@ -1257,6 +1259,26 @@ bool App::HandleGlobalKeyDown(WPARAM wParam, LPARAM lParam) {
                         } else if (row == 11) {
                             settings.minimizeToTray = !settings.minimizeToTray;
                             ShowOSD(IconType::SettingsGear, settings.minimizeToTray ? L"Minimize to Tray: On" : L"Minimize to Tray: Off");
+                        } else if (row == 12) {
+                            if (sub == 0) {
+                                int cacheList[] = { 8, 32, 64, 128, 256 };
+                                int curIdx = -1;
+                                for (int k = 0; k < 5; ++k) {
+                                    if (settings.networkForwardCacheMB == cacheList[k]) { curIdx = k; break; }
+                                }
+                                int nextIdx = (curIdx + 1) % 5;
+                                settings.networkForwardCacheMB = cacheList[nextIdx];
+                            } else { ShowCustomNetworkForwardCacheModal(); return true; }
+                        } else if (row == 13) {
+                            if (sub == 0) {
+                                int cacheList[] = { 0, 16, 64, 128 };
+                                int curIdx = -1;
+                                for (int k = 0; k < 4; ++k) {
+                                    if (settings.networkBackCacheMB == cacheList[k]) { curIdx = k; break; }
+                                }
+                                int nextIdx = (curIdx + 1) % 4;
+                                settings.networkBackCacheMB = cacheList[nextIdx];
+                            } else { ShowCustomNetworkBackCacheModal(); return true; }
                         }
                         ApplyPlayerPreferences();
                         SaveSettings();

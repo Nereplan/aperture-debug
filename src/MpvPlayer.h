@@ -179,6 +179,9 @@ public:
     // Runtime playback preferences. These are safe to call before a file is
     // loaded; they take effect immediately when libmpv accepts the property.
     void SetHardwareAcceleration(bool enabled);
+    // Network stream cache sizing (demuxer-max-bytes / demuxer-max-back-bytes,
+    // in megabytes). Runtime-settable; takes effect for subsequent loads.
+    void SetNetworkCache(int forwardCacheMB, int backCacheMB);
     void SetPreferredAudioLanguage(const std::string& language);
     void SetPreferredSubtitleLanguage(const std::string& language);
     void SetSubtitleStyle(const std::string& fontSize, const std::string& colorHex, const std::string& backgroundStyle,
