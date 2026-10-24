@@ -8,7 +8,7 @@
 
 namespace Aperture {
 
-enum class NetworkStreamScheme { Unknown = 0, Http, Https, Rtsp, Rtmp };
+enum class NetworkStreamScheme { Unknown = 0, Http, Https, Rtsp, Rtmp, Udp, Rtp };
 
 enum class NetworkStreamValidationError {
     None = 0, EmptyUrl, UrlTooLong, ContainsControlCharacters, UnsupportedScheme, MissingSchemeDelimiter, InvalidHost, EmptyHost,
@@ -33,7 +33,7 @@ struct DroppedUrlResult { bool hasUrl = false; std::wstring extractedUrl; Networ
 struct NetworkStreamValidationOptions {
     size_t maxLength = 2048;
     bool allowCredentials = false; // default: no embedded credentials
-    bool allowHttp = true, allowHttps = true, allowRtsp = true, allowRtmp = true;
+    bool allowHttp = true, allowHttps = true, allowRtsp = true, allowRtmp = true, allowUdp = true, allowRtp = true;
 };
 
 class NetworkStreamValidator {

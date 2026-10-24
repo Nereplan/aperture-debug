@@ -9,7 +9,7 @@
 
 namespace Aperture {
 
-enum class PlaylistFormat { Auto = 0, M3U, M3U8, PLS, XSPF, ASX, WPL };
+enum class PlaylistFormat { Auto = 0, M3U, M3U8, PLS, XSPF, ASX, WPL, ITunesXml, B4S, QTL };
 
 enum class PlaylistIoErrorCode {
     Success = 0, FileNotFound, FileOpenFailed, FileReadFailed, FileWriteFailed, FileTooLarge, LineLimitExceeded, ItemLimitExceeded,
@@ -143,6 +143,12 @@ public:
     static PlaylistParseResult ParseASXContent( const std::string& utf8Content, const std::wstring& playlistDir = L"",
         const PlaylistParseOptions& options = {});
     static PlaylistParseResult ParseWPLContent( const std::string& utf8Content, const std::wstring& playlistDir = L"",
+        const PlaylistParseOptions& options = {});
+    static PlaylistParseResult ParseITunesXmlContent( const std::string& utf8Content, const std::wstring& playlistDir = L"",
+        const PlaylistParseOptions& options = {});
+    static PlaylistParseResult ParseB4SContent( const std::string& utf8Content, const std::wstring& playlistDir = L"",
+        const PlaylistParseOptions& options = {});
+    static PlaylistParseResult ParseQTLContent( const std::string& utf8Content, const std::wstring& playlistDir = L"",
         const PlaylistParseOptions& options = {});
     static PlaylistParseResult ParseContent( const std::string& rawBytes, PlaylistFormat format = PlaylistFormat::Auto,
         const std::wstring& playlistDir = L"", const PlaylistParseOptions& options = {});

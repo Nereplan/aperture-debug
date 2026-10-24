@@ -187,7 +187,8 @@ constexpr StringEntryView kCanonicalStringEntries[] = {
     // Shortcut Action Display Names
     { "shortcut.togglePlay", "Play / Pause Video" }, { "shortcut.seekForward", "Seek Forward (5s)" },
     { "shortcut.seekBackward", "Seek Backward (5s)" }, { "shortcut.seekForwardLarge", "Seek Forward (10s)" },
-    { "shortcut.seekBackwardLarge", "Seek Backward (10s)" }, { "shortcut.volumeUp", "Volume Up" }, { "shortcut.volumeDown", "Volume Down" },
+    { "shortcut.seekBackwardLarge", "Seek Backward (10s)" }, { "shortcut.seekForwardMedium", "Seek Forward (30s)" },
+    { "shortcut.seekBackwardMedium", "Seek Backward (30s)" }, { "shortcut.volumeUp", "Volume Up" }, { "shortcut.volumeDown", "Volume Down" },
     { "shortcut.toggleMute", "Mute / Unmute Audio" }, { "shortcut.toggleFullscreen", "Toggle Fullscreen" },
     { "shortcut.cycleSubtitles", "Cycle Subtitle Tracks" }, { "shortcut.cycleAudio", "Cycle Audio Tracks" },
     { "shortcut.togglePiP", "Picture-in-Picture Mode" }, { "shortcut.frameStepForward", "Next Video Frame" },

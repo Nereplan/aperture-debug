@@ -243,7 +243,7 @@ inline bool IsValidMediaUrl(const std::wstring& str) {
     lower.reserve(str.size());
     for (wchar_t c : str) lower.push_back(static_cast<wchar_t>(towlower(c)));
     if (lower.rfind(L"http://", 0) == 0 || lower.rfind(L"https://", 0) == 0 || lower.rfind(L"rtsp://", 0) == 0 ||
-        lower.rfind(L"rtmp://", 0) == 0) {
+        lower.rfind(L"rtmp://", 0) == 0 || lower.rfind(L"udp://", 0) == 0 || lower.rfind(L"rtp://", 0) == 0) {
         size_t schemeEnd = lower.find(L"://");
         if (schemeEnd == std::wstring::npos) return false;
         size_t hostStart = schemeEnd + 3;

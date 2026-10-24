@@ -2,10 +2,11 @@
 #include "IpcProtocol.h"
 #include <algorithm>
 #include <cctype>
-#include <sstream>
-#include <fstream>
 #include <cstring>
 #include <cwctype>
+#include <fstream>
+#include <initializer_list>
+#include <sstream>
 
 namespace Aperture {
 
@@ -167,6 +168,34 @@ std::string ExtractXmlElement(const std::string& block, const std::string& tagNa
     return "";
 }
 
+// Value lookup for a plist <key>...</key> pair: returns the decoded content of
+// the <string>/<integer> element that immediately follows the key.
+std::string ExtractPlistValue(const std::string& block, const char* keyName) {
+    const std::string lower = ToLowerAsciiCopy(block);
+    const std::string needle = ToLowerAsciiCopy(std::string("<key>") + keyName + "</key>");
+    size_t pos = lower.find(needle);
+    if (pos == std::string::npos) return "";
+    size_t cursor = pos + needle.size();
+    size_t nextKey = lower.find("<key>", cursor);
+    size_t bestOpen = std::string::npos, bestTagLength = 0;
+    size_t bestElement = 0;
+    for (size_t i = 0; i < 2; ++i) {
+        const char* element = (i == 0) ? "<string>" : "<integer>";
+        size_t open = lower.find(element, cursor);
+        if (open != std::string::npos && (bestOpen == std::string::npos || open < bestOpen)) {
+            bestOpen = open;
+            bestTagLength = std::strlen(element);
+            bestElement = i;
+        }
+    }
+    if (bestOpen == std::string::npos || (nextKey != std::string::npos && bestOpen > nextKey)) return "";
+    const char* closeTag = (bestElement == 0) ? "</string>" : "</integer>";
+    size_t valueBegin = bestOpen + bestTagLength;
+    size_t close = lower.find(closeTag, valueBegin);
+    if (close == std::string::npos) return "";
+    return DecodeXmlEntities(Trim(block.substr(valueBegin, close - valueBegin)));
+}
+
 std::string PercentDecode(const std::string& text) {
     auto hexVal = [](char c) -> int {
         if (c >= '0' && c <= '9') return c - '0';
@@ -280,6 +309,9 @@ PlaylistFormat PlaylistIO::DetectFormatFromExtension(const std::wstring& path) {
     if (ext == L".xspf") return PlaylistFormat::XSPF;
     if (ext == L".asx") return PlaylistFormat::ASX;
     if (ext == L".wpl") return PlaylistFormat::WPL;
+    if (ext == L".xml") return PlaylistFormat::ITunesXml;
+    if (ext == L".b4s" || ext == L".xbml") return PlaylistFormat::B4S;
+    if (ext == L".qtl") return PlaylistFormat::QTL;
     return PlaylistFormat::Auto;
 }
 
@@ -300,6 +332,10 @@ PlaylistFormat PlaylistIO::DetectFormatFromContent(const std::string& content) {
         }
         if (preview.find("<asx") != std::string::npos) { return PlaylistFormat::ASX; }
         if (preview.find("<wpl") != std::string::npos || preview.find("<smil") != std::string::npos) { return PlaylistFormat::WPL; }
+        if (preview.find("<plist") != std::string::npos && preview.find("<dict") != std::string::npos) { return PlaylistFormat::ITunesXml; }
+        if (preview.find("<winampxml") != std::string::npos ||
+            (preview.find("<playlist") != std::string::npos && preview.find("playstring") != std::string::npos)) { return PlaylistFormat::B4S; }
+        if (preview.find("<embed") != std::string::npos && preview.find("src=") != std::string::npos) { return PlaylistFormat::QTL; }
     }
     return PlaylistFormat::M3U8;
 }
@@ -311,7 +347,8 @@ bool PlaylistIO::IsUrl(const std::wstring& path) {
         StartsWithIgnoreCaseW(trimmed, L"rtsp://") || StartsWithIgnoreCaseW(trimmed, L"rtmp://") ||
         StartsWithIgnoreCaseW(trimmed, L"mms://") || StartsWithIgnoreCaseW(trimmed, L"ftp://") ||
         StartsWithIgnoreCaseW(trimmed, L"ftps://") || StartsWithIgnoreCaseW(trimmed, L"hls://") ||
-        StartsWithIgnoreCaseW(trimmed, L"udp://") || StartsWithIgnoreCaseW(trimmed, L"tcp://") ||
+        StartsWithIgnoreCaseW(trimmed, L"udp://") || StartsWithIgnoreCaseW(trimmed, L"rtp://") ||
+        StartsWithIgnoreCaseW(trimmed, L"tcp://") ||
         StartsWithIgnoreCaseW(trimmed, L"smb://") || StartsWithIgnoreCaseW(trimmed, L"file://")) {
         return true;
     }
@@ -830,6 +867,142 @@ PlaylistParseResult PlaylistIO::ParseWPLContent( const std::string& utf8Content,
     return result;
 }
 
+PlaylistParseResult PlaylistIO::ParseITunesXmlContent( const std::string& utf8Content, const std::wstring& playlistDir,
+    const PlaylistParseOptions &options) {
+    PlaylistParseResult result;
+    result.detectedFormat = PlaylistFormat::ITunesXml;
+    std::string lower = ToLowerAsciiCopy(utf8Content);
+    size_t tracksKey = lower.find("<key>tracks</key>");
+    if (tracksKey == std::string::npos) {
+        return PlaylistParseResult::ErrorResult( PlaylistIoErrorCode::InvalidHeader, playlistDir,
+            "iTunes XML playlist is missing the Tracks dictionary");
+    }
+    // Walk the Tracks dictionary collecting each track <dict> block (depth
+    // 0 = outside, 1 = Tracks container, 2 = one track, 3+ = nested values).
+    std::vector<std::pair<size_t, size_t>> trackBlocks;
+    size_t pos = tracksKey;
+    int depth = 0;
+    size_t trackBegin = std::string::npos;
+    while (pos < lower.size()) {
+        size_t open = lower.find("<dict", pos);
+        size_t close = lower.find("</dict", pos);
+        if (close != std::string::npos && (open == std::string::npos || close < open)) {
+            if (depth == 2 && trackBegin != std::string::npos) { trackBlocks.emplace_back(trackBegin, close); trackBegin = std::string::npos; }
+            if (depth <= 1) break; // Tracks dictionary closed
+            --depth;
+            pos = close + 6;
+            continue;
+        }
+        if (open == std::string::npos) break;
+        if (depth == 1) trackBegin = open;
+        ++depth;
+        pos = open + 5;
+    }
+    std::unordered_map<std::wstring, size_t> seenLocations;
+    for (const auto& blockRange : trackBlocks) {
+        std::string block = utf8Content.substr(blockRange.first, blockRange.second - blockRange.first);
+        std::wstring location = Utf8ToUtf16(Trim(ExtractPlistValue(block, "Location")));
+        if (StartsWithIgnoreCaseW(location, L"file://")) { location = FileUriToPath(location); }
+        std::wstring title = Utf8ToUtf16(ExtractPlistValue(block, "Name"));
+        double durationSec = -1.0;
+        std::string totalMs = Trim(ExtractPlistValue(block, "Total Time"));
+        if (!totalMs.empty()) { try { durationSec = std::stod(totalMs) / 1000.0; } catch (...) { durationSec = -1.0; } }
+        if (!AppendXmlEntry(result, location, title, durationSec, playlistDir, options, seenLocations)) {
+            return PlaylistParseResult::ErrorResult( PlaylistIoErrorCode::ItemLimitExceeded, playlistDir,
+                "iTunes XML playlist exceeds maximum item limit of " + std::to_string(options.maxItemCount));
+        }
+    }
+    if (result.entries.empty() && !options.allowEmptyPlaylist) {
+        return PlaylistParseResult::ErrorResult( PlaylistIoErrorCode::EmptyPlaylist, playlistDir,
+            "iTunes XML playlist contains no valid media entries");
+    }
+    result.success = true;
+    result.errorCode = PlaylistIoErrorCode::Success;
+    return result;
+}
+
+PlaylistParseResult PlaylistIO::ParseB4SContent( const std::string& utf8Content, const std::wstring& playlistDir,
+    const PlaylistParseOptions &options) {
+    PlaylistParseResult result;
+    result.detectedFormat = PlaylistFormat::B4S;
+    std::string lower = ToLowerAsciiCopy(utf8Content);
+    std::unordered_map<std::wstring, size_t> seenLocations;
+    size_t searchPos = 0;
+    while (searchPos < lower.size()) {
+        size_t entryPos = lower.find("<entry", searchPos);
+        if (entryPos == std::string::npos) break;
+        size_t tagEnd = lower.find('>', entryPos);
+        if (tagEnd == std::string::npos) break;
+        std::string tag = utf8Content.substr(entryPos, tagEnd - entryPos + 1);
+        size_t entryEnd = lower.find("</entry", tagEnd);
+        searchPos = tagEnd + 1;
+        std::wstring rawLocation = Utf8ToUtf16(Trim(ExtractXmlAttribute(tag, "Playstring")));
+        if (StartsWithIgnoreCaseW(rawLocation, L"file:")) {
+            // "file:" may open a URI ("file:///C:/...") or a plain path
+            // ("file:C:\..."); only URI-shaped values are percent-decoded.
+            std::wstring rest = rawLocation.substr(5);
+            if (!rest.empty() && rest[0] == L'/') {
+                rawLocation = FileUriToPath(rawLocation);
+            } else if (rest.size() >= 2 && std::iswalpha(rest[0]) && rest[1] == L':') {
+                rawLocation = Utf8ToUtf16(PercentDecode(Utf16ToUtf8(rest)));
+            }
+        }
+        std::wstring title = Utf8ToUtf16(Trim(ExtractXmlAttribute(tag, "Title")));
+        if (title.empty() && entryEnd != std::string::npos) {
+            std::string block = utf8Content.substr(tagEnd + 1, entryEnd - tagEnd - 1);
+            title = Utf8ToUtf16(ExtractXmlElement(block, "Name"));
+        }
+        if (!AppendXmlEntry(result, rawLocation, title, -1.0, playlistDir, options, seenLocations)) {
+            return PlaylistParseResult::ErrorResult( PlaylistIoErrorCode::ItemLimitExceeded, playlistDir,
+                "B4S playlist exceeds maximum item limit of " + std::to_string(options.maxItemCount));
+        }
+    }
+    if (result.entries.empty() && !options.allowEmptyPlaylist) {
+        return PlaylistParseResult::ErrorResult( PlaylistIoErrorCode::EmptyPlaylist, playlistDir,
+            "B4S playlist contains no valid media entries");
+    }
+    result.success = true;
+    result.errorCode = PlaylistIoErrorCode::Success;
+    return result;
+}
+
+PlaylistParseResult PlaylistIO::ParseQTLContent( const std::string& utf8Content, const std::wstring& playlistDir,
+    const PlaylistParseOptions &options) {
+    PlaylistParseResult result;
+    result.detectedFormat = PlaylistFormat::QTL;
+    std::string lower = ToLowerAsciiCopy(utf8Content);
+    std::unordered_map<std::wstring, size_t> seenLocations;
+    size_t searchPos = 0;
+    while (searchPos < lower.size()) {
+        size_t embedPos = lower.find("<embed", searchPos);
+        if (embedPos == std::string::npos) break;
+        size_t tagEnd = lower.find('>', embedPos);
+        if (tagEnd == std::string::npos) break;
+        std::string tag = utf8Content.substr(embedPos, tagEnd - embedPos + 1);
+        searchPos = tagEnd + 1;
+        std::wstring rawLocation = Utf8ToUtf16(Trim(ExtractXmlAttribute(tag, "src")));
+        if (!AppendXmlEntry(result, rawLocation, L"", -1.0, playlistDir, options, seenLocations)) {
+            return PlaylistParseResult::ErrorResult( PlaylistIoErrorCode::ItemLimitExceeded, playlistDir,
+                "QTL playlist exceeds maximum item limit of " + std::to_string(options.maxItemCount));
+        }
+    }
+    // <qtn_src> element form: the location is the element content.
+    std::string qtnSrc = ExtractXmlElement(utf8Content, "qtn_src");
+    if (!qtnSrc.empty()) {
+        if (!AppendXmlEntry(result, Utf8ToUtf16(qtnSrc), L"", -1.0, playlistDir, options, seenLocations)) {
+            return PlaylistParseResult::ErrorResult( PlaylistIoErrorCode::ItemLimitExceeded, playlistDir,
+                "QTL playlist exceeds maximum item limit of " + std::to_string(options.maxItemCount));
+        }
+    }
+    if (result.entries.empty() && !options.allowEmptyPlaylist) {
+        return PlaylistParseResult::ErrorResult( PlaylistIoErrorCode::EmptyPlaylist, playlistDir,
+            "QTL playlist contains no valid media entries");
+    }
+    result.success = true;
+    result.errorCode = PlaylistIoErrorCode::Success;
+    return result;
+}
+
 PlaylistParseResult PlaylistIO::ParseContent( const std::string& rawBytes, PlaylistFormat format, const std::wstring& playlistDir,
     const PlaylistParseOptions &options) {
     if (rawBytes.size() > options.maxFileSizeBytes) {
@@ -841,6 +1014,22 @@ PlaylistParseResult PlaylistIO::ParseContent( const std::string& rawBytes, Playl
     std::string encodingName;
     std::string utf8Content = DecodeToUtf8(rawBytes.data(), rawBytes.size(), hasBom, encodingName);
     if (format == PlaylistFormat::Auto) { format = DetectFormatFromContent(utf8Content); }
+    // Extension-based guesses for ambiguous XML formats verify the content
+    // sniff; a mismatch falls back to content detection (e.g. XSPF saved as
+    // .xml keeps parsing as XSPF). QTL accepts its extension without a sniff.
+    const auto sniffMatches = [&utf8Content](std::initializer_list<const char*> needles) {
+        std::string preview = Trim(utf8Content).substr(0, std::min<size_t>(utf8Content.size(), 1024));
+        for (auto& c : preview) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+        for (const char* needle : needles) {
+            if (preview.find(needle) == std::string::npos) return false;
+        }
+        return true;
+    };
+    if (format == PlaylistFormat::ITunesXml && !sniffMatches({ "<plist", "<dict" })) {
+        format = DetectFormatFromContent(utf8Content);
+    } else if (format == PlaylistFormat::B4S && !sniffMatches({ "<winampxml" }) && !sniffMatches({ "<playlist", "playstring" })) {
+        format = DetectFormatFromContent(utf8Content);
+    }
     if (format == PlaylistFormat::PLS) {
         return ParsePLSContent(utf8Content, playlistDir, options);
     } else if (format == PlaylistFormat::XSPF) {
@@ -849,6 +1038,12 @@ PlaylistParseResult PlaylistIO::ParseContent( const std::string& rawBytes, Playl
         return ParseASXContent(utf8Content, playlistDir, options);
     } else if (format == PlaylistFormat::WPL) {
         return ParseWPLContent(utf8Content, playlistDir, options);
+    } else if (format == PlaylistFormat::ITunesXml) {
+        return ParseITunesXmlContent(utf8Content, playlistDir, options);
+    } else if (format == PlaylistFormat::B4S) {
+        return ParseB4SContent(utf8Content, playlistDir, options);
+    } else if (format == PlaylistFormat::QTL) {
+        return ParseQTLContent(utf8Content, playlistDir, options);
     } else { return ParseM3UContent(utf8Content, playlistDir, options); }
 }
 

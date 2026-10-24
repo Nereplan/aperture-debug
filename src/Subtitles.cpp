@@ -32,6 +32,93 @@ bool StartsWithInsensitive(const std::string& value, const char* prefix) {
     return true;
 }
 
+std::string ToLowerAsciiCopy(std::string value) {
+    for (char& c : value) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+    return value;
+}
+
+// Removes <style>/<head> blocks (case-insensitive) so their contents never
+// become SAMI cue text.
+void EraseHtmlBlocks(std::string& content) {
+    const std::string lower = ToLowerAsciiCopy(content);
+    struct CharRange { size_t begin, end; };
+    std::vector<CharRange> ranges;
+    for (const char* tag : { "style", "head" }) {
+        const std::string open = std::string("<") + tag;
+        const std::string close = std::string("</") + tag;
+        size_t searchPos = 0;
+        while (searchPos < lower.size()) {
+            size_t openPos = lower.find(open, searchPos);
+            if (openPos == std::string::npos) break;
+            size_t openEnd = lower.find('>', openPos);
+            if (openEnd == std::string::npos) break;
+            size_t closePos = lower.find(close, openEnd + 1);
+            if (closePos == std::string::npos) break;
+            size_t closeEnd = lower.find('>', closePos);
+            if (closeEnd == std::string::npos) break;
+            ranges.push_back({ openPos, closeEnd + 1 });
+            searchPos = closeEnd + 1;
+        }
+    }
+    if (ranges.empty()) return;
+    // Merge overlapping ranges first (e.g. <STYLE> nested inside <HEAD>):
+    // erasing a nested range shifts the offsets of the range that encloses it.
+    std::sort(ranges.begin(), ranges.end(), [](const CharRange& a, const CharRange& b) { return a.begin < b.begin; });
+    std::vector<CharRange> merged;
+    for (const auto& range : ranges) {
+        if (!merged.empty() && range.begin <= merged.back().end) {
+            merged.back().end = std::max(merged.back().end, range.end);
+        } else {
+            merged.push_back(range);
+        }
+    }
+    for (auto it = merged.rbegin(); it != merged.rend(); ++it) content.erase(it->begin, it->end - it->begin);
+}
+
+// Parses the case-insensitive Start attribute of a <SYNC Start=1234> tag
+// (optional quotes, milliseconds). Returns -1.0 when absent or invalid.
+double ParseSamiSyncStartMs(const std::string& tag, const std::string& lowerTag) {
+    size_t attrPos = 0;
+    while ((attrPos = lowerTag.find("start", attrPos)) != std::string::npos) {
+        size_t cursor = attrPos + 5;
+        while (cursor < lowerTag.size() && (lowerTag[cursor] == ' ' || lowerTag[cursor] == '\t')) ++cursor;
+        if (cursor < lowerTag.size() && lowerTag[cursor] == '=') {
+            ++cursor;
+            while (cursor < tag.size() && (tag[cursor] == ' ' || tag[cursor] == '\t')) ++cursor;
+            if (cursor < tag.size() && (tag[cursor] == '"' || tag[cursor] == '\'')) ++cursor;
+            char* endPtr = nullptr;
+            const double ms = std::strtod(tag.c_str() + cursor, &endPtr);
+            if (endPtr != tag.c_str() + cursor && std::isfinite(ms) && ms >= 0.0) return ms;
+        }
+        attrPos += 5;
+    }
+    return -1.0;
+}
+
+// MicroDVD .sub files begin with a {startFrame}{endFrame} line; other .sub
+// content falls back to the SRT parser.
+bool LooksLikeMicroDvd(const std::string& content) {
+    size_t begin = 0;
+    if (content.size() >= 3 && static_cast<unsigned char>(content[0]) == 0xEF &&
+        static_cast<unsigned char>(content[1]) == 0xBB && static_cast<unsigned char>(content[2]) == 0xBF) {
+        begin = 3; // UTF-8 BOM
+    }
+    while (begin < content.size() && std::isspace(static_cast<unsigned char>(content[begin]))) ++begin;
+    if (begin >= content.size() || content[begin] != '{') return false;
+    size_t pos = begin + 1;
+    auto skipDigits = [&content](size_t& p) {
+        size_t start = p;
+        while (p < content.size() && std::isdigit(static_cast<unsigned char>(content[p]))) ++p;
+        return p > start;
+    };
+    if (!skipDigits(pos)) return false;
+    if (pos >= content.size() || content[pos] != '}') return false;
+    ++pos;
+    if (pos < content.size() && content[pos] == '{') ++pos; // The end-frame field opens with '{'
+    if (!skipDigits(pos)) return false;
+    return pos < content.size() && content[pos] == '}';
+}
+
 void SortCues(std::vector<SubtitleCue>& cues) {
     if (cues.size() > SubtitleEngine::kMaxSubtitleCueCount) { cues.resize(SubtitleEngine::kMaxSubtitleCueCount); }
     std::stable_sort(cues.begin(), cues.end(), [](const SubtitleCue& a, const SubtitleCue& b) {
@@ -450,6 +537,123 @@ bool SubtitleEngine::ParseAss(const std::string& content, std::vector<SubtitleCu
     return !outCues.empty();
 }
 
+// Fallback frame rate for MicroDVD frame-based timing (files rarely carry a
+// usable frame rate once the frame-index lines are read as plain integers).
+constexpr double kMicroDvdFramesPerSecond = 25.0;
+
+bool SubtitleEngine::ParseSami(const std::string& content, std::vector<SubtitleCue>& outCues) {
+    outCues.clear();
+    if (content.empty() || content.size() > kMaxSubtitleInputBytes) return false;
+    std::string work = content;
+    EraseHtmlBlocks(work);
+    const std::string lower = ToLowerAsciiCopy(work);
+    struct SamiSync { double startSec; size_t textBegin, textEnd; };
+    std::vector<SamiSync> syncs;
+    size_t searchPos = 0;
+    while (searchPos < lower.size() && syncs.size() < kMaxSubtitleCueCount + 1) {
+        size_t tagPos = lower.find("<sync", searchPos);
+        if (tagPos == std::string::npos) break;
+        size_t tagEnd = lower.find('>', tagPos);
+        if (tagEnd == std::string::npos) break;
+        size_t nextTagPos = lower.find("<sync", tagEnd + 1);
+        const size_t textEnd = (nextTagPos != std::string::npos) ? nextTagPos : work.size();
+        const double startMs = ParseSamiSyncStartMs(work.substr(tagPos, tagEnd - tagPos + 1), lower.substr(tagPos, tagEnd - tagPos + 1));
+        if (startMs >= 0.0) { syncs.push_back({ startMs / 1000.0, tagEnd + 1, textEnd }); }
+        searchPos = tagEnd + 1;
+    }
+    size_t totalCuesAdded = 0;
+    for (size_t i = 0; i < syncs.size() && totalCuesAdded < kMaxSubtitleCueCount; ++i) {
+        double endSec = -1.0;
+        if (i + 1 < syncs.size()) endSec = syncs[i + 1].startSec; // End at the next SYNC start
+        if (endSec <= syncs[i].startSec) endSec = syncs[i].startSec + 2.5; // Zero-duration rule / last-cue pad
+        const size_t rawLength = std::min(syncs[i].textEnd - syncs[i].textBegin, kMaxCueTextBytes + 1);
+        std::wstring text = CleanSubtitleFormatting(work.substr(syncs[i].textBegin, rawLength));
+        if (text.empty()) continue;
+        SubtitleCue cue;
+        cue.startTimeSec = syncs[i].startSec;
+        cue.endTimeSec = std::max(0.0, endSec);
+        cue.text = std::move(text);
+        outCues.push_back(std::move(cue));
+        ++totalCuesAdded;
+    }
+    SortCues(outCues);
+    return !outCues.empty();
+}
+
+bool SubtitleEngine::ParseMicroDvd(const std::string& content, std::vector<SubtitleCue>& outCues) {
+    outCues.clear();
+    if (content.empty() || content.size() > kMaxSubtitleInputBytes) return false;
+    std::istringstream stream(content);
+    std::string line;
+    size_t totalCuesAdded = 0;
+    while (std::getline(stream, line)) {
+        if (totalCuesAdded >= kMaxSubtitleCueCount) break;
+        if (line.size() > kMaxCueTextBytes * 2) line.resize(kMaxCueTextBytes * 2);
+        if (!line.empty() && line.back() == '\r') line.pop_back();
+        std::string trimmed = TrimAscii(line);
+        if (trimmed.empty() || trimmed.front() != '{') continue;
+        char* endPtr = nullptr;
+        const long long startFrame = std::strtoll(trimmed.c_str() + 1, &endPtr, 10);
+        if (endPtr == trimmed.c_str() + 1 || *endPtr != '}' || startFrame < 0) continue;
+        const char* secondBegin = endPtr + 1;
+        if (*secondBegin == '{') ++secondBegin; // The end frame field opens with '{'
+        const long long endFrame = std::strtoll(secondBegin, &endPtr, 10);
+        if (endPtr == secondBegin || *endPtr != '}' || endFrame < startFrame) continue;
+        std::string raw = trimmed.substr(static_cast<size_t>(endPtr - trimmed.c_str()) + 1);
+        std::string text;
+        text.reserve(raw.size());
+        for (size_t i = 0; i < raw.size(); ++i) {
+            if (raw[i] == '\\' && i + 1 < raw.size() && raw[i + 1] == '|') { text.push_back('\n'); ++i; } // Escaped pipe separator
+            else if (raw[i] == '|') { text.push_back('\n'); } // Pipe separator
+            else { text.push_back(raw[i]); }
+        }
+        std::wstring clean = CleanSubtitleFormatting(text);
+        if (clean.empty()) continue;
+        SubtitleCue cue;
+        cue.startTimeSec = static_cast<double>(startFrame) / kMicroDvdFramesPerSecond;
+        cue.endTimeSec = static_cast<double>(endFrame) / kMicroDvdFramesPerSecond;
+        if (cue.endTimeSec <= cue.startTimeSec) cue.endTimeSec = cue.startTimeSec + 2.5;
+        cue.text = std::move(clean);
+        outCues.push_back(std::move(cue));
+        ++totalCuesAdded;
+    }
+    SortCues(outCues);
+    return !outCues.empty();
+}
+
+bool SubtitleEngine::ParseVPlayer(const std::string& content, std::vector<SubtitleCue>& outCues) {
+    outCues.clear();
+    if (content.empty() || content.size() > kMaxSubtitleInputBytes) return false;
+    std::istringstream stream(content);
+    std::string line;
+    size_t totalCuesAdded = 0;
+    while (std::getline(stream, line)) {
+        if (totalCuesAdded >= kMaxSubtitleCueCount) break;
+        if (line.size() > kMaxCueTextBytes * 2) line.resize(kMaxCueTextBytes * 2);
+        if (!line.empty() && line.back() == '\r') line.pop_back();
+        std::string trimmed = TrimAscii(line);
+        if (trimmed.empty()) continue;
+        // Timestamp token runs to the first space (H:MM:SS.ss or MM:SS.ss with
+        // an optional leading zero); text starts after the whitespace run.
+        const size_t timestampEnd = trimmed.find_first_of(" \t");
+        if (timestampEnd == std::string::npos) continue;
+        const double startSec = ParseTimestamp(trimmed.substr(0, timestampEnd));
+        if (!std::isfinite(startSec) || startSec < 0.0) continue;
+        const size_t textBegin = trimmed.find_first_not_of(" \t", timestampEnd);
+        if (textBegin == std::string::npos) continue;
+        std::wstring clean = CleanSubtitleFormatting(trimmed.substr(textBegin));
+        if (clean.empty()) continue;
+        SubtitleCue cue;
+        cue.startTimeSec = startSec;
+        cue.endTimeSec = startSec + 2.5;
+        cue.text = std::move(clean);
+        outCues.push_back(std::move(cue));
+        ++totalCuesAdded;
+    }
+    SortCues(outCues);
+    return !outCues.empty();
+}
+
 bool SubtitleEngine::LoadSubtitleFile(const std::wstring& filePath, const std::wstring& trackName) {
     std::wstring normPath = SubtitleDiscovery::NormalizePath(filePath);
     if (normPath.empty() || SubtitleDiscovery::IsReservedDeviceName(normPath)) return false;
@@ -471,6 +675,9 @@ bool SubtitleEngine::LoadSubtitleFile(const std::wstring& filePath, const std::w
     bool success = false;
     if (ext == L".ass" || ext == L".ssa") success = ParseAss(content, cues);
     else if (ext == L".vtt") success = ParseVtt(content, cues);
+    else if (ext == L".smi" || ext == L".sami") success = ParseSami(content, cues);
+    else if (ext == L".sub") success = LooksLikeMicroDvd(content) ? ParseMicroDvd(content, cues) : ParseSrt(content, cues);
+    else if (ext == L".pjs" || ext == L".vplayer") success = ParseVPlayer(content, cues);
     else success = ParseSrt(content, cues);
     if (!success || cues.empty()) return false;
     SubtitleTrack track;

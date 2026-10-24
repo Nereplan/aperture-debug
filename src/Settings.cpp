@@ -98,6 +98,7 @@ void Settings::ResetToDefaults() {
     defaultSpeed = 1.0;
     arrowSeekStepSec = 5.0;
     largeSeekStepSec = 10.0;
+    mediumSeekStepSec = 30.0;
     ctrlSeekFrames = 1;
     networkForwardCacheMB = 8;
     networkBackCacheMB = 0;
@@ -204,6 +205,8 @@ void Settings::ResetShortcuts() {
     shortcuts["seekBackward"] = { "seekBackward", "Seek Backward (5s)", VK_LEFT, false, false, false };
     shortcuts["seekForwardLarge"] = { "seekForwardLarge", "Seek Forward (10s)", 'L', false, false, false };
     shortcuts["seekBackwardLarge"] = { "seekBackwardLarge", "Seek Backward (10s)", 'J', false, false, false };
+    shortcuts["seekForwardMedium"] = { "seekForwardMedium", "Seek Forward (30s)", VK_RIGHT, false, true, false };  // Shift + Right
+    shortcuts["seekBackwardMedium"] = { "seekBackwardMedium", "Seek Backward (30s)", VK_LEFT, false, true, false }; // Shift + Left
     shortcuts["volumeUp"] = { "volumeUp", "Volume Up", VK_UP, false, false, false };
     shortcuts["volumeDown"] = { "volumeDown", "Volume Down", VK_DOWN, false, false, false };
     shortcuts["toggleMute"] = { "toggleMute", "Mute / Unmute Audio", 'M', false, false, false };
@@ -244,7 +247,8 @@ const std::vector<std::pair<std::string, std::string>>& Settings::GetShortcutAct
     const std::string locale = Localization::Instance().GetCurrentLocale();
     if (shortcutActionListCacheLocale != locale || shortcutActionListCache.empty()) {
         const std::vector<std::string> actionIds = {
-            "togglePlay",      "seekForward",       "seekBackward",     "seekForwardLarge", "seekBackwardLarge", "volumeUp",
+            "togglePlay",      "seekForward",       "seekBackward",     "seekForwardLarge", "seekBackwardLarge", "seekForwardMedium",
+            "seekBackwardMedium", "volumeUp",
             "volumeDown",      "toggleMute",        "toggleFullscreen", "togglePiP",        "cycleSubtitles",    "cycleAudio",
             "speedUp",         "speedDown",         "speedReset",       "frameStepForward", "frameStepBackward", "playNext",
             "playPrevious",    "nextChapter",       "previousChapter",  "restartVideo",     "cycleAspectRatio",  "audioDelayPlus",
@@ -651,6 +655,7 @@ StorageStatus Settings::Load() {
     defaultSpeed = Number(root.get("defaultSpeed"), defaultSpeed);
     arrowSeekStepSec = Number(root.get("arrowSeekStep"), arrowSeekStepSec);
     largeSeekStepSec = Number(root.get("largeSeekStep"), largeSeekStepSec);
+    mediumSeekStepSec = Number(root.get("mediumSeekStep"), mediumSeekStepSec);
     ctrlSeekFrames = Integer(root.get("ctrlSeekFrames"), ctrlSeekFrames);
     networkForwardCacheMB = Integer(root.get("networkForwardCacheMB"), networkForwardCacheMB);
     networkBackCacheMB = Integer(root.get("networkBackCacheMB"), networkBackCacheMB);
@@ -849,6 +854,8 @@ StorageStatus Settings::Load() {
     arrowSeekStepSec = std::clamp(arrowSeekStepSec, 1.0, 300.0);
     if (!std::isfinite(largeSeekStepSec)) largeSeekStepSec = 10.0;
     largeSeekStepSec = std::clamp(largeSeekStepSec, 1.0, 600.0);
+    if (!std::isfinite(mediumSeekStepSec)) mediumSeekStepSec = 30.0;
+    mediumSeekStepSec = std::clamp(mediumSeekStepSec, 1.0, 600.0);
     if (screenshotFormat != "png" && screenshotFormat != "jpg") screenshotFormat = "png";
     ctrlSeekFrames = std::clamp(ctrlSeekFrames, 1, 100);
     networkForwardCacheMB = std::clamp(networkForwardCacheMB, 8, 512);
@@ -946,6 +953,7 @@ StorageStatus Settings::Save() {
     root["defaultSpeed"] = defaultSpeed;
     root["arrowSeekStep"] = arrowSeekStepSec;
     root["largeSeekStep"] = largeSeekStepSec;
+    root["mediumSeekStep"] = mediumSeekStepSec;
     root["ctrlSeekFrames"] = ctrlSeekFrames;
     root["networkForwardCacheMB"] = networkForwardCacheMB;
     root["networkBackCacheMB"] = networkBackCacheMB;

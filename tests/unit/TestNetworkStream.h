@@ -90,6 +90,8 @@ TEST_CASE(NetworkStream, UrlValidationRedactionAndDragDrop) {
     TEST_ASSERT(NetworkStreamValidator::IsValid(L"https://[::1]:8080/video.mp4"));
     TEST_ASSERT(NetworkStreamValidator::IsValid(L"rtsp://192.168.1.100:554/stream1"));
     TEST_ASSERT(NetworkStreamValidator::IsValid(L"rtmp://live.twitch.tv/app/streamkey"));
+    TEST_ASSERT(NetworkStreamValidator::IsValid(L"udp://239.255.0.1:1234"));
+    TEST_ASSERT(NetworkStreamValidator::IsValid(L"rtp://224.0.0.1:5004"));
     TEST_ASSERT(!NetworkStreamValidator::IsValid(L"file:///C:/videos/test.mp4"));
     TEST_ASSERT(!NetworkStreamValidator::IsValid(L"javascript:alert(1)"));
     TEST_ASSERT(!NetworkStreamValidator::IsValid(L"http://999.999.999.999/live"));

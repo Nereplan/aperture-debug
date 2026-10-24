@@ -14,7 +14,8 @@ class MpvPlayer;
 class MediaLibrary;
 
 enum class AppCommand {
-    None = 0, TogglePlay, Play, Pause, SeekForward, SeekBackward, SeekForwardLarge, SeekBackwardLarge, SeekTo, VolumeUp, VolumeDown,
+    None = 0, TogglePlay, Play, Pause, SeekForward, SeekBackward, SeekForwardLarge, SeekBackwardLarge, SeekForwardMedium,
+    SeekBackwardMedium, SeekTo, VolumeUp, VolumeDown,
     SetVolume, ToggleMute, SetMuted, ToggleFullscreen, TogglePiP, CycleSubtitles, SelectSubtitleTrack, ToggleSubtitles, CycleAudio,
     SelectAudioTrack, RestartVideo, PlayNext, PlayPrevious, NextChapter, PreviousChapter, CycleAspectRatio, SetAspectRatio, RotateVideo,
     SetVideoRotate, BrightnessPlus, BrightnessMinus, BrightnessReset, SetBrightness, ContrastPlus, ContrastMinus, ContrastReset,

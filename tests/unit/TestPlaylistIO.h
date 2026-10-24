@@ -187,4 +187,106 @@ TEST_CASE(PlaylistIO, XspfSerializeParseRoundTripForLocalPathWithSpaceAndAmpersa
     TEST_ASSERT(std::abs(result.entries[0].durationSec - 12.5) < 1e-9);
 }
 
+TEST_CASE(PlaylistIO, ParseITunesXmlCollectsTrackDictionaries) {
+    const std::string content =
+        "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+        "<plist version=\"1.0\">\n"
+        "<dict>\n"
+        "  <key>Major Version</key><integer>1</integer>\n"
+        "  <key>Tracks</key><dict>\n"
+        "    <key>100</key><dict>\n"
+        "      <key>Track ID</key><integer>100</integer>\n"
+        "      <key>Name</key><string>Local &amp; Loud</string>\n"
+        "      <key>Total Time</key><integer>150000</integer>\n"
+        "      <key>Location</key><string>file:///C:/My%20Music/A%20%26%20B.mp3</string>\n"
+        "    </dict>\n"
+        "    <key>101</key><dict>\n"
+        "      <key>Track ID</key><integer>101</integer>\n"
+        "      <key>Name</key><string>Remote Stream</string>\n"
+        "      <key>Location</key><string>http://example.com/stream.mp3</string>\n"
+        "    </dict>\n"
+        "  </dict>\n"
+        "</dict>\n"
+        "</plist>\n";
+    PlaylistParseOptions options;
+    options.checkFileExistence = false;
+    auto result = PlaylistIO::ParseITunesXmlContent(content, L"", options);
+    TEST_ASSERT(result.is_ok());
+    TEST_ASSERT_EQ(result.detectedFormat, PlaylistFormat::ITunesXml);
+    TEST_ASSERT_EQ(result.entries.size(), size_t(2));
+    TEST_ASSERT_EQ(result.entries[0].location, std::wstring(L"C:\\My Music\\A & B.mp3"));
+    TEST_ASSERT(!result.entries[0].isUrl);
+    TEST_ASSERT_EQ(result.entries[0].title, std::wstring(L"Local & Loud"));
+    TEST_ASSERT(std::abs(result.entries[0].durationSec - 150.0) < 1e-9);
+    TEST_ASSERT_EQ(result.entries[1].location, std::wstring(L"http://example.com/stream.mp3"));
+    TEST_ASSERT(result.entries[1].isUrl);
+}
+
+TEST_CASE(PlaylistIO, ParseB4SCollectsEntryPlaystringsAndTitles) {
+    const std::string content =
+        "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+        "<WinampXML>\n"
+        "  <playlist num_entries=\"2\">\n"
+        "    <entry Playstring=\"file:C:\\Music\\One.mp3\" Title=\"One\">\n"
+        "      <Name>One Meta</Name>\n"
+        "    </entry>\n"
+        "    <entry Playstring=\"file:///C:/My%20Music/Two.mp3\">\n"
+        "      <Name>Two</Name>\n"
+        "    </entry>\n"
+        "  </playlist>\n"
+        "</WinampXML>\n";
+    PlaylistParseOptions options;
+    options.checkFileExistence = false;
+    auto result = PlaylistIO::ParseB4SContent(content, L"", options);
+    TEST_ASSERT(result.is_ok());
+    TEST_ASSERT_EQ(result.detectedFormat, PlaylistFormat::B4S);
+    TEST_ASSERT_EQ(result.entries.size(), size_t(2));
+    TEST_ASSERT_EQ(result.entries[0].location, std::wstring(L"C:\\Music\\One.mp3"));
+    TEST_ASSERT(!result.entries[0].isUrl);
+    TEST_ASSERT_EQ(result.entries[0].title, std::wstring(L"One"));
+    TEST_ASSERT_EQ(result.entries[1].location, std::wstring(L"C:\\My Music\\Two.mp3"));
+    TEST_ASSERT(!result.entries[1].isUrl);
+    TEST_ASSERT_EQ(result.entries[1].title, std::wstring(L"Two"));
+}
+
+TEST_CASE(PlaylistIO, ParseQtlCollectsEmbedSrcAndQtnSrc) {
+    const std::string content =
+        "<?xml version=\"1.0\"?>\n"
+        "<?quicktime type=\"application/x-quicktime-media-link\"?>\n"
+        "<embed src=\"C:\\Movies\\Clip.mov\" autoplay=\"true\" />\n"
+        "<embed src=\"http://example.com/stream.mov\" />\n"
+        "<qtn_src>C:\\Movies\\Other.mov</qtn_src>\n";
+    PlaylistParseOptions options;
+    options.checkFileExistence = false;
+    auto result = PlaylistIO::ParseQTLContent(content, L"", options);
+    TEST_ASSERT(result.is_ok());
+    TEST_ASSERT_EQ(result.detectedFormat, PlaylistFormat::QTL);
+    TEST_ASSERT_EQ(result.entries.size(), size_t(3));
+    TEST_ASSERT_EQ(result.entries[0].location, std::wstring(L"C:\\Movies\\Clip.mov"));
+    TEST_ASSERT(!result.entries[0].isUrl);
+    TEST_ASSERT_EQ(result.entries[1].location, std::wstring(L"http://example.com/stream.mov"));
+    TEST_ASSERT(result.entries[1].isUrl);
+    TEST_ASSERT_EQ(result.entries[2].location, std::wstring(L"C:\\Movies\\Other.mov"));
+}
+
+TEST_CASE(PlaylistIO, XmlExtensionSniffKeepsXspfOnPlainXmlPlaylists) {
+    const std::string xspf =
+        "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+        "<playlist xmlns=\"http://xspf.org/ns/0/\" version=\"1\">\n"
+        "  <trackList><track><location>file:///C:/Media/A.mp3</location></track></trackList>\n"
+        "</playlist>\n";
+    PlaylistParseOptions options;
+    options.checkFileExistence = false;
+    auto byContent = PlaylistIO::ParseContent(xspf, PlaylistFormat::Auto, L"", options);
+    TEST_ASSERT(byContent.is_ok());
+    TEST_ASSERT_EQ(byContent.detectedFormat, PlaylistFormat::XSPF);
+
+    // The .xml extension guesses iTunes XML, but the plist sniff fails and the
+    // parser falls back to content detection where XSPF wins.
+    auto byExtension = PlaylistIO::ParseContent(xspf, PlaylistFormat::ITunesXml, L"", options);
+    TEST_ASSERT(byExtension.is_ok());
+    TEST_ASSERT_EQ(byExtension.detectedFormat, PlaylistFormat::XSPF);
+    TEST_ASSERT_EQ(byExtension.entries.size(), size_t(1));
+}
+
 } // namespace Aperture::Test

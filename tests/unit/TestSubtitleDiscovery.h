@@ -274,4 +274,85 @@ TEST_CASE(SubtitleDiscovery, PathContainmentAndEncodingDiscovery) {
     step_SubtitleDiscovery_RootRelativePathPersistence();
 }
 
+static void step_SubtitleEngine_SamiParsing() {
+    const std::string sami =
+        "<SAMI>\n"
+        "<HEAD><TITLE>Sample</TITLE><STYLE>.ENCC { color: white; }</STYLE></HEAD>\n"
+        "<BODY>\n"
+        "<SYNC Start=1000><P Class=ENCC>&amp;Hello <b>World</b></P></SYNC>\n"
+        "<SYNC Start=3000>&lt;Second&gt; line<br>More</P></SYNC>\n"
+        "<SYNC Start=\"5000\">&nbsp;</SYNC>\n"
+        "</BODY>\n"
+        "</SAMI>\n";
+    std::vector<SubtitleCue> cues;
+    TEST_ASSERT(SubtitleEngine::ParseSami(sami, cues));
+    TEST_ASSERT_EQ(cues.size(), 2ull);
+    TEST_ASSERT_EQ(cues[0].startTimeSec, 1.0);
+    TEST_ASSERT_EQ(cues[0].endTimeSec, 3.0);
+    TEST_ASSERT_EQ(cues[0].text, std::wstring(L"&Hello World"));
+    TEST_ASSERT_EQ(cues[1].startTimeSec, 3.0);
+    TEST_ASSERT_EQ(cues[1].endTimeSec, 5.0);
+    TEST_ASSERT_EQ(cues[1].text, std::wstring(L"<Second> line\nMore"));
+}
+static void step_SubtitleEngine_MicroDvdParsing() {
+    const std::string sub =
+        "{0}{50}First {y:i}line{c:$0000FF}\n"
+        "{100}{200}Second\\|Row\n"
+        "{300}{350}Third|Row\n"
+        "{bad}{}\n"
+        "{999}{100}Reversed\n";
+    std::vector<SubtitleCue> cues;
+    TEST_ASSERT(SubtitleEngine::ParseMicroDvd(sub, cues));
+    TEST_ASSERT_EQ(cues.size(), 3ull);
+    TEST_ASSERT_EQ(cues[0].startTimeSec, 0.0);
+    TEST_ASSERT_EQ(cues[0].endTimeSec, 2.0);
+    TEST_ASSERT_EQ(cues[0].text, std::wstring(L"First line"));
+    TEST_ASSERT_EQ(cues[1].startTimeSec, 4.0);
+    TEST_ASSERT_EQ(cues[1].endTimeSec, 8.0);
+    TEST_ASSERT_EQ(cues[1].text, std::wstring(L"Second\nRow"));
+    TEST_ASSERT_EQ(cues[2].startTimeSec, 12.0);
+    TEST_ASSERT_EQ(cues[2].endTimeSec, 14.0);
+    TEST_ASSERT_EQ(cues[2].text, std::wstring(L"Third\nRow"));
+}
+static void step_SubtitleEngine_VPlayerParsing() {
+    const std::string vplayer =
+        "1:02:03.50 First cue text\n"
+        "02:04.25  Second cue text\n"
+        "garbage line without timestamp\n";
+    std::vector<SubtitleCue> cues;
+    TEST_ASSERT(SubtitleEngine::ParseVPlayer(vplayer, cues));
+    TEST_ASSERT_EQ(cues.size(), 2ull);
+    // Cues are sorted by start time, so the M:SS.ss line comes first.
+    TEST_ASSERT_EQ(cues[0].startTimeSec, 2.0 * 60.0 + 4.25);
+    TEST_ASSERT_EQ(cues[0].endTimeSec, cues[0].startTimeSec + 2.5);
+    TEST_ASSERT_EQ(cues[0].text, std::wstring(L"Second cue text"));
+    TEST_ASSERT_EQ(cues[1].startTimeSec, 3600.0 + 2.0 * 60.0 + 3.5);
+    TEST_ASSERT_EQ(cues[1].endTimeSec, cues[1].startTimeSec + 2.5);
+    TEST_ASSERT_EQ(cues[1].text, std::wstring(L"First cue text"));
+}
+static void step_SubtitleEngine_SubExtensionContentSniff() {
+    ScopedTempDir temp(L"Aperture_SubSniff_");
+
+    // MicroDVD-style .sub content (with BOM) parses frames at 25 fps
+    SubtitleEngine microEngine;
+    temp.WriteFile(L"micro.sub", "\xEF\xBB\xBF{0}{50}Frame Line\n{50}{100}Second Line\n");
+    TEST_ASSERT(microEngine.LoadSubtitleFile(temp.SubPath(L"micro.sub")));
+    TEST_ASSERT_EQ(microEngine.GetTrackCount(), 1);
+    TEST_ASSERT_EQ(microEngine.GetPrimarySubtitleText(1.0), std::wstring(L"Frame Line"));
+
+    // SRT-style .sub content falls through to the SRT parser
+    SubtitleEngine srtEngine;
+    temp.WriteFile(L"plain.sub", "1\n00:00:01,000 --> 00:00:04,000\nSRT In Disguise\n");
+    TEST_ASSERT(srtEngine.LoadSubtitleFile(temp.SubPath(L"plain.sub")));
+    TEST_ASSERT_EQ(srtEngine.GetTrackCount(), 1);
+    TEST_ASSERT_EQ(srtEngine.GetPrimarySubtitleText(2.0), std::wstring(L"SRT In Disguise"));
+}
+
+TEST_CASE(SubtitleDiscovery, SidecarParserFallbackEngine) {
+    step_SubtitleEngine_SamiParsing();
+    step_SubtitleEngine_MicroDvdParsing();
+    step_SubtitleEngine_VPlayerParsing();
+    step_SubtitleEngine_SubExtensionContentSniff();
+}
+
 } // namespace Aperture::Test

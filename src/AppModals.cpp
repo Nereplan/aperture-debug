@@ -970,7 +970,7 @@ void App::ShowOpenNetworkStreamModal() {
     PushFocusSnapshot(TransientSurfaceType::Modal);
     BlurTextInput();
     activeModal = ModalType::SeekStepInput;
-    modalPrompt = L"Enter an HTTP, HTTPS, RTSP, or RTMP URL (Ctrl+L):";
+    modalPrompt = L"Enter an HTTP, HTTPS, RTSP, RTMP, UDP, or RTP URL (Ctrl+L):";
     modalInput.SetText({});
     modalOnConfirm = [this]() {
         const std::wstring input = Text16ToWideString(modalInput.GetText());
@@ -999,7 +999,7 @@ void App::ImportStandardPlaylist() {
     OPENFILENAMEW ofn{};
     ofn.lStructSize = sizeof(ofn);
     ofn.hwndOwner = hWnd;
-    ofn.lpstrFilter = L"Playlists (*.m3u;*.m3u8;*.pls;*.xspf;*.asx;*.wpl)\0*.m3u;*.m3u8;*.pls;*.xspf;*.asx;*.wpl\0All Files\0*.*\0";
+    ofn.lpstrFilter = L"Playlists (*.m3u;*.m3u8;*.pls;*.xspf;*.asx;*.wpl;*.xml;*.b4s;*.qtl)\0*.m3u;*.m3u8;*.pls;*.xspf;*.asx;*.wpl;*.xml;*.b4s;*.qtl\0All Files\0*.*\0";
     ofn.lpstrFile = buffer.data();
     ofn.nMaxFile = static_cast<DWORD>(buffer.size());
     ofn.Flags = OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST | OFN_NOCHANGEDIR;

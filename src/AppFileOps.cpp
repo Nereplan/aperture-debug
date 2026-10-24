@@ -128,7 +128,7 @@ void App::OpenSubtitleFileDialog() {
     ofn.hwndOwner = hWnd;
     ofn.lpstrFile = szFile.data();
     ofn.nMaxFile = static_cast<DWORD>(szFile.size());
-    ofn.lpstrFilter = L"Subtitle Files (*.srt;*.vtt;*.ass;*.ssa)\0*.srt;*.vtt;*.ass;*.ssa\0All Files (*.*)\0*.*\0";
+    ofn.lpstrFilter = L"Subtitle Files (*.srt;*.vtt;*.ass;*.ssa;*.smi;*.sub;*.pjs)\0*.srt;*.vtt;*.ass;*.ssa;*.smi;*.sub;*.pjs\0All Files (*.*)\0*.*\0";
     ofn.nFilterIndex = 1;
     ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_EXPLORER;
     if (DelaySafeGetOpenFileNameW(&ofn)) {

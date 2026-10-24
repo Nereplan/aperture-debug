@@ -1147,6 +1147,20 @@ void App::OpenJumpSizeContextMenu(float x, float y) {
             OpenJumpSizeContextMenu(x, y);
         } });
     struct JumpSizePreset { const wchar_t* label; double sec; };
+    contextMenuItems.push_back({ "mjump_title", L"Medium (Shift+Arrow)", L"", IconType::Next, false, false, false, nullptr, true });
+    const JumpSizePreset mediumPresets[] = {
+        { L"5 seconds", 5.0 }, { L"10 seconds", 10.0 }, { L"30 seconds", 30.0 }, { L"60 seconds", 60.0 } };
+    for (const auto& preset : mediumPresets) {
+        const std::string id = std::string("mjump_") + std::to_string((int)preset.sec);
+        const bool isActive = std::abs(settings.mediumSeekStepSec - preset.sec) < 0.001;
+        contextMenuItems.push_back({ id, preset.label, L"", IconType::Next, false, isActive, false, [this, sec = preset.sec, label = preset.label, x, y]() {
+            settings.mediumSeekStepSec = sec;
+            SaveSettings();
+            ShowOSD(IconType::Next, std::wstring(L"Medium Jump: ") + label);
+            OpenJumpSizeContextMenu(x, y);
+        }, false, false, true});
+    }
+    contextMenuItems.push_back({ "sep1", L"", L"", IconType::Play, true });
     const JumpSizePreset presets[] = {
         { L"5 seconds", 5.0 }, { L"10 seconds", 10.0 }, { L"30 seconds", 30.0 },
         { L"60 seconds", 60.0 }, { L"2 minutes", 120.0 }, { L"5 minutes", 300.0 } };

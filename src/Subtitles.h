@@ -93,6 +93,9 @@ public:
     static bool ParseSrt(const std::string& content, std::vector<SubtitleCue>& outCues);
     static bool ParseVtt(const std::string& content, std::vector<SubtitleCue>& outCues);
     static bool ParseAss(const std::string& content, std::vector<SubtitleCue>& outCues);
+    static bool ParseSami(const std::string& content, std::vector<SubtitleCue>& outCues);
+    static bool ParseMicroDvd(const std::string& content, std::vector<SubtitleCue>& outCues);
+    static bool ParseVPlayer(const std::string& content, std::vector<SubtitleCue>& outCues);
     static std::string DecodeSubtitleBytes(const std::string& bytes);
     static double ParseTimestamp(const std::string& timeStr);
     static std::wstring CleanSubtitleFormatting(const std::string& rawText);

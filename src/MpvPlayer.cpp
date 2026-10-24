@@ -171,7 +171,7 @@ bool MpvPlayer::Initialize(HWND hParentWnd, HWND hChildVideoWnd) {
     // mpv's own OSD (track-change toasts, seek feedback) duplicates Aperture's OSD
     // badge; silence it so notifications come from exactly one surface.
     SetMpvOption(mpv, "osd-level", "0");
-    // No yt-dlp hook: Aperture plays direct URLs only (network streams are validated http/https/rtsp/rtmp), so never invoke the bundled
+    // No yt-dlp hook: Aperture plays direct URLs only (network streams are validated http/https/rtsp/rtmp/udp/rtp), so never invoke the bundled
     // Lua hook path for unhandled inputs.
     SetMpvOption(mpv, "load-scripts", "no", MpvOptionRequirement::Essential);
     SetMpvOption(mpv, "scripts", "", MpvOptionRequirement::Essential);

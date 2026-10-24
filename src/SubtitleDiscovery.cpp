@@ -36,7 +36,7 @@ std::wstring TrimWide(const std::wstring& str) {
 bool IsSupportedSubtitleExtension(const std::wstring& ext) {
     std::wstring lower = ToLowerWide(ext);
     return lower == L".srt" || lower == L".vtt" || lower == L".ass" || lower == L".ssa" || lower == L".sub" || lower == L".smi" ||
-           lower == L".lrc";
+           lower == L".sami" || lower == L".pjs" || lower == L".vplayer" || lower == L".lrc";
 }
 
 bool IsUtf8Valid(const uint8_t* data, size_t size, size_t& nonAsciiCount) {

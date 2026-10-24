@@ -64,7 +64,8 @@ public:
     bool alwaysOnTop = false;
     bool hwAccel = true;
     double defaultSpeed = 1.0, arrowSeekStepSec = 5.0;
-    double largeSeekStepSec = 10.0; // Large jump step in seconds (J/L keys), clamped 1.0-600.0
+    double largeSeekStepSec = 10.0;  // Large jump step in seconds (J/L keys), clamped 1.0-600.0
+    double mediumSeekStepSec = 30.0; // Medium jump step in seconds (Shift+Arrow keys), clamped 1.0-600.0
     int ctrlSeekFrames = 1;
     int networkForwardCacheMB = 8; // Network stream demuxer readahead cache, clamped 8-512 MB
     int networkBackCacheMB = 0;    // Network stream backward demuxer cache, clamped 0-256 MB

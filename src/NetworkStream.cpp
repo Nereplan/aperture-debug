@@ -72,6 +72,8 @@ bool NetworkStreamValidator::IsAllowedScheme(const std::wstring& scheme, const N
     if (lower == L"https") return options.allowHttps;
     if (lower == L"rtsp") return options.allowRtsp;
     if (lower == L"rtmp") return options.allowRtmp;
+    if (lower == L"udp") return options.allowUdp;
+    if (lower == L"rtp") return options.allowRtp;
     return false;
 }
 
@@ -206,6 +208,8 @@ NetworkStreamUrl NetworkStreamValidator::ValidateAndParse(const std::wstring &ra
     else if (lowerScheme == L"https") result.scheme = NetworkStreamScheme::Https;
     else if (lowerScheme == L"rtsp") result.scheme = NetworkStreamScheme::Rtsp;
     else if (lowerScheme == L"rtmp") result.scheme = NetworkStreamScheme::Rtmp;
+    else if (lowerScheme == L"udp") result.scheme = NetworkStreamScheme::Udp;
+    else if (lowerScheme == L"rtp") result.scheme = NetworkStreamScheme::Rtp;
     else result.scheme = NetworkStreamScheme::Unknown;
     // Parse authority and path/query/fragment
     size_t authorityStart = schemeDelim + 3;
@@ -310,7 +314,7 @@ std::wstring NetworkStreamValidator::GetSafeErrorMessage(NetworkStreamValidation
     case NetworkStreamValidationError::UrlTooLong: return L"Stream URL exceeds maximum allowed length.";
     case NetworkStreamValidationError::ContainsControlCharacters: return L"Stream URL contains invalid control characters.";
     case NetworkStreamValidationError::UnsupportedScheme:
-        return L"Unsupported stream protocol. Only http, https, rtsp, and rtmp are supported.";
+        return L"Unsupported stream protocol. Only http, https, rtsp, rtmp, udp, and rtp are supported.";
     case NetworkStreamValidationError::MissingSchemeDelimiter: return L"Invalid URL format. Protocol delimiter '://' is required.";
     case NetworkStreamValidationError::InvalidHost: return L"Invalid stream host or IP address.";
     case NetworkStreamValidationError::EmptyHost: return L"Stream URL must specify a host.";

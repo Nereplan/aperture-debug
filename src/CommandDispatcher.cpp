@@ -71,7 +71,9 @@ constexpr CommandDescriptor kCommands[] = {
     {AppCommand::None, "", L""}, {AppCommand::TogglePlay, "togglePlay", L"Play / Pause"}, {AppCommand::Play, "play", L""},
     {AppCommand::Pause, "pause", L""}, {AppCommand::SeekForward, "seekForward", L"Seek Forward"},
     {AppCommand::SeekBackward, "seekBackward", L"Seek Backward"}, {AppCommand::SeekForwardLarge, "seekForwardLarge", L"Seek Forward (Large Jump)"},
-    {AppCommand::SeekBackwardLarge, "seekBackwardLarge", L"Seek Backward (Large Jump)"}, {AppCommand::SeekTo, "seekTo", L""},
+    {AppCommand::SeekBackwardLarge, "seekBackwardLarge", L"Seek Backward (Large Jump)"},
+    {AppCommand::SeekForwardMedium, "seekForwardMedium", L"Seek Forward (Medium Jump)"},
+    {AppCommand::SeekBackwardMedium, "seekBackwardMedium", L"Seek Backward (Medium Jump)"}, {AppCommand::SeekTo, "seekTo", L""},
     {AppCommand::VolumeUp, "volumeUp", L"Volume Up"}, {AppCommand::VolumeDown, "volumeDown", L"Volume Down"},
     {AppCommand::SetVolume, "setVolume", L""}, {AppCommand::ToggleMute, "toggleMute", L"Mute / Unmute"},
     {AppCommand::SetMuted, "setMuted", L""}, {AppCommand::ToggleFullscreen, "toggleFullscreen", L"Fullscreen"},
@@ -188,6 +190,8 @@ AppCommand CommandDispatcher::TranslateKeyChord(UINT vkCode, bool isCtrl, bool i
         if (!isCtrl && !isAlt && isShift) {
             if (vkCode == 'N') return AppCommand::NextChapter;
             if (vkCode == 'P') return AppCommand::PreviousChapter;
+            if (vkCode == VK_RIGHT) return AppCommand::SeekForwardMedium;
+            if (vkCode == VK_LEFT) return AppCommand::SeekBackwardMedium;
         }
         if (!isCtrl && !isAlt && !isShift) {
             if (vkCode == VK_SPACE || vkCode == 'K') return AppCommand::TogglePlay;
@@ -283,6 +287,14 @@ bool CommandDispatcher::Execute(AppCommand cmd, const CommandArgs& args) {
     }
     case AppCommand::SeekBackwardLarge: {
         if (session.IsOpen()) { player.SeekRelative(-settings.largeSeekStepSec); context->TriggerDoubleTapFeedback(false, (int)settings.largeSeekStepSec); return true; }
+        return false;
+    }
+    case AppCommand::SeekForwardMedium: {
+        if (session.IsOpen()) { player.SeekRelative(settings.mediumSeekStepSec); context->TriggerDoubleTapFeedback(true, (int)settings.mediumSeekStepSec); return true; }
+        return false;
+    }
+    case AppCommand::SeekBackwardMedium: {
+        if (session.IsOpen()) { player.SeekRelative(-settings.mediumSeekStepSec); context->TriggerDoubleTapFeedback(false, (int)settings.mediumSeekStepSec); return true; }
         return false;
     }
     case AppCommand::SeekTo: {
