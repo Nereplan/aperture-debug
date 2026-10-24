@@ -669,6 +669,7 @@ void UIComponents::DrawSettingsView(Renderer& r, const Settings& s, const Settin
         // The Experience page follows the playback card rhythm: a mode picker
         // card, plus a Custom-features card that only exists in Custom mode.
         const ExperienceMode expMode = FeatureGate::ModeFromString(s.experienceMode);
+        const size_t catalogTotal = FeatureGate::Catalog().size();
         const float cardGap = SettingsLayout::kSectionCardGap * dp, cardLeft = contentBounds.left + padX - 10.0f * dp;
         const float cardRight = contentBounds.right - padX + 10.0f * dp, contentLeft = contentBounds.left + padX;
         const float contentRight = contentBounds.right - padX, cardTitleH = SettingsLayout::kExperienceCardTitleHeight * dp;
@@ -720,20 +721,32 @@ void UIComponents::DrawSettingsView(Renderer& r, const Settings& s, const Settin
         }
         const float descTop = chipTop + chipH + 8.0f * dp;
         r.DrawString(Loc::Tr(modeDescKeys[static_cast<int>(expMode)]),
-                     D2D1::RectF(contentLeft, descTop, contentRight, descTop + 18.0f * dp),
+                     D2D1::RectF(contentLeft, descTop, contentRight - 130.0f * dp, descTop + 18.0f * dp),
                      textMute, FontType::Small, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+        // Live summary of the active surface (right-aligned beside the description).
+        {
+            const size_t visibleCount = FeatureGate::EnabledFeatureCount(expMode, s.customEnabledFeatures);
+            r.DrawString(Loc::Format(expMode == ExperienceMode::Custom ? "settings.experience.count_enabled"
+                                                                       : "settings.experience.count_visible",
+                                     std::to_wstring(visibleCount), std::to_wstring(catalogTotal)),
+                         D2D1::RectF(contentRight - 140.0f * dp, descTop, contentRight, descTop + 18.0f * dp),
+                         textMute, FontType::Small, DWRITE_TEXT_ALIGNMENT_TRAILING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+        }
         contentY = modeTop + modeCardH + cardGap;
-        // Card 2: Custom Features (Rows 1..12, one per catalog feature)
+        // Card 2: Custom Features (catalog order, one row per feature)
         if (expMode == ExperienceMode::Custom) {
             const float featuresTop = contentY;
             drawExperienceCard(featuresTop, SettingsLayout::kExperienceFeaturesCardHeight * dp);
             const D2D1_RECT_F titleRect = D2D1::RectF(contentLeft + 22.0f * dp, featuresTop + 10.0f * dp,
-                                                      contentRight - 22.0f * dp, featuresTop + 34.0f * dp);
+                                                      contentRight - 190.0f * dp, featuresTop + 34.0f * dp);
             r.DrawString(Loc::Tr("settings.experience.features_title"), titleRect, textPri, FontType::Medium,
                          DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-            const D2D1_RECT_F hintRect = D2D1::RectF(contentLeft + 22.0f * dp, featuresTop + 10.0f * dp,
+            const D2D1_RECT_F hintRect = D2D1::RectF(contentRight - 190.0f * dp, featuresTop + 10.0f * dp,
                                                      contentRight - 22.0f * dp, featuresTop + 34.0f * dp);
-            r.DrawString(Loc::Tr("settings.experience.features_hint"), hintRect, textMute, FontType::Small,
+            r.DrawString(Loc::Format("settings.experience.count_enabled",
+                                     std::to_wstring(FeatureGate::EnabledFeatureCount(ExperienceMode::Custom, s.customEnabledFeatures)),
+                                     std::to_wstring(catalogTotal)),
+                         hintRect, textMute, FontType::Small,
                          DWRITE_TEXT_ALIGNMENT_TRAILING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
             const float rowH = SettingsLayout::kExperienceFeatureRowHeight * dp;
             const auto& catalog = FeatureGate::Catalog();

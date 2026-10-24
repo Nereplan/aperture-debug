@@ -216,6 +216,25 @@ inline bool FeatureEnabled(ExperienceMode mode, const std::vector<std::string>& 
     return false;
 }
 
+// Enabled state for a CATALOG POSITION (the order rows render in). The enum
+// order and the catalog array order are intentionally different — the catalog
+// is grouped by display group — so UI index math must go through this helper
+// and never cast a position to FeatureId.
+inline bool FeatureEnabledAt(ExperienceMode mode, const std::vector<std::string>& customEnabled, size_t catalogIndex) {
+    const auto& catalog = Catalog();
+    if (catalogIndex >= catalog.size()) return true;
+    return FeatureEnabled(mode, customEnabled, catalog[catalogIndex].id);
+}
+
+// How many catalog features the given mode surface shows (for summaries).
+inline size_t EnabledFeatureCount(ExperienceMode mode, const std::vector<std::string>& customEnabled) {
+    size_t count = 0;
+    for (const auto& info : Catalog()) {
+        if (FeatureEnabled(mode, customEnabled, info.id)) ++count;
+    }
+    return count;
+}
+
 // Menu-item visibility: unknown ids are ALWAYS visible (default-open surface).
 inline bool MenuItemVisible(ExperienceMode mode, const std::vector<std::string>& customEnabled, const std::string& menuItemId) {
     for (const auto& info : Catalog()) {

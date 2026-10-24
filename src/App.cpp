@@ -473,7 +473,7 @@ void App::RestoreLogicalFocus(const FocusSnapshot& snapshot) {
                 int rowCount = (currentSettingsCat == SettingsCategory::Appearance) ? 2 :
                                (currentSettingsCat == SettingsCategory::Playback) ? 14 :
                                (currentSettingsCat == SettingsCategory::Subtitles) ? 6 :
-                               (currentSettingsCat == SettingsCategory::Experience) ? ((FeatureGate::ModeFromString(settings.experienceMode) == ExperienceMode::Custom) ? 39 : 1) :
+                               (currentSettingsCat == SettingsCategory::Experience) ? ((FeatureGate::ModeFromString(settings.experienceMode) == ExperienceMode::Custom) ? static_cast<int>(FeatureGate::Catalog().size()) + 1 : 1) :
                                (currentSettingsCat == SettingsCategory::System) ? SettingsLayout::kSystemRowCount : 1;
                 keyboardFocusedIndex = std::clamp(snapshot.keyboardIndex, 0, std::max(0, rowCount - 1));
                 keyboardFocusedSubIndex = snapshot.keyboardSubIndex;
@@ -1503,9 +1503,9 @@ bool App::Initialize(HWND hwnd, HWND hVideoChild, HINSTANCE hinst, const Playbac
     loopToggleAnim.SnapTo(settings.loop ? 1.0f : 0.0f);
     customMpvConfigToggleAnim.SnapTo(settings.customMpvConfigEnabled ? 1.0f : 0.0f);
     for (int i = 0; i < 40; ++i) {
-        const bool enabled = i < static_cast<int>(FeatureGate::FeatureId::Count) &&
-            FeatureGate::FeatureEnabled(FeatureGate::ModeFromString(settings.experienceMode),
-                                        settings.customEnabledFeatures, static_cast<FeatureGate::FeatureId>(i));
+        // Catalog-position order — the same order the Experience rows render in.
+        const bool enabled = FeatureGate::FeatureEnabledAt(FeatureGate::ModeFromString(settings.experienceMode),
+                                                           settings.customEnabledFeatures, static_cast<size_t>(i));
         experienceToggleAnim[i].SnapTo(enabled ? 1.0f : 0.0f);
     }
     player.SetCustomMpvConfigEnabled(settings.customMpvConfigEnabled);
@@ -1983,10 +1983,10 @@ bool App::Update(float dt) {
         if (customMpvConfigToggleAnim.Tick()) needsRedraw = true;
         // Experience feature toggles ease toward the enabled state of their
         // catalog feature; the target re-resolves whenever the mode changes.
+        // Index by catalog position (render order), never by FeatureId.
         for (int i = 0; i < 40; ++i) {
-            const bool enabled = i < static_cast<int>(FeatureGate::FeatureId::Count) &&
-                FeatureGate::FeatureEnabled(FeatureGate::ModeFromString(settings.experienceMode),
-                                            settings.customEnabledFeatures, static_cast<FeatureGate::FeatureId>(i));
+            const bool enabled = FeatureGate::FeatureEnabledAt(FeatureGate::ModeFromString(settings.experienceMode),
+                                                               settings.customEnabledFeatures, static_cast<size_t>(i));
             const float toggleTarget = enabled ? 1.0f : 0.0f;
             if (std::abs(experienceToggleAnim[i].to - toggleTarget) > 0.001f) {
                 AnimateVisual(experienceToggleAnim[i], toggleTarget, MotionTokens::kToggle, MotionTokens::Standard());
@@ -3891,7 +3891,7 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                     float contentW = RectWidth(contentBounds) - padX * 2.0f;
                     if (currentSettingsCat == SettingsCategory::Experience) {
                         // Card 1: mode chips (row 0, sub 0..2); Card 2: feature rows
-                        // (rows 1..12, custom mode only). Geometry mirrors the renderer,
+                        // (catalog order, custom mode only). Geometry mirrors the renderer,
                         // including the group-header advancement inside the feature card.
                         const ExperienceMode expMode = FeatureGate::ModeFromString(settings.experienceMode);
                         const float contentLeft = contentBounds.left + padX, contentRight = contentBounds.right - padX;

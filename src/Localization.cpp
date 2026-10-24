@@ -94,6 +94,8 @@ constexpr StringEntryView kCanonicalStringEntries[] = {
     { "settings.experience.mode.custom_desc", "Pick exactly which extra features appear." },
     { "settings.experience.features_title", "Custom Features" },
     { "settings.experience.features_hint", "Enabled features appear in the player menus." },
+    { "settings.experience.count_visible", "{0} of {1} features visible" },
+    { "settings.experience.count_enabled", "{0} of {1} enabled" },
     { "settings.experience.group.audio", "Audio" }, { "settings.experience.group.subtitles", "Subtitles" },
     { "settings.experience.group.video", "Video" }, { "settings.experience.group.playback", "Playback" },
     { "settings.experience.feature.audio_balance", "Audio Balance" },

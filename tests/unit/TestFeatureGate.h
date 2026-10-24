@@ -132,6 +132,44 @@ TEST_CASE(FeatureGate, SanitizeFeatureKeys) {
     TEST_ASSERT(empty.empty());
 }
 
+// The catalog array is grouped for display and its order intentionally
+// diverges from the FeatureId enum. UI row math goes through FeatureEnabledAt
+// (catalog position) — this guard pins that contract and the page-height
+// constant so the two orderings can never silently drift apart again.
+TEST_CASE(FeatureGate, CatalogPositionMapping) {
+    const auto& catalog = FeatureGate::Catalog();
+    TEST_ASSERT(catalog.size() > 1);
+    // Enum order really is different from catalog order (the premise of the bug).
+    bool diverged = false;
+    for (size_t i = 0; i < catalog.size(); ++i) {
+        if (catalog[i].id != static_cast<FeatureGate::FeatureId>(i)) { diverged = true; break; }
+    }
+    TEST_ASSERT_MSG(diverged, "catalog is expected to be grouped, not in enum order");
+
+    const std::vector<std::string> customList{ catalog[0].key, "sleep_timer" };
+    const ExperienceMode modes[] = { ExperienceMode::Simple, ExperienceMode::Advanced, ExperienceMode::Custom };
+    for (ExperienceMode mode : modes) {
+        for (size_t i = 0; i < catalog.size(); ++i) {
+            const bool atPosition = FeatureGate::FeatureEnabledAt(mode, customList, i);
+            const bool byId = FeatureGate::FeatureEnabled(mode, customList, catalog[i].id);
+            TEST_ASSERT_MSG(atPosition == byId,
+                (std::string("FeatureEnabledAt mismatch at catalog index ") + std::to_string(i) +
+                 " (" + catalog[i].key + ")").c_str());
+        }
+    }
+    // Out-of-range positions stay visible (mirrors unknown-id default-open).
+    TEST_ASSERT(FeatureGate::FeatureEnabledAt(ExperienceMode::Custom, customList, catalog.size() + 7));
+
+    // Count summary must agree with per-feature resolution.
+    for (ExperienceMode mode : modes) {
+        size_t expected = 0;
+        for (const auto& info : catalog) {
+            if (FeatureGate::FeatureEnabled(mode, customList, info.id)) ++expected;
+        }
+        TEST_ASSERT_EQ(FeatureGate::EnabledFeatureCount(mode, customList), expected);
+    }
+}
+
 // Mouse-button/wheel pseudo-key bindings (Feature 4): display names must parse
 // back to the shared 0x100..0x104 range and FormatShortcutKey must re-emit the
 // same name, with or without the Ctrl modifier prefix.
