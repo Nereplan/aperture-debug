@@ -6,8 +6,10 @@ namespace Aperture::SettingsLayout {
 
 // Shared DIP geometry for the native settings view. Keeping the visual, pointer, accessibility, and keyboard-scroll origins together
 // prevents a styling-only change from moving controls away from their hit targets.
-inline constexpr int kSystemActions[] = {11, 9, 10, 13, 0, 2, 7, 8};
-inline constexpr int kSystemRowCount = 8;
+// Action ids: 11 check updates, 9 hover previews, 10 reduce motion, 13 smart series, 14 jump list,
+// 15 register file types, 16 remove file types, 0 open data, 2 clear cache, 7 clear history, 8 reset defaults.
+inline constexpr int kSystemActions[] = {11, 9, 10, 13, 14, 15, 16, 0, 2, 7, 8};
+inline constexpr int kSystemRowCount = 11;
 inline constexpr float kSystemAboutHeight = 72.0f;
 inline constexpr float kSystemActionsTop = 28.0f + kSystemAboutHeight + 18.0f + 28.0f;
 inline constexpr float kSidebarWidth = 210.0f;
@@ -49,11 +51,11 @@ inline constexpr float kPlaybackMpvCardHeight = kPlaybackMpvActionTop + 3.0f * k
 
 // Experience uses the playback card rhythm for its mode picker and the
 // Custom-mode feature card. The feature card height derives from the catalog
-// feature count (35 features, 4 group headers) so the page scrolls correctly.
+// feature count (36 features, 4 group headers) so the page scrolls correctly.
 inline constexpr float kExperienceCardTitleHeight = kPlaybackCardTitleHeight;
 inline constexpr float kExperienceFeatureRowHeight = kPlaybackBehaviorRowHeight;
 inline constexpr float kExperienceGroupHeaderHeight = 28.0f;
-inline constexpr float kExperienceFeatureCount = 35.0f;
+inline constexpr float kExperienceFeatureCount = 36.0f;
 inline constexpr float kExperienceFeaturesCardHeight = kExperienceCardTitleHeight +
     kExperienceFeatureCount * kExperienceFeatureRowHeight + 4.0f * kExperienceGroupHeaderHeight + 8.0f;
 inline constexpr float kExperienceModeCardHeight = kExperienceCardTitleHeight + kControlHeight +

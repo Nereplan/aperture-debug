@@ -19,6 +19,7 @@ enum class FeatureId {
     CustomAspect, CustomRotation, ScreenshotFormat, JumpSize, LogViewer,
     ZoomPan,
     InternetRadio,
+    WallpaperMode,
     Count
 };
 
@@ -120,6 +121,9 @@ inline const std::array<FeatureInfo, static_cast<size_t>(FeatureId::Count)>& Cat
         { FeatureId::ZoomPan, "zoom_pan", FeatureTier::Advanced, "video",
           "settings.experience.feature.zoom_pan",
           { "zoom_in", "zoom_out", "pan_reset" } },
+        { FeatureId::WallpaperMode, "wallpaper_mode", FeatureTier::Advanced, "video",
+          "settings.experience.feature.wallpaper_mode",
+          { "wallpaper_mode" } },
         { FeatureId::ABRepeat, "ab_repeat", FeatureTier::Advanced, "playback",
           "settings.experience.feature.ab_repeat",
           { "ab_cycle" } },

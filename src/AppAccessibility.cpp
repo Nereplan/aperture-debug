@@ -1695,6 +1695,9 @@ void App::RefreshAccessibilityTree(bool force) {
                     { Loc::Tr("settings.system.hover_previews"), settings.hoverPreviewEnabled ? L"On" : L"Off" },
                     { Loc::Tr("settings.system.reduce_motion"), settings.reduceMotionEnabled ? L"On" : L"Windows setting" },
                     { Loc::Tr("settings.system.smart_series"), settings.smartSeriesDetection ? L"On" : L"Off" },
+                    { Loc::Tr("settings.system.jump_list"), settings.jumpListEnabled ? L"On" : L"Off" },
+                    { Loc::Tr("settings.system.register_types"), L"Register" },
+                    { Loc::Tr("settings.system.remove_types"), L"Remove" },
                     { Loc::Tr("settings.system.open_data"), L"Open" },
                     { Loc::Tr("settings.system.clear_disk_cache"), L"Clear" },
                     { Loc::Tr("settings.system.clear_history"), L"Clear" },
@@ -1851,9 +1854,11 @@ void App::RefreshAccessibilityTree(bool force) {
                                 HandleGlobalKeyDown(VK_RETURN, 0);
                             };
                         }
-                        if (currentSettingsCat == SettingsCategory::System && (i == 1 || i == 2 || i == 3)) {
+                        if (currentSettingsCat == SettingsCategory::System && (i == 1 || i == 2 || i == 3 || i == 4)) {
                             n.hasToggle = true;
-                            const bool checked = (i == 1 ? settings.hoverPreviewEnabled : (i == 2 ? settings.reduceMotionEnabled : settings.smartSeriesDetection));
+                            const bool checked = (i == 1 ? settings.hoverPreviewEnabled :
+                                                   (i == 2 ? settings.reduceMotionEnabled :
+                                                   (i == 3 ? settings.smartSeriesDetection : settings.jumpListEnabled)));
                             n.toggleState = checked ? ToggleState_On : ToggleState_Off;
                             n.onToggle = [this, i](LONG, ToggleState) {
                                 activeFocusPane = FocusPane::SettingsContent;

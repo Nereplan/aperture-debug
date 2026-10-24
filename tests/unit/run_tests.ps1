@@ -29,6 +29,8 @@ $srcFiles = @(
     "`"$rootDir\src\Localization.cpp`"",
     "`"$rootDir\src\MediaLibrary.cpp`"",
     "`"$rootDir\src\FolderWatcher.cpp`"",
+    "`"$rootDir\src\FileAssociations.cpp`"",
+    "`"$rootDir\src\JumpList.cpp`"",
     "`"$rootDir\src\MpvPlayer.cpp`"",
     "`"$rootDir\src\PlaybackSession.cpp`"",
     "`"$rootDir\src\CommandDispatcher.cpp`"",

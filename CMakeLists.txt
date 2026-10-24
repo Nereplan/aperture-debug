@@ -109,10 +109,12 @@ set(APERTURE_SOURCES
     src/ChannelPolicy.cpp
     src/CommandDispatcher.cpp
     src/Diagnostics.cpp
+    src/FileAssociations.cpp
     src/FolderWatcher.cpp
     src/GlobalSearch.cpp
     src/HttpTransport.cpp
     src/InternetRadio.cpp
+    src/JumpList.cpp
     src/Json.cpp
     src/LibraryQuery.cpp
     src/LibrarySnapshot.cpp
@@ -153,10 +155,12 @@ set(APERTURE_HEADERS
     src/Diagnostics.h
     src/DllLoader.h
     src/Error.h
+    src/FileAssociations.h
     src/FolderWatcher.h
     src/GlobalSearch.h
     src/HttpTransport.h
     src/IpcProtocol.h
+    src/JumpList.h
     src/Json.h
     src/LibraryQuery.h
     src/Localization.h

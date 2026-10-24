@@ -12,6 +12,7 @@
 #include "TestPlaybackRenderer.h"
 #include "TestDuplicateDetection.h"
 #include "TestFeatureGate.h"
+#include "TestFileAssociations.h"
 #include "TestFolderRediscovery.h"
 #include "TestFolderWatchConfiguration.h"
 #include "TestGlobalSearch.h"

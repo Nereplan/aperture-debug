@@ -835,6 +835,7 @@ void App::OpenHistoryContextMenu(const HistoryRecord& item, float x, float y) {
             for (size_t i = 0; i < library.history.size(); ++i) {
                 if (library.history[i].filePath == path) { ArmLibraryUndo(L"History removal"); library.RemoveFromHistory(i); break; }
             }
+            MarkJumpListDirty();
             ShowOSD(IconType::Trash, L"Removed from History");
             InvalidateRect(hWnd, NULL, FALSE);
         }});
@@ -1092,6 +1093,16 @@ void App::OpenPlayerAdvancedContextMenu(float x, float y) {
                                 }, false, false, true});
     contextMenuItems.push_back({"open_log_viewer", L"View Diagnostics Log", L"", IconType::SettingsGear, false, false, false,
                                 [this]() { ToggleLogViewer(); }, false, false, true});
+    contextMenuItems.push_back({"wallpaper_mode", L"Desktop Wallpaper", L"", IconType::MediaFilm, false, wallpaperModeActive, false,
+                                [this]() {
+                                    SetWallpaperMode(!wallpaperModeActive);
+                                    for (auto& it : contextMenuItems) {
+                                        if (it.id == "wallpaper_mode") {
+                                            it.isChecked = wallpaperModeActive;
+                                            break;
+                                        }
+                                    }
+                                }, false, false, true});
     std::wstring balSummary = L"Center";
     if (settings.audioBalance < -0.01) {
         wchar_t buf[32];

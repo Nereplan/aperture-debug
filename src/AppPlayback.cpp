@@ -830,6 +830,7 @@ void App::OpenAndPlayMedia(const std::wstring& filePath, double startPosSec, boo
         SyncOverlayPosition();
         if (playbackSession.CanPersistLocalTarget(resolvedPath))
             library.AddToHistory(resolvedPath, seekPos, item ? item->durationSec : 0.0);
+        MarkJumpListDirty();
         std::wstring title = item ? item->title : GetFileTitleFromPath(resolvedPath);
         SetWindowTextW(hWnd, (title + L" - " + std::wstring(Version::ProductNameWide)).c_str());
         Render();
@@ -845,6 +846,8 @@ void App::OpenAndPlayMedia(const std::wstring& filePath, double startPosSec, boo
 
 void App::ClosePlayer() {
     ++playbackRequestGeneration;
+    // The video child must never remain owned by the shell wallpaper WorkerW.
+    DisableWallpaperMode();
     StopAutoscroll(true);
     playerKeyboardFocusId = 0;
     isKeyboardNavActive = false;
@@ -863,6 +866,7 @@ void App::ClosePlayer() {
             library.UpdateProgress(player.GetCurrentFilePath(), player.GetCurrentTime(), player.GetDuration());
             PromoteLastWatchedMedia();
             SaveLibrary();
+            MarkJumpListDirty();
         }
         SaveSession();
         lastAnnouncedChapterIndex = -1;
@@ -933,6 +937,7 @@ void App::PersistCurrentPlaybackProgress() {
     if (!playbackSession.CanPersistLocalTarget(path)) return;
     library.UpdateProgress(path, player.GetCurrentTime(), player.GetDuration());
     SaveLibrary();
+    MarkJumpListDirty();
 }
 
 
@@ -985,6 +990,8 @@ void App::PlayPlaylist(const std::string& playlistId, size_t startIndex) {
 
 void App::ToggleFullscreen() {
     if (!hWnd || inPresentationTransition) return;
+    // The video child must never remain owned by the shell wallpaper WorkerW.
+    DisableWallpaperMode();
     if (playbackSession.IsPiP()) {
         PersistPiPGeometry();
         PreSizeVideoSurfaceForPresentation();
@@ -1015,6 +1022,8 @@ void App::ToggleFullscreen() {
 
 void App::TogglePiP() {
     if (!hWnd || inPresentationTransition) return;
+    // The video child must never remain owned by the shell wallpaper WorkerW.
+    DisableWallpaperMode();
     isPiPVolumeSliderOpen = false;
     isPiPVolumeDragging = false;
     pipVolumeAnim.SnapTo(0.0f);

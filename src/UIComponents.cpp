@@ -1613,6 +1613,9 @@ void UIComponents::DrawSettingsView(Renderer& r, const Settings& s, const Settin
             { Loc::Tr("settings.system.hover_previews"), s.hoverPreviewEnabled ? Loc::Tr("settings.system.hover_previews_on") : Loc::Tr("settings.system.hover_previews_off"), false, IconType::MediaFilm },
             { Loc::Tr("settings.system.reduce_motion"), s.reduceMotionEnabled ? Loc::Tr("settings.system.reduce_motion_on") : Loc::Tr("settings.system.reduce_motion_off"), false, IconType::SpeedGauge },
             { Loc::Tr("settings.system.smart_series"), s.smartSeriesDetection ? Loc::Tr("settings.system.smart_series_on") : Loc::Tr("settings.system.smart_series_off"), false, IconType::FolderPlaylist },
+            { Loc::Tr("settings.system.jump_list"), s.jumpListEnabled ? Loc::Tr("settings.system.jump_list_on") : Loc::Tr("settings.system.jump_list_off"), false, IconType::HistoryClock },
+            { Loc::Tr("settings.system.register_types"), Loc::Tr("settings.system.register_types_desc"), false, IconType::MediaFilm },
+            { Loc::Tr("settings.system.remove_types"), Loc::Tr("settings.system.remove_types_desc"), false, IconType::Trash },
             { Loc::Tr("settings.system.open_data"), Loc::Tr("settings.system.open_data_desc"), false, IconType::AspectFrame },
             { Loc::Tr("settings.system.clear_disk_cache"), Loc::Tr("settings.system.clear_disk_cache_desc"), false, IconType::Trash },
             { Loc::Tr("settings.system.clear_history"), Loc::Tr("settings.system.clear_history_desc"), true, IconType::HistoryClock },
@@ -1704,10 +1707,11 @@ void UIComponents::DrawSettingsView(Renderer& r, const Settings& s, const Settin
                     actBorder = dangerCol;
                     actText = LerpColor(actText, D2D1::ColorF(1.0f, 1.0f, 1.0f), pressProg);
                 }
-            } else if (i == 1 || i == 2 || i == 3) {
+            } else if (i == 1 || i == 2 || i == 3 || i == 4) {
                 const bool isEnabled = (i == 1 && s.hoverPreviewEnabled) ||
                                        (i == 2 && s.reduceMotionEnabled) ||
-                                       (i == 3 && s.smartSeriesDetection);
+                                       (i == 3 && s.smartSeriesDetection) ||
+                                       (i == 4 && s.jumpListEnabled);
                 if (isEnabled) {
                     actBg = LerpColor(ColorWithAlpha(accentCol, 0.20f), ColorWithAlpha(accentCol, 0.32f), hoverProg);
                     actBorder = LerpColor(ColorWithAlpha(accentCol, 0.60f), accentCol, hoverProg);
@@ -1740,6 +1744,8 @@ void UIComponents::DrawSettingsView(Renderer& r, const Settings& s, const Settin
                 s.hoverPreviewEnabled ? Loc::Tr("settings.system.btn.enabled") : Loc::Tr("settings.system.btn.disabled"),
                 s.reduceMotionEnabled ? Loc::Tr("settings.system.btn.enabled") : Loc::Tr("settings.system.btn.disabled"),
                 s.smartSeriesDetection ? Loc::Tr("settings.system.btn.enabled") : Loc::Tr("settings.system.btn.disabled"),
+                s.jumpListEnabled ? Loc::Tr("settings.system.btn.enabled") : Loc::Tr("settings.system.btn.disabled"),
+                Loc::Tr("settings.system.btn.register_types"), Loc::Tr("settings.system.btn.remove_types"),
                 Loc::Tr("settings.system.btn.open_data"), Loc::Tr("settings.system.btn.clear_disk"),
                 Loc::Tr("settings.system.btn.clear_history"), Loc::Tr("settings.system.btn.reset_defaults")
             };

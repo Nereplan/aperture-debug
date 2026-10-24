@@ -9,6 +9,8 @@
 #include "Reorder.h"
 #include "Updater.h"
 #include "ChannelPolicy.h"
+#include "FileAssociations.h"
+#include "JumpList.h"
 #include "Localization.h"
 #include "SettingsLayout.h"
 #include "Presentation.h"
@@ -1099,7 +1101,7 @@ bool App::HandleGlobalKeyDown(WPARAM wParam, LPARAM lParam) {
                 if (currentSettingsCat == SettingsCategory::Appearance) maxRows = 2;
                 else if (currentSettingsCat == SettingsCategory::Playback) maxRows = 14;
                 else if (currentSettingsCat == SettingsCategory::Subtitles) maxRows = 6;
-                else if (currentSettingsCat == SettingsCategory::Experience) maxRows = (FeatureGate::ModeFromString(settings.experienceMode) == ExperienceMode::Custom) ? 36 : 1;
+                else if (currentSettingsCat == SettingsCategory::Experience) maxRows = (FeatureGate::ModeFromString(settings.experienceMode) == ExperienceMode::Custom) ? 37 : 1;
                 else if (currentSettingsCat == SettingsCategory::Shortcuts) maxRows = (int)midSc + 1;
                 else if (currentSettingsCat == SettingsCategory::System) maxRows = SettingsLayout::kSystemRowCount;
                 auto getMaxSubIndex = [&](int row) -> int {
@@ -1336,6 +1338,7 @@ bool App::HandleGlobalKeyDown(WPARAM wParam, LPARAM lParam) {
                             ShowConfirmationModal(L"Clear Watch History", L"Erase all watch history and playback progress? You can undo this afterward.", L"Clear History", [this]() {
                                 ArmLibraryUndo(L"History clear");
                                 library.ClearHistory();
+                                MarkJumpListDirty();
                                 SaveLibrary();
                                 selectedHistoryIndices.clear();
                                 isLastWatchedCleared = true;
@@ -1374,6 +1377,32 @@ bool App::HandleGlobalKeyDown(WPARAM wParam, LPARAM lParam) {
                                 SetLibraryGroupMode(settings.smartSeriesDetection ? LibraryGroupMode::Series : LibraryGroupMode::Folder);
                             SaveSettings();
                             ShowOSD(IconType::SettingsGear, settings.smartSeriesDetection ? L"Smart series detection enabled" : L"Grouping by folder name");
+                        } else if (action == 14) {
+                            settings.jumpListEnabled = !settings.jumpListEnabled;
+                            SaveSettings();
+                            ShowOSD(IconType::HistoryClock, settings.jumpListEnabled ? L"Jump list enabled" : L"Jump list disabled");
+                            // On: rebuild now; off: publish an empty list to remove the category.
+                            PumpJumpListUpdate(true);
+                        } else if (action == 15) {
+                            const FileAssociationResult registered = RegisterFileAssociations();
+                            if (registered.registered == 0 && registered.failed > 0) {
+                                ShowOSD(IconType::MediaFilm, L"File type registration failed");
+                            } else {
+                                wchar_t buf[160];
+                                swprintf_s(buf, L"File types registered (%d extensions; use Open With to pick Aperture)", registered.registered);
+                                ShowOSD(IconType::MediaFilm, buf);
+                            }
+                        } else if (action == 16) {
+                            if (!GetFileAssociationState()) {
+                                ShowOSD(IconType::MediaFilm, L"No file types registered");
+                            } else {
+                                const FileAssociationResult removed = UnregisterFileAssociations();
+                                if (removed.registered == 0 && removed.failed > 0) {
+                                    ShowOSD(IconType::MediaFilm, L"File type removal failed");
+                                } else {
+                                    ShowOSD(IconType::MediaFilm, L"File type registration removed");
+                                }
+                            }
                         }
                         SaveSettings();
                     }

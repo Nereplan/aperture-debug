@@ -9,6 +9,7 @@
 #include "OnlineSubtitles.h"
 #include "Updater.h"
 #include "ChannelPolicy.h"
+#include "JumpList.h"
 #include "Localization.h"
 #include "SettingsLayout.h"
 #include "Presentation.h"
@@ -472,7 +473,7 @@ void App::RestoreLogicalFocus(const FocusSnapshot& snapshot) {
                 int rowCount = (currentSettingsCat == SettingsCategory::Appearance) ? 2 :
                                (currentSettingsCat == SettingsCategory::Playback) ? 14 :
                                (currentSettingsCat == SettingsCategory::Subtitles) ? 6 :
-                               (currentSettingsCat == SettingsCategory::Experience) ? ((FeatureGate::ModeFromString(settings.experienceMode) == ExperienceMode::Custom) ? 36 : 1) :
+                               (currentSettingsCat == SettingsCategory::Experience) ? ((FeatureGate::ModeFromString(settings.experienceMode) == ExperienceMode::Custom) ? 37 : 1) :
                                (currentSettingsCat == SettingsCategory::System) ? SettingsLayout::kSystemRowCount : 1;
                 keyboardFocusedIndex = std::clamp(snapshot.keyboardIndex, 0, std::max(0, rowCount - 1));
                 keyboardFocusedSubIndex = snapshot.keyboardSubIndex;
@@ -585,6 +586,137 @@ void App::ToggleAlwaysOnTop() {
     ApplyAlwaysOnTop();
     SaveSettings();
     ShowOSD(IconType::Pin, settings.alwaysOnTop ? L"Always on Top: On" : L"Always on Top: Off");
+}
+
+namespace {
+// Classic WorkerW wallpaper host: the top-level window that hosts the shell's
+// SHELLDLL_DefView (Progman before message 0x052C, a WorkerW on some shells),
+// followed by the WorkerW created behind it for the wallpaper surface.
+struct WallpaperWorkerLookup { HWND worker = nullptr; };
+BOOL CALLBACK FindWallpaperWorkerWProc(HWND hwnd, LPARAM lParam) {
+    if (!FindWindowExW(hwnd, nullptr, L"SHELLDLL_DefView", nullptr)) return TRUE;
+    WallpaperWorkerLookup* lookup = reinterpret_cast<WallpaperWorkerLookup*>(lParam);
+    lookup->worker = FindWindowExW(nullptr, hwnd, L"WorkerW", nullptr);
+    return FALSE;
+}
+} // namespace
+
+void App::SetWallpaperMode(bool enabled) {
+    if (!hWnd || !hVideoWnd) return;
+    if (!enabled) {
+        if (wallpaperModeActive) {
+            DisableWallpaperMode();
+            ShowOSD(IconType::MediaFilm, L"Wallpaper Mode: Off");
+        }
+        return;
+    }
+    if (wallpaperModeActive) return;
+    if (!playbackSession.IsOpen() || IsPiP() || IsFullscreen()) {
+        ShowOSD(IconType::MediaFilm, L"Wallpaper mode needs normal playback");
+        return;
+    }
+    HWND progman = FindWindowW(L"Progman", nullptr);
+    if (!progman) { ShowOSD(IconType::MediaFilm, L"Wallpaper mode unavailable"); return; }
+    // Ask Progman to spawn the wallpaper WorkerW behind its shell view.
+    DWORD_PTR spawnResult = 0;
+    SendMessageTimeoutW(progman, 0x052C, 0, 0, SMTO_NORMAL | SMTO_ABORTIFHUNG, 1000, &spawnResult);
+    WallpaperWorkerLookup lookup;
+    EnumWindows(FindWallpaperWorkerWProc, reinterpret_cast<LPARAM>(&lookup));
+    HWND workerW = lookup.worker;
+    if (!workerW) { ShowOSD(IconType::MediaFilm, L"Wallpaper mode unavailable"); return; }
+    // Remember the child's owner and its placement in that owner's client
+    // coordinates before the reparent (SetParent keeps the screen rect).
+    HWND originalParent = GetParent(hVideoWnd);
+    RECT childRect{};
+    if (!originalParent || !GetWindowRect(hVideoWnd, &childRect)) {
+        ShowOSD(IconType::MediaFilm, L"Wallpaper mode unavailable");
+        return;
+    }
+    MapWindowPoints(NULL, originalParent, reinterpret_cast<POINT*>(&childRect), 2);
+    wallpaperOriginalParent = originalParent;
+    wallpaperOriginalChildRect = childRect;
+    if (hOverlayWnd) ShowWindow(hOverlayWnd, SW_HIDE);
+    if (!SetParent(hVideoWnd, workerW)) {
+        wallpaperOriginalParent = NULL;
+        wallpaperOriginalChildRect = { 0, 0, 0, 0 };
+        if (playbackSession.IsOpen() && hOverlayWnd) ShowWindow(hOverlayWnd, SW_SHOW);
+        ShowOSD(IconType::MediaFilm, L"Wallpaper mode unavailable");
+        return;
+    }
+    wallpaperModeActive = true;
+    // Cover the monitor the main window is on.
+    HMONITOR monitor = MonitorFromWindow(hWnd, MONITOR_DEFAULTTONEAREST);
+    MONITORINFO monitorInfo = { sizeof(MONITORINFO) };
+    RECT cover = { 0, 0, GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN) };
+    if (GetMonitorInfoW(monitor, &monitorInfo)) cover = monitorInfo.rcMonitor;
+    SetWindowPos(hVideoWnd, NULL, cover.left, cover.top,
+        std::max(1L, cover.right - cover.left), std::max(1L, cover.bottom - cover.top),
+        SWP_NOZORDER | SWP_SHOWWINDOW);
+    player.SetVideoBounds(0, 0, (int)(cover.right - cover.left), (int)(cover.bottom - cover.top));
+    // Keep the main window minimized so the taskbar stays usable.
+    ShowWindow(hWnd, SW_MINIMIZE);
+    ShowOSD(IconType::MediaFilm, L"Wallpaper Mode: On");
+}
+
+void App::DisableWallpaperMode() {
+    if (!wallpaperModeActive || !hVideoWnd) return;
+    wallpaperModeActive = false;
+    const HWND originalParent = wallpaperOriginalParent;
+    const RECT childRect = wallpaperOriginalChildRect;
+    wallpaperOriginalParent = NULL;
+    wallpaperOriginalChildRect = { 0, 0, 0, 0 };
+    if (originalParent && IsWindow(originalParent) && GetParent(hVideoWnd) != originalParent) {
+        SetParent(hVideoWnd, originalParent);
+        // Restore the saved placement, then re-apply the current video surface
+        // layout: the WM_SIZE path positions the child at the main window's
+        // client size and keeps mpv's video bounds in sync with it.
+        SetWindowPos(hVideoWnd, NULL, childRect.left, childRect.top,
+            std::max(1L, childRect.right - childRect.left), std::max(1L, childRect.bottom - childRect.top),
+            SWP_NOZORDER | SWP_NOACTIVATE | SWP_SHOWWINDOW);
+        RECT rc{};
+        if (hWnd && GetClientRect(hWnd, &rc)) {
+            SetWindowPos(hVideoWnd, NULL, 0, 0, rc.right - rc.left, rc.bottom - rc.top, SWP_NOZORDER | SWP_NOACTIVATE);
+            player.SetVideoBounds(0, 0, rc.right - rc.left, rc.bottom - rc.top);
+        }
+    }
+    // Do not fight the close path: BeginClose force-disables this mode and
+    // hides the window itself right after.
+    if (!closeRequested && hWnd && IsIconic(hWnd)) ShowWindow(hWnd, SW_RESTORE);
+    if (playbackSession.IsOpen() && hOverlayWnd) { ShowWindow(hOverlayWnd, SW_SHOW); SyncOverlayPosition(); }
+    InvalidateRect(hWnd, NULL, FALSE);
+}
+
+// --- Jump list (recent media) publication -----------------------------------
+// History is stored newest-first (MediaLibrary::AddToHistory inserts at the
+// front), so the top entries are the most recently played paths.
+std::vector<std::wstring> App::RecentMediaPathsForJumpList(const std::vector<HistoryRecord>& history, size_t maxCount) {
+    std::vector<std::wstring> paths;
+    paths.reserve(std::min(history.size(), maxCount));
+    for (const auto& record : history) {
+        if (paths.size() >= maxCount) break;
+        if (!record.filePath.empty()) paths.push_back(record.filePath);
+    }
+    return paths;
+}
+
+void App::MarkJumpListDirty() {
+    // Private mode leaves no traces, including OS jump list publication.
+    if (!settings.jumpListEnabled || IsPrivateMode()) return;
+    jumpListDirty = true;
+}
+
+void App::PumpJumpListUpdate(bool force) {
+    if (IsPrivateMode()) return;
+    if (!settings.jumpListEnabled) {
+        if (force) UpdateJumpList({}); // remove the published category
+        jumpListDirty = false;
+        return;
+    }
+    if (!libraryReady) return;
+    if (!force && GetTickCount64() - lastJumpListPublishMs < kJumpListRebuildMinIntervalMs) return;
+    jumpListDirty = false;
+    lastJumpListPublishMs = GetTickCount64();
+    UpdateJumpList(RecentMediaPathsForJumpList(library.history, 10));
 }
 
 const char* const App::kGlobalHotkeyActions[App::kGlobalHotkeyCount] = { "togglePlay", "playNext", "playPrevious", "toggleMute" };
@@ -1068,6 +1200,8 @@ void App::UpdateAutoscroll(float dt) {
 void App::BeginClose() {
     if (closeRequested || shutdownComplete) return;
     closeRequested = true;
+    // The video child must never remain owned by the shell wallpaper WorkerW.
+    DisableWallpaperMode();
     accessibilityActions.clear();
     accessibilityTree.SetWindow(nullptr);
     accessibilityTree.ClearNodes();
@@ -1081,6 +1215,14 @@ void App::BeginClose() {
     }
     if (playbackSession.IsPiP()) PersistPiPGeometry(); else PersistWindowPlacement();
     SaveAll(); ReportLibrarySaveResult(SubmitPendingLibrarySave());
+    // Publish the final jump list immediately, bypassing the rate limiter, so
+    // the closing session's history write is not lost to the 30 s throttle.
+    if (settings.jumpListEnabled && !IsPrivateMode()) {
+        jumpListDirty = false;
+        jumpListSeeded = true;
+        lastJumpListPublishMs = GetTickCount64();
+        UpdateJumpList(RecentMediaPathsForJumpList(library.history, 10));
+    }
     closeSaveSerial = librarySaveWorker.RequestCheckpoint();
     libraryLoadCancelRequested.store(true, std::memory_order_release);
     librarySnapshotMailbox.Cancel();
@@ -1510,6 +1652,14 @@ bool App::Update(float dt) {
     needsRedraw = PumpOnlineSubtitleJobs() || needsRedraw;
     needsRedraw = PumpRadioDirectoryJobs() || needsRedraw;
     needsRedraw = PumpUpdateJobs() || needsRedraw;
+    // Jump list: seed once the async library snapshot is ready (Initialize
+    // returns before the background load publishes), then pump dirty rebuilds
+    // rate-limited by kJumpListRebuildMinIntervalMs.
+    if (libraryReady && !jumpListSeeded) {
+        jumpListSeeded = true;
+        if (settings.jumpListEnabled) PumpJumpListUpdate(true);
+    }
+    if (jumpListDirty) PumpJumpListUpdate(false);
     // A graphics driver can hold the process loader lock while it initializes.
     // Avoid UI-thread joins or mpv export binding until that worker has finished.
     if (renderer.AreDeviceWorkersRunning()) return needsRedraw;
@@ -3700,6 +3850,7 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                     } else if (hoveredHistoryIndex >= 0 && hoveredHistoryIndex < (int)library.history.size()) {
                         if (hoveredHistoryDeleteIndex == hoveredHistoryIndex) {
                             library.RemoveFromHistory((size_t)hoveredHistoryIndex);
+                            MarkJumpListDirty();
                             selectedHistoryIndices.clear();
                             keyboardFocusedIndex = library.history.empty() ? -1 : std::min(keyboardFocusedIndex, (int)library.history.size() - 1);
                             ShowOSD(IconType::Trash, L"Removed from History");
@@ -4220,6 +4371,7 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                 if (isClearHistoryHovered) {
                     ShowConfirmationModal(L"Clear Watch History", L"Are you sure you want to erase all watch history and playback progress? This action cannot be undone.", L"Clear History", [this]() {
                         library.ClearHistory();
+                        MarkJumpListDirty();
                         selectedHistoryIndices.clear();
                         isLastWatchedCleared = true;
                         InvalidateMediaLayoutCache();

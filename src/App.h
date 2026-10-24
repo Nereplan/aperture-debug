@@ -191,6 +191,11 @@ private:
     NetworkStreamModel networkStreamModel;
     HWND hOverlayWnd = NULL;
     HWND hVideoWnd = NULL;
+    // Wallpaper mode state: the child's pre-reparent owner and its placement in
+    // that parent's client coordinates (captured before SetParent).
+    bool wallpaperModeActive = false;
+    HWND wallpaperOriginalParent = NULL;
+    RECT wallpaperOriginalChildRect = { 0, 0, 0, 0 };
     // WM_CLOSE and the destructor can both reach cleanup. Keep resource teardown idempotent and only balance COM/OLE initialization once.
     bool shutdownComplete = false, closeRequested = false;
     // Media Foundation is reference-counted and lazy (see MediaFoundation):
@@ -366,6 +371,13 @@ private:
     void ArmPlayerEventMessage();
     void ApplyPlayerPreferences();
     void ApplyAlwaysOnTop();
+    // Desktop wallpaper mode: the video child is temporarily reparented onto
+    // the shell's WorkerW so mpv renders behind the desktop icons. mpv's wid
+    // stays bound to the same HWND, so SetParent alone is safe.
+    void SetWallpaperMode(bool enabled);
+    // Silent force-disable used by the close/PiP/fullscreen entry paths; the
+    // video child must never remain owned by the shell.
+    void DisableWallpaperMode();
     void ApplyExperienceModeSelection(ExperienceMode mode);
     void ToggleExperienceFeature(const std::string& key);
     // System-wide hotkeys (Settings > Playback, row 9). Unregisters all four
@@ -377,6 +389,14 @@ private:
     void UpdateTrayIcon();
     void RemoveTrayIcon();
     void RestoreFromTray();
+    // Jump list (recent media) publication. History writes only mark a dirty
+    // flag; Update() pumps it rate-limited and BeginClose publishes at once.
+    void MarkJumpListDirty();
+    void PumpJumpListUpdate(bool force = false);
+    static std::vector<std::wstring> RecentMediaPathsForJumpList(const std::vector<HistoryRecord>& history, size_t maxCount);
+    bool jumpListDirty = false, jumpListSeeded = false;
+    uint64_t lastJumpListPublishMs = 0;
+    static constexpr uint32_t kJumpListRebuildMinIntervalMs = 30000;
     void ShowTrayContextMenu(int screenX, int screenY);
     // In-app viewer for the last lines of the diagnostics log (player context).
     void ToggleLogViewer() override;
