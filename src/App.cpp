@@ -473,7 +473,7 @@ void App::RestoreLogicalFocus(const FocusSnapshot& snapshot) {
                 int rowCount = (currentSettingsCat == SettingsCategory::Appearance) ? 2 :
                                (currentSettingsCat == SettingsCategory::Playback) ? 14 :
                                (currentSettingsCat == SettingsCategory::Subtitles) ? 6 :
-                               (currentSettingsCat == SettingsCategory::Experience) ? ((FeatureGate::ModeFromString(settings.experienceMode) == ExperienceMode::Custom) ? 38 : 1) :
+                               (currentSettingsCat == SettingsCategory::Experience) ? ((FeatureGate::ModeFromString(settings.experienceMode) == ExperienceMode::Custom) ? 39 : 1) :
                                (currentSettingsCat == SettingsCategory::System) ? SettingsLayout::kSystemRowCount : 1;
                 keyboardFocusedIndex = std::clamp(snapshot.keyboardIndex, 0, std::max(0, rowCount - 1));
                 keyboardFocusedSubIndex = snapshot.keyboardSubIndex;

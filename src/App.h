@@ -967,6 +967,11 @@ private:
     void ShowEditSmartPlaylistModal(const std::string& playlistId);
     void ShowNewSmartPlaylistModal();
     void ShowEditMetadataModal(const std::wstring& mediaPath);
+    // Cover art: pick an image that replaces the item's extracted thumbnail.
+    void SetCoverArtFromFile(const MediaItem& item);
+    void ClearCoverArt(const MediaItem& item);
+    // Rebuilds the renderer cover-art map after a library snapshot is adopted.
+    void SyncCoverArtThumbnails();
     void ShowRenamePlaylistModal(const std::string& playlistId);
     void StartInlinePlaylistRename(const std::string& playlistId);
     void CommitInlinePlaylistRename();

@@ -114,6 +114,7 @@ constexpr StringEntryView kCanonicalStringEntries[] = {
     { "settings.experience.feature.night_mode", "Night Mode (Loudness)" },
     { "settings.experience.feature.jump_to_time", "Go To Time" },
     { "settings.experience.feature.metadata_editor", "Metadata Editor" },
+    { "settings.experience.feature.cover_art", "Cover Art" },
     { "settings.experience.feature.audio_device_picker", "Audio Output Device" },
     { "settings.experience.feature.forced_subs_only", "Forced Subtitles Only" },
     { "settings.experience.feature.subtitle_codepage", "Subtitle Character Encoding" },

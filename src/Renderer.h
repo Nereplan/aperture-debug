@@ -8,6 +8,7 @@
 #include <string>
 #include <memory>
 #include <map>
+#include <unordered_map>
 #include <list>
 #include <deque>
 #include <set>
@@ -159,6 +160,14 @@ public:
     // Inserts freshly extracted pixels (mpv fallback) directly into the memory cache. UI thread only (creates a device bitmap).
     bool InjectThumbnail(const std::wstring& filePath, UINT width, UINT height, const std::vector<uint8_t>& pixels);
     size_t ClearThumbnailCache();
+    // Per-item cover art: a user-picked image replaces the extracted thumbnail
+    // for that media path. UI-thread only (set alongside library mutations,
+    // read during draws). Set evicts cached images for the previous and the new
+    // cover file so re-picked art is never served stale; Clear drops the mapping.
+    void SetCoverArtPath(const std::wstring& mediaPath, const std::wstring& coverPath);
+    void ClearCoverArtPath(const std::wstring& mediaPath);
+    // Drops every registered mapping without touching caches (library adoption).
+    void ClearAllCoverArtPaths() { coverArtByMediaPath.clear(); }
     // Reclaim hidden hub resources without deleting the portable disk cache.
     void TrimHiddenLibraryCaches(uint64_t retainedThumbnailBytes = 8ull * 1024 * 1024, bool releaseDevice = false);
     static constexpr UINT kThumbnailReadyMessage = WM_APP + 0x50;
@@ -291,6 +300,9 @@ private:
     // Private sessions read (but never write) the persistent hub disk tier. (Setter, candidate dequeue, and injection live in the public
     // thumbnail API above alongside GetOrCreateVideoThumbnail.)
     std::atomic<bool> thumbnailPrivateMode{ false };
+    // Media path -> stored cover image path. UI-thread state only; consulted by
+    // GetOrCreateVideoThumbnail before every cache probe.
+    std::unordered_map<std::wstring, std::wstring> coverArtByMediaPath;
     struct ThumbnailRequest { ThumbnailKey key; uint64_t generation = 0; uint64_t priorityFrame = 0; uint64_t priorityOrder = 0; };
     struct ThumbnailResult {
         ThumbnailKey key;
@@ -386,6 +398,12 @@ private:
     void BeginCreateDeviceAsync();
     bool EnsureD3DDevice();
     size_t ClearThumbnailCacheInternal();
+    // Shared decode/serve path for one resolved path; GetOrCreateVideoThumbnail
+    // resolves the cover-art override and forwards here.
+    ComPtr<ID2D1Bitmap> GetOrCreateVideoThumbnailInternal(const std::wstring& filePath, UINT reqW, UINT reqH);
+    // Evicts memory-cache and persistent hub disk-tier entries whose key path
+    // matches (both size buckets), plus failure-quarantine state for the path.
+    void EvictThumbnailForPath(const std::wstring& path);
     void TouchThumbnail(std::map<ThumbnailKey, ThumbnailEntry>::iterator it);
     void IndexThumbnailBitmap(std::map<ThumbnailKey, ThumbnailEntry>::iterator it);
     ThumbnailEntry* FindThumbnailByBitmap(ID2D1Bitmap* bitmap);

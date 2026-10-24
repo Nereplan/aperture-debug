@@ -120,4 +120,53 @@ TEST_CASE(MetadataOverrides, ValidationAndMutationPreservation) {
     TEST_ASSERT_EQ(cursorLib.mediaItems[0].GetDisplayTitle(), std::wstring(L"Live Override"));
 }
 
+TEST_CASE(MetadataOverrides, CoverArtPathRoundTripAndFileNameDerivation) {
+    // Extension allowlist and normalization (dot-prefixed, lower-cased, rejected when absent/unsupported).
+    TEST_ASSERT(MediaMetadataOverrides::IsSupportedCoverArtExtension(L".png"));
+    TEST_ASSERT(MediaMetadataOverrides::IsSupportedCoverArtExtension(L".jpg"));
+    TEST_ASSERT(MediaMetadataOverrides::IsSupportedCoverArtExtension(L".jpeg"));
+    TEST_ASSERT(MediaMetadataOverrides::IsSupportedCoverArtExtension(L".webp"));
+    TEST_ASSERT(!MediaMetadataOverrides::IsSupportedCoverArtExtension(L".gif"));
+    TEST_ASSERT(!MediaMetadataOverrides::IsSupportedCoverArtExtension(L"png"));
+    TEST_ASSERT_EQ(MediaMetadataOverrides::NormalizeCoverArtExtension(LR"(C:\pics\Poster.PNG)"), std::wstring(L".png"));
+    TEST_ASSERT_EQ(MediaMetadataOverrides::NormalizeCoverArtExtension(LR"(C:\pics\noext)"), std::wstring(L""));
+    TEST_ASSERT_EQ(MediaMetadataOverrides::NormalizeCoverArtExtension(LR"(C:\pics\movie.txt)"), std::wstring(L""));
+    TEST_ASSERT_EQ(MediaMetadataOverrides::NormalizeCoverArtExtension(LR"(C:\dir.ext\poster)"), std::wstring(L""));
+
+    // Stored cover name derives from the persisted item identity fields.
+    TEST_ASSERT_EQ(MediaMetadataOverrides::CoverArtFileName(1234, 5678, LR"(X\cover.jpeg)"), std::wstring(L"1234_5678.jpeg"));
+    TEST_ASSERT_EQ(MediaMetadataOverrides::CoverArtFileName(1234, 5678, LR"(X\cover.txt)"), std::wstring(L""));
+
+    // coverArtPath survives the save/reload cycle, clears cleanly, and older
+    // libraries without the key load with an empty path.
+    ScopedTempDir tempDir(L"Aperture_CoverArt_");
+    const std::wstring videoPath = tempDir.SubPath(L"movie.mp4");
+    tempDir.WriteFile(L"movie.mp4", "dummy movie data");
+    MediaLibrary library;
+    TEST_ASSERT(library.LoadFromRoot(tempDir.GetPath()).is_ok());
+    TEST_ASSERT(library.AddOrUpdateMedia(videoPath) != nullptr);
+
+    MediaMetadataOverrides ov;
+    ov.title = L"Titled";
+    ov.coverArtPath = tempDir.SubPath(L"covers\\1234_5678.png");
+    TEST_ASSERT(library.SetMetadataOverrides(videoPath, ov));
+    TEST_ASSERT(library.Save().is_ok());
+
+    MediaLibrary reloaded;
+    TEST_ASSERT(reloaded.LoadFromRoot(tempDir.GetPath()).is_ok());
+    MediaItem* loaded = reloaded.FindByPath(videoPath);
+    TEST_ASSERT(loaded != nullptr && loaded->overrides.has_value());
+    TEST_ASSERT_EQ(loaded->overrides->coverArtPath, ov.coverArtPath);
+
+    MediaMetadataOverrides cleared = *loaded->overrides;
+    cleared.coverArtPath.clear();
+    TEST_ASSERT(reloaded.SetMetadataOverrides(videoPath, cleared));
+    TEST_ASSERT(reloaded.Save().is_ok());
+    MediaLibrary again;
+    TEST_ASSERT(again.LoadFromRoot(tempDir.GetPath()).is_ok());
+    MediaItem* itemAgain = again.FindByPath(videoPath);
+    TEST_ASSERT(itemAgain != nullptr && itemAgain->overrides.has_value());
+    TEST_ASSERT(itemAgain->overrides->coverArtPath.empty());
+}
+
 } // namespace Aperture::Test

@@ -1617,6 +1617,21 @@ void Renderer::DrainCompletedThumbnails() {
 
 ComPtr<ID2D1Bitmap> Renderer::GetOrCreateVideoThumbnail(const std::wstring& filePath, UINT reqW, UINT reqH) {
     if (filePath.empty() || !d2dContext) return nullptr;
+    // Single per-item static-thumbnail resolution point: a registered cover art
+    // image replaces the extracted thumbnail for every consumer (media cards,
+    // playlist resume card, playlist rows). A stale registration (deleted or
+    // missing file) falls back to the normal thumbnail pipeline.
+    if (!coverArtByMediaPath.empty()) {
+        const auto coverIt = coverArtByMediaPath.find(filePath);
+        if (coverIt != coverArtByMediaPath.end()) {
+            if (FileExists(coverIt->second)) return GetOrCreateVideoThumbnailInternal(coverIt->second, reqW, reqH);
+            coverArtByMediaPath.erase(coverIt);
+        }
+    }
+    return GetOrCreateVideoThumbnailInternal(filePath, reqW, reqH);
+}
+
+ComPtr<ID2D1Bitmap> Renderer::GetOrCreateVideoThumbnailInternal(const std::wstring& filePath, UINT reqW, UINT reqH) {
     // Canonicalize to one bucket per usage class. Hub cards historically requested 360x204 / 240x135 / 180x100 for the same file (view-mode
     // toggle = full re-decode storm); all now share a single 320x180 entry
     // that DrawBitmapRounded scales losslessly at draw time. Large requests (backdrop art) share 640x360.
@@ -1658,6 +1673,51 @@ ComPtr<ID2D1Bitmap> Renderer::GetOrCreateVideoThumbnail(const std::wstring& file
     }
     EnqueueThumbnailRequest(ThumbnailKey{ filePath, reqW, reqH });
     return nullptr;
+}
+
+void Renderer::SetCoverArtPath(const std::wstring& mediaPath, const std::wstring& coverPath) {
+    if (mediaPath.empty()) return;
+    // Re-picks overwrite the stored file under the same name, and the previous
+    // image may live under a different extension: evict both cached images.
+    const auto prev = coverArtByMediaPath.find(mediaPath);
+    if (prev != coverArtByMediaPath.end() && prev->second != coverPath) EvictThumbnailForPath(prev->second);
+    coverArtByMediaPath[mediaPath] = coverPath;
+    EvictThumbnailForPath(coverPath);
+}
+
+void Renderer::ClearCoverArtPath(const std::wstring& mediaPath) {
+    const auto it = coverArtByMediaPath.find(mediaPath);
+    if (it == coverArtByMediaPath.end()) return;
+    EvictThumbnailForPath(it->second);
+    coverArtByMediaPath.erase(it);
+}
+
+void Renderer::EvictThumbnailForPath(const std::wstring& path) {
+    if (path.empty()) return;
+    // ThumbnailKey orders by path first, so every bucket for this path is a
+    // contiguous map range (width 0 probe = first entry with the path).
+    const ThumbnailKeyProbe probe{ &path, 0, 0 };
+    for (auto it = thumbnailCache.lower_bound(probe); it != thumbnailCache.end() && it->first.path == path;) {
+        thumbnailCacheBytes -= std::min(thumbnailCacheBytes, it->second.approximateBytes);
+        thumbnailByBitmap.erase(it->second.bitmap.Get());
+        thumbnailLru.erase(it->second.lruIt);
+        it = thumbnailCache.erase(it);
+    }
+    for (auto it = thumbnailDemandFrames.lower_bound(probe); it != thumbnailDemandFrames.end() && it->first.path == path;) {
+        it = thumbnailDemandFrames.erase(it);
+    }
+    for (auto it = negativeCache.lower_bound(probe); it != negativeCache.end() && it->path == path;) {
+        negativeLru.remove(*it);
+        negativeInfo.erase(*it);
+        it = negativeCache.erase(it);
+    }
+    negativeAttempts.erase(path);
+    for (const ThumbnailKey key : std::array<ThumbnailKey, 2>{ ThumbnailKey{ path, 320, 180 }, ThumbnailKey{ path, 640, 360 } }) {
+        inFlightThumbnailKeys.erase(key);
+    }
+    // The persistent hub disk tier is keyed by path only; drop the stored image
+    // so an overwritten cover file is not served from disk on the next decode.
+    DeleteFileW((GetCacheDir(CacheClass::Thumbnails) + L"\\" + MakeHubThumbnailCacheKey(path, 0, 0)).c_str());
 }
 
 void Renderer::PrefetchThumbnails(const std::vector<std::wstring>& paths) {

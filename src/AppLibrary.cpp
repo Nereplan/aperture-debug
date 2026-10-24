@@ -119,6 +119,7 @@ void App::FinishInitialLibraryLoad(uint64_t generation) {
     submittedLibrarySnapshot.reset(); libraryReloadBaseline.reset(); librarySaveRequested = false;
     library.SetSaveRequestHandler([this] { return QueueLibrarySave(); });
     InvalidateLibraryDerivedState();
+    SyncCoverArtThumbnails();
     const bool matchingMode = snapshot->groupMode == libraryGroupMode;
     if (matchingMode) m_mediaQueryEngine.PrimeViewCache(library, snapshot->initialQuery, std::move(snapshot->initialProjection));
     InvalidateMediaLayoutCache();

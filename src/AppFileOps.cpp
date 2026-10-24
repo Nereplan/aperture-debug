@@ -148,6 +148,78 @@ void App::OpenSubtitleFileDialog() {
     PopAndRestoreFocus(TransientSurfaceType::SystemDialog);
 }
 
+// Cover art: copy the picked image under <data>\covers\<fileIndex>_<volumeSerial>.<ext>
+// (identity fields the library already persists) and register it as the item's
+// static-thumbnail override. Re-picks overwrite the stored file.
+void App::SetCoverArtFromFile(const MediaItem& item) {
+    PushFocusSnapshot(TransientSurfaceType::SystemDialog);
+    std::vector<wchar_t> szFile(Ipc::MAX_IPC_PATH_CHARS, L'\0');
+    OPENFILENAMEW ofn = { sizeof(OPENFILENAMEW) };
+    ofn.lStructSize = sizeof(OPENFILENAMEW);
+    ofn.hwndOwner = hWnd;
+    ofn.lpstrFile = szFile.data();
+    ofn.nMaxFile = static_cast<DWORD>(szFile.size());
+    ofn.lpstrFilter = L"Image Files (*.png;*.jpg;*.jpeg;*.webp)\0*.png;*.jpg;*.jpeg;*.webp\0All Files (*.*)\0*.*\0";
+    ofn.nFilterIndex = 1;
+    ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_EXPLORER;
+    if (DelaySafeGetOpenFileNameW(&ofn)) {
+        const std::wstring sourcePath = Ipc::ResolveFullPathLong(szFile.data());
+        if (MediaMetadataOverrides::NormalizeCoverArtExtension(sourcePath).empty()) {
+            ShowOSD(IconType::VolumeMuted, L"Unsupported image type");
+        } else {
+            const std::wstring fileName =
+                MediaMetadataOverrides::CoverArtFileName(item.fileIndex, item.volumeSerialNumber, sourcePath);
+            const std::wstring coversDir = GetDataDir() + L"\\covers";
+            SHCreateDirectoryExW(NULL, coversDir.c_str(), NULL);
+            const std::wstring storedPath = coversDir + L"\\" + fileName;
+            // CopyFileW overwrites the stored file on re-pick; the renderer
+            // evicts its cached copy when the new path is registered below.
+            if (fileName.empty() || !CopyFileW(sourcePath.c_str(), storedPath.c_str(), FALSE)) {
+                ShowOSD(IconType::VolumeMuted, L"Could not copy cover art");
+            } else {
+                MediaMetadataOverrides overrides;
+                if (item.overrides) overrides = *item.overrides;
+                overrides.coverArtPath = storedPath;
+                library.SetMetadataOverrides(item.filePath, overrides);
+                SaveLibrary();
+                InvalidateMediaLayoutCache();
+                renderer.SetCoverArtPath(item.filePath, storedPath);
+                ShowOSD(IconType::Checkmark, L"Cover Art Updated");
+                InvalidateRect(hWnd, NULL, FALSE);
+            }
+        }
+    }
+    PopAndRestoreFocus(TransientSurfaceType::SystemDialog);
+}
+
+
+void App::ClearCoverArt(const MediaItem& item) {
+    std::wstring storedPath;
+    if (item.overrides) storedPath = item.overrides->coverArtPath;
+    MediaMetadataOverrides overrides;
+    if (item.overrides) overrides = *item.overrides;
+    overrides.coverArtPath.clear();
+    library.SetMetadataOverrides(item.filePath, overrides);
+    // Best-effort: the copied file is a cache; a locked file must not block the override reset.
+    if (!storedPath.empty()) DeleteFileW(storedPath.c_str());
+    SaveLibrary();
+    InvalidateMediaLayoutCache();
+    renderer.ClearCoverArtPath(item.filePath);
+    ShowOSD(IconType::Checkmark, L"Cover Art Cleared");
+    InvalidateRect(hWnd, NULL, FALSE);
+}
+
+
+void App::SyncCoverArtThumbnails() {
+    renderer.ClearAllCoverArtPaths();
+    for (const auto& item : library.mediaItems) {
+        if (item.overrides && !item.overrides->coverArtPath.empty()) {
+            renderer.SetCoverArtPath(item.filePath, item.overrides->coverArtPath);
+        }
+    }
+}
+
+
 void App::OpenOnlineSubtitlesDialog() {
     float dp = overlayRenderer.GetDpiScale();
     RECT rc;

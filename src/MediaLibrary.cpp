@@ -295,6 +295,9 @@ void AppendMediaRecord(std::string& output, const MediaItem& m, const std::wstri
         if (m.overrides->series.has_value() && MediaMetadataOverrides::IsValidSeries(*m.overrides->series)) {
             ovObj["series"] = Utf16ToUtf8(*m.overrides->series);
         } else if (ovObj.is_object()) { ovObj.as_object().erase("series"); }
+        if (!m.overrides->coverArtPath.empty()) {
+            ovObj["coverArtPath"] = Utf16ToUtf8(m.overrides->coverArtPath);
+        } else if (ovObj.is_object()) { ovObj.as_object().erase("coverArtPath"); }
         j["overrides"] = std::move(ovObj);
     } else if (j.is_object()) { j.as_object().erase("overrides"); j.as_object().erase("metadataOverrides"); }
     j.append_to(output);
@@ -1965,8 +1968,12 @@ void MediaLibrary::LoadMediaRecord(JsonValue& json, const std::wstring& rootDir)
             std::wstring s = ovJson.get("series").as_wstring();
             if (MediaMetadataOverrides::IsValidSeries(s)) ov.series = s;
         }
+        if (ovJson.has_key("coverArtPath") && ovJson.get("coverArtPath").is_string()) {
+            std::wstring c = ovJson.get("coverArtPath").as_wstring();
+            if (!c.empty()) ov.coverArtPath = std::move(c);
+        }
         {
-            static constexpr const char* kKnownOverrideKeys[] = { "title", "year", "series" };
+            static constexpr const char* kKnownOverrideKeys[] = { "title", "year", "series", "coverArtPath" };
             StripKnownKeys(ovJson, kKnownOverrideKeys, sizeof(kKnownOverrideKeys) / sizeof(kKnownOverrideKeys[0]));
             ov.extraFields = std::move(ovJson);
         }
@@ -1986,8 +1993,12 @@ void MediaLibrary::LoadMediaRecord(JsonValue& json, const std::wstring& rootDir)
             std::wstring s = ovJson.get("series").as_wstring();
             if (MediaMetadataOverrides::IsValidSeries(s)) ov.series = s;
         }
+        if (ovJson.has_key("coverArtPath") && ovJson.get("coverArtPath").is_string()) {
+            std::wstring c = ovJson.get("coverArtPath").as_wstring();
+            if (!c.empty()) ov.coverArtPath = std::move(c);
+        }
         {
-            static constexpr const char* kKnownOverrideKeys[] = { "title", "year", "series" };
+            static constexpr const char* kKnownOverrideKeys[] = { "title", "year", "series", "coverArtPath" };
             StripKnownKeys(ovJson, kKnownOverrideKeys, sizeof(kKnownOverrideKeys) / sizeof(kKnownOverrideKeys[0]));
             ov.extraFields = std::move(ovJson);
         }

@@ -95,14 +95,38 @@ struct MediaMetadataOverrides {
     std::optional<std::wstring> title;
     std::optional<int> year;
     std::optional<std::wstring> series;
+    // User-picked cover art (copied under the data directory). Empty = none.
+    std::wstring coverArtPath;
     JsonValue extraFields;
     bool HasAnyOverride() const {
         return (title.has_value() && !title->empty()) || year.has_value() || (series.has_value() && !series->empty()) ||
-               (extraFields.is_object() && !extraFields.as_object().empty());
+               !coverArtPath.empty() || (extraFields.is_object() && !extraFields.as_object().empty());
     }
     static bool IsValidTitle(const std::wstring& t) { return !t.empty() && t.length() <= kMaxTitleLength; }
     static bool IsValidYear(int y) { return y >= kMinYear && y <= kMaxYear; }
     static bool IsValidSeries(const std::wstring& s) { return !s.empty() && s.length() <= kMaxSeriesLength; }
+    // Cover art accepts a fixed image-extension allowlist; anything else (or no
+    // extension) is rejected before a file is copied.
+    static bool IsSupportedCoverArtExtension(const std::wstring& ext) {
+        return ext == L".png" || ext == L".jpg" || ext == L".jpeg" || ext == L".webp";
+    }
+    // Lower-cased extension of sourcePath; empty when absent or unsupported.
+    static std::wstring NormalizeCoverArtExtension(const std::wstring& sourcePath) {
+        const size_t lastDot = sourcePath.find_last_of(L'.');
+        const size_t lastSlash = sourcePath.find_last_of(L"\\/");
+        if (lastDot == std::wstring::npos || (lastSlash != std::wstring::npos && lastDot < lastSlash)) return {};
+        std::wstring ext = sourcePath.substr(lastDot);
+        for (auto& ch : ext) ch = static_cast<wchar_t>(towlower(ch));
+        return IsSupportedCoverArtExtension(ext) ? ext : std::wstring();
+    }
+    // Stored cover file name derived from the item identity fields the library
+    // already persists: <fileIndex>_<volumeSerial>.<normalized ext>. Empty when
+    // the source has no usable image extension.
+    static std::wstring CoverArtFileName(uint64_t fileIndex, uint32_t volumeSerialNumber, const std::wstring& sourcePath) {
+        const std::wstring ext = NormalizeCoverArtExtension(sourcePath);
+        if (ext.empty()) return {};
+        return std::to_wstring(fileIndex) + L"_" + std::to_wstring(volumeSerialNumber) + ext;
+    }
 };
 
 struct MediaItem {

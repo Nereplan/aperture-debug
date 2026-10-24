@@ -625,6 +625,12 @@ void App::OpenMediaContextMenu(const MediaItem& item, float x, float y) {
                                     [this, item]() { OpenInExplorer(item.filePath); }});
         contextMenuItems.push_back({ "edit_metadata", L"Edit Metadata...", L"", IconType::SettingsGear, false, false, false,
                                     [this, item]() { ShowEditMetadataModal(item.filePath); }});
+        contextMenuItems.push_back({ "set_cover_art", L"Set Cover Art...", L"", IconType::PictureInPicture, false, false, false,
+                                    [this, item]() { SetCoverArtFromFile(item); }});
+        if (item.overrides && !item.overrides->coverArtPath.empty()) {
+            contextMenuItems.push_back({ "clear_cover_art", L"Clear Cover Art", L"", IconType::CloseX, false, false, false,
+                                        [this, item]() { ClearCoverArt(item); }});
+        }
         contextMenuItems.push_back({ "sep4", L"", L"", IconType::Play, true });
         contextMenuItems.push_back({ "remove", L"Remove from Library...", L"Del", IconType::Trash, false, false, true, [this, item]() {
             // The context menu closes and restores focus before invoking its callback. Rebind selection to the item that opened this menu

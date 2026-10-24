@@ -31,7 +31,8 @@ inline bool SameBookmark(const MediaBookmark& a, const MediaBookmark& b) {
 }
 
 inline bool SameOverrides(const MediaMetadataOverrides& a, const MediaMetadataOverrides& b) {
-    return std::tie(a.title, a.year, a.series, a.extraFields) == std::tie(b.title, b.year, b.series, b.extraFields);
+    return std::tie(a.title, a.year, a.series, a.extraFields, a.coverArtPath) ==
+           std::tie(b.title, b.year, b.series, b.extraFields, b.coverArtPath);
 }
 
 inline bool SameMedia(const MediaItem& a, const MediaItem& b) {

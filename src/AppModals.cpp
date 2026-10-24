@@ -801,6 +801,11 @@ void App::ShowEditMetadataModal(const std::wstring& mediaPath) {
             overrides.year = year;
         }
         if (!parts[2].empty()) overrides.series = parts[2];
+        // Cover art is managed by the file picker, not this pipe modal; carry
+        // the existing override through so editing text fields cannot drop it.
+        if (const MediaItem* current = library.FindByPath(mediaPath)) {
+            if (current->overrides) overrides.coverArtPath = current->overrides->coverArtPath;
+        }
         if (!library.SetMetadataOverrides(mediaPath, overrides)) {
             ShowOSD(IconType::VolumeMuted, Loc::Tr("ux.smart_rule_invalid") + L": Media not found", 4.0f);
             return;
