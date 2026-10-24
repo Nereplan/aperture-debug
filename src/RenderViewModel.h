@@ -22,11 +22,11 @@ namespace Aperture {
 
 enum class TabView { Media, Playlists, History, Settings };
 
-enum class SettingsCategory { Appearance, Playback, Subtitles, Shortcuts, System };
+enum class SettingsCategory { Experience, Appearance, Playback, Subtitles, Shortcuts, System };
 
 enum class ModalType {
     None, NewPlaylist, NewSmartPlaylist, EditSmartPlaylist, DeletePlaylist, SeekStepInput, FrameSeekInput, CustomSettingInput, Confirmation,
-    BookmarkInput, EditMetadataOverrides, SaveSubtitleProfile, RenameSubtitleProfile
+    BookmarkInput, EditMetadataOverrides, SaveSubtitleProfile, RenameSubtitleProfile, JumpToTime, CustomAspectInput, CustomRotationInput
 };
 
 struct ContextMenuItem {
@@ -222,6 +222,16 @@ struct DiagnosticsOverlayViewModel {
     int audioDelayMs = 0, subDelayMs = 0;
 };
 
+// In-app viewer for the tail of diagnostics/aperture.log. Mirrors the
+// diagnostics overlay pattern: App owns visibility + lines, render is a clone
+// of the diagnostics panel style with a scrolless line list.
+struct LogOverlayViewModel {
+    bool visible = false;
+    bool closeHovered = false;
+    D2D1_RECT_F bounds = { 0, 0, 0, 0 };
+    std::vector<std::wstring> lines;
+};
+
 struct ContextMenuViewModel {
     bool isOpen = false;
     bool isSplitIris = false;
@@ -267,6 +277,7 @@ struct PlayerRenderViewModel {
     OsdBadgeViewModel osdBadge;
     JumpAheadViewModel jumpAhead;
     DiagnosticsOverlayViewModel diagnosticsOverlay;
+    LogOverlayViewModel logOverlay;
     ContextMenuViewModel contextMenu;
     ModalViewModel modal;
 };
@@ -602,6 +613,13 @@ struct SettingsTabViewModel {
     int keyboardFocusedRow = 0, keyboardFocusedSubIndex = 0;
     float autoplayProg = 1.0f, rememberPosProg = 1.0f, hwAccelProg = 1.0f, loopProg = 0.0f;
     float customMpvConfigProg = 0.0f;
+    // System-integration toggles (Playback rows 9-11). These have no animated
+    // mirror yet; App fills them from the live setting so the switch still renders.
+    float globalHotkeysProg = 0.0f, trayIconProg = 0.0f, minimizeToTrayProg = 0.0f;
+    // Experience feature toggles: per-catalog-feature eased progress toward
+    // enabled ? 1 : 0 (19 catalog features, 40 slots of headroom). Filled by App
+    // from its AnimatedFloat mirrors each hub frame.
+    std::array<float, 40> experienceToggleAnim{};
     bool isKeyboardNavActive = false;
     SettingsPressState pressState;
     float mouseX = -1.0f, mouseY = -1.0f;

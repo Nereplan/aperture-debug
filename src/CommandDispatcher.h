@@ -23,8 +23,24 @@ enum class AppCommand {
     AudioBalanceRight, AudioBalanceReset, SetAudioBalance, CycleAudioChannelMap, SetAudioChannelMap, AudioChannelMapReset,
     ResetAudioBalanceAndChannelMap, SubDelayPlus, SubDelayMinus, SubDelayReset, SetSubDelay, ClosePlayer, FrameStepForward,
     FrameStepBackward, SpeedUp, SpeedDown, SpeedReset, SetSpeed, ToggleLoop, ToggleAutoplay, OpenFile, OpenSubtitleFile,
-    SearchOnlineSubtitles, ShowInExplorer, TogglePlaybackDiagnostics, TakeScreenshot, TogglePrivateMode
+    SearchOnlineSubtitles, ShowInExplorer, TogglePlaybackDiagnostics, TakeScreenshot, TogglePrivateMode, ToggleShuffle,
+    ToggleAlwaysOnTop, JumpToTime, ToggleLogViewer
 };
+
+// Mouse-button/wheel pseudo-key codes used by shortcut bindings. They live in a
+// dedicated range above real virtual-key codes so they can never collide with
+// keyboard chords; only Shift/Ctrl/Alt held at click time combine with them.
+inline constexpr UINT kMouseMiddle = 0x100, kMouseX1 = 0x101, kMouseX2 = 0x102, kMouseWheelUp = 0x103, kMouseWheelDown = 0x104;
+inline const wchar_t* MouseBindingDisplayName(UINT vkCode) {
+    switch (vkCode) {
+        case kMouseMiddle: return L"Middle Click";
+        case kMouseX1: return L"X Button 1";
+        case kMouseX2: return L"X Button 2";
+        case kMouseWheelUp: return L"Wheel Up";
+        case kMouseWheelDown: return L"Wheel Down";
+        default: return nullptr;
+    }
+}
 
 struct CommandArgs {
     double doubleVal = 0.0;
@@ -64,6 +80,9 @@ public:
     virtual void TogglePlaybackDiagnostics() = 0;
     virtual bool IsPlaybackDiagnosticsVisible() const = 0;
     virtual void TogglePrivateMode() {}
+    virtual void ToggleAlwaysOnTop() {}
+    virtual void ShowJumpToTimeModal() {}
+    virtual void ToggleLogViewer() {}
 };
 
 class CommandDispatcher {
@@ -76,6 +95,9 @@ public:
     bool Execute(const std::string& actionId, const CommandArgs& args = {});
     // Keyboard Translation
     AppCommand TranslateKeyChord(UINT vkCode, bool isCtrl, bool isShift, bool isAlt, bool isPlayerOpen, const Settings& settings) const;
+    // Mouse Translation (player context): exact-match binding lookup for mouse
+    // pseudo-keys. For wheel bindings, a chord with no modifiers matches a bare wheel.
+    AppCommand FindMouseBinding(UINT vkCode, bool isCtrl, bool isShift, bool isAlt, const Settings& settings) const;
     // String / Enum Conversions
     static AppCommand CommandIdFromString(const std::string& actionId);
     static std::string StringFromCommandId(AppCommand cmd);

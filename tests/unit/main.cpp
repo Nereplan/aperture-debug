@@ -11,6 +11,7 @@
 #include "TestDeferredServices.h"
 #include "TestPlaybackRenderer.h"
 #include "TestDuplicateDetection.h"
+#include "TestFeatureGate.h"
 #include "TestFolderRediscovery.h"
 #include "TestFolderWatchConfiguration.h"
 #include "TestGlobalSearch.h"
@@ -57,6 +58,8 @@
 #include "TestReorder.h"
 
 #include "TestScreenshotCapture.h"
+
+#include "TestShuffle.h"
 
 #include "TestHubThumbnailCache.h"
 

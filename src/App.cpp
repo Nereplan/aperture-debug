@@ -3,6 +3,7 @@
 #include "AppInternals.h"
 #include "AppLayout.h"
 #include "CollectionAlgorithms.h"
+#include "FeatureGate.h"
 #include "IpcProtocol.h"
 #include "MediaFoundation.h"
 #include "OnlineSubtitles.h"
@@ -12,6 +13,7 @@
 #include "SettingsLayout.h"
 #include "Presentation.h"
 #include "WindowGeometry.h"
+#include "resource.h"
 #include <commdlg.h>
 #include <shellapi.h>
 #include <shlwapi.h>
@@ -468,8 +470,9 @@ void App::RestoreLogicalFocus(const FocusSnapshot& snapshot) {
                 }
             } else {
                 int rowCount = (currentSettingsCat == SettingsCategory::Appearance) ? 2 :
-                               (currentSettingsCat == SettingsCategory::Playback) ? 9 :
+                               (currentSettingsCat == SettingsCategory::Playback) ? 12 :
                                (currentSettingsCat == SettingsCategory::Subtitles) ? 6 :
+                               (currentSettingsCat == SettingsCategory::Experience) ? ((FeatureGate::ModeFromString(settings.experienceMode) == ExperienceMode::Custom) ? 33 : 1) :
                                (currentSettingsCat == SettingsCategory::System) ? SettingsLayout::kSystemRowCount : 1;
                 keyboardFocusedIndex = std::clamp(snapshot.keyboardIndex, 0, std::max(0, rowCount - 1));
                 keyboardFocusedSubIndex = snapshot.keyboardSubIndex;
@@ -513,6 +516,180 @@ void App::RequestRender() { Render(); }
 void App::TogglePlaybackDiagnostics() { showPlaybackDiagnostics = !showPlaybackDiagnostics; RequestRender(); }
 
 bool App::IsPlaybackDiagnosticsVisible() const { return showPlaybackDiagnostics; }
+
+void App::ToggleLogViewer() {
+    showLogViewer = !showLogViewer;
+    if (showLogViewer) {
+        logViewerLines.clear();
+        // Same path Diagnostics::Log resolves and writes: <exeDir>\diagnostics\aperture.log
+        // (rotated at 1 MB, so the file never exceeds a small tail read).
+        const std::wstring logPath = GetExeDir() + L"\\diagnostics\\aperture.log";
+        FILE* f = nullptr;
+        if (_wfopen_s(&f, logPath.c_str(), L"rb") == 0 && f) {
+            if (fseek(f, 0, SEEK_END) == 0) {
+                const long fileSize = ftell(f);
+                const long kTailBytes = 64 * 1024;
+                long readSize = fileSize > 0 ? fileSize : 0;
+                bool skippedHead = false;
+                if (readSize > kTailBytes) {
+                    fseek(f, readSize - kTailBytes, SEEK_SET);
+                    readSize = kTailBytes;
+                    skippedHead = true;
+                } else if (fseek(f, 0, SEEK_SET) != 0) { readSize = 0; }
+                if (readSize > 0) {
+                    std::string utf8(static_cast<size_t>(readSize), '\0');
+                    utf8.resize(fread(utf8.data(), 1, utf8.size(), f));
+                    // When the head was skipped, drop the partial first line.
+                    if (skippedHead) {
+                        const size_t newline = utf8.find('\n');
+                        utf8.erase(0, newline == std::string::npos ? utf8.size() : newline + 1);
+                    }
+                    size_t start = 0;
+                    while (start < utf8.size()) {
+                        size_t end = utf8.find('\n', start);
+                        if (end == std::string::npos) end = utf8.size();
+                        std::string line = utf8.substr(start, end - start);
+                        while (!line.empty() && (line.back() == '\r' || line.back() == '\n')) line.pop_back();
+                        if (!line.empty()) logViewerLines.push_back(Utf8ToUtf16(line));
+                        start = end + 1;
+                    }
+                }
+            }
+            fclose(f);
+        }
+        // Newest entries last, like a terminal tail; cap at the last 30 lines.
+        if (logViewerLines.size() > 30) { logViewerLines.erase(logViewerLines.begin(), logViewerLines.end() - 30); }
+        if (logViewerLines.empty()) { logViewerLines.push_back(L"(no log entries yet)"); }
+    }
+    RequestRender();
+}
+
+bool App::IsLogViewerCloseHit(float x, float y) const {
+    if (!showLogViewer || !playbackSession.IsOpen() || isContextMenuOpen || activeModal != ModalType::None) return false;
+    RECT bounds{};
+    if (!GetClientRect(hWnd, &bounds)) return false;
+    const auto layout = Presentation::LogViewer(D2D1::RectF(0, 0, static_cast<float>(bounds.right),
+        static_cast<float>(bounds.bottom)), overlayRenderer.GetDpiScale());
+    return layout.visible && PtInRectF(layout.close, x, y);
+}
+
+void App::ApplyAlwaysOnTop() {
+    // PiP manages its own TOPMOST state (see PlaybackSession::TogglePiPPinned).
+    if (!hWnd || playbackSession.IsPiP()) return;
+    SetWindowPos(hWnd, settings.alwaysOnTop ? HWND_TOPMOST : HWND_NOTOPMOST, 0, 0, 0, 0,
+        SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+}
+
+void App::ToggleAlwaysOnTop() {
+    settings.alwaysOnTop = !settings.alwaysOnTop;
+    ApplyAlwaysOnTop();
+    SaveSettings();
+    ShowOSD(IconType::Pin, settings.alwaysOnTop ? L"Always on Top: On" : L"Always on Top: Off");
+}
+
+const char* const App::kGlobalHotkeyActions[App::kGlobalHotkeyCount] = { "togglePlay", "playNext", "playPrevious", "toggleMute" };
+
+int App::ApplyGlobalHotkeys() {
+    // Always clear all four first so changed or disabled bindings never linger.
+    if (hWnd) {
+        for (UINT i = 0; i < kGlobalHotkeyCount; ++i) { UnregisterHotKey(hWnd, kGlobalHotkeyBase + i); }
+    }
+    int registered = 0;
+    if (settings.globalHotkeysEnabled && hWnd) {
+        for (UINT i = 0; i < kGlobalHotkeyCount; ++i) {
+            auto it = settings.shortcuts.find(kGlobalHotkeyActions[i]);
+            if (it == settings.shortcuts.end()) continue;
+            const ShortcutBinding& b = it->second;
+            // Skip unassigned bindings, and skip chords with NO modifier: a bare
+            // global key would be swallowed system-wide while other apps are focused.
+            if (b.vkCode == 0 || (!b.ctrl && !b.alt && !b.shift)) continue;
+            const UINT mods = (b.ctrl ? MOD_CONTROL : 0u) | (b.alt ? MOD_ALT : 0u) | (b.shift ? MOD_SHIFT : 0u);
+            if (RegisterHotKey(hWnd, kGlobalHotkeyBase + i, mods, b.vkCode)) { ++registered; }
+        }
+    }
+    registeredGlobalHotkeys = registered;
+    return registered;
+}
+
+void App::UpdateTrayIcon() {
+    if (!hWnd || !hInstance) return;
+    if (!settings.trayIconEnabled) { RemoveTrayIcon(); return; }
+    if (!hTrayIcon) {
+        // Same icon resource the main window class uses (IDI_APP_ICON, see main.cpp).
+        hTrayIcon = (HICON)LoadImage(hInstance, MAKEINTRESOURCE(IDI_APP_ICON), IMAGE_ICON,
+            GetSystemMetrics(SM_CXSMICON), GetSystemMetrics(SM_CYSMICON), LR_DEFAULTCOLOR);
+    }
+    if (!hTrayIcon) return;
+    NOTIFYICONDATAW data{};
+    data.cbSize = sizeof(data);
+    data.hWnd = hWnd;
+    data.uID = 1;
+    data.uFlags = NIF_ICON | NIF_MESSAGE | NIF_TIP;
+    data.uCallbackMessage = kTrayCallbackMessage;
+    data.hIcon = hTrayIcon;
+    const bool playing = playbackSession.IsOpen() && player.IsPlaying();
+    wcscpy_s(data.szTip, playing ? L"Aperture \u2014 Playing" : L"Aperture \u2014 Paused");
+    trayIconData = data;
+    if (trayIconAdded) {
+        Shell_NotifyIconW(NIM_MODIFY, &trayIconData);
+    } else {
+        trayIconAdded = Shell_NotifyIconW(NIM_ADD, &trayIconData) != FALSE;
+    }
+}
+
+void App::RemoveTrayIcon() {
+    if (!trayIconAdded || !hWnd) return;
+    NOTIFYICONDATAW data{};
+    data.cbSize = sizeof(data);
+    data.hWnd = hWnd;
+    data.uID = 1;
+    Shell_NotifyIconW(NIM_DELETE, &data);
+    trayIconAdded = false;
+}
+
+void App::RestoreFromTray() {
+    if (!hWnd) return;
+    isMinimizedToTray = false;
+    if (!IsWindowVisible(hWnd) || IsIconic(hWnd)) { ShowWindow(hWnd, SW_RESTORE); }
+    SetForegroundWindow(hWnd);
+    InvalidateRect(hWnd, NULL, FALSE);
+}
+
+void App::ShowTrayContextMenu(int screenX, int screenY) {
+    if (!trayIconAdded || !hWnd) return;
+    HMENU menu = CreatePopupMenu();
+    if (!menu) return;
+    // Native popup menu: the tray lives outside the custom-drawn surface, so a
+    // plain Win32 menu is the platform convention here.
+    AppendMenuW(menu, MF_STRING, 1, L"Play/Pause");
+    AppendMenuW(menu, MF_STRING, 2, L"Next");
+    AppendMenuW(menu, MF_STRING, 3, L"Restore");
+    AppendMenuW(menu, MF_SEPARATOR, 0, nullptr);
+    AppendMenuW(menu, MF_STRING, 4, L"Exit Aperture");
+    // TrackPopupMenu requires its owner to be foreground or it will not dismiss.
+    SetForegroundWindow(hWnd);
+    const int cmd = TrackPopupMenu(menu, TPM_RETURNCMD | TPM_NONOTIFY | TPM_RIGHTBUTTON, screenX, screenY, 0, hWnd, nullptr);
+    DestroyMenu(menu);
+    PostMessageW(hWnd, WM_NULL, 0, 0);
+    switch (cmd) {
+        case 1: commandDispatcher.Execute(AppCommand::TogglePlay); break;
+        case 2: commandDispatcher.Execute(AppCommand::PlayNext); break;
+        case 3: RestoreFromTray(); break;
+        case 4: BeginClose(); break;
+        default: break;
+    }
+}
+
+bool App::TryExecutePlayerMouseBinding(UINT vkCode) {
+    if (!playbackSession.IsOpen()) return false;
+    const bool isCtrl = (GetKeyState(VK_CONTROL) & 0x8000) != 0;
+    const bool isShift = (GetKeyState(VK_SHIFT) & 0x8000) != 0;
+    const bool isAlt = (GetKeyState(VK_MENU) & 0x8000) != 0;
+    const AppCommand cmd = commandDispatcher.FindMouseBinding(vkCode, isCtrl, isShift, isAlt, settings);
+    if (cmd == AppCommand::None) return false;
+    commandDispatcher.Execute(cmd);
+    return true;
+}
 
 App::~App() { Shutdown(); }
 
@@ -570,6 +747,7 @@ void App::SnapVisualAnimations() {
     hwAccelToggleAnim.SnapTo(hwAccelToggleAnim.to);
     loopToggleAnim.SnapTo(loopToggleAnim.to);
     customMpvConfigToggleAnim.SnapTo(customMpvConfigToggleAnim.to);
+    for (auto& anim : experienceToggleAnim) anim.SnapTo(anim.to);
     for (auto& anim : systemRowHoverAnim) anim.SnapTo(anim.to);
     for (auto& anim : systemRowPressAnim) anim.SnapTo(anim.to);
     jumpAheadAnim.SnapTo(jumpAheadAnim.to);
@@ -587,19 +765,51 @@ void App::SnapVisualAnimations() {
     }
 }
 
+void App::ApplyExperienceModeSelection(ExperienceMode mode) {
+    const ExperienceMode oldMode = FeatureGate::ModeFromString(settings.experienceMode);
+    if (mode == ExperienceMode::Custom && oldMode != ExperienceMode::Custom) {
+        // Seed the custom list from the surface the user was just looking at,
+        // so switching to Custom preserves what they already see.
+        settings.customEnabledFeatures.clear();
+        for (const auto& info : FeatureGate::Catalog()) {
+            if (FeatureGate::FeatureEnabled(oldMode, settings.customEnabledFeatures, info.id)) {
+                settings.customEnabledFeatures.push_back(info.key);
+            }
+        }
+    }
+    settings.experienceMode = FeatureGate::ModeToString(mode);
+    SaveSettings();
+}
+
+void App::ToggleExperienceFeature(const std::string& key) {
+    auto& enabled = settings.customEnabledFeatures;
+    auto it = std::find(enabled.begin(), enabled.end(), key);
+    if (it != enabled.end()) {
+        enabled.erase(it);
+    } else {
+        enabled.push_back(key);
+    }
+    SaveSettings();
+}
+
 float App::GetSettingsContentHeight(float dp) const {
     float settingsCardTop = (SettingsLayout::kContentStartOffset +
         (currentSettingsCat == SettingsCategory::Subtitles ? SettingsLayout::kSubtitlePageHeaderReserve : SettingsLayout::kPageHeaderReserve)) * dp;
     float settingsCardH = 164.0f * dp;
     if (currentSettingsCat == SettingsCategory::Playback) {
-        settingsCardH = (SettingsLayout::kPlaybackBehaviorCardHeight + 2.0f * SettingsLayout::kPlaybackSimpleCardHeight +
+        // Behavior card + 5 simple cards (seek, frame, global hotkeys, tray, minimize) + speed + MPV, with one gap between each of the 8 cards.
+        settingsCardH = (SettingsLayout::kPlaybackBehaviorCardHeight + 5.0f * SettingsLayout::kPlaybackSimpleCardHeight +
             SettingsLayout::kPlaybackSpeedCardHeight + SettingsLayout::kPlaybackMpvCardHeight +
-            4.0f * SettingsLayout::kSectionCardGap) * dp;
+            7.0f * SettingsLayout::kSectionCardGap) * dp;
     } else if (currentSettingsCat == SettingsCategory::Subtitles) {
         settingsCardH = (SettingsLayout::kSubtitlePreviewCardHeight + 2.0f * SettingsLayout::kSubtitleTrackCardHeight +
             SettingsLayout::kSubtitleFontCardHeight + SettingsLayout::kSubtitleColorCardHeight +
             SettingsLayout::kSubtitleStyleCardHeight + SettingsLayout::kSubtitlePositionCardHeight +
             6.0f * SettingsLayout::kSubtitleCardGap + SettingsLayout::kSubtitleBottomPadding) * dp;
+    } else if (currentSettingsCat == SettingsCategory::Experience) {
+        const ExperienceMode expMode = FeatureGate::ModeFromString(settings.experienceMode);
+        settingsCardH = (SettingsLayout::kExperienceModeCardHeight + SettingsLayout::kSectionCardGap +
+            (expMode == ExperienceMode::Custom ? SettingsLayout::kExperienceFeaturesCardHeight : 0.0f)) * dp;
     } else if (currentSettingsCat == SettingsCategory::System) {
         settingsCardH = (SettingsLayout::kSystemActionsTop + SettingsLayout::kSystemRowCount * 68.0f + 16.0f) * dp;
     } else if (currentSettingsCat == SettingsCategory::Shortcuts) {
@@ -881,6 +1091,12 @@ void App::BeginClose() {
     folderWatcher.RequestStop();
     pathAvailability.Clear();
     renderer.CancelThumbnailWork();
+    // System-integration teardown: hotkeys and the tray icon must not outlive the window.
+    if (hWnd) {
+        for (UINT i = 0; i < kGlobalHotkeyCount; ++i) { UnregisterHotKey(hWnd, kGlobalHotkeyBase + i); }
+    }
+    registeredGlobalHotkeys = 0;
+    RemoveTrayIcon();
     if (hOverlayWnd) ShowWindow(hOverlayWnd, SW_HIDE);
     if (hWnd) ShowWindow(hWnd, SW_HIDE);
 }
@@ -905,6 +1121,14 @@ void App::Shutdown() {
     if (shutdownComplete) return;
     if (hOverlayWnd) ShowWindow(hOverlayWnd, SW_HIDE);
     if (hWnd) ShowWindow(hWnd, SW_HIDE);
+    // Idempotent system-integration teardown (BeginClose already ran on the
+    // WM_CLOSE path; the destructor path reaches Shutdown directly).
+    if (hWnd) {
+        for (UINT i = 0; i < kGlobalHotkeyCount; ++i) { UnregisterHotKey(hWnd, kGlobalHotkeyBase + i); }
+    }
+    registeredGlobalHotkeys = 0;
+    RemoveTrayIcon();
+    if (hTrayIcon) { DestroyIcon(hTrayIcon); hTrayIcon = nullptr; }
     StopAutoscroll(true);
     // Invalidate publication before joining. The worker owns its entire
     // snapshot, so an early close cannot post or save partial library state.
@@ -1125,11 +1349,20 @@ bool App::Initialize(HWND hwnd, HWND hVideoChild, HINSTANCE hinst, const Playbac
     // It is deferred to Update() once the first shell has been presented.
     startupUpdateCheckPending = true;
     ApplyWindowTheme();
+    // The main window is already shown by wWinMain; assert the persisted
+    // always-on-top preference before the first hub frame is presented.
+    ApplyAlwaysOnTop();
     autoplayToggleAnim.SnapTo(settings.autoplay ? 1.0f : 0.0f);
     rememberPosToggleAnim.SnapTo(settings.rememberPos ? 1.0f : 0.0f);
     hwAccelToggleAnim.SnapTo(settings.hwAccel ? 1.0f : 0.0f);
     loopToggleAnim.SnapTo(settings.loop ? 1.0f : 0.0f);
     customMpvConfigToggleAnim.SnapTo(settings.customMpvConfigEnabled ? 1.0f : 0.0f);
+    for (int i = 0; i < 40; ++i) {
+        const bool enabled = i < static_cast<int>(FeatureGate::FeatureId::Count) &&
+            FeatureGate::FeatureEnabled(FeatureGate::ModeFromString(settings.experienceMode),
+                                        settings.customEnabledFeatures, static_cast<FeatureGate::FeatureId>(i));
+        experienceToggleAnim[i].SnapTo(enabled ? 1.0f : 0.0f);
+    }
     player.SetCustomMpvConfigEnabled(settings.customMpvConfigEnabled);
     player.SetCustomMpvConfigPath(settings.customMpvConfigPath);
     if (!renderer.Initialize(hWnd, settings.uiFontFamily, startupOptions.mediaTargets.empty())) { return false; }
@@ -1202,6 +1435,11 @@ bool App::Initialize(HWND hwnd, HWND hVideoChild, HINSTANCE hinst, const Playbac
     // The accessibility tree is built by the first Render pass; an extra
     // forced build here would only be discarded and rebuilt ~150 ms later.
     // After startup settles, keep initialized resources ready in memory.
+    // System-integration settings consume the loaded preferences at the end of
+    // initialization: global hotkeys register here, and the tray icon appears
+    // when enabled.
+    ApplyGlobalHotkeys();
+    UpdateTrayIcon();
     return true;
 }
 
@@ -1588,6 +1826,18 @@ bool App::Update(float dt) {
         if (hwAccelToggleAnim.Tick()) needsRedraw = true;
         if (loopToggleAnim.Tick()) needsRedraw = true;
         if (customMpvConfigToggleAnim.Tick()) needsRedraw = true;
+        // Experience feature toggles ease toward the enabled state of their
+        // catalog feature; the target re-resolves whenever the mode changes.
+        for (int i = 0; i < 40; ++i) {
+            const bool enabled = i < static_cast<int>(FeatureGate::FeatureId::Count) &&
+                FeatureGate::FeatureEnabled(FeatureGate::ModeFromString(settings.experienceMode),
+                                            settings.customEnabledFeatures, static_cast<FeatureGate::FeatureId>(i));
+            const float toggleTarget = enabled ? 1.0f : 0.0f;
+            if (std::abs(experienceToggleAnim[i].to - toggleTarget) > 0.001f) {
+                AnimateVisual(experienceToggleAnim[i], toggleTarget, MotionTokens::kToggle, MotionTokens::Standard());
+            }
+            if (experienceToggleAnim[i].Tick()) needsRedraw = true;
+        }
         // System & Storage rows ease toward their hover/press targets here; the
         // pressed flag itself flips inside the mouse handlers and renders
         // instantly so press feedback is immediate, like the nav bar.
@@ -1704,6 +1954,7 @@ bool App::RenderHubFrame() {
     if (!renderer.GetD2DContext()) return false;
     previewPlayer.BindDeviceContext(renderer.GetD2DContext());
     HubRenderViewModel vm = BuildHubRenderViewModel();
+    for (int i = 0; i < 40; ++i) vm.settingsTab.experienceToggleAnim[i] = experienceToggleAnim[i].current;
     UIComponents::DrawHub(renderer, settings, vm);
     return renderer.EndDraw() && !renderer.IsOccluded();
 }
@@ -1873,6 +2124,22 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
             if (bootstrapping) return 0;
             mediaTransport.ProcessPendingCommands(commandDispatcher);
             return 0;
+        case WM_HOTKEY: {
+            if (bootstrapping) return 0;
+            // id-0x9000 -> fixed action index (see kGlobalHotkeyActions).
+            const UINT hotkeyIndex = static_cast<UINT>(wParam) - kGlobalHotkeyBase;
+            if (hotkeyIndex < kGlobalHotkeyCount) {
+                commandDispatcher.Execute(CommandDispatcher::CommandIdFromString(kGlobalHotkeyActions[hotkeyIndex]));
+            }
+            return 0;
+        }
+        case kTrayCallbackMessage: {
+            if (bootstrapping) return 0;
+            const UINT trayEvent = LOWORD(lParam);
+            if (trayEvent == WM_LBUTTONUP || trayEvent == WM_LBUTTONDBLCLK) { RestoreFromTray(); }
+            else if (trayEvent == WM_RBUTTONUP) { ShowTrayContextMenu(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)); }
+            return 0;
+        }
         case WM_SYSCOLORCHANGE:
         case WM_SETTINGCHANGE:
         case WM_THEMECHANGED: {
@@ -1939,6 +2206,13 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                 if (hOverlayWnd) ShowWindow(hOverlayWnd, SW_HIDE);
                 SetEcoThrottling(!player.IsPlaying());
                 UpdateDisplayPowerRequest();
+                // Minimize-to-tray: hide after the minimize so the taskbar
+                // button disappears; RestoreFromTray undoes it with SW_RESTORE,
+                // which returns the pre-minimize placement.
+                if (settings.trayIconEnabled && settings.minimizeToTray && !closeRequested) {
+                    isMinimizedToTray = true;
+                    ShowWindow(hWnd, SW_HIDE);
+                }
             } else if (isMinimized) {
                 isMinimized = false;
                 SetEcoThrottling(false);
@@ -2208,6 +2482,9 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
             }
             break;
         case WM_MOUSEWHEEL: {
+            // Active shortcut capture: a wheel notch completes the binding
+            // instead of scrolling the hub pane.
+            if (HandleShortcutCaptureMouse(GET_WHEEL_DELTA_WPARAM(wParam) >= 0 ? kMouseWheelUp : kMouseWheelDown)) return 0;
             if (IsAutoscrolling()) { StopAutoscroll(true); return 0; }
             short delta = GET_WHEEL_DELTA_WPARAM(wParam);
             bool isPhysicalCtrl = (GetAsyncKeyState(VK_CONTROL) & 0x8000) != 0;
@@ -2238,7 +2515,7 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                     InvalidateRect(hWnd, NULL, FALSE);
                     return 0;
                 } else {
-                    double newVol = std::clamp(player.GetVolume() + (delta > 0 ? 0.05 : -0.05), 0.0, 1.0);
+                    double newVol = std::clamp(player.GetVolume() + (delta > 0 ? 0.05 : -0.05), 0.0, kMaxVolumeRatio);
                     player.SetVolume(newVol);
                     settings.volume = newVol;
                     settings.muted = false;
@@ -2313,6 +2590,7 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
         case WM_SETCURSOR: {
             if (playbackSession.IsOpen() && controlsOpacity <= 0.02f && !isSettingsFlyoutOpen && !isContextMenuOpen && !isScrubbing && !isVolumeScrubbing) {
                 if (IsPlaybackDiagnosticsCloseHit(lastPlayerMouseX, lastPlayerMouseY)) { SetCursor(LoadCursor(NULL, IDC_HAND)); return TRUE; }
+                if (IsLogViewerCloseHit(lastPlayerMouseX, lastPlayerMouseY)) { SetCursor(LoadCursor(NULL, IDC_HAND)); return TRUE; }
                 SetCursor(NULL);
                 return TRUE;
             }
@@ -2423,7 +2701,7 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                         float trackH = pip.volumeTrack.bottom - pip.volumeTrack.top;
                         if (trackH > 1.0f) {
                             float ratio = (pip.volumeTrack.bottom - y) / trackH;
-                            double newVol = std::clamp((double)ratio, 0.0, 1.0);
+                            double newVol = std::clamp((double)ratio, 0.0, 1.0) * kMaxVolumeRatio;
                             commandDispatcher.Execute(AppCommand::SetVolume, CommandArgs{ newVol });
                         }
                     }
@@ -2457,7 +2735,7 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                 if (activeModal != ModalType::None) {
                     const bool isInputModal = (activeModal == ModalType::NewPlaylist || activeModal == ModalType::NewSmartPlaylist || activeModal == ModalType::EditSmartPlaylist || activeModal == ModalType::SeekStepInput ||
                         activeModal == ModalType::FrameSeekInput || activeModal == ModalType::CustomSettingInput || activeModal == ModalType::BookmarkInput || activeModal == ModalType::EditMetadataOverrides ||
-                        activeModal == ModalType::SaveSubtitleProfile || activeModal == ModalType::RenameSubtitleProfile);
+                        activeModal == ModalType::SaveSubtitleProfile || activeModal == ModalType::RenameSubtitleProfile || activeModal == ModalType::JumpToTime || activeModal == ModalType::CustomAspectInput || activeModal == ModalType::CustomRotationInput);
                     const float maxBoxW = isInputModal ? 460.0f * dp : 500.0f * dp;
                     const float boxW = std::min(maxBoxW, std::max(320.0f * dp, winW - 48.0f * dp));
                     const float boxH = (isInputModal ? 204.0f : Presentation::ConfirmationHeight) * dp;
@@ -2738,9 +3016,9 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                     hoveredSettingsRow = -1;
                     hoveredShortcutIndex = -1;
                     isResetShortcutsHovered = false;
-                    SettingsCategory settingsHoverCats[] = {SettingsCategory::Appearance, SettingsCategory::Playback,
+                    SettingsCategory settingsHoverCats[] = {SettingsCategory::Experience, SettingsCategory::Appearance, SettingsCategory::Playback,
                                                             SettingsCategory::Subtitles, SettingsCategory::Shortcuts, SettingsCategory::System};
-                    for (int i = 0; i < 5; ++i) {
+                    for (int i = 0; i < 6; ++i) {
                         float cy = curCatY + i * (catH + SettingsLayout::kSidebarItemGap * dp);
                         if (x >= viewBounds.left + 8.0f * dp && x <= viewBounds.left + sideW - 8.0f * dp && y >= cy && y <= cy + catH) {
                             hoveredSettingsCat = settingsHoverCats[i];
@@ -2820,6 +3098,9 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
         case WM_MBUTTONDOWN: {
             float x = (float)GET_X_LPARAM(lParam);
             float y = (float)GET_Y_LPARAM(lParam);
+            // Active shortcut capture: a middle click completes the binding
+            // instead of starting autoscroll.
+            if (HandleShortcutCaptureMouse(kMouseMiddle)) return 0;
             if (IsAutoscrolling()) { StopAutoscroll(true); autoscroll.suppressNextClick = true; return 0; }
             if (!playbackSession.IsOpen() && activeModal == ModalType::None && !importJobActive &&
                 activeDragType == DragType::None && !textInputDragging && !isContextMenuOpen && !isSettingsFlyoutOpen) {
@@ -2830,6 +3111,7 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
             return 0;
         }
         case WM_MBUTTONUP: {
+            if (!rebindingActionId.empty()) return 0;
             if (autoscroll.suppressNextClick) { autoscroll.suppressNextClick = false; return 0; }
             if (IsAutoscrolling()) {
                 if (autoscroll.mode == AutoscrollMode::Pending) {
@@ -2867,6 +3149,7 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
             if (playbackSession.IsOpen()) RefreshOverlayHitTargets(x, y);
             else RefreshHubHitTargets(x, y);
             if (IsPlaybackDiagnosticsCloseHit(x, y)) { TogglePlaybackDiagnostics(); return 0; }
+            if (IsLogViewerCloseHit(x, y)) { ToggleLogViewer(); return 0; }
             if (!playbackSession.IsOpen() && globalSearchModel.IsOpen()) {
                 const float searchW = std::min(440.0f * dp, winW - 36.0f * dp);
                 const float searchH = std::min(390.0f * dp, winH - 106.0f * dp);
@@ -2924,7 +3207,7 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
             if (activeModal != ModalType::None) {
                 // Check ok/cancel buttons
                 float cx = winW * 0.5f, cy = winH * 0.5f;
-                bool isInputModal = (activeModal == ModalType::NewPlaylist || activeModal == ModalType::NewSmartPlaylist || activeModal == ModalType::EditSmartPlaylist || activeModal == ModalType::SeekStepInput || activeModal == ModalType::FrameSeekInput || activeModal == ModalType::CustomSettingInput || activeModal == ModalType::BookmarkInput || activeModal == ModalType::EditMetadataOverrides || activeModal == ModalType::SaveSubtitleProfile || activeModal == ModalType::RenameSubtitleProfile);
+                bool isInputModal = (activeModal == ModalType::NewPlaylist || activeModal == ModalType::NewSmartPlaylist || activeModal == ModalType::EditSmartPlaylist || activeModal == ModalType::SeekStepInput || activeModal == ModalType::FrameSeekInput || activeModal == ModalType::CustomSettingInput || activeModal == ModalType::BookmarkInput || activeModal == ModalType::EditMetadataOverrides || activeModal == ModalType::SaveSubtitleProfile || activeModal == ModalType::RenameSubtitleProfile || activeModal == ModalType::JumpToTime || activeModal == ModalType::CustomAspectInput || activeModal == ModalType::CustomRotationInput);
                 float maxBoxW = isInputModal ? 460.0f * dp : 500.0f * dp;
                 float boxW = std::min(maxBoxW, std::max(320.0f * dp, winW - 48.0f * dp));
                 float boxH = (isInputModal ? 204.0f : Presentation::ConfirmationHeight) * dp;
@@ -2987,7 +3270,7 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                             isPiPVolumeDragging = true;
                             SetCapture(hWnd);
                             float trackH = pip.volumeTrack.bottom - pip.volumeTrack.top;
-                            double newVol = std::clamp((double)(pip.volumeTrack.bottom - y) / (double)std::max(1.0f, trackH), 0.0, 1.0);
+                            double newVol = std::clamp((double)(pip.volumeTrack.bottom - y) / (double)std::max(1.0f, trackH), 0.0, 1.0) * kMaxVolumeRatio;
                             commandDispatcher.Execute(AppCommand::SetVolume, CommandArgs{ newVol });
                             InvalidateRect(hWnd, NULL, FALSE);
                             return 0;
@@ -3431,10 +3714,10 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                 if (currentTab == TabView::Settings) {
                     float sideW = SettingsLayout::kSidebarWidth * dp, catH = SettingsLayout::kSidebarItemHeight * dp;
                     float curCatY = viewBounds.top + SettingsLayout::kSidebarTopInset * dp;
-                    SettingsCategory cats[] = {SettingsCategory::Appearance, SettingsCategory::Playback, SettingsCategory::Subtitles,
-                                               SettingsCategory::Shortcuts, SettingsCategory::System};
+                    SettingsCategory cats[] = {SettingsCategory::Experience, SettingsCategory::Appearance, SettingsCategory::Playback,
+                                               SettingsCategory::Subtitles, SettingsCategory::Shortcuts, SettingsCategory::System};
                     // Check sidebar category click
-                    for (int i = 0; i < 5; ++i) {
+                    for (int i = 0; i < 6; ++i) {
                         float cy = curCatY + i * (catH + SettingsLayout::kSidebarItemGap * dp);
                         if (x >= viewBounds.left + 8.0f * dp && x <= viewBounds.left + sideW - 8.0f * dp && y >= cy && y <= cy + catH) {
                             settingsPressState = { SettingsPressState::Target::Category, i, -1 };
@@ -3450,7 +3733,48 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                         ? SettingsLayout::kSubtitlePageHeaderReserve : SettingsLayout::kPageHeaderReserve;
                     float contentY = SettingsLayout::ContentTop(contentBounds, dp, settingsScrollY, headerReserve);
                     float contentW = RectWidth(contentBounds) - padX * 2.0f;
-                    if (currentSettingsCat == SettingsCategory::Appearance) {
+                    if (currentSettingsCat == SettingsCategory::Experience) {
+                        // Card 1: mode chips (row 0, sub 0..2); Card 2: feature rows
+                        // (rows 1..12, custom mode only). Geometry mirrors the renderer,
+                        // including the group-header advancement inside the feature card.
+                        const ExperienceMode expMode = FeatureGate::ModeFromString(settings.experienceMode);
+                        const float contentLeft = contentBounds.left + padX, contentRight = contentBounds.right - padX;
+                        const float chipGap = 8.0f * dp;
+                        const float chipW = (contentW - 2.0f * chipGap) / 3.0f, chipH = SettingsLayout::kControlHeight * dp;
+                        const float chipTop = contentY + SettingsLayout::kExperienceCardTitleHeight * dp;
+                        for (int i = 0; i < 3; ++i) {
+                            const D2D1_RECT_F chipRect = D2D1::RectF(contentLeft + i * (chipW + chipGap), chipTop,
+                                                                     contentLeft + i * (chipW + chipGap) + chipW, chipTop + chipH);
+                            if (PtInRectF(chipRect, x, y)) {
+                                settingsPressState = { SettingsPressState::Target::OptionRow, 0, i };
+                                SetCapture(hWnd);
+                                InvalidateRect(hWnd, NULL, FALSE);
+                                return 0;
+                            }
+                        }
+                        if (expMode == ExperienceMode::Custom) {
+                            const float featuresTop = contentY + SettingsLayout::kExperienceModeCardHeight * dp +
+                                SettingsLayout::kSectionCardGap * dp;
+                            const float rowH = SettingsLayout::kExperienceFeatureRowHeight * dp;
+                            const auto& catalog = FeatureGate::Catalog();
+                            float rowY = featuresTop + SettingsLayout::kExperienceCardTitleHeight * dp;
+                            const char* lastGroup = nullptr;
+                            for (int i = 0; i < static_cast<int>(catalog.size()); ++i) {
+                                if (!lastGroup || std::string(lastGroup) != catalog[i].group) {
+                                    lastGroup = catalog[i].group;
+                                    rowY += SettingsLayout::kExperienceGroupHeaderHeight * dp;
+                                }
+                                const D2D1_RECT_F rRect = D2D1::RectF(contentLeft, rowY, contentRight, rowY + rowH);
+                                if (PtInRectF(rRect, x, y)) {
+                                    settingsPressState = { SettingsPressState::Target::OptionRow, i + 1, 0 };
+                                    SetCapture(hWnd);
+                                    InvalidateRect(hWnd, NULL, FALSE);
+                                    return 0;
+                                }
+                                rowY += rowH;
+                            }
+                        }
+                    } else if (currentSettingsCat == SettingsCategory::Appearance) {
                         // Section 1: Themes (Row 0)
                         contentY += 28.0f * dp;
                         const auto& allThemes = settings.GetAllThemes();
@@ -3582,6 +3906,18 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                                 InvalidateRect(hWnd, NULL, FALSE);
                                 return 0;
                             }
+                        }
+                        // Section 6: System Integration (Rows 9, 10 & 11)
+                        contentY = mpvCardTop + SettingsLayout::kPlaybackMpvCardHeight * dp + cardGap;
+                        for (int i = 9; i <= 11; ++i) {
+                            D2D1_RECT_F sysCardRect = D2D1::RectF(contentLeft, contentY, contentRight, contentY + simpleCardH);
+                            if (PtInRectF(sysCardRect, x, y)) {
+                                settingsPressState = { SettingsPressState::Target::OptionRow, i, 0 };
+                                SetCapture(hWnd);
+                                InvalidateRect(hWnd, NULL, FALSE);
+                                return 0;
+                            }
+                            contentY += simpleCardH + cardGap;
                         }
                     } else if (currentSettingsCat == SettingsCategory::Subtitles) {
                         const float usableW = contentW, subLeft = contentBounds.left + padX, controlH = SettingsLayout::kControlHeight * dp;
@@ -3821,7 +4157,7 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                     GetClientRect(hWnd, &rc);
                     const float clientW = static_cast<float>(rc.right - rc.left);
                     const float clientH = static_cast<float>(rc.bottom - rc.top);
-                    const bool isInputModal = (activeModal == ModalType::NewPlaylist || activeModal == ModalType::NewSmartPlaylist || activeModal == ModalType::EditSmartPlaylist || activeModal == ModalType::SeekStepInput || activeModal == ModalType::FrameSeekInput || activeModal == ModalType::CustomSettingInput || activeModal == ModalType::BookmarkInput || activeModal == ModalType::EditMetadataOverrides || activeModal == ModalType::SaveSubtitleProfile || activeModal == ModalType::RenameSubtitleProfile);
+                    const bool isInputModal = (activeModal == ModalType::NewPlaylist || activeModal == ModalType::NewSmartPlaylist || activeModal == ModalType::EditSmartPlaylist || activeModal == ModalType::SeekStepInput || activeModal == ModalType::FrameSeekInput || activeModal == ModalType::CustomSettingInput || activeModal == ModalType::BookmarkInput || activeModal == ModalType::EditMetadataOverrides || activeModal == ModalType::SaveSubtitleProfile || activeModal == ModalType::RenameSubtitleProfile || activeModal == ModalType::JumpToTime || activeModal == ModalType::CustomAspectInput || activeModal == ModalType::CustomRotationInput);
                     const float maxBoxW = isInputModal ? 460.0f * dp : 500.0f * dp;
                     const float boxW = std::min(maxBoxW, std::max(320.0f * dp, clientW - 48.0f * dp));
                     const float boxH = (isInputModal ? 204.0f : Presentation::ConfirmationHeight) * dp;
@@ -3858,8 +4194,9 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
             }
             if (pressed.target != SettingsPressState::Target::None) {
                 if (pressed.target == SettingsPressState::Target::Category) {
-                    SettingsCategory cats[] = { SettingsCategory::Appearance, SettingsCategory::Playback, SettingsCategory::Subtitles, SettingsCategory::Shortcuts, SettingsCategory::System };
-                    if (pressed.index >= 0 && pressed.index < 5) {
+                    SettingsCategory cats[] = { SettingsCategory::Experience, SettingsCategory::Appearance, SettingsCategory::Playback,
+                                                SettingsCategory::Subtitles, SettingsCategory::Shortcuts, SettingsCategory::System };
+                    if (pressed.index >= 0 && pressed.index < 6) {
                         currentSettingsCat = cats[pressed.index];
                         settingsScrollY = 0.0f;
                         hoveredSettingsRow = -1;
@@ -3891,7 +4228,23 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                         HandleGlobalKeyDown(VK_RETURN, 0);
                     }
                 } else if (pressed.target == SettingsPressState::Target::OptionRow) {
-                    if (currentSettingsCat == SettingsCategory::Appearance) {
+                    if (currentSettingsCat == SettingsCategory::Experience) {
+                        if (pressed.index == 0 && pressed.subIndex >= 0 && pressed.subIndex <= 2) {
+                            ApplyExperienceModeSelection(static_cast<ExperienceMode>(pressed.subIndex));
+                            activeFocusPane = FocusPane::SettingsContent;
+                            keyboardFocusedIndex = 0;
+                            keyboardFocusedSubIndex = pressed.subIndex;
+                        } else if (pressed.index >= 1) {
+                            const auto& catalog = FeatureGate::Catalog();
+                            const int fi = pressed.index - 1;
+                            if (fi < static_cast<int>(catalog.size())) {
+                                ToggleExperienceFeature(catalog[fi].key);
+                                activeFocusPane = FocusPane::SettingsContent;
+                                keyboardFocusedIndex = pressed.index;
+                                keyboardFocusedSubIndex = 0;
+                            }
+                        }
+                    } else if (currentSettingsCat == SettingsCategory::Appearance) {
                         if (pressed.index == 0) {
                             const auto& allThemes = settings.GetAllThemes();
                             if (pressed.subIndex >= 0 && pressed.subIndex < (int)allThemes.size()) {
@@ -3984,6 +4337,32 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                             if (pressed.subIndex == 0) EditCustomMpvConfigFile();
                             else if (pressed.subIndex == 1) ResetCustomMpvConfigToDefault();
                             else if (pressed.subIndex == 2) RevertCustomMpvConfigToLastKnownGood();
+                        } else if (pressed.index == 9) {
+                            activeFocusPane = FocusPane::SettingsContent;
+                            keyboardFocusedIndex = 9;
+                            keyboardFocusedSubIndex = 0;
+                            settings.globalHotkeysEnabled = !settings.globalHotkeysEnabled;
+                            ApplyGlobalHotkeys();
+                            SaveSettings();
+                            ShowOSD(IconType::SettingsGear, settings.globalHotkeysEnabled
+                                ? (L"Global Hotkeys: On (" + std::to_wstring(registeredGlobalHotkeys) + L" registered)")
+                                : L"Global Hotkeys: Off");
+                        } else if (pressed.index == 10) {
+                            activeFocusPane = FocusPane::SettingsContent;
+                            keyboardFocusedIndex = 10;
+                            keyboardFocusedSubIndex = 0;
+                            settings.trayIconEnabled = !settings.trayIconEnabled;
+                            if (!settings.trayIconEnabled && isMinimizedToTray) { RestoreFromTray(); }
+                            UpdateTrayIcon();
+                            SaveSettings();
+                            ShowOSD(IconType::SettingsGear, settings.trayIconEnabled ? L"Tray Icon: On" : L"Tray Icon: Off");
+                        } else if (pressed.index == 11) {
+                            activeFocusPane = FocusPane::SettingsContent;
+                            keyboardFocusedIndex = 11;
+                            keyboardFocusedSubIndex = 0;
+                            settings.minimizeToTray = !settings.minimizeToTray;
+                            SaveSettings();
+                            ShowOSD(IconType::SettingsGear, settings.minimizeToTray ? L"Minimize to Tray: On" : L"Minimize to Tray: Off");
                         }
                     } else if (currentSettingsCat == SettingsCategory::Subtitles) {
                         const char* audioLangCodes[] = { "eng", "jpn", "fra", "deu", "spa", "ita", "auto" };
@@ -4359,10 +4738,13 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
             break;
         }
         case WM_XBUTTONDOWN: {
+            // Active shortcut capture: an X button completes the binding.
+            if (HandleShortcutCaptureMouse((HIWORD(wParam) == XBUTTON1) ? kMouseX1 : kMouseX2)) return TRUE;
             if (IsAutoscrolling()) { StopAutoscroll(true); autoscroll.suppressNextClick = true; return TRUE; }
             break;
         }
         case WM_XBUTTONUP: {
+            if (!rebindingActionId.empty()) return TRUE;
             if (autoscroll.suppressNextClick) { autoscroll.suppressNextClick = false; return TRUE; }
             break;
         }
@@ -4382,6 +4764,20 @@ LRESULT App::HandleOverlayMessage(HWND hOverlay, UINT uMsg, WPARAM wParam, LPARA
     float winW = (float)(rc.right - rc.left);
     float winH = (float)(rc.bottom - rc.top);
     float topBarH = 64.0f * dp, bottomBarH = 76.0f * dp, padX = Presentation::PlayerPadding * dp, btnSize = 36.0f * dp;
+    // Shortcut capture over the player/modal layer: while a capture is active,
+    // middle/X/wheel inputs complete it instead of their normal behavior.
+    // Without an active capture these messages keep their ordinary routing.
+    if (!rebindingActionId.empty() &&
+        (uMsg == WM_MBUTTONDOWN || uMsg == WM_MBUTTONUP || uMsg == WM_XBUTTONDOWN || uMsg == WM_XBUTTONUP || uMsg == WM_MOUSEWHEEL)) {
+        if (uMsg == WM_MBUTTONDOWN || uMsg == WM_XBUTTONDOWN) {
+            const UINT captureVk = (uMsg == WM_MBUTTONDOWN) ? kMouseMiddle
+                : (HIWORD(wParam) == XBUTTON1 ? kMouseX1 : kMouseX2);
+            HandleShortcutCaptureMouse(captureVk);
+        } else if (uMsg == WM_MOUSEWHEEL) {
+            HandleShortcutCaptureMouse(GET_WHEEL_DELTA_WPARAM(wParam) >= 0 ? kMouseWheelUp : kMouseWheelDown);
+        }
+        return 0;
+    }
     if (activeModal != ModalType::None || activeTextInputField == TextInputField::PlaybackSpeed) {
         if (uMsg == WM_MOUSEMOVE || uMsg == WM_LBUTTONDOWN || uMsg == WM_LBUTTONUP || uMsg == WM_LBUTTONDBLCLK)
             return SendMessageW(hWnd, uMsg, wParam, lParam);
@@ -4430,6 +4826,7 @@ LRESULT App::HandleOverlayMessage(HWND hOverlay, UINT uMsg, WPARAM wParam, LPARA
         }
         case WM_SETCURSOR: {
             if (IsPlaybackDiagnosticsCloseHit(lastPlayerMouseX, lastPlayerMouseY)) { SetCursor(LoadCursor(NULL, IDC_HAND)); return TRUE; }
+            if (IsLogViewerCloseHit(lastPlayerMouseX, lastPlayerMouseY)) { SetCursor(LoadCursor(NULL, IDC_HAND)); return TRUE; }
             if (playbackSession.IsOpen() && controlsOpacity <= 0.02f && !isSettingsFlyoutOpen && !isContextMenuOpen && !isScrubbing && !isVolumeScrubbing && !isJumpAheadVisible) {
                 SetCursor(NULL);
                 return TRUE;
@@ -4495,7 +4892,7 @@ LRESULT App::HandleOverlayMessage(HWND hOverlay, UINT uMsg, WPARAM wParam, LPARA
                     float trackH = pip.volumeTrack.bottom - pip.volumeTrack.top;
                     if (trackH > 1.0f) {
                         float ratio = (pip.volumeTrack.bottom - y) / trackH;
-                        double newVol = std::clamp((double)ratio, 0.0, 1.0);
+                        double newVol = std::clamp((double)ratio, 0.0, 1.0) * kMaxVolumeRatio;
                         commandDispatcher.Execute(AppCommand::SetVolume, CommandArgs{ newVol });
                     }
                 }
@@ -4524,7 +4921,7 @@ LRESULT App::HandleOverlayMessage(HWND hOverlay, UINT uMsg, WPARAM wParam, LPARA
             const auto playerLayoutForVolume = Presentation::Player(winW, winH, dp, playbackSession.IsQueuePlayback());
             float volTrackX = playerLayoutForVolume.volume.left, volW = 60.0f * dp;
             if (isVolumeScrubbing) {
-                double vol = std::clamp((double)(x - volTrackX) / (double)volW, 0.0, 1.0);
+                double vol = std::clamp((double)(x - volTrackX) / (double)volW, 0.0, 1.0) * kMaxVolumeRatio;
                 player.SetVolume(vol);
                 settings.volume = vol;
                 settings.muted = false;
@@ -4557,6 +4954,7 @@ LRESULT App::HandleOverlayMessage(HWND hOverlay, UINT uMsg, WPARAM wParam, LPARA
             isKeyboardNavActive = false;
             RefreshOverlayHitTargets(x, y);
             if (IsPlaybackDiagnosticsCloseHit(x, y)) { TogglePlaybackDiagnostics(); Render(); return 0; }
+            if (IsLogViewerCloseHit(x, y)) { ToggleLogViewer(); Render(); return 0; }
             controlsIdleTimer = 0.0f;
             lastPlayerMouseX = x;
             lastPlayerMouseY = y;
@@ -4586,7 +4984,7 @@ LRESULT App::HandleOverlayMessage(HWND hOverlay, UINT uMsg, WPARAM wParam, LPARA
                         isPiPVolumeDragging = true;
                         SetCapture(hOverlayWnd ? hOverlayWnd : hOverlay);
                         float trackH = pip.volumeTrack.bottom - pip.volumeTrack.top;
-                        double newVol = std::clamp((double)(pip.volumeTrack.bottom - y) / (double)std::max(1.0f, trackH), 0.0, 1.0);
+                        double newVol = std::clamp((double)(pip.volumeTrack.bottom - y) / (double)std::max(1.0f, trackH), 0.0, 1.0) * kMaxVolumeRatio;
                         commandDispatcher.Execute(AppCommand::SetVolume, CommandArgs{ newVol });
                         Render();
                         return 0;
@@ -4691,7 +5089,7 @@ LRESULT App::HandleOverlayMessage(HWND hOverlay, UINT uMsg, WPARAM wParam, LPARA
                 y >= controlsY - 8.0f * dp && y <= controlsY + btnSize + 8.0f * dp) {
                 isVolumeScrubbing = true;
                 SetCapture(hOverlayWnd ? hOverlayWnd : hOverlay);
-                double vol = std::clamp((double)(x - volTrackX) / (double)volW, 0.0, 1.0);
+                double vol = std::clamp((double)(x - volTrackX) / (double)volW, 0.0, 1.0) * kMaxVolumeRatio;
                 commandDispatcher.Execute(AppCommand::SetVolume, CommandArgs{ vol });
                 Render();
                 return 0;
@@ -4908,6 +5306,19 @@ LRESULT App::HandleOverlayMessage(HWND hOverlay, UINT uMsg, WPARAM wParam, LPARA
             Render();
             return 0;
         }
+        case WM_MBUTTONDOWN: {
+            // A bound middle-click action overrides the default no-op in the
+            // player context only (CommandDispatcher::FindMouseBinding).
+            if (TryExecutePlayerMouseBinding(kMouseMiddle)) { Render(); return 0; }
+            break;
+        }
+        case WM_XBUTTONDOWN: {
+            // A bound X-button action overrides the default behavior in the
+            // player context only. XBUTTON messages return TRUE when consumed.
+            const UINT xVk = (HIWORD(wParam) == XBUTTON1) ? kMouseX1 : kMouseX2;
+            if (TryExecutePlayerMouseBinding(xVk)) { Render(); return TRUE; }
+            break;
+        }
         case WM_MOUSEWHEEL: {
             controlsIdleTimer = 0.0f;
             if (isCursorHidden) { isCursorHidden = false; SetCursor(LoadCursor(NULL, IDC_ARROW)); }
@@ -4923,6 +5334,13 @@ LRESULT App::HandleOverlayMessage(HWND hOverlay, UINT uMsg, WPARAM wParam, LPARA
                 if (delta > 0 && queueFlyoutFirstVisible > 0) {
                     --queueFlyoutFirstVisible;
                 } else if (delta < 0 && queueFlyoutFirstVisible < maxFirst) { ++queueFlyoutFirstVisible; }
+                Render();
+                return 0;
+            }
+            // A bound wheel action overrides the volume wheel in the player
+            // context only (checked after menu/queue scrolling, before the
+            // hardcoded Ctrl subtitle-delay and volume behavior).
+            if (TryExecutePlayerMouseBinding(delta >= 0 ? kMouseWheelUp : kMouseWheelDown)) {
                 Render();
                 return 0;
             }

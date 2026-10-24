@@ -91,10 +91,19 @@ bool PlaybackSession::SetPlayState(bool isPlaying) {
     return true;
 }
 
+size_t PlaybackSession::PickNextQueueIndex() {
+    if (shuffleEnabled) {
+        if (playedHistory.size() >= 1000) playedHistory.erase(playedHistory.begin());
+        playedHistory.push_back(currentQueueIndex);
+        return shuffleSeq.Next(currentQueueIndex, playbackQueue.size());
+    }
+    return (currentQueueIndex + 1) % playbackQueue.size();
+}
+
 bool PlaybackSession::OnEof(bool autoplayEnabled, std::wstring& outNextPath, bool& outIsQueue) {
     if (state == PlaybackState::Closed) return false;
     if (queueMode == QueueMode::Queue && !playbackQueue.empty()) {
-        currentQueueIndex = (currentQueueIndex + 1) % playbackQueue.size();
+        currentQueueIndex = PickNextQueueIndex();
         outNextPath = playbackQueue[currentQueueIndex];
         outIsQueue = true;
         return true;
@@ -109,6 +118,8 @@ void PlaybackSession::Close() {
     queueMode = QueueMode::DirectOpen;
     playbackQueue.clear();
     currentQueueIndex = 0;
+    shuffleSeq.Reset();
+    playedHistory.clear();
     currentFilePath.clear();
     currentError.clear();
     startPositionSec = 0.0;
@@ -299,6 +310,8 @@ void PlaybackSession::SetQueue(const std::vector<std::wstring>& queue, size_t in
     playbackQueue = queue;
     queueMode = playbackQueue.empty() ? QueueMode::DirectOpen : QueueMode::Queue;
     currentQueueIndex = playbackQueue.empty() ? 0 : std::min(index, playbackQueue.size() - 1);
+    shuffleSeq.Reset();
+    playedHistory.clear();
 }
 
 bool PlaybackSession::AppendToQueue(const std::vector<std::wstring>& items) {
@@ -311,17 +324,25 @@ bool PlaybackSession::AppendToQueue(const std::vector<std::wstring>& items) {
     for (const auto& item : items) {
         if (!item.empty() && playbackQueue.size() < kMaxQueueSize) { playbackQueue.push_back(item); }
     }
+    shuffleSeq.Reset();
+    playedHistory.clear();
     return true;
 }
 
 std::wstring PlaybackSession::GetNextQueuePath() {
     if (queueMode != QueueMode::Queue || playbackQueue.empty()) return {};
-    currentQueueIndex = (currentQueueIndex + 1) % playbackQueue.size();
+    currentQueueIndex = PickNextQueueIndex();
     return playbackQueue[currentQueueIndex];
 }
 
 std::wstring PlaybackSession::GetPrevQueuePath(bool loop) {
     if (queueMode != QueueMode::Queue || playbackQueue.empty()) return {};
+    if (shuffleEnabled && !playedHistory.empty()) {
+        currentQueueIndex = playedHistory.back();
+        if (currentQueueIndex >= playbackQueue.size()) currentQueueIndex = 0;
+        playedHistory.pop_back();
+        return playbackQueue[currentQueueIndex];
+    }
     if (currentQueueIndex > 0) { currentQueueIndex--; } else if (loop) {
         currentQueueIndex = playbackQueue.size() - 1;
     } else { currentQueueIndex = 0; }

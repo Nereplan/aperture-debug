@@ -95,6 +95,17 @@ std::string AudioConfig::NormalizeAudioChannelMap(const std::string& rawChannelM
     return "auto";
 }
 
+std::string AudioConfig::NormalizeReplayGainMode(const std::string& rawMode) {
+    std::string lower = ToLower(Trim(rawMode));
+    if (lower == "track" || lower == "album") { return lower; }
+    return "off";
+}
+
+double AudioConfig::NormalizeReplayGainPreampDb(double rawDb) {
+    if (!std::isfinite(rawDb)) { return 0.0; }
+    return std::clamp(rawDb, -15.0, 15.0);
+}
+
 std::string AudioConfig::GetNightModeFilter(const std::string& normalizedNightMode) {
     if (normalizedNightMode == "light") { return "lavfi=[dynaudnorm=f=250:g=15:p=0.90:m=5.0]"; } else if (normalizedNightMode == "medium") {
         return "lavfi=[dynaudnorm=f=200:g=21:p=0.95:m=10.0]";
@@ -111,7 +122,8 @@ std::string AudioConfig::GetChannelMapFilter(const std::string& normalizedChanne
 
 AudioManagementPlan AudioConfig::BuildAudioPlan( const std::string& device, const std::string& layout, const std::string& channelMix,
     bool normalizeDownmix, const std::string& nightMode, double balance, const std::string& channelMap,
-    const std::vector<AudioDeviceInfo>& availableDevices ) {
+    const std::vector<AudioDeviceInfo>& availableDevices, const std::string& replayGainMode, double replayGainPreampDb,
+    bool audioPassthrough, bool pitchCorrection ) {
     AudioManagementPlan plan;
     plan.requestedDevice = device;
     plan.requestedLayout = layout;
@@ -120,6 +132,10 @@ AudioManagementPlan AudioConfig::BuildAudioPlan( const std::string& device, cons
     plan.requestedNightMode = nightMode;
     plan.requestedBalance = balance;
     plan.requestedChannelMap = channelMap;
+    plan.requestedReplayGainMode = replayGainMode;
+    plan.requestedReplayGainPreampDb = replayGainPreampDb;
+    plan.requestedAudioPassthrough = audioPassthrough;
+    plan.requestedPitchCorrection = pitchCorrection;
     bool fellBack = false;
     plan.normalizedDevice = NormalizeAudioDevice(device, availableDevices, &fellBack);
     plan.deviceFellBackToAuto = fellBack;
@@ -129,6 +145,10 @@ AudioManagementPlan AudioConfig::BuildAudioPlan( const std::string& device, cons
     plan.normalizedNightMode = NormalizeNightMode(nightMode);
     plan.normalizedBalance = NormalizeAudioBalance(balance);
     plan.normalizedChannelMap = NormalizeAudioChannelMap(channelMap);
+    plan.normalizedReplayGainMode = NormalizeReplayGainMode(replayGainMode);
+    plan.normalizedReplayGainPreampDb = NormalizeReplayGainPreampDb(replayGainPreampDb);
+    plan.normalizedAudioPassthrough = audioPassthrough;
+    plan.normalizedPitchCorrection = pitchCorrection;
     std::string nightFilter = GetNightModeFilter(plan.normalizedNightMode);
     std::string channelFilter = GetChannelMapFilter(plan.normalizedChannelMap);
     if (!nightFilter.empty() && !channelFilter.empty()) {
@@ -150,7 +170,7 @@ AudioManagementPlan AudioConfig::BuildAudioPlan( const std::string& device, cons
     // 3. Downmix Normalization Action
     plan.actions.push_back({ "audio-normalize-downmix", plan.normalizedNormalizeDownmix ? "yes" : "no" });
     // 4. Audio Pitch Correction
-    plan.actions.push_back({ "audio-pitch-correction", "yes" });
+    plan.actions.push_back({ "audio-pitch-correction", plan.normalizedPitchCorrection ? "yes" : "no" });
     // 5. Audio Balance Action
     double normBal = plan.normalizedBalance;
     if (std::abs(normBal) < 0.0001) normBal = 0.0;
@@ -159,6 +179,16 @@ AudioManagementPlan AudioConfig::BuildAudioPlan( const std::string& device, cons
     plan.actions.push_back({ "balance", balanceBuf });
     // 6. Audio Filters Action (DRC / Channel Mapping)
     plan.actions.push_back({ "af", plan.filterString });
+    // 7. ReplayGain Mode Action ("off" maps to mpv's "no")
+    plan.actions.push_back({ "replaygain", plan.normalizedReplayGainMode == "off" ? "no" : plan.normalizedReplayGainMode });
+    // 8. ReplayGain Preamp Action (dB)
+    double normPreamp = plan.normalizedReplayGainPreampDb;
+    if (std::abs(normPreamp) < 0.0001) normPreamp = 0.0;
+    char preampBuf[32];
+    snprintf(preampBuf, sizeof(preampBuf), "%.2f", normPreamp);
+    plan.actions.push_back({ "replaygain-preamp", preampBuf });
+    // 9. S/PDIF / HDMI Bitstream Passthrough Action
+    plan.actions.push_back({ "audio-spdif", plan.normalizedAudioPassthrough ? "ac3,dts,eac3,dtshd,truehd" : "no" });
     return plan;
 }
 

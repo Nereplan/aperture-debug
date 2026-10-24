@@ -27,11 +27,19 @@ struct AudioManagementPlan {
     std::string requestedNightMode;
     double requestedBalance = 0.0;
     std::string requestedChannelMap = "auto";
+    std::string requestedReplayGainMode;
+    double requestedReplayGainPreampDb = 0.0;
+    bool requestedAudioPassthrough = false;
+    bool requestedPitchCorrection = true;
     std::string normalizedDevice, normalizedLayout, normalizedChannelMix;
     bool normalizedNormalizeDownmix = true;
     std::string normalizedNightMode;
     double normalizedBalance = 0.0;
     std::string normalizedChannelMap = "auto";
+    std::string normalizedReplayGainMode;
+    double normalizedReplayGainPreampDb = 0.0;
+    bool normalizedAudioPassthrough = false;
+    bool normalizedPitchCorrection = true;
     bool deviceFellBackToAuto = false;
     std::string filterString;
     std::vector<AudioPropertyAction> actions;
@@ -46,11 +54,14 @@ public:
     static std::string NormalizeNightMode(const std::string& rawNightMode);
     static double NormalizeAudioBalance(double rawBalance);
     static std::string NormalizeAudioChannelMap(const std::string& rawChannelMap);
+    static std::string NormalizeReplayGainMode(const std::string& rawMode);
+    static double NormalizeReplayGainPreampDb(double rawDb);
     static std::string GetNightModeFilter(const std::string& normalizedNightMode);
     static std::string GetChannelMapFilter(const std::string& normalizedChannelMap);
     static AudioManagementPlan BuildAudioPlan( const std::string& device, const std::string& layout, const std::string& channelMix,
         bool normalizeDownmix, const std::string& nightMode, double balance, const std::string& channelMap,
-        const std::vector<AudioDeviceInfo>& availableDevices = {} );
+        const std::vector<AudioDeviceInfo>& availableDevices = {}, const std::string& replayGainMode = "off",
+        double replayGainPreampDb = 0.0, bool audioPassthrough = false, bool pitchCorrection = true );
     static AudioManagementPlan BuildAudioPlan( const std::string& device, const std::string& layout, const std::string& channelMix,
         bool normalizeDownmix, const std::string& nightMode, const std::vector<AudioDeviceInfo>& availableDevices = {}
     ) { return BuildAudioPlan(device, layout, channelMix, normalizeDownmix, nightMode, 0.0, "auto", availableDevices); }

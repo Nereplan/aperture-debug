@@ -130,18 +130,20 @@ inline StorageStatus EnsureScreenshotsDirectoryCreated(const std::wstring& root 
 }
 
 inline std::wstring GenerateScreenshotFilePath( const std::wstring& mediaPathOrTitle, const std::wstring& root = GetExeDir(),
-    const SYSTEMTIME* customTime = nullptr, std::function<bool(const std::wstring&)> fileExistsFn = nullptr)
+    const SYSTEMTIME* customTime = nullptr, std::function<bool(const std::wstring&)> fileExistsFn = nullptr,
+    const std::wstring& extension = L".png")
 {
     std::wstring stem = SanitizeMediaStemForFilename(mediaPathOrTitle);
     std::wstring timestamp = FormatScreenshotTimestamp(customTime);
     std::wstring screenshotsDir = GetScreenshotsDir(root);
     std::wstring baseName = stem + L"_" + timestamp;
-    std::wstring candidate = screenshotsDir + L"\\" + baseName + L".png";
+    const std::wstring ext = (!extension.empty() && extension.front() == L'.') ? extension : L"." + extension;
+    std::wstring candidate = screenshotsDir + L"\\" + baseName + ext;
     auto checkExists = [&](const std::wstring& p) -> bool { if (fileExistsFn) return fileExistsFn(p); return FileExists(p); };
     if (!checkExists(candidate)) { return candidate; }
     for (int suffix = 1; suffix <= 9999; ++suffix) {
         wchar_t buf[16];
-        swprintf_s(buf, L"_%02d.png", suffix);
+        swprintf_s(buf, L"_%02d%s", suffix, ext.c_str());
         std::wstring suffixed = screenshotsDir + L"\\" + baseName + buf;
         if (!checkExists(suffixed)) { return suffixed; }
     }

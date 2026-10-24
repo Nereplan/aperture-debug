@@ -515,7 +515,8 @@ bool App::HandleModalKeyDown(WPARAM wParam) {
         activeModal == ModalType::EditSmartPlaylist || activeModal == ModalType::SeekStepInput ||
         activeModal == ModalType::FrameSeekInput || activeModal == ModalType::CustomSettingInput ||
         activeModal == ModalType::BookmarkInput || activeModal == ModalType::EditMetadataOverrides ||
-        activeModal == ModalType::SaveSubtitleProfile || activeModal == ModalType::RenameSubtitleProfile;
+        activeModal == ModalType::SaveSubtitleProfile || activeModal == ModalType::RenameSubtitleProfile ||
+        activeModal == ModalType::JumpToTime || activeModal == ModalType::CustomAspectInput || activeModal == ModalType::CustomRotationInput;
     if (modalFocusOwner != activeModal) { modalFocusOwner = activeModal; modalKeyboardFocus = 0; }
     const int count = isInputModal ? 3 : 2;
     if (wParam == VK_TAB || wParam == VK_LEFT || wParam == VK_RIGHT) {
@@ -541,6 +542,8 @@ bool App::HandleModalKeyDown(WPARAM wParam) {
 bool App::HandleGlobalKeyDown(WPARAM wParam, LPARAM lParam) {
     if (activeTextInputField != TextInputField::None && HandleTextInputKeyDown(wParam, lParam)) { return true; }
     if (activeTextInputField == TextInputField::PlaybackSpeed && !(GetKeyState(VK_CONTROL) & 0x8000) && !(GetKeyState(VK_MENU) & 0x8000)) return true;
+    // The diagnostics log viewer closes on Escape before any other chord runs.
+    if (showLogViewer && playbackSession.IsOpen() && wParam == VK_ESCAPE) { ToggleLogViewer(); return true; }
     if ((GetKeyState(VK_CONTROL) & 0x8000) != 0 && (GetKeyState(VK_SHIFT) & 0x8000) != 0 && (wParam == 'O' || wParam == 'o')) {
         OpenFolderDialog();
         return true;
@@ -651,68 +654,10 @@ bool App::HandleGlobalKeyDown(WPARAM wParam, LPARAM lParam) {
             }
             return true;
         }
-        bool isCtrl = (GetKeyState(VK_CONTROL) & 0x8000) != 0;
-        bool isShift = (GetKeyState(VK_SHIFT) & 0x8000) != 0;
-        bool isAlt = (GetKeyState(VK_MENU) & 0x8000) != 0;
-        ShortcutBinding b;
-        b.actionId = rebindingActionId;
-        b.displayName = rebindingActionName.empty() ? rebindingActionId : rebindingActionName;
-        b.vkCode = (UINT)wParam;
-        b.ctrl = isCtrl;
-        b.shift = isShift;
-        b.alt = isAlt;
-        const std::string targetId = rebindingActionId;
-        const std::string targetDisplayName = b.displayName;
-        const int originRow = rebindingOriginRow, originSub = rebindingOriginSubIndex;
-        const std::wstring keyStr = Settings::FormatShortcutKey(b);
-        auto conflict = settings.shortcuts.end();
-        for (auto it = settings.shortcuts.begin(); it != settings.shortcuts.end(); ++it) {
-            if (it->first != targetId && it->second.vkCode == b.vkCode &&
-                it->second.ctrl == b.ctrl && it->second.shift == b.shift && it->second.alt == b.alt) {
-                conflict = it;
-                break;
-            }
-        }
-        if (conflict != settings.shortcuts.end()) {
-            const ShortcutBinding pending = b;
-            const std::string conflictId = conflict->first;
-            const std::wstring conflictName = Utf8ToUtf16(conflict->second.displayName);
-            const std::wstring targetName = Utf8ToUtf16(targetDisplayName);
-            rebindingActionId.clear();
-            rebindingActionName.clear();
-            lastAnnouncedModifierChord.clear();
-            AnnounceStatus(L"Shortcut conflict: " + keyStr + L" is already assigned to " + conflictName + L". Confirmation required to replace binding.", true);
-            ShowConfirmationModal( L"Shortcut Conflict", keyStr + L" is already assigned to " + conflictName + L". Replace that binding?",
-                L"Replace", [this, targetId, pending, conflictId, keyStr, conflictName, targetName, originRow, originSub]() {
-                    auto old = settings.shortcuts.find(conflictId);
-                    if (old != settings.shortcuts.end()) old->second.vkCode = 0;
-                    settings.shortcuts[targetId] = pending;
-                    SaveSettings();
-                    ShowOSD(IconType::SettingsGear, Utf8ToUtf16(pending.displayName) + L" assigned to " + keyStr);
-                    AnnounceStatus(targetName + L" assigned to " + keyStr + L". Previous binding for " + conflictName + L" is now unassigned. Settings saved.", true);
-                    activeFocusPane = FocusPane::SettingsContent;
-                    keyboardFocusedIndex = originRow;
-                    keyboardFocusedSubIndex = originSub;
-                    MarkAccessibilityDirty();
-                    InvalidateRect(hWnd, nullptr, FALSE);
-                }, [this, targetName, originRow, originSub]() {
-                    AnnounceStatus(L"Shortcut replacement cancelled. " + targetName + L" remains unchanged.", true);
-                    activeFocusPane = FocusPane::SettingsContent;
-                    keyboardFocusedIndex = originRow;
-                    keyboardFocusedSubIndex = originSub;
-                    MarkAccessibilityDirty();
-                    InvalidateRect(hWnd, nullptr, FALSE);
-                });
-            return true;
-        }
-        settings.shortcuts[targetId] = b;
-        SaveSettings();
-        ShowOSD(IconType::SettingsGear, Utf8ToUtf16(b.displayName) + L" assigned to " + keyStr);
-        AnnounceStatus(Utf8ToUtf16(b.displayName) + L" shortcut assigned to " + keyStr + L". Settings saved.", true);
-        rebindingActionId.clear();
-        rebindingActionName.clear();
-        lastAnnouncedModifierChord.clear();
-        PopAndRestoreFocus(TransientSurfaceType::ShortcutCapture);
+        // Mouse pseudo-keys complete the capture through the same shared path
+        // (see App::HandleShortcutCaptureMouse routing in the mouse handlers).
+        CompleteShortcutCapture((UINT)wParam,
+            (GetKeyState(VK_CONTROL) & 0x8000) != 0, (GetKeyState(VK_SHIFT) & 0x8000) != 0, (GetKeyState(VK_MENU) & 0x8000) != 0);
         return true;
     }
     if (playbackSession.IsOpen()) {
@@ -1116,8 +1061,8 @@ bool App::HandleGlobalKeyDown(WPARAM wParam, LPARAM lParam) {
         }
         // ZONE B: Settings Navigation & Category List
         if (currentTab == TabView::Settings) {
-            SettingsCategory cats[] = {SettingsCategory::Appearance, SettingsCategory::Playback, SettingsCategory::Subtitles,
-                                       SettingsCategory::Shortcuts, SettingsCategory::System};
+            SettingsCategory cats[] = {SettingsCategory::Experience, SettingsCategory::Appearance, SettingsCategory::Playback,
+                                       SettingsCategory::Subtitles, SettingsCategory::Shortcuts, SettingsCategory::System};
             int curCatIdx = (int)currentSettingsCat;
             if (activeFocusPane == FocusPane::SettingsCategoryList) {
                 if (wParam == VK_UP) {
@@ -1129,7 +1074,7 @@ bool App::HandleGlobalKeyDown(WPARAM wParam, LPARAM lParam) {
                     return true;
                 }
                 if (wParam == VK_DOWN) {
-                    if (curCatIdx >= 4) {
+                    if (curCatIdx >= 5) {
                         activeFocusPane = FocusPane::SettingsContent;
                         keyboardFocusedIndex = 0;
                         keyboardFocusedSubIndex = 0;
@@ -1152,8 +1097,9 @@ bool App::HandleGlobalKeyDown(WPARAM wParam, LPARAM lParam) {
                 size_t midSc = (scList.size() + 1) / 2;
                 int maxRows = 1;
                 if (currentSettingsCat == SettingsCategory::Appearance) maxRows = 2;
-                else if (currentSettingsCat == SettingsCategory::Playback) maxRows = 9;
+                else if (currentSettingsCat == SettingsCategory::Playback) maxRows = 12;
                 else if (currentSettingsCat == SettingsCategory::Subtitles) maxRows = 6;
+                else if (currentSettingsCat == SettingsCategory::Experience) maxRows = (FeatureGate::ModeFromString(settings.experienceMode) == ExperienceMode::Custom) ? 33 : 1;
                 else if (currentSettingsCat == SettingsCategory::Shortcuts) maxRows = (int)midSc + 1;
                 else if (currentSettingsCat == SettingsCategory::System) maxRows = SettingsLayout::kSystemRowCount;
                 auto getMaxSubIndex = [&](int row) -> int {
@@ -1168,6 +1114,10 @@ bool App::HandleGlobalKeyDown(WPARAM wParam, LPARAM lParam) {
                         if (row == 6) return 5; // Speed
                         if (row == 7) return 0; // Custom MPV Config Toggle
                         if (row == 8) return 2; // Edit (0), Reset (1), Revert (2)
+                        if (row >= 9 && row <= 11) return 0; // Global Hotkeys / Tray Icon / Minimize to Tray toggles
+                    } else if (currentSettingsCat == SettingsCategory::Experience) {
+                        if (row == 0) return 2; // Mode chips: Simple, Advanced, Custom
+                        return 0;
                     } else if (currentSettingsCat == SettingsCategory::Subtitles) {
                         if (row == 0) return 6; // Audio: 6 languages + Default
                         if (row == 1) return 6; // Subtitles: 6 languages + Off
@@ -1242,6 +1192,16 @@ bool App::HandleGlobalKeyDown(WPARAM wParam, LPARAM lParam) {
                                 SaveSettings();
                             }
                         }
+                    } else if (currentSettingsCat == SettingsCategory::Experience) {
+                        if (row == 0 && sub >= 0 && sub <= 2) {
+                            ApplyExperienceModeSelection(static_cast<ExperienceMode>(sub));
+                        } else if (row >= 1) {
+                            const auto& catalog = FeatureGate::Catalog();
+                            const int fi = row - 1;
+                            if (fi < static_cast<int>(catalog.size())) {
+                                ToggleExperienceFeature(catalog[fi].key);
+                            }
+                        }
                     } else if (currentSettingsCat == SettingsCategory::Playback) {
                         if (row == 0) {
                             settings.autoplay = !settings.autoplay;
@@ -1283,6 +1243,20 @@ bool App::HandleGlobalKeyDown(WPARAM wParam, LPARAM lParam) {
                             else if (sub == 1) ResetCustomMpvConfigToDefault();
                             else if (sub == 2) RevertCustomMpvConfigToLastKnownGood();
                             return true;
+                        } else if (row == 9) {
+                            settings.globalHotkeysEnabled = !settings.globalHotkeysEnabled;
+                            ApplyGlobalHotkeys();
+                            ShowOSD(IconType::SettingsGear, settings.globalHotkeysEnabled
+                                ? (L"Global Hotkeys: On (" + std::to_wstring(registeredGlobalHotkeys) + L" registered)")
+                                : L"Global Hotkeys: Off");
+                        } else if (row == 10) {
+                            settings.trayIconEnabled = !settings.trayIconEnabled;
+                            if (!settings.trayIconEnabled && isMinimizedToTray) { RestoreFromTray(); }
+                            UpdateTrayIcon();
+                            ShowOSD(IconType::SettingsGear, settings.trayIconEnabled ? L"Tray Icon: On" : L"Tray Icon: Off");
+                        } else if (row == 11) {
+                            settings.minimizeToTray = !settings.minimizeToTray;
+                            ShowOSD(IconType::SettingsGear, settings.minimizeToTray ? L"Minimize to Tray: On" : L"Minimize to Tray: Off");
                         }
                         ApplyPlayerPreferences();
                         SaveSettings();
@@ -1314,6 +1288,7 @@ bool App::HandleGlobalKeyDown(WPARAM wParam, LPARAM lParam) {
                             ShowConfirmationModal(L"Reset Shortcuts", L"Are you sure you want to reset all keyboard shortcuts to their default key assignments?", L"Reset", [this]() {
                                 settings.ResetShortcuts();
                                 SaveSettings();
+                                ApplyGlobalHotkeys();
                             });
                             return true;
                         } else {
@@ -1365,6 +1340,10 @@ bool App::HandleGlobalKeyDown(WPARAM wParam, LPARAM lParam) {
                                 overlayRenderer.UpdateFontFamily(settings.uiFontFamily);
                                 ApplyWindowTheme();
                                 ApplyPlayerPreferences();
+                                // ResetToDefaults clears shortcuts and turns the
+                                // system-integration toggles off: re-derive both.
+                                ApplyGlobalHotkeys();
+                                UpdateTrayIcon();
                             });
                             return true;
                         } else if (action == 13) {

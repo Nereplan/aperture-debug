@@ -47,6 +47,18 @@ inline constexpr float kPlaybackMpvActionTop = kPlaybackCardTitleHeight + kPlayb
 inline constexpr float kPlaybackMpvCardHeight = kPlaybackMpvActionTop + 3.0f * kPlaybackMpvActionHeight +
     2.0f * kPlaybackMpvActionGap + 8.0f;
 
+// Experience uses the playback card rhythm for its mode picker and the
+// Custom-mode feature card. The feature card height derives from the catalog
+// feature count (32 features, 4 group headers) so the page scrolls correctly.
+inline constexpr float kExperienceCardTitleHeight = kPlaybackCardTitleHeight;
+inline constexpr float kExperienceFeatureRowHeight = kPlaybackBehaviorRowHeight;
+inline constexpr float kExperienceGroupHeaderHeight = 28.0f;
+inline constexpr float kExperienceFeatureCount = 32.0f;
+inline constexpr float kExperienceFeaturesCardHeight = kExperienceCardTitleHeight +
+    kExperienceFeatureCount * kExperienceFeatureRowHeight + 4.0f * kExperienceGroupHeaderHeight + 8.0f;
+inline constexpr float kExperienceModeCardHeight = kExperienceCardTitleHeight + kControlHeight +
+    8.0f + 18.0f + 8.0f;
+
 // Content pane inside the hub view and the scrolling origin of its rows.
 // Rendering, pointer hit-testing, and wheel hover re-resolution all share
 // these so a drawn hover can never drift from its hit target.

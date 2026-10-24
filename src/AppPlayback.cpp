@@ -215,6 +215,7 @@ void App::HandlePlayerEvents() {
         UpdateMediaTransport(true);
     }
     if (events & PlayerEventEnded) {
+        if (exitAfterPlayback) { BeginClose(); return; }
         if (stopAfterCurrent) { stopAfterCurrent = false; ClosePlayer(); UpdateMediaTransport(true); return; }
         // Keep Web semantics on the UI thread: explicit queue navigation
         // takes precedence over autoplay; ordinary library navigation is
@@ -264,6 +265,8 @@ void App::HandlePlayerEvents() {
             hasAnnouncedPlayingState = true;
             AnnounceStatus(isPlaying ? L"Playing" : L"Paused");
         }
+        // Keep the tray tooltip in sync with play/pause state (NIM_MODIFY).
+        if (trayIconAdded) { UpdateTrayIcon(); }
         UpdateMediaTransport(true);
     }
     if (events & PlayerEventTracks) { ApplyTrackPreferences(); InvalidateRect(hWnd, NULL, FALSE); }
@@ -413,13 +416,18 @@ void App::ApplyPlayerPreferences() {
     player.SetHardwareAcceleration(settings.hwAccel);
     player.SetPreferredAudioLanguage(settings.audioLang);
     player.SetPreferredSubtitleLanguage(settings.subLang);
+    playbackSession.SetShuffle(settings.shuffleQueue);
     const auto& activePrefs = playbackSession.GetActivePreferences();
     const bool hasPerMediaSubtitleVisibility = activePrefs.has_value() && (activePrefs->subtitlesVisible.has_value() ||
          (activePrefs->subtitleTrackId.has_value() && *activePrefs->subtitleTrackId == 0));
     if (!hasPerMediaSubtitleVisibility) { player.SetSubtitleVisibility(settings.subtitlesEnabled); }
-    player.SetSubtitleStyle(settings.subFontSize, settings.subColorHex, settings.subBgStyle, settings.subPosition, settings.subSafeAreaX, settings.subSafeAreaY);
+    player.SetSubtitleStyle(settings.subFontSize, settings.subColorHex, settings.subBgStyle, settings.subPosition, settings.subSafeAreaX, settings.subSafeAreaY,
+                            settings.subFontFamily, settings.subCodepage, settings.subForcedOnly,
+                            settings.secondarySubFontSize, settings.secondarySubColorHex, settings.secondarySubPosition);
     player.SetColorPreferences(settings.hdrMode, settings.toneMappingAlgorithm, settings.targetPeak, settings.gamutMapping, settings.iccProfilePath);
-    player.SetAudioPreferences(settings.audioDevice, settings.audioLayout, settings.audioChannelMix, settings.audioNormalizeDownmix, settings.nightMode, settings.audioBalance, settings.audioChannelMap);
+    player.SetAudioPreferences(settings.audioDevice, settings.audioLayout, settings.audioChannelMix, settings.audioNormalizeDownmix, settings.nightMode, settings.audioBalance, settings.audioChannelMap,
+                               settings.replayGainMode, settings.replayGainPreampDb, settings.audioPassthrough, settings.pitchCorrection);
+    player.SetDeinterlace(settings.deinterlaceMode);
     player.SetCustomMpvConfigEnabled(settings.customMpvConfigEnabled);
     player.SetCustomMpvConfigPath(settings.customMpvConfigPath);
     if (settings.customMpvConfigEnabled)
@@ -774,7 +782,8 @@ void App::OpenAndPlayMedia(const std::wstring& filePath, double startPosSec, boo
         MediaPlaybackPreferences::IsValidAudioChannelMap(*item->preferences->audioChannelMap)) {
         targetChannelMap = *item->preferences->audioChannelMap;
     }
-    player.SetAudioPreferences(settings.audioDevice, settings.audioLayout, settings.audioChannelMix, settings.audioNormalizeDownmix, settings.nightMode, targetBalance, targetChannelMap);
+    player.SetAudioPreferences(settings.audioDevice, settings.audioLayout, settings.audioChannelMix, settings.audioNormalizeDownmix, settings.nightMode, targetBalance, targetChannelMap,
+                               settings.replayGainMode, settings.replayGainPreampDb, settings.audioPassthrough, settings.pitchCorrection);
     // Resume position if enabled
     double seekPos = startPosSec;
     if (seekPos <= 0.0 && settings.rememberPos && item && item->lastPosSec > 0.5 && item->status != "done") { seekPos = item->lastPosSec; }
@@ -861,6 +870,9 @@ void App::ClosePlayer() {
         flyoutAnim.SnapTo(0.0f); contextMenuAnim.SnapTo(0.0f);
         inPresentationTransition = true;
         playbackSession.ResetPresentation(hWnd);
+        // RestoreWindowedPlacement forces HWND_NOTOPMOST; re-assert the user's
+        // always-on-top preference after the presentation reset.
+        ApplyAlwaysOnTop();
         inPresentationTransition = false;
         RECT rc;
         GetClientRect(hWnd, &rc);
@@ -975,6 +987,7 @@ void App::ToggleFullscreen() {
     inPresentationTransition = true;
     if (hOverlayWnd) ShowWindow(hOverlayWnd, SW_HIDE);
     playbackSession.ToggleFullscreen(hWnd);
+    if (!playbackSession.IsFullscreen()) { ApplyAlwaysOnTop(); }
     inPresentationTransition = false;
     RECT rc;
     GetClientRect(hWnd, &rc);
@@ -1013,6 +1026,10 @@ void App::TogglePiP() {
     if (playbackSession.IsPiP()) {
         PersistPiPGeometry();
     } else {
+        // Exiting PiP either restores the windowed placement (which forces
+        // HWND_NOTOPMOST) or transitions to fullscreen; re-assert always-on-top
+        // only when the window is windowed again.
+        if (!playbackSession.IsFullscreen()) { ApplyAlwaysOnTop(); }
         const auto& lastGeom = playbackSession.GetLastPiPGeometry();
         if (lastGeom.width > 0 && lastGeom.height > 0) {
             settings.pipX = lastGeom.x;

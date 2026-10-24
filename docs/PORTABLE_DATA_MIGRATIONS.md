@@ -55,7 +55,7 @@ Storage operations return `StorageStatus` containing:
 ### 3.1 Settings (`data\settings.json`)
 
 - **Authoritative Model**: `Aperture::Settings` (`src/Settings.h`, `src/Settings.cpp`)
-- **Current Schema Version**: `15` (`Settings::kCurrentSettingsSchemaVersion`)
+- **Current Schema Version**: `16` (`Settings::kCurrentSettingsSchemaVersion`)
 - **Root-Relative Path**: `data\settings.json`
 - **Migration Symbol**: `Settings::MigrateSchema(JsonValue& root, int fromVersion, int targetVersion)`
 - **Backup Mechanism**: `CreateRotatingBackup(path, 3)` into `data\backups\settings.json.bak.1..3`; recovery searches up to `.bak.5`. Last-known-good backup saved to `data\settings.lkg.json`.
@@ -81,6 +81,7 @@ Storage operations return `StorageStatus` containing:
 | `v12` | `v13` | `hoverPreviewEnabled`, `reduceMotionEnabled` | Defaulted to `true`, `false`. |
 | `v13` | `v14` | `autoUpdateCheckEnabled`, `updateChannel`, `updateCheckUrl` | Defaulted to `false`, `"stable"`, `""`. |
 | `v14` | `v15` | `appLanguage`, `locale` | Migrated from legacy `locale` key if present; defaulted to `"en-US"`. |
+| `v15` | `v16` | `experienceMode`, `customEnabledFeatures` | Defaulted to `"simple"` and `[]`; the custom feature list is sanitized against the `FeatureGate` catalog on load. |
 ### 3.2 Media Library (`data\library.json`)
 
 - **Authoritative Model**: `Aperture::MediaLibrary` (`src/MediaLibrary.h`, `src/MediaLibrary.cpp`)

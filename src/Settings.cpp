@@ -3,6 +3,8 @@
 #include "AudioConfig.h"
 #include "ChannelPolicy.h"
 #include "Localization.h"
+#include "FeatureGate.h"
+#include "MpvPlayer.h" // kMaxVolumeRatio
 #include <fstream>
 #include <cstdio>
 #include <cmath>
@@ -90,15 +92,24 @@ void Settings::ResetToDefaults() {
     rememberPos = true;
     restoreSession = true;
     loop = false;
+    shuffleQueue = false;
+    alwaysOnTop = false;
     hwAccel = true;
     defaultSpeed = 1.0;
     arrowSeekStepSec = 5.0;
+    largeSeekStepSec = 10.0;
     ctrlSeekFrames = 1;
     customMpvConfigEnabled = false;
     customMpvConfigPath = "mpv.conf";
+    globalHotkeysEnabled = false;
+    trayIconEnabled = false;
+    minimizeToTray = false;
+    screenshotFormat = "png";
     jumpListEnabled = false;
     hoverPreviewEnabled = true;
     reduceMotionEnabled = false;
+    experienceMode = "simple";
+    customEnabledFeatures.clear();
     hdrMode = "auto";
     toneMappingAlgorithm = "auto";
     targetPeak = 0;
@@ -112,6 +123,9 @@ void Settings::ResetToDefaults() {
     subPosition = "bottom";
     subSafeAreaX = 0;
     subSafeAreaY = 0;
+    subForcedOnly = false;
+    subCodepage = "auto";
+    subFontFamily = "Inter";
     audioDelayMs = 0;
     subDelayMs = 0;
     activeSubtitleProfile = "";
@@ -132,6 +146,11 @@ void Settings::ResetToDefaults() {
     nightMode = "off";
     audioBalance = 0.0;
     audioChannelMap = "auto";
+    replayGainMode = "off";
+    replayGainPreampDb = 0.0;
+    deinterlaceMode = "off";
+    audioPassthrough = false;
+    pitchCorrection = true;
     storageMode = "source";
     playlistViewMode = "list";
     libraryGroupMode = "flat";
@@ -211,6 +230,7 @@ void Settings::ResetShortcuts() {
     shortcuts["takeScreenshot"] = { "takeScreenshot", "Take Screenshot", 'S', true, false, false };
     shortcuts["togglePrivateMode"] = { "togglePrivateMode", "Toggle Private Session Mode", 0, false, false, false };
     shortcuts["closePlayer"] = { "closePlayer", "Exit Player", VK_ESCAPE, false, false, false };
+    shortcuts["jumpToTime"] = { "jumpToTime", "Go To Time", 'T', true, false, false }; // Ctrl + T
 }
 
 const std::vector<std::pair<std::string, std::string>>& Settings::GetShortcutActionListRef() const {
@@ -224,7 +244,7 @@ const std::vector<std::pair<std::string, std::string>>& Settings::GetShortcutAct
             "speedUp",         "speedDown",         "speedReset",       "frameStepForward", "frameStepBackward", "playNext",
             "playPrevious",    "nextChapter",       "previousChapter",  "restartVideo",     "cycleAspectRatio",  "audioDelayPlus",
             "audioDelayMinus", "audioDelayReset",   "subDelayPlus",     "subDelayMinus",    "subDelayReset",     "togglePlaybackDiagnostics",
-            "takeScreenshot",  "togglePrivateMode", "closePlayer"};
+            "takeScreenshot",  "togglePrivateMode", "toggleShuffle",    "toggleAlwaysOnTop", "jumpToTime",       "closePlayer"};
         std::vector<std::pair<std::string, std::string>> list;
         list.reserve(actionIds.size());
         for (const auto& id : actionIds) {
@@ -249,6 +269,13 @@ std::wstring Settings::FormatShortcutKey(const ShortcutBinding& b) {
     } else if (b.vkCode >= VK_F1 && b.vkCode <= VK_F12) { result += L"F" + std::to_wstring(b.vkCode - VK_F1 + 1); } else {
         switch (b.vkCode) {
             case VK_SPACE: result += L"Space"; break;
+            // Mouse-button/wheel pseudo-keys (see CommandDispatcher.h). Modifier
+            // prefixes render normally; only Shift/Ctrl/Alt held at click time apply.
+            case 0x100: result += L"Middle Click"; break;
+            case 0x101: result += L"X Button 1"; break;
+            case 0x102: result += L"X Button 2"; break;
+            case 0x103: result += L"Wheel Up"; break;
+            case 0x104: result += L"Wheel Down"; break;
             case VK_LEFT: result += L"Left Arrow"; break;
             case VK_RIGHT: result += L"Right Arrow"; break;
             case VK_UP: result += L"Up Arrow"; break;
@@ -289,6 +316,11 @@ std::string Settings::VKToString(UINT vkCode) {
     if (vkCode >= '0' && vkCode <= '9') return std::string(1, (char)vkCode);
     switch (vkCode) {
         case VK_SPACE: return "Space";
+        case 0x100: return "MiddleClick";
+        case 0x101: return "XButton1";
+        case 0x102: return "XButton2";
+        case 0x103: return "WheelUp";
+        case 0x104: return "WheelDown";
         case VK_LEFT: return "ArrowLeft";
         case VK_RIGHT: return "ArrowRight";
         case VK_UP: return "ArrowUp";
@@ -321,6 +353,13 @@ UINT Settings::StringToVK(const std::string& str) {
         if (c == ']') return VK_OEM_6;
     }
     if (str == "Space" || str == "VK_SPACE") return VK_SPACE;
+    // Mouse-button/wheel pseudo-keys: persisted ids and display forms both parse
+    // back to the shared 0x100..0x104 range (see CommandDispatcher.h).
+    if (str == "MiddleClick" || str == "Middle Click") return 0x100;
+    if (str == "XButton1" || str == "X Button 1") return 0x101;
+    if (str == "XButton2" || str == "X Button 2") return 0x102;
+    if (str == "WheelUp" || str == "Wheel Up") return 0x103;
+    if (str == "WheelDown" || str == "Wheel Down") return 0x104;
     if (str == "ArrowLeft" || str == "Left" || str == "VK_LEFT") return VK_LEFT;
     if (str == "ArrowRight" || str == "Right" || str == "VK_RIGHT") return VK_RIGHT;
     if (str == "ArrowUp" || str == "Up" || str == "VK_UP") return VK_UP;
@@ -533,6 +572,10 @@ bool Settings::MigrateSchema(JsonValue& root, int fromVersion, int targetVersion
                 } else { root["appLanguage"] = "en-US"; }
             }
             root["schemaVersion"] = 15;
+        } else if (v == 15) {
+            if (!root.has_key("experienceMode")) root["experienceMode"] = "simple";
+            if (!root.has_key("customEnabledFeatures")) root["customEnabledFeatures"] = JsonValue::Array();
+            root["schemaVersion"] = 16;
         }
     }
     return true;
@@ -596,12 +639,19 @@ StorageStatus Settings::Load() {
     rememberPos = root.get("rememberPos").as_bool(rememberPos);
     restoreSession = root.get("restoreSession").as_bool(restoreSession);
     loop = root.get("loop").as_bool(loop);
+    shuffleQueue = root.get("shuffleQueue").as_bool(shuffleQueue);
+    alwaysOnTop = root.get("alwaysOnTop").as_bool(alwaysOnTop);
     hwAccel = root.get("hwAccel").as_bool(hwAccel);
     defaultSpeed = Number(root.get("defaultSpeed"), defaultSpeed);
     arrowSeekStepSec = Number(root.get("arrowSeekStep"), arrowSeekStepSec);
+    largeSeekStepSec = Number(root.get("largeSeekStep"), largeSeekStepSec);
     ctrlSeekFrames = Integer(root.get("ctrlSeekFrames"), ctrlSeekFrames);
     customMpvConfigEnabled = root.get("customMpvConfigEnabled").as_bool(customMpvConfigEnabled);
     customMpvConfigPath = NormalizeMpvConfigPath(root.get("customMpvConfigPath").as_string(customMpvConfigPath));
+    globalHotkeysEnabled = root.get("globalHotkeysEnabled").as_bool(globalHotkeysEnabled);
+    trayIconEnabled = root.get("trayIconEnabled").as_bool(trayIconEnabled);
+    minimizeToTray = root.get("minimizeToTray").as_bool(minimizeToTray);
+    screenshotFormat = root.get("screenshotFormat").as_string(screenshotFormat);
     jumpListEnabled = root.get("jumpListEnabled").as_bool(jumpListEnabled);
     hoverPreviewEnabled = root.get("hoverPreviewEnabled").as_bool(hoverPreviewEnabled);
     reduceMotionEnabled = root.get("reduceMotionEnabled").as_bool(reduceMotionEnabled);
@@ -633,6 +683,9 @@ StorageStatus Settings::Load() {
     subPosition = root.get("subPosition").as_string(subPosition);
     subSafeAreaX = NormalizeSafeAreaPercent(Integer(root.get("subSafeAreaX"), Integer(root.get("safeAreaX"), Integer(root.get("subMarginXPercent"), subSafeAreaX))));
     subSafeAreaY = NormalizeSafeAreaPercent(Integer(root.get("subSafeAreaY"), Integer(root.get("safeAreaY"), Integer(root.get("subMarginYPercent"), subSafeAreaY))));
+    subForcedOnly = root.get("subForcedOnly").as_bool(subForcedOnly);
+    subCodepage = root.get("subCodepage").as_string(subCodepage);
+    subFontFamily = root.get("subFontFamily").as_string(subFontFamily);
     audioDelayMs = Integer(root.get("audioDelayMs"), audioDelayMs);
     subDelayMs = Integer(root.get("subDelayMs"), subDelayMs);
     secondarySubLang = root.get("secondarySubLang").as_string(secondarySubLang);
@@ -684,6 +737,11 @@ StorageStatus Settings::Load() {
     nightMode = root.get("nightMode").as_string(nightMode);
     audioBalance = Number(root.get("audioBalance"), audioBalance);
     audioChannelMap = root.get("audioChannelMap").as_string(audioChannelMap);
+    replayGainMode = root.get("replayGainMode").as_string(replayGainMode);
+    replayGainPreampDb = Number(root.get("replayGainPreampDb"), replayGainPreampDb);
+    deinterlaceMode = root.get("deinterlaceMode").as_string(deinterlaceMode);
+    audioPassthrough = root.get("audioPassthrough").as_bool(audioPassthrough);
+    pitchCorrection = root.get("pitchCorrection").as_bool(pitchCorrection);
     storageMode = root.get("storageMode").as_string(storageMode);
     playlistViewMode = root.get("playlistViewMode").as_string(playlistViewMode);
     libraryGroupMode = root.get("libraryGroupMode").as_string(libraryGroupMode);
@@ -696,6 +754,15 @@ StorageStatus Settings::Load() {
             if (item.is_string()) { customFolderOrder.push_back(Utf8ToUtf16(item.as_string())); }
         }
     }
+    experienceMode = root.get("experienceMode").as_string(experienceMode);
+    experienceMode = FeatureGate::NormalizeModeString(experienceMode);
+    customEnabledFeatures.clear();
+    if (root.has_key("customEnabledFeatures") && root.get("customEnabledFeatures").is_array()) {
+        for (const auto& item : root.get("customEnabledFeatures").as_array()) {
+            if (item.is_string()) customEnabledFeatures.push_back(item.as_string());
+        }
+    }
+    customEnabledFeatures = FeatureGate::SanitizeFeatureKeys(customEnabledFeatures);
     diagnosticsLogging = root.get("diagnosticsLogging").as_bool(diagnosticsLogging);
     smartSeriesDetection = root.get("smartSeriesDetection").as_bool(false);
     autoUpdateCheckEnabled = root.get("autoUpdateCheckEnabled").as_bool(autoUpdateCheckEnabled);
@@ -756,10 +823,25 @@ StorageStatus Settings::Load() {
     bool validFont = false;
     for (const auto& f : GetAvailableFonts()) { if (f == uiFontFamily) validFont = true; }
     if (!validFont) uiFontFamily = "Inter";
+    bool validSubFont = false;
+    for (const auto& f : GetAvailableFonts()) { if (f == subFontFamily) validSubFont = true; }
+    if (!validSubFont) subFontFamily = "Inter";
+    {
+        // Curated character-set list mirrored by the subtitle context menu; unknown values fall back to auto-detection.
+        static const char* kSubCodepages[] = { "auto", "utf-8", "utf-16le", "windows-1252", "windows-1250", "windows-1251",
+                                               "windows-1253", "windows-1254", "windows-1255", "windows-1256",
+                                               "shift-jis", "big5", "gbk", "euc-kr" };
+        bool validCodepage = false;
+        for (const char* cp : kSubCodepages) { if (subCodepage == cp) validCodepage = true; }
+        if (!validCodepage) subCodepage = "auto";
+    }
     if (!std::isfinite(defaultSpeed)) defaultSpeed = 1.0;
     defaultSpeed = std::clamp(defaultSpeed, 0.25, 4.0);
     if (!std::isfinite(arrowSeekStepSec)) arrowSeekStepSec = 5.0;
     arrowSeekStepSec = std::clamp(arrowSeekStepSec, 1.0, 300.0);
+    if (!std::isfinite(largeSeekStepSec)) largeSeekStepSec = 10.0;
+    largeSeekStepSec = std::clamp(largeSeekStepSec, 1.0, 600.0);
+    if (screenshotFormat != "png" && screenshotFormat != "jpg") screenshotFormat = "png";
     ctrlSeekFrames = std::clamp(ctrlSeekFrames, 1, 100);
     hdrMode = NormalizeHdrMode(hdrMode);
     toneMappingAlgorithm = NormalizeToneMapping(toneMappingAlgorithm);
@@ -768,7 +850,10 @@ StorageStatus Settings::Load() {
     iccProfilePath = NormalizeIccPath(iccProfilePath, GetExeDir());
     audioBalance = NormalizeAudioBalance(audioBalance);
     audioChannelMap = NormalizeAudioChannelMap(audioChannelMap);
-    volume = std::clamp(std::isfinite(volume) ? volume : 1.0, 0.0, 1.0);
+    replayGainMode = NormalizeReplayGainMode(replayGainMode);
+    replayGainPreampDb = NormalizeReplayGainPreampDb(replayGainPreampDb);
+    deinterlaceMode = NormalizeDeinterlaceMode(deinterlaceMode);
+    volume = std::clamp(std::isfinite(volume) ? volume : 1.0, 0.0, kMaxVolumeRatio);
     audioDelayMs = std::clamp(audioDelayMs, -5000, 5000);
     subDelayMs = std::clamp(subDelayMs, -10000, 10000);
     secondarySubDelayMs = std::clamp(secondarySubDelayMs, -600000, 600000);
@@ -784,8 +869,8 @@ StorageStatus Settings::Load() {
     subFontSize = NormalizeProfileFontSize(subFontSize);
     if (subBgStyle != "vlc-outline" && subBgStyle != "translucent" && subBgStyle != "solid" && subBgStyle != "clean") subBgStyle = "vlc-outline";
     if (subPosition != "bottom" && subPosition != "elevated" && subPosition != "top") subPosition = "bottom";
-    if (lastAspectRatio != "auto" && lastAspectRatio != "16:9" && lastAspectRatio != "4:3" && lastAspectRatio != "21:9" && lastAspectRatio != "fill" && lastAspectRatio != "cover") lastAspectRatio = "auto";
-    if (videoRotate != 0 && videoRotate != 90 && videoRotate != 180 && videoRotate != 270) videoRotate = 0;
+    if (lastAspectRatio != "auto" && lastAspectRatio != "16:9" && lastAspectRatio != "4:3" && lastAspectRatio != "21:9" && lastAspectRatio != "fill" && lastAspectRatio != "cover" && !IsValidCustomAspectString(lastAspectRatio)) lastAspectRatio = "auto";
+    if (videoRotate < 0 || videoRotate > 359) videoRotate = 0;
     brightness = std::clamp(brightness, -100, 100);
     contrast = std::clamp(contrast, -100, 100);
     saturation = std::clamp(saturation, -100, 100);
@@ -845,12 +930,19 @@ StorageStatus Settings::Save() {
     root["rememberPos"] = rememberPos;
     root["restoreSession"] = restoreSession;
     root["loop"] = loop;
+    root["shuffleQueue"] = shuffleQueue;
+    root["alwaysOnTop"] = alwaysOnTop;
     root["hwAccel"] = hwAccel;
     root["defaultSpeed"] = defaultSpeed;
     root["arrowSeekStep"] = arrowSeekStepSec;
+    root["largeSeekStep"] = largeSeekStepSec;
     root["ctrlSeekFrames"] = ctrlSeekFrames;
     root["customMpvConfigEnabled"] = customMpvConfigEnabled;
     root["customMpvConfigPath"] = customMpvConfigPath;
+    root["globalHotkeysEnabled"] = globalHotkeysEnabled;
+    root["trayIconEnabled"] = trayIconEnabled;
+    root["minimizeToTray"] = minimizeToTray;
+    root["screenshotFormat"] = screenshotFormat;
     root["jumpListEnabled"] = jumpListEnabled;
     root["hoverPreviewEnabled"] = hoverPreviewEnabled;
     root["reduceMotionEnabled"] = reduceMotionEnabled;
@@ -870,6 +962,9 @@ StorageStatus Settings::Save() {
     root["subPosition"] = subPosition;
     root["subSafeAreaX"] = subSafeAreaX;
     root["subSafeAreaY"] = subSafeAreaY;
+    root["subForcedOnly"] = subForcedOnly;
+    root["subCodepage"] = subCodepage;
+    root["subFontFamily"] = subFontFamily;
     root["audioDelayMs"] = audioDelayMs;
     root["subDelayMs"] = subDelayMs;
     root["secondarySubLang"] = secondarySubLang;
@@ -906,6 +1001,11 @@ StorageStatus Settings::Save() {
     root["nightMode"] = nightMode;
     root["audioBalance"] = audioBalance;
     root["audioChannelMap"] = audioChannelMap;
+    root["replayGainMode"] = replayGainMode;
+    root["replayGainPreampDb"] = replayGainPreampDb;
+    root["deinterlaceMode"] = deinterlaceMode;
+    root["audioPassthrough"] = audioPassthrough;
+    root["pitchCorrection"] = pitchCorrection;
     root["storageMode"] = storageMode;
     root["playlistViewMode"] = playlistViewMode;
     root["libraryGroupMode"] = libraryGroupMode;
@@ -914,11 +1014,15 @@ StorageStatus Settings::Save() {
     JsonValue folderOrderArr = JsonValue::Array();
     for (const auto& f : customFolderOrder) { folderOrderArr.as_array().push_back(JsonValue(Utf16ToUtf8(f))); }
     root["customFolderOrder"] = folderOrderArr;
+    root["experienceMode"] = experienceMode;
+    JsonValue customFeaturesArr = JsonValue::Array();
+    for (const auto& key : customEnabledFeatures) { customFeaturesArr.as_array().push_back(JsonValue(key)); }
+    root["customEnabledFeatures"] = customFeaturesArr;
     root["manualMediaOrder"] = manualMediaOrder;
     root["smartSeriesDetection"] = smartSeriesDetection;
     root["diagnosticsLogging"] = diagnosticsLogging;
     root["muted"] = muted;
-    root["volume"] = std::clamp(std::isfinite(volume) ? volume : 1.0, 0.0, 1.0);
+    root["volume"] = std::clamp(std::isfinite(volume) ? volume : 1.0, 0.0, kMaxVolumeRatio);
     root["lastAspectRatio"] = lastAspectRatio;
     root["videoRotate"] = videoRotate;
     root["brightness"] = brightness;
@@ -1062,6 +1166,16 @@ std::string Settings::NormalizeNightMode(const std::string& nm) { return AudioCo
 double Settings::NormalizeAudioBalance(double balance) { return AudioConfig::NormalizeAudioBalance(balance); }
 
 std::string Settings::NormalizeAudioChannelMap(const std::string& map) { return AudioConfig::NormalizeAudioChannelMap(map); }
+
+std::string Settings::NormalizeReplayGainMode(const std::string& mode) { return AudioConfig::NormalizeReplayGainMode(mode); }
+
+double Settings::NormalizeReplayGainPreampDb(double db) { return AudioConfig::NormalizeReplayGainPreampDb(db); }
+
+std::string Settings::NormalizeDeinterlaceMode(const std::string& mode) {
+    std::string s = LowerAscii(TrimAscii(mode));
+    if (s == "bwdif" || s == "bwdif_field" || s == "yadif") return s;
+    return "off";
+}
 bool Settings::IsValidProfileName(const std::string& name) {
     std::string trimmed = TrimAscii(name);
     if (trimmed.empty() || trimmed.length() > kMaxProfileNameLength) return false;

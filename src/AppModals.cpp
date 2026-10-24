@@ -454,6 +454,117 @@ void App::ShowEditSmartPlaylistModal(const std::string& playlistId) {
 }
 
 
+void App::ShowNewSmartPlaylistModal() {
+    PushFocusSnapshot(TransientSurfaceType::Modal);
+    BlurTextInput();
+    activeModal = ModalType::NewSmartPlaylist;
+    modalTitle = L"New Smart Playlist";
+    modalPrompt = L"Name | rules e.g. My Unwatched | status = new";
+    modalInput.SetText(WideStringToText16(L""));
+    modalOnConfirm = [this]() {
+        const std::wstring raw = Text16ToWideString(modalInput.GetText());
+        const auto trimW = [](const std::wstring& s) {
+            const size_t b = s.find_first_not_of(L" \t\r\n");
+            if (b == std::wstring::npos) return std::wstring();
+            const size_t e = s.find_last_not_of(L" \t\r\n");
+            return s.substr(b, e - b + 1);
+        };
+        const size_t pipe = raw.find(L'|');
+        std::wstring name = trimW(pipe == std::wstring::npos ? raw : raw.substr(0, pipe));
+        std::wstring ruleStr = pipe == std::wstring::npos ? L"" : trimW(raw.substr(pipe + 1));
+        if (name.empty()) {
+            ShowOSD(IconType::VolumeMuted, Loc::Tr("ux.smart_rule_invalid") + L": Name required", 4.0f);
+            return;
+        }
+        SmartPlaylistCriteria criteria = SmartPlaylistCriteria::FromRuleString(Utf16ToUtf8(ruleStr));
+        std::string validation;
+        if (!criteria.Validate(&validation)) {
+            ShowOSD(IconType::VolumeMuted, Loc::Tr("ux.smart_rule_invalid") + L": " + Utf8ToUtf16(validation), 4.0f);
+            return;
+        }
+        std::string createdPlaylistId;
+        if (Playlist* pl = library.CreateSmartPlaylist(Utf16ToUtf8(name), criteria)) {
+            createdPlaylistId = pl->id;
+            ArmCreatedPlaylistUndo(pl->id);
+            ShowOSD(IconType::FolderPlaylist, L"Smart Playlist Created");
+        }
+        SaveLibrary();
+        activeModal = ModalType::None;
+        BlurTextInput();
+        PopAndRestoreFocus(TransientSurfaceType::Modal);
+        ActivateCreatedPlaylist(createdPlaylistId);
+    };
+    FocusTextInput(TextInputField::Modal);
+    InvalidateRect(hWnd, NULL, FALSE);
+}
+
+
+void App::ShowEditMetadataModal(const std::wstring& mediaPath) {
+    const MediaItem* item = library.FindByPath(mediaPath);
+    if (!item) return;
+    PushFocusSnapshot(TransientSurfaceType::Modal);
+    BlurTextInput();
+    activeModal = ModalType::EditMetadataOverrides;
+    modalTitle = L"Edit Metadata";
+    modalPrompt = L"Title | Year | Series (empty a part to clear it)";
+    std::wstring prefill;
+    if (item->overrides) {
+        std::wstring parts[3];
+        if (item->overrides->title) parts[0] = *item->overrides->title;
+        if (item->overrides->year.has_value()) parts[1] = std::to_wstring(*item->overrides->year);
+        if (item->overrides->series) parts[2] = *item->overrides->series;
+        int last = -1;
+        for (int i = 0; i < 3; ++i) { if (!parts[i].empty()) last = i; }
+        for (int i = 0; i <= last; ++i) {
+            if (i > 0) prefill += L"|";
+            prefill += parts[i];
+        }
+    }
+    modalInput.SetText(WideStringToText16(prefill));
+    modalOnConfirm = [this, mediaPath]() {
+        const std::wstring raw = Text16ToWideString(modalInput.GetText());
+        const auto trimW = [](const std::wstring& s) {
+            const size_t b = s.find_first_not_of(L" \t\r\n");
+            if (b == std::wstring::npos) return std::wstring();
+            const size_t e = s.find_last_not_of(L" \t\r\n");
+            return s.substr(b, e - b + 1);
+        };
+        std::wstring parts[3];
+        size_t start = 0;
+        for (int i = 0; i < 3; ++i) {
+            const size_t pipe = raw.find(L'|', start);
+            parts[i] = trimW(pipe == std::wstring::npos ? raw.substr(start) : raw.substr(start, pipe - start));
+            if (pipe == std::wstring::npos) break;
+            start = pipe + 1;
+        }
+        MediaMetadataOverrides overrides;
+        if (!parts[0].empty()) overrides.title = parts[0];
+        if (!parts[1].empty()) {
+            int year = 0;
+            try { year = std::stoi(parts[1]); } catch (...) { year = -1; }
+            if (!MediaMetadataOverrides::IsValidYear(year)) {
+                ShowOSD(IconType::VolumeMuted, Loc::Tr("ux.smart_rule_invalid") + L": Year must be 1888-2100", 4.0f);
+                return;
+            }
+            overrides.year = year;
+        }
+        if (!parts[2].empty()) overrides.series = parts[2];
+        if (!library.SetMetadataOverrides(mediaPath, overrides)) {
+            ShowOSD(IconType::VolumeMuted, Loc::Tr("ux.smart_rule_invalid") + L": Media not found", 4.0f);
+            return;
+        }
+        SaveLibrary();
+        InvalidateMediaLayoutCache();
+        ShowOSD(IconType::MediaFilm, L"Metadata Updated");
+        activeModal = ModalType::None;
+        BlurTextInput();
+        PopAndRestoreFocus(TransientSurfaceType::Modal);
+    };
+    FocusTextInput(TextInputField::Modal);
+    InvalidateRect(hWnd, NULL, FALSE);
+}
+
+
 void App::ShowRenamePlaylistModal(const std::string& playlistId) { StartInlinePlaylistRename(playlistId); }
 
 
@@ -709,6 +820,81 @@ std::wstring App::GetCurrentCaptureChordText() const {
 }
 
 
+bool App::HandleShortcutCaptureMouse(UINT vkCode) {
+    if (rebindingActionId.empty()) return false;
+    const bool isCtrl = (GetKeyState(VK_CONTROL) & 0x8000) != 0;
+    const bool isAlt = (GetKeyState(VK_MENU) & 0x8000) != 0;
+    const bool isShift = (GetKeyState(VK_SHIFT) & 0x8000) != 0;
+    CompleteShortcutCapture(vkCode, isCtrl, isShift, isAlt);
+    return true;
+}
+
+
+void App::CompleteShortcutCapture(UINT vkCode, bool ctrl, bool shift, bool alt) {
+    ShortcutBinding b;
+    b.actionId = rebindingActionId;
+    b.displayName = rebindingActionName.empty() ? rebindingActionId : rebindingActionName;
+    b.vkCode = vkCode;
+    b.ctrl = ctrl;
+    b.shift = shift;
+    b.alt = alt;
+    const std::string targetId = rebindingActionId;
+    const std::string targetDisplayName = b.displayName;
+    const int originRow = rebindingOriginRow, originSub = rebindingOriginSubIndex;
+    const std::wstring keyStr = Settings::FormatShortcutKey(b);
+    auto conflict = settings.shortcuts.end();
+    for (auto it = settings.shortcuts.begin(); it != settings.shortcuts.end(); ++it) {
+        if (it->first != targetId && it->second.vkCode == b.vkCode &&
+            it->second.ctrl == b.ctrl && it->second.shift == b.shift && it->second.alt == b.alt) {
+            conflict = it;
+            break;
+        }
+    }
+    if (conflict != settings.shortcuts.end()) {
+        const ShortcutBinding pending = b;
+        const std::string conflictId = conflict->first;
+        const std::wstring conflictName = Utf8ToUtf16(conflict->second.displayName);
+        const std::wstring targetName = Utf8ToUtf16(targetDisplayName);
+        rebindingActionId.clear();
+        rebindingActionName.clear();
+        lastAnnouncedModifierChord.clear();
+        AnnounceStatus(L"Shortcut conflict: " + keyStr + L" is already assigned to " + conflictName + L". Confirmation required to replace binding.", true);
+        ShowConfirmationModal( L"Shortcut Conflict", keyStr + L" is already assigned to " + conflictName + L". Replace that binding?",
+            L"Replace", [this, targetId, pending, conflictId, keyStr, conflictName, targetName, originRow, originSub]() {
+                auto old = settings.shortcuts.find(conflictId);
+                if (old != settings.shortcuts.end()) old->second.vkCode = 0;
+                settings.shortcuts[targetId] = pending;
+                SaveSettings();
+                ApplyGlobalHotkeys();
+                ShowOSD(IconType::SettingsGear, Utf8ToUtf16(pending.displayName) + L" assigned to " + keyStr);
+                AnnounceStatus(targetName + L" assigned to " + keyStr + L". Previous binding for " + conflictName + L" is now unassigned. Settings saved.", true);
+                activeFocusPane = FocusPane::SettingsContent;
+                keyboardFocusedIndex = originRow;
+                keyboardFocusedSubIndex = originSub;
+                MarkAccessibilityDirty();
+                InvalidateRect(hWnd, nullptr, FALSE);
+            }, [this, targetName, originRow, originSub]() {
+                AnnounceStatus(L"Shortcut replacement cancelled. " + targetName + L" remains unchanged.", true);
+                activeFocusPane = FocusPane::SettingsContent;
+                keyboardFocusedIndex = originRow;
+                keyboardFocusedSubIndex = originSub;
+                MarkAccessibilityDirty();
+                InvalidateRect(hWnd, nullptr, FALSE);
+            });
+        return;
+    }
+    settings.shortcuts[targetId] = b;
+    SaveSettings();
+    ApplyGlobalHotkeys();
+    ShowOSD(IconType::SettingsGear, Utf8ToUtf16(b.displayName) + L" assigned to " + keyStr);
+    AnnounceStatus(Utf8ToUtf16(b.displayName) + L" shortcut assigned to " + keyStr + L". Settings saved.", true);
+    rebindingActionId.clear();
+    rebindingActionName.clear();
+    lastAnnouncedModifierChord.clear();
+    PopAndRestoreFocus(TransientSurfaceType::ShortcutCapture);
+}
+
+
 void App::ShowOpenNetworkStreamModal() {
     PushFocusSnapshot(TransientSurfaceType::Modal);
     BlurTextInput();
@@ -847,6 +1033,151 @@ void App::ShowCustomFrameSeekModal() {
                 ShowOSD(IconType::SettingsGear, L"Frame Seek: " + std::to_wstring(frames) + (frames == 1 ? L" frame" : L" frames"));
             }
         } catch (...) {}
+        activeModal = ModalType::None;
+        BlurTextInput();
+        PopAndRestoreFocus(TransientSurfaceType::Modal);
+    };
+    FocusTextInput(TextInputField::Modal);
+    InvalidateRect(hWnd, NULL, FALSE);
+}
+
+
+void App::ShowJumpToTimeModal() {
+    PushFocusSnapshot(TransientSurfaceType::Modal);
+    BlurTextInput();
+    activeModal = ModalType::JumpToTime;
+    modalTitle = L"Go To Time";
+    modalPrompt = L"Enter a time (h:mm:ss, m:ss, or seconds)";
+    modalInput.SetText({});
+    modalOnConfirm = [this]() {
+        // No media open: close the modal silently.
+        if (playbackSession.IsOpen()) {
+            const std::wstring val = Text16ToWideString(modalInput.GetText());
+            // Accepted: plain seconds ("90"), "m:ss" (":30", "1:30"), "h:mm:ss" ("1:02:03");
+            // leading/trailing spaces are tolerated, everything else is rejected.
+            std::wstring text = val;
+            auto isSpace = [](wchar_t c) { return c == L' ' || c == L'\t'; };
+            while (!text.empty() && isSpace(text.front())) text.erase(text.begin());
+            while (!text.empty() && isSpace(text.back())) text.pop_back();
+            double seconds = 0.0;
+            bool valid = false;
+            if (text.find(L':') == std::wstring::npos) {
+                try {
+                    size_t consumed = 0;
+                    const double parsed = std::stod(text, &consumed);
+                    if (consumed == text.size() && std::isfinite(parsed) && parsed >= 0.0) { seconds = parsed; valid = true; }
+                } catch (...) {}
+            } else {
+                std::vector<std::wstring> parts;
+                size_t start = 0;
+                while (true) {
+                    const size_t colon = text.find(L':', start);
+                    if (colon == std::wstring::npos) { parts.push_back(text.substr(start)); break; }
+                    parts.push_back(text.substr(start, colon - start));
+                    start = colon + 1;
+                }
+                if (parts.size() == 2 || parts.size() == 3) {
+                    bool allDigits = true;
+                    for (size_t i = 0; i < parts.size(); ++i) {
+                        // An empty leading component (":30") counts as zero minutes.
+                        if (parts[i].empty() && i == 0) continue;
+                        if (parts[i].empty() || parts[i].find_first_not_of(L"0123456789") != std::wstring::npos) { allDigits = false; break; }
+                    }
+                    try {
+                        if (allDigits) {
+                            const double h = parts.size() == 3 ? std::stod(parts[0]) : 0.0;
+                            const double m = parts.size() == 3 ? std::stod(parts[1]) : std::stod(parts[0]);
+                            const double s = std::stod(parts.back());
+                            seconds = h * 3600.0 + m * 60.0 + s;
+                            valid = true;
+                        }
+                    } catch (...) { valid = false; }
+                }
+            }
+            if (valid) {
+                const double duration = player.GetDuration();
+                if (duration > 0.0 && std::isfinite(duration)) seconds = std::clamp(seconds, 0.0, duration);
+                else seconds = std::max(0.0, seconds);
+                player.Seek(seconds, true);
+                ShowOSD(IconType::Refresh, L"Jumped to " + FormatDuration(seconds));
+            }
+        }
+        activeModal = ModalType::None;
+        BlurTextInput();
+        PopAndRestoreFocus(TransientSurfaceType::Modal);
+    };
+    FocusTextInput(TextInputField::Modal);
+    InvalidateRect(hWnd, NULL, FALSE);
+}
+
+
+void App::ShowCustomAspectModal() {
+    PushFocusSnapshot(TransientSurfaceType::Modal);
+    BlurTextInput();
+    activeModal = ModalType::CustomAspectInput;
+    modalTitle = L"Custom Aspect Ratio";
+    modalPrompt = L"e.g. 16:9, 2.35:1, 1.85";
+    // Prefill the current value only when it is already a custom ratio.
+    const bool currentIsCustom = settings.lastAspectRatio != "auto" && settings.lastAspectRatio != "16:9" &&
+        settings.lastAspectRatio != "4:3" && settings.lastAspectRatio != "21:9" &&
+        settings.lastAspectRatio != "fill" && settings.lastAspectRatio != "cover";
+    modalInput.SetText(WideStringToText16(currentIsCustom ? Utf8ToUtf16(settings.lastAspectRatio) : std::wstring()));
+    modalOnConfirm = [this]() {
+        const std::wstring val = Text16ToWideString(modalInput.GetText());
+        // Accepted: "W:H" with decimal W,H > 0, or a single decimal ratio > 0;
+        // leading/trailing spaces are tolerated, everything else is rejected.
+        std::wstring text = val;
+        auto isSpace = [](wchar_t c) { return c == L' ' || c == L'\t'; };
+        while (!text.empty() && isSpace(text.front())) text.erase(text.begin());
+        while (!text.empty() && isSpace(text.back())) text.pop_back();
+        const std::string aspect = Utf16ToUtf8(text);
+        if (!IsValidCustomAspectString(aspect)) {
+            ShowOSD(IconType::VolumeMuted, L"Invalid aspect ratio", 4.0f);
+        } else {
+            CommandArgs args;
+            args.stringVal = aspect;
+            commandDispatcher.Execute(AppCommand::SetAspectRatio, args);
+        }
+        activeModal = ModalType::None;
+        BlurTextInput();
+        PopAndRestoreFocus(TransientSurfaceType::Modal);
+    };
+    FocusTextInput(TextInputField::Modal);
+    InvalidateRect(hWnd, NULL, FALSE);
+}
+
+
+void App::ShowCustomRotationModal() {
+    PushFocusSnapshot(TransientSurfaceType::Modal);
+    BlurTextInput();
+    activeModal = ModalType::CustomRotationInput;
+    modalTitle = L"Custom Rotation";
+    modalPrompt = L"Degrees clockwise (0-359)";
+    modalInput.SetText(WideStringToText16(std::to_wstring(settings.videoRotate)));
+    modalOnConfirm = [this]() {
+        const std::wstring val = Text16ToWideString(modalInput.GetText());
+        // Accepted: whole degrees 0-359; leading/trailing spaces are tolerated.
+        std::wstring text = val;
+        auto isSpace = [](wchar_t c) { return c == L' ' || c == L'\t'; };
+        while (!text.empty() && isSpace(text.front())) text.erase(text.begin());
+        while (!text.empty() && isSpace(text.back())) text.pop_back();
+        bool valid = false;
+        int degrees = 0;
+        if (!text.empty() && text.find_first_not_of(L"0123456789") == std::wstring::npos) {
+            try {
+                size_t consumed = 0;
+                const long long parsed = std::stoll(text, &consumed);
+                if (consumed == text.size() && parsed >= 0 && parsed <= 359) { degrees = (int)parsed; valid = true; }
+            } catch (...) {}
+        }
+        if (!valid) {
+            ShowOSD(IconType::VolumeMuted, L"Invalid rotation", 4.0f);
+        } else {
+            player.SetVideoRotate(degrees);
+            settings.videoRotate = degrees;
+            SaveSettings();
+            ShowOSD(IconType::AspectFrame, L"Rotation: " + std::to_wstring(degrees) + L"°");
+        }
         activeModal = ModalType::None;
         BlurTextInput();
         PopAndRestoreFocus(TransientSurfaceType::Modal);

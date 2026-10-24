@@ -4,6 +4,7 @@
 #include "Json.h"
 #include "MediaLibrary.h"
 #include "PlaybackTarget.h"
+#include "ShuffleSequence.h"
 #include <optional>
 #include <windows.h>
 #include <string>
@@ -120,11 +121,20 @@ public:
     bool CanPersistRecentStreams(bool optedIn) const { return PersistencePolicy().CanWriteRecentStreams(optedIn); }
     void SetPrivateMode(bool enabled) { isPrivateMode = enabled; }
     void TogglePrivateMode() { isPrivateMode = !isPrivateMode; }
+    // Shuffle Playback (runtime-only; never persisted to session.json)
+    void SetShuffle(bool enabled) {
+        if (shuffleEnabled == enabled) return;
+        shuffleEnabled = enabled;
+        playedHistory.clear();
+        shuffleSeq.Reset();
+    }
+    bool IsShuffleEnabled() const { return shuffleEnabled; }
     // Helpers
     static bool SameFilePath(const std::wstring& a, const std::wstring& b);
 
 private:
     void RestoreWindowedPlacement(HWND hWnd);
+    size_t PickNextQueueIndex();
     PlaybackState state = PlaybackState::Closed;
     PresentationMode presentation = PresentationMode::Windowed;
     QueueMode queueMode = QueueMode::DirectOpen;
@@ -140,6 +150,9 @@ private:
     bool savesAllowed = true;
     std::vector<std::wstring> playbackQueue;
     size_t currentQueueIndex = 0;
+    bool shuffleEnabled = false;
+    ShuffleSequence shuffleSeq;
+    std::vector<size_t> playedHistory;
     // Track Cache
     int lastActiveSubtitleTrackId = 0;
     std::wstring lastActiveSubtitleTrackTitle;

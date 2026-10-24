@@ -50,7 +50,7 @@ struct SubtitleStyleProfile {
 
 class Settings {
 public:
-    static constexpr int kCurrentSettingsSchemaVersion = 15;
+    static constexpr int kCurrentSettingsSchemaVersion = 16;
     static constexpr size_t kMaxSubtitleProfiles = 32, kMaxProfileNameLength = 64;
     static bool MigrateSchema(JsonValue& root, int fromVersion, int targetVersion = kCurrentSettingsSchemaVersion);
     // --- Appearance ---
@@ -60,12 +60,21 @@ public:
     std::string appLanguage = "en-US";
     // --- Playback ---
     bool autoplay = true, rememberPos = true, restoreSession = true, loop = false;
+    bool shuffleQueue = false;
+    bool alwaysOnTop = false;
     bool hwAccel = true;
     double defaultSpeed = 1.0, arrowSeekStepSec = 5.0;
+    double largeSeekStepSec = 10.0; // Large jump step in seconds (J/L keys), clamped 1.0-600.0
     int ctrlSeekFrames = 1;
     bool customMpvConfigEnabled = false;
     std::string customMpvConfigPath = "mpv.conf";
+    bool globalHotkeysEnabled = false; // System-wide media hotkeys (play/pause, next, previous, mute)
+    bool trayIconEnabled = false;      // Show the Aperture icon in the system notification area
+    bool minimizeToTray = false;       // Hide to the tray instead of the taskbar when minimized (requires trayIconEnabled)
+    std::string screenshotFormat = "png"; // "png" or "jpg"
     bool jumpListEnabled = false, hoverPreviewEnabled = true, reduceMotionEnabled = false;
+    std::string experienceMode = "simple";          // "simple", "advanced", or "custom" (FeatureGate)
+    std::vector<std::string> customEnabledFeatures; // FeatureGate feature keys enabled in "custom" mode
     // --- Color & HDR Management ---
     std::string hdrMode = "auto";               // "auto", "passthrough", "tone-map", "off"
     std::string toneMappingAlgorithm = "auto";  // "auto", "spline", "bt.2390", "bt.2446a", "hable", "mobius", "reinhard", "clip", "linear", "gamma"
@@ -84,6 +93,9 @@ public:
     std::string subPosition = "bottom";      // "bottom", "elevated", "top"
     int subSafeAreaX = 0;                    // Horizontal safe area percentage [0..30]
     int subSafeAreaY = 0;                    // Vertical safe area percentage [0..30]
+    bool subForcedOnly = false;              // Render only forced subtitle tracks
+    std::string subCodepage = "auto";        // "auto" or a subtitle character-set override (e.g. "utf-8", "windows-1254")
+    std::string subFontFamily = "Inter";     // Subtitle font family (mpv sub-font)
     int audioDelayMs = 0, subDelayMs = 0;
     // --- Subtitle Style Profiles ---
     std::string activeSubtitleProfile = "";
@@ -107,6 +119,11 @@ public:
     std::string nightMode = "off";                 // "off", "light", "medium", "strong"
     double audioBalance = 0.0;                     // -1.0 to 1.0
     std::string audioChannelMap = "auto";          // "auto", "stereo", "mono-left", "mono-right", "swap"
+    std::string replayGainMode = "off";            // "off", "track", "album"
+    double replayGainPreampDb = 0.0;               // -15.0 to +15.0 dB
+    std::string deinterlaceMode = "off";           // "off", "bwdif", "bwdif_field", "yadif"
+    bool audioPassthrough = false;                 // S/PDIF / HDMI bitstream passthrough
+    bool pitchCorrection = true;                   // Keep pitch constant when changing speed
     // --- Storage ---
     std::string storageMode = "source";
     // Playlist presentation preference. Keep the persisted representation stable and human-readable so unknown values can safely fall back
@@ -129,8 +146,8 @@ public:
     // --- Volume & State ---
     double volume = 1.0; // 0.0 to 1.0
     bool muted = false;
-    std::string lastAspectRatio = "auto"; // "auto", "16:9", "4:3", "21:9", "fill", "cover"
-    int videoRotate = 0;                  // 0, 90, 180, 270
+    std::string lastAspectRatio = "auto"; // "auto", "16:9", "4:3", "21:9", "fill", "cover", or custom "W:H"/ratio
+    int videoRotate = 0;                  // 0-359 degrees clockwise
     int brightness = 0;                   // -100 to 100
     int contrast = 0;                     // -100 to 100
     int saturation = 0;                   // -100 to 100
@@ -201,6 +218,9 @@ public:
     static std::string NormalizeNightMode(const std::string& nm);
     static double NormalizeAudioBalance(double balance);
     static std::string NormalizeAudioChannelMap(const std::string& map);
+    static std::string NormalizeReplayGainMode(const std::string& mode);
+    static double NormalizeReplayGainPreampDb(double db);
+    static std::string NormalizeDeinterlaceMode(const std::string& mode);
     // --- Subtitle Style Profile Validation & Normalization ---
     static bool IsValidProfileName(const std::string& name);
     static std::string SanitizeProfileName(const std::string& name);

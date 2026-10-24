@@ -380,7 +380,7 @@ void MpvPlayer::EventLoop() {
                 double v = *(double*)prop->data;
                 if (!std::isfinite(v)) v = 0.0;
                 std::lock_guard<std::mutex> lock(stateMutex);
-                volume = std::clamp(v / 100.0, 0.0, 1.0);
+                volume = std::clamp(v / 100.0, 0.0, kMaxVolumeRatio);
             } else if (strcmp(prop->name, "mute") == 0 && prop->format == MPV_FORMAT_FLAG && prop->data) {
                 int m = *(int*)prop->data;
                 std::lock_guard<std::mutex> lock(stateMutex);
@@ -799,7 +799,7 @@ void MpvPlayer::StepFrame(int frameCount) {
 
 void MpvPlayer::SetVolume(double volume0to1) {
     if (!std::isfinite(volume0to1)) volume0to1 = 0.0;
-    double normalized = std::clamp(volume0to1, 0.0, 1.0);
+    double normalized = std::clamp(volume0to1, 0.0, kMaxVolumeRatio);
     double v = normalized * 100.0;
     int ret = -1;
     {
@@ -875,7 +875,10 @@ void MpvPlayer::SetAspectRatio(const std::string& mode) {
             set("video-unscaled", "no");
             set("panscan", "1");
         } else {
-            set("video-aspect-override", (mode == "16:9" || mode == "4:3" || mode == "21:9") ? mode.c_str() : "-1");
+            // Fixed modes and validated custom "W:H"/ratio strings pass through
+            // to video-aspect-override; anything else resets the override.
+            const bool fixedMode = mode == "auto" || mode == "16:9" || mode == "4:3" || mode == "21:9";
+            set("video-aspect-override", (fixedMode || IsValidCustomAspectString(mode)) ? mode.c_str() : "-1");
             set("keepaspect", "yes");
             set("video-unscaled", "no");
             set("panscan", "0");
@@ -884,19 +887,59 @@ void MpvPlayer::SetAspectRatio(const std::string& mode) {
     if (ret < 0) ReportError("Unable to set aspect ratio", ret);
 }
 
+void MpvPlayer::SetDeinterlace(const std::string& mode) {
+    // mpv has no deinterlace property under vo=gpu, so the filter chain is
+    // driven with "vf add"/"vf remove" commands. Unknown values fall back to
+    // off; a failed "vf add" (e.g. a lean libmpv build without bwdif/yadif)
+    // degrades gracefully and leaves the video unchanged.
+    std::string normalized = mode;
+    if (normalized != "bwdif" && normalized != "bwdif_field" && normalized != "yadif") normalized = "off";
+    std::lock_guard<std::mutex> apiLock(mpvMutex);
+    if (normalized == lastDeinterlaceMode) return;
+    if (!mpv || !fn_mpv_command) return;
+    auto runVf = [&](const char* subcommand, const char* filter) {
+        const char* cmd[] = { "vf", subcommand, filter, nullptr };
+        return fn_mpv_command(mpv, cmd);
+    };
+    if (normalized == "off") {
+        // Removing a filter that is absent is itself an error; every remove is
+        // intentionally unchecked so any previously-added variant is cleared.
+        runVf("remove", "bwdif");
+        runVf("remove", "bwdif=mode=send_field");
+        runVf("remove", "bwdif=mode=send_frame");
+        runVf("remove", "yadif");
+        runVf("remove", "yadif=mode=send_frame");
+        lastDeinterlaceMode = "off";
+        return;
+    }
+    // Switching modes removes the previously-added filter first; the unchecked
+    // removes also clear variants added before this cache existed.
+    runVf("remove", "bwdif");
+    runVf("remove", "bwdif=mode=send_field");
+    runVf("remove", "bwdif=mode=send_frame");
+    runVf("remove", "yadif");
+    runVf("remove", "yadif=mode=send_frame");
+    const char* filter = normalized == "bwdif" ? "bwdif=mode=send_frame"
+                       : normalized == "bwdif_field" ? "bwdif=mode=send_field"
+                       : "yadif=mode=send_frame";
+    const int ret = runVf("add", filter);
+    // Only cache the mode when the add succeeded, so a later preference
+    // refresh retries instead of assuming the filter is active.
+    if (ret >= 0) lastDeinterlaceMode = normalized;
+}
+
 void MpvPlayer::SetVideoRotate(int degrees) {
-    int normalized = ((degrees % 360) + 360) % 360;
-    if (normalized != 0 && normalized != 90 && normalized != 180 && normalized != 270) { normalized = 0; }
-    videoRotate = normalized;
+    int clamped = std::clamp(degrees, 0, 359);
+    videoRotate = clamped;
     int ret = 0;
     {
         std::lock_guard<std::mutex> apiLock(mpvMutex);
         if (!mpv) return;
         if (fn_mpv_set_property) {
-            int64_t val = normalized;
+            int64_t val = clamped;
             ret = fn_mpv_set_property(mpv, "video-rotate", MPV_FORMAT_INT64, &val);
         } else if (fn_mpv_set_property_string) {
-            ret = fn_mpv_set_property_string(mpv, "video-rotate", std::to_string(normalized).c_str());
+            ret = fn_mpv_set_property_string(mpv, "video-rotate", std::to_string(clamped).c_str());
         }
     }
     if (ret < 0) ReportError("Unable to set video-rotate", ret);
@@ -1019,7 +1062,10 @@ void MpvPlayer::SetPreferredSubtitleLanguage(const std::string& language) {
 }
 
 void MpvPlayer::SetSubtitleStyle(const std::string& fontSize, const std::string& colorHex, const std::string& backgroundStyle,
-                                 const std::string& position, int safeAreaX, int safeAreaY) {
+                                 const std::string& position, int safeAreaX, int safeAreaY,
+                                 const std::string& fontFamily, const std::string& codepage, bool forcedOnly,
+                                 const std::string& secondaryFontSize, const std::string& secondaryColorHex,
+                                 const std::string& secondaryPosition) {
     lastSubSafeAreaX = Settings::NormalizeSafeAreaPercent(safeAreaX);
     lastSubSafeAreaY = Settings::NormalizeSafeAreaPercent(safeAreaY);
     SubtitleSafeAreaPlan safePlan = BuildSubtitleSafeAreaPlan(safeAreaX, safeAreaY);
@@ -1053,6 +1099,22 @@ void MpvPlayer::SetSubtitleStyle(const std::string& fontSize, const std::string&
         shadowOffset = "1.5";
     }
     const char* subPosition = NormalizeSubtitlePosition(position);
+    // Subtitle font family and character-set override; an empty font keeps the init-time "Inter" default.
+    const std::string normalizedFontFamily = TrimAscii(fontFamily);
+    const std::string normalizedCodepage = LowerAscii(TrimAscii(codepage));
+    // Secondary (dual) subtitle styling: a field still at its persisted default stays unset so the
+    // init-time mpv values keep applying until the dual track is explicitly styled. "Top" pins the
+    // secondary line high (8) and "Slightly Lower" drops it to 25; an unset position keeps the
+    // init default of 10.
+    std::string secondarySizeValue;
+    if (!secondaryFontSize.empty() && secondaryFontSize != "18px") secondarySizeValue = NormalizeSubtitleFontSize(secondaryFontSize);
+    std::string secondaryColorValue;
+    if (!secondaryColorHex.empty() && _stricmp(secondaryColorHex.c_str(), "#ffff00") != 0) secondaryColorValue = NormalizeSubtitleColor(secondaryColorHex);
+    std::string secondaryPositionValue;
+    {
+        const std::string pos = LowerAscii(TrimAscii(secondaryPosition));
+        if (!pos.empty()) secondaryPositionValue = pos == "top" ? "8" : "25";
+    }
     int ret = 0;
     {
         std::lock_guard<std::mutex> apiLock(mpvMutex);
@@ -1067,6 +1129,12 @@ void MpvPlayer::SetSubtitleStyle(const std::string& fontSize, const std::string&
         set("sub-shadow-color", "#000000");
         set("sub-shadow-offset", shadowOffset);
         set("sub-pos", subPosition);
+        if (!normalizedFontFamily.empty()) set("sub-font", normalizedFontFamily.c_str());
+        set("sub-codepage", normalizedCodepage.empty() ? "auto" : normalizedCodepage.c_str());
+        set("sub-forced-only", forcedOnly ? "yes" : "no");
+        if (!secondarySizeValue.empty()) set("secondary-sub-font-size", secondarySizeValue.c_str());
+        if (!secondaryColorValue.empty()) set("secondary-sub-color", secondaryColorValue.c_str());
+        if (!secondaryPositionValue.empty()) set("secondary-sub-pos", secondaryPositionValue.c_str());
         for (const auto& action : safePlan.actions) { set(action.first.c_str(), action.second.c_str()); }
     }
     if (ret < 0) ReportError("Unable to set subtitle style", ret);
@@ -1412,17 +1480,21 @@ std::vector<AudioDeviceInfo> MpvPlayer::GetAudioDevices() const {
 
 AudioManagementPlan MpvPlayer::BuildAudioPlan( const std::string& device, const std::string& layout, const std::string& channelMix,
     bool normalizeDownmix, const std::string& nightMode, double balance, const std::string& channelMap,
-    const std::vector<AudioDeviceInfo>& availableDevices
-) { return AudioConfig::BuildAudioPlan(device, layout, channelMix, normalizeDownmix, nightMode, balance, channelMap, availableDevices); }
+    const std::vector<AudioDeviceInfo>& availableDevices, const std::string& replayGainMode, double replayGainPreampDb,
+    bool audioPassthrough, bool pitchCorrection
+) { return AudioConfig::BuildAudioPlan(device, layout, channelMix, normalizeDownmix, nightMode, balance, channelMap, availableDevices,
+    replayGainMode, replayGainPreampDb, audioPassthrough, pitchCorrection); }
 
 AudioManagementPlan MpvPlayer::BuildAudioPlan( const std::string& device, const std::string& layout, const std::string& channelMix,
     bool normalizeDownmix, const std::string& nightMode, const std::vector<AudioDeviceInfo>& availableDevices
 ) { return AudioConfig::BuildAudioPlan(device, layout, channelMix, normalizeDownmix, nightMode, 0.0, "auto", availableDevices); }
 
 std::vector<AudioPropertyResult> MpvPlayer::SetAudioPreferences( const std::string& device, const std::string& layout,
-    const std::string& channelMix, bool normalizeDownmix, const std::string& nightMode, double balance, const std::string& channelMap ) {
+    const std::string& channelMix, bool normalizeDownmix, const std::string& nightMode, double balance, const std::string& channelMap,
+    const std::string& replayGainMode, double replayGainPreampDb, bool audioPassthrough, bool pitchCorrection ) {
     std::vector<AudioDeviceInfo> currentDevices = GetAudioDevices();
-    AudioManagementPlan plan = BuildAudioPlan(device, layout, channelMix, normalizeDownmix, nightMode, balance, channelMap, currentDevices);
+    AudioManagementPlan plan = BuildAudioPlan(device, layout, channelMix, normalizeDownmix, nightMode, balance, channelMap, currentDevices,
+        replayGainMode, replayGainPreampDb, audioPassthrough, pitchCorrection);
     std::vector<AudioPropertyResult> results;
     { std::lock_guard<std::mutex> lock(stateMutex); lastAudioPlan = plan; lastAudioResults.clear(); }
     std::lock_guard<std::mutex> apiLock(mpvMutex);
@@ -1456,7 +1528,9 @@ std::vector<AudioPropertyResult> MpvPlayer::SetAudioBalance(double balance) {
         plan.requestedLayout.empty() ? "auto-safe" : plan.requestedLayout,
         plan.requestedChannelMix.empty() ? "auto" : plan.requestedChannelMix, plan.requestedNormalizeDownmix,
         plan.requestedNightMode.empty() ? "off" : plan.requestedNightMode, balance,
-        plan.requestedChannelMap.empty() ? "auto" : plan.requestedChannelMap );
+        plan.requestedChannelMap.empty() ? "auto" : plan.requestedChannelMap,
+        plan.requestedReplayGainMode.empty() ? "off" : plan.requestedReplayGainMode, plan.requestedReplayGainPreampDb,
+        plan.requestedAudioPassthrough, plan.requestedPitchCorrection );
 }
 
 std::vector<AudioPropertyResult> MpvPlayer::SetAudioChannelMap(const std::string& channelMap) {
@@ -1465,7 +1539,9 @@ std::vector<AudioPropertyResult> MpvPlayer::SetAudioChannelMap(const std::string
     return SetAudioPreferences( plan.requestedDevice.empty() ? "auto" : plan.requestedDevice,
         plan.requestedLayout.empty() ? "auto-safe" : plan.requestedLayout,
         plan.requestedChannelMix.empty() ? "auto" : plan.requestedChannelMix, plan.requestedNormalizeDownmix,
-        plan.requestedNightMode.empty() ? "off" : plan.requestedNightMode, plan.requestedBalance, channelMap );
+        plan.requestedNightMode.empty() ? "off" : plan.requestedNightMode, plan.requestedBalance, channelMap,
+        plan.requestedReplayGainMode.empty() ? "off" : plan.requestedReplayGainMode, plan.requestedReplayGainPreampDb,
+        plan.requestedAudioPassthrough, plan.requestedPitchCorrection );
 }
 
 void MpvPlayer::SelectAudioTrack(int trackId) {

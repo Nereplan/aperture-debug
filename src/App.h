@@ -37,6 +37,7 @@
 #include "TouchInput.h"
 #include "SettingsLayout.h"
 #include "ChapterMarkerCache.h"
+#include "FeatureGate.h"
 #include <memory>
 #include <atomic>
 #include <deque>
@@ -115,6 +116,10 @@ public:
     void TogglePlaybackDiagnostics() override;
     bool IsPlaybackDiagnosticsVisible() const override;
     void TogglePrivateMode() override;
+    void ToggleAlwaysOnTop() override;
+    void ShowJumpToTimeModal() override;
+    void ShowCustomAspectModal();
+    void ShowCustomRotationModal();
     bool IsPrivateMode() const { return playbackSession.IsPrivateMode(); }
     // State Queries
     bool IsFullscreen() const { return playbackSession.IsFullscreen(); }
@@ -170,6 +175,13 @@ private:
     CommandDispatcher commandDispatcher;
     MediaTransport mediaTransport;
     TaskbarController taskbarController;
+    // System tray state (Settings > Playback rows 10-11). trayIconAdded tracks
+    // whether NIM_ADD succeeded; isMinimizedToTray marks a window hidden after WM_SIZE minimize.
+    NOTIFYICONDATAW trayIconData{};
+    bool trayIconAdded = false, isMinimizedToTray = false;
+    HICON hTrayIcon = nullptr;
+    // Success count from the last ApplyGlobalHotkeys pass, used by the toggle OSD.
+    int registeredGlobalHotkeys = 0;
     NetworkStreamModel networkStreamModel;
     HWND hOverlayWnd = NULL;
     HWND hVideoWnd = NULL;
@@ -239,6 +251,12 @@ private:
     static constexpr UINT kAccessibilityActionMessage = WM_APP + 0x4A, kPlayerEventMessage = WM_APP + 0x4B;
     static constexpr UINT kFolderWatchEventMessage = WM_APP + 0x4C, kBackfillEventMessage = WM_APP + 0x4D;
     static constexpr UINT kAccessibilityAnnouncementMessage = WM_APP + 0x4F, kLibrarySnapshotReadyMessage = WM_APP + 0x51;
+    // Free offset: 0x4A-0x51 are taken (App.h/MediaTransport.h/Renderer.h); 0x52 is unused.
+    static constexpr UINT kTrayCallbackMessage = WM_APP + 0x52;
+    static constexpr UINT kGlobalHotkeyBase = 0x9000;
+    static constexpr UINT kGlobalHotkeyCount = 4;
+    // Fixed action set driven by their CURRENT bound chords in settings.shortcuts.
+    static const char* const kGlobalHotkeyActions[kGlobalHotkeyCount];
     static constexpr LONG kStatusLiveRegionId = 9999;
     enum PlayerEventFlags : uint32_t {
         PlayerEventNone = 0, PlayerEventEnded = 1u << 0, PlayerEventTime = 1u << 1, PlayerEventDuration = 1u << 2,
@@ -341,6 +359,23 @@ private:
     void ClearPendingPlayerEvents();
     void ArmPlayerEventMessage();
     void ApplyPlayerPreferences();
+    void ApplyAlwaysOnTop();
+    void ApplyExperienceModeSelection(ExperienceMode mode);
+    void ToggleExperienceFeature(const std::string& key);
+    // System-wide hotkeys (Settings > Playback, row 9). Unregisters all four
+    // fixed actions then registers the CURRENT bound chord of each action from
+    // settings.shortcuts. Bindings are skipped when vk==0 (unassigned) or when
+    // no modifier is held: a bare global key would swallow system-wide typing.
+    int ApplyGlobalHotkeys();
+    // Tray icon + minimize-to-tray (Settings > Playback, rows 10-11).
+    void UpdateTrayIcon();
+    void RemoveTrayIcon();
+    void RestoreFromTray();
+    void ShowTrayContextMenu(int screenX, int screenY);
+    // In-app viewer for the last lines of the diagnostics log (player context).
+    void ToggleLogViewer() override;
+    bool IsLogViewerVisible() const { return showLogViewer; }
+    bool IsLogViewerCloseHit(float x, float y) const;
     std::wstring RelocateMissingMedia(const std::wstring& missingPath);
     bool UpdateMediaPathReferences(const std::wstring& oldPath, const std::wstring& newPath);
     void UpdateMediaTransport(bool force = false);
@@ -364,6 +399,10 @@ private:
     int hoveredPlayerButtonId = 0;
     LONG playerKeyboardFocusId = 0;
     bool showPlaybackDiagnostics = false;
+    // In-app diagnostics log viewer (player context, cloned from the
+    // playback-diagnostics overlay pattern).
+    bool showLogViewer = false;
+    std::vector<std::wstring> logViewerLines;
     // Settings Flyout State
     bool isSettingsFlyoutOpen = false;
     std::string currentFlyoutMenu = "main";
@@ -540,6 +579,7 @@ private:
     double abLoopA = -1.0, abLoopB = -1.0;
     float sleepTimerRemainingSec = 0.0f;
     bool stopAfterCurrent = false, textInputCaretVisible = true, textInputDragging = false;
+    bool exitAfterPlayback = false;
     std::size_t textInputDragAnchor = 0;
     bool hasPendingHighSurrogate = false;
     wchar_t pendingHighSurrogate = 0;
@@ -589,6 +629,10 @@ private:
     AnimatedFloat hwAccelToggleAnim;
     AnimatedFloat loopToggleAnim;
     AnimatedFloat customMpvConfigToggleAnim;
+    // Experience settings rows: per-feature toggle progress toward
+    // enabled ? 1 : 0 (19 catalog features, 40 slots of headroom). Targets are
+    // re-derived from the experience mode every frame like the System rows.
+    AnimatedFloat experienceToggleAnim[40];
     // System & Storage rows: per-row hover/press progress so feedback eases
     // in and out instead of snapping between flat states. Press itself is an
     // instant boolean (settingsPressState); the eased progress only softens
@@ -819,6 +863,7 @@ private:
     enum class PlayerMenuReveal { None, Controls, Cursor };
     void PresentHubContextMenu(float x, float y, float width);
     void PresentPlayerContextMenu(float x, float y, float width, bool animate, PlayerMenuReveal reveal);
+    void ApplyExperienceMenuFilter();
     void PrepareContextMenu(float& x, float& y, float width, float dp, bool reposition = false);
     void PrepareSplitIrisContextMenu(float x, float y, float dp, bool resetIrisAnimation);
     void SetIrisShoulders(IrisShoulderButton left, IrisShoulderButton right);
@@ -848,11 +893,19 @@ private:
     void OpenAudioDelayContextMenu(float x, float y);
     void OpenAudioBalanceContextMenu(float x, float y);
     void OpenAudioChannelMapContextMenu(float x, float y);
+    void OpenNightModeContextMenu(float x, float y);
+    void OpenReplayGainContextMenu(float x, float y);
+    void OpenDeinterlaceContextMenu(float x, float y);
+    void OpenAudioDeviceContextMenu(float x, float y);
     void OpenSubtitleDelayContextMenu(float x, float y);
     void OpenVideoAdjustmentsContextMenu(float x, float y);
+    void OpenJumpSizeContextMenu(float x, float y);
     void OpenAdjustmentContextMenu(const std::string& type, float x, float y);
     void OpenSubtitlesContextMenu(float x, float y);
     void OpenSubtitleSafeAreaContextMenu(float x, float y);
+    void OpenSubtitleCodepageContextMenu(float x, float y);
+    void OpenSubtitleFontContextMenu(float x, float y);
+    void OpenDualSubtitleStyleContextMenu(float x, float y);
     void OpenSubtitleProfilesContextMenu(float x, float y);
     void OpenOnlineSubtitlesContextMenu(float x, float y);
     void OpenRenameSubtitleProfileContextMenu(float x, float y);
@@ -875,6 +928,8 @@ private:
     void OpenFileDialogForPlaylist(const std::string& playlistId);
     void OpenFileDialogForTarget(const std::string& targetPlaylistId, bool launchSingle);
     void ShowEditSmartPlaylistModal(const std::string& playlistId);
+    void ShowNewSmartPlaylistModal();
+    void ShowEditMetadataModal(const std::wstring& mediaPath);
     void ShowRenamePlaylistModal(const std::string& playlistId);
     void StartInlinePlaylistRename(const std::string& playlistId);
     void CommitInlinePlaylistRename();
@@ -883,6 +938,15 @@ private:
     void ShowConfirmationModal(const std::wstring& title, const std::wstring& message, const std::wstring& confirmText, std::function<void()> onConfirm, std::function<void()> onCancel = nullptr, bool isDestructive = true);
     void StartShortcutCapture(const std::string& actionId, const std::string& actionName, int originRow = 1, int originSubIndex = 0);
     void CancelShortcutCapture();
+    // Shared completion path for shortcut capture: keyboard (AppKeyboard) and
+    // mouse pseudo-keys (Feature 4 routing) both land here.
+    void CompleteShortcutCapture(UINT vkCode, bool ctrl, bool shift, bool alt);
+    // Returns true and completes the active capture when one is in progress;
+    // otherwise returns false so the message keeps its normal behavior.
+    bool HandleShortcutCaptureMouse(UINT vkCode);
+    // Player-context mouse binding execution: looks up a bound action for a
+    // mouse pseudo-key (see CommandDispatcher::FindMouseBinding) and executes it.
+    bool TryExecutePlayerMouseBinding(UINT vkCode);
     std::wstring GetCurrentCaptureChordText() const;
     void ShowCustomSeekStepModal();
     void ShowOpenNetworkStreamModal();

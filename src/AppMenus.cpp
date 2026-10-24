@@ -1,7 +1,9 @@
 #include "App.h"
+#include "FeatureGate.h"
 #include "Localization.h"
 #include "OnlineSubtitles.h"
 #include "SplitIrisMenuLayout.h"
+#include <cctype>
 
 namespace Aperture {
 
@@ -15,6 +17,15 @@ void App::CloseContextMenu() {
     contextMenuClosing = true;
     AnimateVisual(contextMenuAnim, 0.0f, MotionTokens::kFast, MotionTokens::Standard());
     PopAndRestoreFocus(TransientSurfaceType::ContextMenu);
+}
+
+// Drops menu items hidden by the active experience mode (Simple/Advanced/Custom).
+void App::ApplyExperienceMenuFilter() {
+    const ExperienceMode mode = FeatureGate::ModeFromString(settings.experienceMode);
+    contextMenuItems.erase(std::remove_if(contextMenuItems.begin(), contextMenuItems.end(),
+        [this, mode](const ContextMenuItem& item) {
+            return !FeatureGate::MenuItemVisible(mode, settings.customEnabledFeatures, item.id);
+        }), contextMenuItems.end());
 }
 
 void App::CloseSettingsFlyout() {
@@ -51,6 +62,7 @@ void App::PrepareContextMenu(float& x, float& y, float width, float dp, bool rep
 void App::RepositionContextMenu(float x, float y) {
     if (!isContextMenuOpen) return;
     const float dp = playbackSession.IsOpen() ? overlayRenderer.GetDpiScale() : renderer.GetDpiScale();
+    ApplyExperienceMenuFilter();
     if (isSplitIrisMenu) {
         irisAnchorCursor = D2D1::Point2F(x, y);
         PrepareSplitIrisContextMenu(x, y, dp, false);
@@ -421,6 +433,7 @@ bool App::TickSplitIrisAnimation(float dt) {
 }
 
 void App::PresentHubContextMenu(float x, float y, float width) {
+    ApplyExperienceMenuFilter();
     PrepareContextMenu(x, y, width, renderer.GetDpiScale());
     contextMenuAnim.SnapTo(0.0f);
     AnimateVisual(contextMenuAnim, 1.0f, MotionTokens::kFast, MotionTokens::Standard());
@@ -428,6 +441,7 @@ void App::PresentHubContextMenu(float x, float y, float width) {
 }
 
 void App::PresentPlayerContextMenu(float x, float y, float width, bool animate, PlayerMenuReveal reveal) {
+    ApplyExperienceMenuFilter();
     const float dp = overlayRenderer.GetDpiScale();
     const bool wasAlreadyOpenIris = isContextMenuOpen && isSplitIrisMenu;
     if (playbackSession.IsPiP()) {
@@ -609,6 +623,8 @@ void App::OpenMediaContextMenu(const MediaItem& item, float x, float y) {
         contextMenuItems.push_back({ "sep2", L"", L"", IconType::Play, true });
         contextMenuItems.push_back({"explorer", L"Show in Explorer", L"", IconType::FolderPlaylist, false, false, false,
                                     [this, item]() { OpenInExplorer(item.filePath); }});
+        contextMenuItems.push_back({ "edit_metadata", L"Edit Metadata...", L"", IconType::SettingsGear, false, false, false,
+                                    [this, item]() { ShowEditMetadataModal(item.filePath); }});
         contextMenuItems.push_back({ "sep4", L"", L"", IconType::Play, true });
         contextMenuItems.push_back({ "remove", L"Remove from Library...", L"Del", IconType::Trash, false, false, true, [this, item]() {
             // The context menu closes and restores focus before invoking its callback. Rebind selection to the item that opened this menu
@@ -721,6 +737,8 @@ void App::OpenRailBackgroundContextMenu(float x, float y) {
     contextMenuItems.clear();
     contextMenuItems.push_back(
         {"new_playlist", L"New Playlist...", L"", IconType::Plus, false, false, false, [this]() { ShowNewPlaylistModal(); }});
+    contextMenuItems.push_back(
+        {"rail_new_smart", L"New Smart Playlist...", L"", IconType::Plus, false, false, false, [this]() { ShowNewSmartPlaylistModal(); }});
     PresentHubContextMenu(x, y, 220.0f);
 }
 
@@ -843,6 +861,11 @@ void App::OpenSleepTimerContextMenu(float x, float y) {
             stopAfterCurrent = !stopAfterCurrent;
             ShowOSD(IconType::HistoryClock, stopAfterCurrent ? L"Will stop after current media" : L"Stop-after-current canceled");
         }});
+    contextMenuItems.push_back({ "exit_after_playback", L"Exit Aperture After Playback", L"", IconType::HistoryClock, false,
+        exitAfterPlayback, false, [this]() {
+            exitAfterPlayback = !exitAfterPlayback;
+            ShowOSD(IconType::HistoryClock, exitAfterPlayback ? L"Exit after playback: On" : L"Exit after playback: Off");
+        }, false, false, true});
     contextMenuItems.push_back({ "sleep_cancel", L"Cancel Sleep Timer", L"", IconType::CloseX, false, false,
         true, [this]() {
             sleepTimerRemainingSec = 0.0f;
@@ -928,6 +951,16 @@ void App::OpenPlayerContextMenu(float x, float y) {
                 }
             }
         }, false, false, true });
+    contextMenuItems.push_back({ "shuffle", L"Shuffle", L"", IconType::Refresh, false, settings.shuffleQueue, false,
+        [this]() {
+            commandDispatcher.Execute(AppCommand::ToggleShuffle);
+            for (auto& it : contextMenuItems) {
+                if (it.id == "shuffle") {
+                    it.isChecked = settings.shuffleQueue;
+                    break;
+                }
+            }
+        }, false, false, true });
 
     auto chapters = player.GetChapters();
     if (!chapters.empty()) {
@@ -990,6 +1023,69 @@ void App::OpenPlayerAdvancedContextMenu(float x, float y) {
     contextMenuItems.push_back({ "sleep_timer", L"Sleep Timer...", L"", IconType::HistoryClock, false,
         sleepTimerRemainingSec > 0.0f || stopAfterCurrent, false,
         [this, x, y]() { OpenSleepTimerContextMenu(x, y); }, false, false, true});
+    contextMenuItems.push_back({ "always_on_top", L"Always on Top", L"", IconType::Pin, false, settings.alwaysOnTop, false,
+        [this]() {
+            commandDispatcher.Execute(AppCommand::ToggleAlwaysOnTop);
+            for (auto& it : contextMenuItems) {
+                if (it.id == "always_on_top") {
+                    it.isChecked = settings.alwaysOnTop;
+                    break;
+                }
+            }
+        }, false, false, true});
+    contextMenuItems.push_back({"night_mode_menu", L"Night Mode (Loudness)...", L"", IconType::VolumeHigh, false, false,
+                                false, [this, x, y]() { OpenNightModeContextMenu(x, y); }, false, false, true});
+    contextMenuItems.push_back({"audio_device_menu", L"Audio Output Device...", L"", IconType::VolumeHigh, false, false,
+                                false, [this, x, y]() { OpenAudioDeviceContextMenu(x, y); }, false, false, true});
+    contextMenuItems.push_back({"goto_time", L"Go To Time...", L"Ctrl+T", IconType::HistoryClock, false, false, false,
+                                [this]() { commandDispatcher.Execute(AppCommand::JumpToTime); }});
+    contextMenuItems.push_back({"screenshot_format", settings.screenshotFormat == "jpg" ? L"Screenshot Format: JPEG" : L"Screenshot Format: PNG",
+                                L"", IconType::MediaFilm, false, false, false, [this]() {
+        settings.screenshotFormat = settings.screenshotFormat == "jpg" ? "png" : "jpg";
+        SaveSettings();
+        ShowOSD(IconType::MediaFilm, settings.screenshotFormat == "jpg" ? L"Screenshots: JPEG" : L"Screenshots: PNG");
+        for (auto& it : contextMenuItems) {
+            if (it.id == "screenshot_format") {
+                it.label = settings.screenshotFormat == "jpg" ? L"Screenshot Format: JPEG" : L"Screenshot Format: PNG";
+                break;
+            }
+        }
+    }, false, false, true});
+    contextMenuItems.push_back({"jump_size_menu", L"Large Jump Size...", L"", IconType::Next, false, false, false,
+                                [this, x, y]() { OpenJumpSizeContextMenu(x, y); }, false, false, true});
+    contextMenuItems.push_back({"replaygain_menu", L"ReplayGain...", L"", IconType::VolumeHigh, false, false,
+                                false, [this, x, y]() { OpenReplayGainContextMenu(x, y); }, false, false, true});
+    contextMenuItems.push_back({"deinterlace_menu", L"Deinterlace...", L"", IconType::SettingsGear, false, false,
+                                false, [this, x, y]() { OpenDeinterlaceContextMenu(x, y); }, false, false, true});
+    contextMenuItems.push_back({"audio_passthrough", L"Bitstream Passthrough (S/PDIF/HDMI)", L"", IconType::VolumeHigh, false, settings.audioPassthrough, false,
+                                [this]() {
+                                    settings.audioPassthrough = !settings.audioPassthrough;
+                                    ApplyPlayerPreferences();
+                                    SaveSettings();
+                                    ShowOSD(IconType::VolumeHigh, settings.audioPassthrough ?
+                                        L"Bitstream Passthrough: On (applies on next track)" : L"Bitstream Passthrough: Off");
+                                    for (auto& it : contextMenuItems) {
+                                        if (it.id == "audio_passthrough") {
+                                            it.isChecked = settings.audioPassthrough;
+                                            break;
+                                        }
+                                    }
+                                }, false, false, true});
+    contextMenuItems.push_back({"pitch_correction", L"Pitch Correction (Speed Changes)", L"", IconType::VolumeHigh, false, settings.pitchCorrection, false,
+                                [this]() {
+                                    settings.pitchCorrection = !settings.pitchCorrection;
+                                    ApplyPlayerPreferences();
+                                    SaveSettings();
+                                    ShowOSD(IconType::VolumeHigh, settings.pitchCorrection ? L"Pitch Correction: On" : L"Pitch Correction: Off");
+                                    for (auto& it : contextMenuItems) {
+                                        if (it.id == "pitch_correction") {
+                                            it.isChecked = settings.pitchCorrection;
+                                            break;
+                                        }
+                                    }
+                                }, false, false, true});
+    contextMenuItems.push_back({"open_log_viewer", L"View Diagnostics Log", L"", IconType::SettingsGear, false, false, false,
+                                [this]() { ToggleLogViewer(); }, false, false, true});
     std::wstring balSummary = L"Center";
     if (settings.audioBalance < -0.01) {
         wchar_t buf[32];
@@ -1020,6 +1116,34 @@ void App::OpenPlayerAdvancedContextMenu(float x, float y) {
                                     [this]() { OpenInExplorer(lastScreenshotPath); }});
     }
     PresentPlayerContextMenu(x, y, 238.0f, true, PlayerMenuReveal::Controls);
+}
+
+void App::OpenJumpSizeContextMenu(float x, float y) {
+    if (!isContextMenuOpen) PushFocusSnapshot(TransientSurfaceType::ContextMenu);
+    contextMenuItems.clear();
+    SetIrisShoulders(
+        { L"Back", IconType::ChevronLeft, true, false, false, true, [this, x, y]() { OpenPlayerAdvancedContextMenu(x, y); } },
+        { L"Reset", IconType::Refresh, false, false, false, true, [this, x, y]() {
+            settings.largeSeekStepSec = 10.0;
+            SaveSettings();
+            ShowOSD(IconType::Next, L"Large Jump: 10 seconds");
+            OpenJumpSizeContextMenu(x, y);
+        } });
+    struct JumpSizePreset { const wchar_t* label; double sec; };
+    const JumpSizePreset presets[] = {
+        { L"5 seconds", 5.0 }, { L"10 seconds", 10.0 }, { L"30 seconds", 30.0 },
+        { L"60 seconds", 60.0 }, { L"2 minutes", 120.0 }, { L"5 minutes", 300.0 } };
+    for (const auto& preset : presets) {
+        const std::string id = std::string("jump_") + std::to_string((int)preset.sec);
+        const bool isActive = std::abs(settings.largeSeekStepSec - preset.sec) < 0.001;
+        contextMenuItems.push_back({ id, preset.label, L"", IconType::Next, false, isActive, false, [this, sec = preset.sec, label = preset.label, x, y]() {
+            settings.largeSeekStepSec = sec;
+            SaveSettings();
+            ShowOSD(IconType::Next, std::wstring(L"Large Jump: ") + label);
+            OpenJumpSizeContextMenu(x, y);
+        }, false, false, true});
+    }
+    PresentPlayerContextMenu(x, y, 238.0f, false, PlayerMenuReveal::None);
 }
 
 void App::OpenAudioDelayContextMenu(float x, float y) {
@@ -1142,6 +1266,204 @@ void App::OpenAudioChannelMapContextMenu(float x, float y) {
     PresentPlayerContextMenu(x, y, 238.0f, false, PlayerMenuReveal::None);
 }
 
+void App::OpenNightModeContextMenu(float x, float y) {
+    if (!isContextMenuOpen) PushFocusSnapshot(TransientSurfaceType::ContextMenu);
+    contextMenuItems.clear();
+    SetIrisShoulders(
+        { L"Back", IconType::ChevronLeft, true, false, false, true, [this, x, y]() { OpenPlayerAdvancedContextMenu(x, y); } },
+        { L"Off", IconType::Refresh, false, false, false, true, [this, x, y]() {
+            settings.nightMode = "off";
+            ApplyPlayerPreferences();
+            SaveSettings();
+            ShowOSD(IconType::VolumeHigh, L"Night Mode: Off");
+            OpenNightModeContextMenu(x, y);
+        } });
+    const std::string curNight = Settings::NormalizeNightMode(settings.nightMode);
+    contextMenuItems.push_back({ "night_off", L"Off", L"", IconType::VolumeHigh, false, curNight == "off", false, [this, x, y]() {
+        settings.nightMode = "off";
+        ApplyPlayerPreferences();
+        SaveSettings();
+        ShowOSD(IconType::VolumeHigh, L"Night Mode: Off");
+        OpenNightModeContextMenu(x, y);
+    }, false, false, true});
+    contextMenuItems.push_back({ "night_light", L"Light", L"", IconType::VolumeHigh, false, curNight == "light", false, [this, x, y]() {
+        settings.nightMode = "light";
+        ApplyPlayerPreferences();
+        SaveSettings();
+        ShowOSD(IconType::VolumeHigh, L"Night Mode: Light");
+        OpenNightModeContextMenu(x, y);
+    }, false, false, true});
+    contextMenuItems.push_back({ "night_medium", L"Medium", L"", IconType::VolumeHigh, false, curNight == "medium", false, [this, x, y]() {
+        settings.nightMode = "medium";
+        ApplyPlayerPreferences();
+        SaveSettings();
+        ShowOSD(IconType::VolumeHigh, L"Night Mode: Medium");
+        OpenNightModeContextMenu(x, y);
+    }, false, false, true});
+    contextMenuItems.push_back({ "night_strong", L"Strong", L"", IconType::VolumeHigh, false, curNight == "strong", false, [this, x, y]() {
+        settings.nightMode = "strong";
+        ApplyPlayerPreferences();
+        SaveSettings();
+        ShowOSD(IconType::VolumeHigh, L"Night Mode: Strong");
+        OpenNightModeContextMenu(x, y);
+    }, false, false, true});
+    PresentPlayerContextMenu(x, y, 238.0f, false, PlayerMenuReveal::None);
+}
+
+void App::OpenReplayGainContextMenu(float x, float y) {
+    if (!isContextMenuOpen) PushFocusSnapshot(TransientSurfaceType::ContextMenu);
+    contextMenuItems.clear();
+    SetIrisShoulders(
+        { L"Back", IconType::ChevronLeft, true, false, false, true, [this, x, y]() { OpenPlayerAdvancedContextMenu(x, y); } },
+        { L"Off", IconType::Refresh, false, false, false, true, [this, x, y]() {
+            settings.replayGainMode = "off";
+            ApplyPlayerPreferences();
+            SaveSettings();
+            ShowOSD(IconType::VolumeHigh, L"ReplayGain: Off");
+            OpenReplayGainContextMenu(x, y);
+        } });
+    const std::string curRg = Settings::NormalizeReplayGainMode(settings.replayGainMode);
+    contextMenuItems.push_back({ "rg_title", L"Mode", L"", IconType::VolumeHigh, false, false, false, nullptr, true });
+    contextMenuItems.push_back({ "rg_off", L"Off", L"", IconType::VolumeHigh, false, curRg == "off", false, [this, x, y]() {
+        settings.replayGainMode = "off";
+        ApplyPlayerPreferences();
+        SaveSettings();
+        ShowOSD(IconType::VolumeHigh, L"ReplayGain: Off");
+        OpenReplayGainContextMenu(x, y);
+    }, false, false, true});
+    contextMenuItems.push_back({ "rg_track", L"Track", L"", IconType::VolumeHigh, false, curRg == "track", false, [this, x, y]() {
+        settings.replayGainMode = "track";
+        ApplyPlayerPreferences();
+        SaveSettings();
+        ShowOSD(IconType::VolumeHigh, L"ReplayGain: Track");
+        OpenReplayGainContextMenu(x, y);
+    }, false, false, true});
+    contextMenuItems.push_back({ "rg_album", L"Album", L"", IconType::VolumeHigh, false, curRg == "album", false, [this, x, y]() {
+        settings.replayGainMode = "album";
+        ApplyPlayerPreferences();
+        SaveSettings();
+        ShowOSD(IconType::VolumeHigh, L"ReplayGain: Album");
+        OpenReplayGainContextMenu(x, y);
+    }, false, false, true});
+    const int curPreamp = static_cast<int>(std::llround(settings.replayGainPreampDb));
+    contextMenuItems.push_back({ "rg_pre_title", L"Preamp", L"", IconType::VolumeHigh, false, false, false, nullptr, true });
+    contextMenuItems.push_back({ "rg_pre_-6", L"-6 dB", L"", IconType::VolumeHigh, false, curPreamp == -6, false, [this, x, y]() {
+        settings.replayGainPreampDb = -6.0;
+        ApplyPlayerPreferences();
+        SaveSettings();
+        ShowOSD(IconType::VolumeHigh, L"ReplayGain Preamp: -6 dB");
+        OpenReplayGainContextMenu(x, y);
+    }, false, false, true});
+    contextMenuItems.push_back({ "rg_pre_0", L"0 dB", L"", IconType::VolumeHigh, false, curPreamp == 0, false, [this, x, y]() {
+        settings.replayGainPreampDb = 0.0;
+        ApplyPlayerPreferences();
+        SaveSettings();
+        ShowOSD(IconType::VolumeHigh, L"ReplayGain Preamp: 0 dB");
+        OpenReplayGainContextMenu(x, y);
+    }, false, false, true});
+    contextMenuItems.push_back({ "rg_pre_6", L"+6 dB", L"", IconType::VolumeHigh, false, curPreamp == 6, false, [this, x, y]() {
+        settings.replayGainPreampDb = 6.0;
+        ApplyPlayerPreferences();
+        SaveSettings();
+        ShowOSD(IconType::VolumeHigh, L"ReplayGain Preamp: +6 dB");
+        OpenReplayGainContextMenu(x, y);
+    }, false, false, true});
+    PresentPlayerContextMenu(x, y, 238.0f, false, PlayerMenuReveal::None);
+}
+
+void App::OpenDeinterlaceContextMenu(float x, float y) {
+    if (!isContextMenuOpen) PushFocusSnapshot(TransientSurfaceType::ContextMenu);
+    contextMenuItems.clear();
+    SetIrisShoulders(
+        { L"Back", IconType::ChevronLeft, true, false, false, true, [this, x, y]() { OpenPlayerAdvancedContextMenu(x, y); } },
+        { L"Off", IconType::Refresh, false, false, false, true, [this, x, y]() {
+            settings.deinterlaceMode = "off";
+            ApplyPlayerPreferences();
+            SaveSettings();
+            ShowOSD(IconType::SettingsGear, L"Deinterlace: Off");
+            OpenDeinterlaceContextMenu(x, y);
+        } });
+    const std::string curDi = Settings::NormalizeDeinterlaceMode(settings.deinterlaceMode);
+    contextMenuItems.push_back({ "di_off", L"Off", L"", IconType::SettingsGear, false, curDi == "off", false, [this, x, y]() {
+        settings.deinterlaceMode = "off";
+        ApplyPlayerPreferences();
+        SaveSettings();
+        ShowOSD(IconType::SettingsGear, L"Deinterlace: Off");
+        OpenDeinterlaceContextMenu(x, y);
+    }, false, false, true});
+    contextMenuItems.push_back({ "di_bwdif", L"Bwdif (Frame)", L"", IconType::SettingsGear, false, curDi == "bwdif", false, [this, x, y]() {
+        settings.deinterlaceMode = "bwdif";
+        ApplyPlayerPreferences();
+        SaveSettings();
+        ShowOSD(IconType::SettingsGear, L"Deinterlace: Bwdif (Frame)");
+        OpenDeinterlaceContextMenu(x, y);
+    }, false, false, true});
+    contextMenuItems.push_back({ "di_bwdif_field", L"Bwdif (Field)", L"", IconType::SettingsGear, false, curDi == "bwdif_field", false, [this, x, y]() {
+        settings.deinterlaceMode = "bwdif_field";
+        ApplyPlayerPreferences();
+        SaveSettings();
+        ShowOSD(IconType::SettingsGear, L"Deinterlace: Bwdif (Field)");
+        OpenDeinterlaceContextMenu(x, y);
+    }, false, false, true});
+    contextMenuItems.push_back({ "di_yadif", L"Yadif", L"", IconType::SettingsGear, false, curDi == "yadif", false, [this, x, y]() {
+        settings.deinterlaceMode = "yadif";
+        ApplyPlayerPreferences();
+        SaveSettings();
+        ShowOSD(IconType::SettingsGear, L"Deinterlace: Yadif");
+        OpenDeinterlaceContextMenu(x, y);
+    }, false, false, true});
+    PresentPlayerContextMenu(x, y, 238.0f, false, PlayerMenuReveal::None);
+}
+
+void App::OpenAudioDeviceContextMenu(float x, float y) {
+    if (!isContextMenuOpen) PushFocusSnapshot(TransientSurfaceType::ContextMenu);
+    contextMenuItems.clear();
+    SetIrisShoulders(
+        { L"Back", IconType::ChevronLeft, true, false, false, true, [this, x, y]() { OpenPlayerAdvancedContextMenu(x, y); } },
+        { L"Auto", IconType::Refresh, false, false, false, true, [this, x, y]() {
+            settings.audioDevice = "auto";
+            ApplyPlayerPreferences();
+            SaveSettings();
+            ShowOSD(IconType::VolumeHigh, L"Audio Output: Auto (System Default)");
+            OpenAudioDeviceContextMenu(x, y);
+        } });
+    const std::string curDevice = Settings::NormalizeAudioDevice(settings.audioDevice);
+    contextMenuItems.push_back({ "adev_auto", L"Auto (System Default)", L"", IconType::VolumeHigh, false, curDevice == "auto", false, [this, x, y]() {
+        settings.audioDevice = "auto";
+        ApplyPlayerPreferences();
+        SaveSettings();
+        ShowOSD(IconType::VolumeHigh, L"Audio Output: Auto (System Default)");
+        OpenAudioDeviceContextMenu(x, y);
+    }, false, false, true});
+    const auto devices = player.GetAudioDevices();
+    // Cap the picker: context menus are not meant to scroll through dozens of
+    // endpoints; mpv's enumeration order keeps the common outputs up front.
+    const size_t maxDevices = 16;
+    size_t listed = 0;
+    for (size_t i = 0; i < devices.size() && listed < maxDevices; ++i) {
+        const auto& dev = devices[i];
+        if (dev.name == "auto") continue;
+        std::string suffix;
+        suffix.reserve(dev.name.size());
+        for (char c : dev.name) {
+            const unsigned char uc = static_cast<unsigned char>(c);
+            suffix += (std::isalnum(uc) || c == '_') ? c : '_';
+        }
+        if (suffix.empty()) suffix = std::to_string(i);
+        const std::wstring label = !dev.description.empty() ? dev.description : Utf8ToUtf16(dev.name);
+        contextMenuItems.push_back({ "adev_" + suffix, label, L"", IconType::VolumeHigh, false, curDevice == dev.name, false,
+            [this, x, y, name = dev.name, label]() {
+                settings.audioDevice = name;
+                ApplyPlayerPreferences();
+                SaveSettings();
+                ShowOSD(IconType::VolumeHigh, label);
+                OpenAudioDeviceContextMenu(x, y);
+            }, false, false, true});
+        ++listed;
+    }
+    PresentPlayerContextMenu(x, y, 238.0f, false, PlayerMenuReveal::None);
+}
+
 void App::OpenVideoAdjustmentsContextMenu(float x, float y) {
     if (!isContextMenuOpen) PushFocusSnapshot(TransientSurfaceType::ContextMenu);
     contextMenuItems.clear();
@@ -1157,6 +1479,10 @@ void App::OpenVideoAdjustmentsContextMenu(float x, float y) {
         commandDispatcher.Execute(AppCommand::RotateVideo);
         OpenVideoAdjustmentsContextMenu(x, y);
     }, false, false, true});
+    contextMenuItems.push_back({"custom_aspect", L"Custom Aspect Ratio...", L"", IconType::AspectFrame, false, false, false,
+                                [this]() { ShowCustomAspectModal(); }});
+    contextMenuItems.push_back({"rot_custom", L"Custom Rotation...", L"", IconType::AspectFrame, false, false, false,
+                                [this]() { ShowCustomRotationModal(); }});
     wchar_t brightBuf[64];
     swprintf_s(brightBuf, L"Brightness: %+d...", player.GetBrightness());
     contextMenuItems.push_back({"vadjust_bright", brightBuf, L"\u25B8", IconType::SettingsGear, false, false, false,
@@ -1388,6 +1714,13 @@ void App::OpenSubtitlesContextMenu(float x, float y) {
             OpenSubtitlesContextMenu(x, y);
         }, false, false, true});
     }
+    contextMenuItems.push_back({ "sub_forced_only", L"Forced Subtitles Only", settings.subForcedOnly ? L"\u2713" : L"", IconType::Subtitles, false, settings.subForcedOnly, false, [this, x, y]() {
+        settings.subForcedOnly = !settings.subForcedOnly;
+        ApplyPlayerPreferences();
+        SaveSettings();
+        ShowOSD(IconType::Subtitles, settings.subForcedOnly ? L"Forced Subtitles Only: On" : L"Forced Subtitles Only: Off");
+        OpenSubtitlesContextMenu(x, y);
+    }, false, false, true});
     contextMenuItems.push_back({ "sep2", L"", L"", IconType::Play, true });
     // 2. Secondary Subtitle track selection (Dual Subtitles)
     contextMenuItems.push_back({ "sec_hdr", L"Dual Subtitles (Top):", L"", IconType::Subtitles, false, false, false, nullptr, true });
@@ -1396,6 +1729,9 @@ void App::OpenSubtitlesContextMenu(float x, float y) {
         player.SelectSecondarySubtitleTrack(0);
         player.SetSecondarySubtitleVisibility(false);
         OpenSubtitlesContextMenu(x, y);
+    }, false, false, true});
+    contextMenuItems.push_back({ "dual_style_menu", L"Dual Subtitle Style...", L"\u25B8", IconType::Subtitles, false, false, false, [this, x, y]() {
+        OpenDualSubtitleStyleContextMenu(x, y);
     }, false, false, true});
     for (const auto& t : subTracks) {
         std::wstring name = t.title.empty() ? (L"Track " + std::to_wstring(t.id)) : t.title;
@@ -1444,6 +1780,12 @@ void App::OpenSubtitlesContextMenu(float x, float y) {
     contextMenuItems.push_back({ "sub_safe_area_menu", safeAreaBuf, L"\u25B8", IconType::SettingsGear, false, false, false, [this, x, y]() {
         OpenSubtitleSafeAreaContextMenu(x, y);
     }, false, false, true});
+    contextMenuItems.push_back({ "sub_charset_menu", L"Character Encoding...", L"\u25B8", IconType::SettingsGear, false, false, false, [this, x, y]() {
+        OpenSubtitleCodepageContextMenu(x, y);
+    }, false, false, true});
+    contextMenuItems.push_back({ "sub_font_menu", L"Subtitle Font...", L"\u25B8", IconType::SettingsGear, false, false, false, [this, x, y]() {
+        OpenSubtitleFontContextMenu(x, y);
+    }, false, false, true});
     PresentPlayerContextMenu(x, y, 238.0f, true, PlayerMenuReveal::Cursor);
 }
 
@@ -1479,6 +1821,144 @@ void App::OpenSubtitleSafeAreaContextMenu(float x, float y) {
             OpenSubtitleSafeAreaContextMenu(x, y);
         }, false, false, true});
     }
+    PresentPlayerContextMenu(x, y, 238.0f, false, PlayerMenuReveal::Cursor);
+}
+
+void App::OpenSubtitleCodepageContextMenu(float x, float y) {
+    if (!isContextMenuOpen) PushFocusSnapshot(TransientSurfaceType::ContextMenu);
+    contextMenuItems.clear();
+    SetIrisShoulders(
+        { L"Back", IconType::ChevronLeft, true, false, false, true, [this, x, y]() { OpenSubtitlesContextMenu(x, y); } },
+        { L"Reset", IconType::Refresh, false, false, false, true, [this, x, y]() {
+            settings.subCodepage = "auto";
+            ApplyPlayerPreferences();
+            SaveSettings();
+            ShowOSD(IconType::Subtitles, L"Character Encoding: Auto");
+            OpenSubtitleCodepageContextMenu(x, y);
+        } });
+    struct CodepagePreset { const char* value; const wchar_t* label; };
+    static constexpr CodepagePreset codepages[] = {
+        {"auto", L"Auto"},
+        {"utf-8", L"UTF-8"},
+        {"utf-16le", L"UTF-16"},
+        {"windows-1252", L"Western"},
+        {"windows-1250", L"Central European"},
+        {"windows-1251", L"Cyrillic"},
+        {"windows-1253", L"Greek"},
+        {"windows-1254", L"Turkish"},
+        {"windows-1255", L"Hebrew"},
+        {"windows-1256", L"Arabic"},
+        {"shift-jis", L"Japanese"},
+        {"big5", L"Chinese Traditional"},
+        {"gbk", L"Chinese Simplified"},
+        {"euc-kr", L"Korean"},
+    };
+    for (const auto& cp : codepages) {
+        // Dynamic menu id: "sub_cp_" + the mpv value sanitized to [A-Za-z0-9_].
+        std::string id = "sub_cp_";
+        for (const char* c = cp.value; *c; ++c) {
+            const char ch = *c;
+            id += ((ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') || (ch >= '0' && ch <= '9') || ch == '_') ? ch : '_';
+        }
+        const bool selected = settings.subCodepage == cp.value;
+        contextMenuItems.push_back({ id, cp.label, selected ? L"\u2713" : L"", IconType::SettingsGear, false, selected, false, [this, x, y, cp]() {
+            settings.subCodepage = cp.value;
+            ApplyPlayerPreferences();
+            SaveSettings();
+            ShowOSD(IconType::Subtitles, std::wstring(L"Character Encoding: ") + cp.label);
+            OpenSubtitleCodepageContextMenu(x, y);
+        }, false, false, true});
+    }
+    PresentPlayerContextMenu(x, y, 238.0f, false, PlayerMenuReveal::Cursor);
+}
+
+void App::OpenSubtitleFontContextMenu(float x, float y) {
+    if (!isContextMenuOpen) PushFocusSnapshot(TransientSurfaceType::ContextMenu);
+    contextMenuItems.clear();
+    SetIrisShoulders(
+        { L"Back", IconType::ChevronLeft, true, false, false, true, [this, x, y]() { OpenSubtitlesContextMenu(x, y); } },
+        { L"Reset", IconType::Refresh, false, false, false, true, [this, x, y]() {
+            settings.subFontFamily = "Inter";
+            ApplyPlayerPreferences();
+            SaveSettings();
+            ShowOSD(IconType::Subtitles, L"Subtitle Font: Inter");
+            OpenSubtitleFontContextMenu(x, y);
+        } });
+    for (const auto& font : settings.GetAvailableFonts()) {
+        // Dynamic menu id: "subfont_" + the lowercased font name restricted to [A-Za-z0-9_].
+        std::string id = "subfont_";
+        for (char ch : font) {
+            if (ch >= 'A' && ch <= 'Z') ch = static_cast<char>(ch - 'A' + 'a');
+            id += ((ch >= 'a' && ch <= 'z') || (ch >= '0' && ch <= '9') || ch == '_') ? ch : '_';
+        }
+        const bool selected = settings.subFontFamily == font;
+        std::string fontName = font;
+        contextMenuItems.push_back({ id, Utf8ToUtf16(font), selected ? L"\u2713" : L"", IconType::Subtitles, false, selected, false, [this, x, y, fontName]() {
+            settings.subFontFamily = fontName;
+            ApplyPlayerPreferences();
+            SaveSettings();
+            ShowOSD(IconType::Subtitles, L"Subtitle Font: " + Utf8ToUtf16(fontName));
+            OpenSubtitleFontContextMenu(x, y);
+        }, false, false, true});
+    }
+    PresentPlayerContextMenu(x, y, 238.0f, false, PlayerMenuReveal::Cursor);
+}
+
+void App::OpenDualSubtitleStyleContextMenu(float x, float y) {
+    if (!isContextMenuOpen) PushFocusSnapshot(TransientSurfaceType::ContextMenu);
+    contextMenuItems.clear();
+    SetIrisShoulders(
+        { L"Back", IconType::ChevronLeft, true, false, false, true, [this, x, y]() { OpenSubtitlesContextMenu(x, y); } },
+        { L"Reset", IconType::Refresh, false, false, false, true, [this, x, y]() {
+            settings.secondarySubFontSize = "18px";
+            settings.secondarySubColorHex = "#ffff00";
+            settings.secondarySubPosition = "top";
+            ApplyPlayerPreferences();
+            SaveSettings();
+            ShowOSD(IconType::Subtitles, L"Dual Subtitle Style Reset");
+            OpenDualSubtitleStyleContextMenu(x, y);
+        } });
+    contextMenuItems.push_back({ "dstyle_title", L"Dual Subtitle Style", L"", IconType::Subtitles, false, false, false, nullptr, true });
+    contextMenuItems.push_back({ "sep_dstyle1", L"", L"", IconType::Play, true });
+    contextMenuItems.push_back({ "dstyle_size_hdr", L"Size:", L"", IconType::Subtitles, false, false, false, nullptr, true });
+    const int sizePresets[] = { 14, 18, 24, 32 };
+    for (int px : sizePresets) {
+        const std::string value = std::to_string(px) + "px";
+        const bool selected = settings.secondarySubFontSize == value;
+        contextMenuItems.push_back({ "dstyle_size_" + std::to_string(px), std::to_wstring(px) + L" px", selected ? L"\u2713" : L"", IconType::Subtitles, false, selected, false, [this, x, y, value]() {
+            settings.secondarySubFontSize = value;
+            ApplyPlayerPreferences();
+            SaveSettings();
+            OpenDualSubtitleStyleContextMenu(x, y);
+        }, false, false, true});
+    }
+    contextMenuItems.push_back({ "dstyle_col_hdr", L"Color:", L"", IconType::Subtitles, false, false, false, nullptr, true });
+    const char* colHex[] = { "#cad3f5", "#eed49f", "#a6da95", "#91d7e3", "#f5a97f", "#ed8796" };
+    for (int i = 0; i < 6; ++i) {
+        const std::string value = colHex[i];
+        const bool selected = _stricmp(settings.secondarySubColorHex.c_str(), value.c_str()) == 0;
+        contextMenuItems.push_back({ "dstyle_col_" + std::to_string(i), L"  " + Utf8ToUtf16(value), selected ? L"\u2713" : L"", IconType::Subtitles, false, selected, false, [this, x, y, value]() {
+            settings.secondarySubColorHex = value;
+            ApplyPlayerPreferences();
+            SaveSettings();
+            OpenDualSubtitleStyleContextMenu(x, y);
+        }, false, false, true});
+    }
+    contextMenuItems.push_back({ "dstyle_pos_hdr", L"Position:", L"", IconType::Subtitles, false, false, false, nullptr, true });
+    const bool posTop = settings.secondarySubPosition == "top";
+    const bool posLower = settings.secondarySubPosition == "elevated" || settings.secondarySubPosition == "bottom";
+    contextMenuItems.push_back({ "dstyle_pos_top", L"Top", posTop ? L"\u2713" : L"", IconType::Subtitles, false, posTop, false, [this, x, y]() {
+        settings.secondarySubPosition = "top";
+        ApplyPlayerPreferences();
+        SaveSettings();
+        OpenDualSubtitleStyleContextMenu(x, y);
+    }, false, false, true});
+    contextMenuItems.push_back({ "dstyle_pos_lower", L"Slightly Lower", posLower ? L"\u2713" : L"", IconType::Subtitles, false, posLower, false, [this, x, y]() {
+        settings.secondarySubPosition = "elevated";
+        ApplyPlayerPreferences();
+        SaveSettings();
+        OpenDualSubtitleStyleContextMenu(x, y);
+    }, false, false, true});
     PresentPlayerContextMenu(x, y, 238.0f, false, PlayerMenuReveal::Cursor);
 }
 

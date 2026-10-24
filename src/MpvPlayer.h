@@ -15,6 +15,27 @@
 
 namespace Aperture {
 
+// Maximum playback volume as a ratio of the mpv base level (1.0 == 100%).
+inline constexpr double kMaxVolumeRatio = 1.3;
+
+// Custom aspect-ratio strings accepted beyond the fixed modes ("auto", "16:9",
+// "4:3", "21:9", "fill", "cover"): "W:H" with decimal W,H > 0, or a single
+// decimal ratio > 0 (e.g. "2.35:1", "1.85").
+inline bool IsValidCustomAspectString(const std::string& value) {
+    if (value.empty()) return false;
+    auto parsePositive = [](const std::string& token) {
+        if (token.empty() || token.find_first_not_of("0123456789.") != std::string::npos) return 0.0;
+        size_t consumed = 0;
+        double parsed = 0.0;
+        try { parsed = std::stod(token, &consumed); } catch (...) { return 0.0; }
+        if (consumed != token.size() || !std::isfinite(parsed) || parsed <= 0.0) return 0.0;
+        return parsed;
+    };
+    const size_t colon = value.find(':');
+    if (colon == std::string::npos) return parsePositive(value) > 0.0;
+    return parsePositive(value.substr(0, colon)) > 0.0 && parsePositive(value.substr(colon + 1)) > 0.0;
+}
+
 struct MpvTrackInfo {
     int id = 0;
     std::string type; // "audio", "sub", "video"
@@ -129,6 +150,7 @@ public:
     void SetLoop(bool loop);
     bool GetLoop() const;
     void SetAspectRatio(const std::string& mode);
+    void SetDeinterlace(const std::string& mode);
     void SetAudioDelay(double delaySec);
     void SetSubDelay(double delaySec);
     void SetVideoRotate(int degrees);
@@ -150,7 +172,10 @@ public:
     void SetPreferredAudioLanguage(const std::string& language);
     void SetPreferredSubtitleLanguage(const std::string& language);
     void SetSubtitleStyle(const std::string& fontSize, const std::string& colorHex, const std::string& backgroundStyle,
-                          const std::string& position, int safeAreaX = 0, int safeAreaY = 0);
+                          const std::string& position, int safeAreaX = 0, int safeAreaY = 0,
+                          const std::string& fontFamily = "Inter", const std::string& codepage = "auto", bool forcedOnly = false,
+                          const std::string& secondaryFontSize = "", const std::string& secondaryColorHex = "",
+                          const std::string& secondaryPosition = "");
     static SubtitleSafeAreaPlan BuildSubtitleSafeAreaPlan(int safeAreaX, int safeAreaY);
     static ColorManagementPlan BuildColorManagementPlan(const std::string& hdrMode, const std::string& toneMapping, int targetPeak,
                                                         const std::string& gamutMapping, const std::string& iccProfilePath,
@@ -170,12 +195,14 @@ public:
     void RefreshAudioDevices();
     static AudioManagementPlan BuildAudioPlan( const std::string& device, const std::string& layout, const std::string& channelMix,
         bool normalizeDownmix, const std::string& nightMode, double balance, const std::string& channelMap,
-        const std::vector<AudioDeviceInfo>& availableDevices = {} );
+        const std::vector<AudioDeviceInfo>& availableDevices = {}, const std::string& replayGainMode = "off",
+        double replayGainPreampDb = 0.0, bool audioPassthrough = false, bool pitchCorrection = true );
     static AudioManagementPlan BuildAudioPlan( const std::string& device, const std::string& layout, const std::string& channelMix,
         bool normalizeDownmix, const std::string& nightMode, const std::vector<AudioDeviceInfo>& availableDevices = {} );
     std::vector<AudioPropertyResult> SetAudioPreferences( const std::string& device, const std::string& layout,
         const std::string& channelMix, bool normalizeDownmix, const std::string& nightMode, double balance = 0.0,
-        const std::string& channelMap = "auto" );
+        const std::string& channelMap = "auto", const std::string& replayGainMode = "off",
+        double replayGainPreampDb = 0.0, bool audioPassthrough = false, bool pitchCorrection = true );
     std::vector<AudioPropertyResult> SetAudioBalance(double balance);
     std::vector<AudioPropertyResult> SetAudioChannelMap(const std::string& channelMap);
     void SelectAudioTrack(int trackId);
@@ -285,6 +312,7 @@ private:
     std::vector<AudioPropertyResult> lastAudioResults;
     int videoRotate = 0, brightness = 0, contrast = 0, saturation = 0;
     int gamma = 0, hue = 0;
+    std::string lastDeinterlaceMode = "off";
     bool customMpvConfigEnabled = false;
     std::string customMpvConfigPath = "mpv.conf";
 

@@ -261,6 +261,13 @@ PlayerRenderViewModel App::BuildPlayerRenderViewModel() const {
         vm.diagnosticsOverlay.audioDelayMs = settings.audioDelayMs;
         vm.diagnosticsOverlay.subDelayMs = settings.subDelayMs;
     }
+    // 7b-2. Diagnostics Log (mirrored each frame like the diagnostics overlay).
+    if (showLogViewer) {
+        vm.logOverlay.visible = true;
+        vm.logOverlay.closeHovered = IsLogViewerCloseHit(lastPlayerMouseX, lastPlayerMouseY);
+        vm.logOverlay.bounds = vm.winBounds;
+        vm.logOverlay.lines = logViewerLines;
+    }
     // 7c. Jump Ahead Button
     if (playbackSession.IsOpen() && !vm.isPiP && jumpAheadAnim.current > 0.001f) {
         vm.jumpAhead.visible = true;
@@ -311,7 +318,7 @@ ModalViewModel App::BuildModalViewModel() const {
         vm.isCancelHovered = isModalCancelHovered || modalKeyboardFocus == (confirmation ? 1 : 2);
         vm.isOkPressed = isModalOkPressed;
         vm.isCancelPressed = isModalCancelPressed;
-        if (activeModal == ModalType::NewPlaylist || activeModal == ModalType::NewSmartPlaylist || activeModal == ModalType::EditSmartPlaylist || activeModal == ModalType::SeekStepInput || activeModal == ModalType::FrameSeekInput || activeModal == ModalType::CustomSettingInput || activeModal == ModalType::BookmarkInput || activeModal == ModalType::EditMetadataOverrides || activeModal == ModalType::SaveSubtitleProfile || activeModal == ModalType::RenameSubtitleProfile) {
+        if (activeModal == ModalType::NewPlaylist || activeModal == ModalType::NewSmartPlaylist || activeModal == ModalType::EditSmartPlaylist || activeModal == ModalType::SeekStepInput || activeModal == ModalType::FrameSeekInput || activeModal == ModalType::CustomSettingInput || activeModal == ModalType::BookmarkInput || activeModal == ModalType::EditMetadataOverrides || activeModal == ModalType::SaveSubtitleProfile || activeModal == ModalType::RenameSubtitleProfile || activeModal == ModalType::JumpToTime || activeModal == ModalType::CustomAspectInput || activeModal == ModalType::CustomRotationInput) {
             vm.visualState.displayText = Text16ToWideString(modalInput.GetDisplayText());
             vm.visualState.selectionStart = modalInput.GetSelection().start;
             vm.visualState.selectionEnd = modalInput.GetSelection().end;
@@ -1001,6 +1008,9 @@ HubRenderViewModel App::BuildHubRenderViewModel() {
             vm.settingsTab.hwAccelProg = hwAccelToggleAnim.current;
             vm.settingsTab.loopProg = loopToggleAnim.current;
             vm.settingsTab.customMpvConfigProg = customMpvConfigToggleAnim.current;
+            vm.settingsTab.globalHotkeysProg = settings.globalHotkeysEnabled ? 1.0f : 0.0f;
+            vm.settingsTab.trayIconProg = settings.trayIconEnabled ? 1.0f : 0.0f;
+            vm.settingsTab.minimizeToTrayProg = settings.minimizeToTray ? 1.0f : 0.0f;
             vm.settingsTab.isKeyboardNavActive = isKeyboardNavActive;
             vm.settingsTab.pressState = settingsPressState;
             vm.settingsTab.mouseX = hubMouseX;

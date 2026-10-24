@@ -51,6 +51,7 @@ public:
     static void DrawPlayerBottomBar(OverlayRenderer& r, const Settings& s, const PlayerBottomBarViewModel& vm);
     static void DrawPiPOverlay(OverlayRenderer& r, const Settings& s, const PiPOverlayViewModel& vm);
     static void DrawPlaybackDiagnostics(OverlayRenderer& r, const Settings& s, const DiagnosticsOverlayViewModel& vm);
+    static void DrawLogOverlay(OverlayRenderer& r, const Settings& s, const LogOverlayViewModel& vm);
     static void DrawSettingsFlyout(OverlayRenderer& r, const Settings& s, const SettingsFlyoutViewModel& vm);
     static void DrawOSDBadge(Renderer& r, const Settings& s, const OsdBadgeViewModel& vm);
     static void DrawOSDBadge(OverlayRenderer& r, const Settings& s, const OsdBadgeViewModel& vm);

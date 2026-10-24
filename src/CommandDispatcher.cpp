@@ -69,8 +69,8 @@ struct CommandDescriptor { AppCommand command; const char* id; const wchar_t* di
 constexpr CommandDescriptor kCommands[] = {
     {AppCommand::None, "", L""}, {AppCommand::TogglePlay, "togglePlay", L"Play / Pause"}, {AppCommand::Play, "play", L""},
     {AppCommand::Pause, "pause", L""}, {AppCommand::SeekForward, "seekForward", L"Seek Forward"},
-    {AppCommand::SeekBackward, "seekBackward", L"Seek Backward"}, {AppCommand::SeekForwardLarge, "seekForwardLarge", L"Seek Forward 10s"},
-    {AppCommand::SeekBackwardLarge, "seekBackwardLarge", L"Seek Backward 10s"}, {AppCommand::SeekTo, "seekTo", L""},
+    {AppCommand::SeekBackward, "seekBackward", L"Seek Backward"}, {AppCommand::SeekForwardLarge, "seekForwardLarge", L"Seek Forward (Large Jump)"},
+    {AppCommand::SeekBackwardLarge, "seekBackwardLarge", L"Seek Backward (Large Jump)"}, {AppCommand::SeekTo, "seekTo", L""},
     {AppCommand::VolumeUp, "volumeUp", L"Volume Up"}, {AppCommand::VolumeDown, "volumeDown", L"Volume Down"},
     {AppCommand::SetVolume, "setVolume", L""}, {AppCommand::ToggleMute, "toggleMute", L"Mute / Unmute"},
     {AppCommand::SetMuted, "setMuted", L""}, {AppCommand::ToggleFullscreen, "toggleFullscreen", L"Fullscreen"},
@@ -116,13 +116,17 @@ constexpr CommandDescriptor kCommands[] = {
     {AppCommand::ShowInExplorer, "showInExplorer", L""},
     {AppCommand::TogglePlaybackDiagnostics, "togglePlaybackDiagnostics", L"Toggle Diagnostics"},
     {AppCommand::TakeScreenshot, "takeScreenshot", L"Take Screenshot"},
-    {AppCommand::TogglePrivateMode, "togglePrivateMode", L"Toggle Private Session"}, };
+    {AppCommand::TogglePrivateMode, "togglePrivateMode", L"Toggle Private Session"},
+    {AppCommand::ToggleShuffle, "toggleShuffle", L"Toggle Shuffle"},
+    {AppCommand::ToggleAlwaysOnTop, "toggleAlwaysOnTop", L"Toggle Always on Top"},
+    {AppCommand::JumpToTime, "jumpToTime", L"Go To Time"},
+    {AppCommand::ToggleLogViewer, "toggleLogViewer", L"Diagnostics Log"}, };
 
 // Direct indexing requires descriptor order to match the enum.
 static_assert([] {
     for (size_t i = 0; i < std::size(kCommands); ++i)
         if (static_cast<size_t>(kCommands[i].command) != i) return false;
-    return std::size(kCommands) == static_cast<size_t>(AppCommand::TogglePrivateMode) + 1;
+    return std::size(kCommands) == static_cast<size_t>(AppCommand::ToggleLogViewer) + 1;
 }());
 
 const CommandDescriptor& DescribeCommand(AppCommand command) {
@@ -210,6 +214,19 @@ AppCommand CommandDispatcher::TranslateKeyChord(UINT vkCode, bool isCtrl, bool i
     return AppCommand::None;
 }
 
+AppCommand CommandDispatcher::FindMouseBinding(UINT vkCode, bool isCtrl, bool isShift, bool isAlt, const Settings& settings) const {
+    // Exact match including modifiers. Bare (no-modifier) mouse bindings are the
+    // expected form; a chord such as Ctrl+WheelUp only matches while Ctrl is held.
+    for (const auto& pair : settings.shortcuts) {
+        const auto& b = pair.second;
+        if (b.vkCode == vkCode && b.ctrl == isCtrl && b.shift == isShift && b.alt == isAlt) {
+            AppCommand cmd = CommandIdFromString(pair.first);
+            if (cmd != AppCommand::None) return cmd;
+        }
+    }
+    return AppCommand::None;
+}
+
 bool CommandDispatcher::Execute(const std::string& actionId, const CommandArgs& args) {
     AppCommand cmd = CommandIdFromString(actionId);
     if (cmd != AppCommand::None) { return Execute(cmd, args); }
@@ -257,11 +274,11 @@ bool CommandDispatcher::Execute(AppCommand cmd, const CommandArgs& args) {
         return false;
     }
     case AppCommand::SeekForwardLarge: {
-        if (session.IsOpen()) { player.SeekRelative(10.0); context->TriggerDoubleTapFeedback(true, 10); return true; }
+        if (session.IsOpen()) { player.SeekRelative(settings.largeSeekStepSec); context->TriggerDoubleTapFeedback(true, (int)settings.largeSeekStepSec); return true; }
         return false;
     }
     case AppCommand::SeekBackwardLarge: {
-        if (session.IsOpen()) { player.SeekRelative(-10.0); context->TriggerDoubleTapFeedback(false, 10); return true; }
+        if (session.IsOpen()) { player.SeekRelative(-settings.largeSeekStepSec); context->TriggerDoubleTapFeedback(false, (int)settings.largeSeekStepSec); return true; }
         return false;
     }
     case AppCommand::SeekTo: {
@@ -269,7 +286,7 @@ bool CommandDispatcher::Execute(AppCommand cmd, const CommandArgs& args) {
         return false;
     }
     case AppCommand::VolumeUp: {
-        double newVol = std::min(1.0, player.GetVolume() + 0.05);
+        double newVol = std::min(kMaxVolumeRatio, player.GetVolume() + 0.05);
         player.SetVolume(newVol);
         player.SetMuted(false);
         settings.volume = newVol;
@@ -289,7 +306,7 @@ bool CommandDispatcher::Execute(AppCommand cmd, const CommandArgs& args) {
         return true;
     }
     case AppCommand::SetVolume: {
-        double vol = std::clamp(args.doubleVal, 0.0, 1.0);
+        double vol = std::clamp(args.doubleVal, 0.0, kMaxVolumeRatio);
         player.SetVolume(vol);
         settings.volume = vol;
         if (vol > 0.01) { settings.muted = false; player.SetMuted(false); session.SetPriorUnmutedVolume(vol); }
@@ -770,7 +787,8 @@ bool CommandDispatcher::Execute(AppCommand cmd, const CommandArgs& args) {
     case AppCommand::ResetAudioBalanceAndChannelMap: {
         settings.audioBalance = 0.0;
         settings.audioChannelMap = "auto";
-        player.SetAudioPreferences(settings.audioDevice, settings.audioLayout, settings.audioChannelMix, settings.audioNormalizeDownmix, settings.nightMode, 0.0, "auto");
+        player.SetAudioPreferences(settings.audioDevice, settings.audioLayout, settings.audioChannelMix, settings.audioNormalizeDownmix, settings.nightMode, 0.0, "auto",
+                                   settings.replayGainMode, settings.replayGainPreampDb, settings.audioPassthrough, settings.pitchCorrection);
         context->SaveSettings();
         UpdateCurrentMediaPreferences(*context, [&](MediaPlaybackPreferences& prefs) {
             prefs.audioBalance = 0.0;
@@ -901,6 +919,7 @@ bool CommandDispatcher::Execute(AppCommand cmd, const CommandArgs& args) {
         }
         return true;
     }
+    case AppCommand::ToggleLogViewer: { context->ToggleLogViewer(); return true; }
     case AppCommand::TakeScreenshot: {
         if (!session.IsOpen()) { context->ShowOSD(IconType::VolumeMuted, L"Screenshot unavailable: no media loaded", 2.0f); return false; }
         // Semantics: Explicit user-initiated screenshot captures remain permitted in private mode,
@@ -909,6 +928,18 @@ bool CommandDispatcher::Execute(AppCommand cmd, const CommandArgs& args) {
         return context->TakeScreenshot();
     }
     case AppCommand::TogglePrivateMode: { context->TogglePrivateMode(); return true; }
+    case AppCommand::ToggleShuffle: {
+        settings.shuffleQueue = !settings.shuffleQueue;
+        session.SetShuffle(settings.shuffleQueue);
+        context->SaveSettings();
+        context->ShowOSD(IconType::Refresh, settings.shuffleQueue ? L"Shuffle On" : L"Shuffle Off");
+        return true;
+    }
+    case AppCommand::ToggleAlwaysOnTop: { context->ToggleAlwaysOnTop(); return true; }
+    case AppCommand::JumpToTime: {
+        if (session.IsOpen()) { context->ShowJumpToTimeModal(); }
+        return true;
+    }
     default:
         return false;
     }

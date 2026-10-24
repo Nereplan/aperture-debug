@@ -125,7 +125,8 @@ void App::RefreshAccessibilityTree(bool force) {
             activeModal == ModalType::EditSmartPlaylist || activeModal == ModalType::SeekStepInput ||
             activeModal == ModalType::FrameSeekInput || activeModal == ModalType::CustomSettingInput ||
             activeModal == ModalType::BookmarkInput || activeModal == ModalType::EditMetadataOverrides ||
-            activeModal == ModalType::SaveSubtitleProfile || activeModal == ModalType::RenameSubtitleProfile);
+            activeModal == ModalType::SaveSubtitleProfile || activeModal == ModalType::RenameSubtitleProfile ||
+            activeModal == ModalType::JumpToTime || activeModal == ModalType::CustomAspectInput || activeModal == ModalType::CustomRotationInput);
         const float maxBoxW = isInputModal ? 460.0f * dp : 500.0f * dp;
         const float boxW = std::min(maxBoxW, std::max(320.0f * dp, winW - 48.0f * dp));
         const float boxH = (isInputModal ? 204.0f : Presentation::ConfirmationHeight) * dp;
@@ -1609,8 +1610,8 @@ void App::RefreshAccessibilityTree(bool force) {
             // --- 9. SETTINGS TAB ---
             const float stripTop = view.top + SettingsLayout::kSidebarTopInset * dp, stripH = SettingsLayout::kSidebarItemHeight * dp;
             const float sideW = SettingsLayout::kSidebarWidth * dp;
-            const wchar_t* cats[] = { L"Appearance", L"Playback", L"Audio & Subtitles", L"Shortcuts", L"System" };
-            for (int i = 0; i < 5; ++i) {
+            const wchar_t* cats[] = { L"Experience", L"Appearance", L"Playback", L"Audio & Subtitles", L"Shortcuts", L"System" };
+            for (int i = 0; i < 6; ++i) {
                 const float catTop = stripTop + i * (stripH + SettingsLayout::kSidebarItemGap * dp);
                 addNode(500 + i, cats[i], L"Settings category", L"", ROLE_SYSTEM_PAGETAB,
                     stateBits(static_cast<int>(currentSettingsCat) == i, activeFocusPane == FocusPane::SettingsCategoryList && keyboardFocusedIndex == i, false, false, static_cast<int>(currentSettingsCat) == i),
@@ -1622,10 +1623,10 @@ void App::RefreshAccessibilityTree(bool force) {
                         n.controlTypeId = UIA_TabItemControlTypeId;
                         n.itemType = L"Settings Category";
                         n.positionInSet = i + 1;
-                        n.sizeOfSet = 5;
+                        n.sizeOfSet = 6;
                         n.selectionContainerId = 103;
                         n.flowsFromIds = (i > 0) ? std::vector<LONG>{ static_cast<LONG>(500 + i - 1) } : std::vector<LONG>{};
-                        n.flowsToIds = (i < 4) ? std::vector<LONG>{ static_cast<LONG>(500 + i + 1) } : std::vector<LONG>{};
+                        n.flowsToIds = (i < 5) ? std::vector<LONG>{ static_cast<LONG>(500 + i + 1) } : std::vector<LONG>{};
                         n.hasSelectionItem = true;
                         n.selected = (static_cast<int>(currentSettingsCat) == i);
                         n.onSelect = [this, i](LONG) {
@@ -1659,7 +1660,10 @@ void App::RefreshAccessibilityTree(bool force) {
                     { L"Frame Step Size", std::to_wstring(settings.ctrlSeekFrames) + (settings.ctrlSeekFrames == 1 ? L" frame" : L" frames") },
                     { L"Default Playback Speed", std::to_wstring(settings.defaultSpeed) + L"x" },
                     { L"Enable Custom MPV Configuration", settings.customMpvConfigEnabled ? L"On" : L"Off" },
-                    {L"Custom MPV Configuration Actions", L"Open / Reset / Revert"}};
+                    {L"Custom MPV Configuration Actions", L"Open / Reset / Revert"},
+                    { L"Global Media Hotkeys", settings.globalHotkeysEnabled ? L"On" : L"Off" },
+                    { L"Show Tray Icon", settings.trayIconEnabled ? L"On" : L"Off" },
+                    { L"Minimize to Tray", settings.minimizeToTray ? L"On" : L"Off" }};
             } else if (currentSettingsCat == SettingsCategory::Subtitles) {
                 rows = {{L"Preferred Audio Track", Utf8ToUtf16(settings.audioLang)},
                     { L"Preferred Subtitle Track", Utf8ToUtf16(settings.subLang) },
@@ -1671,6 +1675,17 @@ void App::RefreshAccessibilityTree(bool force) {
                 rows.push_back({ L"Reset Shortcuts", L"Restore defaults" });
                 for (const auto& pair : settings.GetShortcutActionListRef()) {
                     rows.push_back({ Utf8ToUtf16(pair.second), shortcut(pair.first) });
+                }
+            } else if (currentSettingsCat == SettingsCategory::Experience) {
+                const ExperienceMode expMode = FeatureGate::ModeFromString(settings.experienceMode);
+                rows.push_back({ Loc::Tr("settings.experience.title"),
+                                 Loc::Tr(std::string("settings.experience.mode.") + FeatureGate::ModeToString(expMode)) });
+                if (expMode == ExperienceMode::Custom) {
+                    for (const auto& info : FeatureGate::Catalog()) {
+                        const bool enabled = std::find(settings.customEnabledFeatures.begin(), settings.customEnabledFeatures.end(),
+                                                       info.key) != settings.customEnabledFeatures.end();
+                        rows.push_back({ Loc::Tr(info.displayNameKey), enabled ? L"On" : L"Off" });
+                    }
                 }
             } else {
                 rows = {
@@ -1686,7 +1701,34 @@ void App::RefreshAccessibilityTree(bool force) {
             }
             for (size_t i = 0; i < rows.size(); ++i) {
                 RECT bounds{};
-                if (currentSettingsCat == SettingsCategory::System) {
+                if (currentSettingsCat == SettingsCategory::Experience) {
+                    const float contentLeft = view.left + SettingsLayout::kSidebarWidth * dp + 16.0f * dp + SettingsLayout::kContentPadX * dp;
+                    const float contentRight = view.right - SettingsLayout::kContentPadX * dp;
+                    if (i == 0) {
+                        const float chipTop = rowTop + SettingsLayout::kExperienceCardTitleHeight * dp;
+                        bounds = screenRect(contentLeft, chipTop, contentRight, chipTop + SettingsLayout::kControlHeight * dp);
+                    } else {
+                        const float featuresTop = rowTop + SettingsLayout::kExperienceModeCardHeight * dp + SettingsLayout::kSectionCardGap * dp;
+                        const float rowH = SettingsLayout::kExperienceFeatureRowHeight * dp;
+                        const auto& catalog = FeatureGate::Catalog();
+                        float rowY = featuresTop + SettingsLayout::kExperienceCardTitleHeight * dp;
+                        const char* lastGroup = nullptr;
+                        bool found = false;
+                        for (size_t c = 0; c < catalog.size(); ++c) {
+                            if (!lastGroup || std::string(lastGroup) != catalog[c].group) {
+                                lastGroup = catalog[c].group;
+                                rowY += SettingsLayout::kExperienceGroupHeaderHeight * dp;
+                            }
+                            if (c + 1 == i) {
+                                bounds = screenRect(contentLeft, rowY, contentRight, rowY + rowH);
+                                found = true;
+                                break;
+                            }
+                            rowY += rowH;
+                        }
+                        if (!found) bounds = screenRect(contentLeft, featuresTop, contentRight, featuresTop + 10.0f * dp);
+                    }
+                } else if (currentSettingsCat == SettingsCategory::System) {
                     float sysRowTop = rowTop + SettingsLayout::kSystemActionsTop * dp;
                     bounds = screenRect(view.left + (SettingsLayout::kSidebarWidth + 16.0f + SettingsLayout::kContentPadX) * dp, sysRowTop + i * (58.0f + 10.0f) * dp, view.right - SettingsLayout::kContentPadX * dp, sysRowTop + i * (58.0f + 10.0f) * dp + 58.0f * dp);
                 } else if (currentSettingsCat == SettingsCategory::Playback) {
@@ -1713,7 +1755,7 @@ void App::RefreshAccessibilityTree(bool force) {
                             SettingsLayout::kPlaybackSpeedCardHeight * dp + 2.0f * cardGap;
                         bounds = screenRect(cardLeft, cardTop + titleH, cardRight,
                                             cardTop + titleH + SettingsLayout::kPlaybackMpvSwitchHeight * dp);
-                    } else {
+                    } else if (i == 8) {
                         const float cardTop = behaviorTop + SettingsLayout::kPlaybackBehaviorCardHeight * dp +
                             2.0f * (SettingsLayout::kPlaybackSimpleCardHeight * dp + cardGap) +
                             SettingsLayout::kPlaybackSpeedCardHeight * dp + 2.0f * cardGap;
@@ -1721,6 +1763,14 @@ void App::RefreshAccessibilityTree(bool force) {
                         const float actionAreaH = 3.0f * SettingsLayout::kPlaybackMpvActionHeight * dp +
                             2.0f * SettingsLayout::kPlaybackMpvActionGap * dp;
                         bounds = screenRect(cardLeft, actionTop, cardRight, actionTop + actionAreaH);
+                    } else {
+                        // Rows 9-11: simple system-integration cards stacked after the MPV card.
+                        const float mpvCardTop = behaviorTop + SettingsLayout::kPlaybackBehaviorCardHeight * dp +
+                            2.0f * (SettingsLayout::kPlaybackSimpleCardHeight * dp + cardGap) +
+                            SettingsLayout::kPlaybackSpeedCardHeight * dp + 2.0f * cardGap;
+                        const float cardTop = mpvCardTop + SettingsLayout::kPlaybackMpvCardHeight * dp + cardGap +
+                            static_cast<float>(i - 9) * (SettingsLayout::kPlaybackSimpleCardHeight * dp + cardGap);
+                        bounds = screenRect(cardLeft, cardTop, cardRight, cardTop + SettingsLayout::kPlaybackSimpleCardHeight * dp);
                     }
                 } else if (currentSettingsCat == SettingsCategory::Subtitles) {
                     const float cardGap = SettingsLayout::kSubtitleCardGap * dp;
@@ -1788,9 +1838,10 @@ void App::RefreshAccessibilityTree(bool force) {
                         if (i + 1 < rows.size()) {
                             n.flowsToIds = { static_cast<LONG>(600 + static_cast<int>(currentSettingsCat) * 100 + i + 1) };
                         }
-                        if (currentSettingsCat == SettingsCategory::Playback && (i == 0 || i == 1 || i == 2 || i == 3 || i == 7)) {
+                        if (currentSettingsCat == SettingsCategory::Playback && (i == 0 || i == 1 || i == 2 || i == 3 || i == 7 || i == 9 || i == 10 || i == 11)) {
                             n.hasToggle = true;
-                            bool checked = (i == 0 ? settings.autoplay : (i == 1 ? settings.rememberPos : (i == 2 ? settings.hwAccel : (i == 3 ? settings.loop : settings.customMpvConfigEnabled))));
+                            bool checked = (i == 0 ? settings.autoplay : (i == 1 ? settings.rememberPos : (i == 2 ? settings.hwAccel : (i == 3 ? settings.loop :
+                                (i == 7 ? settings.customMpvConfigEnabled : (i == 9 ? settings.globalHotkeysEnabled : (i == 10 ? settings.trayIconEnabled : settings.minimizeToTray)))))));
                             n.toggleState = checked ? ToggleState_On : ToggleState_Off;
                             n.onToggle = [this, i](LONG, ToggleState) {
                                 activeFocusPane = FocusPane::SettingsContent;
@@ -1802,6 +1853,20 @@ void App::RefreshAccessibilityTree(bool force) {
                             n.hasToggle = true;
                             const bool checked = (i == 1 ? settings.hoverPreviewEnabled : (i == 2 ? settings.reduceMotionEnabled : settings.smartSeriesDetection));
                             n.toggleState = checked ? ToggleState_On : ToggleState_Off;
+                            n.onToggle = [this, i](LONG, ToggleState) {
+                                activeFocusPane = FocusPane::SettingsContent;
+                                keyboardFocusedIndex = static_cast<int>(i);
+                                HandleGlobalKeyDown(VK_RETURN, 0);
+                            };
+                        }
+                        if (currentSettingsCat == SettingsCategory::Experience && i >= 1) {
+                            const auto& catalog = FeatureGate::Catalog();
+                            const int fi = std::clamp(static_cast<int>(i) - 1, 0, static_cast<int>(catalog.size()) - 1);
+                            const std::string key = catalog[fi].key;
+                            const bool enabled = std::find(settings.customEnabledFeatures.begin(), settings.customEnabledFeatures.end(),
+                                                           key) != settings.customEnabledFeatures.end();
+                            n.hasToggle = true;
+                            n.toggleState = enabled ? ToggleState_On : ToggleState_Off;
                             n.onToggle = [this, i](LONG, ToggleState) {
                                 activeFocusPane = FocusPane::SettingsContent;
                                 keyboardFocusedIndex = static_cast<int>(i);

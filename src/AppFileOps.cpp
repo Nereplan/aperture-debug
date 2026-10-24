@@ -181,7 +181,9 @@ bool App::TakeScreenshot() {
     StorageStatus dirStatus = EnsureScreenshotsDirectoryCreated(root);
     if (!dirStatus.is_ok()) { ReportStorageFailure(dirStatus, L"Screenshots"); return false; }
     // 2. Generate collision-safe deterministic screenshot file path
-    std::wstring targetPath = GenerateScreenshotFilePath(mediaPath, root);
+    // mpv infers the screenshot encoder from the file extension.
+    const std::wstring extension = settings.screenshotFormat == "jpg" ? L".jpg" : L".png";
+    std::wstring targetPath = GenerateScreenshotFilePath(mediaPath, root, nullptr, nullptr, extension);
     if (targetPath.empty() || !IsScreenshotPathSafe(targetPath, root)) {
         AppError err = AppError::Storage( static_cast<int>(StorageErrorCode::InvalidPath), ERROR_ACCESS_DENIED,
             L"Save failed: Invalid or unsafe screenshot path.", L"Path escape or invalid screenshot path detected: " + targetPath,

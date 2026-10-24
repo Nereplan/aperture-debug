@@ -112,7 +112,7 @@ inline bool ValidateManifest(const JsonValue& manifest, std::string& outError) {
 }
 
 TEST_CASE(SchemaMigration, MigrationAndLegacyCompatibility) {
-    TEST_ASSERT_EQ(Settings::kCurrentSettingsSchemaVersion, 15);
+    TEST_ASSERT_EQ(Settings::kCurrentSettingsSchemaVersion, 16);
     TEST_ASSERT_EQ(MediaLibrary::kCurrentLibrarySchemaVersion, 2);
     TEST_ASSERT_EQ(MediaLibrary::kCurrentPlaylistsSchemaVersion, 2);
     TEST_ASSERT_EQ(MediaLibrary::kCurrentHistorySchemaVersion, 2);

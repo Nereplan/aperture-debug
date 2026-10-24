@@ -4,6 +4,7 @@
 #include "PlaybackFlyoutLayout.h"
 #include "AppLayout.h"
 #include "ChannelPolicy.h"
+#include "FeatureGate.h"
 #include "Version.h"
 #include "Localization.h"
 #include "SettingsLayout.h"
@@ -589,13 +590,14 @@ void UIComponents::DrawSettingsView(Renderer& r, const Settings& s, const Settin
     }
     struct CatDef { SettingsCategory cat; std::wstring name; IconType icon; };
     CatDef cats[] = {
+        { SettingsCategory::Experience, Loc::Tr("settings.category.experience"), IconType::SettingsGear },
         { SettingsCategory::Appearance, Loc::Tr("settings.category.appearance"), IconType::AspectFrame },
         { SettingsCategory::Playback, Loc::Tr("settings.category.playback"), IconType::Play },
         { SettingsCategory::Subtitles, Loc::Tr("settings.category.subtitles"), IconType::Subtitles },
         { SettingsCategory::Shortcuts, Loc::Tr("settings.category.shortcuts"), IconType::SpeedGauge },
         {SettingsCategory::System, Loc::Tr("settings.category.system"), IconType::SettingsGear}};
     float catH = SettingsLayout::kSidebarItemHeight * dp, curCatY = sideBounds.top + SettingsLayout::kSidebarTopInset * dp;
-    const float catPos = std::clamp(vm.categoryIndicatorPos, 0.0f, 4.0f);
+    const float catPos = std::clamp(vm.categoryIndicatorPos, 0.0f, 5.0f);
     const float itemStep = catH + SettingsLayout::kSidebarItemGap * dp;
     const float pillTop = (sideBounds.top + SettingsLayout::kSidebarTopInset * dp) + catPos * itemStep;
     const D2D1_RECT_F slidingPill = D2D1::RectF(sideBounds.left + 8.0f * dp, pillTop, sideBounds.right - 8.0f * dp, pillTop + catH);
@@ -614,7 +616,7 @@ void UIComponents::DrawSettingsView(Renderer& r, const Settings& s, const Settin
     } else {
         r.FillRoundedRect(D2D1::RectF(slidingPill.left, slidingPill.top + barInset, slidingPill.left + barW, slidingPill.bottom - barInset), barW * 0.5f, accentCol);
     }
-    for (int i = 0; i < 5; ++i) {
+    for (int i = 0; i < 6; ++i) {
         const auto& c = cats[i];
         bool isActive = (vm.activeCat == c.cat);
         bool isHover = (vm.hoveredCat == c.cat);
@@ -662,7 +664,127 @@ void UIComponents::DrawSettingsView(Renderer& r, const Settings& s, const Settin
         r.DrawString(title, hRect, textMute, FontType::Caption, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
         contentY += 28.0f * dp;
     };
-    if (vm.activeCat == SettingsCategory::Appearance) {
+    if (vm.activeCat == SettingsCategory::Experience) {
+        drawPageHeader(Loc::Tr("settings.category.experience"), Loc::Tr("settings.experience.description"));
+        // The Experience page follows the playback card rhythm: a mode picker
+        // card, plus a Custom-features card that only exists in Custom mode.
+        const ExperienceMode expMode = FeatureGate::ModeFromString(s.experienceMode);
+        const float cardGap = SettingsLayout::kSectionCardGap * dp, cardLeft = contentBounds.left + padX - 10.0f * dp;
+        const float cardRight = contentBounds.right - padX + 10.0f * dp, contentLeft = contentBounds.left + padX;
+        const float contentRight = contentBounds.right - padX, cardTitleH = SettingsLayout::kExperienceCardTitleHeight * dp;
+        auto drawExperienceCard = [&](float top, float height) {
+            drawFlatPanel(D2D1::RectF(cardLeft, top, cardRight, top + height), SettingsLayout::kSectionCardRadius, panelFill, panelBorder);
+        };
+        auto drawExperienceTitle = [&](float top, const std::wstring& title) {
+            const D2D1_RECT_F titleRect = D2D1::RectF(contentLeft + 22.0f * dp, top + 10.0f * dp,
+                                                       contentRight - 22.0f * dp, top + 34.0f * dp);
+            r.DrawString(title, titleRect, textPri, FontType::Medium, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+        };
+        auto drawModeChip = [&](const D2D1_RECT_F& rect, const std::wstring& label, bool selected, bool focused, bool pressed) {
+            SurfaceStyle style = makeFlatSurface(SettingsLayout::kControlRadius);
+            if (pressed) {
+                style.fill = ColorWithAlpha(accentCol, 0.34f);
+                style.border = accentCol;
+                style.borderWidth = 2.0f;
+            } else if (selected) {
+                style.fill = accentCol;
+                style.border = accentCol;
+                style.borderWidth = focused ? 2.0f : 1.0f;
+            } else if (focused) {
+                style.fill = ColorWithAlpha(accentCol, 0.12f);
+                style.border = accentCol;
+                style.borderWidth = 2.0f;
+            } else { style.fill = surfaceCard; style.border = clearColor; style.borderWidth = 0.0f; }
+            r.DrawSurface(rect, style);
+            r.DrawString(label, rect, (selected && !pressed) ? textOnAccent : textPri,
+                         (selected || focused || pressed) ? FontType::Medium : FontType::Regular,
+                         DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+        };
+        // Card 1: Experience Mode (Row 0; chips 0..2)
+        const float modeCardH = SettingsLayout::kExperienceModeCardHeight * dp, modeTop = contentY;
+        drawExperienceCard(modeTop, modeCardH);
+        drawExperienceTitle(modeTop, Loc::Tr("settings.experience.title"));
+        const char* modeKeys[] = { "settings.experience.mode.simple", "settings.experience.mode.advanced",
+                                   "settings.experience.mode.custom" };
+        const char* modeDescKeys[] = { "settings.experience.mode.simple_desc", "settings.experience.mode.advanced_desc",
+                                       "settings.experience.mode.custom_desc" };
+        const float chipGap = 8.0f * dp;
+        const float chipW = (contentW - 2.0f * chipGap) / 3.0f, chipH = SettingsLayout::kControlHeight * dp;
+        const float chipTop = modeTop + cardTitleH;
+        for (int i = 0; i < 3; ++i) {
+            const D2D1_RECT_F chipRect = D2D1::RectF(contentLeft + i * (chipW + chipGap), chipTop,
+                                                     contentLeft + i * (chipW + chipGap) + chipW, chipTop + chipH);
+            drawModeChip(chipRect, Loc::Tr(modeKeys[i]), expMode == static_cast<ExperienceMode>(i),
+                         showContentKbFocus && vm.keyboardFocusedRow == 0 && vm.keyboardFocusedSubIndex == i,
+                         vm.pressState.IsOptionPressed(0, i));
+        }
+        const float descTop = chipTop + chipH + 8.0f * dp;
+        r.DrawString(Loc::Tr(modeDescKeys[static_cast<int>(expMode)]),
+                     D2D1::RectF(contentLeft, descTop, contentRight, descTop + 18.0f * dp),
+                     textMute, FontType::Small, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+        contentY = modeTop + modeCardH + cardGap;
+        // Card 2: Custom Features (Rows 1..12, one per catalog feature)
+        if (expMode == ExperienceMode::Custom) {
+            const float featuresTop = contentY;
+            drawExperienceCard(featuresTop, SettingsLayout::kExperienceFeaturesCardHeight * dp);
+            const D2D1_RECT_F titleRect = D2D1::RectF(contentLeft + 22.0f * dp, featuresTop + 10.0f * dp,
+                                                      contentRight - 22.0f * dp, featuresTop + 34.0f * dp);
+            r.DrawString(Loc::Tr("settings.experience.features_title"), titleRect, textPri, FontType::Medium,
+                         DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+            const D2D1_RECT_F hintRect = D2D1::RectF(contentLeft + 22.0f * dp, featuresTop + 10.0f * dp,
+                                                     contentRight - 22.0f * dp, featuresTop + 34.0f * dp);
+            r.DrawString(Loc::Tr("settings.experience.features_hint"), hintRect, textMute, FontType::Small,
+                         DWRITE_TEXT_ALIGNMENT_TRAILING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+            const float rowH = SettingsLayout::kExperienceFeatureRowHeight * dp;
+            const auto& catalog = FeatureGate::Catalog();
+            float rowY = featuresTop + cardTitleH;
+            const char* lastGroup = nullptr;
+            for (int i = 0; i < static_cast<int>(catalog.size()); ++i) {
+                const auto& info = catalog[i];
+                if (!lastGroup || std::string(lastGroup) != info.group) {
+                    lastGroup = info.group;
+                    const D2D1_RECT_F groupRect = D2D1::RectF(contentLeft + 22.0f * dp, rowY,
+                                                              contentRight - 22.0f * dp, rowY + SettingsLayout::kExperienceGroupHeaderHeight * dp);
+                    r.DrawString(Loc::Tr(std::string("settings.experience.group.") + info.group), groupRect, textMute,
+                                 FontType::Caption, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+                    rowY += SettingsLayout::kExperienceGroupHeaderHeight * dp;
+                }
+                D2D1_RECT_F rRect = D2D1::RectF(contentLeft, rowY, contentRight, rowY + rowH);
+                const bool value = FeatureGate::FeatureEnabled(ExperienceMode::Custom, s.customEnabledFeatures, info.id);
+                bool isKbFocused = showContentKbFocus && (vm.keyboardFocusedRow == i + 1);
+                bool isPressed = vm.pressState.IsOptionPressed(i + 1);
+                bool isHover = !isPressed && !isKbFocused && pointerIn(rRect);
+                if (isPressed || isKbFocused || isHover) {
+                    SurfaceStyle rowFocusStyle = makeFlatSurface();
+                    rowFocusStyle.fill = isPressed ? ColorWithAlpha(accentCol, 0.20f) : isKbFocused ? ColorWithAlpha(accentCol, 0.10f)
+                                                     : surfaceHover;
+                    rowFocusStyle.border = (isPressed || isKbFocused) ? accentCol : clearColor;
+                    rowFocusStyle.borderWidth = (isPressed || isKbFocused) ? 1.5f : 0.0f;
+                    r.DrawSurface(rRect, rowFocusStyle);
+                }
+                const D2D1_RECT_F rowTextRect = InsetRectF(rRect, 14.0f * dp, 0.0f);
+                r.DrawString(Loc::Tr(info.displayNameKey), rowTextRect, isKbFocused ? textPri : textNorm, FontType::Medium,
+                             DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+                // Compact switch (34px x 18px); eased progress mirrors the playback behavior rows.
+                float swW = 34.0f * dp, swH = 18.0f * dp;
+                D2D1_RECT_F swRect = D2D1::RectF(rRect.right - swW - 12.0f * dp, rRect.top + (rowH - swH) * 0.5f, rRect.right - 12.0f * dp, rRect.top + (rowH + swH) * 0.5f);
+                float t = std::clamp(vm.experienceToggleAnim[i], 0.0f, 1.0f);
+                if (t <= 0.0f && value) t = 1.0f; // Secondary render paths receive no eased anim; fall back to the static state.
+                D2D1_COLOR_F trackCol = LerpColor(toggleOff, accentCol, t);
+                r.FillRoundedRect(swRect, swH * 0.5f, trackCol);
+                r.DrawRoundedRect(swRect, swH * 0.5f, LerpColor(surfaceBorder, accentCol, t), 1.0f);
+                float knobRadius = 7.0f * dp;
+                float knobX = (swRect.left + 2.0f * dp + knobRadius) + t * (swW - 4.0f * dp - 2.0f * knobRadius);
+                float knobY = swRect.top + swH * 0.5f;
+                D2D1_COLOR_F knobCol = LerpColor(knobOff, surfaceBg, t);
+                r.FillCircle(knobX, knobY, knobRadius, knobCol);
+                if (i + 1 < static_cast<int>(catalog.size())) {
+                    r.DrawLine(rRect.left + 8.0f * dp, rRect.bottom, rRect.right - 8.0f * dp, rRect.bottom, surfaceBorder, 1.0f);
+                }
+                rowY += rowH;
+            }
+        }
+    } else if (vm.activeCat == SettingsCategory::Appearance) {
         drawPageHeader(Loc::Tr("settings.category.appearance"), Loc::Tr("settings.page.appearance"));
         // Section 1: Themes (Row 0)
         drawHeader(Loc::Tr("settings.appearance.theme_palette").c_str());
@@ -1004,6 +1126,44 @@ void UIComponents::DrawSettingsView(Renderer& r, const Settings& s, const Settin
             r.DrawRoundedRect(badgeRect, 6.0f * dp, bBorder, 1.0f);
             r.DrawString(mpvBtns[i].tag, badgeRect, bText, FontType::Small, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
         }
+        // Section 6: System Integration (Rows 9, 10 & 11): Global Media Hotkeys, Show Tray Icon, Minimize to Tray.
+        contentY = mpvCardTop + SettingsLayout::kPlaybackMpvCardHeight * dp + cardGap;
+        auto drawSimpleToggleCard = [&](int row, float cardTop, const std::wstring& label, const std::wstring& desc, float t) {
+            drawPlaybackCard(cardTop, simpleCardH);
+            const D2D1_RECT_F rowRect = D2D1::RectF(contentLeft, cardTop + 8.0f * dp, contentRight, cardTop + simpleCardH - 8.0f * dp);
+            const bool isKb = showContentKbFocus && (vm.keyboardFocusedRow == row);
+            const bool isPressed = vm.pressState.IsOptionPressed(row);
+            const bool isHover = !isPressed && !isKb && pointerIn(rowRect);
+            if (isPressed || isKb || isHover) {
+                SurfaceStyle rowFocusStyle = makeFlatSurface();
+                rowFocusStyle.fill = isPressed ? ColorWithAlpha(accentCol, 0.20f) : isKb ? ColorWithAlpha(accentCol, 0.10f)
+                                 : surfaceHover;
+                rowFocusStyle.border = (isPressed || isKb) ? accentCol : clearColor;
+                rowFocusStyle.borderWidth = (isPressed || isKb) ? 1.5f : 0.0f;
+                r.DrawSurface(rowRect, rowFocusStyle);
+            }
+            const D2D1_RECT_F labelRect = D2D1::RectF(rowRect.left + 14.0f * dp, rowRect.top + 5.0f * dp, rowRect.right - 80.0f * dp, rowRect.top + 25.0f * dp);
+            const D2D1_RECT_F descRect = D2D1::RectF(rowRect.left + 14.0f * dp, rowRect.top + 25.0f * dp, rowRect.right - 80.0f * dp, rowRect.bottom - 5.0f * dp);
+            r.DrawString(label, labelRect, isKb ? textPri : textNorm, FontType::Medium, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+            r.DrawString(desc, descRect, textMute, FontType::Small, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+            // Same compact switch as the behavior rows (34px x 18px).
+            float swW = 34.0f * dp, swH = 18.0f * dp;
+            D2D1_RECT_F swRect = D2D1::RectF(rowRect.right - swW - 14.0f * dp, rowRect.top + (rowRect.bottom - rowRect.top - swH) * 0.5f,
+                                             rowRect.right - 14.0f * dp, rowRect.top + (rowRect.bottom - rowRect.top + swH) * 0.5f);
+            const float prog = std::clamp(t, 0.0f, 1.0f);
+            r.FillRoundedRect(swRect, swH * 0.5f, LerpColor(toggleOff, accentCol, prog));
+            r.DrawRoundedRect(swRect, swH * 0.5f, LerpColor(surfaceBorder, accentCol, prog), 1.0f);
+            float knobRadius = 7.0f * dp;
+            float knobX = (swRect.left + 2.0f * dp + knobRadius) + prog * (swW - 4.0f * dp - 2.0f * knobRadius);
+            r.FillCircle(knobX, swRect.top + swH * 0.5f, knobRadius, LerpColor(knobOff, surfaceBg, prog));
+        };
+        drawSimpleToggleCard(9, contentY, L"Global Media Hotkeys", Loc::Tr("settings.playback.global_hotkeys_desc"), vm.globalHotkeysProg);
+        contentY += simpleCardH + cardGap;
+        drawSimpleToggleCard(10, contentY, L"Show Tray Icon", L"Show the Aperture icon in the system notification area", vm.trayIconProg);
+        contentY += simpleCardH + cardGap;
+        drawSimpleToggleCard(11, contentY, L"Minimize to Tray",
+            s.trayIconEnabled ? L"Hide to the notification area instead of the taskbar when minimized" : L"Requires Show Tray Icon",
+            vm.minimizeToTrayProg);
     } else if (vm.activeCat == SettingsCategory::Subtitles) {
         // The subtitle page uses its vertical budget for an always-visible
         // preview, so keep the title but omit the secondary page description.
@@ -1672,7 +1832,8 @@ void UIComponents::DrawPlayerBottomBar(OverlayRenderer& r, const Settings& s, co
             r.FillRoundedRect(volCapsule, btnSize * 0.5f, D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.08f * vm.opacity));
         }
         r.FillRoundedRect(volTrack, volSliderH * 0.5f, D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.30f * vm.opacity));
-        float volFillW = volSliderW * (float)(vm.isMuted ? 0.0 : vm.volume);
+        // Full slider travel equals kMaxVolumeRatio (130%); the fill fraction scales accordingly.
+        float volFillW = volSliderW * std::clamp((float)((vm.isMuted ? 0.0 : vm.volume) / kMaxVolumeRatio), 0.0f, 1.0f);
         if (volFillW > 0.0f) {
             D2D1_RECT_F volFill = D2D1::RectF(volTrack.left, volTrack.top, volTrack.left + volFillW, volTrack.bottom);
             r.FillRoundedRect(volFill, volSliderH * 0.5f, D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.95f * vm.opacity));
@@ -1838,7 +1999,7 @@ void UIComponents::DrawPiPOverlay(OverlayRenderer& r, const Settings& s, const P
             r.DrawLine(sliderCx, trackTop, sliderCx, trackBottom, D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.28f * contentAlpha), trackLineW);
 
             // Active track (from bottom up to current volume)
-            float curVol = vm.isMuted ? 0.0f : std::clamp(vm.volume, 0.0f, 1.0f);
+            float curVol = vm.isMuted ? 0.0f : std::clamp((float)(vm.volume / kMaxVolumeRatio), 0.0f, 1.0f);
             float knobY = trackBottom - curVol * trackH;
             if (curVol > 0.001f) {
                 r.DrawLine(sliderCx, knobY, sliderCx, trackBottom, ColorWithAlpha(th.accent, contentAlpha), trackLineW);
@@ -2066,6 +2227,47 @@ void UIComponents::DrawPlaybackDiagnostics(OverlayRenderer& r, const Settings& s
     drawRow(L"Output Mode", vm.diagnostics.activeOutputMode, vm.diagnostics.isHdrSource ? th.accent : th.textMuted);
     if (!vm.diagnostics.activeToneMapping.empty()) { drawRow(L"Tone Mapping", vm.diagnostics.activeToneMapping, th.text); }
     if (!vm.diagnostics.activeIccProfile.empty()) { drawRow(L"ICC Profile", vm.diagnostics.activeIccProfile, th.text); }
+}
+
+// In-app diagnostics log viewer: a style clone of the playback-diagnostics
+// panel (same floating surface, header, and close affordance) with a scrolless
+// list of the last log lines in the monospace font.
+void UIComponents::DrawLogOverlay(OverlayRenderer& r, const Settings& s, const LogOverlayViewModel& vm) {
+    if (!vm.visible) return;
+    float dp = r.GetDpiScale();
+    const auto& th = s.currentTheme;
+    const auto layout = Presentation::LogViewer(vm.bounds, dp);
+    if (!layout.visible) return;
+    const auto& cardRect = layout.card;
+    SurfaceStyle style;
+    style.radius = 8.0f * dp;
+    style.fill = ColorWithAlpha(th.surfaceFloating, 0.92f);
+    style.border = ColorWithAlpha(th.border, 0.70f);
+    style.borderWidth = 1.0f;
+    style.shadowColor = D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.50f);
+    style.shadowBlur = 18.0f * dp;
+    style.shadowOffsetY = 6.0f * dp;
+    r.DrawSurface(cardRect, style);
+    // Header bar
+    float headerH = 28.0f * dp;
+    D2D1_RECT_F headerRect = D2D1::RectF(cardRect.left + 12.0f * dp, cardRect.top + 6.0f * dp, cardRect.right - 12.0f * dp, cardRect.top + 6.0f * dp + headerH);
+    float iconSz = 14.0f * dp;
+    D2D1_RECT_F iconRect = D2D1::RectF(headerRect.left, headerRect.top + (headerH - iconSz) * 0.5f, headerRect.left + iconSz, headerRect.top + (headerH + iconSz) * 0.5f);
+    r.DrawIcon(IconType::SettingsGear, iconRect, th.accent, 1.4f * dp);
+    D2D1_RECT_F titleRect = D2D1::RectF(iconRect.right + 6.0f * dp, headerRect.top, layout.close.left - 6.0f * dp, headerRect.bottom);
+    r.DrawString(L"DIAGNOSTICS LOG", titleRect, th.accent, FontType::Caption, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+    if (vm.closeHovered) r.FillRoundedRect(layout.close, 5.0f * dp, ColorWithAlpha(th.text, 0.08f));
+    r.DrawIcon(IconType::CloseX, InsetRectF(layout.close, 11.0f * dp, 11.0f * dp), vm.closeHovered ? th.text : th.textMuted, 1.4f * dp);
+    r.DrawLine(cardRect.left + 10.0f * dp, cardRect.top + 34.0f * dp, cardRect.right - 10.0f * dp, cardRect.top + 34.0f * dp, ColorWithAlpha(th.borderSubtle, 0.7f), 1.0f);
+    float curY = cardRect.top + 40.0f * dp;
+    const float rowH = 16.0f * dp;
+    for (const auto& line : vm.lines) {
+        if (curY + rowH > cardRect.bottom - 6.0f * dp) break;
+        D2D1_RECT_F lineRect = D2D1::RectF(cardRect.left + 12.0f * dp, curY, cardRect.right - 12.0f * dp, curY + rowH);
+        r.DrawString(FitSingleLine(r, line, FontType::MonoSmall, SafeWidth(lineRect.left, lineRect.right)),
+                     lineRect, th.text, FontType::MonoSmall, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+        curY += rowH;
+    }
 }
 void UIComponents::DrawSettingsFlyout(OverlayRenderer& r, const Settings& s, const SettingsFlyoutViewModel& vm) {
     if (!vm.isOpen) return;
@@ -3741,6 +3943,8 @@ static void DrawSplitIrisContextMenuImpl(R& r, const Settings& s, const ContextM
     }
 
     if (vm.activeDialIndex >= 0) {
+        const bool settledWedge = vm.activeDialIndex < static_cast<int>(vm.dials.size()) &&
+            std::abs(vm.currentWedgeAngle - vm.dials[vm.activeDialIndex].centerDeg) < 0.001f;
         const float a0 = (vm.currentWedgeAngle - 18.0f) * pi / 180.0f;
         const float a1 = (vm.currentWedgeAngle + 18.0f) * pi / 180.0f;
         char wedge[256];
@@ -3750,14 +3954,14 @@ static void DrawSplitIrisContextMenuImpl(R& r, const Settings& s, const ContextM
             119 + 118.5f * std::sin(a1), 119 - 118.5f * std::cos(a1),
             119 + 38 * std::sin(a1), 119 - 38 * std::cos(a1),
             119 + 38 * std::sin(a0), 119 - 38 * std::cos(a0));
-        r.DrawSvgPath(wedge, svgBox, accent(0.14f), layout::Width, true);
+        r.DrawSvgPath(wedge, svgBox, accent(0.14f), layout::Width, true, 1.4f, settledWedge);
         const float rim0 = (vm.currentWedgeAngle - 16.5f) * pi / 180.0f;
         const float rim1 = (vm.currentWedgeAngle + 16.5f) * pi / 180.0f;
         char rim[160];
         std::snprintf(rim, sizeof(rim), "M %.3f %.3f A 118 118 0 0 1 %.3f %.3f",
             119 + 118 * std::sin(rim0), 119 - 118 * std::cos(rim0),
             119 + 118 * std::sin(rim1), 119 - 118 * std::cos(rim1));
-        r.DrawSvgPath(rim, svgBox, accent(1.0f), layout::Width, false, 2.0f * dp);
+        r.DrawSvgPath(rim, svgBox, accent(1.0f), layout::Width, false, 2.0f * dp, settledWedge);
     }
     for (int i = 1; i < 5; ++i) {
         const float angle = (-90.0f + i * 36.0f) * pi / 180.0f;
@@ -3891,6 +4095,7 @@ void UIComponents::DrawPlayerOverlay(OverlayRenderer& r, const Settings& s, cons
     DrawJumpAheadButton(r, s, vm.jumpAhead);
     DrawOSDBadge(r, s, vm.osdBadge);
     DrawPlaybackDiagnostics(r, s, vm.diagnosticsOverlay);
+    DrawLogOverlay(r, s, vm.logOverlay);
     DrawOverlayContextMenu(r, s, vm.contextMenu);
     if (vm.modal.type == ModalType::Confirmation || vm.modal.type == ModalType::DeletePlaylist)
         DrawConfirmModal(r, s, vm.winBounds, vm.modal);
@@ -3935,7 +4140,7 @@ void UIComponents::DrawHub(Renderer& r, const Settings& s, const HubRenderViewMo
     }
     DrawOSDBadge(r, s, vm.osdBadge);
     DrawContextMenu(r, s, vm.contextMenu);
-    if (vm.modal.type == ModalType::NewPlaylist || vm.modal.type == ModalType::NewSmartPlaylist || vm.modal.type == ModalType::EditSmartPlaylist || vm.modal.type == ModalType::SeekStepInput || vm.modal.type == ModalType::FrameSeekInput || vm.modal.type == ModalType::CustomSettingInput || vm.modal.type == ModalType::BookmarkInput || vm.modal.type == ModalType::EditMetadataOverrides || vm.modal.type == ModalType::SaveSubtitleProfile || vm.modal.type == ModalType::RenameSubtitleProfile) {
+    if (vm.modal.type == ModalType::NewPlaylist || vm.modal.type == ModalType::NewSmartPlaylist || vm.modal.type == ModalType::EditSmartPlaylist || vm.modal.type == ModalType::SeekStepInput || vm.modal.type == ModalType::FrameSeekInput || vm.modal.type == ModalType::CustomSettingInput || vm.modal.type == ModalType::BookmarkInput || vm.modal.type == ModalType::EditMetadataOverrides || vm.modal.type == ModalType::SaveSubtitleProfile || vm.modal.type == ModalType::RenameSubtitleProfile || vm.modal.type == ModalType::JumpToTime || vm.modal.type == ModalType::CustomAspectInput || vm.modal.type == ModalType::CustomRotationInput) {
         DrawInputModal(r, s, vm.winBounds, vm.modal);
     } else if (vm.modal.type == ModalType::DeletePlaylist || vm.modal.type == ModalType::Confirmation) {
         DrawConfirmModal(r, s, vm.winBounds, vm.modal);

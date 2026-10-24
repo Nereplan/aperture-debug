@@ -269,7 +269,7 @@ bool App::HandlePlayerTouchPointer(HWND hTarget, UINT uMsg, WPARAM wParam, LPARA
                     controlsOpacity = 1.0f;
                     InvalidateRect(hOverlayWnd ? hOverlayWnd : hWnd, nullptr, FALSE);
                 } else if (playerTouch.volumeDrag) {
-                    const float volume = std::clamp(playerTouch.volumeStart - touchPlayer.totalDy() / 220.0f, 0.0f, 1.0f);
+                    const float volume = std::clamp(playerTouch.volumeStart - touchPlayer.totalDy() / 220.0f, 0.0f, 1.0f) * (float)kMaxVolumeRatio;
                     ApplyTouchVolume(volume);
                 } else if (playerTouch.mode == PlayerTouchMode::QueueFlyout) {
                     const float rowStep = 36.0f * dp;
