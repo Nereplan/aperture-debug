@@ -473,7 +473,7 @@ void App::RestoreLogicalFocus(const FocusSnapshot& snapshot) {
                 int rowCount = (currentSettingsCat == SettingsCategory::Appearance) ? 2 :
                                (currentSettingsCat == SettingsCategory::Playback) ? 14 :
                                (currentSettingsCat == SettingsCategory::Subtitles) ? 6 :
-                               (currentSettingsCat == SettingsCategory::Experience) ? ((FeatureGate::ModeFromString(settings.experienceMode) == ExperienceMode::Custom) ? 37 : 1) :
+                               (currentSettingsCat == SettingsCategory::Experience) ? ((FeatureGate::ModeFromString(settings.experienceMode) == ExperienceMode::Custom) ? 38 : 1) :
                                (currentSettingsCat == SettingsCategory::System) ? SettingsLayout::kSystemRowCount : 1;
                 keyboardFocusedIndex = std::clamp(snapshot.keyboardIndex, 0, std::max(0, rowCount - 1));
                 keyboardFocusedSubIndex = snapshot.keyboardSubIndex;
@@ -1292,6 +1292,7 @@ void App::Shutdown() {
     if (importWorker.joinable()) importWorker.join();
     if (backfillWorker.joinable()) backfillWorker.join();
     updateCheckJob.StopAndJoin(); updateDownloadJob.StopAndJoin(); onlineSubtitleJobs.StopAndJoin(); radioJobs.StopAndJoin();
+    podcastJobs.StopAndJoin();
     // Workers have joined above, so no probe can still hold MF. Balance only
     // when MF was ever acquired; a hub that never probed skips MFShutdown.
     MediaFoundation::ShutdownIfInitialized();
@@ -1480,6 +1481,7 @@ bool App::Initialize(HWND hwnd, HWND hVideoChild, HINSTANCE hinst, const Playbac
     // portable-store I/O, parsing, indexing, promotion, and the initial projection sort.
     StartLibraryLoad(libraryGroupMode);
     if (networkStreamModel.IsRecentStreamsEnabled()) { networkStreamModel.LoadRecentStreams(GetExeDir()); }
+    podcastSubscriptions.Load(GetDataDir());
     // they are shown or applied to the player.
     settings.audioDelayMs = std::clamp(settings.audioDelayMs, -5000, 5000);
     settings.subDelayMs = std::clamp(settings.subDelayMs, -10000, 10000);
@@ -1651,6 +1653,7 @@ bool App::Update(float dt) {
         (!watchReconcileWorker.IsRunning() && watchReconcileWorker.HasPending()))) HandleFolderWatchEvents();
     needsRedraw = PumpOnlineSubtitleJobs() || needsRedraw;
     needsRedraw = PumpRadioDirectoryJobs() || needsRedraw;
+    needsRedraw = PumpPodcastJobs() || needsRedraw;
     needsRedraw = PumpUpdateJobs() || needsRedraw;
     // Jump list: seed once the async library snapshot is ready (Initialize
     // returns before the background load publishes), then pump dirty rebuilds

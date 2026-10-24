@@ -142,6 +142,187 @@ void App::OpenInternetRadioContextMenu() {
 }
 
 
+// Centered overlay surface for podcast subscriptions, reusing the internet-radio
+// sheet mechanism: plain contextMenuItems presented through the shared
+// context-menu renderer, closed by the backdrop click / Esc handling that
+// surface already owns.
+void App::OpenPodcastsContextMenu() {
+    PushFocusSnapshot(TransientSurfaceType::ShortcutOverlay);
+    contextMenuItems.clear();
+    contextMenuItems.push_back({ "pod_title", L"Podcasts", L"", IconType::Play, false, false, false, nullptr, true });
+    contextMenuItems.push_back({ "sep_pod1", L"", L"", IconType::Play, true });
+    std::vector<std::wstring> feedUrls;
+    for (const auto& feed : podcastSubscriptions.GetFeeds()) feedUrls.push_back(feed.url);
+    // Subscriptions persist like playlists, but the network refresh is skipped
+    // while private mode is active (an existing parsed result stays browsable).
+    // Nothing to fetch with no subscriptions: skip the job so the empty surface
+    // stays silent.
+    if (!feedUrls.empty() && !playbackSession.IsPrivateMode()) podcastJobs.EnsureRefresh(feedUrls);
+    if (podcastJobs.IsRunning()) {
+        contextMenuItems.push_back({ "pod_loading", L"Refreshing feeds...", L"", IconType::Play, false, false, false, nullptr, true });
+    } else {
+        const auto& feeds = podcastSubscriptions.GetFeeds();
+        if (feeds.empty()) {
+            contextMenuItems.push_back({ "pod_none", L"No podcast subscriptions", L"", IconType::Play, false, false, false, nullptr, true });
+        } else {
+            // The centered overlay menu has no scrolling; cap the visible
+            // feeds to the rows that fit the window height.
+            RECT fitRc{};
+            GetClientRect(hWnd, &fitRc);
+            const float fitDp = renderer.GetDpiScale();
+            const int maxVisible = std::max(4, static_cast<int>((static_cast<float>(fitRc.bottom - fitRc.top) * 0.9f / fitDp - 48.0f) / 32.0f));
+            const size_t count = std::min(feeds.size(), static_cast<size_t>(maxVisible));
+            for (size_t i = 0; i < count; ++i) {
+                contextMenuItems.push_back({ "pod_" + std::to_string(i), feeds[i].title, L"", IconType::Play, false, false, false,
+                    [this, i]() { OpenPodcastEpisodesContextMenu(i); }, false, false, true});
+            }
+        }
+    }
+    contextMenuItems.push_back({ "sep_pod2", L"", L"", IconType::Play, true });
+    contextMenuItems.push_back({ "pod_add", L"Add Podcast by URL...", L"", IconType::Plus, false, false, false,
+        [this]() { ShowAddPodcastModal(); }, false, false, true});
+    RECT rc{};
+    GetClientRect(playbackSession.IsOpen() && hOverlayWnd ? hOverlayWnd : hWnd, &rc);
+    const float dp = playbackSession.IsOpen() ? overlayRenderer.GetDpiScale() : renderer.GetDpiScale();
+    const float menuW = 220.0f * dp;
+    const float menuH = (8.0f + contextMenuItems.size() * 32.0f) * dp;
+    contextMenuOrigin = {std::max(8.0f * dp, (static_cast<float>(rc.right - rc.left) - menuW) * 0.5f),
+                         std::max(8.0f * dp, (static_cast<float>(rc.bottom - rc.top) - menuH) * 0.5f)};
+    hoveredContextMenuItem = -1;
+    contextMenuAnim.SnapTo(0.0f);
+    AnimateVisual(contextMenuAnim, 1.0f, MotionTokens::kFast, MotionTokens::Standard());
+    isContextMenuOpen = true;
+    contextMenuClosing = false;
+    accessibilityDirty = true;
+    if (playbackSession.IsOpen()) Render();
+    else InvalidateRect(hWnd, NULL, FALSE);
+}
+
+
+// Second-level page: the episodes of one subscription, parsed feeds coming from
+// the shared refresh result (matched by URL). Clicking an episode plays it
+// through the same path the network-stream modal uses.
+void App::OpenPodcastEpisodesContextMenu(size_t feedIndex) {
+    const auto& feeds = podcastSubscriptions.GetFeeds();
+    if (feedIndex >= feeds.size()) return;
+    const std::wstring feedTitle = feeds[feedIndex].title;
+    const std::wstring feedUrl = feeds[feedIndex].url;
+    const PodcastFeed* parsed = nullptr;
+    for (const auto& feed : podcastJobs.GetResult().feeds) {
+        if (feed.url == feedUrl) { parsed = &feed; break; }
+    }
+    PushFocusSnapshot(TransientSurfaceType::ShortcutOverlay);
+    contextMenuItems.clear();
+    contextMenuItems.push_back({ "pep_title", feedTitle, L"", IconType::Play, false, false, false, nullptr, true });
+    contextMenuItems.push_back({ "sep_pep1", L"", L"", IconType::Play, true });
+    if (!parsed || parsed->episodes.empty()) {
+        contextMenuItems.push_back({ "pep_none", L"No episodes available", L"", IconType::VolumeMuted, false, false, false, nullptr, true });
+    } else {
+        // Same fit cap as the radio sheet: no scrolling on the overlay menu.
+        RECT fitRc{};
+        GetClientRect(hWnd, &fitRc);
+        const float fitDp = renderer.GetDpiScale();
+        const int maxVisible = std::max(4, static_cast<int>((static_cast<float>(fitRc.bottom - fitRc.top) * 0.9f / fitDp - 48.0f) / 32.0f));
+        const size_t count = std::min(parsed->episodes.size(), static_cast<size_t>(maxVisible));
+        for (size_t i = 0; i < count; ++i) {
+            const PodcastEpisode& episode = parsed->episodes[i];
+            std::wstring label = episode.title;
+            if (episode.publishedSec > 0) {
+                std::tm tmValue{};
+                if (gmtime_s(&tmValue, &episode.publishedSec) == 0) {
+                    wchar_t dateBuf[16];
+                    swprintf_s(dateBuf, L"%04d-%02d-%02d", tmValue.tm_year + 1900, tmValue.tm_mon + 1, tmValue.tm_mday);
+                    label += L" \u2014 ";
+                    label += dateBuf;
+                }
+            }
+            contextMenuItems.push_back({ "pep_" + std::to_string(i), label, L"", IconType::Play, false, false, false,
+                [this, url = episode.url]() {
+                    // Same path the network-stream modal uses: URL validation, recent-stream
+                    // bookkeeping, then the shared open-and-play entry point.
+                    NetworkStreamUrl parsedUrl = NetworkStreamValidator::ValidateAndParse(url);
+                    if (!parsedUrl.isValid) {
+                        ShowOSD(IconType::VolumeMuted, NetworkStreamValidator::GetSafeErrorMessage(parsedUrl.error, url), 4.0f);
+                        return;
+                    }
+                    if (playbackSession.CanPersistRecentStreams(networkStreamModel.IsRecentStreamsEnabled())) {
+                        networkStreamModel.AddRecentStream(parsedUrl.rawUrl);
+                        networkStreamModel.SaveRecentStreams(GetExeDir());
+                    }
+                    OpenAndPlayMedia(parsedUrl.rawUrl);
+                }, false, false, true});
+        }
+    }
+    contextMenuItems.push_back({ "sep_pep2", L"", L"", IconType::Play, true });
+    contextMenuItems.push_back({ "pdel", L"Remove This Podcast", L"", IconType::Trash, false, false, false, [this, feedUrl]() {
+        podcastSubscriptions.Remove(feedUrl);
+        podcastSubscriptions.Save(GetDataDir());
+        ShowOSD(IconType::Trash, L"Podcast removed");
+        OpenPodcastsContextMenu();
+    }, false, false, true});
+    contextMenuItems.push_back({ "pback", L"Back", L"", IconType::ChevronLeft, false, false, false, [this]() {
+        OpenPodcastsContextMenu();
+    }, false, false, true});
+    RECT rc{};
+    GetClientRect(playbackSession.IsOpen() && hOverlayWnd ? hOverlayWnd : hWnd, &rc);
+    const float dp = playbackSession.IsOpen() ? overlayRenderer.GetDpiScale() : renderer.GetDpiScale();
+    const float menuW = 220.0f * dp;
+    const float menuH = (8.0f + contextMenuItems.size() * 32.0f) * dp;
+    contextMenuOrigin = {std::max(8.0f * dp, (static_cast<float>(rc.right - rc.left) - menuW) * 0.5f),
+                         std::max(8.0f * dp, (static_cast<float>(rc.bottom - rc.top) - menuH) * 0.5f)};
+    hoveredContextMenuItem = -1;
+    contextMenuAnim.SnapTo(0.0f);
+    AnimateVisual(contextMenuAnim, 1.0f, MotionTokens::kFast, MotionTokens::Standard());
+    isContextMenuOpen = true;
+    contextMenuClosing = false;
+    accessibilityDirty = true;
+    if (playbackSession.IsOpen()) Render();
+    else InvalidateRect(hWnd, NULL, FALSE);
+}
+
+
+// Add-by-URL modal for podcast subscriptions. Confirmation validates the https
+// prefix, then enqueues a single-feed fetch through the shared podcast job
+// pipeline; PumpPodcastJobs subscribes the feed once the fetch parses.
+void App::ShowAddPodcastModal() {
+    PushFocusSnapshot(TransientSurfaceType::Modal);
+    BlurTextInput();
+    activeModal = ModalType::CustomSettingInput;
+    modalTitle = L"Add Podcast";
+    modalPrompt = L"Podcast feed URL (https:// only):";
+    modalInput.SetText({});
+    modalOnConfirm = [this]() {
+        const std::wstring raw = Text16ToWideString(modalInput.GetText());
+        const auto trimW = [](const std::wstring& s) {
+            const size_t b = s.find_first_not_of(L" \t\r\n");
+            if (b == std::wstring::npos) return std::wstring();
+            const size_t e = s.find_last_not_of(L" \t\r\n");
+            return s.substr(b, e - b + 1);
+        };
+        const std::wstring url = trimW(raw);
+        // Keep the modal open on invalid input (network-stream modal idiom) so
+        // the URL can be corrected without retyping the surface path.
+        if (url.size() <= 8 || url.rfind(L"https://", 0) != 0) {
+            ShowOSD(IconType::VolumeMuted, L"Podcast feed invalid", 4.0f);
+            return;
+        }
+        // Private mode skips the network validation fetch, so the add cannot succeed.
+        if (playbackSession.IsPrivateMode()) {
+            ShowOSD(IconType::VolumeMuted, L"Podcast feed invalid", 4.0f);
+            return;
+        }
+        activeModal = ModalType::None;
+        BlurTextInput();
+        PopAndRestoreFocus(TransientSurfaceType::Modal);
+        podcastJobs.EnsureAddPreview(url);
+        if (isContextMenuOpen && !contextMenuItems.empty() && contextMenuItems.front().id == "pod_title")
+            OpenPodcastsContextMenu();
+    };
+    FocusTextInput(TextInputField::Modal);
+    InvalidateRect(hWnd, NULL, FALSE);
+}
+
+
 // Second-level page for the specialist controls that used to clutter the main
 // player menu. Every entry remains reachable, one step further away.
 
@@ -841,11 +1022,12 @@ bool App::PumpUpdateJobs() {
 }
 
 void App::CancelNetworkJobs() {
-    onlineSubtitleJobs.Cancel(); updateCheckJob.Cancel(); updateDownloadJob.Cancel(); radioJobs.Cancel();
+    onlineSubtitleJobs.Cancel(); updateCheckJob.Cancel(); updateDownloadJob.Cancel(); radioJobs.Cancel(); podcastJobs.Cancel();
 }
 
 bool App::AreNetworkJobsRunning() const {
-    return onlineSubtitleJobs.IsRunning() || updateCheckJob.IsRunning() || updateDownloadJob.IsRunning() || radioJobs.IsRunning();
+    return onlineSubtitleJobs.IsRunning() || updateCheckJob.IsRunning() || updateDownloadJob.IsRunning() || radioJobs.IsRunning() ||
+        podcastJobs.IsRunning();
 }
 
 

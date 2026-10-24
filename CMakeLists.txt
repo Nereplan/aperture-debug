@@ -129,6 +129,7 @@ set(APERTURE_SOURCES
     src/OverlayRenderer.cpp
     src/PlaybackSession.cpp
     src/PlaylistIO.cpp
+    src/Podcasts.cpp
     src/Renderer.cpp
     src/Settings.cpp
     src/SubtitleDiscovery.cpp
@@ -182,6 +183,7 @@ set(APERTURE_HEADERS
     src/OverlayRenderer.h
     src/PlaybackSession.h
     src/PlaylistIO.h
+    src/Podcasts.h
     src/RenderViewModel.h
     src/ChapterMarkerCache.h
     src/Renderer.h
@@ -196,6 +198,7 @@ set(APERTURE_HEADERS
     src/UIComponents.h
     src/Updater.h
     src/WindowGeometry.h
+    src/XmlLite.h
     "${APERTURE_GENERATED_DIR}/Version.h"
 )
 

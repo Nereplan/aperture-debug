@@ -699,6 +699,8 @@ void App::OpenBackgroundContextMenu(float x, float y) {
     }
     contextMenuItems.push_back({ "internet_radio", L"Internet Radio...", L"", IconType::Play, false, false, false,
                                 [this]() { OpenInternetRadioContextMenu(); }});
+    contextMenuItems.push_back({ "podcasts", L"Podcasts...", L"", IconType::Play, false, false, false,
+                                [this]() { OpenPodcastsContextMenu(); }});
     contextMenuItems.push_back({ "sep_bg_2", L"", L"", IconType::Play, true });
     contextMenuItems.push_back({ "refresh", L"Refresh", L"F5", IconType::Refresh, false, false, false, [this]() {
         if (!libraryLoadInProgress) { StartLibraryLoad(libraryGroupMode, true); ShowOSD(IconType::Refresh, L"Refreshing library\x2026"); }
@@ -2087,6 +2089,29 @@ bool App::PumpRadioDirectoryJobs() {
     if (isContextMenuOpen && !contextMenuItems.empty() && contextMenuItems.front().id == "radio_title")
         OpenInternetRadioContextMenu();
     return true;
+}
+
+bool App::PumpPodcastJobs() {
+    bool changed = false;
+    PodcastAddPreviewResult addResult;
+    if (podcastJobs.PumpAddPreview(addResult)) {
+        changed = true;
+        if (addResult.success && !addResult.feed.title.empty() && !addResult.feed.episodes.empty()) {
+            podcastSubscriptions.Add(addResult.feed.title, addResult.feed.url);
+            podcastSubscriptions.Save(GetDataDir());
+            ShowOSD(IconType::Checkmark, L"Podcast added: " + addResult.feed.title);
+        } else {
+            ShowOSD(IconType::VolumeMuted, L"Podcast feed invalid");
+        }
+    }
+    if (podcastJobs.Pump()) {
+        changed = true;
+        const PodcastRefreshResult& result = podcastJobs.GetResult();
+        if (!result.success) ShowOSD(IconType::VolumeMuted, L"Podcast feeds unavailable");
+    }
+    if (changed && isContextMenuOpen && !contextMenuItems.empty() && contextMenuItems.front().id == "pod_title")
+        OpenPodcastsContextMenu();
+    return changed;
 }
 
 void App::OpenOnlineSubtitlesContextMenu(float x, float y) {

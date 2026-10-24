@@ -50,6 +50,7 @@ $srcFiles = @(
     "`"$rootDir\src\TooltipManager.cpp`"",
     "`"$rootDir\src\PlaylistIO.cpp`"",
     "`"$rootDir\src\NetworkStream.cpp`"",
+    "`"$rootDir\src\Podcasts.cpp`"",
     "`"$rootDir\src\TaskbarController.cpp`"",
     "`"$rootDir\src\Accessibility.cpp`"",
     "`"$scriptDir\main.cpp`""

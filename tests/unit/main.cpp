@@ -54,6 +54,8 @@
 
 #include "TestPlaylistIO.h"
 
+#include "TestPodcasts.h"
+
 #include "TestPresentation.h"
 
 #include "TestRenderViewModel.h"

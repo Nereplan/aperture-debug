@@ -19,6 +19,7 @@ enum class FeatureId {
     CustomAspect, CustomRotation, ScreenshotFormat, JumpSize, LogViewer,
     ZoomPan,
     InternetRadio,
+    Podcasts,
     WallpaperMode,
     Count
 };
@@ -68,6 +69,10 @@ inline const std::array<FeatureInfo, static_cast<size_t>(FeatureId::Count)>& Cat
           "settings.experience.feature.internet_radio",
           { "internet_radio" },
           { "radio_" } },
+        { FeatureId::Podcasts, "podcasts", FeatureTier::Simple, "audio",
+          "settings.experience.feature.podcasts",
+          { "podcasts" },
+          { "pod_", "pep_", "pdel", "pback" } },
         { FeatureId::SubtitleDelay, "subtitle_delay", FeatureTier::Advanced, "subtitles",
           "settings.experience.feature.subtitle_delay",
           { "sdelay_title", "sdelay_inc", "sdelay_dec", "sdelay_rst" } },

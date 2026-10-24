@@ -131,6 +131,7 @@ constexpr StringEntryView kCanonicalStringEntries[] = {
     { "settings.experience.feature.log_viewer", "Diagnostics Log Viewer" },
     { "settings.experience.feature.wallpaper_mode", "Desktop Wallpaper" },
     { "settings.experience.feature.internet_radio", "Internet Radio" },
+    { "settings.experience.feature.podcasts", "Podcasts" },
     { "settings.experience.feature.zoom_pan", "Zoom & Pan" },
     { "settings.page.appearance", "Set the look of the interface and the display language." },
     { "settings.page.playback", "Default behavior, seek granularity, and advanced mpv configuration." },

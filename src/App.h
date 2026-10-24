@@ -31,6 +31,7 @@
 #include "MetadataBackfillCursor.h"
 #include "OnlineSubtitleJobs.h"
 #include "InternetRadio.h"
+#include "Podcasts.h"
 #include "AsyncOwnedJob.h"
 #include "BackgroundPathAvailability.h"
 #include "IpcProtocol.h"
@@ -158,6 +159,8 @@ private:
     bool ReportLibrarySaveResult(const MediaLibrarySaveResult& result);
     OnlineSubtitleJobs onlineSubtitleJobs;
     RadioDirectoryJobs radioJobs;
+    PodcastJobs podcastJobs;
+    PodcastSubscriptions podcastSubscriptions;
     AsyncOwnedJob<UpdateCheckResult> updateCheckJob;
     AsyncOwnedJob<UpdateDownloadResult> updateDownloadJob;
     bool updateCheckManual = true, updateCheckPersistState = false, updateJobsPrivateMode = false;
@@ -165,6 +168,10 @@ private:
     bool PumpOnlineSubtitleJobs();
     bool PumpRadioDirectoryJobs();
     void OpenInternetRadioContextMenu();
+    bool PumpPodcastJobs();
+    void OpenPodcastsContextMenu();
+    void OpenPodcastEpisodesContextMenu(size_t feedIndex);
+    void ShowAddPodcastModal();
     bool PumpUpdateJobs();
     void CancelNetworkJobs();
     bool AreNetworkJobsRunning() const;
