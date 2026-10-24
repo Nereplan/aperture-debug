@@ -1099,7 +1099,7 @@ bool App::HandleGlobalKeyDown(WPARAM wParam, LPARAM lParam) {
                 if (currentSettingsCat == SettingsCategory::Appearance) maxRows = 2;
                 else if (currentSettingsCat == SettingsCategory::Playback) maxRows = 12;
                 else if (currentSettingsCat == SettingsCategory::Subtitles) maxRows = 6;
-                else if (currentSettingsCat == SettingsCategory::Experience) maxRows = (FeatureGate::ModeFromString(settings.experienceMode) == ExperienceMode::Custom) ? 34 : 1;
+                else if (currentSettingsCat == SettingsCategory::Experience) maxRows = (FeatureGate::ModeFromString(settings.experienceMode) == ExperienceMode::Custom) ? 35 : 1;
                 else if (currentSettingsCat == SettingsCategory::Shortcuts) maxRows = (int)midSc + 1;
                 else if (currentSettingsCat == SettingsCategory::System) maxRows = SettingsLayout::kSystemRowCount;
                 auto getMaxSubIndex = [&](int row) -> int {

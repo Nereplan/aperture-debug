@@ -51,6 +51,192 @@ bool StartsWithIgnoreCaseW(const std::wstring& str, const std::wstring& prefix) 
     return true;
 }
 
+// --- XML playlist (XSPF/ASX/WPL) helpers ---
+
+std::string ToLowerAsciiCopy(std::string str) {
+    for (auto& c : str) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+    return str;
+}
+
+std::string DecodeXmlEntities(const std::string& text) {
+    std::string result;
+    result.reserve(text.size());
+    auto appendUtf8 = [&result](unsigned long cp) {
+        if (cp < 0x80) { result += static_cast<char>(cp); }
+        else if (cp < 0x800) { result += static_cast<char>(0xC0 | (cp >> 6)); result += static_cast<char>(0x80 | (cp & 0x3F)); }
+        else if (cp < 0x10000) {
+            result += static_cast<char>(0xE0 | (cp >> 12)); result += static_cast<char>(0x80 | ((cp >> 6) & 0x3F));
+            result += static_cast<char>(0x80 | (cp & 0x3F));
+        } else {
+            result += static_cast<char>(0xF0 | (cp >> 18)); result += static_cast<char>(0x80 | ((cp >> 12) & 0x3F));
+            result += static_cast<char>(0x80 | ((cp >> 6) & 0x3F)); result += static_cast<char>(0x80 | (cp & 0x3F));
+        }
+    };
+    for (size_t i = 0; i < text.size();) {
+        if (text[i] == '&') {
+            size_t semicolon = text.find(';', i + 1);
+            if (semicolon != std::string::npos && semicolon - i <= 10) {
+                std::string entity = text.substr(i + 1, semicolon - i - 1);
+                if (entity == "amp") { result += '&'; i = semicolon + 1; continue; }
+                if (entity == "lt") { result += '<'; i = semicolon + 1; continue; }
+                if (entity == "gt") { result += '>'; i = semicolon + 1; continue; }
+                if (entity == "quot") { result += '"'; i = semicolon + 1; continue; }
+                if (entity == "apos") { result += '\''; i = semicolon + 1; continue; }
+                if (entity.size() > 1 && entity[0] == '#') {
+                    long code = -1;
+                    try {
+                        if (entity[1] == 'x' || entity[1] == 'X') { code = std::stol(entity.substr(2), nullptr, 16); }
+                        else { code = std::stol(entity.substr(1), nullptr, 10); }
+                    } catch (...) { code = -1; }
+                    if (code > 0 && code <= 0x10FFFF && !(code >= 0xD800 && code <= 0xDFFF)) {
+                        appendUtf8(static_cast<unsigned long>(code));
+                        i = semicolon + 1; continue;
+                    }
+                }
+            }
+        }
+        result += text[i];
+        ++i;
+    }
+    return result;
+}
+
+std::string EscapeXmlEntities(const std::string& text) {
+    std::string result;
+    result.reserve(text.size() + 8);
+    for (char c : text) {
+        switch (c) {
+            case '&': result += "&amp;"; break;
+            case '<': result += "&lt;"; break;
+            case '>': result += "&gt;"; break;
+            case '"': result += "&quot;"; break;
+            case '\'': result += "&apos;"; break;
+            default: result += c; break;
+        }
+    }
+    return result;
+}
+
+// Attribute value lookup inside a single tag string, e.g. HREF="..." or src='...'.
+std::string ExtractXmlAttribute(const std::string& tag, const std::string& attrName) {
+    const std::string lower = ToLowerAsciiCopy(tag);
+    const std::string lowerAttr = ToLowerAsciiCopy(attrName);
+    size_t searchFrom = 0;
+    while (searchFrom < lower.size()) {
+        size_t attrPos = lower.find(lowerAttr, searchFrom);
+        if (attrPos == std::string::npos) return "";
+        // Reject matches embedded inside a longer identifier (e.g. HREFLANG).
+        if (attrPos > 0 && (std::isalnum(static_cast<unsigned char>(lower[attrPos - 1])) || lower[attrPos - 1] == '-' || lower[attrPos - 1] == '_')) {
+            searchFrom = attrPos + 1; continue;
+        }
+        size_t cursor = attrPos + lowerAttr.size();
+        while (cursor < lower.size() && (lower[cursor] == ' ' || lower[cursor] == '\t' || lower[cursor] == '\r' || lower[cursor] == '\n')) ++cursor;
+        if (cursor >= lower.size() || lower[cursor] != '=') { searchFrom = attrPos + 1; continue; }
+        ++cursor;
+        while (cursor < lower.size() && (lower[cursor] == ' ' || lower[cursor] == '\t' || lower[cursor] == '\r' || lower[cursor] == '\n')) ++cursor;
+        if (cursor >= lower.size()) return "";
+        const char quote = lower[cursor];
+        if (quote != '"' && quote != '\'') return "";
+        size_t end = tag.find(quote, cursor + 1);
+        if (end == std::string::npos) return "";
+        return DecodeXmlEntities(tag.substr(cursor + 1, end - cursor - 1));
+    }
+    return "";
+}
+
+// First element content lookup inside a block, e.g. <title>...</title>.
+std::string ExtractXmlElement(const std::string& block, const std::string& tagName) {
+    const std::string lower = ToLowerAsciiCopy(block);
+    const std::string lowerTag = ToLowerAsciiCopy(tagName);
+    size_t searchFrom = 0;
+    while (searchFrom < lower.size()) {
+        size_t open = lower.find("<" + lowerTag, searchFrom);
+        if (open == std::string::npos) return "";
+        // Reject longer tag names sharing the prefix (e.g. <titler> for <title>).
+        size_t after = open + 1 + lowerTag.size();
+        if (after < lower.size() && lower[after] != '>' && lower[after] != ' ' && lower[after] != '\t' && lower[after] != '\r' && lower[after] != '\n' && lower[after] != '/') {
+            searchFrom = open + 1; continue;
+        }
+        size_t close = lower.find('>', after);
+        if (close == std::string::npos) return "";
+        if (close > 0 && lower[close - 1] == '/') return ""; // Self-closing element has no content
+        size_t end = lower.find("</" + lowerTag, close + 1);
+        if (end == std::string::npos) return "";
+        return DecodeXmlEntities(Trim(block.substr(close + 1, end - close - 1)));
+    }
+    return "";
+}
+
+std::string PercentDecode(const std::string& text) {
+    auto hexVal = [](char c) -> int {
+        if (c >= '0' && c <= '9') return c - '0';
+        if (c >= 'a' && c <= 'f') return c - 'a' + 10;
+        return c - 'A' + 10;
+    };
+    std::string result;
+    result.reserve(text.size());
+    for (size_t i = 0; i < text.size(); ++i) {
+        if (text[i] == '%' && i + 2 < text.size() && std::isxdigit(static_cast<unsigned char>(text[i + 1])) &&
+            std::isxdigit(static_cast<unsigned char>(text[i + 2]))) {
+            result += static_cast<char>((hexVal(text[i + 1]) << 4) | hexVal(text[i + 2]));
+            i += 2;
+        } else { result += text[i]; }
+    }
+    return result;
+}
+
+// file:/// URIs become plain local paths so relative resolution and file
+// existence checks behave exactly like M3U entries. Other schemes stay URLs.
+std::wstring FileUriToPath(const std::wstring& uri) {
+    std::wstring rest = TrimW(uri).substr(7); // after "file://"
+    if (!rest.empty() && rest[0] == L'/') { rest = rest.substr(1); } // file:///C:/... -> C:/...
+    return PlaylistIO::NormalizeSeparators(Utf8ToUtf16(PercentDecode(Utf16ToUtf8(rest))));
+}
+
+std::string PercentEncodePath(const std::string& utf8Path) {
+    static const char hex[] = "0123456789ABCDEF";
+    std::string result;
+    result.reserve(utf8Path.size());
+    for (unsigned char c : utf8Path) {
+        const bool unreserved = (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') ||
+                                c == '-' || c == '_' || c == '.' || c == '~' || c == '/' || c == ':';
+        if (unreserved) { result += static_cast<char>(c); }
+        else { result += '%'; result += hex[c >> 4]; result += hex[c & 0x0F]; }
+    }
+    return result;
+}
+
+// Shared XML entry finalizer: mirrors the M3U/PLS entry handling (URL
+// classification, file existence checks, duplicate policy). Returns false when
+// the caller must stop because the item limit is exceeded.
+bool AppendXmlEntry(PlaylistParseResult& result, const std::wstring& rawLocation, const std::wstring& rawTitle,
+                    double durationSec, const std::wstring& playlistDir, const PlaylistParseOptions& options,
+                    std::unordered_map<std::wstring, size_t>& seenLocations) {
+    if (rawLocation.empty()) return true;
+    bool isUrl = PlaylistIO::IsUrl(rawLocation);
+    std::wstring resolvedLocation = PlaylistIO::ResolveEntryLocation(rawLocation, playlistDir, options.resolveRelativePaths);
+    PlaylistEntry entry;
+    entry.location = resolvedLocation;
+    entry.isUrl = isUrl;
+    entry.durationSec = durationSec;
+    if (!rawTitle.empty()) { entry.title = rawTitle; }
+    else if (!isUrl && !resolvedLocation.empty()) {
+        size_t lastSlash = resolvedLocation.find_last_of(L"\\/");
+        entry.title = (lastSlash != std::wstring::npos) ? resolvedLocation.substr(lastSlash + 1) : resolvedLocation;
+    } else { entry.title = rawLocation; }
+    if (isUrl) { entry.fileExists = true; result.urlItemCount++; }
+    else if (options.checkFileExistence) {
+        entry.fileExists = FileExists(resolvedLocation);
+        if (!entry.fileExists) { result.missingItemCount++; } else { result.validItemCount++; }
+    } else { entry.fileExists = true; result.validItemCount++; }
+    auto it = seenLocations.find(resolvedLocation);
+    if (it != seenLocations.end()) {
+        result.duplicateItemCount++;
+        if (options.preserveDuplicates) { result.entries.push_back(std::move(entry)); }
+    } else { seenLocations[resolvedLocation] = result.entries.size(); result.entries.push_back(std::move(entry)); }
+    return result.entries.size() <= options.maxItemCount;
+}
+
 bool IsValidUtf8(const char* data, size_t size) {
     size_t i = 0;
     while (i < size) {
@@ -91,6 +277,9 @@ PlaylistFormat PlaylistIO::DetectFormatFromExtension(const std::wstring& path) {
     if (ext == L".m3u8") return PlaylistFormat::M3U8;
     if (ext == L".m3u") return PlaylistFormat::M3U;
     if (ext == L".pls") return PlaylistFormat::PLS;
+    if (ext == L".xspf") return PlaylistFormat::XSPF;
+    if (ext == L".asx") return PlaylistFormat::ASX;
+    if (ext == L".wpl") return PlaylistFormat::WPL;
     return PlaylistFormat::Auto;
 }
 
@@ -103,6 +292,15 @@ PlaylistFormat PlaylistIO::DetectFormatFromContent(const std::string& content) {
     for (auto& c : preview) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
     if (preview.find("[playlist]") != std::string::npos) { return PlaylistFormat::PLS; }
     if (preview.find("#extm3u") != std::string::npos || preview.find("#extinf") != std::string::npos) { return PlaylistFormat::M3U8; }
+    // XML playlists: leading '<' plus a recognizable root/namespace element.
+    if (!trimmed.empty() && trimmed[0] == '<') {
+        if (preview.find("<playlist") != std::string::npos &&
+            (preview.find("xspf") != std::string::npos || preview.find("version=\"1\"") != std::string::npos)) {
+            return PlaylistFormat::XSPF;
+        }
+        if (preview.find("<asx") != std::string::npos) { return PlaylistFormat::ASX; }
+        if (preview.find("<wpl") != std::string::npos || preview.find("<smil") != std::string::npos) { return PlaylistFormat::WPL; }
+    }
     return PlaylistFormat::M3U8;
 }
 
@@ -521,6 +719,117 @@ PlaylistParseResult PlaylistIO::ParsePLSContent( const std::string& utf8Content,
     return result;
 }
 
+PlaylistParseResult PlaylistIO::ParseXSPFContent( const std::string& utf8Content, const std::wstring& playlistDir,
+    const PlaylistParseOptions &options) {
+    PlaylistParseResult result;
+    result.detectedFormat = PlaylistFormat::XSPF;
+    std::string lower = ToLowerAsciiCopy(utf8Content);
+    std::unordered_map<std::wstring, size_t> seenLocations;
+    size_t searchPos = 0;
+    while (searchPos < lower.size()) {
+        size_t trackPos = lower.find("<track", searchPos);
+        if (trackPos == std::string::npos) break;
+        if (lower.compare(trackPos, 10, "<tracklist") == 0) { searchPos = trackPos + 7; continue; } // Skip the trackList container
+        size_t trackEnd = lower.find("</track", trackPos);
+        if (trackEnd == std::string::npos) break;
+        std::string block = utf8Content.substr(trackPos, trackEnd - trackPos);
+        searchPos = trackEnd + 7;
+        std::wstring location = Utf8ToUtf16(Trim(ExtractXmlElement(block, "location")));
+        if (StartsWithIgnoreCaseW(location, L"file://")) { location = FileUriToPath(location); }
+        std::wstring title = Utf8ToUtf16(ExtractXmlElement(block, "title"));
+        double durationSec = -1.0;
+        std::string durRaw = Trim(ExtractXmlElement(block, "duration"));
+        if (!durRaw.empty()) { try { durationSec = std::stod(durRaw) / 1000.0; } catch (...) { durationSec = -1.0; } }
+        if (!AppendXmlEntry(result, location, title, durationSec, playlistDir, options, seenLocations)) {
+            return PlaylistParseResult::ErrorResult( PlaylistIoErrorCode::ItemLimitExceeded, playlistDir,
+                "XSPF playlist exceeds maximum item limit of " + std::to_string(options.maxItemCount));
+        }
+    }
+    std::string playlistTitle = ExtractXmlElement(utf8Content, "title");
+    if (!playlistTitle.empty()) { result.playlistTitle = Utf8ToUtf16(playlistTitle); }
+    if (result.entries.empty() && !options.allowEmptyPlaylist) {
+        return PlaylistParseResult::ErrorResult( PlaylistIoErrorCode::EmptyPlaylist, playlistDir,
+            "XSPF playlist contains no valid media entries");
+    }
+    result.success = true;
+    result.errorCode = PlaylistIoErrorCode::Success;
+    return result;
+}
+
+PlaylistParseResult PlaylistIO::ParseASXContent( const std::string& utf8Content, const std::wstring& playlistDir,
+    const PlaylistParseOptions &options) {
+    PlaylistParseResult result;
+    result.detectedFormat = PlaylistFormat::ASX;
+    std::string lower = ToLowerAsciiCopy(utf8Content);
+    std::unordered_map<std::wstring, size_t> seenLocations;
+    size_t searchPos = 0;
+    while (searchPos < lower.size()) {
+        size_t entryPos = lower.find("<entry", searchPos);
+        if (entryPos == std::string::npos) break;
+        if (lower.compare(entryPos, 9, "<entryref") == 0) { // Self-closing pointer form: skip the tag
+            size_t tagEnd = lower.find('>', entryPos);
+            if (tagEnd == std::string::npos) break;
+            searchPos = tagEnd + 1;
+            continue;
+        }
+        size_t entryEnd = lower.find("</entry", entryPos);
+        if (entryEnd == std::string::npos) break;
+        std::string block = utf8Content.substr(entryPos, entryEnd - entryPos);
+        searchPos = entryEnd + 7;
+        std::wstring entryTitle = Utf8ToUtf16(ExtractXmlElement(block, "title"));
+        std::string lowerBlock = ToLowerAsciiCopy(block);
+        size_t refPos = 0;
+        while (true) {
+            size_t refStart = lowerBlock.find("<ref", refPos);
+            if (refStart == std::string::npos) break;
+            size_t refEnd = lowerBlock.find('>', refStart);
+            std::string refTag = (refEnd != std::string::npos) ? block.substr(refStart, refEnd - refStart + 1) : block.substr(refStart);
+            refPos = (refEnd != std::string::npos) ? refEnd + 1 : lowerBlock.size();
+            std::wstring rawLocation = Utf8ToUtf16(Trim(ExtractXmlAttribute(refTag, "href")));
+            if (!AppendXmlEntry(result, rawLocation, entryTitle, -1.0, playlistDir, options, seenLocations)) {
+                return PlaylistParseResult::ErrorResult( PlaylistIoErrorCode::ItemLimitExceeded, playlistDir,
+                    "ASX playlist exceeds maximum item limit of " + std::to_string(options.maxItemCount));
+            }
+        }
+    }
+    if (result.entries.empty() && !options.allowEmptyPlaylist) {
+        return PlaylistParseResult::ErrorResult( PlaylistIoErrorCode::EmptyPlaylist, playlistDir,
+            "ASX playlist contains no valid media entries");
+    }
+    result.success = true;
+    result.errorCode = PlaylistIoErrorCode::Success;
+    return result;
+}
+
+PlaylistParseResult PlaylistIO::ParseWPLContent( const std::string& utf8Content, const std::wstring& playlistDir,
+    const PlaylistParseOptions &options) {
+    PlaylistParseResult result;
+    result.detectedFormat = PlaylistFormat::WPL;
+    std::string lower = ToLowerAsciiCopy(utf8Content);
+    std::unordered_map<std::wstring, size_t> seenLocations;
+    size_t searchPos = 0;
+    while (searchPos < lower.size()) {
+        size_t mediaPos = lower.find("<media", searchPos);
+        if (mediaPos == std::string::npos) break;
+        size_t tagEnd = lower.find('>', mediaPos);
+        if (tagEnd == std::string::npos) break;
+        std::string tag = utf8Content.substr(mediaPos, tagEnd - mediaPos + 1);
+        searchPos = tagEnd + 1;
+        std::wstring rawLocation = Utf8ToUtf16(Trim(ExtractXmlAttribute(tag, "src")));
+        if (!AppendXmlEntry(result, rawLocation, L"", -1.0, playlistDir, options, seenLocations)) {
+            return PlaylistParseResult::ErrorResult( PlaylistIoErrorCode::ItemLimitExceeded, playlistDir,
+                "WPL playlist exceeds maximum item limit of " + std::to_string(options.maxItemCount));
+        }
+    }
+    if (result.entries.empty() && !options.allowEmptyPlaylist) {
+        return PlaylistParseResult::ErrorResult( PlaylistIoErrorCode::EmptyPlaylist, playlistDir,
+            "WPL playlist contains no valid media entries");
+    }
+    result.success = true;
+    result.errorCode = PlaylistIoErrorCode::Success;
+    return result;
+}
+
 PlaylistParseResult PlaylistIO::ParseContent( const std::string& rawBytes, PlaylistFormat format, const std::wstring& playlistDir,
     const PlaylistParseOptions &options) {
     if (rawBytes.size() > options.maxFileSizeBytes) {
@@ -534,6 +843,12 @@ PlaylistParseResult PlaylistIO::ParseContent( const std::string& rawBytes, Playl
     if (format == PlaylistFormat::Auto) { format = DetectFormatFromContent(utf8Content); }
     if (format == PlaylistFormat::PLS) {
         return ParsePLSContent(utf8Content, playlistDir, options);
+    } else if (format == PlaylistFormat::XSPF) {
+        return ParseXSPFContent(utf8Content, playlistDir, options);
+    } else if (format == PlaylistFormat::ASX) {
+        return ParseASXContent(utf8Content, playlistDir, options);
+    } else if (format == PlaylistFormat::WPL) {
+        return ParseWPLContent(utf8Content, playlistDir, options);
     } else { return ParseM3UContent(utf8Content, playlistDir, options); }
 }
 
@@ -633,6 +948,36 @@ std::string PlaylistIO::SerializePLS(const std::vector<PlaylistEntry> &entries, 
     return ss.str();
 }
 
+std::string PlaylistIO::SerializeXSPF(const std::vector<PlaylistEntry> &entries, const std::wstring &playlistTitle,
+    const PlaylistExportOptions &options) {
+    std::ostringstream ss;
+    ss << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
+    ss << "<playlist xmlns=\"http://xspf.org/ns/0/\" version=\"1\">\n";
+    if (!TrimW(playlistTitle).empty()) { ss << "  <title>" << EscapeXmlEntities(Utf16ToUtf8(playlistTitle)) << "</title>\n"; }
+    ss << "  <trackList>\n";
+    for (const auto& entry : entries) {
+        if (entry.location.empty()) continue;
+        // Local paths are written as absolute file:/// URIs (relative paths
+        // cannot be expressed inside a location element); URLs stay as-is.
+        std::string locationUtf8 = Utf16ToUtf8(entry.location);
+        std::string uriSource = locationUtf8;
+        for (auto& c : uriSource) { if (c == '\\') c = '/'; }
+        std::string locationXml = entry.isUrl ? locationUtf8 : "file:///" + PercentEncodePath(uriSource);
+        ss << "    <track>\n";
+        ss << "      <location>" << EscapeXmlEntities(locationXml) << "</location>\n";
+        if (options.writeExtendedMetadata) {
+            if (!entry.title.empty()) { ss << "      <title>" << EscapeXmlEntities(Utf16ToUtf8(entry.title)) << "</title>\n"; }
+            if (entry.durationSec >= 0.0) {
+                ss << "      <duration>" << static_cast<long long>(std::round(entry.durationSec * 1000.0)) << "</duration>\n";
+            }
+        }
+        ss << "    </track>\n";
+    }
+    ss << "  </trackList>\n";
+    ss << "</playlist>\n";
+    return ss.str();
+}
+
 PlaylistExportResult PlaylistIO::ExportPlaylistFile( const std::wstring& destinationPath, const std::vector<PlaylistEntry>& entries,
     const PlaylistExportOptions &options) {
     if (destinationPath.empty())
@@ -649,7 +994,8 @@ PlaylistExportResult PlaylistIO::ExportPlaylistFile( const std::wstring& destina
         if (opt.format == PlaylistFormat::Auto) { opt.format = PlaylistFormat::M3U8; }
     }
     std::string textContent;
-    if (opt.format == PlaylistFormat::PLS) { textContent = SerializePLS(entries, opt); } else { textContent = SerializeM3U(entries, opt); }
+    if (opt.format == PlaylistFormat::XSPF) { textContent = SerializeXSPF(entries, opt.playlistTitle, opt); }
+    else if (opt.format == PlaylistFormat::PLS) { textContent = SerializePLS(entries, opt); } else { textContent = SerializeM3U(entries, opt); }
     std::string binaryPayload;
     if (opt.writeUtf8Bom) { binaryPayload.push_back('\xEF'); binaryPayload.push_back('\xBB'); binaryPayload.push_back('\xBF'); }
     binaryPayload.append(textContent);
@@ -721,7 +1067,12 @@ PlaylistExportResult PlaylistIO::ExportPlaylistFile( const std::wstring& destina
 
 PlaylistExportResult PlaylistIO::ExportPlaylistFile( const std::wstring& destinationPath, const Playlist& playlist,
     const PlaylistExportOptions& options)
-{ std::vector<PlaylistEntry> entries = FromMediaLibraryPlaylist(playlist); return ExportPlaylistFile(destinationPath, entries, options); }
+{
+    std::vector<PlaylistEntry> entries = FromMediaLibraryPlaylist(playlist);
+    PlaylistExportOptions opt = options;
+    if (opt.playlistTitle.empty()) { opt.playlistTitle = Utf8ToUtf16(playlist.name); }
+    return ExportPlaylistFile(destinationPath, entries, opt);
+}
 
 PlaylistExportResult PlaylistIO::ExportPlaylistFile( const std::wstring& destinationPath, const std::vector<std::wstring>& itemPaths,
     const std::wstring &playlistTitle, const PlaylistExportOptions &options) {
@@ -735,7 +1086,9 @@ PlaylistExportResult PlaylistIO::ExportPlaylistFile( const std::wstring& destina
         e.title = (lastSlash != std::wstring::npos) ? path.substr(lastSlash + 1) : path;
         entries.push_back(std::move(e));
     }
-    return ExportPlaylistFile(destinationPath, entries, options);
+    PlaylistExportOptions opt = options;
+    if (opt.playlistTitle.empty()) { opt.playlistTitle = playlistTitle; }
+    return ExportPlaylistFile(destinationPath, entries, opt);
 }
 
 std::vector<PlaylistEntry> PlaylistIO::FromMediaLibraryPlaylist(const Playlist& playlist) {

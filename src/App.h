@@ -118,6 +118,8 @@ public:
     void TogglePrivateMode() override;
     void ToggleAlwaysOnTop() override;
     void ShowJumpToTimeModal() override;
+    double GetSubSyncAudioPoint() override { return subSyncAudioPointSec; }
+    void SetSubSyncAudioPoint(double sec) override { subSyncAudioPointSec = sec; }
     void ShowCustomAspectModal();
     void ShowCustomRotationModal();
     bool IsPrivateMode() const { return playbackSession.IsPrivateMode(); }
@@ -580,6 +582,7 @@ private:
     int hoveredGlobalSearchIndex = -1;
     bool isGlobalSearchCloseHovered = false;
     double abLoopA = -1.0, abLoopB = -1.0;
+    double subSyncAudioPointSec = -1.0; // Guided subtitle-sync mark point (-1 = unset)
     float sleepTimerRemainingSec = 0.0f;
     bool stopAfterCurrent = false, textInputCaretVisible = true, textInputDragging = false;
     bool exitAfterPlayback = false;
@@ -954,7 +957,7 @@ private:
     void ShowCustomSeekStepModal();
     void ShowOpenNetworkStreamModal();
     void ImportStandardPlaylist();
-    void ExportActivePlaylist();
+    void ExportActivePlaylist(PlaylistFormat format = PlaylistFormat::M3U8);
     void ShowCustomFrameSeekModal();
     void OpenSeekStepContextMenu(float x, float y);
     void OpenFrameSeekContextMenu(float x, float y);

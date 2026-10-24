@@ -231,6 +231,9 @@ void Settings::ResetShortcuts() {
     shortcuts["togglePrivateMode"] = { "togglePrivateMode", "Toggle Private Session Mode", 0, false, false, false };
     shortcuts["closePlayer"] = { "closePlayer", "Exit Player", VK_ESCAPE, false, false, false };
     shortcuts["jumpToTime"] = { "jumpToTime", "Go To Time", 'T', true, false, false }; // Ctrl + T
+    shortcuts["subSyncMarkAudio"] = { "subSyncMarkAudio", "Subtitle Sync: Mark Audio", 'H', false, true, false }; // Shift + H
+    shortcuts["subSyncMarkSubtitle"] = { "subSyncMarkSubtitle", "Subtitle Sync: Mark Subtitle", 'J', false, true, false }; // Shift + J
+    shortcuts["subSyncReset"] = { "subSyncReset", "Subtitle Sync: Clear Points", 0, false, false, false };
 }
 
 const std::vector<std::pair<std::string, std::string>>& Settings::GetShortcutActionListRef() const {
@@ -244,7 +247,8 @@ const std::vector<std::pair<std::string, std::string>>& Settings::GetShortcutAct
             "speedUp",         "speedDown",         "speedReset",       "frameStepForward", "frameStepBackward", "playNext",
             "playPrevious",    "nextChapter",       "previousChapter",  "restartVideo",     "cycleAspectRatio",  "audioDelayPlus",
             "audioDelayMinus", "audioDelayReset",   "subDelayPlus",     "subDelayMinus",    "subDelayReset",     "togglePlaybackDiagnostics",
-            "takeScreenshot",  "togglePrivateMode", "toggleShuffle",    "toggleAlwaysOnTop", "jumpToTime",       "closePlayer"};
+            "takeScreenshot",  "togglePrivateMode", "toggleShuffle",    "toggleAlwaysOnTop", "jumpToTime",       "closePlayer",
+            "subSyncMarkAudio", "subSyncMarkSubtitle", "subSyncReset"};
         std::vector<std::pair<std::string, std::string>> list;
         list.reserve(actionIds.size());
         for (const auto& id : actionIds) {

@@ -726,6 +726,10 @@ void App::OpenPlaylistContextMenu(const Playlist& playlist, float x, float y) {
     }
     contextMenuItems.push_back(
         {"rename", L"Rename", L"F2", IconType::SettingsGear, false, false, false, [this, plId]() { ShowRenamePlaylistModal(plId); }});
+    contextMenuItems.push_back(
+        {"export_xspf", L"Export as XSPF...", L"", IconType::FolderPlaylist, false, false, false, [this]() {
+            ExportActivePlaylist(PlaylistFormat::XSPF);
+        }});
     contextMenuItems.push_back({ "sep1", L"", L"", IconType::Play, true });
     contextMenuItems.push_back(
         {"delete", L"Delete Playlist", L"Del", IconType::Trash, false, false, true, [this, plId]() { ShowDeletePlaylistModal(plId); }});
@@ -1730,6 +1734,23 @@ void App::OpenSubtitleDelayContextMenu(float x, float y) {
     }, false, false, true});
     contextMenuItems.push_back({ "sdelay_rst", L"Reset (0 ms)", L"Ctrl+Shift+Bksp", IconType::Refresh, false, false, false, [this, x, y]() {
         commandDispatcher.Execute(AppCommand::SubDelayReset);
+        OpenSubtitleDelayContextMenu(x, y);
+    }, false, false, true});
+    contextMenuItems.push_back({ "subsync_sep", L"", L"", IconType::Play, true });
+    auto shortcutDisplay = [this](const char* actionId) {
+        auto it = settings.shortcuts.find(actionId);
+        return it != settings.shortcuts.end() ? Settings::FormatShortcutKey(it->second) : L"";
+    };
+    contextMenuItems.push_back({ "subsync_audio", L"Mark Audio Point (heard now)", shortcutDisplay("subSyncMarkAudio"), IconType::Subtitles, false, false, false, [this, x, y]() {
+        commandDispatcher.Execute(AppCommand::SubSyncMarkAudio);
+        OpenSubtitleDelayContextMenu(x, y);
+    }, false, false, true});
+    contextMenuItems.push_back({ "subsync_sub", L"Mark Subtitle Point (shown now)", shortcutDisplay("subSyncMarkSubtitle"), IconType::Subtitles, false, false, false, [this, x, y]() {
+        commandDispatcher.Execute(AppCommand::SubSyncMarkSubtitle);
+        OpenSubtitleDelayContextMenu(x, y);
+    }, false, false, true});
+    contextMenuItems.push_back({ "subsync_clear", L"Clear Sync Points", shortcutDisplay("subSyncReset"), IconType::Refresh, false, false, false, [this, x, y]() {
+        commandDispatcher.Execute(AppCommand::SubSyncReset);
         OpenSubtitleDelayContextMenu(x, y);
     }, false, false, true});
     PresentPlayerContextMenu(x, y, 238.0f, false, PlayerMenuReveal::None);

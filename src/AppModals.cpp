@@ -928,7 +928,7 @@ void App::ImportStandardPlaylist() {
     OPENFILENAMEW ofn{};
     ofn.lStructSize = sizeof(ofn);
     ofn.hwndOwner = hWnd;
-    ofn.lpstrFilter = L"Playlists (*.m3u;*.m3u8;*.pls)\0*.m3u;*.m3u8;*.pls\0All Files\0*.*\0";
+    ofn.lpstrFilter = L"Playlists (*.m3u;*.m3u8;*.pls;*.xspf;*.asx;*.wpl)\0*.m3u;*.m3u8;*.pls;*.xspf;*.asx;*.wpl\0All Files\0*.*\0";
     ofn.lpstrFile = buffer.data();
     ofn.nMaxFile = static_cast<DWORD>(buffer.size());
     ofn.Flags = OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST | OFN_NOCHANGEDIR;
@@ -957,7 +957,7 @@ void App::ImportStandardPlaylist() {
 }
 
 
-void App::ExportActivePlaylist() {
+void App::ExportActivePlaylist(PlaylistFormat format) {
     PushFocusSnapshot(TransientSurfaceType::SystemDialog);
     Playlist* playlist = library.FindPlaylist(activePlaylistId);
     if (!playlist && !library.playlists.empty()) playlist = &library.playlists.front();
@@ -969,11 +969,12 @@ void App::ExportActivePlaylist() {
     const std::wstring exportDir = GetExeDir() + L"\\playlists";
     SHCreateDirectoryExW(nullptr, exportDir.c_str(), nullptr);
     const std::wstring name = SanitizeMediaStemForFilename(Utf8ToUtf16(playlist->name));
+    const wchar_t* extension = (format == PlaylistFormat::XSPF) ? L".xspf" : L".m3u8";
     PlaylistExportOptions options;
-    options.format = PlaylistFormat::M3U8;
+    options.format = format;
     options.basePath = exportDir;
     options.collisionSafe = true;
-    PlaylistExportResult result = PlaylistIO::ExportPlaylistFile( exportDir + L"\\" + name + L".m3u8", *playlist, options);
+    PlaylistExportResult result = PlaylistIO::ExportPlaylistFile( exportDir + L"\\" + name + extension, *playlist, options);
     if (!result) {
         ShowOSD(IconType::VolumeMuted, L"Playlist export failed", 4.0f);
         PopAndRestoreFocus(TransientSurfaceType::SystemDialog);

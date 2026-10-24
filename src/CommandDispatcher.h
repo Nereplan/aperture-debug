@@ -24,7 +24,7 @@ enum class AppCommand {
     ResetAudioBalanceAndChannelMap, SubDelayPlus, SubDelayMinus, SubDelayReset, SetSubDelay, ClosePlayer, FrameStepForward,
     FrameStepBackward, SpeedUp, SpeedDown, SpeedReset, SetSpeed, ToggleLoop, ToggleAutoplay, OpenFile, OpenSubtitleFile,
     SearchOnlineSubtitles, ShowInExplorer, TogglePlaybackDiagnostics, TakeScreenshot, TogglePrivateMode, ToggleShuffle,
-    ToggleAlwaysOnTop, JumpToTime, ToggleLogViewer
+    ToggleAlwaysOnTop, JumpToTime, ToggleLogViewer, SubSyncMarkAudio, SubSyncMarkSubtitle, SubSyncReset
 };
 
 // Mouse-button/wheel pseudo-key codes used by shortcut bindings. They live in a
@@ -83,6 +83,9 @@ public:
     virtual void ToggleAlwaysOnTop() {}
     virtual void ShowJumpToTimeModal() {}
     virtual void ToggleLogViewer() {}
+    // Guided subtitle-sync mark points. -1.0 means no audio point is armed.
+    virtual double GetSubSyncAudioPoint() { return -1.0; }
+    virtual void SetSubSyncAudioPoint(double sec) {}
 };
 
 class CommandDispatcher {

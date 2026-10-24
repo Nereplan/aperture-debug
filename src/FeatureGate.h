@@ -15,7 +15,7 @@ enum class FeatureId {
     SubtitleStyleProfiles, DualSubtitles, VideoAdjustments, Deinterlace, ABRepeat,
     PlaybackDiagnostics, OnlineSubtitles, SleepTimer, Shuffle, PlayAndExit,
     AlwaysOnTop, JumpToTime, MetadataEditor,
-    ForcedSubsOnly, SubtitleCodepage, SubtitleFont, DualSubtitleStyle,
+    ForcedSubsOnly, SubtitleCodepage, SubtitleFont, DualSubtitleStyle, SubtitleSync,
     CustomAspect, CustomRotation, ScreenshotFormat, JumpSize, LogViewer,
     ZoomPan,
     Count
@@ -93,6 +93,9 @@ inline const std::array<FeatureInfo, static_cast<size_t>(FeatureId::Count)>& Cat
           "settings.experience.feature.dual_subtitle_style",
           { "dual_style_menu" },
           { "dstyle_" } },
+        { FeatureId::SubtitleSync, "subtitle_sync", FeatureTier::Advanced, "subtitles",
+          "settings.experience.feature.subtitle_sync",
+          { "subsync_audio", "subsync_sub", "subsync_clear" } },
         { FeatureId::VideoAdjustments, "video_adjustments", FeatureTier::Advanced, "video",
           "settings.experience.feature.video_adjustments",
           { "video_adjustments_menu", "vadjust_rot", "vadjust_bright", "vadjust_contrast", "vadjust_sat", "vadjust_gamma", "vadjust_hue",

@@ -9,7 +9,7 @@
 
 namespace Aperture {
 
-enum class PlaylistFormat { Auto = 0, M3U, M3U8, PLS };
+enum class PlaylistFormat { Auto = 0, M3U, M3U8, PLS, XSPF, ASX, WPL };
 
 enum class PlaylistIoErrorCode {
     Success = 0, FileNotFound, FileOpenFailed, FileReadFailed, FileWriteFailed, FileTooLarge, LineLimitExceeded, ItemLimitExceeded,
@@ -42,6 +42,7 @@ struct PlaylistExportOptions {
     bool useRelativePathsWhereSafe = true;     // Write relative paths if under basePath
     std::wstring basePath = L"";               // Base directory for relative paths (empty = export file dir)
     bool writeExtendedMetadata = true;         // Write #EXTINF / TitleN / LengthN
+    std::wstring playlistTitle = L"";          // XSPF <title> element content (empty = omit)
     bool collisionSafe = false;                // Auto-generate name (1).ext if target exists
     bool atomicWrite = true;                   // Write to temp file then atomic rename
 };
@@ -137,6 +138,12 @@ public:
         const PlaylistParseOptions& options = {});
     static PlaylistParseResult ParsePLSContent( const std::string& utf8Content, const std::wstring& playlistDir = L"",
         const PlaylistParseOptions& options = {});
+    static PlaylistParseResult ParseXSPFContent( const std::string& utf8Content, const std::wstring& playlistDir = L"",
+        const PlaylistParseOptions& options = {});
+    static PlaylistParseResult ParseASXContent( const std::string& utf8Content, const std::wstring& playlistDir = L"",
+        const PlaylistParseOptions& options = {});
+    static PlaylistParseResult ParseWPLContent( const std::string& utf8Content, const std::wstring& playlistDir = L"",
+        const PlaylistParseOptions& options = {});
     static PlaylistParseResult ParseContent( const std::string& rawBytes, PlaylistFormat format = PlaylistFormat::Auto,
         const std::wstring& playlistDir = L"", const PlaylistParseOptions& options = {});
     // High-level File Import
@@ -144,6 +151,8 @@ public:
     // Core serializers to string
     static std::string SerializeM3U( const std::vector<PlaylistEntry>& entries, const PlaylistExportOptions& options);
     static std::string SerializePLS( const std::vector<PlaylistEntry>& entries, const PlaylistExportOptions& options);
+    static std::string SerializeXSPF( const std::vector<PlaylistEntry>& entries, const std::wstring& playlistTitle,
+        const PlaylistExportOptions& options);
     // High-level File Export
     static PlaylistExportResult ExportPlaylistFile( const std::wstring& destinationPath, const std::vector<PlaylistEntry>& entries,
         const PlaylistExportOptions& options = {});

@@ -1,6 +1,7 @@
 #include "CommandDispatcher.h"
 #include "MpvPlayer.h"
 #include "MediaLibrary.h"
+#include "Formatters.h"
 #include <algorithm>
 #include <cmath>
 #include <cwchar>
@@ -120,13 +121,16 @@ constexpr CommandDescriptor kCommands[] = {
     {AppCommand::ToggleShuffle, "toggleShuffle", L"Toggle Shuffle"},
     {AppCommand::ToggleAlwaysOnTop, "toggleAlwaysOnTop", L"Toggle Always on Top"},
     {AppCommand::JumpToTime, "jumpToTime", L"Go To Time"},
-    {AppCommand::ToggleLogViewer, "toggleLogViewer", L"Diagnostics Log"}, };
+    {AppCommand::ToggleLogViewer, "toggleLogViewer", L"Diagnostics Log"},
+    {AppCommand::SubSyncMarkAudio, "subSyncMarkAudio", L"Subtitle Sync: Mark Audio"},
+    {AppCommand::SubSyncMarkSubtitle, "subSyncMarkSubtitle", L"Subtitle Sync: Mark Subtitle"},
+    {AppCommand::SubSyncReset, "subSyncReset", L"Subtitle Sync: Clear Points"}, };
 
 // Direct indexing requires descriptor order to match the enum.
 static_assert([] {
     for (size_t i = 0; i < std::size(kCommands); ++i)
         if (static_cast<size_t>(kCommands[i].command) != i) return false;
-    return std::size(kCommands) == static_cast<size_t>(AppCommand::ToggleLogViewer) + 1;
+    return std::size(kCommands) == static_cast<size_t>(AppCommand::SubSyncReset) + 1;
 }());
 
 const CommandDescriptor& DescribeCommand(AppCommand command) {
@@ -920,6 +924,31 @@ bool CommandDispatcher::Execute(AppCommand cmd, const CommandArgs& args) {
         return true;
     }
     case AppCommand::ToggleLogViewer: { context->ToggleLogViewer(); return true; }
+    case AppCommand::SubSyncMarkAudio: {
+        if (!session.IsOpen()) { context->ShowOSD(IconType::VolumeMuted, L"No media open"); return true; }
+        context->SetSubSyncAudioPoint(player.GetCurrentTime());
+        context->ShowOSD(IconType::Subtitles, L"Sub Sync: audio point " + FormatDuration(player.GetCurrentTime()));
+        return true;
+    }
+    case AppCommand::SubSyncMarkSubtitle: {
+        if (!session.IsOpen()) { context->ShowOSD(IconType::VolumeMuted, L"No media open"); return true; }
+        const double audioPoint = context->GetSubSyncAudioPoint();
+        if (audioPoint < 0.0) { context->ShowOSD(IconType::Subtitles, L"Mark the audio point first"); return true; }
+        const int deltaMs = (int)std::llround((audioPoint - player.GetCurrentTime()) * 1000.0);
+        settings.subDelayMs = std::clamp(settings.subDelayMs + deltaMs, -10000, 10000);
+        player.SetSubDelay((double)settings.subDelayMs / 1000.0);
+        context->SaveSettings();
+        UpdateCurrentMediaPreferences(*context, [&](MediaPlaybackPreferences& prefs) { prefs.subDelayMs = settings.subDelayMs; });
+        context->SetSubSyncAudioPoint(-1.0);
+        context->ShowOSD(IconType::Subtitles, L"Sub Sync: delay " + std::to_wstring(settings.subDelayMs) + L" ms");
+        return true;
+    }
+    case AppCommand::SubSyncReset: {
+        if (!session.IsOpen()) { context->ShowOSD(IconType::VolumeMuted, L"No media open"); return true; }
+        context->SetSubSyncAudioPoint(-1.0);
+        context->ShowOSD(IconType::Subtitles, L"Sub Sync cleared");
+        return true;
+    }
     case AppCommand::TakeScreenshot: {
         if (!session.IsOpen()) { context->ShowOSD(IconType::VolumeMuted, L"Screenshot unavailable: no media loaded", 2.0f); return false; }
         // Semantics: Explicit user-initiated screenshot captures remain permitted in private mode,

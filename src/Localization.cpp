@@ -119,6 +119,7 @@ constexpr StringEntryView kCanonicalStringEntries[] = {
     { "settings.experience.feature.subtitle_codepage", "Subtitle Character Encoding" },
     { "settings.experience.feature.subtitle_font", "Subtitle Font" },
     { "settings.experience.feature.dual_subtitle_style", "Dual Subtitle Style" },
+    { "settings.experience.feature.subtitle_sync", "Subtitle Sync Tool" },
     { "settings.experience.feature.custom_aspect", "Custom Aspect Ratio" },
     { "settings.experience.feature.custom_rotation", "Custom Rotation" },
     { "settings.experience.feature.screenshot_format", "Screenshot Format" },
@@ -198,6 +199,8 @@ constexpr StringEntryView kCanonicalStringEntries[] = {
     { "shortcut.subDelayMinus", "Decrease Subtitle Delay (-100ms)" }, { "shortcut.subDelayReset", "Reset Subtitle Delay" },
     { "shortcut.togglePlaybackDiagnostics", "Toggle Playback Diagnostics" }, { "shortcut.takeScreenshot", "Take Screenshot" },
     { "shortcut.togglePrivateMode", "Toggle Private Session Mode" }, { "shortcut.closePlayer", "Exit Player" },
+    { "shortcut.subSyncMarkAudio", "Subtitle Sync: Mark Audio" }, { "shortcut.subSyncMarkSubtitle", "Subtitle Sync: Mark Subtitle" },
+    { "shortcut.subSyncReset", "Subtitle Sync: Clear Points" },
     { "settings.system.portable_desc", "Your library and preferences stay with this copy of Aperture." },
     // Settings: System & Storage
     { "settings.system.about_header", "APERTURE" }, { "settings.system.actions_header", "PREFERENCES & STORAGE" },

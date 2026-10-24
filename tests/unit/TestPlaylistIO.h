@@ -2,6 +2,7 @@
 
 #include "../support/TestFramework.h"
 #include "../../src/PlaylistIO.h"
+#include <cmath>
 #include <random>
 
 namespace Aperture::Test {
@@ -80,6 +81,110 @@ TEST_CASE(PlaylistIO, BatchAppendMatchesSequentialMembershipOracle) {
     const std::vector<std::wstring> repeated(256, L"Z");
     TEST_ASSERT_EQ(PlaylistIO::AppendUniquePathsOrdinalIgnoreCase(existing, repeated), size_t(1));
     TEST_ASSERT_EQ(existing.back(), std::wstring(L"Z"));
+}
+
+TEST_CASE(PlaylistIO, ParseAsxCollectsRefEntriesAndDecodesEntities) {
+    const std::string content =
+        "<ASX version=\"3.0\">\n"
+        "  <TITLE>Test &amp; Demo</TITLE>\n"
+        "  <ENTRY>\n"
+        "    <TITLE>Stream &#65;&#66;</TITLE>\n"
+        "    <REF HREF=\"http://example.com/stream&#46;mp3\" />\n"
+        "  </ENTRY>\n"
+        "  <ENTRY>\n"
+        "    <TITLE>Local &lt;Clip&gt;</TITLE>\n"
+        "    <REF HREF=\"C:\\Media\\A &amp; B.mp3\" />\n"
+        "  </ENTRY>\n"
+        "</ASX>\n";
+    PlaylistParseOptions options;
+    options.checkFileExistence = false;
+    auto result = PlaylistIO::ParseASXContent(content, L"", options);
+    TEST_ASSERT(result.is_ok());
+    TEST_ASSERT_EQ(result.detectedFormat, PlaylistFormat::ASX);
+    TEST_ASSERT_EQ(result.entries.size(), size_t(2));
+    TEST_ASSERT(result.entries[0].isUrl);
+    TEST_ASSERT_EQ(result.entries[0].location, std::wstring(L"http://example.com/stream.mp3"));
+    TEST_ASSERT_EQ(result.entries[0].title, std::wstring(L"Stream AB"));
+    TEST_ASSERT(!result.entries[1].isUrl);
+    TEST_ASSERT_EQ(result.entries[1].location, std::wstring(L"C:\\Media\\A & B.mp3"));
+    TEST_ASSERT_EQ(result.entries[1].title, std::wstring(L"Local <Clip>"));
+}
+
+TEST_CASE(PlaylistIO, ParseWplCollectsMediaSrcEntries) {
+    const std::string content =
+        "<?wpl version=\"1.0\"?>\n"
+        "<smil>\n"
+        "  <head><title>Sample</title></head>\n"
+        "  <body>\n"
+        "    <seq>\n"
+        "      <media src=\"C:\\Music\\One.mp3\" />\n"
+        "      <media src=\"http://example.com/two.wma\" />\n"
+        "    </seq>\n"
+        "  </body>\n"
+        "</smil>\n";
+    PlaylistParseOptions options;
+    options.checkFileExistence = false;
+    auto result = PlaylistIO::ParseWPLContent(content, L"", options);
+    TEST_ASSERT(result.is_ok());
+    TEST_ASSERT_EQ(result.detectedFormat, PlaylistFormat::WPL);
+    TEST_ASSERT_EQ(result.entries.size(), size_t(2));
+    TEST_ASSERT_EQ(result.entries[0].location, std::wstring(L"C:\\Music\\One.mp3"));
+    TEST_ASSERT(!result.entries[0].isUrl);
+    TEST_ASSERT_EQ(result.entries[1].location, std::wstring(L"http://example.com/two.wma"));
+    TEST_ASSERT(result.entries[1].isUrl);
+}
+
+TEST_CASE(PlaylistIO, ParseXspfDecodesFileUrisAndKeepsHttpLocations) {
+    const std::string content =
+        "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+        "<playlist xmlns=\"http://xspf.org/ns/0/\" version=\"1\">\n"
+        "  <title>My Playlist</title>\n"
+        "  <trackList>\n"
+        "    <track><location>file:///C:/My%20Media/A%20%26%20B.mp3</location>"
+        "<title>Local</title><duration>1500</duration></track>\n"
+        "    <track><location>http://example.com/stream.mp3</location></track>\n"
+        "  </trackList>\n"
+        "</playlist>\n";
+    PlaylistParseOptions options;
+    options.checkFileExistence = false;
+    auto result = PlaylistIO::ParseXSPFContent(content, L"", options);
+    TEST_ASSERT(result.is_ok());
+    TEST_ASSERT_EQ(result.detectedFormat, PlaylistFormat::XSPF);
+    TEST_ASSERT_EQ(result.playlistTitle, std::wstring(L"My Playlist"));
+    TEST_ASSERT_EQ(result.entries.size(), size_t(2));
+    TEST_ASSERT_EQ(result.entries[0].location, std::wstring(L"C:\\My Media\\A & B.mp3"));
+    TEST_ASSERT(!result.entries[0].isUrl);
+    TEST_ASSERT_EQ(result.entries[0].title, std::wstring(L"Local"));
+    TEST_ASSERT(std::abs(result.entries[0].durationSec - 1.5) < 1e-9);
+    TEST_ASSERT_EQ(result.entries[1].location, std::wstring(L"http://example.com/stream.mp3"));
+    TEST_ASSERT(result.entries[1].isUrl);
+}
+
+TEST_CASE(PlaylistIO, XspfSerializeParseRoundTripForLocalPathWithSpaceAndAmpersand) {
+    std::vector<PlaylistEntry> entries;
+    PlaylistEntry entry;
+    entry.location = L"C:\\My Media\\A & B.mp3";
+    entry.title = L"Cool & \"Loud\" <Mix>";
+    entry.durationSec = 12.5;
+    entry.isUrl = false;
+    entries.push_back(entry);
+
+    PlaylistExportOptions options;
+    options.writeExtendedMetadata = true;
+    const std::string xml = PlaylistIO::SerializeXSPF(entries, L"Round & Trip", options);
+    TEST_ASSERT(xml.find("file:///C:/My%20Media/A%20%26%20B.mp3") != std::string::npos);
+    TEST_ASSERT(xml.find("&amp;") != std::string::npos);
+
+    PlaylistParseOptions parseOptions;
+    parseOptions.checkFileExistence = false;
+    auto result = PlaylistIO::ParseContent(xml, PlaylistFormat::XSPF, L"", parseOptions);
+    TEST_ASSERT(result.is_ok());
+    TEST_ASSERT_EQ(result.detectedFormat, PlaylistFormat::XSPF);
+    TEST_ASSERT_EQ(result.playlistTitle, std::wstring(L"Round & Trip"));
+    TEST_ASSERT_EQ(result.entries.size(), size_t(1));
+    TEST_ASSERT_EQ(result.entries[0].location, entry.location);
+    TEST_ASSERT_EQ(result.entries[0].title, entry.title);
+    TEST_ASSERT(std::abs(result.entries[0].durationSec - 12.5) < 1e-9);
 }
 
 } // namespace Aperture::Test
