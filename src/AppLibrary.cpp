@@ -255,16 +255,17 @@ void App::SetLibrarySort(LibrarySortField field, SortDirection direction) {
 }
 
 
-std::wstring App::GetLibrarySortLabel() const {
+std::wstring App::GetLibrarySortLabel(bool compact) const {
     LibrarySortField effective = librarySortField;
     if (effective == LibrarySortField::Manual && libraryGroupMode != LibraryGroupMode::Flat) { effective = LibrarySortField::Title; }
     if (effective == LibrarySortField::Manual) return L"Manual";
+    // Compact labels keep the sort button readable when the toolbar is narrow.
     std::wstring label;
     switch (effective) {
-        case LibrarySortField::DateAdded: label = L"Date Added"; break;
-        case LibrarySortField::LastPlayed: label = L"Last Played"; break;
-        case LibrarySortField::Duration: label = L"Duration"; break;
-        case LibrarySortField::Progress: label = L"Progress"; break;
+        case LibrarySortField::DateAdded: label = compact ? L"Date" : L"Date Added"; break;
+        case LibrarySortField::LastPlayed: label = compact ? L"Played" : L"Last Played"; break;
+        case LibrarySortField::Duration: label = compact ? L"Length" : L"Duration"; break;
+        case LibrarySortField::Progress: label = compact ? L"Progress" : L"Progress"; break;
         case LibrarySortField::Title:
         default: label = L"Title"; break;
     }

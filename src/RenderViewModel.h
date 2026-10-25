@@ -366,6 +366,7 @@ struct MediaTabViewModel {
     TextInputVisualState searchVisual;
     bool sortHovered = false, showSummary = true;
     std::wstring sortLabel, summaryText;
+    bool compactToolbar = false;
     D2D1_RECT_F summaryTextBounds = { 0, 0, 0, 0 };
     // Visible group headers
     std::vector<VisibleMediaGroupHeaderViewModel> visibleGroupHeaders;
@@ -595,9 +596,18 @@ struct HistoryTabViewModel {
     std::unordered_set<size_t> selectedIndices;
 };
 
+// A settings row whose inline description is hidden at compact widths; the
+// text resurfaces as a hover tooltip over the row.
+struct SettingsDescTool {
+    D2D1_RECT_F rect{};
+    std::wstring text;
+};
+
 struct SettingsTabViewModel {
     D2D1_RECT_F bounds = { 0, 0, 0, 0 };
     SettingsCategory activeCat = SettingsCategory::Appearance;
+    bool compact = false;
+    std::vector<SettingsDescTool> descTools;
     float categoryIndicatorPos = 0.0f;
     SettingsCategory hoveredCat = (SettingsCategory)-1;
     int hoveredRowIndex = -1;

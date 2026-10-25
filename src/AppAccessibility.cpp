@@ -1691,9 +1691,12 @@ void App::RefreshAccessibilityTree(bool force) {
                 const ExperienceMode expMode = FeatureGate::ModeFromString(settings.experienceMode);
                 rows.push_back({ Loc::Tr("settings.experience.title"),
                                  Loc::Tr(std::string("settings.experience.mode.") + FeatureGate::ModeToString(expMode)) });
-                for (size_t c = 0; c < FeatureGate::Catalog().size(); ++c) {
-                    const bool enabled = FeatureGate::FeatureEnabledAt(expMode, settings.customEnabledFeatures, c);
-                    rows.push_back({ Loc::Tr(FeatureGate::Catalog()[c].displayNameKey), enabled ? L"On" : L"Off" });
+                // Feature toggles exist on screen only in Custom mode.
+                if (expMode == ExperienceMode::Custom) {
+                    for (size_t c = 0; c < FeatureGate::Catalog().size(); ++c) {
+                        const bool enabled = FeatureGate::FeatureEnabledAt(expMode, settings.customEnabledFeatures, c);
+                        rows.push_back({ Loc::Tr(FeatureGate::Catalog()[c].displayNameKey), enabled ? L"On" : L"Off" });
+                    }
                 }
             } else {
                 // Display order mirrors SettingsLayout::kSystemActions: register/remove
@@ -1718,7 +1721,8 @@ void App::RefreshAccessibilityTree(bool force) {
                 if (currentSettingsCat == SettingsCategory::Experience) {
                     const float contentLeft = view.left + SettingsLayout::kSidebarWidth * dp + 16.0f * dp + SettingsLayout::kContentPadX * dp;
                     const float contentRight = view.right - SettingsLayout::kContentPadX * dp;
-                    const auto layout = SettingsLayout::MakeExperienceLayout(contentLeft, contentRight, rowTop, dp);
+                    const auto layout = SettingsLayout::MakeExperienceLayout(contentLeft, contentRight, rowTop, dp,
+                        FeatureGate::ModeFromString(settings.experienceMode) == ExperienceMode::Custom);
                     const D2D1_RECT_F target = i == 0
                         ? D2D1::RectF(layout.modeTiles[0].left, layout.modeTiles[0].top, layout.modeTiles[2].right, layout.modeTiles[2].bottom)
                         : layout.rows[i - 1];

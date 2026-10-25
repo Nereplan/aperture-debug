@@ -511,7 +511,7 @@ void UIComponents::DrawHistoryGroupHeader(Renderer& r, const Settings& s, const 
     D2D1_SIZE_F titleSize = r.MeasureString(vm.title, FontType::Subheading);
     float maxTitleW = std::min(titleSize.width + 4.0f * dp, RectWidth(vm.headerRect) * 0.55f);
     D2D1_RECT_F titleRect = D2D1::RectF(iconRect.right + 8.0f * dp, vm.headerRect.top, iconRect.right + 8.0f * dp + maxTitleW, vm.headerRect.bottom);
-    r.DrawString(vm.title, titleRect, th.text, FontType::Subheading, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+    r.DrawString(FitSingleLine(r, vm.title, FontType::Subheading, maxTitleW), titleRect, th.text, FontType::Subheading, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
     // Count badge
     D2D1_SIZE_F badgeSize = r.MeasureString(vm.countText, FontType::MonoSmall);
     float badgeW = badgeSize.width + 16.0f * dp, badgeH = 20.0f * dp;
@@ -526,7 +526,7 @@ void UIComponents::DrawHistoryGroupHeader(Renderer& r, const Settings& s, const 
     }
 }
 
-void UIComponents::DrawSettingsView(Renderer& r, const Settings& s, const SettingsTabViewModel& vm) {
+void UIComponents::DrawSettingsView(Renderer& r, const Settings& s, SettingsTabViewModel& vm) {
     float dp = r.GetDpiScale();
     // Hover feedback is resolved here from the live pointer position: the row rectangles exist only inside this function, and settings rows
     // must respond to hover before a click happens.
@@ -649,14 +649,20 @@ void UIComponents::DrawSettingsView(Renderer& r, const Settings& s, const Settin
     r.PushClip(contentBounds);
     float padX = SettingsLayout::kContentPadX * dp, contentY = contentBounds.top + SettingsLayout::kContentStartOffset * dp - vm.scrollY;
     float contentW = RectWidth(contentBounds) - padX * 2.0f;
+    // Compact: narrow content hides row descriptions; they resurface as hover
+    // tooltips registered from the rendered row rectangles.
+    vm.compact = contentW < 620.0f * dp;
+    vm.descTools.clear();
     auto drawPageHeader = [&](const std::wstring& title, const std::wstring& description) {
         const float headerTop = contentY;
         D2D1_RECT_F titleRect = D2D1::RectF(contentBounds.left + padX, headerTop, contentBounds.right - padX, headerTop + 26.0f * dp);
         r.DrawString(title, titleRect, textPri, FontType::Title, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-        D2D1_RECT_F descriptionRect = D2D1::RectF(contentBounds.left + padX, headerTop + 29.0f * dp,
-                                                   contentBounds.right - padX, headerTop + 48.0f * dp);
-        r.DrawString(FitSingleLine(r, description, FontType::Small, contentW), descriptionRect,
-                     textMute, FontType::Small, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+        if (!vm.compact) {
+            D2D1_RECT_F descriptionRect = D2D1::RectF(contentBounds.left + padX, headerTop + 29.0f * dp,
+                                                       contentBounds.right - padX, headerTop + 48.0f * dp);
+            r.DrawString(FitSingleLine(r, description, FontType::Small, contentW), descriptionRect,
+                         textMute, FontType::Small, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+        }
         contentY += SettingsLayout::kPageHeaderReserve * dp;
     };
     auto drawHeader = [&](const wchar_t* title) {
@@ -665,12 +671,13 @@ void UIComponents::DrawSettingsView(Renderer& r, const Settings& s, const Settin
         contentY += 28.0f * dp;
     };
     if (vm.activeCat == SettingsCategory::Experience) {
-        drawPageHeader(Loc::Tr("settings.category.experience"), Loc::Tr("settings.experience.description"));
+        drawPageHeader(Loc::Tr("settings.category.experience"), L"");
         const ExperienceMode expMode = FeatureGate::ModeFromString(s.experienceMode);
+        const bool isCustom = expMode == ExperienceMode::Custom;
         const auto& catalog = FeatureGate::Catalog();
         const std::wstring catalogTotal = std::to_wstring(catalog.size());
         const float contentLeft = contentBounds.left + padX, contentRight = contentBounds.right - padX;
-        const SettingsLayout::ExperienceLayout layout = SettingsLayout::MakeExperienceLayout(contentLeft, contentRight, contentY, dp);
+        const SettingsLayout::ExperienceLayout layout = SettingsLayout::MakeExperienceLayout(contentLeft, contentRight, contentY, dp, isCustom);
         const float cardRadius = SettingsLayout::kSectionCardRadius;
         auto drawFocusRing = [&](const D2D1_RECT_F& rect, float radius) {
             r.DrawRoundedRect(InsetRectF(rect, -2.0f * dp, -2.0f * dp), (radius + 2.0f) * dp, th.focusRing, 1.5f * dp);
@@ -702,10 +709,6 @@ void UIComponents::DrawSettingsView(Renderer& r, const Settings& s, const Settin
             const std::string modeKey = std::string("settings.experience.mode.") + modeNames[i];
             const D2D1_RECT_F nameRect = D2D1::RectF(radioCx + radioR + 10.0f * dp, tile.top + pad, tile.right - pad, tile.top + pad + 22.0f * dp);
             r.DrawString(Loc::Tr(modeKey), nameRect, textPri, FontType::Subheading, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-            const D2D1_RECT_F descRect = D2D1::RectF(tile.left + pad, tile.top + 40.0f * dp, tile.right - pad, tile.bottom - pad - 20.0f * dp);
-            r.PushClip(descRect);
-            r.DrawStringWrapped(Loc::Tr(modeKey + "_desc"), descRect, textMute, FontType::Small);
-            r.PopClip();
 
             // Meter: how much of the catalog this mode puts on screen.
             const size_t visible = FeatureGate::EnabledFeatureCount(mode, s.customEnabledFeatures);
@@ -727,17 +730,13 @@ void UIComponents::DrawSettingsView(Renderer& r, const Settings& s, const Settin
             }
         }
 
-        const bool isCustom = expMode == ExperienceMode::Custom;
+        // The feature list is Custom's editor; Simple and Advanced show only the
+        // mode tiles.
+        if (isCustom) {
         const float sectionTop = layout.sectionTop;
         r.DrawString(Loc::Tr("settings.experience.features_title"),
                      D2D1::RectF(contentLeft, sectionTop, contentRight, sectionTop + 22.0f * dp),
                      textPri, FontType::Title, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-        const std::wstring sectionHint = isCustom
-            ? Loc::Tr("settings.experience.features_hint")
-            : Loc::Format("settings.experience.preview_hint", Loc::Tr(std::string("settings.experience.mode.") + modeNames[static_cast<int>(expMode)]));
-        r.DrawString(FitSingleLine(r, sectionHint, FontType::Small, contentW),
-                     D2D1::RectF(contentLeft, sectionTop + 24.0f * dp, contentRight, sectionTop + 42.0f * dp),
-                     textMute, FontType::Small, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
 
         const float groupTitleH = SettingsLayout::kExperienceGroupTitleHeight * dp;
         for (const auto& group : layout.groups) {
@@ -797,6 +796,7 @@ void UIComponents::DrawSettingsView(Renderer& r, const Settings& s, const Settin
                 const float knobX = (swRect.left + 2.0f * dp + knobRadius) + t * (swW - 4.0f * dp - 2.0f * knobRadius);
                 r.FillCircle(knobX, swRect.top + swH * 0.5f, knobRadius, LerpColor(knobOff, surfaceBg, t));
             }
+        }
         }
     } else if (vm.activeCat == SettingsCategory::Appearance) {
         drawPageHeader(Loc::Tr("settings.category.appearance"), Loc::Tr("settings.page.appearance"));
@@ -881,7 +881,8 @@ void UIComponents::DrawSettingsView(Renderer& r, const Settings& s, const Settin
                 lStyle.borderWidth = 1.0f;
             } else { lStyle.fill = surfaceCard; lStyle.border = clearColor; lStyle.borderWidth = 0.0f; }
             r.DrawSurface(lRect, lStyle);
-            r.DrawString(Utf8ToUtf16(languages[i].displayName), lRect, isSelected ? textOnAccent : textNorm, (isSelected || isKbFocused) ? FontType::Medium : FontType::Regular, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+            r.DrawString(FitSingleLine(r, Utf8ToUtf16(languages[i].displayName), (isSelected || isKbFocused) ? FontType::Medium : FontType::Regular, SafeWidth(lRect.left, lRect.right)),
+                         lRect, isSelected ? textOnAccent : textNorm, (isSelected || isKbFocused) ? FontType::Medium : FontType::Regular, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
         }
         contentY += (languageRows * (langH + 8.0f * dp)) + 16.0f * dp;
     } else if (vm.activeCat == SettingsCategory::Playback) {
@@ -928,8 +929,9 @@ void UIComponents::DrawSettingsView(Renderer& r, const Settings& s, const Settin
                 rowFocusStyle.borderWidth = (isPressed || isKbFocused) ? 1.5f : 0.0f;
                 r.DrawSurface(rRect, rowFocusStyle);
             }
-            const D2D1_RECT_F rowTextRect = InsetRectF(rRect, 14.0f * dp, 0.0f);
-            if (rows[i].desc.empty()) {
+            const D2D1_RECT_F rowTextRect = D2D1::RectF(rRect.left + 14.0f * dp, rRect.top, rRect.right - 60.0f * dp, rRect.bottom);
+            if (vm.compact && !rows[i].desc.empty()) vm.descTools.push_back({ rRect, rows[i].desc });
+            if (rows[i].desc.empty() || vm.compact) {
                 r.DrawString(rows[i].label, rowTextRect, isKbFocused ? textPri : textNorm, FontType::Medium,
                              DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
             } else {
@@ -963,10 +965,16 @@ void UIComponents::DrawSettingsView(Renderer& r, const Settings& s, const Settin
         drawPlaybackCard(seekCardTop, simpleCardH);
         D2D1_RECT_F seekRowRect = D2D1::RectF(contentLeft, seekCardTop + 8.0f * dp, contentRight, seekCardTop + simpleCardH - 8.0f * dp);
         bool isSeekRowKbFocused = showContentKbFocus && (vm.keyboardFocusedRow == 4);
-        D2D1_RECT_F seekLabelRect = D2D1::RectF(seekRowRect.left + 14.0f * dp, seekRowRect.top + 6.0f * dp, seekRowRect.right - 230.0f * dp, seekRowRect.top + 26.0f * dp);
-        r.DrawString(Loc::Tr("settings.playback.seek_step_title"), seekLabelRect, textPri, FontType::Medium, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-        D2D1_RECT_F seekSubRect = D2D1::RectF(seekRowRect.left + 14.0f * dp, seekRowRect.top + 26.0f * dp, seekRowRect.right - 230.0f * dp, seekRowRect.bottom - 6.0f * dp);
-        r.DrawString(Loc::Tr("settings.playback.seek_step_desc"), seekSubRect, textMute, FontType::Small, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+        if (vm.compact) vm.descTools.push_back({ seekRowRect, Loc::Tr("settings.playback.seek_step_desc") });
+        D2D1_RECT_F seekLabelRect = vm.compact
+            ? D2D1::RectF(seekRowRect.left + 14.0f * dp, seekRowRect.top, seekRowRect.right - 230.0f * dp, seekRowRect.bottom)
+            : D2D1::RectF(seekRowRect.left + 14.0f * dp, seekRowRect.top + 6.0f * dp, seekRowRect.right - 230.0f * dp, seekRowRect.top + 26.0f * dp);
+        r.DrawString(FitSingleLine(r, Loc::Tr("settings.playback.seek_step_title"), FontType::Medium, SafeWidth(seekLabelRect.left, seekLabelRect.right)),
+                     seekLabelRect, textPri, FontType::Medium, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+        if (!vm.compact) {
+            D2D1_RECT_F seekSubRect = D2D1::RectF(seekRowRect.left + 14.0f * dp, seekRowRect.top + 26.0f * dp, seekRowRect.right - 230.0f * dp, seekRowRect.bottom - 6.0f * dp);
+            r.DrawString(Loc::Tr("settings.playback.seek_step_desc"), seekSubRect, textMute, FontType::Small, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+        }
         // Dropdown picker button
         D2D1_RECT_F dropRect = D2D1::RectF(seekRowRect.right - 220.0f * dp, seekRowRect.top + 8.0f * dp, seekRowRect.right - 100.0f * dp, seekRowRect.bottom - 8.0f * dp);
         bool isDropKb = isSeekRowKbFocused && (vm.keyboardFocusedSubIndex == 0);
@@ -998,10 +1006,16 @@ void UIComponents::DrawSettingsView(Renderer& r, const Settings& s, const Settin
         drawPlaybackCard(frameCardTop, simpleCardH);
         D2D1_RECT_F frameRowRect = D2D1::RectF(contentLeft, frameCardTop + 8.0f * dp, contentRight, frameCardTop + simpleCardH - 8.0f * dp);
         bool isFrameRowKbFocused = showContentKbFocus && (vm.keyboardFocusedRow == 5);
-        D2D1_RECT_F frameLabelRect = D2D1::RectF(frameRowRect.left + 14.0f * dp, frameRowRect.top + 6.0f * dp, frameRowRect.right - 230.0f * dp, frameRowRect.top + 26.0f * dp);
-        r.DrawString(Loc::Tr("settings.playback.frame_step_title"), frameLabelRect, textPri, FontType::Medium, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-        D2D1_RECT_F frameSubRect = D2D1::RectF(frameRowRect.left + 14.0f * dp, frameRowRect.top + 26.0f * dp, frameRowRect.right - 230.0f * dp, frameRowRect.bottom - 6.0f * dp);
-        r.DrawString(Loc::Tr("settings.playback.frame_step_desc"), frameSubRect, textMute, FontType::Small, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+        if (vm.compact) vm.descTools.push_back({ frameRowRect, Loc::Tr("settings.playback.frame_step_desc") });
+        D2D1_RECT_F frameLabelRect = vm.compact
+            ? D2D1::RectF(frameRowRect.left + 14.0f * dp, frameRowRect.top, frameRowRect.right - 230.0f * dp, frameRowRect.bottom)
+            : D2D1::RectF(frameRowRect.left + 14.0f * dp, frameRowRect.top + 6.0f * dp, frameRowRect.right - 230.0f * dp, frameRowRect.top + 26.0f * dp);
+        r.DrawString(FitSingleLine(r, Loc::Tr("settings.playback.frame_step_title"), FontType::Medium, SafeWidth(frameLabelRect.left, frameLabelRect.right)),
+                     frameLabelRect, textPri, FontType::Medium, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+        if (!vm.compact) {
+            D2D1_RECT_F frameSubRect = D2D1::RectF(frameRowRect.left + 14.0f * dp, frameRowRect.top + 26.0f * dp, frameRowRect.right - 230.0f * dp, frameRowRect.bottom - 6.0f * dp);
+            r.DrawString(Loc::Tr("settings.playback.frame_step_desc"), frameSubRect, textMute, FontType::Small, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+        }
         // Frame Dropdown picker button
         D2D1_RECT_F fDropRect = D2D1::RectF(frameRowRect.right - 220.0f * dp, frameRowRect.top + 8.0f * dp, frameRowRect.right - 100.0f * dp, frameRowRect.bottom - 8.0f * dp);
         bool isFDropKb = isFrameRowKbFocused && (vm.keyboardFocusedSubIndex == 0);
@@ -1080,10 +1094,16 @@ void UIComponents::DrawSettingsView(Renderer& r, const Settings& s, const Settin
             mpvSwitchStyle.border = (isMpvPressed || isMpvKb) ? accentCol : clearColor;
             mpvSwitchStyle.borderWidth = (isMpvPressed || isMpvKb) ? 1.5f : 0.0f;
             r.DrawSurface(mpvSwitchRect, mpvSwitchStyle);
-            D2D1_RECT_F mpvLabelRect = D2D1::RectF(mpvSwitchRect.left + 14.0f * dp, mpvSwitchRect.top + 6.0f * dp, mpvSwitchRect.right - 80.0f * dp, mpvSwitchRect.top + 26.0f * dp);
-            r.DrawString(Loc::Tr("settings.playback.mpv_conf_enable"), mpvLabelRect, isMpvKb ? textPri : textNorm, FontType::Medium, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-            D2D1_RECT_F mpvSubRect = D2D1::RectF(mpvSwitchRect.left + 14.0f * dp, mpvSwitchRect.top + 26.0f * dp, mpvSwitchRect.right - 80.0f * dp, mpvSwitchRect.bottom - 6.0f * dp);
-            r.DrawString(Loc::Tr("settings.playback.mpv_conf_desc"), mpvSubRect, textMute, FontType::Small, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+            if (vm.compact) vm.descTools.push_back({ mpvSwitchRect, Loc::Tr("settings.playback.mpv_conf_desc") });
+            D2D1_RECT_F mpvLabelRect = vm.compact
+                ? D2D1::RectF(mpvSwitchRect.left + 14.0f * dp, mpvSwitchRect.top, mpvSwitchRect.right - 80.0f * dp, mpvSwitchRect.bottom)
+                : D2D1::RectF(mpvSwitchRect.left + 14.0f * dp, mpvSwitchRect.top + 6.0f * dp, mpvSwitchRect.right - 80.0f * dp, mpvSwitchRect.top + 26.0f * dp);
+            r.DrawString(FitSingleLine(r, Loc::Tr("settings.playback.mpv_conf_enable"), FontType::Medium, SafeWidth(mpvLabelRect.left, mpvLabelRect.right)),
+                         mpvLabelRect, isMpvKb ? textPri : textNorm, FontType::Medium, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+            if (!vm.compact) {
+                D2D1_RECT_F mpvSubRect = D2D1::RectF(mpvSwitchRect.left + 14.0f * dp, mpvSwitchRect.top + 26.0f * dp, mpvSwitchRect.right - 80.0f * dp, mpvSwitchRect.bottom - 6.0f * dp);
+                r.DrawString(Loc::Tr("settings.playback.mpv_conf_desc"), mpvSubRect, textMute, FontType::Small, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+            }
             // Switch on right
             float mpvSwW = 34.0f * dp, mpvSwH = 18.0f * dp;
             D2D1_RECT_F mpvSwRect = D2D1::RectF(mpvSwitchRect.right - mpvSwW - 14.0f * dp, mpvSwitchRect.top + (50.0f * dp - mpvSwH) * 0.5f, mpvSwitchRect.right - 14.0f * dp, mpvSwitchRect.top + (50.0f * dp + mpvSwH) * 0.5f);
@@ -1132,10 +1152,16 @@ void UIComponents::DrawSettingsView(Renderer& r, const Settings& s, const Settin
                     r.DrawLine(actRowRect.left + 8.0f * dp, actRowRect.bottom + 4.0f * dp,
                                actRowRect.right - 8.0f * dp, actRowRect.bottom + 4.0f * dp, panelBorder, 1.0f * dp);
                 }
-                D2D1_RECT_F actTitleRect = D2D1::RectF(actRowRect.left + 14.0f * dp, actRowRect.top + 6.0f * dp, actRowRect.right - 120.0f * dp, actRowRect.top + 24.0f * dp);
-                D2D1_RECT_F actDescRect = D2D1::RectF(actRowRect.left + 14.0f * dp, actRowRect.top + 24.0f * dp, actRowRect.right - 120.0f * dp, actRowRect.bottom - 4.0f * dp);
-                r.DrawString(mpvBtns[i].title, actTitleRect, mpvBtns[i].isDanger ? dangerCol : (isActKb ? textPri : textNorm), FontType::Medium, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-                r.DrawString(mpvBtns[i].desc, actDescRect, textMute, FontType::Small, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+                if (vm.compact) vm.descTools.push_back({ actRowRect, mpvBtns[i].desc });
+                D2D1_RECT_F actTitleRect = vm.compact
+                    ? D2D1::RectF(actRowRect.left + 14.0f * dp, actRowRect.top, actRowRect.right - 120.0f * dp, actRowRect.bottom)
+                    : D2D1::RectF(actRowRect.left + 14.0f * dp, actRowRect.top + 6.0f * dp, actRowRect.right - 120.0f * dp, actRowRect.top + 24.0f * dp);
+                r.DrawString(FitSingleLine(r, mpvBtns[i].title, FontType::Medium, SafeWidth(actTitleRect.left, actTitleRect.right)),
+                             actTitleRect, mpvBtns[i].isDanger ? dangerCol : (isActKb ? textPri : textNorm), FontType::Medium, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+                if (!vm.compact) {
+                    D2D1_RECT_F actDescRect = D2D1::RectF(actRowRect.left + 14.0f * dp, actRowRect.top + 24.0f * dp, actRowRect.right - 120.0f * dp, actRowRect.bottom - 4.0f * dp);
+                    r.DrawString(mpvBtns[i].desc, actDescRect, textMute, FontType::Small, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+                }
                 // Badge button
                 float badgeW = 96.0f * dp, badgeH = 26.0f * dp;
                 D2D1_RECT_F badgeRect = D2D1::RectF(actRowRect.right - badgeW - 12.0f * dp, actRowRect.top + (mpvActCardH - badgeH) * 0.5f, actRowRect.right - 12.0f * dp, actRowRect.top + (mpvActCardH + badgeH) * 0.5f);
@@ -1162,10 +1188,17 @@ void UIComponents::DrawSettingsView(Renderer& r, const Settings& s, const Settin
                     rowFocusStyle.borderWidth = (isPressed || isKb) ? 1.5f : 0.0f;
                     r.DrawSurface(rowRect, rowFocusStyle);
                 }
-                const D2D1_RECT_F labelRect = D2D1::RectF(rowRect.left + 14.0f * dp, rowRect.top + 5.0f * dp, rowRect.right - 80.0f * dp, rowRect.top + 25.0f * dp);
-                const D2D1_RECT_F descRect = D2D1::RectF(rowRect.left + 14.0f * dp, rowRect.top + 25.0f * dp, rowRect.right - 80.0f * dp, rowRect.bottom - 5.0f * dp);
-                r.DrawString(label, labelRect, isKb ? textPri : textNorm, FontType::Medium, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-                r.DrawString(desc, descRect, textMute, FontType::Small, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+                if (vm.compact) {
+                    vm.descTools.push_back({ rowRect, desc });
+                    const D2D1_RECT_F centered = D2D1::RectF(rowRect.left + 14.0f * dp, rowRect.top, rowRect.right - 80.0f * dp, rowRect.bottom);
+                    r.DrawString(FitSingleLine(r, label, FontType::Medium, SafeWidth(centered.left, centered.right)),
+                                 centered, isKb ? textPri : textNorm, FontType::Medium, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+                } else {
+                    const D2D1_RECT_F labelRect = D2D1::RectF(rowRect.left + 14.0f * dp, rowRect.top + 5.0f * dp, rowRect.right - 80.0f * dp, rowRect.top + 25.0f * dp);
+                    const D2D1_RECT_F descRect = D2D1::RectF(rowRect.left + 14.0f * dp, rowRect.top + 25.0f * dp, rowRect.right - 80.0f * dp, rowRect.bottom - 5.0f * dp);
+                    r.DrawString(label, labelRect, isKb ? textPri : textNorm, FontType::Medium, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+                    r.DrawString(desc, descRect, textMute, FontType::Small, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+                }
                 // Same compact switch as the behavior rows (34px x 18px).
                 float swW = 34.0f * dp, swH = 18.0f * dp;
                 D2D1_RECT_F swRect = D2D1::RectF(rowRect.right - swW - 14.0f * dp, rowRect.top + (rowRect.bottom - rowRect.top - swH) * 0.5f,
@@ -1224,10 +1257,17 @@ void UIComponents::DrawSettingsView(Renderer& r, const Settings& s, const Settin
             drawPlaybackCard(backCacheCardTop, simpleCardH);
             D2D1_RECT_F backCacheRowRect = D2D1::RectF(contentLeft, backCacheCardTop + 8.0f * dp, contentRight, backCacheCardTop + simpleCardH - 8.0f * dp);
             bool isBackCacheRowKbFocused = showContentKbFocus && (vm.keyboardFocusedRow == 13);
-            D2D1_RECT_F backCacheLabelRect = D2D1::RectF(backCacheRowRect.left + 14.0f * dp, backCacheRowRect.top + 6.0f * dp, backCacheRowRect.right - 230.0f * dp, backCacheRowRect.top + 26.0f * dp);
-            r.DrawString(L"Network Cache (Back)", backCacheLabelRect, textPri, FontType::Medium, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-            D2D1_RECT_F backCacheSubRect = D2D1::RectF(backCacheRowRect.left + 14.0f * dp, backCacheRowRect.top + 26.0f * dp, backCacheRowRect.right - 230.0f * dp, backCacheRowRect.bottom - 6.0f * dp);
-            r.DrawString(L"Backward buffer kept after seeking network streams", backCacheSubRect, textMute, FontType::Small, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+            const wchar_t* kBackCacheDesc = L"Backward buffer kept after seeking network streams";
+            if (vm.compact) vm.descTools.push_back({ backCacheRowRect, kBackCacheDesc });
+            D2D1_RECT_F backCacheLabelRect = vm.compact
+                ? D2D1::RectF(backCacheRowRect.left + 14.0f * dp, backCacheRowRect.top, backCacheRowRect.right - 230.0f * dp, backCacheRowRect.bottom)
+                : D2D1::RectF(backCacheRowRect.left + 14.0f * dp, backCacheRowRect.top + 6.0f * dp, backCacheRowRect.right - 230.0f * dp, backCacheRowRect.top + 26.0f * dp);
+            r.DrawString(FitSingleLine(r, L"Network Cache (Back)", FontType::Medium, SafeWidth(backCacheLabelRect.left, backCacheLabelRect.right)),
+                         backCacheLabelRect, textPri, FontType::Medium, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+            if (!vm.compact) {
+                D2D1_RECT_F backCacheSubRect = D2D1::RectF(backCacheRowRect.left + 14.0f * dp, backCacheRowRect.top + 26.0f * dp, backCacheRowRect.right - 230.0f * dp, backCacheRowRect.bottom - 6.0f * dp);
+                r.DrawString(kBackCacheDesc, backCacheSubRect, textMute, FontType::Small, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+            }
             // Dropdown picker button
             D2D1_RECT_F backDropRect = D2D1::RectF(backCacheRowRect.right - 220.0f * dp, backCacheRowRect.top + 8.0f * dp, backCacheRowRect.right - 100.0f * dp, backCacheRowRect.bottom - 8.0f * dp);
             bool isBackDropKb = isBackCacheRowKbFocused && (vm.keyboardFocusedSubIndex == 0);
@@ -1303,6 +1343,8 @@ void UIComponents::DrawSettingsView(Renderer& r, const Settings& s, const Settin
         const wchar_t* audioLangLabels[] = { L"English", L"Japanese", L"French", L"German", L"Spanish", L"Italian", L"Default" };
         const char* subLangCodes[] = { "eng", "jpn", "fra", "deu", "spa", "ita", "off" };
         const wchar_t* subLangLabels[] = { L"English", L"Japanese", L"French", L"German", L"Spanish", L"Italian", L"Off" };
+        const wchar_t* audioLangShort[] = { L"EN", L"JA", L"FR", L"DE", L"ES", L"IT", L"Default" };
+        const wchar_t* subLangShort[] = { L"EN", L"JA", L"FR", L"DE", L"ES", L"IT", L"Off" };
         const float trackW = (usableW - 6.0f * controlGap) / 7.0f;
         // Live subtitle preview — a plausible dim video frame instead of a hatched placeholder, with text rendered at the actual configured
         // pixel size so the slider reflects continuously.
@@ -1349,7 +1391,7 @@ void UIComponents::DrawSettingsView(Renderer& r, const Settings& s, const Settin
         for (int i = 0; i < 7; ++i) {
             const D2D1_RECT_F rect = D2D1::RectF(subLeft + i * (trackW + controlGap), controlsTop,
                                                  subLeft + i * (trackW + controlGap) + trackW, controlsTop + controlH);
-            drawChoice(rect, audioLangLabels[i], s.audioLang == audioLangCodes[i],
+            drawChoice(rect, vm.compact ? audioLangShort[i] : audioLangLabels[i], s.audioLang == audioLangCodes[i],
                        showContentKbFocus && vm.keyboardFocusedRow == 0 && vm.keyboardFocusedSubIndex == i,
                        vm.pressState.IsOptionPressed(0, i));
         }
@@ -1361,7 +1403,7 @@ void UIComponents::DrawSettingsView(Renderer& r, const Settings& s, const Settin
             const D2D1_RECT_F rect = D2D1::RectF(subLeft + i * (trackW + controlGap), controlsTop,
                                                  subLeft + i * (trackW + controlGap) + trackW, controlsTop + controlH);
             const bool selected = i == 6 ? !s.subtitlesEnabled : (s.subtitlesEnabled && s.subLang == subLangCodes[i]);
-            drawChoice(rect, subLangLabels[i], selected,
+            drawChoice(rect, vm.compact ? subLangShort[i] : subLangLabels[i], selected,
                        showContentKbFocus && vm.keyboardFocusedRow == 1 && vm.keyboardFocusedSubIndex == i,
                        vm.pressState.IsOptionPressed(1, i));
         }
@@ -1531,10 +1573,12 @@ void UIComponents::DrawSettingsView(Renderer& r, const Settings& s, const Settin
         }
         r.DrawSurface(resetRect, resetStyle);
         r.DrawString(Loc::Tr("settings.shortcuts.reset"), resetRect, (vm.isResetShortcutsHovered || isResetKbFocused || isResetPressed) ? accentCol : textMute, FontType::Small, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-        D2D1_RECT_F descriptionRect = D2D1::RectF(contentBounds.left + padX, pageHeaderTop + 29.0f * dp,
-                                                   contentBounds.right - padX, pageHeaderTop + 48.0f * dp);
-        r.DrawString(FitSingleLine(r, Loc::Tr("settings.page.shortcuts"), FontType::Small, contentW), descriptionRect,
-                     textMute, FontType::Small, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+        if (!vm.compact) {
+            D2D1_RECT_F descriptionRect = D2D1::RectF(contentBounds.left + padX, pageHeaderTop + 29.0f * dp,
+                                                       contentBounds.right - padX, pageHeaderTop + 48.0f * dp);
+            r.DrawString(FitSingleLine(r, Loc::Tr("settings.page.shortcuts"), FontType::Small, contentW), descriptionRect,
+                         textMute, FontType::Small, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+        }
         contentY += SettingsLayout::kPageHeaderReserve * dp;
         contentY += 32.0f * dp;
         auto scList = s.GetShortcutActionListRef();
@@ -1626,7 +1670,7 @@ void UIComponents::DrawSettingsView(Renderer& r, const Settings& s, const Settin
         r.DrawString(L"Aperture " + std::wstring(Version::DisplayVersionWide),
             D2D1::RectF(infoLeft, aboutRect.top + 12 * dp, infoRight, aboutRect.top + 34 * dp),
             textPri, FontType::Bold, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-        r.DrawString(Loc::Tr("settings.system.portable_desc"),
+        r.DrawString(FitSingleLine(r, Loc::Tr("settings.system.portable_desc"), FontType::Small, SafeWidth(infoLeft, infoRight)),
             D2D1::RectF(infoLeft, aboutRect.top + 38 * dp, infoRight, aboutRect.bottom - 10 * dp),
             textMute, FontType::Small, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
 
@@ -1711,11 +1755,17 @@ void UIComponents::DrawSettingsView(Renderer& r, const Settings& s, const Settin
             // Title & description; color carries hover, position stays fixed.
             const float textLeft = isRtl ? (bRect.left + 130.0f * dp) : (iconBox.right + 12.0f * dp);
             const float textRight = isRtl ? (iconBox.left - 12.0f * dp) : (bRect.right - 130.0f * dp);
-            D2D1_RECT_F titleRect = D2D1::RectF(textLeft, bRect.top + 10.0f * dp + pressDy, textRight, bRect.top + 30.0f * dp + pressDy);
-            D2D1_RECT_F descRect = D2D1::RectF(textLeft, bRect.top + 31.0f * dp + pressDy, textRight, bRect.bottom - 8.0f * dp + pressDy);
+            if (vm.compact) vm.descTools.push_back({ bRect, btns[i].desc });
+            const D2D1_RECT_F titleRect = vm.compact
+                ? D2D1::RectF(textLeft, bRect.top + pressDy, textRight, bRect.bottom + pressDy)
+                : D2D1::RectF(textLeft, bRect.top + 10.0f * dp + pressDy, textRight, bRect.top + 30.0f * dp + pressDy);
             const D2D1_COLOR_F titleCol = danger ? dangerCol : (isKbFocused ? textPri : LerpColor(textNorm, textPri, hoverProg));
-            r.DrawString(btns[i].label, titleRect, titleCol, FontType::Medium, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-            r.DrawString(btns[i].desc, descRect, LerpColor(textMute, textNorm, hoverProg * 0.35f), FontType::Small, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+            r.DrawString(FitSingleLine(r, btns[i].label, FontType::Medium, SafeWidth(titleRect.left, titleRect.right)),
+                         titleRect, titleCol, FontType::Medium, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+            if (!vm.compact) {
+                D2D1_RECT_F descRect = D2D1::RectF(textLeft, bRect.top + 31.0f * dp + pressDy, textRight, bRect.bottom - 8.0f * dp + pressDy);
+                r.DrawString(btns[i].desc, descRect, LerpColor(textMute, textNorm, hoverProg * 0.35f), FontType::Small, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+            }
 
             // Right-aligned action badge; static geometry, state lives in color.
             const float actW = 110.0f * dp, actH = 28.0f * dp;
@@ -3098,7 +3148,8 @@ void UIComponents::DrawMediaToolbar(Renderer& r, const Settings& s, const MediaT
     const auto sortColors = Presentation::Button(th, false, false, vm.sortHovered, false);
     r.FillRoundedRect(vm.sortBtnBounds, Presentation::ButtonRadius * dp, sortColors.fill);
     r.DrawRoundedRect(vm.sortBtnBounds, Presentation::ButtonRadius * dp, sortColors.border, dp);
-    r.DrawString(vm.sortLabel, D2D1::RectF(vm.sortBtnBounds.left + 10.0f * dp, vm.sortBtnBounds.top, vm.sortBtnBounds.right - 24.0f * dp, vm.sortBtnBounds.bottom),
+    r.DrawString(FitSingleLine(r, vm.sortLabel, FontType::Small, std::max(0.0f, RectWidth(vm.sortBtnBounds) - 34.0f * dp)),
+        D2D1::RectF(vm.sortBtnBounds.left + 10.0f * dp, vm.sortBtnBounds.top, vm.sortBtnBounds.right - 24.0f * dp, vm.sortBtnBounds.bottom),
         sortColors.text, FontType::Small, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
     const float chevronSize = 12.0f * dp, chevronCx = vm.sortBtnBounds.right - 12.0f * dp;
     const float chevronCy = (vm.sortBtnBounds.top + vm.sortBtnBounds.bottom) * 0.5f;
@@ -3117,7 +3168,7 @@ void UIComponents::DrawMediaToolbar(Renderer& r, const Settings& s, const MediaT
 
     bool isFlatHover = (vm.hoveredGroupBtn == 0);
     D2D1_COLOR_F flatCol = LerpColor(th.textMuted, th.text, std::max(1.0f - gPos, isFlatHover ? 0.7f : 0.0f));
-    r.DrawString(L"Standalone", vm.flatBtnBounds, flatCol, FontType::Small, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+    r.DrawString(vm.compactToolbar ? L"Files" : L"Standalone", vm.flatBtnBounds, flatCol, FontType::Small, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
 
     bool isGroupedHover = (vm.hoveredGroupBtn == 1);
     D2D1_COLOR_F seriesCol = LerpColor(th.textMuted, th.text, std::max(gPos, isGroupedHover ? 0.7f : 0.0f));
@@ -3166,7 +3217,8 @@ void UIComponents::DrawMediaGroupHeader(Renderer& r, const Settings& s, const Vi
     D2D1_SIZE_F titleSize = r.MeasureString(vm.title, FontType::Subheading);
     float maxTitleW = std::min(titleSize.width + 4.0f * dp, RectWidth(vm.headerRect) * 0.50f);
     D2D1_RECT_F titleRect = D2D1::RectF(iconRect.right + 8.0f * dp, vm.headerRect.top, iconRect.right + 8.0f * dp + maxTitleW, vm.headerRect.bottom);
-    r.DrawString(vm.title, titleRect, (vm.isHovered || vm.isSelected) ? th.accent : th.text, FontType::Subheading, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+    r.DrawString(FitSingleLine(r, vm.title, FontType::Subheading, maxTitleW), titleRect,
+                 (vm.isHovered || vm.isSelected) ? th.accent : th.text, FontType::Subheading, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
     // Count badge
     D2D1_SIZE_F badgeSize = r.MeasureString(vm.countText, FontType::MonoSmall);
     float badgeW = badgeSize.width + 16.0f * dp, badgeH = 20.0f * dp;
@@ -3529,14 +3581,20 @@ void UIComponents::DrawPlaylistDetailPane(Renderer& r, const Settings& s, const 
             D2D1_RECT_F barRect = D2D1::RectF(vm.resumeCard.thumbRect.left, vm.resumeCard.thumbRect.bottom - 3.0f * dp, vm.resumeCard.thumbRect.left + thumbW * (float)vm.resumeCard.progressRatio, vm.resumeCard.thumbRect.bottom);
             r.FillRect(barRect, th.accent);
         }
-        r.DrawString(vm.resumeCard.tagText, vm.resumeCard.tagRect, th.accent, FontType::Caption, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-        r.DrawString(vm.resumeCard.title, vm.resumeCard.titleRect, th.text, FontType::Title, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-        r.DrawString(vm.resumeCard.timeText, vm.resumeCard.timeRect, th.textMuted, FontType::MonoSmall, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+        r.DrawString(FitSingleLine(r, vm.resumeCard.tagText, FontType::Caption, SafeWidth(vm.resumeCard.tagRect.left, vm.resumeCard.tagRect.right)),
+                     vm.resumeCard.tagRect, th.accent, FontType::Caption, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+        r.DrawString(FitSingleLine(r, vm.resumeCard.title, FontType::Title, SafeWidth(vm.resumeCard.titleRect.left, vm.resumeCard.titleRect.right)),
+                     vm.resumeCard.titleRect, th.text, FontType::Title, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+        r.DrawString(FitSingleLine(r, vm.resumeCard.timeText, FontType::MonoSmall, SafeWidth(vm.resumeCard.timeRect.left, vm.resumeCard.timeRect.right)),
+                     vm.resumeCard.timeRect, th.textMuted, FontType::MonoSmall, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
     }
     curY += resumeH + 16.0f * dp;
     float tbH = 32.0f * dp;
     D2D1_RECT_F tbRect = D2D1::RectF(vm.listClipBounds.left, curY, paneRight, curY + tbH);
-    float searchW = 230.0f * dp;
+    float toggleW = 64.0f * dp;
+    float toggleLeft = std::max(tbRect.left + toggleW, tbRect.right - toggleW);
+    // Keep room for the count text and the view toggle at narrow pane widths.
+    float searchW = std::min(230.0f * dp, std::max(60.0f * dp, toggleLeft - tbRect.left - 110.0f * dp));
     D2D1_RECT_F searchRect = D2D1::RectF(tbRect.left, tbRect.top, tbRect.left + searchW, tbRect.bottom);
     r.FillRoundedRect(searchRect, 7.0f * dp, D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.03f));
     r.DrawRoundedRect(searchRect, 7.0f * dp, D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.08f), 1.0f);
@@ -3545,10 +3603,11 @@ void UIComponents::DrawPlaylistDetailPane(Renderer& r, const Settings& s, const 
     D2D1_RECT_F searchTxtRect = D2D1::RectF(searchRect.left + 30.0f * dp, searchRect.top, searchRect.right - 8.0f * dp, searchRect.bottom);
     DrawTextInput(r, s, searchTxtRect, vm.searchVisual, L"Filter episodes\x2026", FontType::Small, 0.0f);
     std::wstring countStr = std::to_wstring(vm.visibleCount) + L" videos";
-    D2D1_RECT_F epCountRect = D2D1::RectF(searchRect.right + 14.0f * dp, tbRect.top, searchRect.right + 160.0f * dp, tbRect.bottom);
-    r.DrawString(countStr, epCountRect, th.textMuted, FontType::MonoSmall, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-    float toggleW = 64.0f * dp;
-    D2D1_RECT_F toggleRect = D2D1::RectF(tbRect.right - toggleW, tbRect.top, tbRect.right, tbRect.bottom);
+    D2D1_RECT_F epCountRect = D2D1::RectF(searchRect.right + 14.0f * dp, tbRect.top,
+                                          std::max(searchRect.right + 14.0f * dp, toggleLeft - 10.0f * dp), tbRect.bottom);
+    r.DrawString(FitSingleLine(r, countStr, FontType::MonoSmall, SafeWidth(epCountRect.left, epCountRect.right)),
+                 epCountRect, th.textMuted, FontType::MonoSmall, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+    D2D1_RECT_F toggleRect = D2D1::RectF(toggleLeft, tbRect.top, tbRect.right, tbRect.bottom);
     r.FillRoundedRect(toggleRect, 7.0f * dp, D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.03f));
     r.DrawRoundedRect(toggleRect, 7.0f * dp, D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.08f), 1.0f);
     D2D1_RECT_F listBtnRect = D2D1::RectF(toggleRect.left + 2.0f * dp, toggleRect.top + 2.0f * dp, toggleRect.left + toggleW * 0.5f - 1.0f * dp, toggleRect.bottom - 2.0f * dp);
@@ -3810,21 +3869,25 @@ void UIComponents::DrawHistoryList(Renderer& r, const Settings& s, const History
     float dp = r.GetDpiScale();
     const auto& th = s.currentTheme;
     float headerY = vm.bounds.top + 26.0f * dp;
-    // Header title and count on the left
-    D2D1_RECT_F titleRect = D2D1::RectF(vm.bounds.left + 12.0f * dp, headerY + 4.0f * dp, vm.bounds.left + 300.0f * dp, headerY + 36.0f * dp);
-    r.DrawString(L"WATCH HISTORY", titleRect, th.text, FontType::Title, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-    size_t totalHistoryCount = vm.pHistory ? vm.pHistory->size() : 0;
-    if (totalHistoryCount == 0 && !vm.visibleItems.empty()) totalHistoryCount = vm.visibleItems.size();
-    if (totalHistoryCount > 0) {
-        std::wstring countStr = std::to_wstring(totalHistoryCount) + (totalHistoryCount == 1 ? L" item" : L" items");
-        D2D1_SIZE_F titleSz = r.MeasureString(L"WATCH HISTORY", FontType::Title);
-        D2D1_RECT_F countRect = D2D1::RectF(vm.bounds.left + 20.0f * dp + titleSz.width, headerY + 4.0f * dp, vm.bounds.left + 450.0f * dp, headerY + 36.0f * dp);
-        r.DrawString(countStr, countRect, th.textMuted, FontType::Small, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-    }
     // Right-aligned Clear Watch History action with intentional destructive styling
     D2D1_SIZE_F clearSize = r.MeasureString(L"Clear Watch History", FontType::Small);
     float clearW = clearSize.width + 32.0f * dp, clearRight = vm.bounds.right - 24.0f * dp, clearLeft = clearRight - clearW;
     D2D1_RECT_F clearRect = D2D1::RectF(clearLeft, headerY + 5.0f * dp, clearRight, headerY + 35.0f * dp);
+    // Header title and count on the left, clamped to the Clear action
+    D2D1_SIZE_F titleSz = r.MeasureString(L"WATCH HISTORY", FontType::Title);
+    D2D1_RECT_F titleRect = D2D1::RectF(vm.bounds.left + 12.0f * dp, headerY + 4.0f * dp,
+                                        std::min(vm.bounds.left + 300.0f * dp, clearLeft - 12.0f * dp), headerY + 36.0f * dp);
+    r.DrawString(FitSingleLine(r, L"WATCH HISTORY", FontType::Title, SafeWidth(titleRect.left, titleRect.right)),
+                 titleRect, th.text, FontType::Title, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+    size_t totalHistoryCount = vm.pHistory ? vm.pHistory->size() : 0;
+    if (totalHistoryCount == 0 && !vm.visibleItems.empty()) totalHistoryCount = vm.visibleItems.size();
+    if (totalHistoryCount > 0) {
+        std::wstring countStr = std::to_wstring(totalHistoryCount) + (totalHistoryCount == 1 ? L" item" : L" items");
+        D2D1_RECT_F countRect = D2D1::RectF(vm.bounds.left + 20.0f * dp + titleSz.width, headerY + 4.0f * dp,
+                                            std::min(vm.bounds.left + 450.0f * dp, clearLeft - 12.0f * dp), headerY + 36.0f * dp);
+        r.DrawString(FitSingleLine(r, countStr, FontType::Small, SafeWidth(countRect.left, countRect.right)),
+                     countRect, th.textMuted, FontType::Small, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+    }
     D2D1_COLOR_F clearBg = vm.isClearPressed ? ColorWithAlpha(th.red, 0.38f) : (vm.isClearHovered ? ColorWithAlpha(th.red, 0.22f) : ColorWithAlpha(th.red, 0.10f));
     D2D1_COLOR_F clearBorder = vm.isClearPressed ? ColorWithAlpha(th.red, 0.95f) : (vm.isClearHovered ? ColorWithAlpha(th.red, 0.70f) : ColorWithAlpha(th.red, 0.35f));
     D2D1_COLOR_F clearFg = vm.isClearPressed ? D2D1::ColorF(1.0f, 1.0f, 1.0f) : (vm.isClearHovered ? th.red : ColorWithAlpha(th.red, 0.88f));
@@ -4205,7 +4268,7 @@ void UIComponents::DrawPlayerOverlay(OverlayRenderer& r, const Settings& s, cons
         DrawInputModal(r, s, vm.winBounds, vm.modal);
 }
 
-void UIComponents::DrawHub(Renderer& r, const Settings& s, const HubRenderViewModel& vm) {
+void UIComponents::DrawHub(Renderer& r, const Settings& s, HubRenderViewModel& vm) {
     const auto& th = s.currentTheme;
     float dp = r.GetDpiScale();
     r.Clear(th.bg);

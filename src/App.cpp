@@ -471,10 +471,11 @@ void App::RestoreLogicalFocus(const FocusSnapshot& snapshot) {
                 }
             } else {
                 const bool simpleSettings = FeatureGate::ModeFromString(settings.experienceMode) == ExperienceMode::Simple;
+                const bool customSettings = FeatureGate::ModeFromString(settings.experienceMode) == ExperienceMode::Custom;
                 int rowCount = (currentSettingsCat == SettingsCategory::Appearance) ? 2 :
                                (currentSettingsCat == SettingsCategory::Playback) ? SettingsLayout::PlaybackRowCount(simpleSettings) :
                                (currentSettingsCat == SettingsCategory::Subtitles) ? 6 :
-                               (currentSettingsCat == SettingsCategory::Experience) ? static_cast<int>(FeatureGate::Catalog().size()) + 1 :
+                               (currentSettingsCat == SettingsCategory::Experience) ? (customSettings ? static_cast<int>(FeatureGate::Catalog().size()) + 1 : 1) :
                                (currentSettingsCat == SettingsCategory::System) ? SettingsLayout::SystemRowCount(simpleSettings) : 1;
                 keyboardFocusedIndex = std::clamp(snapshot.keyboardIndex, 0, std::max(0, rowCount - 1));
                 keyboardFocusedSubIndex = snapshot.keyboardSubIndex;
@@ -979,8 +980,8 @@ void App::ResolveSettingsHover(float x, float y) {
 }
 
 void App::ToggleExperienceFeature(const std::string& key) {
-    // Simple and Advanced show a read-only preview of their surface; editing a
-    // feature there forks that surface into Custom before applying the change.
+    // The feature editor exists only in Custom; the guard is defensive for
+    // programmatic callers. Forking seeds Custom from the surface being viewed.
     if (FeatureGate::ModeFromString(settings.experienceMode) != ExperienceMode::Custom) {
         ApplyExperienceModeSelection(ExperienceMode::Custom, /*forkFromPreview=*/true);
     }
@@ -1026,7 +1027,8 @@ float App::GetSettingsContentHeight(float dp) const {
                                                        static_cast<float>(std::max<LONG>(1, rc.bottom - rc.top)), dp);
         const D2D1_RECT_F content = SettingsLayout::ContentBounds(view, dp);
         const float padX = SettingsLayout::kContentPadX * dp;
-        settingsCardH = SettingsLayout::MakeExperienceLayout(content.left + padX, content.right - padX, 0.0f, dp).bottom;
+        const bool customSettings = FeatureGate::ModeFromString(settings.experienceMode) == ExperienceMode::Custom;
+        settingsCardH = SettingsLayout::MakeExperienceLayout(content.left + padX, content.right - padX, 0.0f, dp, customSettings).bottom;
     } else if (currentSettingsCat == SettingsCategory::System) {
         const bool simpleSettings = FeatureGate::ModeFromString(settings.experienceMode) == ExperienceMode::Simple;
         settingsCardH = (SettingsLayout::kSystemActionsTop + SettingsLayout::SystemRowCount(simpleSettings) * 68.0f + 16.0f) * dp;
@@ -2196,6 +2198,7 @@ bool App::RenderHubFrame() {
     HubRenderViewModel vm = BuildHubRenderViewModel();
     for (int i = 0; i < 40; ++i) vm.settingsTab.experienceToggleAnim[i] = experienceToggleAnim[i].current;
     UIComponents::DrawHub(renderer, settings, vm);
+    settingsDescTools = std::move(vm.settingsTab.descTools);
     return renderer.EndDraw() && !renderer.IsOccluded();
 }
 
@@ -2224,6 +2227,10 @@ void App::Render() {
     RefreshHubTooltips();
     // --- Hub Library View (Rendered directly on main window) ---
     if (!RenderHubFrame()) return;
+    // The first refresh above predates this frame's render; run it again so
+    // tools laid out during the frame (e.g. compact Settings descriptions)
+    // are registered at their final positions.
+    RefreshHubTooltips();
     // Reveal a complete hub frame before removing playback surfaces.
     if (hVideoWnd && IsWindowVisible(hVideoWnd)) ShowWindow(hVideoWnd, SW_HIDE);
     if (hOverlayWnd && IsWindowVisible(hOverlayWnd)) ShowWindow(hOverlayWnd, SW_HIDE);
@@ -3923,8 +3930,9 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                     float contentW = RectWidth(contentBounds) - padX * 2.0f;
                     if (currentSettingsCat == SettingsCategory::Experience) {
                         // Mode tiles are row 0 (sub 0..2); features are rows 1..N in
-                        // catalog order. Clicking a feature outside Custom switches to Custom.
-                        const auto layout = SettingsLayout::MakeExperienceLayout(contentBounds.left + padX, contentBounds.right - padX, contentY, dp);
+                        // catalog order, present only while Custom is selected.
+                        const bool customSettings = FeatureGate::ModeFromString(settings.experienceMode) == ExperienceMode::Custom;
+                        const auto layout = SettingsLayout::MakeExperienceLayout(contentBounds.left + padX, contentBounds.right - padX, contentY, dp, customSettings);
                         for (int i = 0; i < 3; ++i) {
                             if (PtInRectF(layout.modeTiles[i], x, y)) {
                                 settingsPressState = { SettingsPressState::Target::OptionRow, 0, i };
@@ -3933,12 +3941,14 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                                 return 0;
                             }
                         }
-                        for (size_t i = 0; i < FeatureGate::Catalog().size(); ++i) {
-                            if (PtInRectF(layout.rows[i], x, y)) {
-                                settingsPressState = { SettingsPressState::Target::OptionRow, static_cast<int>(i) + 1, 0 };
-                                SetCapture(hWnd);
-                                InvalidateRect(hWnd, NULL, FALSE);
-                                return 0;
+                        if (customSettings) {
+                            for (size_t i = 0; i < FeatureGate::Catalog().size(); ++i) {
+                                if (PtInRectF(layout.rows[i], x, y)) {
+                                    settingsPressState = { SettingsPressState::Target::OptionRow, static_cast<int>(i) + 1, 0 };
+                                    SetCapture(hWnd);
+                                    InvalidateRect(hWnd, NULL, FALSE);
+                                    return 0;
+                                }
                             }
                         }
                     } else if (currentSettingsCat == SettingsCategory::Appearance) {
@@ -4441,7 +4451,8 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                             activeFocusPane = FocusPane::SettingsContent;
                             keyboardFocusedIndex = 0;
                             keyboardFocusedSubIndex = pressed.subIndex;
-                        } else if (pressed.index >= 1) {
+                        } else if (pressed.index >= 1 &&
+                                   FeatureGate::ModeFromString(settings.experienceMode) == ExperienceMode::Custom) {
                             const auto& catalog = FeatureGate::Catalog();
                             const int fi = pressed.index - 1;
                             if (fi < static_cast<int>(catalog.size())) {
@@ -5640,7 +5651,7 @@ bool App::CaptureClientContent(const std::wstring& outputPath) {
     if (playbackSession.IsOpen()) return false;
     renderer.BeginDraw();
     previewPlayer.BindDeviceContext(renderer.GetD2DContext());
-    const auto vm = BuildHubRenderViewModel();
+    auto vm = BuildHubRenderViewModel();
     UIComponents::DrawHub(renderer, settings, vm);
     if (!renderer.EndDraw(false)) return false;
     return renderer.CaptureBackBufferToPng(outputPath);

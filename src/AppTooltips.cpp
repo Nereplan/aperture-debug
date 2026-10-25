@@ -44,6 +44,16 @@ void App::RefreshHubTooltips(bool force) {
     MixTooltipSignature(signature, library.GetVersion());
     MixTooltipSignature(signature, static_cast<unsigned long long>(std::lround(mediaScrollY)));
     MixTooltipSignature(signature, static_cast<unsigned long long>(std::lround(historyScrollY)));
+    MixTooltipSignature(signature, static_cast<unsigned long long>(std::lround(settingsScrollY)));
+    MixTooltipSignature(signature, static_cast<unsigned long long>(currentSettingsCat));
+    MixTooltipSignature(signature, static_cast<unsigned long long>(settingsDescTools.size()));
+    for (const SettingsDescTool& tool : settingsDescTools) {
+        MixTooltipSignature(signature, Fnv1a64(tool.text.c_str(), tool.text.size() * sizeof(wchar_t)));
+        MixTooltipSignature(signature, static_cast<unsigned long long>(std::lround(tool.rect.left)) |
+            (static_cast<unsigned long long>(std::lround(tool.rect.top)) << 32));
+        MixTooltipSignature(signature, static_cast<unsigned long long>(std::lround(tool.rect.right)) |
+            (static_cast<unsigned long long>(std::lround(tool.rect.bottom)) << 32));
+    }
     // Mix the raw binding fields: formatting a wstring per binding per frame
     // allocated ~2n strings on every render just to keep the signature equal.
     for (const auto& pair : settings.shortcuts) {
@@ -125,6 +135,14 @@ void App::RefreshHubTooltips(bool force) {
                         TooltipClientRect(row.left, row.top, row.right, row.bottom));
                 }
             }
+        }
+    }
+    if (currentTab == TabView::Settings) {
+        // Compact layout hides row descriptions; hovering re-surfaces them.
+        for (size_t i = 0; i < settingsDescTools.size(); ++i) {
+            const SettingsDescTool& tool = settingsDescTools[i];
+            add(40000 + static_cast<TooltipManager::ToolId>(i), tool.text,
+                TooltipClientRect(tool.rect.left, tool.rect.top, tool.rect.right, tool.rect.bottom));
         }
     }
     if (currentTab == TabView::Playlists) {

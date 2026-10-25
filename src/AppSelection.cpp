@@ -531,7 +531,10 @@ void App::AutoScrollToFocusedItem() {
         int rowCount = currentSettingsCat == SettingsCategory::Appearance ? 2 :
             (currentSettingsCat == SettingsCategory::Shortcuts ? (int)settings.GetShortcutActionListRef().size() + 1 :
                 (currentSettingsCat == SettingsCategory::System ? SettingsLayout::kSystemRowCount :
-                    (currentSettingsCat == SettingsCategory::Experience ? static_cast<int>(FeatureGate::Catalog().size()) + 1 : 6)));
+                    (currentSettingsCat == SettingsCategory::Experience
+                        ? (FeatureGate::ModeFromString(settings.experienceMode) == ExperienceMode::Custom
+                            ? static_cast<int>(FeatureGate::Catalog().size()) + 1 : 1)
+                        : 6)));
         if (keyboardFocusedIndex < 0 || keyboardFocusedIndex >= rowCount) return;
         const float sectionTop = (SettingsLayout::kContentStartOffset +
             (currentSettingsCat == SettingsCategory::Subtitles ? SettingsLayout::kSubtitlePageHeaderReserve : SettingsLayout::kPageHeaderReserve)) * dp;
@@ -591,8 +594,9 @@ void App::AutoScrollToFocusedItem() {
         } else if (currentSettingsCat == SettingsCategory::Experience) {
             const D2D1_RECT_F content = SettingsLayout::ContentBounds(Presentation::HubView(rcW, winH, dp), dp);
             const float padX = SettingsLayout::kContentPadX * dp;
-            const auto layout = SettingsLayout::MakeExperienceLayout(content.left + padX, content.right - padX, sectionTop, dp);
-            const D2D1_RECT_F focusRect = keyboardFocusedIndex == 0 ? layout.modeTiles[0] : layout.rows[keyboardFocusedIndex - 1];
+            const bool customSettings = FeatureGate::ModeFromString(settings.experienceMode) == ExperienceMode::Custom;
+            const auto layout = SettingsLayout::MakeExperienceLayout(content.left + padX, content.right - padX, sectionTop, dp, customSettings);
+            const D2D1_RECT_F focusRect = (keyboardFocusedIndex == 0 || !customSettings) ? layout.modeTiles[0] : layout.rows[keyboardFocusedIndex - 1];
             focusTop = focusRect.top;
             focusH = RectHeight(focusRect);
         } else if (currentSettingsCat == SettingsCategory::Shortcuts) {

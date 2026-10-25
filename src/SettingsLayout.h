@@ -64,9 +64,9 @@ inline constexpr float kPlaybackMpvCardHeight = kPlaybackMpvActionTop + 3.0f * k
 // group whose rows flow top-to-bottom through one or two columns. Rendering,
 // pointer hit-testing, accessibility, keyboard autoscroll, and the scroll
 // extent all read MakeExperienceLayout so they cannot drift apart.
-inline constexpr float kExperienceTileHeight = 108.0f;
+inline constexpr float kExperienceTileHeight = 76.0f;
 inline constexpr float kExperienceTileGap = 12.0f;
-inline constexpr float kExperienceSectionHeight = 50.0f;
+inline constexpr float kExperienceSectionHeight = 34.0f;
 inline constexpr float kExperienceGroupTitleHeight = 52.0f;
 inline constexpr float kExperienceFeatureRowHeight = 42.0f;
 inline constexpr float kExperienceColumnGap = 16.0f;
@@ -88,7 +88,7 @@ struct ExperienceLayout {
     float bottom = 0.0f;
 };
 
-inline ExperienceLayout MakeExperienceLayout(float contentLeft, float contentRight, float top, float dp) {
+inline ExperienceLayout MakeExperienceLayout(float contentLeft, float contentRight, float top, float dp, bool withFeatures = true) {
     ExperienceLayout layout;
     const float cardLeft = contentLeft - 10.0f * dp, cardRight = contentRight + 10.0f * dp;
     const float tileGap = kExperienceTileGap * dp;
@@ -96,6 +96,10 @@ inline ExperienceLayout MakeExperienceLayout(float contentLeft, float contentRig
     for (int i = 0; i < 3; ++i) {
         const float left = cardLeft + i * (tileW + tileGap);
         layout.modeTiles[i] = D2D1::RectF(left, top, left + tileW, top + kExperienceTileHeight * dp);
+    }
+    if (!withFeatures) {
+        layout.bottom = top + kExperienceTileHeight * dp;
+        return layout;
     }
     layout.sectionTop = top + (kExperienceTileHeight + kSectionCardGap) * dp;
     const size_t columns = (contentRight - contentLeft) >= kExperienceTwoColumnMinWidth * dp ? 2 : 1;

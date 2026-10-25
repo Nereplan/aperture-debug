@@ -303,6 +303,9 @@ private:
     bool lastAnnouncedPlayingState = false, hasAnnouncedPlayingState = false;
     int lastAnnouncedChapterIndex = -1;
     unsigned long long hubTooltipSignature = 0;
+    // Descriptions hidden by the compact Settings layout, captured from the
+    // last rendered frame so tooltips can surface them on hover.
+    std::vector<SettingsDescTool> settingsDescTools;
     unsigned long long playerTooltipSignature = 0;
     bool displayPowerRequestActive = false;
     std::wstring lastReportedStorageError;
@@ -519,7 +522,7 @@ private:
     void SetLibraryGroupMode(LibraryGroupMode mode);
     void SetLibrarySort(LibrarySortField field, SortDirection direction);
     void OpenMediaSortContextMenu(float x, float y);
-    std::wstring GetLibrarySortLabel() const;
+    std::wstring GetLibrarySortLabel(bool compact = false) const;
     void ClearMediaSearch();
     void FocusMediaSearch();
     // Middle-Button Autoscroll State

@@ -408,7 +408,8 @@ HubRenderViewModel App::BuildHubRenderViewModel() {
                 vm.mediaTab.searchVisual.compositionCaretIndex = mediaSearchInput.GetDisplayCaret();
             }
             vm.mediaTab.showSummary = toolbarGeometry.showSummary;
-            vm.mediaTab.sortLabel = GetLibrarySortLabel();
+            vm.mediaTab.compactToolbar = toolbarGeometry.compact;
+            vm.mediaTab.sortLabel = GetLibrarySortLabel(toolbarGeometry.compact);
             static const LibraryViewProjection kPendingProjection;
             static const std::vector<size_t> kPendingVisibleIndices;
             const auto& proj = libraryReady ? GetCurrentMediaProjection() : kPendingProjection;

@@ -46,7 +46,7 @@ public:
     static void DrawPlaylistDetailPane(Renderer& r, const Settings& s, const PlaylistDetailViewModel& vm);
     static void DrawHistoryGroupHeader(Renderer& r, const Settings& s, const HistoryGroupSummary& vm);
     static void DrawHistoryList(Renderer& r, const Settings& s, const HistoryTabViewModel& vm);
-    static void DrawSettingsView(Renderer& r, const Settings& s, const SettingsTabViewModel& vm);
+    static void DrawSettingsView(Renderer& r, const Settings& s, SettingsTabViewModel& vm);
     static void DrawPlayerTopBar(OverlayRenderer& r, const Settings& s, const PlayerTopBarViewModel& vm);
     static void DrawPlayerBottomBar(OverlayRenderer& r, const Settings& s, const PlayerBottomBarViewModel& vm);
     static void DrawPiPOverlay(OverlayRenderer& r, const Settings& s, const PiPOverlayViewModel& vm);
@@ -68,7 +68,7 @@ public:
     static void DrawImportProgress(Renderer& r, const Settings& s, const ImportProgressViewModel& vm);
     static void DrawGlobalSearchSurface(Renderer& r, const Settings& s, const GlobalSearchSurfaceViewModel& vm);
     static void DrawPlayerOverlay(OverlayRenderer& r, const Settings& s, const PlayerRenderViewModel& vm);
-    static void DrawHub(Renderer& r, const Settings& s, const HubRenderViewModel& vm);
+    static void DrawHub(Renderer& r, const Settings& s, HubRenderViewModel& vm);
 };
 
 } // namespace Aperture
