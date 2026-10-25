@@ -41,6 +41,7 @@ public:
     static void DrawEmptyState(Renderer& r, const Settings& s, const EmptyStateViewModel& vm);
     static void DrawMediaToolbar(Renderer& r, const Settings& s, const MediaTabViewModel& vm);
     static void DrawListenPanel(Renderer& r, const Settings& s, const ListenPanelViewModel& vm);
+    static void DrawListenIsland(Renderer& r, const Settings& s, const ListenIslandViewModel& vm);
     static void DrawMediaGroupHeader(Renderer& r, const Settings& s, const VisibleMediaGroupHeaderViewModel& vm);
     static void DrawMediaItemCard(Renderer& r, const Settings& s, const VisibleMediaCardViewModel& vm);
     static void DrawPlaylistsRail(Renderer& r, const Settings& s, const PlaylistsRailViewModel& vm);

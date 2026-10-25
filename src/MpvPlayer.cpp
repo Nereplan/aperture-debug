@@ -2388,6 +2388,252 @@ std::wstring MpvPreviewPlayer::GetCurrentPreviewPath() const {
 }
 
 // =========================================================================
+// MpvListenPlayer Implementation
+// =========================================================================
+
+MpvListenPlayer::MpvListenPlayer() {}
+
+MpvListenPlayer::~MpvListenPlayer() { Shutdown(); }
+
+bool MpvListenPlayer::Initialize(HMODULE hDll) {
+    std::lock_guard<std::mutex> lifecycleLock(lifecycleMutex);
+    return EnsureInitializedLocked(hDll);
+}
+
+// Must hold lifecycleMutex. Idempotent lazy init: a live handle is reused;
+// otherwise (including after a failed attempt) the API is loaded fresh.
+bool MpvListenPlayer::EnsureInitializedLocked(HMODULE hDll) {
+    if (listenInitialized && mpv) return true;
+    TeardownLocked();
+    // The Listen island binds no render symbols, so the Playback profile
+    // suffices even though no window is involved.
+    if (!LoadMpvApi(MpvApiProfile::Playback, "Listen player", hDll)) return false;
+    mpv = fn_mpv_create();
+    if (!mpv) { RecordInitializationFailure("mpv_create", MPV_ERROR_NOMEM); ResetMpvApi(); return false; }
+    // Audio-only client: no video output, no on-screen window, no scripting.
+    SetMpvOption(mpv, "vo", "null", MpvOptionRequirement::Essential);
+    SetMpvOption(mpv, "vid", "no", MpvOptionRequirement::Essential);
+    SetMpvOption(mpv, "ao", "auto", MpvOptionRequirement::Essential);
+    SetMpvOption(mpv, "cache", "yes", MpvOptionRequirement::Essential);
+    // Radio streams and podcasts benefit from a wider read-ahead window than
+    // the hover preview; nothing renders from this instance.
+    SetMpvOption(mpv, "demuxer-max-bytes", "64MiB");
+    SetMpvOption(mpv, "demuxer-max-back-bytes", "16MiB");
+    SetMpvOption(mpv, "loop-file", "no");
+    SetMpvOption(mpv, "keep-open", "no");
+    SetMpvOption(mpv, "hr-seek", "yes");
+    SetMpvOption(mpv, "input-default-bindings", "no", MpvOptionRequirement::Essential);
+    SetMpvOption(mpv, "input-vo-keyboard", "no", MpvOptionRequirement::Essential);
+    SetMpvOption(mpv, "input-media-keys", "no", MpvOptionRequirement::Essential);
+    // Direct URLs only: never invoke the Lua hook path.
+    SetMpvOption(mpv, "load-scripts", "no", MpvOptionRequirement::Essential);
+    SetMpvOption(mpv, "scripts", "", MpvOptionRequirement::Essential);
+    // Builds without Lua omit ytdl; retain the checked disable on builds that expose it.
+    SetMpvOption(mpv, "ytdl", "no");
+    SetMpvOption(mpv, "mute", "no");
+    // Tolerate slow radio servers; none of these are fatal when unsupported.
+    SetMpvOption(mpv, "network-timeout", "15");
+    SetMpvOption(mpv, "force-window", "no");
+    SetMpvOption(mpv, "audio-display", "no");
+    if (!EssentialOptionsAccepted()) { TeardownLocked(); return false; }
+    const int initializeResult = fn_mpv_initialize(mpv);
+    if (initializeResult < 0) {
+        RecordInitializationFailure("mpv_initialize", initializeResult);
+        TeardownLocked();
+        return false;
+    }
+    listenInitialized = true;
+    return true;
+}
+
+// Must hold lifecycleMutex. Stops playback, destroys the mpv handle and
+// releases the DLL so a later Initialize can run again.
+void MpvListenPlayer::TeardownLocked() {
+    listenInitialized = false;
+    currentPath.clear();
+    fileLoaded = false;
+    paused = false;
+    finished = false;
+    finishedReported = false;
+    if (mpv) {
+        SendStopLocked();
+        if (fn_mpv_terminate_destroy) fn_mpv_terminate_destroy(mpv);
+        mpv = nullptr;
+    }
+    ResetMpvApi();
+}
+
+void MpvListenPlayer::SendStopLocked() {
+    if (!mpv) return;
+    if (fn_mpv_command_string) { fn_mpv_command_string(mpv, "stop"); } else if (fn_mpv_command) {
+        const char* cmd[] = { "stop", nullptr };
+        fn_mpv_command(mpv, cmd);
+    }
+}
+
+void MpvListenPlayer::Shutdown() {
+    std::lock_guard<std::mutex> lifecycleLock(lifecycleMutex);
+    TeardownLocked();
+}
+
+bool MpvListenPlayer::IsActive() const {
+    std::lock_guard<std::mutex> lifecycleLock(lifecycleMutex);
+    return listenInitialized && !currentPath.empty();
+}
+
+bool MpvListenPlayer::IsPlaying() const {
+    std::lock_guard<std::mutex> lifecycleLock(lifecycleMutex);
+    return listenInitialized && !currentPath.empty() && !paused;
+}
+
+bool MpvListenPlayer::Start(const std::wstring& path, double startSec, double volume) {
+    if (path.empty()) return false;
+    std::lock_guard<std::mutex> lifecycleLock(lifecycleMutex);
+    if (!EnsureInitializedLocked(nullptr)) return false;
+    if (!std::isfinite(startSec) || startSec < 0.0) startSec = 0.0;
+    // Discard events from any previous file so the finished latch can only
+    // fire for the load queued below.
+    DrainEventsLocked(false);
+    currentPath = path;
+    fileLoaded = false;
+    paused = false;
+    finished = false;
+    finishedReported = false;
+    std::string pathUtf8 = Utf16ToUtf8(path);
+    std::string startOption;
+    if (startSec > 0.0) {
+        std::ostringstream start;
+        start << "start=" << std::fixed << std::setprecision(3) << startSec;
+        startOption = start.str();
+    }
+    int ret = -1;
+    if (fn_mpv_command) {
+        if (!startOption.empty()) {
+            const char* loadCmd[] = { "loadfile", pathUtf8.c_str(), "replace", "-1", startOption.c_str(), nullptr };
+            ret = fn_mpv_command(mpv, loadCmd);
+        } else {
+            const char* loadCmd[] = { "loadfile", pathUtf8.c_str(), "replace", nullptr };
+            ret = fn_mpv_command(mpv, loadCmd);
+        }
+    }
+    if (ret >= 0) {
+        if (fn_mpv_set_property_string) {
+            ret = fn_mpv_set_property_string(mpv, "pause", "no");
+        } else if (fn_mpv_command_string) { ret = fn_mpv_command_string(mpv, "set pause no"); }
+    }
+    if (ret >= 0) {
+        double v = std::clamp(volume, 0.0, 1.0) * 100.0;
+        if (fn_mpv_set_property) { ret = fn_mpv_set_property(mpv, "volume", MPV_FORMAT_DOUBLE, &v); } else if (fn_mpv_set_property_string) {
+            std::ostringstream value;
+            value << std::fixed << std::setprecision(3) << v;
+            ret = fn_mpv_set_property_string(mpv, "volume", value.str().c_str());
+        }
+    }
+    if (ret < 0) { currentPath.clear(); return false; }
+    return true;
+}
+
+void MpvListenPlayer::Stop() {
+    std::lock_guard<std::mutex> lifecycleLock(lifecycleMutex);
+    currentPath.clear();
+    fileLoaded = false;
+    paused = false;
+    finished = false;
+    finishedReported = false;
+    SendStopLocked();
+}
+
+void MpvListenPlayer::SetPaused(bool paused) {
+    std::lock_guard<std::mutex> lifecycleLock(lifecycleMutex);
+    this->paused = paused;
+    if (!mpv || !fn_mpv_set_property_string) return;
+    fn_mpv_set_property_string(mpv, "pause", paused ? "yes" : "no");
+}
+
+void MpvListenPlayer::SeekAbsolute(double sec) {
+    if (!std::isfinite(sec)) return;
+    sec = std::max(0.0, sec);
+    std::lock_guard<std::mutex> lifecycleLock(lifecycleMutex);
+    if (!mpv || !fn_mpv_command) return;
+    std::ostringstream value;
+    value << std::fixed << std::setprecision(3) << sec;
+    const std::string position = value.str();
+    const char* cmd[] = { "seek", position.c_str(), "absolute", nullptr };
+    fn_mpv_command(mpv, cmd);
+}
+
+void MpvListenPlayer::SetVolume(double volume) {
+    std::lock_guard<std::mutex> lifecycleLock(lifecycleMutex);
+    if (!mpv) return;
+    double v = std::clamp(volume, 0.0, 1.0) * 100.0;
+    if (fn_mpv_set_property) { fn_mpv_set_property(mpv, "volume", MPV_FORMAT_DOUBLE, &v); } else if (fn_mpv_set_property_string) {
+        std::ostringstream value;
+        value << std::fixed << std::setprecision(3) << v;
+        fn_mpv_set_property_string(mpv, "volume", value.str().c_str());
+    }
+}
+
+bool MpvListenPlayer::IsPaused() const {
+    std::lock_guard<std::mutex> lifecycleLock(lifecycleMutex);
+    return paused;
+}
+
+double MpvListenPlayer::GetPositionSec() const {
+    std::lock_guard<std::mutex> lifecycleLock(lifecycleMutex);
+    if (!mpv || !fn_mpv_get_property) return -1.0;
+    double pos = -1.0;
+    if (fn_mpv_get_property(mpv, "time-pos", MPV_FORMAT_DOUBLE, &pos) < 0 || !std::isfinite(pos)) return -1.0;
+    return pos;
+}
+
+double MpvListenPlayer::GetDurationSec() const {
+    std::lock_guard<std::mutex> lifecycleLock(lifecycleMutex);
+    if (!mpv || !fn_mpv_get_property) return -1.0;
+    double duration = -1.0;
+    if (fn_mpv_get_property(mpv, "duration", MPV_FORMAT_DOUBLE, &duration) < 0 || !std::isfinite(duration)) return -1.0;
+    return duration;
+}
+
+// Must hold lifecycleMutex. Non-blocking event drain; with recordFinish the
+// finished latch arms on a genuine EOF or on mpv going idle after a file had
+// been loaded (loadfile replaces and stop commands also emit END_FILE, but
+// with different reasons, so they are ignored here).
+void MpvListenPlayer::DrainEventsLocked(bool recordFinish) {
+    if (!mpv || !fn_mpv_wait_event) return;
+    bool sawEof = false;
+    while (auto* event = fn_mpv_wait_event(mpv, 0)) {
+        if (event->event_id == MPV_EVENT_NONE) break;
+        if (!recordFinish) continue;
+        if (event->event_id == MPV_EVENT_FILE_LOADED) { fileLoaded = true; } else if (event->event_id == MPV_EVENT_END_FILE) {
+            const auto* endFile = static_cast<const mpv_event_end_file*>(event->data);
+            if (endFile && endFile->reason == MPV_END_FILE_REASON_EOF) sawEof = true;
+        }
+    }
+    if (recordFinish && !finished) {
+        if (sawEof) { finished = true; } else {
+            int idle = 0;
+            if (fileLoaded && fn_mpv_get_property &&
+                fn_mpv_get_property(mpv, "idle-active", MPV_FORMAT_FLAG, &idle) >= 0 && idle) {
+                finished = true;
+            }
+        }
+    }
+}
+
+bool MpvListenPlayer::PollFinished() {
+    std::lock_guard<std::mutex> lifecycleLock(lifecycleMutex);
+    if (!listenInitialized || !mpv) return false;
+    DrainEventsLocked(true);
+    if (finished && !finishedReported) {
+        finishedReported = true;
+        currentPath.clear();
+        paused = false;
+        return true;
+    }
+    return false;
+}
+
+// =========================================================================
 // MpvHubExtractor Implementation
 // =========================================================================
 

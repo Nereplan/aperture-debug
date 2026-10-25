@@ -411,6 +411,51 @@ private:
 
 };
 
+// Fire-and-forget audio player for the Listen island (radio streams and
+// podcast episodes). Owns a private mpv client with video disabled and no
+// render context: mpv advances on its own once unpaused. UI thread only.
+class MpvListenPlayer : private MpvApiOwner {
+public:
+    using MpvApiOwner::GetInitializationDiagnostics;
+    using MpvApiOwner::SetInitializationDiagnosticSink;
+    MpvListenPlayer();
+    ~MpvListenPlayer();
+    // Idempotent lazy init; hDll may be the main player's module (load hint)
+    // or nullptr to load the package-local DLL independently.
+    bool Initialize(HMODULE hDll);
+    void Shutdown();
+    bool IsActive() const;                 // a file is loaded (not idle, not shut down)
+    bool IsPlaying() const;                // IsActive && !paused
+    // Loads and plays. volume is 0..1 (settings.volume).
+    bool Start(const std::wstring& path, double startSec, double volume);
+    // Stops playback and unloads the file; keeps the mpv handle alive.
+    void Stop();
+    void SetPaused(bool paused);
+    void SeekAbsolute(double sec);
+    void SetVolume(double volume);         // 0..1
+    bool IsPaused() const;
+    double GetPositionSec() const;         // -1 when unknown
+    double GetDurationSec() const;         // -1 when unknown/live
+    // UI-thread pump: drains mpv events (non-blocking) and returns true once,
+    // when playback finished (EOF reached or mpv went idle after unloading).
+    bool PollFinished();
+
+private:
+    bool EnsureInitializedLocked(HMODULE hDll);
+    void SendStopLocked();
+    void DrainEventsLocked(bool recordFinish);
+    void TeardownLocked(); // caller holds mutex
+    mpv_handle* mpv = nullptr;
+    std::wstring currentPath;
+    bool listenInitialized = false;
+    bool fileLoaded = false;      // MPV_EVENT_FILE_LOADED seen since the last Start
+    bool paused = false;
+    bool finished = false;        // EOF/idle observed after a load
+    bool finishedReported = false; // PollFinished one-shot latch
+    mutable std::mutex lifecycleMutex;
+
+};
+
 // Dedicated hub thumbnail extractor for files the Windows shell cannot thumbnail (notably MKV, which has no inbox Explorer handler). It
 // owns a separate mpv instance tuned purely for fast single-frame grabs — keyframe seeks, skipped loop filtering, tiny demuxer window — so
 // extraction never contends with hover previews or playback decoding, and can run in parallel with them. The App drives it

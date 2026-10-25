@@ -322,6 +322,17 @@ private:
     std::atomic<size_t> importTotal{ 0 };
     bool importJobActive = false, importLaunchFirst = false, importCancelHovered = false;
     bool importPopoverOpen = false, importPillHovered = false;
+    // Listen island playback state (UI-thread only).
+    MpvListenPlayer listenPlayer;
+    bool listenPlayerInitialized = false;
+    bool listenPlaybackActive = false, listenPlaybackIsRadio = true, listenPlaybackPaused = false;
+    bool listenPillHovered = false, listenPopoverOpen = false;
+    bool listenPlayHovered = false, listenBackHovered = false, listenFwdHovered = false, listenStopHovered = false;
+    std::wstring listenTitle, listenSubtitle, listenUrl;
+    double listenEqPhase = 0.0, listenVolumeApplied = -1.0, listenEqRepaintAccum = 0.0;
+    AnimatedFloat listenIslandWidthDip, listenIslandHeightDip, listenIslandFade;
+    D2D1_RECT_F listenIslandPlayBounds = { 0, 0, 0, 0 }, listenIslandBackBounds = { 0, 0, 0, 0 },
+                listenIslandFwdBounds = { 0, 0, 0, 0 }, listenIslandStopBounds = { 0, 0, 0, 0 };
     // Listen panel state (podcasts + radio directory mirrors, UI-thread only).
     std::vector<PodcastFeed> listenFeeds;
     std::vector<RadioStation> listenStations;
@@ -371,7 +382,16 @@ private:
     // Listen panel (Media tab, Listen mode): hover resolution, stream playback
     // (validation + recent-stream bookkeeping + open), and right-click menus.
     void ResolveListenHover(float x, float y);
-    void PlayListenStream(const std::wstring& url);
+    void PlayListenStream(const std::wstring& url, const std::wstring& title, const std::wstring& subtitle, bool isRadio);
+    // Island audio playback on the dedicated listen player.
+    void StartListenPlayback(const std::wstring& url, const std::wstring& title, const std::wstring& subtitle,
+                             bool isRadio, double startSec = 0.0);
+    void StopListenPlayback();
+    void ToggleListenPause();
+    void ListenSeekBy(double deltaSec);
+    void OnListenFinished();
+    D2D1_RECT_F ListenPillBounds(float dp);
+    D2D1_RECT_F ListenPopoverBounds(float dp);
     void OpenListenFeedContextMenu(size_t feedIndex, float x, float y);
     void OpenListenStationContextMenu(size_t stationIndex, float x, float y);
     struct ListenPress {

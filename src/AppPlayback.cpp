@@ -806,6 +806,7 @@ void App::OpenAndPlayMedia(const std::wstring& filePath, double startPosSec, boo
         hiddenLibraryCachesTrimmed = false;
         mediaGenerationToken++;
         previewPlayer.StopPreview();
+        StopListenPlayback(); // video playback takes over the audio island
         controlsOpacity = 1.0f;
         controlsIdleTimer = 0.0f;
         lastPlayerMouseX = -1.0f;

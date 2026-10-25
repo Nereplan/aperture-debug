@@ -1151,6 +1151,51 @@ HubRenderViewModel App::BuildHubRenderViewModel() {
         vm.autoscroll.anchorPoint = autoscroll.anchorPoint;
         vm.autoscroll.dy = autoscroll.currentPoint.y - autoscroll.anchorPoint.y;
     }
+    // Listen island (now-playing audio) — takes the nav gap; the import pill
+    // shifts left when both are alive.
+    if (listenPlaybackActive || listenIslandFade.current > 0.001f) {
+        auto& li = vm.listenIsland;
+        li.isActive = listenPlaybackActive;
+        li.isRadio = listenPlaybackIsRadio;
+        li.paused = listenPlaybackPaused;
+        li.title = listenTitle;
+        li.subtitle = listenSubtitle;
+        li.eqPhase = (float)std::fmod(listenEqPhase, 1000.0);
+        li.pillHovered = listenPillHovered;
+        li.popoverOpen = listenPlaybackActive && listenPopoverOpen;
+        li.widthDip = std::max(6.0f, listenIslandWidthDip.current);
+        li.heightDip = std::max(6.0f, listenIslandHeightDip.current);
+        li.fade = std::clamp(listenIslandFade.current, 0.0f, 1.0f);
+        li.pillBounds = ListenPillBounds(dp);
+        const double pos = listenPlaybackActive ? listenPlayer.GetPositionSec() : -1.0;
+        const double dur = listenPlaybackActive ? listenPlayer.GetDurationSec() : -1.0;
+        li.progressRatio = (pos >= 0.0 && dur > 0.0) ? std::clamp(pos / dur, 0.0, 1.0) : 0.0;
+        li.timeText = (pos >= 0.0)
+            ? (FormatDuration(pos) + (dur > 0.0 ? L" / " + FormatDuration(dur) : L""))
+            : std::wstring(L"");
+        if (li.popoverOpen) {
+            li.popoverBounds = ListenPopoverBounds(dp);
+            const float btnSz = 34.0f * dp, btnGap = 10.0f * dp;
+            const float rowCy = li.popoverBounds.bottom - 30.0f * dp;
+            const float totalW = btnSz * 4.0f + btnGap * 3.0f;
+            float bx = (li.popoverBounds.left + li.popoverBounds.right) * 0.5f - totalW * 0.5f;
+            li.backBtn = D2D1::RectF(bx, rowCy - btnSz * 0.5f, bx + btnSz, rowCy + btnSz * 0.5f);
+            bx += btnSz + btnGap;
+            li.playBtn = D2D1::RectF(bx, rowCy - btnSz * 0.5f, bx + btnSz, rowCy + btnSz * 0.5f);
+            bx += btnSz + btnGap;
+            li.fwdBtn = D2D1::RectF(bx, rowCy - btnSz * 0.5f, bx + btnSz, rowCy + btnSz * 0.5f);
+            bx += btnSz + btnGap;
+            li.stopBtn = D2D1::RectF(bx, rowCy - btnSz * 0.5f, bx + btnSz, rowCy + btnSz * 0.5f);
+            li.playHovered = listenPlayHovered;
+            li.backHovered = listenBackHovered;
+            li.fwdHovered = listenFwdHovered;
+            li.stopHovered = listenStopHovered;
+        }
+        listenIslandPlayBounds = li.playBtn;
+        listenIslandBackBounds = li.backBtn;
+        listenIslandFwdBounds = li.fwdBtn;
+        listenIslandStopBounds = li.stopBtn;
+    }
     // Import Progress: dynamic-island pill in the nav gap; the old modal card
     // becomes an on-demand popover anchored below the pill.
     if (importJobActive || importIslandFade.current > 0.001f) {

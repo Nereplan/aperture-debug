@@ -3199,6 +3199,110 @@ void UIComponents::DrawMediaToolbar(Renderer& r, const Settings& s, const MediaT
     r.DrawString(vm.compactToolbar ? L"Listen" : L"Listen", vm.listenBtnBounds, listenCol, FontType::Small, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
 }
 
+// Listen island: the now-playing pill for radio/podcast audio. Same morph
+// language as the import island (dot springs open, collapse-then-fade out).
+void UIComponents::DrawListenIsland(Renderer& r, const Settings& s, const ListenIslandViewModel& vm) {
+    if (vm.fade <= 0.001f && vm.widthDip <= 6.5f) return;
+    float dp = r.GetDpiScale();
+    const auto& th = s.currentTheme;
+    const float a = vm.fade;
+    const float contentA = std::clamp((vm.heightDip - 13.0f) / 9.0f, 0.0f, 1.0f) * a;
+    const float cy = (vm.pillBounds.top + vm.pillBounds.bottom) * 0.5f;
+    const float w = vm.widthDip * dp, h = vm.heightDip * dp;
+    const D2D1_RECT_F pill = D2D1::RectF(vm.pillBounds.right - w, cy - h * 0.5f, vm.pillBounds.right, cy + h * 0.5f);
+    const float radius = std::min(w, h) * 0.5f;
+    r.FillRoundedRect(pill, radius, ColorWithAlpha(vm.pillHovered ? ColorWithAlpha(th.text, 0.10f) : th.surfaceFloating, a));
+    r.DrawRoundedRect(pill, radius, ColorWithAlpha(vm.pillHovered ? th.accent : th.border, (vm.pillHovered ? 0.55f : 0.85f) * a), 1.0f * dp);
+    if (contentA <= 0.001f) return;
+
+    float x = pill.left + 10.0f * dp;
+    if (vm.isRadio) {
+        // LIVE badge with a pulsing dot + mini EQ bars.
+        const float badgeW = 42.0f * dp, badgeH = 18.0f * dp;
+        const D2D1_RECT_F live = D2D1::RectF(x, cy - badgeH * 0.5f, x + badgeW, cy + badgeH * 0.5f);
+        r.FillRoundedRect(live, badgeH * 0.5f, ColorWithAlpha(D2D1::ColorF(0.95f, 0.25f, 0.32f, 1.0f), 0.14f * contentA));
+        const float pulse = 0.65f + 0.35f * (0.5f + 0.5f * std::sin(vm.eqPhase * 3.1f));
+        r.FillCircle(live.left + 9.0f * dp, cy, 3.0f * dp, ColorWithAlpha(D2D1::ColorF(0.95f, 0.3f, 0.36f, 1.0f), pulse * contentA));
+        r.DrawString(L"LIVE", D2D1::RectF(live.left + 15.0f * dp, live.top, live.right - 5.0f * dp, live.bottom),
+                     ColorWithAlpha(D2D1::ColorF(0.97f, 0.5f, 0.55f, 1.0f), contentA), FontType::Caption,
+                     DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+        x = live.right + 8.0f * dp;
+        const float eqH = 12.0f * dp, barW = 2.0f * dp, barGap = 2.0f * dp;
+        for (int i = 0; i < 4; ++i) {
+            const float phase = vm.eqPhase * (vm.paused ? 0.0f : 5.2f) + i * 1.7f;
+            const float level = vm.paused ? 0.22f : 0.25f + 0.75f * (0.5f + 0.5f * std::sin(phase));
+            const float bh = eqH * level;
+            r.FillRoundedRect(D2D1::RectF(x, cy + eqH * 0.5f - bh, x + barW, cy + eqH * 0.5f), 1.0f * dp,
+                              ColorWithAlpha(th.accent, contentA));
+            x += barW + barGap;
+        }
+        x += 4.0f * dp;
+    } else {
+        const float iconSz = 13.0f * dp;
+        r.DrawIcon(IconType::MicPodcast, D2D1::RectF(x, cy - iconSz * 0.5f, x + iconSz, cy + iconSz * 0.5f),
+                   ColorWithAlpha(th.accent, contentA), 1.4f * dp);
+        x += iconSz + 7.0f * dp;
+    }
+    // Title, then play/pause + stop pill controls.
+    const float ctrl = 20.0f * dp, ctrlGap = 4.0f * dp;
+    const float textRight = pill.right - 10.0f * dp - ctrl * 2.0f - ctrlGap - 6.0f * dp;
+    if (textRight > x + 20.0f * dp) {
+        r.DrawString(FitSingleLine(r, vm.title, FontType::Small, textRight - x),
+                     D2D1::RectF(x, pill.top, textRight, pill.bottom), ColorWithAlpha(th.text, contentA),
+                     FontType::Small, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+    }
+    auto pillBtn = [&](const D2D1_RECT_F& rect, IconType icon) {
+        r.FillCircle((rect.left + rect.right) * 0.5f, (rect.top + rect.bottom) * 0.5f, (rect.bottom - rect.top) * 0.5f,
+                     ColorWithAlpha(th.text, 0.08f * contentA));
+        r.DrawIcon(icon, InsetRectF(rect, 4.0f * dp, 4.0f * dp), ColorWithAlpha(th.text, contentA), 1.5f * dp);
+    };
+    pillBtn(D2D1::RectF(pill.right - 10.0f * dp - ctrl, cy - ctrl * 0.5f, pill.right - 10.0f * dp, cy + ctrl * 0.5f),
+            vm.paused ? IconType::Play : IconType::Pause);
+    pillBtn(D2D1::RectF(pill.right - 10.0f * dp - ctrl * 2.0f - ctrlGap, cy - ctrl * 0.5f,
+                        pill.right - 10.0f * dp - ctrl - ctrlGap, cy + ctrl * 0.5f), IconType::CloseX);
+    if (!vm.isRadio && vm.progressRatio > 0.0 && pill.right > pill.left + 8.0f * dp) {
+        const float barW2 = (pill.right - pill.left - 4.0f * dp) * (float)vm.progressRatio;
+        r.FillRoundedRect(D2D1::RectF(pill.left + 2.0f * dp, pill.bottom - 3.0f * dp, pill.left + 2.0f * dp + barW2, pill.bottom - 1.0f * dp),
+                          1.0f * dp, ColorWithAlpha(th.accent, 0.9f * contentA));
+    }
+    if (!vm.popoverOpen) return;
+    // Now-playing popover.
+    const D2D1_RECT_F& pop = vm.popoverBounds;
+    r.DrawDropShadow(pop, 10.0f * dp, 16.0f * dp, 4.0f * dp, D2D1::ColorF(0, 0, 0, 0.45f));
+    r.FillRoundedRect(pop, 12.0f * dp, th.surfaceFloating);
+    r.DrawRoundedRect(pop, 12.0f * dp, th.border, 1.0f * dp);
+    r.DrawString(FitSingleLine(r, vm.title, FontType::Subheading, RectWidth(pop) - 36.0f * dp),
+                 D2D1::RectF(pop.left + 18.0f * dp, pop.top + 14.0f * dp, pop.right - 18.0f * dp, pop.top + 38.0f * dp),
+                 th.text, FontType::Subheading, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+    r.DrawString(FitSingleLine(r, vm.isRadio ? (vm.subtitle.empty() ? L"Live stream" : vm.subtitle) : vm.subtitle,
+                               FontType::Small, RectWidth(pop) - 36.0f * dp),
+                 D2D1::RectF(pop.left + 18.0f * dp, pop.top + 38.0f * dp, pop.right - 18.0f * dp, pop.top + 60.0f * dp),
+                 th.textMuted, FontType::Small, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+    if (!vm.isRadio && !vm.timeText.empty()) {
+        r.DrawProgressBar(D2D1::RectF(pop.left + 18.0f * dp, pop.top + 66.0f * dp, pop.right - 18.0f * dp, pop.top + 74.0f * dp),
+                          vm.progressRatio, D2D1::ColorF(1, 1, 1, 0.08f), th.accent, 4.0f * dp);
+        r.DrawString(vm.timeText, D2D1::RectF(pop.left + 18.0f * dp, pop.top + 76.0f * dp, pop.right - 18.0f * dp, pop.top + 94.0f * dp),
+                     th.textMuted, FontType::MonoSmall, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+    }
+    auto popBtn = [&](const D2D1_RECT_F& rect, IconType icon, bool hovered, bool accent) {
+        const float cx2 = (rect.left + rect.right) * 0.5f, cy2 = (rect.top + rect.bottom) * 0.5f;
+        const float rad = (rect.bottom - rect.top) * 0.5f;
+        if (accent) {
+            r.FillCircle(cx2, cy2, rad, hovered ? ColorWithAlpha(th.accent, 0.95f) : th.accent);
+            r.DrawIcon(icon, InsetRectF(rect, 9.0f * dp, 9.0f * dp), D2D1::ColorF(0.06f, 0.05f, 0.04f, 1.0f), 1.6f * dp);
+        } else {
+            r.FillCircle(cx2, cy2, rad, ColorWithAlpha(th.text, hovered ? 0.10f : 0.05f));
+            if (icon == IconType::CloseX) r.DrawIcon(icon, InsetRectF(rect, 9.0f * dp, 9.0f * dp),
+                                                     hovered ? th.red : ColorWithAlpha(th.red, 0.8f), 1.6f * dp);
+            else r.DrawIcon(icon, InsetRectF(rect, 8.0f * dp, 8.0f * dp), hovered ? th.text : th.textMuted, 1.6f * dp);
+        }
+    };
+    popBtn(vm.backBtn, IconType::HistoryClock, vm.backHovered, false);
+    popBtn(vm.playBtn, vm.paused ? IconType::Play : IconType::Pause, vm.playHovered, true);
+    popBtn(vm.fwdBtn, IconType::Next, vm.fwdHovered, false);
+    popBtn(vm.stopBtn, IconType::CloseX, vm.stopHovered, false);
+}
+
 // Listen panel: podcasts (with inline episode expansion) above the live radio
 // directory. Audio-first surfaces — icon badges and text instead of video
 // thumbnails — with the same row rhythm as the rest of the hub.
@@ -4480,6 +4584,7 @@ void UIComponents::DrawHub(Renderer& r, const Settings& s, HubRenderViewModel& v
     }
     DrawAutoscrollAnchor(r, s, vm.autoscroll);
     DrawImportProgress(r, s, vm.importProgress);
+    DrawListenIsland(r, s, vm.listenIsland);
     DrawOSDBadge(r, s, vm.osdBadge);
     DrawContextMenu(r, s, vm.contextMenu);
     if (vm.modal.type == ModalType::NewPlaylist || vm.modal.type == ModalType::NewSmartPlaylist || vm.modal.type == ModalType::EditSmartPlaylist || vm.modal.type == ModalType::SeekStepInput || vm.modal.type == ModalType::FrameSeekInput || vm.modal.type == ModalType::CustomSettingInput || vm.modal.type == ModalType::BookmarkInput || vm.modal.type == ModalType::EditMetadataOverrides || vm.modal.type == ModalType::SaveSubtitleProfile || vm.modal.type == ModalType::RenameSubtitleProfile || vm.modal.type == ModalType::JumpToTime || vm.modal.type == ModalType::CustomAspectInput || vm.modal.type == ModalType::CustomRotationInput) {

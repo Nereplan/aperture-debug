@@ -107,19 +107,9 @@ void App::OpenInternetRadioContextMenu() {
                     }
                 }
                 contextMenuItems.push_back({ "radio_" + std::to_string(i), label, L"", IconType::Play, false, false, false,
-                    [this, url = station.url]() {
-                        // Same path the network-stream modal uses: URL validation, recent-stream
-                        // bookkeeping, then the shared open-and-play entry point.
-                        NetworkStreamUrl parsed = NetworkStreamValidator::ValidateAndParse(url);
-                        if (!parsed.isValid) {
-                            ShowOSD(IconType::VolumeMuted, NetworkStreamValidator::GetSafeErrorMessage(parsed.error, url), 4.0f);
-                            return;
-                        }
-                        if (playbackSession.CanPersistRecentStreams(networkStreamModel.IsRecentStreamsEnabled())) {
-                            networkStreamModel.AddRecentStream(parsed.rawUrl);
-                            networkStreamModel.SaveRecentStreams(GetExeDir());
-                        }
-                        OpenAndPlayMedia(parsed.rawUrl);
+                    [this, url = station.url, name = station.name]() {
+                        // Island playback: audio never opens the player session.
+                        PlayListenStream(url, name, L"Live radio", true);
                     }, false, false, true});
             }
         }
@@ -237,19 +227,9 @@ void App::OpenPodcastEpisodesContextMenu(size_t feedIndex) {
                 }
             }
             contextMenuItems.push_back({ "pep_" + std::to_string(i), label, L"", IconType::Play, false, false, false,
-                [this, url = episode.url]() {
-                    // Same path the network-stream modal uses: URL validation, recent-stream
-                    // bookkeeping, then the shared open-and-play entry point.
-                    NetworkStreamUrl parsedUrl = NetworkStreamValidator::ValidateAndParse(url);
-                    if (!parsedUrl.isValid) {
-                        ShowOSD(IconType::VolumeMuted, NetworkStreamValidator::GetSafeErrorMessage(parsedUrl.error, url), 4.0f);
-                        return;
-                    }
-                    if (playbackSession.CanPersistRecentStreams(networkStreamModel.IsRecentStreamsEnabled())) {
-                        networkStreamModel.AddRecentStream(parsedUrl.rawUrl);
-                        networkStreamModel.SaveRecentStreams(GetExeDir());
-                    }
-                    OpenAndPlayMedia(parsedUrl.rawUrl);
+                [this, url = episode.url, epTitle = episode.title, feedTitle]() {
+                    // Island playback: audio never opens the player session.
+                    PlayListenStream(url, epTitle.empty() ? L"Untitled episode" : epTitle, feedTitle, false);
                 }, false, false, true});
         }
     }

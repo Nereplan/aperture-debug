@@ -463,6 +463,21 @@ struct ListenPanelViewModel {
     float scrollY = 0.0f, contentHeight = 0.0f, viewportHeight = 0.0f;
 };
 
+// Listen island: now-playing pill + popover for radio/podcast audio that
+// plays on the dedicated listen player (hub stays fully interactive).
+struct ListenIslandViewModel {
+    bool isActive = false, isRadio = true, paused = false;
+    std::wstring title, subtitle;
+    double progressRatio = 0.0;
+    std::wstring timeText;
+    float eqPhase = 0.0f;
+    bool pillHovered = false, popoverOpen = false;
+    bool playHovered = false, backHovered = false, fwdHovered = false, stopHovered = false;
+    D2D1_RECT_F pillBounds, popoverBounds;
+    D2D1_RECT_F playBtn, backBtn, fwdBtn, stopBtn;
+    float widthDip = 6.0f, heightDip = 6.0f, fade = 0.0f;
+};
+
 struct VisiblePlaylistEpisodeViewModel {
     size_t originalIndex = 0;
     std::wstring filePath, title, subtitle;
@@ -723,6 +738,7 @@ struct HubRenderViewModel {
     NavBarViewModel navBar;
     MediaTabViewModel mediaTab;
     ListenPanelViewModel listenPanel;
+    ListenIslandViewModel listenIsland;
     PlaylistsTabViewModel playlistsTab;
     HistoryTabViewModel historyTab;
     SettingsTabViewModel settingsTab;

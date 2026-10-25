@@ -895,7 +895,7 @@ void App::OpenListenStationContextMenu(size_t stationIndex, float x, float y) {
     PushFocusSnapshot(TransientSurfaceType::ContextMenu);
     contextMenuItems.clear();
     contextMenuItems.push_back({ "listen_play_station", L"Play Station", L"", IconType::Play, false, false, false,
-                                [this, url]() { PlayListenStream(url); }});
+                                [this, url, name]() { PlayListenStream(url, name, L"Live radio", true); }});
     contextMenuItems.push_back({ "listen_copy_url", L"Copy Station URL", L"", IconType::Link, false, false, false, [this, url]() {
         if (OpenClipboard(hWnd)) {
             EmptyClipboard();

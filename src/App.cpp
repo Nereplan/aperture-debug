@@ -834,6 +834,107 @@ App::~App() { Shutdown(); }
 
 bool App::IsReducedMotionEnabled() const { return settings.reduceMotionEnabled || systemVisualPreferences.Get().reduceMotion; }
 
+// ---- Listen island playback (radio / podcast audio, hub stays visible) ----
+
+void App::StartListenPlayback(const std::wstring& url, const std::wstring& title, const std::wstring& subtitle,
+                              bool isRadio, double startSec) {
+    if (url.empty()) return;
+    if (!listenPlayerInitialized) {
+        if (!listenPlayer.Initialize(playerInitialized ? player.GetMpvDll() : nullptr)) {
+            ShowOSD(IconType::VolumeMuted, L"Could not start audio playback");
+            return;
+        }
+        listenPlayerInitialized = true;
+    }
+    listenPlayer.SetVolume(settings.volume);
+    listenVolumeApplied = settings.volume;
+    if (!listenPlayer.Start(url, startSec, settings.volume)) {
+        ShowOSD(IconType::VolumeMuted, L"Could not start audio playback");
+        return;
+    }
+    listenPlaybackActive = true;
+    listenPlaybackIsRadio = isRadio;
+    listenPlaybackPaused = false;
+    listenTitle = title;
+    listenSubtitle = subtitle;
+    listenUrl = url;
+    listenPopoverOpen = false;
+    InvalidateRect(hWnd, NULL, FALSE);
+}
+
+void App::StopListenPlayback() {
+    if (!listenPlaybackActive) { listenPlayer.Stop(); return; }
+    listenPlayer.Stop();
+    listenPlaybackActive = false;
+    listenPlaybackPaused = false;
+    listenPopoverOpen = false;
+    InvalidateRect(hWnd, NULL, FALSE);
+}
+
+void App::ToggleListenPause() {
+    if (!listenPlaybackActive || !listenPlayer.IsActive()) return;
+    listenPlaybackPaused = !listenPlaybackPaused;
+    listenPlayer.SetPaused(listenPlaybackPaused);
+    InvalidateRect(hWnd, NULL, FALSE);
+}
+
+void App::ListenSeekBy(double deltaSec) {
+    if (!listenPlaybackActive || listenPlaybackIsRadio) return;
+    const double pos = listenPlayer.GetPositionSec();
+    const double dur = listenPlayer.GetDurationSec();
+    if (pos < 0.0) return;
+    double target = std::max(0.0, pos + deltaSec);
+    if (dur > 0.0) target = std::min(target, std::max(0.0, dur - 1.0));
+    listenPlayer.SeekAbsolute(target);
+    InvalidateRect(hWnd, NULL, FALSE);
+}
+
+// Episode finished: podcasts chain to the next episode of the same feed;
+// live radio streams that end simply stop.
+void App::OnListenFinished() {
+    if (!listenPlaybackIsRadio) {
+        for (const auto& feed : listenFeeds) {
+            for (size_t i = 0; i + 1 < feed.episodes.size(); ++i) {
+                if (feed.episodes[i].url == listenUrl) {
+                    const auto& next = feed.episodes[i + 1];
+                    ShowOSD(IconType::AutoplayNext, L"Next episode");
+                    StartListenPlayback(next.url, next.title.empty() ? L"Untitled episode" : next.title,
+                                        feed.title.empty() ? L"Podcast" : feed.title, false, 0.0);
+                    return;
+                }
+            }
+        }
+    }
+    StopListenPlayback();
+    ShowOSD(IconType::Checkmark, listenPlaybackIsRadio ? L"Stream ended" : L"Episode finished");
+}
+
+D2D1_RECT_F App::ListenPillBounds(float dp) {
+    RECT rc{};
+    if (!hWnd || !GetClientRect(hWnd, &rc)) return D2D1::RectF(0, 0, 0, 0);
+    const float winW = (float)std::max<LONG>(1, rc.right - rc.left);
+    const auto nav = Presentation::Nav(winW, dp, false, [this](const std::wstring& t) {
+        return renderer.MeasureString(t, FontType::Medium).width;
+    });
+    const float h = 26.0f * dp;
+    // Fixed chrome: LIVE+EQ (radio) or icon (podcast), then title, then
+    // play/pause + stop controls.
+    const float pad = 9.0f * dp, ctrl = 20.0f * dp, ctrlGap = 4.0f * dp;
+    const float lead = (listenPlaybackIsRadio ? 58.0f : 22.0f) * dp;
+    const float chrome = pad + lead + 8.0f * dp + ctrl + ctrlGap + ctrl + pad;
+    const float right = nav.settings.left - 10.0f * dp;
+    const float cy = nav.tabY + nav.tabH * 0.5f;
+    const float avail = std::max(120.0f * dp, right - (nav.tabs[2].right + 4.0f * dp) - 8.0f * dp);
+    const float w = std::min(avail, chrome + 150.0f * dp);
+    return D2D1::RectF(right - w, cy - h * 0.5f, right, cy + h * 0.5f);
+}
+
+D2D1_RECT_F App::ListenPopoverBounds(float dp) {
+    const D2D1_RECT_F pill = ListenPillBounds(dp);
+    const float w = 320.0f * dp, h = (listenPlaybackIsRadio ? 128.0f : 156.0f) * dp;
+    return D2D1::RectF(pill.right - w, pill.bottom + 8.0f * dp, pill.right, pill.bottom + 8.0f * dp + h);
+}
+
 D2D1_RECT_F App::ImportPillBounds(float dp) {
     RECT rc{};
     if (!hWnd || !GetClientRect(hWnd, &rc)) return D2D1::RectF(0, 0, 0, 0);
@@ -843,7 +944,11 @@ D2D1_RECT_F App::ImportPillBounds(float dp) {
     });
     const float w = ImportIslandTargetWidthDip() * dp;
     const float h = 24.0f * dp;
-    const float right = nav.settings.left - 10.0f * dp;
+    // Audio playback owns the slot nearest Settings; a concurrent import
+    // island parks to its left.
+    const float right = (listenPlaybackActive || listenIslandFade.current > 0.001f)
+        ? ListenPillBounds(dp).left - 10.0f * dp
+        : nav.settings.left - 10.0f * dp;
     const float cy = nav.tabY + nav.tabH * 0.5f;
     return D2D1::RectF(right - w, cy - h * 0.5f, right, cy + h * 0.5f);
 }
@@ -1094,8 +1199,8 @@ void App::ResolveListenHover(float x, float y) {
 }
 
 // Shared station/episode playback: validation, recent-stream bookkeeping,
-// then the generic open-and-play entry point.
-void App::PlayListenStream(const std::wstring& url) {
+// then the island audio player — never the full-screen session.
+void App::PlayListenStream(const std::wstring& url, const std::wstring& title, const std::wstring& subtitle, bool isRadio) {
     NetworkStreamUrl parsed = NetworkStreamValidator::ValidateAndParse(url);
     if (!parsed.isValid) {
         ShowOSD(IconType::VolumeMuted, NetworkStreamValidator::GetSafeErrorMessage(parsed.error, url), 4.0f);
@@ -1105,7 +1210,7 @@ void App::PlayListenStream(const std::wstring& url) {
         networkStreamModel.AddRecentStream(parsed.rawUrl);
         networkStreamModel.SaveRecentStreams(GetExeDir());
     }
-    OpenAndPlayMedia(parsed.rawUrl);
+    StartListenPlayback(parsed.rawUrl, title, subtitle, isRadio);
 }
 
 void App::ResolveSettingsHover(float x, float y) {
@@ -2044,6 +2149,31 @@ bool App::Update(float dt) {
     if (importIslandHeightDip.Tick()) needsRedraw = true;
     if (importIslandFade.Tick()) needsRedraw = true;
     if (importJobActive) importSpinAngle = std::fmod(importSpinAngle + dt * 260.0f, 360.0f);
+    // Listen island: poll the audio player, keep the EQ bars alive at a
+    // throttled repaint rate, mirror master volume, and morph in/out.
+    if (listenPlaybackActive || listenIslandFade.current > 0.001f) {
+        if (listenPlaybackActive) {
+            if (listenPlayer.PollFinished()) OnListenFinished();
+            if (settings.volume != listenVolumeApplied) {
+                listenVolumeApplied = settings.volume;
+                listenPlayer.SetVolume(settings.volume);
+            }
+            listenEqPhase += dt;
+            listenEqRepaintAccum += dt;
+            if (listenEqRepaintAccum >= 0.07) { listenEqRepaintAccum = 0.0; InvalidateRect(hWnd, NULL, FALSE); }
+        }
+        const bool listenOn = listenPlaybackActive;
+        const float dpNow = std::max(0.5f, renderer.GetDpiScale());
+        const float targetW = listenOn ? (RectWidth(ListenPillBounds(dpNow)) / dpNow) : 6.0f;
+        const float targetH = listenOn ? 26.0f : 6.0f;
+        AnimateVisual(listenIslandWidthDip, targetW, listenOn ? 0.48f : 0.32f, listenOn ? &kEaseIsland : &kEaseExit);
+        AnimateVisual(listenIslandHeightDip, targetH, listenOn ? 0.48f : 0.32f, listenOn ? &kEaseIsland : &kEaseExit);
+        if (!listenOn && listenIslandWidthDip.current <= 8.0f) AnimateVisual(listenIslandFade, 0.0f, 0.16f, MotionTokens::Standard());
+        else AnimateVisual(listenIslandFade, 1.0f, 0.18f, MotionTokens::Standard());
+        if (listenIslandWidthDip.Tick()) needsRedraw = true;
+        if (listenIslandHeightDip.Tick()) needsRedraw = true;
+        if (listenIslandFade.Tick()) needsRedraw = true;
+    }
     if (backfillJobActive) {
         if (backfillDone.load(std::memory_order_acquire)) { FinishBackfillJob(); }
     }
@@ -2336,6 +2466,7 @@ bool App::Update(float dt) {
         // Apply the idle policy during playback too: opening a movie stops
         // hub previews, but their decoder and frame cache otherwise stay warm.
         previewPlayer.Shutdown();
+        listenPlayer.Shutdown();
         previewInitialized = false;
         previewInitAttempted = false;
     }
@@ -3205,6 +3336,23 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                         InvalidateRect(hWnd, NULL, FALSE);
                     }
                 }
+                if (listenPlaybackActive) {
+                    const bool newPillHovered = PtInRectF(ListenPillBounds(dp), x, y);
+                    const D2D1_RECT_F pop = ListenPopoverBounds(dp);
+                    const bool newPlay = listenPopoverOpen && PtInRectF(listenIslandPlayBounds, x, y);
+                    const bool newBack = listenPopoverOpen && PtInRectF(listenIslandBackBounds, x, y);
+                    const bool newFwd = listenPopoverOpen && PtInRectF(listenIslandFwdBounds, x, y);
+                    const bool newStop = listenPopoverOpen && PtInRectF(listenIslandStopBounds, x, y);
+                    if (listenPillHovered != newPillHovered || listenPlayHovered != newPlay ||
+                        listenBackHovered != newBack || listenFwdHovered != newFwd || listenStopHovered != newStop) {
+                        listenPillHovered = newPillHovered;
+                        listenPlayHovered = newPlay;
+                        listenBackHovered = newBack;
+                        listenFwdHovered = newFwd;
+                        listenStopHovered = newStop;
+                        InvalidateRect(hWnd, NULL, FALSE);
+                    }
+                }
                 if (activeModal != ModalType::None) {
                     const bool isInputModal = (activeModal == ModalType::NewPlaylist || activeModal == ModalType::NewSmartPlaylist || activeModal == ModalType::EditSmartPlaylist || activeModal == ModalType::SeekStepInput ||
                         activeModal == ModalType::FrameSeekInput || activeModal == ModalType::CustomSettingInput || activeModal == ModalType::BookmarkInput || activeModal == ModalType::EditMetadataOverrides ||
@@ -3533,6 +3681,22 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                 InvalidateRect(hWnd, NULL, FALSE);
                 return 0;
             }
+            if (!playbackSession.IsOpen() && listenPlaybackActive) {
+                // Listen island: pill toggles the now-playing popover; the
+                // transport buttons act immediately. Clicks elsewhere close it.
+                if (PtInRectF(ListenPillBounds(dp), x, y)) {
+                    listenPopoverOpen = !listenPopoverOpen;
+                    InvalidateRect(hWnd, NULL, FALSE);
+                    return 0;
+                }
+                if (listenPopoverOpen) {
+                    if (PtInRectF(listenIslandPlayBounds, x, y)) { ToggleListenPause(); return 0; }
+                    if (PtInRectF(listenIslandBackBounds, x, y)) { ListenSeekBy(-15.0); return 0; }
+                    if (PtInRectF(listenIslandFwdBounds, x, y)) { ListenSeekBy(30.0); return 0; }
+                    if (PtInRectF(listenIslandStopBounds, x, y)) { StopListenPlayback(); ShowOSD(IconType::Checkmark, L"Listening stopped"); return 0; }
+                    if (!PtInRectF(ListenPopoverBounds(dp), x, y)) { listenPopoverOpen = false; InvalidateRect(hWnd, NULL, FALSE); }
+                }
+            }
             if (!playbackSession.IsOpen() && importJobActive) {
                 // Import island: the pill toggles its popover and Cancel lives
                 // inside it; the rest of the hub stays fully interactive.
@@ -3791,7 +3955,9 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                                     const PodcastFeed* fresh = nullptr;
                                     for (const auto& f : listenFeeds) { if (f.url == subs[feedIdx].url) { fresh = &f; break; } }
                                     if (fresh && i < fresh->episodes.size()) {
-                                        PlayListenStream(fresh->episodes[i].url);
+                                        PlayListenStream(fresh->episodes[i].url,
+                                                         fresh->episodes[i].title.empty() ? L"Untitled episode" : fresh->episodes[i].title,
+                                                         fresh->title.empty() ? L"Podcast" : fresh->title, false);
                                         return 0;
                                     }
                                 }
@@ -3808,7 +3974,8 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                         }
                         for (size_t i = 0; i < listenStationBounds.size(); ++i) {
                             if (!PtInRectF(listenStationBounds[i], x, y)) continue;
-                            if (i < listenStations.size() && !listenStations[i].url.empty()) PlayListenStream(listenStations[i].url);
+                            if (i < listenStations.size() && !listenStations[i].url.empty())
+                                PlayListenStream(listenStations[i].url, listenStations[i].name, L"Live radio", true);
                             return 0;
                         }
                     }
