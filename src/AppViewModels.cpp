@@ -385,6 +385,8 @@ HubRenderViewModel App::BuildHubRenderViewModel() {
             mediaFlatBtnBounds = vm.mediaTab.flatBtnBounds;
             vm.mediaTab.seriesBtnBounds = toolbarGeometry.series;
             mediaSeriesBtnBounds = vm.mediaTab.seriesBtnBounds;
+            vm.mediaTab.listenBtnBounds = toolbarGeometry.listen;
+            mediaListenBtnBounds = vm.mediaTab.listenBtnBounds;
             vm.mediaTab.activeGroupMode = static_cast<int>(libraryGroupMode);
             vm.mediaTab.groupModeIndicatorPos = groupModeIndicator.current;
             vm.mediaTab.hoveredGroupBtn = hoveredGroupBtn;
@@ -410,6 +412,122 @@ HubRenderViewModel App::BuildHubRenderViewModel() {
             vm.mediaTab.showSummary = toolbarGeometry.showSummary;
             vm.mediaTab.compactToolbar = toolbarGeometry.compact;
             vm.mediaTab.sortLabel = GetLibrarySortLabel(toolbarGeometry.compact);
+            // ---- Listen panel (podcasts + radio), drawn instead of media cards ----
+            if (libraryGroupMode == LibraryGroupMode::Listen) {
+                vm.listenPanel.isActive = true;
+                // Kick the directory/feed jobs once per entry (both are
+                // idempotent; private mode skips podcast refresh).
+                if (!listenJobsKicked) {
+                    listenJobsKicked = true;
+                    radioJobs.EnsureFetch();
+                    std::vector<std::wstring> feedUrls;
+                    for (const auto& f : podcastSubscriptions.GetFeeds()) feedUrls.push_back(f.url);
+                    if (!feedUrls.empty() && !playbackSession.IsPrivateMode()) podcastJobs.EnsureRefresh(feedUrls);
+                }
+                const D2D1_RECT_F view = Presentation::HubView(winW, winH, dp);
+                vm.listenPanel.bounds = D2D1::RectF(view.left, view.top + 44.0f * dp, view.right, view.bottom);
+                auto& panel = vm.listenPanel;
+                float pad = 14.0f * dp;
+                float y = panel.bounds.top + 10.0f * dp - listenScrollY;
+                const float rowH = 46.0f * dp, epH = 40.0f * dp, stH = 44.0f * dp, gap = 4.0f * dp;
+                panel.scrollY = listenScrollY;
+                panel.viewportHeight = RectHeight(panel.bounds);
+                // Podcasts header + Add-by-URL button.
+                panel.podcastsHeaderRect = D2D1::RectF(panel.bounds.left + pad, y, panel.bounds.right - pad, y + 24.0f * dp);
+                const float addW = 118.0f * dp, addH = 26.0f * dp;
+                panel.addPodcastRect = D2D1::RectF(panel.bounds.right - pad - addW, y - 1.0f * dp, panel.bounds.right - pad, y - 1.0f * dp + addH);
+                y += 34.0f * dp;
+                const auto& subs = podcastSubscriptions.GetFeeds();
+                const auto& fresh = listenFeeds;
+                for (size_t i = 0; i < subs.size(); ++i) {
+                    ListenFeedViewModel feedVm;
+                    feedVm.title = subs[i].title.empty() ? subs[i].url : subs[i].title;
+                    const PodcastFeed* freshFeed = nullptr;
+                    for (const auto& f : fresh) { if (f.url == subs[i].url) { freshFeed = &f; break; } }
+                    feedVm.metaText = freshFeed && !freshFeed->episodes.empty()
+                        ? (std::to_wstring(freshFeed->episodes.size()) + L" episodes")
+                        : std::wstring(L"Loading episodes 26");
+                    feedVm.expanded = ((int)i == listenExpandedFeed);
+                    if (feedVm.expanded && freshFeed) {
+                        for (const auto& ep : freshFeed->episodes) {
+                            ListenEpisodeViewModel epVm;
+                            epVm.title = ep.title.empty() ? L"Untitled episode" : ep.title;
+                            epVm.url = ep.url;
+                            if (ep.publishedSec > 0) {
+                                std::time_t tt = (std::time_t)ep.publishedSec;
+                                std::tm tmLocal{};
+                                if (localtime_s(&tmLocal, &tt) == 0) {
+                                    wchar_t buf[32]{};
+                                    swprintf_s(buf, L"%d/%d/%d", tmLocal.tm_mon + 1, tmLocal.tm_mday, tmLocal.tm_year + 1900);
+                                    epVm.dateText = buf;
+                                }
+                            }
+                            if (ep.durationSec > 0.0) epVm.durationText = FormatDuration(ep.durationSec);
+                            feedVm.episodes.push_back(std::move(epVm));
+                        }
+                    }
+                    feedVm.episodes.resize(std::min<size_t>(feedVm.episodes.size(), 60));
+                    panel.feeds.push_back(std::move(feedVm));
+                    panel.feedBounds.push_back(D2D1::RectF(panel.bounds.left + pad, y, panel.bounds.right - pad, y + rowH));
+                    y += rowH + gap;
+                    if (((int)i == listenExpandedFeed) && !panel.feeds.back().episodes.empty()) {
+                        for (size_t e = 0; e < panel.feeds.back().episodes.size(); ++e) {
+                            panel.episodeBounds.push_back(D2D1::RectF(panel.bounds.left + pad + 40.0f * dp, y, panel.bounds.right - pad, y + epH));
+                            panel.episodeFeedIndex.push_back((int)i);
+                            y += epH + gap;
+                        }
+                    }
+                }
+                if (subs.empty()) {
+                    // Drawn as a hint row; clicking it opens the add dialog.
+                    panel.feeds.push_back({ L"No podcasts yet  14 add a feed by URL", L"Click to subscribe", false, {} });
+                    panel.feedBounds.push_back(D2D1::RectF(panel.bounds.left + pad, y, panel.bounds.right - pad, y + rowH));
+                    y += rowH + gap;
+                }
+                y += 16.0f * dp;
+                panel.radioHeaderRect = D2D1::RectF(panel.bounds.left + pad, y, panel.bounds.right - pad, y + 24.0f * dp);
+                y += 34.0f * dp;
+                panel.radioLoading = radioJobs.IsRunning();
+                if (!panel.radioLoading && listenStations.empty() && !listenRadioErrorCached.empty()) {
+                    panel.radioError = listenRadioErrorCached;
+                }
+                for (size_t i = 0; i < listenStations.size(); ++i) {
+                    ListenStationViewModel stVm;
+                    stVm.name = listenStations[i].name;
+                    stVm.url = listenStations[i].url;
+                    stVm.metaText = listenStations[i].bitrateKbps > 0 ? (std::to_wstring(listenStations[i].bitrateKbps) + L" kbps") : L"";
+                    if (!listenStations[i].codec.empty()) { if (!stVm.metaText.empty()) stVm.metaText += L"  B7 "; stVm.metaText += listenStations[i].codec; }
+                    if (!listenStations[i].country.empty()) { if (!stVm.metaText.empty()) stVm.metaText += L"  B7 "; stVm.metaText += listenStations[i].country; }
+                    panel.stations.push_back(std::move(stVm));
+                    panel.stationBounds.push_back(D2D1::RectF(panel.bounds.left + pad, y, panel.bounds.right - pad, y + stH));
+                    y += stH + gap;
+                }
+                if (panel.radioLoading && listenStations.empty()) {
+                    panel.stations.push_back({ L"Loading stations 26", L"", L"" });
+                    panel.stationBounds.push_back(D2D1::RectF(panel.bounds.left + pad, y, panel.bounds.right - pad, y + stH));
+                    y += stH + gap;
+                } else if (!panel.radioError.empty() && listenStations.empty()) {
+                    panel.stations.push_back({ panel.radioError, L"", L"" });
+                    panel.stationBounds.push_back(D2D1::RectF(panel.bounds.left + pad, y, panel.bounds.right - pad, y + stH));
+                    y += stH + gap;
+                }
+                panel.contentHeight = (y + listenScrollY) - panel.bounds.top + 10.0f * dp;
+                listenContentHeight = panel.contentHeight;
+                listenViewportHeight = panel.viewportHeight;
+                // Mirror hit-test state for the input handlers.
+                listenFeedBounds = panel.feedBounds;
+                listenEpisodeBounds = panel.episodeBounds;
+                listenEpisodeFeedIndex = panel.episodeFeedIndex;
+                listenStationBounds = panel.stationBounds;
+                listenAddPodcastBounds = panel.addPodcastRect;
+                panel.hoveredFeed = listenHoveredFeed;
+                panel.hoveredEpisode = listenHoveredEpisode;
+                panel.hoveredEpisodeFeed = listenHoveredEpisodeFeed;
+                panel.hoveredStation = listenHoveredStation;
+                panel.addPodcastHovered = listenAddPodcastHovered;
+            } else {
+                listenJobsKicked = false;
+            }
             static const LibraryViewProjection kPendingProjection;
             static const std::vector<size_t> kPendingVisibleIndices;
             const auto& proj = libraryReady ? GetCurrentMediaProjection() : kPendingProjection;
@@ -418,6 +536,8 @@ HubRenderViewModel App::BuildHubRenderViewModel() {
             const bool hasSearch = !mediaSearchInput.GetText().empty();
             if (!libraryReady) {
                 vm.mediaTab.summaryText = libraryLoadFailed ? L"Library unavailable" : L"Loading library\x2026";
+            } else if (libraryGroupMode == LibraryGroupMode::Listen) {
+                vm.mediaTab.summaryText = L"Podcasts & radio";
             } else if (hasSearch) {
                 if (libraryGroupMode == LibraryGroupMode::Folder) {
                     vm.mediaTab.summaryText = std::to_wstring(proj.groups.size()) + L" folders \x2022 " + std::to_wstring(proj.filteredCount) + L" of " + std::to_wstring(totalCount) + L" videos";
@@ -443,7 +563,8 @@ HubRenderViewModel App::BuildHubRenderViewModel() {
                 }
             } else { vm.mediaTab.summaryText = std::to_wstring(totalCount) + L" videos"; }
             vm.mediaTab.summaryTextBounds = toolbarGeometry.summary;
-            bool showEmptyState = (libraryGroupMode == LibraryGroupMode::Flat) ? visibleIndices.empty()
+            bool showEmptyState = (libraryGroupMode == LibraryGroupMode::Listen) ? false
+                : (libraryGroupMode == LibraryGroupMode::Flat) ? visibleIndices.empty()
                 : (proj.groups.empty() && visibleIndices.empty());
             if (showEmptyState) {
                 vm.mediaTab.isEmpty = true;
@@ -1032,7 +1153,7 @@ HubRenderViewModel App::BuildHubRenderViewModel() {
     }
     // Import Progress: dynamic-island pill in the nav gap; the old modal card
     // becomes an on-demand popover anchored below the pill.
-    if (importJobActive || importIslandReveal.current > 0.001f) {
+    if (importJobActive || importIslandFade.current > 0.001f) {
         vm.importProgress.isActive = importJobActive;
         const size_t processed = importProcessed.load(std::memory_order_acquire);
         const size_t total = importTotal.load(std::memory_order_acquire);
@@ -1050,7 +1171,9 @@ HubRenderViewModel App::BuildHubRenderViewModel() {
             : std::wstring(L"Importing");
         vm.importProgress.pillHovered = importPillHovered;
         vm.importProgress.popoverOpen = importJobActive && importPopoverOpen;
-        vm.importProgress.reveal = std::clamp(importIslandReveal.current, 0.0f, 1.0f);
+        vm.importProgress.widthDip = std::max(6.0f, importIslandWidthDip.current);
+        vm.importProgress.heightDip = std::max(6.0f, importIslandHeightDip.current);
+        vm.importProgress.fade = std::clamp(importIslandFade.current, 0.0f, 1.0f);
         vm.importProgress.spinAngle = importSpinAngle;
         if (vm.importProgress.popoverOpen) {
             vm.importProgress.cardBounds = ImportPopoverBounds(dp);

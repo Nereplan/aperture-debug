@@ -841,18 +841,25 @@ D2D1_RECT_F App::ImportPillBounds(float dp) {
     const auto nav = Presentation::Nav(winW, dp, false, [this](const std::wstring& t) {
         return renderer.MeasureString(t, FontType::Medium).width;
     });
+    const float w = ImportIslandTargetWidthDip() * dp;
+    const float h = 24.0f * dp;
+    const float right = nav.settings.left - 10.0f * dp;
+    const float cy = nav.tabY + nav.tabH * 0.5f;
+    return D2D1::RectF(right - w, cy - h * 0.5f, right, cy + h * 0.5f);
+}
+
+// Content width of the island pill in DIP. The counter uses the monospace
+// face and a measured floor so digit rollovers (9 -> 10, 99 -> 100) and the
+// final-count text cannot jitter the pill; real size changes spring.
+float App::ImportIslandTargetWidthDip() {
     const size_t total = importTotal.load(std::memory_order_acquire);
     const size_t done = importProcessed.load(std::memory_order_acquire);
     const std::wstring label = total > 0
         ? (std::to_wstring(std::min(done, total)) + L" / " + std::to_wstring(total))
         : std::wstring(L"Importing");
-    const float textW = renderer.MeasureString(label, FontType::Small).width;
-    const float iconSz = 12.0f * dp, gap = 6.0f * dp, pad = 10.0f * dp;
-    const float w = iconSz + gap + textW + pad * 2.0f;
-    const float h = 24.0f * dp;
-    const float right = nav.settings.left - 10.0f * dp;
-    const float cy = nav.tabY + nav.tabH * 0.5f;
-    return D2D1::RectF(right - w, cy - h * 0.5f, right, cy + h * 0.5f);
+    const float textW = renderer.MeasureString(label, FontType::MonoSmall).width;
+    const float iconSz = 12.0f, gap = 7.0f, pad = 10.0f;
+    return std::max(86.0f, iconSz + gap + textW + pad * 2.0f);
 }
 
 D2D1_RECT_F App::ImportPopoverBounds(float dp) {
@@ -1062,6 +1069,43 @@ void App::ResolvePlaylistHover(float x, float y) {
             isPlaylistAddFilesHovered = PtInRectF(addFilesRect, x, y);
         }
     }
+}
+
+// Listen panel hover resolution (mouse move + wheel re-resolution).
+void App::ResolveListenHover(float x, float y) {
+    listenHoveredFeed = -1;
+    listenHoveredEpisode = -1;
+    listenHoveredEpisodeFeed = -1;
+    listenHoveredStation = -1;
+    listenAddPodcastHovered = PtInRectF(listenAddPodcastBounds, x, y);
+    for (size_t i = 0; i < listenEpisodeBounds.size(); ++i) {
+        if (PtInRectF(listenEpisodeBounds[i], x, y)) {
+            listenHoveredEpisode = (int)i;
+            listenHoveredEpisodeFeed = listenEpisodeFeedIndex[i];
+            return;
+        }
+    }
+    for (size_t i = 0; i < listenFeedBounds.size(); ++i) {
+        if (PtInRectF(listenFeedBounds[i], x, y)) { listenHoveredFeed = (int)i; return; }
+    }
+    for (size_t i = 0; i < listenStationBounds.size(); ++i) {
+        if (PtInRectF(listenStationBounds[i], x, y)) { listenHoveredStation = (int)i; return; }
+    }
+}
+
+// Shared station/episode playback: validation, recent-stream bookkeeping,
+// then the generic open-and-play entry point.
+void App::PlayListenStream(const std::wstring& url) {
+    NetworkStreamUrl parsed = NetworkStreamValidator::ValidateAndParse(url);
+    if (!parsed.isValid) {
+        ShowOSD(IconType::VolumeMuted, NetworkStreamValidator::GetSafeErrorMessage(parsed.error, url), 4.0f);
+        return;
+    }
+    if (playbackSession.CanPersistRecentStreams(networkStreamModel.IsRecentStreamsEnabled())) {
+        networkStreamModel.AddRecentStream(parsed.rawUrl);
+        networkStreamModel.SaveRecentStreams(GetExeDir());
+    }
+    OpenAndPlayMedia(parsed.rawUrl);
 }
 
 void App::ResolveSettingsHover(float x, float y) {
@@ -1724,6 +1768,8 @@ bool App::Initialize(HWND hwnd, HWND hVideoChild, HINSTANCE hinst, const Playbac
         libraryGroupMode = LibraryGroupMode::Series;
     } else if (settings.libraryGroupMode == "folder" || (settings.libraryGroupMode == "series" && !settings.smartSeriesDetection)) {
         libraryGroupMode = LibraryGroupMode::Folder;
+    } else if (settings.libraryGroupMode == "listen") {
+        libraryGroupMode = LibraryGroupMode::Listen;
     } else { libraryGroupMode = LibraryGroupMode::Flat; }
     librarySortField = ResolveLibrarySortSetting(settings, libraryGroupMode);
     librarySortDirection = settings.librarySortDirection == "descending" ? SortDirection::Descending : SortDirection::Ascending;
@@ -1983,10 +2029,20 @@ bool App::Update(float dt) {
         if (importDone.load(std::memory_order_acquire)) { FinishImportJob(); }
         needsRedraw = true;
     }
-    // Import island: reveal plays in/out even after the job ends so the pill
-    // exits with an animation instead of vanishing.
-    AnimateVisual(importIslandReveal, importJobActive ? 1.0f : 0.0f, 0.30f, MotionTokens::Standard());
-    if (importIslandReveal.Tick()) needsRedraw = true;
+    // Import island morph: a 6 DIP dot springs open into the pill and
+    // collapses back on exit; the dot fades only after the collapse lands.
+    if (importJobActive) {
+        AnimateVisual(importIslandWidthDip, ImportIslandTargetWidthDip(), 0.48f, &kEaseIsland);
+        AnimateVisual(importIslandHeightDip, 24.0f, 0.48f, &kEaseIsland);
+        AnimateVisual(importIslandFade, 1.0f, 0.18f, MotionTokens::Standard());
+    } else {
+        AnimateVisual(importIslandWidthDip, 6.0f, 0.32f, &kEaseExit);
+        AnimateVisual(importIslandHeightDip, 6.0f, 0.32f, &kEaseExit);
+        if (importIslandWidthDip.current <= 8.0f) AnimateVisual(importIslandFade, 0.0f, 0.16f, MotionTokens::Standard());
+    }
+    if (importIslandWidthDip.Tick()) needsRedraw = true;
+    if (importIslandHeightDip.Tick()) needsRedraw = true;
+    if (importIslandFade.Tick()) needsRedraw = true;
     if (importJobActive) importSpinAngle = std::fmod(importSpinAngle + dt * 260.0f, 360.0f);
     if (backfillJobActive) {
         if (backfillDone.load(std::memory_order_acquire)) { FinishBackfillJob(); }
@@ -2212,7 +2268,9 @@ bool App::Update(float dt) {
         if (currentTab == TabView::Settings)
             updateIndicator(settingsCatIndicator, settingsCatIndicatorReady, static_cast<float>(currentSettingsCat));
         if (currentTab == TabView::Media)
-            updateIndicator(groupModeIndicator, groupModeIndicatorReady, libraryGroupMode == LibraryGroupMode::Flat ? 0.0f : 1.0f);
+            updateIndicator(groupModeIndicator, groupModeIndicatorReady,
+                libraryGroupMode == LibraryGroupMode::Flat ? 0.0f
+                : (libraryGroupMode == LibraryGroupMode::Listen ? 1.0f : 0.5f));
         if (currentTab == TabView::Playlists) {
             size_t selected = static_cast<size_t>(playlistRailIndicator.to);
             if (selected >= library.playlists.size() || library.playlists[selected].id != activePlaylistId) {
@@ -2971,10 +3029,18 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                         }
                         return 0;
                     }
+                    if (libraryGroupMode == LibraryGroupMode::Listen) {
+                        const float maxListenScroll = std::max(0.0f, listenContentHeight - listenViewportHeight);
+                        listenScrollY = std::clamp(listenScrollY - scrollDelta, 0.0f, maxListenScroll);
+                        POINT wheelPtLs{ GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
+                        ScreenToClient(hWnd, &wheelPtLs);
+                        ResolveListenHover((float)wheelPtLs.x, (float)wheelPtLs.y);
+                    } else {
                     mediaScrollY = std::max(0.0f, mediaScrollY - scrollDelta);
                     POINT wheelPtMd{ GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
                     ScreenToClient(hWnd, &wheelPtMd);
                     UpdateHoverStates((float)wheelPtMd.x, (float)wheelPtMd.y);
+                    }
                 } else if (currentTab == TabView::Playlists) {
                     playlistDetailScrollY = std::max(0.0f, playlistDetailScrollY - scrollDelta);
                     // Content moves under a stationary cursor while scrolling;
@@ -3291,6 +3357,8 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                 D2D1_RECT_F viewBounds = Presentation::HubView(winW, winH, dp);
                 if (currentTab == TabView::Playlists) {
                     ResolvePlaylistHover(x, y);
+                } else if (currentTab == TabView::Media && libraryGroupMode == LibraryGroupMode::Listen) {
+                    ResolveListenHover(x, y);
                 } else if (currentTab == TabView::History) {
                     D2D1_SIZE_F clearSize = renderer.MeasureString(L"Clear History", FontType::Medium);
                     float clearW = clearSize.width + 24.0f * dp, clearH = 32.0f * dp;
@@ -3710,6 +3778,39 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                     if (PtInRectF(mediaSeriesBtnBounds, x, y)) {
                         SetLibraryGroupMode(settings.smartSeriesDetection ? LibraryGroupMode::Series : LibraryGroupMode::Folder);
                         return 0;
+                    }
+                    if (PtInRectF(mediaListenBtnBounds, x, y)) { SetLibraryGroupMode(LibraryGroupMode::Listen); return 0; }
+                    if (libraryGroupMode == LibraryGroupMode::Listen) {
+                        if (PtInRectF(listenAddPodcastBounds, x, y)) { ShowAddPodcastModal(); return 0; }
+                        for (size_t i = 0; i < listenEpisodeBounds.size(); ++i) {
+                            if (!PtInRectF(listenEpisodeBounds[i], x, y)) continue;
+                            const int feedIdx = (i < listenEpisodeFeedIndex.size()) ? listenEpisodeFeedIndex[i] : -1;
+                            if (feedIdx >= 0) {
+                                const auto& subs = podcastSubscriptions.GetFeeds();
+                                if ((size_t)feedIdx < subs.size()) {
+                                    const PodcastFeed* fresh = nullptr;
+                                    for (const auto& f : listenFeeds) { if (f.url == subs[feedIdx].url) { fresh = &f; break; } }
+                                    if (fresh && i < fresh->episodes.size()) {
+                                        PlayListenStream(fresh->episodes[i].url);
+                                        return 0;
+                                    }
+                                }
+                            }
+                            return 0;
+                        }
+                        for (size_t i = 0; i < listenFeedBounds.size(); ++i) {
+                            if (!PtInRectF(listenFeedBounds[i], x, y)) continue;
+                            if (podcastSubscriptions.GetFeeds().empty()) { ShowAddPodcastModal(); return 0; }
+                            listenExpandedFeed = ((int)i == listenExpandedFeed) ? -1 : (int)i;
+                            listenScrollY = 0.0f;
+                            InvalidateRect(hWnd, NULL, FALSE);
+                            return 0;
+                        }
+                        for (size_t i = 0; i < listenStationBounds.size(); ++i) {
+                            if (!PtInRectF(listenStationBounds[i], x, y)) continue;
+                            if (i < listenStations.size() && !listenStations[i].url.empty()) PlayListenStream(listenStations[i].url);
+                            return 0;
+                        }
                     }
                     if (libraryGroupMode != LibraryGroupMode::Flat) {
                         const auto& proj = GetCurrentMediaProjection();
@@ -5030,7 +5131,31 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
             if (playbackSession.IsOpen()) { RefreshOverlayHitTargets(x, y); OpenPlayerContextMenu(x, y); } else {
                 RefreshHubHitTargets(x, y);
                 if (currentTab == TabView::Media) {
-                    if (hoveredMediaGroupHeader >= 0) { OpenFolderContextMenu(hoveredMediaGroupHeader, x, y); } else {
+                    if (libraryGroupMode == LibraryGroupMode::Listen) {
+                        bool rowHandled = false;
+                        for (size_t i = 0; i < listenEpisodeBounds.size() && !rowHandled; ++i) {
+                            if (PtInRectF(listenEpisodeBounds[i], x, y)) {
+                                const int feedIdx = (i < listenEpisodeFeedIndex.size()) ? listenEpisodeFeedIndex[i] : -1;
+                                if (feedIdx >= 0 && (size_t)feedIdx < podcastSubscriptions.GetFeeds().size()) {
+                                    OpenListenFeedContextMenu((size_t)feedIdx, x, y);
+                                    rowHandled = true;
+                                }
+                            }
+                        }
+                        for (size_t i = 0; i < listenFeedBounds.size() && !rowHandled; ++i) {
+                            if (PtInRectF(listenFeedBounds[i], x, y) && !podcastSubscriptions.GetFeeds().empty()) {
+                                OpenListenFeedContextMenu(i, x, y);
+                                rowHandled = true;
+                            }
+                        }
+                        for (size_t i = 0; i < listenStationBounds.size() && !rowHandled; ++i) {
+                            if (PtInRectF(listenStationBounds[i], x, y) && i < listenStations.size()) {
+                                OpenListenStationContextMenu(i, x, y);
+                                rowHandled = true;
+                            }
+                        }
+                        if (!rowHandled) OpenBackgroundContextMenu(x, y);
+                    } else if (hoveredMediaGroupHeader >= 0) { OpenFolderContextMenu(hoveredMediaGroupHeader, x, y); } else {
                         const auto& visibleIndices = GetVisibleMediaIndices();
                         if (hoveredMediaIndex >= 0 && hoveredMediaIndex < (int)visibleIndices.size()) {
                             size_t origIdx = visibleIndices[hoveredMediaIndex];

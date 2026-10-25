@@ -198,6 +198,10 @@ void App::InvalidateLibraryDerivedState() {
 }
 
 const LibraryViewProjection& App::GetCurrentMediaProjection(bool includeCollapsed) {
+    if (libraryGroupMode == LibraryGroupMode::Listen) {
+        static const LibraryViewProjection empty;
+        return empty;
+    }
     LibraryQueryOptions opt;
     opt.groupMode = libraryGroupMode;
     opt.sortField = (librarySortField == LibrarySortField::Manual && libraryGroupMode != LibraryGroupMode::Flat)
@@ -226,6 +230,7 @@ void App::SetLibraryGroupMode(LibraryGroupMode mode) {
     else if (mode == LibraryGroupMode::Folder) { settings.libraryGroupMode = "folder"; RunFolderRediscovery(false); }
     else if (mode == LibraryGroupMode::Series) settings.libraryGroupMode = "series";
     else if (mode == LibraryGroupMode::Duplicates) settings.libraryGroupMode = "duplicates";
+    else if (mode == LibraryGroupMode::Listen) settings.libraryGroupMode = "listen";
     settings.Save();
     InvalidateMediaLayoutCache();
     mediaScrollY = 0.0f;

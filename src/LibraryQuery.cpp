@@ -1363,6 +1363,7 @@ std::wstring GetGroupModeDisplayName(LibraryGroupMode mode) {
         case LibraryGroupMode::Folder: return L"Folders";
         case LibraryGroupMode::Series: return L"Series";
         case LibraryGroupMode::Duplicates: return L"Duplicates";
+        case LibraryGroupMode::Listen: return L"Listen";
     }
     return L"Standalone";
 }

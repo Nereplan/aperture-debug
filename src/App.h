@@ -322,7 +322,18 @@ private:
     std::atomic<size_t> importTotal{ 0 };
     bool importJobActive = false, importLaunchFirst = false, importCancelHovered = false;
     bool importPopoverOpen = false, importPillHovered = false;
-    AnimatedFloat importIslandReveal;
+    // Listen panel state (podcasts + radio directory mirrors, UI-thread only).
+    std::vector<PodcastFeed> listenFeeds;
+    std::vector<RadioStation> listenStations;
+    int listenExpandedFeed = -1;
+    float listenScrollY = 0.0f, listenContentHeight = 0.0f, listenViewportHeight = 0.0f;
+    int listenHoveredFeed = -1, listenHoveredEpisodeFeed = -1, listenHoveredEpisode = -1, listenHoveredStation = -1;
+    bool listenAddPodcastHovered = false;
+    bool listenJobsKicked = false;
+    std::wstring listenRadioErrorCached;
+    // Island morph: width/height spring between a 6 DIP dot and the content
+    // pill; the dot fades out only after the collapse finishes.
+    AnimatedFloat importIslandWidthDip, importIslandHeightDip, importIslandFade;
     float importSpinAngle = 0.0f;
     ImportPlaybackIntent importFirstPlayback;
     std::wstring importEarlyPlaybackPath;
@@ -357,9 +368,20 @@ private:
     void HandleFolderWatchEvents();
     void ResolvePlaylistHover(float x, float y);
     void RestorePlaylistItemsToLibrary();
+    // Listen panel (Media tab, Listen mode): hover resolution, stream playback
+    // (validation + recent-stream bookkeeping + open), and right-click menus.
+    void ResolveListenHover(float x, float y);
+    void PlayListenStream(const std::wstring& url);
+    void OpenListenFeedContextMenu(size_t feedIndex, float x, float y);
+    void OpenListenStationContextMenu(size_t stationIndex, float x, float y);
+    struct ListenPress {
+        int target = 0; // 0 none, 1 feed, 2 episode, 3 station, 4 add-podcast
+        int a = -1, b = -1;
+    } listenPress;
     // Import status island: pill in the History<->Settings nav gap; the
     // popover anchors below it. Single geometry source for draw + hit-tests.
     D2D1_RECT_F ImportPillBounds(float dp);
+    float ImportIslandTargetWidthDip();
     D2D1_RECT_F ImportPopoverBounds(float dp);
     D2D1_RECT_F ImportCancelBounds(float dp);
     D2D1_RECT_F ContextMenuBounds(float dp) const;
@@ -524,7 +546,7 @@ private:
     LibraryGroupMode libraryGroupMode = LibraryGroupMode::Flat;
     LibrarySortField librarySortField = LibrarySortField::Title;
     SortDirection librarySortDirection = SortDirection::Ascending;
-    int hoveredGroupBtn = -1; // -1: None, 0: Flat, 1: Folder, 2: Series, 3: Duplicates
+    int hoveredGroupBtn = -1; // -1: None, 0: Flat, 1: Folder/Series, 2: Listen
     int hoveredMediaToolbarAction = -1; // -1: None, 0: Search, 1: Sort
     D2D1_RECT_F mediaSearchBtnBounds = { 0, 0, 0, 0 };
     D2D1_RECT_F mediaSearchClearBtnBounds = { 0, 0, 0, 0 };
@@ -533,6 +555,11 @@ private:
     D2D1_RECT_F mediaSortBtnBounds = { 0, 0, 0, 0 };
     D2D1_RECT_F mediaFlatBtnBounds = { 0, 0, 0, 0 };
     D2D1_RECT_F mediaSeriesBtnBounds = { 0, 0, 0, 0 };
+    D2D1_RECT_F mediaListenBtnBounds = { 0, 0, 0, 0 };
+    // Cached Listen-panel hit rects, refreshed during view-model build.
+    std::vector<D2D1_RECT_F> listenFeedBounds, listenEpisodeBounds, listenStationBounds;
+    std::vector<int> listenEpisodeFeedIndex;
+    D2D1_RECT_F listenAddPodcastBounds = { 0, 0, 0, 0 };
     LibraryQueryEngine m_mediaQueryEngine;
     // Borrow the compact query result; visible cards read the live records.
     const LibraryViewProjection& GetCurrentMediaProjection(bool includeCollapsed = false);

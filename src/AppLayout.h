@@ -84,6 +84,7 @@ struct MediaToolbarGeometry {
     D2D1_RECT_F flat = { 0, 0, 0, 0 };
     D2D1_RECT_F folder = { 0, 0, 0, 0 };
     D2D1_RECT_F series = { 0, 0, 0, 0 };
+    D2D1_RECT_F listen = { 0, 0, 0, 0 };
     D2D1_RECT_F duplicates = { 0, 0, 0, 0 };
     D2D1_RECT_F summary = { 0, 0, 0, 0 };
     bool compact = false, showSummary = false;
@@ -95,8 +96,8 @@ inline MediaToolbarGeometry ComputeMediaToolbarGeometry(const D2D1_RECT_F& toolb
     g.compact = width < 700.0f * dp;
     const float actionGap = 10.0f * dp, groupGap = 10.0f * dp;
     const float sortW = (g.compact ? 72.0f : 132.0f) * dp;
-    const float minGroupW = (g.compact ? 136.0f : 172.0f) * dp;
-    const float groupW = std::min(200.0f * dp, std::max(minGroupW, width * 0.26f));
+    const float minGroupW = (g.compact ? 204.0f : 246.0f) * dp;
+    const float groupW = std::min(268.0f * dp, std::max(minGroupW, width * 0.30f));
     g.group = D2D1::RectF(toolbar.right - groupW, toolbar.top, toolbar.right, toolbar.bottom);
     g.sort = D2D1::RectF(g.group.left - groupGap - sortW, toolbar.top, g.group.left - groupGap, toolbar.bottom);
     // Compute search width flexibly: standard width is 230dp, scaling down if space is tight
@@ -108,9 +109,10 @@ inline MediaToolbarGeometry ComputeMediaToolbarGeometry(const D2D1_RECT_F& toolb
     const float clearSz = 18.0f * dp, clearRight = g.search.right - 6.0f * dp;
     const float clearTop = g.search.top + (RectHeight(g.search) - clearSz) * 0.5f;
     g.searchClear = D2D1::RectF(clearRight - clearSz, clearTop, clearRight, clearTop + clearSz);
-    const float segW = std::max(1.0f * dp, (groupW - 4.0f * dp) / 2.0f);
+    const float segW = std::max(1.0f * dp, (groupW - 4.0f * dp) / 3.0f);
     g.flat = D2D1::RectF(g.group.left + 2.0f * dp, g.group.top + 2.0f * dp, g.group.left + 2.0f * dp + segW, g.group.bottom - 2.0f * dp);
-    g.series = D2D1::RectF(g.flat.right, g.group.top + 2.0f * dp, g.group.right - 2.0f * dp, g.group.bottom - 2.0f * dp);
+    g.series = D2D1::RectF(g.flat.right, g.group.top + 2.0f * dp, g.flat.right + segW, g.group.bottom - 2.0f * dp);
+    g.listen = D2D1::RectF(g.series.right, g.group.top + 2.0f * dp, g.group.right - 2.0f * dp, g.group.bottom - 2.0f * dp);
     g.folder = D2D1::RectF(0, 0, 0, 0);
     g.duplicates = D2D1::RectF(0, 0, 0, 0);
     g.summary = D2D1::RectF(g.search.right + actionGap, toolbar.top,

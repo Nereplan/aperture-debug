@@ -357,9 +357,10 @@ struct MediaTabViewModel {
     D2D1_RECT_F groupControlBounds = { 0, 0, 0, 0 };
     D2D1_RECT_F flatBtnBounds = { 0, 0, 0, 0 };
     D2D1_RECT_F seriesBtnBounds = { 0, 0, 0, 0 };
+    D2D1_RECT_F listenBtnBounds = { 0, 0, 0, 0 };
     int activeGroupMode = 0; // 0: Flat, 1: Folders, 2: Series, 3: Duplicates
     float groupModeIndicatorPos = 0.0f;
-    int hoveredGroupBtn = -1; // -1: None, 0: Flat, 1: Folders, 2: Series, 3: Duplicates
+    int hoveredGroupBtn = -1; // -1: None, 0: Flat, 1: Folders/Series, 2: Listen
     bool searchHovered = false, searchFocused = false, searchClearHovered = false, hasSearchQuery = false;
     D2D1_RECT_F searchClearBounds = { 0, 0, 0, 0 };
     std::wstring filterQuery;
@@ -430,6 +431,36 @@ struct PlaylistResumeCardViewModel {
     // Live hover preview (mirrors the media-row expanded preview).
     ID2D1Bitmap* pLivePreviewBitmap = nullptr;
     float previewOpacity = 0.0f;
+};
+
+// ---- Listen panel (Media tab, Listen group mode) ----
+struct ListenEpisodeViewModel {
+    std::wstring title, dateText, durationText, url;
+};
+
+struct ListenFeedViewModel {
+    std::wstring title, metaText;
+    bool expanded = false;
+    std::vector<ListenEpisodeViewModel> episodes;
+};
+
+struct ListenStationViewModel {
+    std::wstring name, metaText, url;
+};
+
+struct ListenPanelViewModel {
+    bool isActive = false;
+    std::vector<ListenFeedViewModel> feeds;
+    std::vector<ListenStationViewModel> stations;
+    bool radioLoading = false;
+    std::wstring radioError;
+    D2D1_RECT_F bounds, podcastsHeaderRect, addPodcastRect, radioHeaderRect;
+    std::vector<D2D1_RECT_F> feedBounds, episodeBounds, stationBounds;
+    std::vector<int> episodeFeedIndex;   // episodeBounds[i] belongs to feeds[episodeFeedIndex[i]]
+    int hoveredFeed = -1, hoveredStation = -1, hoveredEpisode = -1;
+    int hoveredEpisodeFeed = -1;
+    bool addPodcastHovered = false;
+    float scrollY = 0.0f, contentHeight = 0.0f, viewportHeight = 0.0f;
 };
 
 struct VisiblePlaylistEpisodeViewModel {
@@ -654,7 +685,10 @@ struct ImportProgressViewModel {
     D2D1_RECT_F pillBounds = { 0, 0, 0, 0 };
     std::wstring pillText;
     bool pillHovered = false, popoverOpen = false;
-    float reveal = 0.0f, spinAngle = 0.0f;
+    // Morph state: current pill width/height in DIP (springs between the 6 DIP
+    // dot and the content size), overall fade, and the content reveal derived
+    // from it (content appears only once the pill is mostly open).
+    float widthDip = 6.0f, heightDip = 6.0f, fade = 0.0f, spinAngle = 0.0f;
 
     D2D1_RECT_F cancelBounds = { 0, 0, 0, 0 };
 };
@@ -688,6 +722,7 @@ struct HubRenderViewModel {
     TabView currentTab = TabView::Media;
     NavBarViewModel navBar;
     MediaTabViewModel mediaTab;
+    ListenPanelViewModel listenPanel;
     PlaylistsTabViewModel playlistsTab;
     HistoryTabViewModel historyTab;
     SettingsTabViewModel settingsTab;

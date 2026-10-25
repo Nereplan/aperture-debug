@@ -110,6 +110,7 @@ bool App::UpdateHoverStates(float mouseX, float mouseY) {
         if (PtInRectF(mediaFlatBtnBounds, mouseX, mouseY)) {
             newHoveredGroupBtn = 0;
         } else if (PtInRectF(mediaSeriesBtnBounds, mouseX, mouseY)) { newHoveredGroupBtn = 1; }
+        else if (PtInRectF(mediaListenBtnBounds, mouseX, mouseY)) { newHoveredGroupBtn = 2; }
         setIfChanged(hoveredGroupBtn, newHoveredGroupBtn);
         const auto& visibleIndices = GetVisibleMediaIndices();
         float tbH = 32.0f * dp, listTop = viewBounds.top + tbH + 12.0f * dp, cardLeft = viewBounds.left + 1.0f * dp;

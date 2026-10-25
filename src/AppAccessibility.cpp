@@ -1029,10 +1029,11 @@ void App::RefreshAccessibilityTree(bool force) {
                     n.controlTypeId = UIA_ButtonControlTypeId;
                     n.itemType = L"Media Toolbar Action";
                 });
-            const wchar_t* groupLabels[] = { L"Standalone", settings.smartSeriesDetection ? L"Series" : L"Folders" };
-            const LibraryGroupMode groupModes[] = { LibraryGroupMode::Flat, settings.smartSeriesDetection ? LibraryGroupMode::Series : LibraryGroupMode::Folder };
-            const D2D1_RECT_F groupRects[] = { toolbar.flat, toolbar.series };
-            for (int g = 0; g < 2; ++g) {
+            const wchar_t* groupLabels[] = { L"Standalone", settings.smartSeriesDetection ? L"Series" : L"Folders", L"Listen" };
+            const LibraryGroupMode groupModes[] = { LibraryGroupMode::Flat, settings.smartSeriesDetection ? LibraryGroupMode::Series : LibraryGroupMode::Folder, LibraryGroupMode::Listen };
+            const D2D1_RECT_F groupRects[] = { toolbar.flat, toolbar.series, toolbar.listen };
+            const int groupCount = 3;
+            for (int g = 0; g < groupCount; ++g) {
                 const bool active = libraryGroupMode == groupModes[g];
                 addNode(1050 + g, groupLabels[g], L"Library grouping mode", active ? L"Selected" : L"", ROLE_SYSTEM_RADIOBUTTON,
                     stateBits(active, false, false, false, active),
@@ -1043,10 +1044,10 @@ void App::RefreshAccessibilityTree(bool force) {
                         n.controlTypeId = UIA_RadioButtonControlTypeId;
                         n.itemType = L"Group Mode Option";
                         n.positionInSet = g + 1;
-                        n.sizeOfSet = 2;
+                        n.sizeOfSet = groupCount;
                         n.selectionContainerId = 100;
                         n.flowsFromIds = (g == 0) ? std::vector<LONG>{ 100 } : std::vector<LONG>{ static_cast<LONG>(1050 + g - 1) };
-                        if (g < 1) { n.flowsToIds = {static_cast<LONG>(1050 + g + 1)}; }
+                        if (g < groupCount - 1) { n.flowsToIds = {static_cast<LONG>(1050 + g + 1)}; }
                         n.hasSelectionItem = true;
                         n.selected = active;
                         n.onSelect = [this, mode = groupModes[g]](LONG) { SetLibraryGroupMode(mode); };

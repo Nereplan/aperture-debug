@@ -735,10 +735,12 @@ void App::OpenBackgroundContextMenu(float x, float y) {
             }});
         }
     }
-    contextMenuItems.push_back({ "internet_radio", L"Internet Radio...", L"", IconType::Play, false, false, false,
-                                [this]() { OpenInternetRadioContextMenu(); }});
-    contextMenuItems.push_back({ "podcasts", L"Podcasts...", L"", IconType::Play, false, false, false,
-                                [this]() { OpenPodcastsContextMenu(); }});
+    if (currentTab == TabView::Media && libraryGroupMode == LibraryGroupMode::Listen) {
+        contextMenuItems.push_back({ "internet_radio", L"Internet Radio Directory...", L"", IconType::RadioWaves, false, false, false,
+                                    [this]() { OpenInternetRadioContextMenu(); }});
+        contextMenuItems.push_back({ "podcasts", L"Podcast Subscriptions...", L"", IconType::MicPodcast, false, false, false,
+                                    [this]() { OpenPodcastsContextMenu(); }});
+    }
     contextMenuItems.push_back({ "sep_bg_2", L"", L"", IconType::Play, true });
     contextMenuItems.push_back({ "refresh", L"Refresh", L"F5", IconType::Refresh, false, false, false, [this]() {
         if (!libraryLoadInProgress) { StartLibraryLoad(libraryGroupMode, true); ShowOSD(IconType::Refresh, L"Refreshing library\x2026"); }
@@ -854,6 +856,59 @@ void App::OpenPlaylistItemContextMenu(size_t itemIndex, float x, float y) {
             InvalidateRect(hWnd, NULL, FALSE);
         }});
     }
+    PresentHubContextMenu(x, y, 220.0f);
+}
+
+void App::OpenListenFeedContextMenu(size_t feedIndex, float x, float y) {
+    const auto& subs = podcastSubscriptions.GetFeeds();
+    if (feedIndex >= subs.size()) return;
+    const std::wstring feedUrl = subs[feedIndex].url;
+    const std::wstring feedTitle = subs[feedIndex].title.empty() ? subs[feedIndex].url : subs[feedIndex].title;
+    PushFocusSnapshot(TransientSurfaceType::ContextMenu);
+    contextMenuItems.clear();
+    contextMenuItems.push_back({ "listen_refresh", L"Refresh Podcasts", L"", IconType::Refresh, false, false, false, [this]() {
+        std::vector<std::wstring> feedUrls;
+        for (const auto& f : podcastSubscriptions.GetFeeds()) feedUrls.push_back(f.url);
+        if (!feedUrls.empty() && !playbackSession.IsPrivateMode()) { podcastJobs.EnsureRefresh(feedUrls); ShowOSD(IconType::Refresh, L"Refreshing podcasts"); }
+    }});
+    contextMenuItems.push_back({ "sep_lf1", L"", L"", IconType::Play, true });
+    contextMenuItems.push_back({ "listen_add", L"Add Podcast by URL...", L"", IconType::Plus, false, false, false,
+                                [this]() { ShowAddPodcastModal(); }});
+    contextMenuItems.push_back({ "sep_lf2", L"", L"", IconType::Play, true });
+    contextMenuItems.push_back({ "listen_remove", L"Remove This Podcast", L"", IconType::Trash, false, false, true, [this, feedUrl, feedTitle]() {
+        podcastSubscriptions.Remove(feedUrl);
+        podcastSubscriptions.Save(GetDataDir());
+        if (listenExpandedFeed >= 0) {
+            // Indices shift after removal; collapse to stay safe.
+            listenExpandedFeed = -1;
+        }
+        ShowOSD(IconType::Trash, L"Removed podcast: " + feedTitle);
+        InvalidateRect(hWnd, NULL, FALSE);
+    }});
+    PresentHubContextMenu(x, y, 220.0f);
+}
+
+void App::OpenListenStationContextMenu(size_t stationIndex, float x, float y) {
+    if (stationIndex >= listenStations.size()) return;
+    const std::wstring url = listenStations[stationIndex].url;
+    const std::wstring name = listenStations[stationIndex].name;
+    PushFocusSnapshot(TransientSurfaceType::ContextMenu);
+    contextMenuItems.clear();
+    contextMenuItems.push_back({ "listen_play_station", L"Play Station", L"", IconType::Play, false, false, false,
+                                [this, url]() { PlayListenStream(url); }});
+    contextMenuItems.push_back({ "listen_copy_url", L"Copy Station URL", L"", IconType::Link, false, false, false, [this, url]() {
+        if (OpenClipboard(hWnd)) {
+            EmptyClipboard();
+            HGLOBAL mem = GlobalAlloc(GMEM_MOVEABLE, (url.size() + 1) * sizeof(wchar_t));
+            if (mem) {
+                wchar_t* dst = (wchar_t*)GlobalLock(mem);
+                if (dst) { wcscpy_s(dst, url.size() + 1, url.c_str()); GlobalUnlock(mem); }
+                SetClipboardData(CF_UNICODETEXT, mem);
+            }
+            CloseClipboard();
+            ShowOSD(IconType::Checkmark, L"Station URL copied");
+        }
+    }});
     PresentHubContextMenu(x, y, 220.0f);
 }
 
@@ -2128,6 +2183,12 @@ bool App::PumpOnlineSubtitleJobs() {
 bool App::PumpRadioDirectoryJobs() {
     if (!radioJobs.Pump()) return false;
     const RadioDirectoryResult& result = radioJobs.GetResult();
+    if (result.success) {
+        listenStations = result.stations;
+        listenRadioErrorCached.clear();
+    } else {
+        listenRadioErrorCached = result.errorMessage.empty() ? L"Radio directory unavailable" : result.errorMessage;
+    }
     if (!result.success || result.stale) ShowOSD(IconType::VolumeMuted, L"Radio directory unavailable");
     if (isContextMenuOpen && !contextMenuItems.empty() && contextMenuItems.front().id == "radio_title")
         OpenInternetRadioContextMenu();
@@ -2150,6 +2211,7 @@ bool App::PumpPodcastJobs() {
     if (podcastJobs.Pump()) {
         changed = true;
         const PodcastRefreshResult& result = podcastJobs.GetResult();
+        if (result.success) listenFeeds = result.feeds;
         if (!result.success) ShowOSD(IconType::VolumeMuted, L"Podcast feeds unavailable");
     }
     if (changed && isContextMenuOpen && !contextMenuItems.empty() && contextMenuItems.front().id == "pod_title")

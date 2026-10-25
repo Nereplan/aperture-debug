@@ -3173,10 +3173,15 @@ void UIComponents::DrawMediaToolbar(Renderer& r, const Settings& s, const MediaT
     // 4. Compact grouping control: the library is either a flat list or series.
     r.FillRoundedRect(vm.groupControlBounds, 7.0f * dp, D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.03f));
     r.DrawRoundedRect(vm.groupControlBounds, 7.0f * dp, D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.08f), 1.0f);
-    // Sliding selection pill
+    // Sliding selection pill: indicator position is 0 / 0.5 / 1 for
+    // Flat / Folders-Series / Listen, so lerp across the two segments it sits between.
     const float gPos = std::clamp(vm.groupModeIndicatorPos, 0.0f, 1.0f);
-    const float gLeft = vm.flatBtnBounds.left + gPos * (vm.seriesBtnBounds.left - vm.flatBtnBounds.left);
-    const float gRight = vm.flatBtnBounds.right + gPos * (vm.seriesBtnBounds.right - vm.flatBtnBounds.right);
+    const bool inLowerHalf = gPos <= 0.5f;
+    const D2D1_RECT_F& gSegA = inLowerHalf ? vm.flatBtnBounds : vm.seriesBtnBounds;
+    const D2D1_RECT_F& gSegB = inLowerHalf ? vm.seriesBtnBounds : vm.listenBtnBounds;
+    const float gSegT = inLowerHalf ? gPos * 2.0f : (gPos - 0.5f) * 2.0f;
+    const float gLeft = gSegA.left + gSegT * (gSegB.left - gSegA.left);
+    const float gRight = gSegA.right + gSegT * (gSegB.right - gSegA.right);
     const D2D1_RECT_F gPill = D2D1::RectF(gLeft, vm.flatBtnBounds.top, gRight, vm.flatBtnBounds.bottom);
     r.FillRoundedRect(gPill, 5.0f * dp, LerpColor(th.cardBg, th.text, 0.10f));
     r.DrawRoundedRect(gPill, 5.0f * dp, ColorWithAlpha(th.accent, 0.38f), 1.0f);
@@ -3188,6 +3193,135 @@ void UIComponents::DrawMediaToolbar(Renderer& r, const Settings& s, const MediaT
     bool isGroupedHover = (vm.hoveredGroupBtn == 1);
     D2D1_COLOR_F seriesCol = LerpColor(th.textMuted, th.text, std::max(gPos, isGroupedHover ? 0.7f : 0.0f));
     r.DrawString(s.smartSeriesDetection ? L"Series" : L"Folders", vm.seriesBtnBounds, seriesCol, FontType::Small, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+
+    bool isListenHover = (vm.hoveredGroupBtn == 2);
+    D2D1_COLOR_F listenCol = LerpColor(th.textMuted, th.text, std::max(2.0f * (gPos - 0.5f), isListenHover ? 0.7f : 0.0f));
+    r.DrawString(vm.compactToolbar ? L"Listen" : L"Listen", vm.listenBtnBounds, listenCol, FontType::Small, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+}
+
+// Listen panel: podcasts (with inline episode expansion) above the live radio
+// directory. Audio-first surfaces — icon badges and text instead of video
+// thumbnails — with the same row rhythm as the rest of the hub.
+void UIComponents::DrawListenPanel(Renderer& r, const Settings& s, const ListenPanelViewModel& vm) {
+    float dp = r.GetDpiScale();
+    const auto& th = s.currentTheme;
+    r.PushClip(vm.bounds);
+    const float radius = 8.0f;
+    // ---- Podcasts ----
+    r.DrawString(L"PODCASTS", vm.podcastsHeaderRect, th.textMuted, FontType::Caption, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+    {
+        const bool addHover = vm.addPodcastHovered;
+        SurfaceStyle addStyle;
+        addStyle.radius = addHover ? 14.0f * dp : 13.0f * dp;
+        addStyle.fill = addHover ? ColorWithAlpha(th.accent, 0.16f) : ColorWithAlpha(th.text, 0.05f);
+        addStyle.border = addHover ? ColorWithAlpha(th.accent, 0.45f) : ColorWithAlpha(th.text, 0.08f);
+        r.DrawSurface(vm.addPodcastRect, addStyle);
+        r.DrawIcon(IconType::Plus, InsetRectF(D2D1::RectF(vm.addPodcastRect.left + 8.0f * dp, vm.addPodcastRect.top, vm.addPodcastRect.left + 22.0f * dp, vm.addPodcastRect.bottom), 4.0f * dp, 8.0f * dp),
+                   addHover ? th.accent : th.textMuted, 1.6f * dp);
+        r.DrawString(L"Add by URL", D2D1::RectF(vm.addPodcastRect.left + 24.0f * dp, vm.addPodcastRect.top, vm.addPodcastRect.right - 6.0f * dp, vm.addPodcastRect.bottom),
+                     addHover ? th.text : th.textMuted, FontType::Small, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+    }
+    for (size_t i = 0; i < vm.feeds.size(); ++i) {
+        const auto& feed = vm.feeds[i];
+        const D2D1_RECT_F& rect = vm.feedBounds[i];
+        const bool hovered = (vm.hoveredFeed == (int)i);
+        const bool expanded = feed.expanded;
+        SurfaceStyle rowStyle;
+        rowStyle.radius = radius * dp;
+        if (expanded) { rowStyle.fill = ColorWithAlpha(th.accent, 0.08f); rowStyle.border = ColorWithAlpha(th.accent, 0.35f); rowStyle.borderWidth = 1.0f; }
+        else if (hovered) { rowStyle.fill = ColorWithAlpha(th.text, 0.05f); }
+        if (rowStyle.fill.a > 0.0f || expanded) r.DrawSurface(rect, rowStyle);
+        const float badgeSz = 28.0f * dp;
+        const D2D1_RECT_F badge = D2D1::RectF(rect.left + 10.0f * dp, rect.top + (RectHeight(rect) - badgeSz) * 0.5f, rect.left + 10.0f * dp + badgeSz, rect.top + (RectHeight(rect) + badgeSz) * 0.5f);
+        r.FillRoundedRect(badge, 8.0f * dp, ColorWithAlpha(th.accent, 0.14f));
+        r.DrawIcon(IconType::MicPodcast, InsetRectF(badge, 6.0f * dp, 6.0f * dp), th.accent, 1.4f * dp);
+        const float textLeft = badge.right + 12.0f * dp;
+        const float chevSz = 16.0f * dp;
+        const D2D1_RECT_F chev = D2D1::RectF(rect.right - chevSz - 12.0f * dp, rect.top + (RectHeight(rect) - chevSz) * 0.5f, rect.right - 12.0f * dp, rect.top + (RectHeight(rect) + chevSz) * 0.5f);
+        const float nameW = chev.left - 10.0f * dp - textLeft;
+        r.DrawString(FitSingleLine(r, feed.title, FontType::Medium, nameW),
+                     D2D1::RectF(textLeft, rect.top + 5.0f * dp, chev.left - 10.0f * dp, rect.top + 24.0f * dp),
+                     th.text, FontType::Medium, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+        r.DrawString(FitSingleLine(r, feed.metaText, FontType::Small, nameW),
+                     D2D1::RectF(textLeft, rect.top + 24.0f * dp, chev.left - 10.0f * dp, rect.bottom - 4.0f * dp),
+                     th.textMuted, FontType::Small, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+        r.DrawIcon(expanded ? IconType::ChevronDown : IconType::ChevronRight, chev, th.textMuted, 1.4f * dp);
+    }
+    // Episodes of the expanded feed (episodeBounds carry their feed index).
+    for (size_t i = 0; i < vm.episodeBounds.size(); ++i) {
+        const int feedIdx = (i < vm.episodeFeedIndex.size()) ? vm.episodeFeedIndex[i] : -1;
+        if (feedIdx < 0 || (size_t)feedIdx >= vm.feeds.size()) continue;
+        const auto& feed = vm.feeds[feedIdx];
+        // Episodes were appended in build order for the single expanded feed.
+        size_t epIdx = 0, consumed = 0;
+        for (size_t k = 0; k < i; ++k) {
+            if ((size_t)vm.episodeFeedIndex[k] == (size_t)feedIdx) ++consumed;
+        }
+        epIdx = consumed;
+        if (epIdx >= feed.episodes.size()) continue;
+        const auto& ep = feed.episodes[epIdx];
+        const D2D1_RECT_F& rect = vm.episodeBounds[i];
+        const bool hovered = (vm.hoveredEpisode == (int)i);
+        if (hovered) {
+            SurfaceStyle epStyle;
+            epStyle.radius = radius * dp;
+            epStyle.fill = ColorWithAlpha(th.text, 0.05f);
+            r.DrawSurface(rect, epStyle);
+        }
+        const float playSz = 22.0f * dp;
+        const D2D1_RECT_F play = D2D1::RectF(rect.left + 4.0f * dp, rect.top + (RectHeight(rect) - playSz) * 0.5f, rect.left + 4.0f * dp + playSz, rect.top + (RectHeight(rect) + playSz) * 0.5f);
+        r.FillCircle((play.left + play.right) * 0.5f, (play.top + play.bottom) * 0.5f, playSz * 0.5f, hovered ? th.accent : ColorWithAlpha(th.accent, 0.55f));
+        r.DrawIcon(IconType::Play, InsetRectF(play, 6.0f * dp, 6.0f * dp), D2D1::ColorF(0.06f, 0.05f, 0.04f, 1.0f), 1.2f * dp);
+        std::wstring tail = ep.dateText;
+        if (!ep.durationText.empty()) { if (!tail.empty()) tail += L"  B7 "; tail += ep.durationText; }
+        const float tailW = tail.empty() ? 0.0f : r.MeasureString(tail, FontType::MonoSmall).width + 12.0f * dp;
+        const float titleRight = rect.right - 12.0f * dp - tailW;
+        r.DrawString(FitSingleLine(r, ep.title, FontType::Regular, std::max(40.0f * dp, titleRight - play.right - 10.0f * dp)),
+                     D2D1::RectF(play.right + 10.0f * dp, rect.top, titleRight, rect.bottom),
+                     hovered ? th.text : th.text, FontType::Regular, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+        if (!tail.empty()) {
+            r.DrawString(FitSingleLine(r, tail, FontType::MonoSmall, tailW),
+                         D2D1::RectF(titleRight, rect.top, rect.right - 12.0f * dp, rect.bottom),
+                         th.textMuted, FontType::MonoSmall, DWRITE_TEXT_ALIGNMENT_TRAILING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+        }
+    }
+    // ---- Radio ----
+    r.DrawString(L"RADIO", vm.radioHeaderRect, th.textMuted, FontType::Caption, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+    for (size_t i = 0; i < vm.stations.size(); ++i) {
+        const auto& st = vm.stations[i];
+        const D2D1_RECT_F& rect = vm.stationBounds[i];
+        const bool hovered = (vm.hoveredStation == (int)i);
+        if (hovered) {
+            SurfaceStyle stStyle;
+            stStyle.radius = radius * dp;
+            stStyle.fill = ColorWithAlpha(th.text, 0.05f);
+            r.DrawSurface(rect, stStyle);
+        }
+        const float badgeW = 46.0f * dp, badgeH = 20.0f * dp;
+        const D2D1_RECT_F live = D2D1::RectF(rect.left + 10.0f * dp, rect.top + (RectHeight(rect) - badgeH) * 0.5f, rect.left + 10.0f * dp + badgeW, rect.top + (RectHeight(rect) + badgeH) * 0.5f);
+        r.FillRoundedRect(live, badgeH * 0.5f, ColorWithAlpha(D2D1::ColorF(0.95f, 0.25f, 0.32f, 1.0f), 0.14f));
+        r.DrawRoundedRect(live, badgeH * 0.5f, ColorWithAlpha(D2D1::ColorF(0.95f, 0.35f, 0.40f, 1.0f), 0.35f), 1.0f * dp);
+        const float dotR = 3.0f * dp, dotCx = live.left + 10.0f * dp;
+        const float dotCy = (live.top + live.bottom) * 0.5f;
+        r.FillCircle(dotCx, dotCy, dotR, D2D1::ColorF(0.95f, 0.3f, 0.36f, 1.0f));
+        r.DrawString(L"LIVE", D2D1::RectF(live.left + 16.0f * dp, live.top, live.right - 6.0f * dp, live.bottom),
+                     D2D1::ColorF(0.97f, 0.5f, 0.55f, 1.0f), FontType::Caption, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+        const float playSz = 22.0f * dp;
+        const D2D1_RECT_F play = D2D1::RectF(rect.right - playSz - 12.0f * dp, rect.top + (RectHeight(rect) - playSz) * 0.5f, rect.right - 12.0f * dp, rect.top + (RectHeight(rect) + playSz) * 0.5f);
+        float metaW = st.metaText.empty() ? 0.0f : r.MeasureString(st.metaText, FontType::MonoSmall).width + 14.0f * dp;
+        const float nameRight = play.left - 12.0f * dp - metaW;
+        r.DrawString(FitSingleLine(r, st.name, FontType::Medium, std::max(50.0f * dp, nameRight - live.right - 12.0f * dp)),
+                     D2D1::RectF(live.right + 12.0f * dp, rect.top, nameRight, rect.bottom),
+                     hovered ? th.text : th.text, FontType::Medium, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+        if (!st.metaText.empty()) {
+            r.DrawString(FitSingleLine(r, st.metaText, FontType::MonoSmall, metaW),
+                         D2D1::RectF(nameRight, rect.top, play.left - 12.0f * dp, rect.bottom),
+                         th.textMuted, FontType::MonoSmall, DWRITE_TEXT_ALIGNMENT_TRAILING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+        }
+        r.FillCircle((play.left + play.right) * 0.5f, (play.top + play.bottom) * 0.5f, playSz * 0.5f, hovered ? th.accent : ColorWithAlpha(th.accent, 0.45f));
+        r.DrawIcon(IconType::Play, InsetRectF(play, 6.0f * dp, 6.0f * dp), D2D1::ColorF(0.06f, 0.05f, 0.04f, 1.0f), 1.2f * dp);
+    }
+    r.PopClip();
 }
 
 void UIComponents::DrawMediaGroupHeader(Renderer& r, const Settings& s, const VisibleMediaGroupHeaderViewModel& vm) {
@@ -4249,35 +4383,39 @@ void UIComponents::DrawOverlayContextMenu(OverlayRenderer& r, const Settings& s,
 }
 
 void UIComponents::DrawImportProgress(Renderer& r, const Settings& s, const ImportProgressViewModel& vm) {
-    // Dynamic-island pill in the History<->Settings nav gap. It grows in with
-    // `reveal`, spins an activity icon, and carries a live counter; the popover
-    // below it holds the details and Cancel.
-    if (vm.reveal <= 0.001f) return;
+    // Dynamic island, Apple-style: a 6 DIP dot springs open into the pill
+    // (slight overshoot), content fades in once mostly open, width changes
+    // glide, and the exit collapses back to the dot before fading. Colors
+    // follow the elevated floating surface, not a flat white wash.
+    if (vm.fade <= 0.001f && vm.widthDip <= 6.5f) return;
     float dp = r.GetDpiScale();
     const auto& th = s.currentTheme;
-    const float a = vm.reveal;
-    const D2D1_RECT_F full = vm.pillBounds;
-    const float cy = (full.top + full.bottom) * 0.5f;
-    const float h = (full.bottom - full.top) * a;
-    const D2D1_RECT_F pill = D2D1::RectF(full.left, cy - h * 0.5f, full.right, cy + h * 0.5f);
-    const float radius = (pill.bottom - pill.top) * 0.5f;
-    r.FillRoundedRect(pill, radius, ColorWithAlpha(vm.pillHovered ? th.accent : ColorWithAlpha(th.text, 0.10f), a * (vm.pillHovered ? 0.22f : 1.0f)));
-    r.DrawRoundedRect(pill, radius, ColorWithAlpha(vm.pillHovered ? th.accent : th.border, 0.65f * a), 1.0f * dp);
+    const float a = vm.fade;
+    // Content reveal: nothing readable until the pill is ~55% open.
+    const float contentA = std::clamp((vm.heightDip - 12.0f) / 10.0f, 0.0f, 1.0f) * a;
+    const D2D1_RECT_F target = vm.pillBounds;
+    const float cy = (target.top + target.bottom) * 0.5f;
+    const float w = vm.widthDip * dp, h = vm.heightDip * dp;
+    const D2D1_RECT_F pill = D2D1::RectF(target.right - w, cy - h * 0.5f, target.right, cy + h * 0.5f);
+    const float radius = std::min(w, h) * 0.5f;
+    const D2D1_COLOR_F fill = vm.pillHovered ? ColorWithAlpha(th.text, 0.10f * a) : ColorWithAlpha(th.surfaceFloating, 0.98f * a);
+    r.FillRoundedRect(pill, radius, fill);
+    r.DrawRoundedRect(pill, radius, ColorWithAlpha(vm.pillHovered ? th.accent : th.border, (vm.pillHovered ? 0.55f : 0.85f) * a), 1.0f * dp);
+    if (contentA <= 0.001f) return;
     const float iconSz = 12.0f * dp;
     r.DrawIconRotated(IconType::Refresh, D2D1::RectF(pill.left + 10.0f * dp, cy - iconSz * 0.5f, pill.left + 10.0f * dp + iconSz, cy + iconSz * 0.5f),
-                      ColorWithAlpha(th.accent, a), vm.spinAngle, 1.6f * dp);
-    const D2D1_RECT_F textRect = D2D1::RectF(pill.left + 10.0f * dp + iconSz + 6.0f * dp, pill.top, pill.right - 10.0f * dp, pill.bottom);
-    r.DrawString(vm.pillText, textRect, ColorWithAlpha(th.text, a), FontType::Small, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-    // Hairline progress underline across the pill's base.
-    if (vm.progressRatio > 0.0 && pill.right > pill.left) {
-        const float barY = pill.bottom - 2.0f * dp;
+                      ColorWithAlpha(th.accent, contentA), vm.spinAngle, 1.6f * dp);
+    const D2D1_RECT_F textRect = D2D1::RectF(pill.left + 10.0f * dp + iconSz + 7.0f * dp, pill.top, pill.right - 10.0f * dp, pill.bottom);
+    r.DrawString(vm.pillText, textRect, ColorWithAlpha(th.text, contentA), FontType::MonoSmall, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+    // Hairline progress underline hugging the pill's base.
+    if (vm.progressRatio > 0.0 && pill.right > pill.left + 6.0f * dp) {
         const float barW = (pill.right - pill.left - 4.0f * dp) * (float)std::min(1.0, vm.progressRatio);
-        r.FillRoundedRect(D2D1::RectF(pill.left + 2.0f * dp, barY, pill.left + 2.0f * dp + barW, pill.bottom), 1.0f * dp, ColorWithAlpha(th.accent, 0.9f * a));
+        r.FillRoundedRect(D2D1::RectF(pill.left + 2.0f * dp, pill.bottom - 3.0f * dp, pill.left + 2.0f * dp + barW, pill.bottom - 1.0f * dp), 1.0f * dp, ColorWithAlpha(th.accent, 0.9f * contentA));
     }
     if (!vm.popoverOpen) return;
     // Details popover anchored under the pill.
     r.DrawDropShadow(vm.cardBounds, 10.0f * dp, 16.0f * dp, 4.0f * dp, D2D1::ColorF(0, 0, 0, 0.45f));
-    r.FillRoundedRect(vm.cardBounds, 12.0f * dp, th.cardBg);
+    r.FillRoundedRect(vm.cardBounds, 12.0f * dp, th.surfaceFloating);
     r.DrawRoundedRect(vm.cardBounds, 12.0f * dp, th.border, 1.0f * dp);
     r.DrawString(L"Importing media", D2D1::RectF(vm.cardBounds.left + 18.0f * dp, vm.cardBounds.top + 14.0f * dp, vm.cardBounds.right - 18.0f * dp, vm.cardBounds.top + 40.0f * dp), th.text, FontType::Subheading);
     r.DrawString(vm.progressText, D2D1::RectF(vm.cardBounds.left + 18.0f * dp, vm.cardBounds.top + 42.0f * dp, vm.cardBounds.right - 18.0f * dp, vm.cardBounds.top + 64.0f * dp), th.textMuted, FontType::Small);
@@ -4318,7 +4456,9 @@ void UIComponents::DrawHub(Renderer& r, const Settings& s, HubRenderViewModel& v
         case TabView::Media: {
             DrawMediaToolbar(r, s, vm.mediaTab);
             r.PushClip(vm.mediaTab.clipBounds);
-            if (vm.mediaTab.isEmpty) { DrawEmptyState(r, s, vm.mediaTab.emptyState); } else {
+            if (vm.listenPanel.isActive) {
+                DrawListenPanel(r, s, vm.listenPanel);
+            } else if (vm.mediaTab.isEmpty) { DrawEmptyState(r, s, vm.mediaTab.emptyState); } else {
                 Renderer::ScopedPrimitiveSnapping scopedSnapping(r, false);
                 for (const auto& header : vm.mediaTab.visibleGroupHeaders) { DrawMediaGroupHeader(r, s, header); }
                 for (const auto& card : vm.mediaTab.visibleCards) { DrawMediaItemCard(r, s, card); }

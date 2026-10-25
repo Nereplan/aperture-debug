@@ -24,7 +24,7 @@ enum class SortDirection { Ascending = 0, Descending };
 
 enum class LibraryStatusFilter { All = 0, Unwatched, InProgress, Completed, Missing };
 
-enum class LibraryGroupMode { Flat = 0, Folder, Series, Duplicates };
+enum class LibraryGroupMode { Flat = 0, Folder, Series, Duplicates, Listen };
 
 enum class DuplicateMatchKind {
     ExactFileIdentity = 0, // Exact Windows file identity (volumeSerialNumber + fileIndex)
