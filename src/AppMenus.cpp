@@ -567,13 +567,15 @@ void App::OpenMediaContextMenu(const MediaItem& item, float x, float y) {
         contextMenuItems.push_back({"mark_unwatched", L"Mark as unwatched (" + std::to_wstring(selCount) + L" Videos)", L"",
                                     IconType::Refresh, false, false, false, [this]() { BulkSetWatched(false); }});
         contextMenuItems.push_back({ "sep1", L"", L"", IconType::Play, true });
-        for (const auto& pl : library.playlists) {
-            if (pl.IsSmart()) continue;
-            std::string plId = pl.id;
-            std::wstring plName = Utf8ToUtf16(pl.name);
-            contextMenuItems.push_back({"add_to_pl_" + plId, L"Add " + std::to_wstring(selCount) + L" items to " + plName, L"",
-                                        IconType::FolderPlaylist, false, false, false, [this, plId]() { BulkAddToPlaylist(plId); }});
-        }
+        contextMenuItems.push_back({"add_to_playlist", L"Add to Playlist \u25B8", L"",
+                                    IconType::FolderPlaylist, false, false, false, [this, x, y]() {
+            std::vector<std::wstring> paths;
+            paths.reserve(selectedMediaIndices.size());
+            for (size_t idx : selectedMediaIndices) {
+                if (idx < library.mediaItems.size()) paths.push_back(library.mediaItems[idx].filePath);
+            }
+            OpenAddToPlaylistContextMenu(x, y, std::move(paths));
+        }, false, false, true});
         contextMenuItems.push_back({ "sep2", L"", L"", IconType::Play, true });
         contextMenuItems.push_back({"remove_multi", L"Remove Selected (" + std::to_wstring(selCount) + L" Files)...", L"Del",
                                     IconType::Trash, false, false, true, [this]() { ConfirmDeleteSelectedMedia(); }});
@@ -607,19 +609,10 @@ void App::OpenMediaContextMenu(const MediaItem& item, float x, float y) {
             InvalidateRect(hWnd, NULL, FALSE);
         }});
         contextMenuItems.push_back({ "sep1", L"", L"", IconType::Play, true });
-        for (const auto& pl : library.playlists) {
-            if (pl.IsSmart()) continue;
-            std::string plId = pl.id;
-            std::wstring plName = Utf8ToUtf16(pl.name);
-            contextMenuItems.push_back({ "add_to_pl_" + plId, L"Add to " + plName, L"", IconType::FolderPlaylist, false, false, false, [this, plId, plName, item]() {
-                size_t skipped = 0;
-                size_t added = AddToPlaylistWithUndo(plId, { item.filePath }, &skipped);
-                SaveLibrary();
-                if (added > 0) {
-                    ShowOSD(IconType::FolderPlaylist, L"Added to " + plName);
-                } else { ShowOSD(IconType::FolderPlaylist, L"Item already in " + plName); }
-            }});
-        }
+        contextMenuItems.push_back({"add_to_playlist", L"Add to Playlist \u25B8", L"",
+                                    IconType::FolderPlaylist, false, false, false,
+                                    [this, item, x, y]() { OpenAddToPlaylistContextMenu(x, y, { item.filePath }); },
+                                    false, false, true});
         contextMenuItems.push_back({ "sep2", L"", L"", IconType::Play, true });
         contextMenuItems.push_back({"explorer", L"Show in Explorer", L"", IconType::FolderPlaylist, false, false, false,
                                     [this, item]() { OpenInExplorer(item.filePath); }});
@@ -649,6 +642,50 @@ void App::OpenMediaContextMenu(const MediaItem& item, float x, float y) {
     PresentHubContextMenu(x, y, 220.0f);
 }
 
+// Bounds of the open context menu in client coordinates, matching the
+// geometry UpdateContextMenuHitTarget and the renderer use.
+D2D1_RECT_F App::ContextMenuBounds(float dp) const {
+    if (!isContextMenuOpen) return D2D1::RectF(0, 0, 0, 0);
+    if (isSplitIrisMenu) {
+        const float bottom = SplitIrisMenuLayout::Bottom(contextMenuItems) * dp;
+        return D2D1::RectF(contextMenuOrigin.x - 8.0f * dp, contextMenuOrigin.y - 8.0f * dp,
+                           contextMenuOrigin.x + 246.0f * dp, contextMenuOrigin.y + bottom + 8.0f * dp);
+    }
+    float curY = contextMenuOrigin.y + 4.0f * dp;
+    for (const auto& item : contextMenuItems) curY += item.isSeparator ? 6.0f * dp : 32.0f * dp;
+    return D2D1::RectF(contextMenuOrigin.x, contextMenuOrigin.y, contextMenuOrigin.x + 220.0f * dp, curY + 4.0f * dp);
+}
+
+// Playlist picker submenu: adds the captured paths so the action never depends
+// on selection state that may change while the menu is open.
+void App::OpenAddToPlaylistContextMenu(float x, float y, std::vector<std::wstring> paths) {
+    if (!isContextMenuOpen) PushFocusSnapshot(TransientSurfaceType::ContextMenu);
+    contextMenuItems.clear();
+    bool any = false;
+    for (const auto& pl : library.playlists) {
+        if (pl.IsSmart()) continue;
+        any = true;
+        std::string plId = pl.id;
+        std::wstring plName = Utf8ToUtf16(pl.name);
+        contextMenuItems.push_back({"add_to_pl_" + plId, plName + L" (" + std::to_wstring(pl.itemPaths.size()) + L")", L"",
+                                    IconType::FolderPlaylist, false, false, false, [this, plId, plName, paths]() {
+            size_t skipped = 0;
+            const size_t added = AddToPlaylistWithUndo(plId, paths, &skipped);
+            SaveLibrary();
+            if (added > 0) {
+                ShowOSD(IconType::FolderPlaylist,
+                        L"Added " + std::to_wstring(added) + (added == 1 ? L" item to " : L" items to ") + plName);
+            } else { ShowOSD(IconType::FolderPlaylist, L"Already in " + plName); }
+            InvalidateRect(hWnd, NULL, FALSE);
+        }});
+    }
+    if (!any) {
+        contextMenuItems.push_back({"no_playlists", L"No playlists yet", L"", IconType::FolderPlaylist,
+                                    false, false, false, nullptr, true});
+    }
+    PresentHubContextMenu(x, y, 220.0f);
+}
+
 void App::OpenBackgroundContextMenu(float x, float y) {
     PushFocusSnapshot(TransientSurfaceType::ContextMenu);
     contextMenuItems.clear();
@@ -665,13 +702,6 @@ void App::OpenBackgroundContextMenu(float x, float y) {
                                         IconType::Checkmark, false, false, false, [this]() { BulkSetWatched(true); }});
             contextMenuItems.push_back({"mark_unwatched", L"Mark Selected as Unwatched (" + std::to_wstring(selCount) + L" Videos)", L"",
                                         IconType::Refresh, false, false, false, [this]() { BulkSetWatched(false); }});
-            for (const auto& pl : library.playlists) {
-                if (pl.IsSmart()) continue;
-                std::string plId = pl.id;
-                std::wstring plName = Utf8ToUtf16(pl.name);
-                contextMenuItems.push_back({"add_to_pl_" + plId, L"Add " + std::to_wstring(selCount) + L" items to " + plName, L"",
-                                            IconType::FolderPlaylist, false, false, false, [this, plId]() { BulkAddToPlaylist(plId); }});
-            }
             contextMenuItems.push_back({"remove_selected", L"Remove Selected (" + std::to_wstring(selCount) + L" Files)...", L"Del",
                                         IconType::Trash, false, false, true, [this]() { ConfirmDeleteSelectedMedia(); }});
         }
@@ -687,6 +717,8 @@ void App::OpenBackgroundContextMenu(float x, float y) {
                                 [this]() { OpenFolderDialog(); }});
     contextMenuItems.push_back({"add_watched_folder", L"Add Watched Folder...", L"", IconType::FolderPlaylist, false, false, false,
                                 [this]() { AddWatchedFolderPrompt(); }});
+    contextMenuItems.push_back({"restore_playlist_items", L"Restore Playlist Items to Library", L"", IconType::Refresh, false, false, false,
+                                [this]() { RestorePlaylistItemsToLibrary(); }, library.playlists.empty()});
     const auto& watched = library.GetWatchedFolders();
     if (!watched.empty()) {
         contextMenuItems.push_back({"rescan_watched", L"Rescan Watched Folders", L"", IconType::Refresh, false, false, false,
@@ -765,6 +797,11 @@ void App::OpenPlaylistItemContextMenu(size_t itemIndex, float x, float y) {
     contextMenuItems.clear();
     size_t selCount = selectedEpisodeIndices.size();
     bool isMulti = selCount > 1;
+    if (!pl->IsSmart()) {
+        contextMenuItems.push_back({ "add_files_to_pl", L"Add Files to This Playlist...", L"", IconType::Plus, false, false, false,
+                                     [this, plId]() { OpenFileDialogForPlaylist(plId); }});
+        contextMenuItems.push_back({ "sep0", L"", L"", IconType::Play, true });
+    }
     if (isMulti) {
         contextMenuItems.push_back({ "play_queue", Loc::Format("ux.queue_selected", std::to_wstring(selCount)), L"Enter", IconType::Play, false, false, false, [this]() {
             PlaySelectedInCurrentPane();

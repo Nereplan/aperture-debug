@@ -476,7 +476,7 @@ public:
     MediaImportMergeResult MergeImportedMedia(std::vector<MediaItem> items,
         const std::vector<std::optional<MetadataBackfillBaseline>>& baseline);
     bool RemoveMedia(const std::string& id);
-    size_t RemoveMedia(const std::vector<std::string>& ids, size_t* outSkipped = nullptr, bool saveChanges = true);
+    size_t RemoveMedia(const std::vector<std::string>& ids, size_t* outSkipped = nullptr, bool saveChanges = true, bool keepPlaylistEntries = false);
     MediaItem* FindByPath(const std::wstring& path);
     const MediaItem* FindByPath(const std::wstring& path) const;
     MediaItem* FindById(const std::string& id);
@@ -499,7 +499,7 @@ public:
     uint64_t GetSearchContentVersion() const { return searchContentVersion; }
     MediaRelocationResult RelocateMissingMediaToRoot(const std::wstring& searchRoot);
     FolderRediscoveryResult ApplyFolderRediscovery(const PreparedFolderRediscovery& prepared, bool saveChanges = true);
-    size_t RemoveFolders(const std::vector<std::wstring>& folderPaths, bool saveChanges = true);
+    size_t RemoveFolders(const std::vector<std::wstring>& folderPaths, bool saveChanges = true, bool keepPlaylistEntries = false);
     bool SetMediaPreferences(const std::wstring& path, const MediaPlaybackPreferences& prefs);
     bool AddBookmark(const std::wstring& path, const MediaBookmark& bookmark);
     bool RemoveBookmark(const std::wstring& path, const std::string& bookmarkId);

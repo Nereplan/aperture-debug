@@ -112,7 +112,10 @@ BOOL DelaySafeMiniDumpWriteDump(HANDLE file, MINIDUMP_EXCEPTION_INFORMATION* inf
     if (file == nullptr || file == INVALID_HANDLE_VALUE) return FALSE;
     BOOL written = FALSE;
     __try {
-        written = MiniDumpWriteDump(GetCurrentProcess(), GetCurrentProcessId(), file, MiniDumpWithThreadInfo, infoOrNull, nullptr, nullptr);
+        // MiniDumpNormal captures every thread's stack. ThreadInfo-only dumps
+        // (observed on this system) carry no stack memory and are useless for
+        // diagnosing hangs, so keep the base dump and skip the extra flag.
+        written = MiniDumpWriteDump(GetCurrentProcess(), GetCurrentProcessId(), file, MiniDumpNormal, infoOrNull, nullptr, nullptr);
     } __except (DelayLoadExceptionFilter(GetExceptionCode())) { written = FALSE; }
     return written;
 }

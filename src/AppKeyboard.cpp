@@ -1096,7 +1096,9 @@ bool App::HandleGlobalKeyDown(WPARAM wParam, LPARAM lParam) {
             if (activeFocusPane == FocusPane::SettingsContent) {
                 const auto& allThemes = settings.GetAllThemes();
                 auto scList = settings.GetShortcutActionListRef();
-                size_t midSc = (scList.size() + 1) / 2;
+                const float settingsDp = std::max(0.5f, renderer.GetDpiScale());
+                const bool scSingleColumn = SettingsLayout::ShortcutsSingleColumn(SettingsContentWidth(settingsDp), settingsDp);
+                size_t midSc = scSingleColumn ? scList.size() : (scList.size() + 1) / 2;
                 int maxRows = 1;
                 const bool simpleSettings = FeatureGate::ModeFromString(settings.experienceMode) == ExperienceMode::Simple;
                 if (currentSettingsCat == SettingsCategory::Appearance) maxRows = 2;
@@ -1134,7 +1136,7 @@ bool App::HandleGlobalKeyDown(WPARAM wParam, LPARAM lParam) {
                         if (row == 5) return 2; // Position
                     } else if (currentSettingsCat == SettingsCategory::Shortcuts) {
                         if (row == 0) return 0; // Reset button
-                        return 1; // 2 columns
+                        return scSingleColumn ? 0 : 1; // 2 columns (one below the single-column threshold)
                     } else if (currentSettingsCat == SettingsCategory::System) { return 0; }
                     return 0;
                 };

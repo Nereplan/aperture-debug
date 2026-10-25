@@ -508,10 +508,10 @@ HubRenderViewModel App::BuildHubRenderViewModel() {
                         vm.mediaTab.emptyState.body = L"Try refining your search terms or clear the search to view all videos.";
                     } else if (libraryGroupMode == LibraryGroupMode::Duplicates) {
                         vm.mediaTab.emptyState.title = L"No duplicate media found";
-                        vm.mediaTab.emptyState.body = L"No duplicate videos were detected. Switch back to Flat to see every file.";
+                        vm.mediaTab.emptyState.body = L"No duplicate videos were detected. Switch to Standalone to see every file.";
                     } else {
                         vm.mediaTab.emptyState.title = L"No matching media found";
-                        vm.mediaTab.emptyState.body = L"No media matches the current grouping. Switch back to Flat to see every file.";
+                        vm.mediaTab.emptyState.body = L"No media matches the current grouping. Switch to Standalone to see every file.";
                     }
                     EmptyStateButtonViewModel resetFilterBtn;
                     resetFilterBtn.text = !mediaSearchInput.GetText().empty() ? L"Clear Search" : L"Clear Filters";
@@ -786,6 +786,7 @@ HubRenderViewModel App::BuildHubRenderViewModel() {
                     // Cache for the Update()-side hover-preview driver.
                     resumePreviewPath = vm.playlistsTab.detail.resumeCard.filePath;
                     resumeResumePos = (pResumeMedia && pResumeMedia->lastPosSec > 5.0) ? pResumeMedia->lastPosSec : 0.0;
+                    vm.playlistsTab.detail.resumeCard.resumePosSec = resumeResumePos;
                     vm.playlistsTab.detail.resumeCard.tagText = (pResumeMedia && pResumeMedia->lastPosSec > 0.0) ? L"CONTINUE WATCHING" : L"START WATCHING";
                     vm.playlistsTab.detail.resumeCard.tagRect = D2D1::RectF(thumbX + thumbW + 18.0f * dp, vm.playlistsTab.detail.resumeCard.cardRect.top + 18.0f * dp, vm.playlistsTab.detail.resumeCard.cardRect.right - 20.0f * dp, vm.playlistsTab.detail.resumeCard.cardRect.top + 34.0f * dp);
                     vm.playlistsTab.detail.resumeCard.title = pResumeMedia ? pResumeMedia->title : (pResumePath ? *pResumePath : L"");
@@ -1029,14 +1030,10 @@ HubRenderViewModel App::BuildHubRenderViewModel() {
         vm.autoscroll.anchorPoint = autoscroll.anchorPoint;
         vm.autoscroll.dy = autoscroll.currentPoint.y - autoscroll.anchorPoint.y;
     }
-    // Import Progress
-    if (importJobActive) {
-        vm.importProgress.isActive = true;
-        const float cardW = std::min(500.0f * dp, std::max(300.0f * dp, winW - 40.0f * dp));
-        const float cardH = 184.0f * dp;
-        const float cardL = (winW - cardW) * 0.5f;
-        const float cardT = std::max(70.0f * dp, (winH - cardH) * 0.5f);
-        vm.importProgress.cardBounds = D2D1::RectF(cardL, cardT, cardL + cardW, cardT + cardH);
+    // Import Progress: dynamic-island pill in the nav gap; the old modal card
+    // becomes an on-demand popover anchored below the pill.
+    if (importJobActive || importIslandReveal.current > 0.001f) {
+        vm.importProgress.isActive = importJobActive;
         const size_t processed = importProcessed.load(std::memory_order_acquire);
         const size_t total = importTotal.load(std::memory_order_acquire);
         vm.importProgress.processed = processed;
@@ -1047,9 +1044,19 @@ HubRenderViewModel App::BuildHubRenderViewModel() {
         vm.importProgress.progressText = total > 0
             ? (phase + L" — " + std::to_wstring(std::min(processed, total)) + L" of " + std::to_wstring(total) + L" files")
             : phase + L" folders";
-        const float cancelW = 112.0f * dp;
-        vm.importProgress.cancelBounds = D2D1::RectF(vm.importProgress.cardBounds.right - 24.0f * dp - cancelW, vm.importProgress.cardBounds.bottom - 52.0f * dp, vm.importProgress.cardBounds.right - 24.0f * dp, vm.importProgress.cardBounds.bottom - 16.0f * dp);
-        vm.importProgress.isCancelHovered = importCancelHovered;
+        vm.importProgress.pillBounds = ImportPillBounds(dp);
+        vm.importProgress.pillText = total > 0
+            ? (std::to_wstring(std::min(processed, total)) + L" / " + std::to_wstring(total))
+            : std::wstring(L"Importing");
+        vm.importProgress.pillHovered = importPillHovered;
+        vm.importProgress.popoverOpen = importJobActive && importPopoverOpen;
+        vm.importProgress.reveal = std::clamp(importIslandReveal.current, 0.0f, 1.0f);
+        vm.importProgress.spinAngle = importSpinAngle;
+        if (vm.importProgress.popoverOpen) {
+            vm.importProgress.cardBounds = ImportPopoverBounds(dp);
+            vm.importProgress.cancelBounds = ImportCancelBounds(dp);
+            vm.importProgress.isCancelHovered = importCancelHovered;
+        }
     }
     // OSD Badge
     if (osdTimer > 0.0f) {

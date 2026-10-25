@@ -21,6 +21,10 @@ inline constexpr int kSystemRowCount = 11;
 inline constexpr int kSystemSimpleRowCount = 9;
 inline int PlaybackRowCount(bool simpleMode) { return simpleMode ? 7 : 14; }
 inline int SystemRowCount(bool simpleMode) { return simpleMode ? kSystemSimpleRowCount : kSystemRowCount; }
+// Settings content below this width renders the shortcuts list in a single
+// full-width column and drops the Experience mode-tile radios.
+inline bool ShortcutsSingleColumn(float contentW, float dp) { return contentW < 560.0f * dp; }
+inline bool ExperienceNarrowTiles(float contentW, float dp) { return contentW < 540.0f * dp; }
 inline constexpr float kSystemAboutHeight = 72.0f;
 inline constexpr float kSystemActionsTop = 28.0f + kSystemAboutHeight + 18.0f + 28.0f;
 inline constexpr float kSidebarWidth = 210.0f;

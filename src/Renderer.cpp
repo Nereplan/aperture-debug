@@ -1067,7 +1067,7 @@ void Renderer::DrawSurface(const D2D1_RECT_F& rect, const SurfaceStyle& style) {
     if (style.fill.a > 0.001f) { FillRoundedRect(surfaceRect, style.radius, style.fill); }
     // 4. Static thumbnail backdrop (medium quality last frame even when not hovering)
     if (!style.backdropFile.empty()) {
-        ComPtr<ID2D1Bitmap> bm = GetOrCreateVideoThumbnail(style.backdropFile, 320, 180);
+        ComPtr<ID2D1Bitmap> bm = GetOrCreateVideoThumbnail(style.backdropFile, 320, 180, style.backdropStartSec);
         if (bm)
             DrawBitmapRounded(surfaceRect, style.radius, bm.Get(), style.backdropOpacity > 0.0f ? style.backdropOpacity : 0.35f, true);
         // Gradient overlay wash over backdrop so text is always crisp and high contrast
@@ -1615,7 +1615,7 @@ void Renderer::DrainCompletedThumbnails() {
     }
 }
 
-ComPtr<ID2D1Bitmap> Renderer::GetOrCreateVideoThumbnail(const std::wstring& filePath, UINT reqW, UINT reqH) {
+ComPtr<ID2D1Bitmap> Renderer::GetOrCreateVideoThumbnail(const std::wstring& filePath, UINT reqW, UINT reqH, double startSec) {
     if (filePath.empty() || !d2dContext) return nullptr;
     // Single per-item static-thumbnail resolution point: a registered cover art
     // image replaces the extracted thumbnail for every consumer (media cards,
@@ -1624,32 +1624,42 @@ ComPtr<ID2D1Bitmap> Renderer::GetOrCreateVideoThumbnail(const std::wstring& file
     if (!coverArtByMediaPath.empty()) {
         const auto coverIt = coverArtByMediaPath.find(filePath);
         if (coverIt != coverArtByMediaPath.end()) {
-            if (FileExists(coverIt->second)) return GetOrCreateVideoThumbnailInternal(coverIt->second, reqW, reqH);
+            if (FileExists(coverIt->second)) return GetOrCreateVideoThumbnailInternal(coverIt->second, reqW, reqH, 0);
             coverArtByMediaPath.erase(coverIt);
         }
     }
-    return GetOrCreateVideoThumbnailInternal(filePath, reqW, reqH);
+    return GetOrCreateVideoThumbnailInternal(filePath, reqW, reqH, ThumbnailPositionBucket(startSec));
 }
 
-ComPtr<ID2D1Bitmap> Renderer::GetOrCreateVideoThumbnailInternal(const std::wstring& filePath, UINT reqW, UINT reqH) {
+ComPtr<ID2D1Bitmap> Renderer::GetOrCreateVideoThumbnailInternal(const std::wstring& filePath, UINT reqW, UINT reqH, uint32_t positionBucket) {
     // Canonicalize to one bucket per usage class. Hub cards historically requested 360x204 / 240x135 / 180x100 for the same file (view-mode
     // toggle = full re-decode storm); all now share a single 320x180 entry
     // that DrawBitmapRounded scales losslessly at draw time. Large requests (backdrop art) share 640x360.
     if (reqW <= 400 && reqH <= 240) { reqW = 320; reqH = 180; } else { reqW = 640; reqH = 360; }
     // Copy-free probes: this runs once per visible card per rendered frame.
-    const ThumbnailKeyProbe key{ &filePath, reqW, reqH };
+    const ThumbnailKeyProbe key{ &filePath, reqW, reqH, positionBucket };
     auto it = thumbnailCache.find(key);
     if (it != thumbnailCache.end()) { it->second.lastDrawnFrame = thumbnailRequestFrame; TouchThumbnail(it); return it->second.bitmap; }
     // Shared key fallback: if looking for 640x360, check if 320x180 is already cached.
     // Reusing the 320x180 bitmap avoids redundant decodes and memory overhead.
     if (reqW == 640 && reqH == 360) {
-        const ThumbnailKeyProbe key320{ &filePath, 320, 180 };
+        const ThumbnailKeyProbe key320{ &filePath, 320, 180, positionBucket };
         auto it320 = thumbnailCache.find(key320);
         if (it320 != thumbnailCache.end()) {
             it320->second.lastDrawnFrame = thumbnailRequestFrame;
             TouchThumbnail(it320);
             return it320->second.bitmap;
         }
+    }
+    if (positionBucket != 0) {
+        // Pinned frame: queue for the mpv extractor (deduped; the extractor
+        // serves the shared 320x180 bucket for both card and backdrop sizes).
+        for (const auto& pending : pinnedExtractRequests) {
+            if (pending.path == filePath && pending.positionBucket == positionBucket) return nullptr;
+        }
+        if (thumbnailCache.find(ThumbnailKeyProbe{ &filePath, 320, 180, positionBucket }) != thumbnailCache.end()) return nullptr;
+        pinnedExtractRequests.push_back(ThumbnailKey{ filePath, 320, 180, positionBucket });
+        return nullptr;
     }
     // Demand is only meaningful for an actual miss: recording it on every cache
     // hit cost a map probe + path copy per card per frame.
@@ -1731,6 +1741,22 @@ void Renderer::PrefetchThumbnails(const std::vector<std::wstring>& paths) {
     }
 }
 
+bool Renderer::DequeuePinnedExtractCandidate(std::wstring& outPath, uint32_t& outBucket) {
+    auto it = pinnedExtractRequests.begin();
+    while (it != pinnedExtractRequests.end()) {
+        // Skip entries a previous extraction already satisfied.
+        if (thumbnailCache.find(ThumbnailKeyProbe{ &it->path, 320, 180, it->positionBucket }) != thumbnailCache.end()) {
+            it = pinnedExtractRequests.erase(it);
+            continue;
+        }
+        outPath = it->path;
+        outBucket = it->positionBucket;
+        pinnedExtractRequests.erase(it);
+        return true;
+    }
+    return false;
+}
+
 bool Renderer::DequeueHubExtractCandidate(std::wstring& outPath) {
     // Oldest shell miss first; each path is offered once per generation so a
     // file mpv cannot open never loops through the extractor.
@@ -1758,10 +1784,10 @@ bool Renderer::DequeueHubExtractCandidate(const std::vector<std::wstring>& prior
     return DequeueHubExtractCandidate(outPath);
 }
 
-bool Renderer::InjectThumbnail(const std::wstring& filePath, UINT w, UINT h, const std::vector<uint8_t>& pixels) {
+bool Renderer::InjectThumbnail(const std::wstring& filePath, UINT w, UINT h, const std::vector<uint8_t>& pixels, uint32_t positionBucket) {
     if (filePath.empty() || !d2dContext || w == 0 || h == 0 || w > 1920 || h > 1080) return false;
     if (pixels.size() != (size_t)w * h * 4u) return false;
-    ThumbnailKey key{ filePath, w, h };
+    ThumbnailKey key{ filePath, w, h, positionBucket };
     if (thumbnailCache.find(key) != thumbnailCache.end()) return true;
     D2D1_BITMAP_PROPERTIES props;
     props.pixelFormat = D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED);

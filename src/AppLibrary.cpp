@@ -426,10 +426,16 @@ void App::EnqueueActiveRowAnimation(size_t index) {
 
 
 void App::HandleFolderWatchEvents() {
+    // Modal file dialogs pump queued messages, so a watch completion can
+    // arrive while an earlier application is still on the stack. Library
+    // mutation must never nest inside itself.
+    if (handlingFolderWatchEvents) return;
     // Rediscovery gets the first chance to reconnect missing records and
     // preserve their user data before watch scans can remove those records.
     if (folderRediscoveryActive) return;
     if (!libraryReady || deferredLibraryReadyWorkPending || shutdownComplete || playerCallbacksDisabled.load(std::memory_order_acquire)) return;
+    struct ReentrancyGuard { bool& flag; ~ReentrancyGuard() { flag = false; } } guard{handlingFolderWatchEvents};
+    handlingFolderWatchEvents = true;
     if (auto delta = watchReconcileWorker.TakeCompleted()) {
         if (watchReconcileWorker.HasPending()) {
             // New filesystem events supersede observations made during the
@@ -469,6 +475,11 @@ void App::HandleFolderWatchEvents() {
 
 
 void App::AddWatchedFolderPrompt() {
+    // The picker pumps messages on this thread; a second invocation (double
+    // click, accessibility invoke) must not nest another modal dialog.
+    if (systemDialogActive) return;
+    struct DialogGuard { bool& flag; ~DialogGuard() { flag = false; } } dialogGuard{systemDialogActive};
+    systemDialogActive = true;
     PushFocusSnapshot(TransientSurfaceType::SystemDialog);
     IFileOpenDialog* dialog = nullptr;
     if (FAILED(CoCreateInstance(CLSID_FileOpenDialog, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&dialog))) || !dialog) {
@@ -499,7 +510,9 @@ void App::AddWatchedFolderPrompt() {
     if (library.AddWatchedFolder(watchedPath)) {
         folderWatcher.SetWatchedFoldersAsync(library.GetWatchedFolders());
         watchReconcileWorker.Queue({true, watchedPath, {}});
-        HandleFolderWatchEvents();
+        // Start the reconcile from the message loop, not from this click
+        // stack — the dialog pump above can dispatch nested messages.
+        if (!watchEventPosted.exchange(true)) PostMessageW(hWnd, kFolderWatchEventMessage, 0, 0);
         ShowOSD(IconType::FolderPlaylist, L"Added Watched Folder: " + GetFileNameFromPath(watchedPath));
     } else { ShowOSD(IconType::Checkmark, L"Folder is already being watched"); }
     PopAndRestoreFocus(TransientSurfaceType::SystemDialog);
@@ -617,30 +630,49 @@ bool App::DriveHubExtraction() {
             PreviewThumbnailFrame done;
             if (ex.TakeResult(done)) {
                 if (!done.bgraPixels.empty() && renderer.InjectThumbnail(done.filePath, (UINT)done.width,
-                                             (UINT)done.height, done.bgraPixels)) {
+                                             (UINT)done.height, done.bgraPixels, hubExtractorBucket[i])) {
                     drew = true;
                 }
-                // Freed handle immediately takes the next candidate.
+                // Freed handle immediately takes the next candidate; pinned
+                // (position-specific) requests outrank background fills.
                 std::wstring next;
-                if (renderer.DequeueHubExtractCandidate(cachedVisibleVideoPaths, next) && IsHubExtractVideoPath(next))
+                uint32_t nextBucket = 0;
+                if (renderer.DequeuePinnedExtractCandidate(next, nextBucket)) {
+                    hubExtractorBucket[i] = nextBucket;
+                    ex.Begin(next, nextBucket ? Renderer::ThumbnailBucketSeconds(nextBucket) : HubExtractStartSecForPath(next));
+                } else if (renderer.DequeueHubExtractCandidate(cachedVisibleVideoPaths, next) && IsHubExtractVideoPath(next)) {
+                    hubExtractorBucket[i] = 0;
                     ex.Begin(next, HubExtractStartSecForPath(next));
+                }
             } else {
                 // User scrolled on while a now off-screen file extracts: yield this handle to something visible.
                 const std::wstring stale = ex.GetPath();
-                if (!stale.empty() && !HubExtractPathStillWanted(stale)) {
+                if (!stale.empty() && !HubExtractPathStillWanted(stale) && hubExtractorBucket[i] == 0) {
                     std::wstring better;
-                    if (renderer.DequeueHubExtractCandidate(cachedVisibleVideoPaths, better) &&
+                    uint32_t betterBucket = 0;
+                    if (renderer.DequeuePinnedExtractCandidate(better, betterBucket)) {
+                        hubExtractorBucket[i] = betterBucket;
+                        ex.Cancel();
+                        ex.Begin(better, Renderer::ThumbnailBucketSeconds(betterBucket));
+                    } else if (renderer.DequeueHubExtractCandidate(cachedVisibleVideoPaths, better) &&
                         better != stale && IsHubExtractVideoPath(better)) {
+                        hubExtractorBucket[i] = 0;
                         ex.Cancel();
                         ex.Begin(better, HubExtractStartSecForPath(better));
                     }
                 }
             }
         } else {
-            // Idle handle: visible-first, else oldest background fill.
+            // Idle handle: pinned requests first, then visible-first, else oldest background fill.
             std::wstring candidate;
-            if (renderer.DequeueHubExtractCandidate(cachedVisibleVideoPaths, candidate) && IsHubExtractVideoPath(candidate)) {
+            uint32_t candidateBucket = 0;
+            if (renderer.DequeuePinnedExtractCandidate(candidate, candidateBucket)) {
                 hubExtractorLastBusy[i] = nowS;
+                hubExtractorBucket[i] = candidateBucket;
+                ex.Begin(candidate, candidateBucket ? Renderer::ThumbnailBucketSeconds(candidateBucket) : HubExtractStartSecForPath(candidate));
+            } else if (renderer.DequeueHubExtractCandidate(cachedVisibleVideoPaths, candidate) && IsHubExtractVideoPath(candidate)) {
+                hubExtractorLastBusy[i] = nowS;
+                hubExtractorBucket[i] = 0;
                 ex.Begin(candidate, HubExtractStartSecForPath(candidate));
             }
         }

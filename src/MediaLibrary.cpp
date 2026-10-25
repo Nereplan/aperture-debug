@@ -643,7 +643,7 @@ FolderRediscoveryResult MediaLibrary::ApplyFolderRediscovery(const PreparedFolde
     return result;
 }
 
-size_t MediaLibrary::RemoveFolders(const std::vector<std::wstring>& folderPaths, bool saveChanges) {
+size_t MediaLibrary::RemoveFolders(const std::vector<std::wstring>& folderPaths, bool saveChanges, bool keepPlaylistEntries) {
     if (folderPaths.empty()) return 0;
     std::vector<std::wstring> normFolders;
     normFolders.reserve(folderPaths.size());
@@ -665,7 +665,7 @@ size_t MediaLibrary::RemoveFolders(const std::vector<std::wstring>& folderPaths,
         }
     }
     size_t removed = 0;
-    if (!idsToRemove.empty()) { removed = RemoveMedia(idsToRemove); }
+    if (!idsToRemove.empty()) { removed = RemoveMedia(idsToRemove, nullptr, true, keepPlaylistEntries); }
     bool watchedChanged = false;
     for (const auto& norm : normFolders) {
         auto it = std::remove_if(watchedFolders.begin(), watchedFolders.end(), [&](const std::wstring& wf) {
@@ -1205,7 +1205,7 @@ MediaImportResult MediaLibrary::ImportPaths(const std::vector<std::wstring>& pat
 
 bool MediaLibrary::RemoveMedia(const std::string &id) { return RemoveMedia(std::vector<std::string>{id}) != 0; }
 
-size_t MediaLibrary::RemoveMedia(const std::vector<std::string>& ids, size_t* outSkipped, bool saveChanges) {
+size_t MediaLibrary::RemoveMedia(const std::vector<std::string>& ids, size_t* outSkipped, bool saveChanges, bool keepPlaylistEntries) {
     if (ids.empty() || mediaItems.empty()) { if (outSkipped) *outSkipped = ids.size(); return 0; }
     std::unordered_set<std::string> idsToRemove(ids.begin(), ids.end());
     std::unordered_set<std::wstring> removedPaths;
@@ -1219,10 +1219,14 @@ size_t MediaLibrary::RemoveMedia(const std::vector<std::string>& ids, size_t* ou
     const size_t removedCount = oldSize - mediaItems.size();
     if (outSkipped) *outSkipped = (ids.size() >= removedCount) ? (ids.size() - removedCount) : 0;
     if (removedCount == 0) return 0;
-    for (auto& playlist : playlists) {
-        playlist.itemPaths.erase( std::remove_if(playlist.itemPaths.begin(), playlist.itemPaths.end(), [&](const std::wstring& path) {
-                return removedPaths.find(NormalizePathKey(path)) != removedPaths.end();
-            }), playlist.itemPaths.end());
+    // Media-tab removal is local to the library: manual playlists keep their
+    // entries so deleting a folder never silently edits a playlist.
+    if (!keepPlaylistEntries) {
+        for (auto& playlist : playlists) {
+            playlist.itemPaths.erase( std::remove_if(playlist.itemPaths.begin(), playlist.itemPaths.end(), [&](const std::wstring& path) {
+                    return removedPaths.find(NormalizePathKey(path)) != removedPaths.end();
+                }), playlist.itemPaths.end());
+        }
     }
     RebuildPathIndex();
     libraryVersion++;

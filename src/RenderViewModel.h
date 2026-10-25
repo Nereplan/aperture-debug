@@ -424,6 +424,8 @@ struct PlaylistResumeCardViewModel {
     D2D1_RECT_F timeRect = { 0, 0, 0, 0 };
     std::wstring filePath, title, tagText, timeText;
     double progressRatio = 0.0;
+    // Playback position the card resumes from; pins the thumbnail/backdrop art.
+    double resumePosSec = 0.0;
     bool isResumeFocused = false, isResumeHovered = false;
     // Live hover preview (mirrors the media-row expanded preview).
     ID2D1Bitmap* pLivePreviewBitmap = nullptr;
@@ -648,6 +650,12 @@ struct ImportProgressViewModel {
     std::wstring progressText;
     bool isCancelHovered = false;
     D2D1_RECT_F cardBounds = { 0, 0, 0, 0 };
+    // Dynamic-island pill in the nav bar (History <-> Settings gap).
+    D2D1_RECT_F pillBounds = { 0, 0, 0, 0 };
+    std::wstring pillText;
+    bool pillHovered = false, popoverOpen = false;
+    float reveal = 0.0f, spinAngle = 0.0f;
+
     D2D1_RECT_F cancelBounds = { 0, 0, 0, 0 };
 };
 struct GlobalSearchItemViewModel {

@@ -36,6 +36,10 @@ void App::OpenFileDialogForPlaylist(const std::string& playlistId) {
 
 
 void App::OpenFileDialogForTarget(const std::string& targetPlaylistId, bool launchSingle) {
+    // Same modal-pump guard as the watched-folder picker: no nested dialogs.
+    if (systemDialogActive) return;
+    struct DialogGuard { bool& flag; ~DialogGuard() { flag = false; } } dialogGuard{systemDialogActive};
+    systemDialogActive = true;
     PushFocusSnapshot(TransientSurfaceType::SystemDialog);
     IFileOpenDialog* dialog = nullptr;
     if (FAILED(CoCreateInstance(CLSID_FileOpenDialog, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&dialog))) || !dialog) {
@@ -299,27 +303,47 @@ void App::RemoveSelectedFolders() {
             }
         }
         size_t removed = 0;
-        if (!idsToRemove.empty()) { removed = library.RemoveMedia(idsToRemove); }
+        if (!idsToRemove.empty()) { removed = library.RemoveMedia(idsToRemove, nullptr, true, /*keepPlaylistEntries=*/true); }
         selectedFolderKeys.clear();
         m_mediaQueryEngine.InvalidateCache();
         InvalidateMediaLayoutCache();
         ClampScrollOffsets();
         InvalidateRect(hWnd, NULL, FALSE);
-        std::wstring msg = L"Removed " + std::to_wstring(seriesCount) + L" series (" + std::to_wstring(removed) + L" episodes)";
+        std::wstring msg = L"Removed " + std::to_wstring(seriesCount) + L" series (" + std::to_wstring(removed) + L" episodes) • Ctrl+Z to undo";
         ShowOSD(IconType::Trash, msg);
         AnnounceStatus(msg);
         return;
     }
     std::vector<std::wstring> foldersToRemove(selectedFolderKeys.begin(), selectedFolderKeys.end());
-    size_t removed = library.RemoveFolders(foldersToRemove, true);
+    // Media-only removal: playlists keep their entries (restore via the
+    // background menu or Ctrl+Z).
+    size_t removed = library.RemoveFolders(foldersToRemove, true, /*keepPlaylistEntries=*/true);
     selectedFolderKeys.clear();
     m_mediaQueryEngine.InvalidateCache();
     InvalidateMediaLayoutCache();
     ClampScrollOffsets();
     InvalidateRect(hWnd, NULL, FALSE);
-    std::wstring msg = L"Removed " + std::to_wstring(foldersToRemove.size()) + L" folder(s) (" + std::to_wstring(removed) + L" videos)";
+    std::wstring msg = L"Removed " + std::to_wstring(foldersToRemove.size()) + L" folder(s) (" + std::to_wstring(removed) + L" videos) • Ctrl+Z to undo";
     ShowOSD(IconType::Trash, msg);
     AnnounceStatus(msg);
+}
+
+// Re-imports playlist entries that no longer have a library record (e.g.
+// removed from the Media tab while playlists kept them).
+void App::RestorePlaylistItemsToLibrary() {
+    std::vector<std::wstring> missing;
+    std::set<std::wstring> seen;
+    for (const auto& pl : library.playlists) {
+        for (const auto& path : pl.itemPaths) {
+            if (path.empty()) continue;
+            std::wstring key = NormalizePathKey(path);
+            if (!seen.insert(key).second) continue;
+            if (!library.FindByPath(path)) missing.push_back(path);
+        }
+    }
+    if (missing.empty()) { ShowOSD(IconType::Checkmark, L"All playlist items are already in the library"); return; }
+    StartImportJob(missing, "", false);
+    ShowOSD(IconType::Refresh, L"Restoring " + std::to_wstring(missing.size()) + L" playlist item(s)");
 }
 
 

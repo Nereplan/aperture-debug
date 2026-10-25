@@ -1647,6 +1647,7 @@ void App::RefreshAccessibilityTree(bool force) {
             }
             const float rowTop = view.top + (SettingsLayout::kContentStartOffset +
                 (currentSettingsCat == SettingsCategory::Subtitles ? SettingsLayout::kSubtitlePageHeaderReserve : SettingsLayout::kPageHeaderReserve)) * dp - settingsScrollY;
+            const bool scSingleColumn = SettingsLayout::ShortcutsSingleColumn(SettingsContentWidth(dp), dp);
             std::vector<std::pair<std::wstring, std::wstring>> rows;
             // Simple mode tail-truncates the advanced rows on the Playback and
             // System pages; visible row indexes stay stable.
@@ -1785,25 +1786,25 @@ void App::RefreshAccessibilityTree(bool force) {
                 } else if (currentSettingsCat == SettingsCategory::Shortcuts && i == 0) {
                     bounds = screenRect(view.left + 20.0f * dp, rowTop - 2.0f * dp, view.right - 20.0f * dp, rowTop + 24.0f * dp);
                 } else {
-                    bounds = screenRect(view.left + 20.0f * dp, rowTop + 28.0f * dp + i * 54.0f * dp, view.right - 20.0f * dp, rowTop + 28.0f * dp + i * 54.0f * dp + 50.0f * dp);
+                    bounds = screenRect(view.left + 20.0f * dp, rowTop + 28.0f * dp + i * 43.0f * dp, view.right - 20.0f * dp, rowTop + 28.0f * dp + i * 43.0f * dp + 38.0f * dp);
                 }
                 if (!intersects(bounds)) continue;
                 bool isFocused = false;
                 if (currentSettingsCat == SettingsCategory::Shortcuts) {
                     if (i == 0) { isFocused = (activeFocusPane == FocusPane::SettingsContent && keyboardFocusedIndex == 0); } else {
                         auto scList = settings.GetShortcutActionListRef();
-                        size_t midSc = (scList.size() + 1) / 2;
+                        size_t midSc = scSingleColumn ? scList.size() : (scList.size() + 1) / 2;
                         size_t scIdx = i - 1;
                         int expectedRow = (scIdx < midSc) ? static_cast<int>(scIdx + 1) : static_cast<int>(scIdx - midSc + 1);
                         int expectedSub = (scIdx < midSc) ? 0 : 1;
                         isFocused = (activeFocusPane == FocusPane::SettingsContent && keyboardFocusedIndex == expectedRow && keyboardFocusedSubIndex == expectedSub);
                     }
                 } else { isFocused = (activeFocusPane == FocusPane::SettingsContent && keyboardFocusedIndex == static_cast<int>(i)); }
-                std::function<void()> rowAction = [this, i]() {
+                std::function<void()> rowAction = [this, i, scSingleColumn]() {
                     activeFocusPane = FocusPane::SettingsContent;
                     if (currentSettingsCat == SettingsCategory::Shortcuts && i > 0) {
                         auto scList = settings.GetShortcutActionListRef();
-                        size_t midSc = (scList.size() + 1) / 2;
+                        size_t midSc = scSingleColumn ? scList.size() : (scList.size() + 1) / 2;
                         size_t scIdx = i - 1;
                         if (scIdx < scList.size()) {
                             int expectedRow = (scIdx < midSc) ? static_cast<int>(scIdx + 1) : static_cast<int>(scIdx - midSc + 1);
@@ -1873,11 +1874,11 @@ void App::RefreshAccessibilityTree(bool force) {
                             };
                         }
                         n.hasScrollItem = true;
-                        n.onScrollIntoView = [this, i](LONG) {
+                        n.onScrollIntoView = [this, i, scSingleColumn](LONG) {
                             activeFocusPane = FocusPane::SettingsContent;
                             if (currentSettingsCat == SettingsCategory::Shortcuts && i > 0) {
                                 auto scList = settings.GetShortcutActionListRef();
-                                size_t midSc = (scList.size() + 1) / 2;
+                                size_t midSc = scSingleColumn ? scList.size() : (scList.size() + 1) / 2;
                                 size_t scIdx = i - 1;
                                 keyboardFocusedIndex = (scIdx < midSc) ? static_cast<int>(scIdx + 1) : static_cast<int>(scIdx - midSc + 1);
                                 keyboardFocusedSubIndex = (scIdx < midSc) ? 0 : 1;

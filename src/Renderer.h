@@ -34,6 +34,9 @@ enum class Elevation {
 
 struct SurfaceStyle {
     D2D1_COLOR_F fill = D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.0f);
+    // Backdrop video art: -1 keeps the automatic frame choice; >= 0 pins the
+    // backdrop thumbnail to that playback position (e.g. resume point).
+    double backdropStartSec = -1.0;
     D2D1_COLOR_F border = D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.10f);
     float borderWidth = 1.0f, radius = 10.0f;
     // Lighting & Material Depth
@@ -145,7 +148,18 @@ public:
     void PushClip(const D2D1_RECT_F& rect);
     void PopClip();
     // Thumbnails & Backdrop Art Requests canonicalize internally (hub -> 320x180, backdrop -> 640x360).
-    ComPtr<ID2D1Bitmap> GetOrCreateVideoThumbnail(const std::wstring& filePath, UINT reqW = 320, UINT reqH = 180);
+    // startSec >= 0 pins the extracted frame to that playback position (15 s
+    // buckets); -1 keeps the automatic choice. Pinned requests bypass the
+    // shell/disk tiers because only the mpv extractor can pick the frame.
+    ComPtr<ID2D1Bitmap> GetOrCreateVideoThumbnail(const std::wstring& filePath, UINT reqW = 320, UINT reqH = 180, double startSec = -1.0);
+    static uint32_t ThumbnailPositionBucket(double startSec) {
+        return startSec < 0.0 ? 0u : 1u + static_cast<uint32_t>(startSec / 15.0);
+    }
+    static double ThumbnailBucketSeconds(uint32_t bucket) {
+        return bucket == 0 ? 0.0 : static_cast<double>(bucket - 1) * 15.0;
+    }
+    // Pops the oldest position-pinned extraction request (UI thread only).
+    bool DequeuePinnedExtractCandidate(std::wstring& outPath, uint32_t& outBucket);
     // Private sessions read (but never write) the persistent hub disk tier.
     void SetThumbnailPrivateMode(bool enabled) { thumbnailPrivateMode.store(enabled); }
     // Pops the oldest shell-miss path not yet offered for mpv extraction. UI thread only (App idle driver).
@@ -158,7 +172,7 @@ public:
     // enqueues already-cached or freshly-failed keys.
     void PrefetchThumbnails(const std::vector<std::wstring>& paths);
     // Inserts freshly extracted pixels (mpv fallback) directly into the memory cache. UI thread only (creates a device bitmap).
-    bool InjectThumbnail(const std::wstring& filePath, UINT width, UINT height, const std::vector<uint8_t>& pixels);
+    bool InjectThumbnail(const std::wstring& filePath, UINT width, UINT height, const std::vector<uint8_t>& pixels, uint32_t positionBucket = 0);
     size_t ClearThumbnailCache();
     // Per-item cover art: a user-picked image replaces the extracted thumbnail
     // for that media path. UI-thread only (set alongside library mutations,
@@ -233,12 +247,17 @@ private:
     struct ThumbnailKey {
         std::wstring path;
         UINT width = 0, height = 0;
+        // 0 = automatic frame choice; >0 = ThumbnailBucketSeconds() pin.
+        uint32_t positionBucket = 0;
         bool operator<(const ThumbnailKey& o) const {
             if (path != o.path) return path < o.path;
             if (width != o.width) return width < o.width;
-            return height < o.height;
+            if (height != o.height) return height < o.height;
+            return positionBucket < o.positionBucket;
         }
-        bool operator==(const ThumbnailKey& o) const { return path == o.path && width == o.width && height == o.height; }
+        bool operator==(const ThumbnailKey& o) const {
+            return path == o.path && width == o.width && height == o.height && positionBucket == o.positionBucket;
+        }
     };
     // Copy-free lookup key: GetOrCreateVideoThumbnail probes the cache once per
     // visible card per frame, and probing with a full ThumbnailKey would copy
@@ -247,6 +266,7 @@ private:
     struct ThumbnailKeyProbe {
         const std::wstring* path = nullptr;
         UINT width = 0, height = 0;
+        uint32_t positionBucket = 0;
     };
     struct ThumbnailKeyLess {
         using is_transparent = void;
@@ -257,7 +277,8 @@ private:
             const int c = PathOf(a).compare(PathOf(b));
             if (c != 0) return c < 0;
             if (a.width != b.width) return a.width < b.width;
-            return a.height < b.height;
+            if (a.height != b.height) return a.height < b.height;
+            return a.positionBucket < b.positionBucket;
         }
     };
     struct ThumbnailEntry {
@@ -280,6 +301,8 @@ private:
     std::unordered_map<ID2D1Bitmap*, ThumbnailEntry*> thumbnailByBitmap;
     // Include visible misses: a decoded visible image must survive the rest of the same completion batch before its first actual draw.
     std::map<ThumbnailKey, uint64_t, ThumbnailKeyLess> thumbnailDemandFrames;
+    // Position-pinned requests awaiting an mpv extractor handle (UI thread).
+    std::vector<ThumbnailKey> pinnedExtractRequests;
     std::list<ThumbnailKey> thumbnailLru;
     uint64_t thumbnailCacheBytes = 0;
     // Permanent-decode-failure quarantine: files the shell cannot thumbnail (usually videos without a registered handler) must neither
@@ -400,7 +423,7 @@ private:
     size_t ClearThumbnailCacheInternal();
     // Shared decode/serve path for one resolved path; GetOrCreateVideoThumbnail
     // resolves the cover-art override and forwards here.
-    ComPtr<ID2D1Bitmap> GetOrCreateVideoThumbnailInternal(const std::wstring& filePath, UINT reqW, UINT reqH);
+    ComPtr<ID2D1Bitmap> GetOrCreateVideoThumbnailInternal(const std::wstring& filePath, UINT reqW, UINT reqH, uint32_t positionBucket);
     // Evicts memory-cache and persistent hub disk-tier entries whose key path
     // matches (both size buckets), plus failure-quarantine state for the path.
     void EvictThumbnailForPath(const std::wstring& path);

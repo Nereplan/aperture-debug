@@ -159,6 +159,9 @@ void App::FinishImportJob() {
     const bool canceled = importResult.outcome == LongOperationOutcome::Canceled || importCancelRequested.load(std::memory_order_acquire);
     const bool failed = importResult.outcome == LongOperationOutcome::Failed;
     importJobActive = false;
+    importPopoverOpen = false;
+    importPillHovered = false;
+    importCancelHovered = false;
     importDone.store(false, std::memory_order_release);
     const size_t skippedUnsupported = importResult.skippedUnsupported, skippedMissing = importResult.skippedMissing;
     const size_t imported = acceptedPaths.size();

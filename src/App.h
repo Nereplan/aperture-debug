@@ -220,6 +220,9 @@ private:
     // Dedicated mpv instances that extract hub thumbnails for files the Windows shell cannot thumbnail. Run parallel to hover previews.
     // Two handles double worst-case fill throughput for MKV-heavy folders.
     MpvHubExtractor hubExtractors[2];
+    // Position bucket (0 = auto) of the request each extractor is serving,
+    // replayed into InjectThumbnail when its frame lands.
+    uint32_t hubExtractorBucket[2] = {};
     // Throttled snapshot of on-screen file paths feeding extraction priority and overscan prefetch.
     std::vector<std::wstring> cachedVisibleVideoPaths;
     uint64_t lastVisibleCollectMs = 0;
@@ -318,6 +321,9 @@ private:
     std::atomic<size_t> importProcessed{ 0 };
     std::atomic<size_t> importTotal{ 0 };
     bool importJobActive = false, importLaunchFirst = false, importCancelHovered = false;
+    bool importPopoverOpen = false, importPillHovered = false;
+    AnimatedFloat importIslandReveal;
+    float importSpinAngle = 0.0f;
     ImportPlaybackIntent importFirstPlayback;
     std::wstring importEarlyPlaybackPath;
     uint64_t playbackRequestGeneration = 0, importPlaybackGeneration = 0, importStartPlaybackGeneration = 0;
@@ -349,6 +355,19 @@ private:
     bool watchRescanFeedbackPending = false;
     std::atomic<bool> watchEventPosted{ false };
     void HandleFolderWatchEvents();
+    void ResolvePlaylistHover(float x, float y);
+    void RestorePlaylistItemsToLibrary();
+    // Import status island: pill in the History<->Settings nav gap; the
+    // popover anchors below it. Single geometry source for draw + hit-tests.
+    D2D1_RECT_F ImportPillBounds(float dp);
+    D2D1_RECT_F ImportPopoverBounds(float dp);
+    D2D1_RECT_F ImportCancelBounds(float dp);
+    D2D1_RECT_F ContextMenuBounds(float dp) const;
+    void OpenAddToPlaylistContextMenu(float x, float y, std::vector<std::wstring> paths);
+    // A modal file dialog pumps messages on the UI thread; these guards keep
+    // nested invocations (watch events, a second dialog) off that stack.
+    bool handlingFolderWatchEvents = false;
+    bool systemDialogActive = false;
     void AddWatchedFolderPrompt();
     void RescanAllWatchedFolders();
     void StartImportJob(const std::vector<std::wstring>& paths, const std::string& targetPlaylistId = "", bool launchFirst = false,
@@ -543,6 +562,7 @@ private:
     void UpdateAutoscroll(float dt);
     AutoscrollPane HitTestAutoscrollPane(float mouseX, float mouseY, float& outMaxScroll);
     float GetSettingsContentHeight(float dp) const;
+    float SettingsContentWidth(float dp) const;
     float GetMaxScrollForPane(AutoscrollPane pane);
     float GetMaxScrollForPaneInViewport(AutoscrollPane pane, float winW, float winH, float dp);
     float* GetScrollOffsetPtr(AutoscrollPane pane);
@@ -856,6 +876,7 @@ private:
     static constexpr UINT_PTR kTextInputCaretTimer = 0xA712;
     static constexpr UINT_PTR kTextInputImeEchoTimer = 0xA713;
     static constexpr UINT_PTR kThumbnailRefreshTimer = 0xA714;
+    static constexpr UINT_PTR kHeartbeatTimer = 0xA715;
     bool thumbnailRefreshTimerPending = false;
     // Resource-efficiency helper: EcoQoS while minimized and idle.
     void SetEcoThrottling(bool enable);

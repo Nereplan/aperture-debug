@@ -8,6 +8,7 @@
 #include "MediaFoundation.h"
 #include "OnlineSubtitles.h"
 #include "Updater.h"
+#include "Diagnostics.h"
 #include "ChannelPolicy.h"
 #include "JumpList.h"
 #include "Localization.h"
@@ -227,7 +228,9 @@ App::FocusSnapshot App::CaptureCurrentFocus(TransientSurfaceType surfaceType) co
         if (currentSettingsCat == SettingsCategory::Shortcuts) {
             if (keyboardFocusedIndex == 0) { s.accessibilityId = 600; } else {
                 auto scList = settings.GetShortcutActionListRef();
-                size_t midSc = (scList.size() + 1) / 2;
+                const float dp = std::max(0.5f, renderer.GetDpiScale());
+                const bool scSingleColumn = SettingsLayout::ShortcutsSingleColumn(SettingsContentWidth(dp), dp);
+                size_t midSc = scSingleColumn ? scList.size() : (scList.size() + 1) / 2;
                 int row = keyboardFocusedIndex, sub = keyboardFocusedSubIndex;
                 size_t idx = (sub == 0) ? static_cast<size_t>(row - 1) : (midSc + static_cast<size_t>(row - 1));
                 if (idx < scList.size()) {
@@ -448,7 +451,9 @@ void App::RestoreLogicalFocus(const FocusSnapshot& snapshot) {
         case FocusPane::SettingsContent: {
             if (currentSettingsCat == SettingsCategory::Shortcuts) {
                 auto scList = settings.GetShortcutActionListRef();
-                size_t midSc = (scList.size() + 1) / 2;
+                const float dp = std::max(0.5f, renderer.GetDpiScale());
+                const bool scSingleColumn = SettingsLayout::ShortcutsSingleColumn(SettingsContentWidth(dp), dp);
+                size_t midSc = scSingleColumn ? scList.size() : (scList.size() + 1) / 2;
                 if (snapshot.keyboardIndex == 0) {
                     keyboardFocusedIndex = 0;
                     keyboardFocusedSubIndex = 0;
@@ -829,6 +834,40 @@ App::~App() { Shutdown(); }
 
 bool App::IsReducedMotionEnabled() const { return settings.reduceMotionEnabled || systemVisualPreferences.Get().reduceMotion; }
 
+D2D1_RECT_F App::ImportPillBounds(float dp) {
+    RECT rc{};
+    if (!hWnd || !GetClientRect(hWnd, &rc)) return D2D1::RectF(0, 0, 0, 0);
+    const float winW = (float)std::max<LONG>(1, rc.right - rc.left);
+    const auto nav = Presentation::Nav(winW, dp, false, [this](const std::wstring& t) {
+        return renderer.MeasureString(t, FontType::Medium).width;
+    });
+    const size_t total = importTotal.load(std::memory_order_acquire);
+    const size_t done = importProcessed.load(std::memory_order_acquire);
+    const std::wstring label = total > 0
+        ? (std::to_wstring(std::min(done, total)) + L" / " + std::to_wstring(total))
+        : std::wstring(L"Importing");
+    const float textW = renderer.MeasureString(label, FontType::Small).width;
+    const float iconSz = 12.0f * dp, gap = 6.0f * dp, pad = 10.0f * dp;
+    const float w = iconSz + gap + textW + pad * 2.0f;
+    const float h = 24.0f * dp;
+    const float right = nav.settings.left - 10.0f * dp;
+    const float cy = nav.tabY + nav.tabH * 0.5f;
+    return D2D1::RectF(right - w, cy - h * 0.5f, right, cy + h * 0.5f);
+}
+
+D2D1_RECT_F App::ImportPopoverBounds(float dp) {
+    const D2D1_RECT_F pill = ImportPillBounds(dp);
+    const float w = 300.0f * dp, h = 118.0f * dp;
+    return D2D1::RectF(pill.right - w, pill.bottom + 8.0f * dp, pill.right, pill.bottom + 8.0f * dp + h);
+}
+
+D2D1_RECT_F App::ImportCancelBounds(float dp) {
+    const D2D1_RECT_F pop = ImportPopoverBounds(dp);
+    const float cancelW = 104.0f * dp, cancelH = 30.0f * dp;
+    return D2D1::RectF(pop.right - 18.0f * dp - cancelW, pop.bottom - 16.0f * dp - cancelH,
+                       pop.right - 18.0f * dp, pop.bottom - 16.0f * dp);
+}
+
 void App::AnimateVisual(AnimatedFloat& animation, float target, float duration, const CubicBezier* curve) {
     if (IsReducedMotionEnabled()) animation.SnapTo(target);
     else animation.AnimateTo(target, duration, curve);
@@ -922,6 +961,109 @@ void App::ApplyExperienceModeSelection(ExperienceMode mode, bool forkFromPreview
 // category, System rows, shortcuts list). Render-time pointerIn hovers do not
 // need this, but every tracked hover must be re-resolved whenever rows move
 // under a stationary cursor (wheel scrolling) — not only on WM_MOUSEMOVE.
+// Playlist-tab hover resolution, shared by WM_MOUSEMOVE and the wheel path so
+// scrolling under a stationary cursor never drops the resume-card preview.
+void App::ResolvePlaylistHover(float x, float y) {
+    if (currentTab != TabView::Playlists) return;
+    const float dp = std::max(0.5f, renderer.GetDpiScale());
+    RECT rc{};
+    GetClientRect(hWnd, &rc);
+    const float winW = (float)std::max<LONG>(1, rc.right - rc.left);
+    const float winH = (float)std::max<LONG>(1, rc.bottom - rc.top);
+    const D2D1_RECT_F viewBounds = Presentation::HubView(winW, winH, dp);
+    float railW = std::min(260.0f * dp, std::max(120.0f * dp, RectWidth(viewBounds) * 0.42f));
+    D2D1_RECT_F railBounds = D2D1::RectF(viewBounds.left, viewBounds.top, viewBounds.left + railW, viewBounds.bottom);
+    D2D1_RECT_F detailBounds = D2D1::RectF(viewBounds.left + railW + 16.0f * dp, viewBounds.top, viewBounds.right, viewBounds.bottom);
+    // Rail top + button
+    float addBtnSize = 26.0f * dp;
+    D2D1_RECT_F addBtnRect = D2D1::RectF(railBounds.right - 14.0f * dp - addBtnSize,
+        railBounds.top + (48.0f * dp - addBtnSize) * 0.5f + 4.0f * dp, railBounds.right - 14.0f * dp,
+        railBounds.top + (48.0f * dp + addBtnSize) * 0.5f + 4.0f * dp);
+    isPlaylistAddHovered = PtInRectF(addBtnRect, x, y);
+    // Rail items
+    float railClipTop = railBounds.top + 48.0f * dp - 4.0f * dp, railClipBottom = railBounds.bottom - 8.0f * dp;
+    float itemH = 52.0f * dp, curY = railBounds.top + 48.0f * dp - 2.0f * dp - playlistRailScrollY;
+    hoveredPlaylistRailIndex = -1;
+    for (size_t i = 0; i < library.playlists.size(); ++i) {
+        if (y >= railClipTop && y <= railClipBottom && x >= railBounds.left + 8.0f * dp && x <= railBounds.right - 8.0f * dp && y >= curY && y <= curY + itemH) {
+            hoveredPlaylistRailIndex = (int)i;
+            break;
+        }
+        curY += itemH + 6.0f * dp;
+    }
+    // Detail pane items & controls
+    Playlist* pl = library.FindPlaylist(activePlaylistId);
+    hoveredPlaylistDetailItemIndex = -1;
+    hoveredPlaylistDetailDeleteIndex = -1;
+    isPlaylistAddFilesHovered = false;
+    isPlaylistPlayAllHovered = false;
+    isPlaylistDeleteHovered = false;
+    isPlaylistResumeHovered = false;
+    if (pl) {
+        float headerH = 50.0f * dp;
+        float paneRight = std::max(detailBounds.left + 120.0f * dp, detailBounds.right - 26.0f * dp);
+        float playAllW = 106.0f * dp, playAllH = 32.0f * dp;
+        D2D1_RECT_F playAllRect = D2D1::RectF(paneRight - playAllW - 40.0f * dp, detailBounds.top + 14.0f * dp + 6.0f * dp, paneRight - 40.0f * dp, detailBounds.top + 14.0f * dp + 6.0f * dp + playAllH);
+        D2D1_RECT_F delPlRect = D2D1::RectF(paneRight - 34.0f * dp, detailBounds.top + 14.0f * dp + 6.0f * dp, paneRight, detailBounds.top + 14.0f * dp + 6.0f * dp + 32.0f * dp);
+        isPlaylistDeleteHovered = PtInRectF(delPlRect, x, y);
+        const std::vector<std::wstring>& plItemPaths = library.GetPlaylistPathsRef(*pl);
+        if (!plItemPaths.empty()) {
+            isPlaylistPlayAllHovered = PtInRectF(playAllRect, x, y);
+            float resumeH = 112.0f * dp, dCurY = detailBounds.top + 14.0f * dp + headerH + 16.0f * dp;
+            D2D1_RECT_F resRect = D2D1::RectF(detailBounds.left, dCurY, paneRight, dCurY + resumeH);
+            isPlaylistResumeHovered = PtInRectF(resRect, x, y);
+            float tbH = 32.0f * dp, listTop = dCurY + resumeH + 16.0f * dp + tbH + 12.0f * dp;
+            if (y >= listTop && y <= detailBounds.bottom) {
+                const auto& visiblePlaylist = GetVisiblePlaylistIndices();
+                float dItemH = playlistGridView ? 166.0f * dp : 62.0f * dp;
+                float dGap = playlistGridView ? 10.0f * dp : 6.0f * dp;
+                size_t dColumns = playlistGridView ? (size_t)std::max(1.0f, std::floor((RectWidth(D2D1::RectF(detailBounds.left, listTop, paneRight, detailBounds.bottom)) + dGap) / (190.0f * dp))) : 1;
+                float dGridW = playlistGridView ? std::max(120.0f * dp, (RectWidth(D2D1::RectF(detailBounds.left, listTop, paneRight, detailBounds.bottom)) - (dColumns - 1) * dGap) / (float)dColumns) : RectWidth(D2D1::RectF(detailBounds.left, listTop, paneRight, detailBounds.bottom));
+                float dRowPitch = dItemH + dGap;
+                size_t startIdx = 0;
+                size_t endIdx = visiblePlaylist.size();
+                float relY = (y - listTop) + playlistDetailScrollY;
+                if (relY >= 0.0f) {
+                    if (playlistGridView) {
+                        int targetRow = static_cast<int>(relY / dRowPitch);
+                        float relX = x - detailBounds.left;
+                        int targetCol = (relX >= 0.0f) ? static_cast<int>(relX / (dGridW + dGap)) : 0;
+                        int targetDisp = targetRow * (int)dColumns + std::max(0, std::min(targetCol, (int)dColumns - 1));
+                        startIdx = static_cast<size_t>(std::max<int>(0, targetDisp - 1));
+                        endIdx = std::min<size_t>(visiblePlaylist.size(), static_cast<size_t>(targetDisp + 2));
+                    } else {
+                        int targetDisp = static_cast<int>(relY / dRowPitch);
+                        startIdx = static_cast<size_t>(std::max<int>(0, targetDisp - 1));
+                        endIdx = std::min<size_t>(visiblePlaylist.size(), static_cast<size_t>(targetDisp + 2));
+                    }
+                }
+                for (size_t displayIndex = startIdx; displayIndex < endIdx; ++displayIndex) {
+                    size_t i = visiblePlaylist[displayIndex];
+                    float rowY = listTop - playlistDetailScrollY + (playlistGridView ? (displayIndex / dColumns) * dRowPitch : displayIndex * dRowPitch);
+                    float colX = playlistGridView ? detailBounds.left + (displayIndex % dColumns) * (dGridW + dGap) : detailBounds.left;
+                    D2D1_RECT_F dItemRect = D2D1::RectF(colX, rowY, playlistGridView ? colX + dGridW : paneRight, rowY + dItemH);
+                    if (PtInRectF(dItemRect, x, y)) {
+                        hoveredPlaylistDetailItemIndex = (int)i;
+                        if (!pl->IsSmart() && !playlistGridView) {
+                            float delBtnSize = 26.0f * dp;
+                            D2D1_RECT_F delBtnRect = D2D1::RectF(dItemRect.right - 32.0f * dp, dItemRect.top + (dItemH - delBtnSize) * 0.5f, dItemRect.right - 6.0f * dp, dItemRect.top + (dItemH + delBtnSize) * 0.5f);
+                            if (PtInRectF(delBtnRect, x, y)) hoveredPlaylistDetailDeleteIndex = (int)i;
+                        }
+                        break;
+                    }
+                }
+            }
+        } else if (!pl->IsSmart()) {
+            const float dropTop = detailBounds.top + 14.0f * dp + headerH + 16.0f * dp;
+            const float dropCenterX = (detailBounds.left + paneRight) * 0.5f;
+            const float addFilesW = 118.0f * dp, addFilesH = 34.0f * dp;
+            D2D1_RECT_F addFilesRect = D2D1::RectF( dropCenterX - addFilesW * 0.5f, dropTop + 168.0f * dp,
+                dropCenterX + addFilesW * 0.5f, dropTop + 168.0f * dp + addFilesH);
+            isPlaylistAddFilesHovered = PtInRectF(addFilesRect, x, y);
+        }
+    }
+}
+
 void App::ResolveSettingsHover(float x, float y) {
     if (currentTab != TabView::Settings) return;
     const float dp = std::max(0.5f, renderer.GetDpiScale());
@@ -961,9 +1103,10 @@ void App::ResolveSettingsHover(float x, float y) {
         float scTop = contentY + 32.0f * dp;
         auto scList = settings.GetShortcutActionListRef();
         size_t totalCount = scList.size();
-        size_t mid = (totalCount + 1) / 2;
+        const bool singleColumn = SettingsLayout::ShortcutsSingleColumn(contentW, dp);
+        size_t mid = singleColumn ? totalCount : (totalCount + 1) / 2;
         float colGap = 16.0f * dp;
-        float colW = (contentW - colGap) * 0.5f;
+        float colW = singleColumn ? contentW : (contentW - colGap) * 0.5f;
         float scRowH = 38.0f * dp, rowGap = 5.0f * dp;
         for (size_t rowIdx = 0; rowIdx < mid; ++rowIdx) {
             float rTop = scTop + rowIdx * (scRowH + rowGap);
@@ -971,7 +1114,7 @@ void App::ResolveSettingsHover(float x, float y) {
                 D2D1_RECT_F leftRect = D2D1::RectF(contentBounds.left + padX, rTop, contentBounds.left + padX + colW, rTop + scRowH);
                 if (PtInRectF(leftRect, x, y)) { hoveredShortcutIndex = (int)rowIdx; break; }
             }
-            if (mid + rowIdx < totalCount) {
+            if (!singleColumn && mid + rowIdx < totalCount) {
                 D2D1_RECT_F rightRect = D2D1::RectF(contentBounds.left + padX + colW + colGap, rTop, contentBounds.right - padX, rTop + scRowH);
                 if (PtInRectF(rightRect, x, y)) { hoveredShortcutIndex = (int)(mid + rowIdx); break; }
             }
@@ -993,6 +1136,19 @@ void App::ToggleExperienceFeature(const std::string& key) {
         enabled.push_back(key);
     }
     SaveSettings();
+}
+
+// Settings content width (view minus sidebar and side padding) shared by the
+// shortcuts single-column mapping in focus capture/restore, hover hit-testing,
+// keyboard navigation, and the scroll extent.
+float App::SettingsContentWidth(float dp) const {
+    RECT rc{};
+    GetClientRect(hWnd, &rc);
+    const D2D1_RECT_F view = Presentation::HubView(static_cast<float>(std::max<LONG>(1, rc.right - rc.left)),
+                                                   static_cast<float>(std::max<LONG>(1, rc.bottom - rc.top)), dp);
+    const D2D1_RECT_F content = SettingsLayout::ContentBounds(view, dp);
+    const float padX = SettingsLayout::kContentPadX * dp;
+    return RectWidth(content) - padX * 2.0f;
 }
 
 float App::GetSettingsContentHeight(float dp) const {
@@ -1033,7 +1189,10 @@ float App::GetSettingsContentHeight(float dp) const {
         const bool simpleSettings = FeatureGate::ModeFromString(settings.experienceMode) == ExperienceMode::Simple;
         settingsCardH = (SettingsLayout::kSystemActionsTop + SettingsLayout::SystemRowCount(simpleSettings) * 68.0f + 16.0f) * dp;
     } else if (currentSettingsCat == SettingsCategory::Shortcuts) {
-        settingsCardH = 24.0f * dp + 54.0f * dp + 6.0f * dp + settings.GetShortcutActionListRef().size() * 44.0f * dp + 20.0f * dp;
+        const bool single = SettingsLayout::ShortcutsSingleColumn(SettingsContentWidth(dp), dp);
+        const size_t totalCount = settings.GetShortcutActionListRef().size();
+        const size_t rows = single ? totalCount : (totalCount + 1) / 2;
+        settingsCardH = (24.0f + 54.0f + 6.0f + static_cast<float>(rows) * 43.0f + 20.0f) * dp;
     }
     return settingsCardTop + settingsCardH;
 }
@@ -1535,6 +1694,10 @@ bool App::Initialize(HWND hwnd, HWND hVideoChild, HINSTANCE hinst, const Playbac
     // UpdateMediaTransport()). No COM/taskbar/SMTC cost on the hub path.
     if (hVideoWnd) { SetWindowLongPtr(hVideoWnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(this)); }
     hInstance = hinst;
+    // Modal dialogs pump their own message loop, starving the main loop's
+    // heartbeat; a window timer keeps the hang watchdog fed through any pump
+    // while a genuinely stuck UI thread still stops ticking.
+    SetTimer(hwnd, kHeartbeatTimer, 2000, nullptr);
     accessibilityTree.SetWindow(hWnd);
     accessibilityDirty = true;
     HRESULT oleHr = OleInitialize(NULL);
@@ -1820,6 +1983,11 @@ bool App::Update(float dt) {
         if (importDone.load(std::memory_order_acquire)) { FinishImportJob(); }
         needsRedraw = true;
     }
+    // Import island: reveal plays in/out even after the job ends so the pill
+    // exits with an animation instead of vanishing.
+    AnimateVisual(importIslandReveal, importJobActive ? 1.0f : 0.0f, 0.30f, MotionTokens::Standard());
+    if (importIslandReveal.Tick()) needsRedraw = true;
+    if (importJobActive) importSpinAngle = std::fmod(importSpinAngle + dt * 260.0f, 360.0f);
     if (backfillJobActive) {
         if (backfillDone.load(std::memory_order_acquire)) { FinishBackfillJob(); }
     }
@@ -2586,6 +2754,7 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
             return 0;
         }
         case WM_TIMER: {
+            if ((UINT_PTR)wParam == kHeartbeatTimer) { Diagnostics::RecordHeartbeat(); return 0; }
             if ((UINT_PTR)wParam == kThumbnailRefreshTimer) {
                 KillTimer(hWnd, kThumbnailRefreshTimer);
                 thumbnailRefreshTimerPending = false;
@@ -2803,12 +2972,16 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                         return 0;
                     }
                     mediaScrollY = std::max(0.0f, mediaScrollY - scrollDelta);
+                    POINT wheelPtMd{ GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
+                    ScreenToClient(hWnd, &wheelPtMd);
+                    UpdateHoverStates((float)wheelPtMd.x, (float)wheelPtMd.y);
                 } else if (currentTab == TabView::Playlists) {
                     playlistDetailScrollY = std::max(0.0f, playlistDetailScrollY - scrollDelta);
-                    hoveredPlaylistDetailItemIndex = -1;
-                    hoveredPlaylistDetailDeleteIndex = -1;
-                    isPlaylistResumeHovered = false;
-                    ClearPlaylistCardHover();
+                    // Content moves under a stationary cursor while scrolling;
+                    // re-resolve hover so the resume preview keeps running.
+                    POINT wheelPtPl{ GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
+                    ScreenToClient(hWnd, &wheelPtPl);
+                    ResolvePlaylistHover((float)wheelPtPl.x, (float)wheelPtPl.y);
                 }
                 else if (currentTab == TabView::History) {
                     historyScrollY = std::max(0.0f, historyScrollY - scrollDelta);
@@ -2958,18 +3131,13 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                 }
                 if (activeTextInputField != TextInputField::None && textInputDragging) { SetTextInputCaretFromMouse(x, y, true); return 0; }
                 if (importJobActive) {
-                    const float cardW = std::min(500.0f * dp, std::max(300.0f * dp, winW - 40.0f * dp));
-                    const float cardH = 184.0f * dp;
-                    const float cardL = (winW - cardW) * 0.5f;
-                    const float cardT = std::max(70.0f * dp, (winH - cardH) * 0.5f);
-                    const D2D1_RECT_F cancelRect = D2D1::RectF(cardL + cardW - 24.0f * dp - 112.0f * dp,
-                        cardT + cardH - 52.0f * dp, cardL + cardW - 24.0f * dp, cardT + cardH - 16.0f * dp);
-                    const bool newCancelHovered = PtInRectF(cancelRect, x, y);
-                    if (importCancelHovered != newCancelHovered) {
+                    const bool newPillHovered = PtInRectF(ImportPillBounds(dp), x, y);
+                    const bool newCancelHovered = importPopoverOpen && PtInRectF(ImportCancelBounds(dp), x, y);
+                    if (importPillHovered != newPillHovered || importCancelHovered != newCancelHovered) {
+                        importPillHovered = newPillHovered;
                         importCancelHovered = newCancelHovered;
                         InvalidateRect(hWnd, NULL, FALSE);
                     }
-                    return 0;
                 }
                 if (activeModal != ModalType::None) {
                     const bool isInputModal = (activeModal == ModalType::NewPlaylist || activeModal == ModalType::NewSmartPlaylist || activeModal == ModalType::EditSmartPlaylist || activeModal == ModalType::SeekStepInput ||
@@ -3114,100 +3282,15 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                     TrackMouseEvent(&tme);
                     isMouseTracking = true;
                 }
+                // An open context menu is solid: while the cursor is inside it,
+                // hub hover states stay as they are (previews persist) but new
+                // hover effects must not trigger from content behind the menu.
+                const bool cursorInsideOpenMenu = isContextMenuOpen && PtInRectF(ContextMenuBounds(dp), x, y);
+                if (!cursorInsideOpenMenu) {
                 hoverChanged = hoverChanged || UpdateHoverStates(x, y);
                 D2D1_RECT_F viewBounds = Presentation::HubView(winW, winH, dp);
                 if (currentTab == TabView::Playlists) {
-                    float railW = std::min(260.0f * dp, std::max(120.0f * dp, RectWidth(viewBounds) * 0.42f));
-                    D2D1_RECT_F railBounds = D2D1::RectF(viewBounds.left, viewBounds.top, viewBounds.left + railW, viewBounds.bottom);
-                    D2D1_RECT_F detailBounds = D2D1::RectF(viewBounds.left + railW + 16.0f * dp, viewBounds.top, viewBounds.right, viewBounds.bottom);
-                    // Rail top + button
-                    float addBtnSize = 26.0f * dp;
-                    D2D1_RECT_F addBtnRect = D2D1::RectF(railBounds.right - 14.0f * dp - addBtnSize,
-                        railBounds.top + (48.0f * dp - addBtnSize) * 0.5f + 4.0f * dp, railBounds.right - 14.0f * dp,
-                        railBounds.top + (48.0f * dp + addBtnSize) * 0.5f + 4.0f * dp);
-                    isPlaylistAddHovered = PtInRectF(addBtnRect, x, y);
-                    // Rail items
-                    float railClipTop = railBounds.top + 48.0f * dp - 4.0f * dp, railClipBottom = railBounds.bottom - 8.0f * dp;
-                    float itemH = 52.0f * dp, curY = railBounds.top + 48.0f * dp - 2.0f * dp - playlistRailScrollY;
-                    hoveredPlaylistRailIndex = -1;
-                    for (size_t i = 0; i < library.playlists.size(); ++i) {
-                        if (y >= railClipTop && y <= railClipBottom && x >= railBounds.left + 8.0f * dp && x <= railBounds.right - 8.0f * dp && y >= curY && y <= curY + itemH) {
-                            hoveredPlaylistRailIndex = (int)i;
-                            break;
-                        }
-                        curY += itemH + 6.0f * dp;
-                    }
-                    // Detail pane items & controls
-                    Playlist* pl = library.FindPlaylist(activePlaylistId);
-                    hoveredPlaylistDetailItemIndex = -1;
-                    hoveredPlaylistDetailDeleteIndex = -1;
-                    isPlaylistAddFilesHovered = false;
-                    isPlaylistPlayAllHovered = false;
-                    isPlaylistDeleteHovered = false;
-                    isPlaylistResumeHovered = false;
-                    if (pl) {
-                        float headerH = 50.0f * dp;
-                        float paneRight = std::max(detailBounds.left + 120.0f * dp, detailBounds.right - 26.0f * dp);
-                        float playAllW = 106.0f * dp, playAllH = 32.0f * dp;
-                        D2D1_RECT_F playAllRect = D2D1::RectF(paneRight - playAllW - 40.0f * dp, detailBounds.top + 14.0f * dp + 6.0f * dp, paneRight - 40.0f * dp, detailBounds.top + 14.0f * dp + 6.0f * dp + playAllH);
-                        D2D1_RECT_F delPlRect = D2D1::RectF(paneRight - 34.0f * dp, detailBounds.top + 14.0f * dp + 6.0f * dp, paneRight, detailBounds.top + 14.0f * dp + 6.0f * dp + 32.0f * dp);
-                        isPlaylistDeleteHovered = PtInRectF(delPlRect, x, y);
-                        const std::vector<std::wstring>& plItemPaths = library.GetPlaylistPathsRef(*pl);
-                        if (!plItemPaths.empty()) {
-                            isPlaylistPlayAllHovered = PtInRectF(playAllRect, x, y);
-                            float resumeH = 112.0f * dp, dCurY = detailBounds.top + 14.0f * dp + headerH + 16.0f * dp;
-                            D2D1_RECT_F resRect = D2D1::RectF(detailBounds.left, dCurY, paneRight, dCurY + resumeH);
-                            isPlaylistResumeHovered = PtInRectF(resRect, x, y);
-                            float tbH = 32.0f * dp, listTop = dCurY + resumeH + 16.0f * dp + tbH + 12.0f * dp;
-                            if (y >= listTop && y <= detailBounds.bottom) {
-                                const auto& visiblePlaylist = GetVisiblePlaylistIndices();
-                                float dItemH = playlistGridView ? 166.0f * dp : 62.0f * dp;
-                                float dGap = playlistGridView ? 10.0f * dp : 6.0f * dp;
-                                size_t dColumns = playlistGridView ? (size_t)std::max(1.0f, std::floor((RectWidth(D2D1::RectF(detailBounds.left, listTop, paneRight, detailBounds.bottom)) + dGap) / (190.0f * dp))) : 1;
-                                float dGridW = playlistGridView ? std::max(120.0f * dp, (RectWidth(D2D1::RectF(detailBounds.left, listTop, paneRight, detailBounds.bottom)) - (dColumns - 1) * dGap) / (float)dColumns) : RectWidth(D2D1::RectF(detailBounds.left, listTop, paneRight, detailBounds.bottom));
-                                float dRowPitch = dItemH + dGap;
-                                size_t startIdx = 0;
-                                size_t endIdx = visiblePlaylist.size();
-                                float relY = (y - listTop) + playlistDetailScrollY;
-                                if (relY >= 0.0f) {
-                                    if (playlistGridView) {
-                                        int targetRow = static_cast<int>(relY / dRowPitch);
-                                        float relX = x - detailBounds.left;
-                                        int targetCol = (relX >= 0.0f) ? static_cast<int>(relX / (dGridW + dGap)) : 0;
-                                        int targetDisp = targetRow * (int)dColumns + std::max(0, std::min(targetCol, (int)dColumns - 1));
-                                        startIdx = static_cast<size_t>(std::max<int>(0, targetDisp - 1));
-                                        endIdx = std::min<size_t>(visiblePlaylist.size(), static_cast<size_t>(targetDisp + 2));
-                                    } else {
-                                        int targetDisp = static_cast<int>(relY / dRowPitch);
-                                        startIdx = static_cast<size_t>(std::max<int>(0, targetDisp - 1));
-                                        endIdx = std::min<size_t>(visiblePlaylist.size(), static_cast<size_t>(targetDisp + 2));
-                                    }
-                                }
-                                for (size_t displayIndex = startIdx; displayIndex < endIdx; ++displayIndex) {
-                                    size_t i = visiblePlaylist[displayIndex];
-                                    float rowY = listTop - playlistDetailScrollY + (playlistGridView ? (displayIndex / dColumns) * dRowPitch : displayIndex * dRowPitch);
-                                    float colX = playlistGridView ? detailBounds.left + (displayIndex % dColumns) * (dGridW + dGap) : detailBounds.left;
-                                    D2D1_RECT_F dItemRect = D2D1::RectF(colX, rowY, playlistGridView ? colX + dGridW : paneRight, rowY + dItemH);
-                                    if (PtInRectF(dItemRect, x, y)) {
-                                        hoveredPlaylistDetailItemIndex = (int)i;
-                                        if (!pl->IsSmart() && !playlistGridView) {
-                                            float delBtnSize = 26.0f * dp;
-                                            D2D1_RECT_F delBtnRect = D2D1::RectF(dItemRect.right - 32.0f * dp, dItemRect.top + (dItemH - delBtnSize) * 0.5f, dItemRect.right - 6.0f * dp, dItemRect.top + (dItemH + delBtnSize) * 0.5f);
-                                            if (PtInRectF(delBtnRect, x, y)) hoveredPlaylistDetailDeleteIndex = (int)i;
-                                        }
-                                        break;
-                                    }
-                                }
-                            }
-                        } else if (!pl->IsSmart()) {
-                            const float dropTop = detailBounds.top + 14.0f * dp + headerH + 16.0f * dp;
-                            const float dropCenterX = (detailBounds.left + paneRight) * 0.5f;
-                            const float addFilesW = 118.0f * dp, addFilesH = 34.0f * dp;
-                            D2D1_RECT_F addFilesRect = D2D1::RectF( dropCenterX - addFilesW * 0.5f, dropTop + 168.0f * dp,
-                                dropCenterX + addFilesW * 0.5f, dropTop + 168.0f * dp + addFilesH);
-                            isPlaylistAddFilesHovered = PtInRectF(addFilesRect, x, y);
-                        }
-                    }
+                    ResolvePlaylistHover(x, y);
                 } else if (currentTab == TabView::History) {
                     D2D1_SIZE_F clearSize = renderer.MeasureString(L"Clear History", FontType::Medium);
                     float clearW = clearSize.width + 24.0f * dp, clearH = 32.0f * dp;
@@ -3251,6 +3334,7 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                 } else if (currentTab == TabView::Settings) {
                     ResolveSettingsHover(x, y);
                 }
+                } // cursor-inside-open-menu guard
             }
             if (isContextMenuOpen) {
                 UpdateContextMenuHitTarget(x, y, dp);
@@ -3296,7 +3380,7 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
             // instead of starting autoscroll.
             if (HandleShortcutCaptureMouse(kMouseMiddle)) return 0;
             if (IsAutoscrolling()) { StopAutoscroll(true); autoscroll.suppressNextClick = true; return 0; }
-            if (!playbackSession.IsOpen() && activeModal == ModalType::None && !importJobActive &&
+            if (!playbackSession.IsOpen() && activeModal == ModalType::None &&
                 activeDragType == DragType::None && !textInputDragging && !isContextMenuOpen && !isSettingsFlyoutOpen) {
                 float maxScroll = 0.0f;
                 AutoscrollPane pane = HitTestAutoscrollPane(x, y, maxScroll);
@@ -3382,15 +3466,27 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                 return 0;
             }
             if (!playbackSession.IsOpen() && importJobActive) {
-                const float cardW = std::min(500.0f * dp, std::max(300.0f * dp, winW - 40.0f * dp));
-                const float cardH = 184.0f * dp;
-                const float cardL = (winW - cardW) * 0.5f;
-                const float cardT = std::max(70.0f * dp, (winH - cardH) * 0.5f);
-                const D2D1_RECT_F cancelRect = D2D1::RectF(cardL + cardW - 24.0f * dp - 112.0f * dp,
-                    cardT + cardH - 52.0f * dp, cardL + cardW - 24.0f * dp, cardT + cardH - 16.0f * dp);
-                if (PtInRectF(cancelRect, x, y)) { CancelImportJob(); ShowOSD(IconType::VolumeMuted, L"Import canceled"); }
-                InvalidateRect(hWnd, NULL, FALSE);
-                return 0;
+                // Import island: the pill toggles its popover and Cancel lives
+                // inside it; the rest of the hub stays fully interactive.
+                if (PtInRectF(ImportPillBounds(dp), x, y)) {
+                    importPopoverOpen = !importPopoverOpen;
+                    importCancelHovered = false;
+                    InvalidateRect(hWnd, NULL, FALSE);
+                    return 0;
+                }
+                if (importPopoverOpen) {
+                    if (PtInRectF(ImportCancelBounds(dp), x, y)) {
+                        CancelImportJob();
+                        ShowOSD(IconType::VolumeMuted, L"Import canceled");
+                        importPopoverOpen = false;
+                        InvalidateRect(hWnd, NULL, FALSE);
+                        return 0;
+                    }
+                    if (!PtInRectF(ImportPopoverBounds(dp), x, y)) {
+                        importPopoverOpen = false;
+                        InvalidateRect(hWnd, NULL, FALSE);
+                    }
+                }
             }
             if (isContextMenuOpen) {
                 HandleContextMenuClick(x, y, dp);
@@ -4324,7 +4420,9 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                             activeFocusPane = FocusPane::MediaList;
                             topNavFocusedIndex = 0;
                             keyboardFocusedIndex = 0;
-                            selectedMediaIndices = { 0 };
+                            // No implicit selection: seeding index 0 here used to
+                            // mark the pinned last-watched card as selected, which
+                            // then leaked into "Add N items" background actions.
                         } else if (currentTab == TabView::Playlists) {
                             activeFocusPane = FocusPane::PlaylistRail;
                             topNavFocusedIndex = 1;

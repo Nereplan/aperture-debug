@@ -683,6 +683,7 @@ void UIComponents::DrawSettingsView(Renderer& r, const Settings& s, SettingsTabV
             r.DrawRoundedRect(InsetRectF(rect, -2.0f * dp, -2.0f * dp), (radius + 2.0f) * dp, th.focusRing, 1.5f * dp);
         };
         const char* modeNames[] = { "simple", "advanced", "custom" };
+        const bool narrowTiles = SettingsLayout::ExperienceNarrowTiles(contentW, dp);
         for (int i = 0; i < 3; ++i) {
             const ExperienceMode mode = static_cast<ExperienceMode>(i);
             const D2D1_RECT_F& tile = layout.modeTiles[i];
@@ -704,11 +705,18 @@ void UIComponents::DrawSettingsView(Renderer& r, const Settings& s, SettingsTabV
 
             const float pad = 14.0f * dp, radioR = 7.0f * dp;
             const float radioCx = tile.left + pad + radioR, radioCy = tile.top + pad + 11.0f * dp;
-            r.DrawCircle(radioCx, radioCy, radioR, selected ? accentCol : textMute, 1.5f * dp);
-            if (selected) r.FillCircle(radioCx, radioCy, 3.5f * dp, accentCol);
+            if (!narrowTiles) {
+                r.DrawCircle(radioCx, radioCy, radioR, selected ? accentCol : textMute, 1.5f * dp);
+                if (selected) r.FillCircle(radioCx, radioCy, 3.5f * dp, accentCol);
+            }
             const std::string modeKey = std::string("settings.experience.mode.") + modeNames[i];
-            const D2D1_RECT_F nameRect = D2D1::RectF(radioCx + radioR + 10.0f * dp, tile.top + pad, tile.right - pad, tile.top + pad + 22.0f * dp);
-            r.DrawString(Loc::Tr(modeKey), nameRect, textPri, FontType::Subheading, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+            const D2D1_RECT_F nameRect = narrowTiles
+                ? D2D1::RectF(tile.left + pad, tile.top + pad, tile.right - pad, tile.top + pad + 22.0f * dp)
+                : D2D1::RectF(radioCx + radioR + 10.0f * dp, tile.top + pad, tile.right - pad, tile.top + pad + 22.0f * dp);
+            const float nameW = narrowTiles ? tile.right - pad - (tile.left + pad)
+                                            : nameRect.right - nameRect.left;
+            r.DrawString(FitSingleLine(r, Loc::Tr(modeKey), FontType::Subheading, nameW), nameRect, textPri, FontType::Subheading,
+                         narrowTiles ? DWRITE_TEXT_ALIGNMENT_CENTER : DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
 
             // Meter: how much of the catalog this mode puts on screen.
             const size_t visible = FeatureGate::EnabledFeatureCount(mode, s.customEnabledFeatures);
@@ -1583,9 +1591,10 @@ void UIComponents::DrawSettingsView(Renderer& r, const Settings& s, SettingsTabV
         contentY += 32.0f * dp;
         auto scList = s.GetShortcutActionListRef();
         size_t totalCount = scList.size();
-        size_t mid = (totalCount + 1) / 2;
+        const bool singleColumn = SettingsLayout::ShortcutsSingleColumn(contentW, dp);
+        size_t mid = singleColumn ? totalCount : (totalCount + 1) / 2;
         float colGap = 16.0f * dp;
-        float colW = (contentW - colGap) * 0.5f;
+        float colW = singleColumn ? contentW : (contentW - colGap) * 0.5f;
         float rowH = 38.0f * dp, rowGap = 5.0f * dp;
         const float shortcutListH = mid > 0 ? mid * (rowH + rowGap) - rowGap : 0.0f;
         drawFlatPanel(D2D1::RectF(contentBounds.left + padX - 10.0f * dp, contentY - 8.0f * dp,
@@ -1631,7 +1640,7 @@ void UIComponents::DrawSettingsView(Renderer& r, const Settings& s, SettingsTabV
             // Left column item (col 0)
             if (rowIdx < totalCount) { drawShortcutCell(rowIdx, contentBounds.left + padX, contentBounds.left + padX + colW, 0); }
             // Right column item (col 1)
-            if (mid + rowIdx < totalCount)
+            if (!singleColumn && mid + rowIdx < totalCount)
                 drawShortcutCell(mid + rowIdx, contentBounds.left + padX + colW + colGap, contentBounds.right - padX, 1);
             if (rowIdx + 1 < mid) {
                 r.DrawLine(contentBounds.left + padX + 8.0f * dp, rTop + rowH + rowGap * 0.5f,
@@ -2003,10 +2012,16 @@ void UIComponents::DrawPlayerBottomBar(OverlayRenderer& r, const Settings& s, co
     // Time text yields first on narrow layouts; transport and mute remain.
     if (!narrowLayout) {
         std::wstring timeStr = FormatDuration(vm.currentTime) + L" / " + FormatDuration(vm.duration);
-        D2D1_RECT_F timeRect = D2D1::RectF(curX, controlsY, curX + 160.0f * dp, controlsY + btnSize);
-        D2D1_RECT_F timeShadow = D2D1::RectF(timeRect.left + 1.0f * dp, timeRect.top + 1.0f * dp, timeRect.right + 1.0f * dp, timeRect.bottom + 1.0f * dp);
-        r.DrawString(timeStr, timeShadow, D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.75f * vm.opacity), FontType::Mono, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-        r.DrawString(timeStr, timeRect, D2D1::ColorF(0.95f, 0.95f, 0.95f, vm.opacity), FontType::Mono, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+        // YouTube-style scrim pill: monospace time on a soft dark backdrop
+        // reads over bright and busy frames alike.
+        const D2D1_SIZE_F timeSz = r.MeasureString(timeStr, FontType::Mono);
+        const float padT = 8.0f * dp, pillH = 22.0f * dp;
+        D2D1_RECT_F timeRect = D2D1::RectF(curX, controlsY + (btnSize - pillH) * 0.5f, curX + timeSz.width + padT * 2.0f, controlsY + (btnSize + pillH) * 0.5f);
+        r.FillRoundedRect(timeRect, pillH * 0.5f, D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.55f * vm.opacity));
+        r.DrawRoundedRect(timeRect, pillH * 0.5f, D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.10f * vm.opacity), 1.0f * dp);
+        r.DrawString(timeStr, D2D1::RectF(timeRect.left + padT, timeRect.top, timeRect.right - padT, timeRect.bottom),
+                     D2D1::ColorF(0.98f, 0.98f, 0.98f, vm.opacity), FontType::Mono, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+        curX = timeRect.right + 8.0f * dp;
     }
     // Right Controls
     float rightX = vm.bounds.right - padX - btnSize;
@@ -3524,6 +3539,7 @@ void UIComponents::DrawPlaylistDetailPane(Renderer& r, const Settings& s, const 
         SurfaceStyle resStyle;
         resStyle.radius = 12.0f * dp;
         resStyle.backdropFile = vm.resumeCard.filePath;
+        resStyle.backdropStartSec = vm.resumeCard.resumePosSec;
         resStyle.pLivePreviewBitmap = vm.resumeCard.pLivePreviewBitmap;
         resStyle.livePreviewOpacity = vm.resumeCard.previewOpacity;
         resStyle.backdropOpacity = vm.resumeCard.isResumeHovered ? 0.35f : 0.18f;
@@ -3550,7 +3566,7 @@ void UIComponents::DrawPlaylistDetailPane(Renderer& r, const Settings& s, const 
             r.DrawSurface(vm.resumeCard.cardRect, resStyle);
         }
         // Backdrop and live preview wash on the entire card surface (matching Media cards)
-        ComPtr<ID2D1Bitmap> bm = r.GetOrCreateVideoThumbnail(vm.resumeCard.filePath, 320, 180);
+        ComPtr<ID2D1Bitmap> bm = r.GetOrCreateVideoThumbnail(vm.resumeCard.filePath, 320, 180, vm.resumeCard.resumePosSec);
         if (bm) {
             const D2D1_RECT_F& cr = vm.resumeCard.cardRect;
             r.DrawBitmapRounded(cr, 12.0f * dp, bm.Get(), vm.resumeCard.isResumeHovered ? 0.32f : 0.16f, true);
@@ -4233,15 +4249,39 @@ void UIComponents::DrawOverlayContextMenu(OverlayRenderer& r, const Settings& s,
 }
 
 void UIComponents::DrawImportProgress(Renderer& r, const Settings& s, const ImportProgressViewModel& vm) {
-    if (!vm.isActive) return;
+    // Dynamic-island pill in the History<->Settings nav gap. It grows in with
+    // `reveal`, spins an activity icon, and carries a live counter; the popover
+    // below it holds the details and Cancel.
+    if (vm.reveal <= 0.001f) return;
     float dp = r.GetDpiScale();
     const auto& th = s.currentTheme;
-    r.FillRoundedRect(D2D1::RectF(0, 0, r.Scale(r.GetDpiScale() > 0 ? (float)r.GetDpiScale() : 1.0f), 0), 0.0f, D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.42f));
-    r.FillRoundedRect(vm.cardBounds, 14.0f * dp, th.cardBg);
-    r.DrawRoundedRect(vm.cardBounds, 14.0f * dp, th.border, 1.0f * dp);
-    r.DrawString(L"Importing media", D2D1::RectF(vm.cardBounds.left + 24.0f * dp, vm.cardBounds.top + 18.0f * dp, vm.cardBounds.right - 24.0f * dp, vm.cardBounds.top + 48.0f * dp), th.text, FontType::Subheading);
-    r.DrawString(vm.progressText, D2D1::RectF(vm.cardBounds.left + 24.0f * dp, vm.cardBounds.top + 54.0f * dp, vm.cardBounds.right - 24.0f * dp, vm.cardBounds.top + 78.0f * dp), th.textMuted, FontType::Small);
-    r.DrawProgressBar(D2D1::RectF(vm.cardBounds.left + 24.0f * dp, vm.cardBounds.top + 86.0f * dp, vm.cardBounds.right - 24.0f * dp, vm.cardBounds.top + 94.0f * dp), vm.progressRatio, D2D1::ColorF(1, 1, 1, 0.08f), th.accent, 4.0f * dp);
+    const float a = vm.reveal;
+    const D2D1_RECT_F full = vm.pillBounds;
+    const float cy = (full.top + full.bottom) * 0.5f;
+    const float h = (full.bottom - full.top) * a;
+    const D2D1_RECT_F pill = D2D1::RectF(full.left, cy - h * 0.5f, full.right, cy + h * 0.5f);
+    const float radius = (pill.bottom - pill.top) * 0.5f;
+    r.FillRoundedRect(pill, radius, ColorWithAlpha(vm.pillHovered ? th.accent : ColorWithAlpha(th.text, 0.10f), a * (vm.pillHovered ? 0.22f : 1.0f)));
+    r.DrawRoundedRect(pill, radius, ColorWithAlpha(vm.pillHovered ? th.accent : th.border, 0.65f * a), 1.0f * dp);
+    const float iconSz = 12.0f * dp;
+    r.DrawIconRotated(IconType::Refresh, D2D1::RectF(pill.left + 10.0f * dp, cy - iconSz * 0.5f, pill.left + 10.0f * dp + iconSz, cy + iconSz * 0.5f),
+                      ColorWithAlpha(th.accent, a), vm.spinAngle, 1.6f * dp);
+    const D2D1_RECT_F textRect = D2D1::RectF(pill.left + 10.0f * dp + iconSz + 6.0f * dp, pill.top, pill.right - 10.0f * dp, pill.bottom);
+    r.DrawString(vm.pillText, textRect, ColorWithAlpha(th.text, a), FontType::Small, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+    // Hairline progress underline across the pill's base.
+    if (vm.progressRatio > 0.0 && pill.right > pill.left) {
+        const float barY = pill.bottom - 2.0f * dp;
+        const float barW = (pill.right - pill.left - 4.0f * dp) * (float)std::min(1.0, vm.progressRatio);
+        r.FillRoundedRect(D2D1::RectF(pill.left + 2.0f * dp, barY, pill.left + 2.0f * dp + barW, pill.bottom), 1.0f * dp, ColorWithAlpha(th.accent, 0.9f * a));
+    }
+    if (!vm.popoverOpen) return;
+    // Details popover anchored under the pill.
+    r.DrawDropShadow(vm.cardBounds, 10.0f * dp, 16.0f * dp, 4.0f * dp, D2D1::ColorF(0, 0, 0, 0.45f));
+    r.FillRoundedRect(vm.cardBounds, 12.0f * dp, th.cardBg);
+    r.DrawRoundedRect(vm.cardBounds, 12.0f * dp, th.border, 1.0f * dp);
+    r.DrawString(L"Importing media", D2D1::RectF(vm.cardBounds.left + 18.0f * dp, vm.cardBounds.top + 14.0f * dp, vm.cardBounds.right - 18.0f * dp, vm.cardBounds.top + 40.0f * dp), th.text, FontType::Subheading);
+    r.DrawString(vm.progressText, D2D1::RectF(vm.cardBounds.left + 18.0f * dp, vm.cardBounds.top + 42.0f * dp, vm.cardBounds.right - 18.0f * dp, vm.cardBounds.top + 64.0f * dp), th.textMuted, FontType::Small);
+    r.DrawProgressBar(D2D1::RectF(vm.cardBounds.left + 18.0f * dp, vm.cardBounds.top + 70.0f * dp, vm.cardBounds.right - 18.0f * dp, vm.cardBounds.top + 78.0f * dp), vm.progressRatio, D2D1::ColorF(1, 1, 1, 0.08f), th.accent, 4.0f * dp);
     r.FillRoundedRect(vm.cancelBounds, 7.0f * dp, vm.isCancelHovered ? D2D1::ColorF(0.95f, 0.28f, 0.35f, 0.22f) : D2D1::ColorF(1, 1, 1, 0.05f));
     r.DrawRoundedRect(vm.cancelBounds, 7.0f * dp, vm.isCancelHovered ? D2D1::ColorF(0.95f, 0.35f, 0.40f, 0.72f) : th.border, 1.0f * dp);
     r.DrawString(L"Cancel", vm.cancelBounds, vm.isCancelHovered ? th.red : th.textMuted, FontType::Small, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
@@ -4299,10 +4339,7 @@ void UIComponents::DrawHub(Renderer& r, const Settings& s, HubRenderViewModel& v
         case TabView::Settings: { DrawSettingsView(r, s, vm.settingsTab); break; }
     }
     DrawAutoscrollAnchor(r, s, vm.autoscroll);
-    if (vm.importProgress.isActive) {
-        r.FillRoundedRect(D2D1::RectF(0, 0, vm.winBounds.right, vm.winBounds.bottom), 0.0f, D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.42f));
-        DrawImportProgress(r, s, vm.importProgress);
-    }
+    DrawImportProgress(r, s, vm.importProgress);
     DrawOSDBadge(r, s, vm.osdBadge);
     DrawContextMenu(r, s, vm.contextMenu);
     if (vm.modal.type == ModalType::NewPlaylist || vm.modal.type == ModalType::NewSmartPlaylist || vm.modal.type == ModalType::EditSmartPlaylist || vm.modal.type == ModalType::SeekStepInput || vm.modal.type == ModalType::FrameSeekInput || vm.modal.type == ModalType::CustomSettingInput || vm.modal.type == ModalType::BookmarkInput || vm.modal.type == ModalType::EditMetadataOverrides || vm.modal.type == ModalType::SaveSubtitleProfile || vm.modal.type == ModalType::RenameSubtitleProfile || vm.modal.type == ModalType::JumpToTime || vm.modal.type == ModalType::CustomAspectInput || vm.modal.type == ModalType::CustomRotationInput) {
