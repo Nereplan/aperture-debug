@@ -654,6 +654,7 @@ struct SettingsTabViewModel {
     float scrollY = 0.0f;
     std::string rebindingActionId;
     int hoveredShortcutIndex = -1;
+    int hoveredShortcutUnassignIndex = -1;
     bool isResetShortcutsHovered = false, isSidebarFocused = false, isContentFocused = false;
     int keyboardFocusedRow = 0, keyboardFocusedSubIndex = 0;
     float autoplayProg = 1.0f, rememberPosProg = 1.0f, hwAccelProg = 1.0f, loopProg = 0.0f;

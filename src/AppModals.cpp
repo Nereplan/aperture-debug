@@ -1066,6 +1066,33 @@ void App::CancelShortcutCapture() {
 }
 
 
+void App::UnassignShortcut(const std::string& actionId, const std::string& actionName) {
+    if (actionId.empty()) return;
+    const std::string resolvedName = actionName.empty() ? actionId : actionName;
+    const std::wstring displayName = Utf8ToUtf16(resolvedName);
+    auto& binding = settings.shortcuts[actionId];
+    binding.actionId = actionId;
+    if (binding.displayName.empty()) binding.displayName = resolvedName;
+    binding.vkCode = 0;
+    binding.ctrl = false;
+    binding.shift = false;
+    binding.alt = false;
+    const bool wasCapturingThis = (rebindingActionId == actionId);
+    if (wasCapturingThis) {
+        rebindingActionId.clear();
+        rebindingActionName.clear();
+        lastAnnouncedModifierChord.clear();
+        PopAndRestoreFocus(TransientSurfaceType::ShortcutCapture);
+    }
+    SaveSettings();
+    ApplyGlobalHotkeys();
+    ShowOSD(IconType::SettingsGear, displayName + L" unassigned");
+    AnnounceStatus(displayName + L" shortcut unassigned. Settings saved.", true);
+    MarkAccessibilityDirty();
+    InvalidateRect(hWnd, NULL, FALSE);
+}
+
+
 std::wstring App::GetCurrentCaptureChordText() const {
     const bool isCtrl = (GetKeyState(VK_CONTROL) & 0x8000) != 0;
     const bool isAlt = (GetKeyState(VK_MENU) & 0x8000) != 0;

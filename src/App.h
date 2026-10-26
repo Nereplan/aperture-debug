@@ -778,7 +778,7 @@ private:
     int hoveredMediaIndex = -1, selectedMediaIndex = -1;
     std::string activePlaylistId = "pl_favorites";
     int hoveredPlaylistRailIndex = -1, hoveredPlaylistDetailItemIndex = -1, hoveredPlaylistDetailDeleteIndex = -1, hoveredHistoryIndex = -1;
-    int hoveredHistoryDeleteIndex = -1, hoveredSettingsRow = -1, hoveredShortcutIndex = -1;
+    int hoveredHistoryDeleteIndex = -1, hoveredSettingsRow = -1, hoveredShortcutIndex = -1, hoveredShortcutUnassignIndex = -1;
     bool isResetShortcutsHovered = false;
     std::string rebindingActionId = "";
     std::string rebindingActionName = "";
@@ -1056,6 +1056,7 @@ private:
     void ShowConfirmationModal(const std::wstring& title, const std::wstring& message, const std::wstring& confirmText, std::function<void()> onConfirm, std::function<void()> onCancel = nullptr, bool isDestructive = true);
     void StartShortcutCapture(const std::string& actionId, const std::string& actionName, int originRow = 1, int originSubIndex = 0);
     void CancelShortcutCapture();
+    void UnassignShortcut(const std::string& actionId, const std::string& actionName);
     // Shared completion path for shortcut capture: keyboard (AppKeyboard) and
     // mouse pseudo-keys (Feature 4 routing) both land here.
     void CompleteShortcutCapture(UINT vkCode, bool ctrl, bool shift, bool alt);

@@ -333,6 +333,7 @@ void App::OnMouseLeave() {
     hoveredSettingsCat = (SettingsCategory)-1;
     hoveredSettingsRow = -1;
     hoveredShortcutIndex = -1;
+    hoveredShortcutUnassignIndex = -1;
     isResetShortcutsHovered = false;
     isJumpAheadHovered = false;
     listenHoveredFeed = -1;

@@ -1182,6 +1182,17 @@ bool App::HandleGlobalKeyDown(WPARAM wParam, LPARAM lParam) {
                     }
                     return true;
                 }
+                if (wParam == VK_DELETE || wParam == VK_BACK) {
+                    if (currentSettingsCat == SettingsCategory::Shortcuts && keyboardFocusedIndex >= 1) {
+                        int row = std::clamp(keyboardFocusedIndex, 1, maxRows - 1);
+                        int sub = keyboardFocusedSubIndex;
+                        size_t idx = (sub == 0) ? (size_t)(row - 1) : (midSc + (size_t)(row - 1));
+                        if (idx < scList.size()) {
+                            UnassignShortcut(scList[idx].first, scList[idx].second);
+                            return true;
+                        }
+                    }
+                }
                 if (wParam == VK_RETURN || wParam == VK_SPACE) {
                     int row = std::clamp(keyboardFocusedIndex, 0, maxRows - 1);
                     int sub = keyboardFocusedSubIndex;

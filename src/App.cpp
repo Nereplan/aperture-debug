@@ -1238,6 +1238,7 @@ void App::ResolveSettingsHover(float x, float y) {
     hoveredSettingsCat = (SettingsCategory)-1;
     hoveredSettingsRow = -1;
     hoveredShortcutIndex = -1;
+    hoveredShortcutUnassignIndex = -1;
     isResetShortcutsHovered = false;
     SettingsCategory settingsHoverCats[] = {SettingsCategory::Experience, SettingsCategory::Appearance, SettingsCategory::Playback,
                                             SettingsCategory::Subtitles, SettingsCategory::Shortcuts, SettingsCategory::System};
@@ -1271,13 +1272,33 @@ void App::ResolveSettingsHover(float x, float y) {
         float scRowH = 38.0f * dp, rowGap = 5.0f * dp;
         for (size_t rowIdx = 0; rowIdx < mid; ++rowIdx) {
             float rTop = scTop + rowIdx * (scRowH + rowGap);
+            auto hitShortcutCell = [&](size_t idx, const D2D1_RECT_F& cellRect) -> bool {
+                if (!PtInRectF(cellRect, x, y)) return false;
+                hoveredShortcutIndex = (int)idx;
+                const auto& actionId = scList[idx].first;
+                auto it = settings.shortcuts.find(actionId);
+                const bool isAssigned = (it != settings.shortcuts.end() && it->second.vkCode != 0);
+                const bool isRebinding = (rebindingActionId == actionId);
+                if (isAssigned || isRebinding) {
+                    const float btnSize = 22.0f * dp;
+                    const D2D1_RECT_F unassignRect = D2D1::RectF(
+                        cellRect.right - 6.0f * dp - btnSize,
+                        cellRect.top + (scRowH - btnSize) * 0.5f,
+                        cellRect.right - 6.0f * dp,
+                        cellRect.top + (scRowH + btnSize) * 0.5f);
+                    if (PtInRectF(unassignRect, x, y)) {
+                        hoveredShortcutUnassignIndex = (int)idx;
+                    }
+                }
+                return true;
+            };
             if (rowIdx < totalCount) {
                 D2D1_RECT_F leftRect = D2D1::RectF(contentBounds.left + padX, rTop, contentBounds.left + padX + colW, rTop + scRowH);
-                if (PtInRectF(leftRect, x, y)) { hoveredShortcutIndex = (int)rowIdx; break; }
+                if (hitShortcutCell(rowIdx, leftRect)) break;
             }
             if (!singleColumn && mid + rowIdx < totalCount) {
                 D2D1_RECT_F rightRect = D2D1::RectF(contentBounds.left + padX + colW + colGap, rTop, contentBounds.right - padX, rTop + scRowH);
-                if (PtInRectF(rightRect, x, y)) { hoveredShortcutIndex = (int)(mid + rowIdx); break; }
+                if (hitShortcutCell(mid + rowIdx, rightRect)) break;
             }
         }
     }
@@ -4815,29 +4836,43 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                         float scTop = contentY + 32.0f * dp;
                         auto scList = settings.GetShortcutActionListRef();
                         size_t totalCount = scList.size();
-                        size_t mid = (totalCount + 1) / 2;
+                        const bool singleColumn = SettingsLayout::ShortcutsSingleColumn(contentW, dp);
+                        size_t mid = singleColumn ? totalCount : (totalCount + 1) / 2;
                         float colGap = 16.0f * dp;
-                        float colW = (contentW - colGap) * 0.5f;
+                        float colW = singleColumn ? contentW : (contentW - colGap) * 0.5f;
                         float scRowH = 38.0f * dp, rowGap = 5.0f * dp;
+                        auto handleShortcutRowPress = [&](size_t idx, int rowIdx, int colIdx, const D2D1_RECT_F& cellRect) -> bool {
+                            if (!PtInRectF(cellRect, x, y)) return false;
+                            const auto& [actionId, actionName] = scList[idx];
+                            auto it = settings.shortcuts.find(actionId);
+                            const bool isAssigned = (it != settings.shortcuts.end() && it->second.vkCode != 0);
+                            const bool isRebinding = (rebindingActionId == actionId);
+                            if (isAssigned || isRebinding) {
+                                const float btnSize = 22.0f * dp;
+                                const D2D1_RECT_F unassignRect = D2D1::RectF(
+                                    cellRect.right - 6.0f * dp - btnSize,
+                                    cellRect.top + (scRowH - btnSize) * 0.5f,
+                                    cellRect.right - 6.0f * dp,
+                                    cellRect.top + (scRowH + btnSize) * 0.5f);
+                                if (PtInRectF(unassignRect, x, y)) {
+                                    UnassignShortcut(actionId, actionName);
+                                    return true;
+                                }
+                            }
+                            settingsPressState = { SettingsPressState::Target::OptionRow, rowIdx, colIdx };
+                            SetCapture(hWnd);
+                            InvalidateRect(hWnd, NULL, FALSE);
+                            return true;
+                        };
                         for (size_t rowIdx = 0; rowIdx < mid; ++rowIdx) {
                             float rTop = scTop + rowIdx * (scRowH + rowGap);
                             if (rowIdx < totalCount) {
                                 D2D1_RECT_F leftRect = D2D1::RectF(contentBounds.left + padX, rTop, contentBounds.left + padX + colW, rTop + scRowH);
-                                if (PtInRectF(leftRect, x, y)) {
-                                    settingsPressState = { SettingsPressState::Target::OptionRow, (int)rowIdx, 0 };
-                                    SetCapture(hWnd);
-                                    InvalidateRect(hWnd, NULL, FALSE);
-                                    return 0;
-                                }
+                                if (handleShortcutRowPress(rowIdx, (int)rowIdx, 0, leftRect)) return 0;
                             }
-                            if (mid + rowIdx < totalCount) {
+                            if (!singleColumn && mid + rowIdx < totalCount) {
                                 D2D1_RECT_F rightRect = D2D1::RectF(contentBounds.left + padX + colW + colGap, rTop, contentBounds.right - padX, rTop + scRowH);
-                                if (PtInRectF(rightRect, x, y)) {
-                                    settingsPressState = { SettingsPressState::Target::OptionRow, (int)rowIdx, 1 };
-                                    SetCapture(hWnd);
-                                    InvalidateRect(hWnd, NULL, FALSE);
-                                    return 0;
-                                }
+                                if (handleShortcutRowPress(mid + rowIdx, (int)rowIdx, 1, rightRect)) return 0;
                             }
                         }
                     } else if (currentSettingsCat == SettingsCategory::System) {
@@ -5280,7 +5315,8 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                         }
                     } else if (currentSettingsCat == SettingsCategory::Shortcuts) {
                         auto scList = settings.GetShortcutActionListRef();
-                        size_t mid = (scList.size() + 1) / 2;
+                        const bool singleColumn = SettingsLayout::ShortcutsSingleColumn(SettingsContentWidth(dp), dp);
+                        size_t mid = singleColumn ? scList.size() : (scList.size() + 1) / 2;
                         size_t actualIdx = (pressed.subIndex == 1) ? (mid + pressed.index) : (size_t)pressed.index;
                         if (actualIdx < scList.size())
                             StartShortcutCapture(scList[actualIdx].first, scList[actualIdx].second, (int)pressed.index + 1, pressed.subIndex);
@@ -5625,6 +5661,14 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                             HandleItemSelection(FocusPane::HistoryList, (size_t)hoveredHistoryIndex, false, false, library.history.size());
                         OpenHistoryContextMenu(library.history[hoveredHistoryIndex], x, y);
                     } else { OpenBackgroundContextMenu(x, y); }
+                } else if (currentTab == TabView::Settings && currentSettingsCat == SettingsCategory::Shortcuts && hoveredShortcutIndex >= 0) {
+                    auto scList = settings.GetShortcutActionListRef();
+                    if ((size_t)hoveredShortcutIndex < scList.size()) {
+                        const auto& [actionId, actionName] = scList[(size_t)hoveredShortcutIndex];
+                        UnassignShortcut(actionId, actionName);
+                        return 0;
+                    }
+                    OpenBackgroundContextMenu(x, y);
                 } else { OpenBackgroundContextMenu(x, y); }
             }
             return 0;

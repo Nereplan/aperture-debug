@@ -1139,6 +1139,7 @@ HubRenderViewModel App::BuildHubRenderViewModel() {
             vm.settingsTab.scrollY = settingsScrollY;
             vm.settingsTab.rebindingActionId = rebindingActionId;
             vm.settingsTab.hoveredShortcutIndex = hoveredShortcutIndex;
+            vm.settingsTab.hoveredShortcutUnassignIndex = hoveredShortcutUnassignIndex;
             vm.settingsTab.isResetShortcutsHovered = isResetShortcutsHovered;
             vm.settingsTab.isSidebarFocused = (activeFocusPane == FocusPane::SettingsCategoryList);
             vm.settingsTab.isContentFocused = (activeFocusPane == FocusPane::SettingsContent);

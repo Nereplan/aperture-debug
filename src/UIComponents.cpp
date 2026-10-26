@@ -1606,7 +1606,11 @@ void UIComponents::DrawSettingsView(Renderer& r, const Settings& s, SettingsTabV
                 const auto& [actionId, actionName] = scList[idx];
                 bool isRebinding = (vm.rebindingActionId == actionId);
                 bool isHover = (vm.hoveredShortcutIndex == (int)idx);
+                bool isUnassignHover = (vm.hoveredShortcutUnassignIndex == (int)idx);
                 bool isKbFocused = showContentKbFocus && (vm.keyboardFocusedRow == (int)rowIdx + 1) && (vm.keyboardFocusedSubIndex == colIndex);
+                auto it = s.shortcuts.find(actionId);
+                bool isAssigned = (it != s.shortcuts.end() && it->second.vkCode != 0);
+                bool showUnassignBtn = isAssigned || isRebinding;
                 D2D1_RECT_F rRect = D2D1::RectF(left, rTop, right, rTop + rowH);
                 SurfaceStyle rowStyle = makeFlatSurface();
                 if (isKbFocused) {
@@ -1623,19 +1627,42 @@ void UIComponents::DrawSettingsView(Renderer& r, const Settings& s, SettingsTabV
                     rowStyle.borderWidth = 1.0f;
                 } else { rowStyle.fill = clearColor; rowStyle.border = clearColor; rowStyle.borderWidth = 0.0f; }
                 r.DrawSurface(rRect, rowStyle);
-                D2D1_RECT_F nameRect = D2D1::RectF(rRect.left + 12.0f * dp, rRect.top, rRect.right - 95.0f * dp, rRect.bottom);
-                D2D1_COLOR_F rowTextCol = (isRebinding || isKbFocused || isHover) ? textPri : textNorm;
-                r.DrawString(FitSingleLine(r, Utf8ToUtf16(actionName), FontType::Regular, SafeWidth(nameRect.left, nameRect.right)), nameRect, rowTextCol, (isRebinding || isKbFocused) ? FontType::Medium : FontType::Regular, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
                 std::wstring keyText;
                 if (isRebinding) { keyText = Loc::Tr("settings.shortcuts.press_key"); } else {
-                    auto it = s.shortcuts.find(actionId);
-                    keyText = (it != s.shortcuts.end()) ? Settings::FormatShortcutKey(it->second) : Loc::Tr("settings.shortcuts.unassigned");
+                    keyText = isAssigned ? Settings::FormatShortcutKey(it->second) : Loc::Tr("settings.shortcuts.unassigned");
                 }
+                const float unassignSize = 22.0f * dp;
+                const float badgeRight = showUnassignBtn ? (rRect.right - 6.0f * dp - unassignSize - 5.0f * dp) : (rRect.right - 8.0f * dp);
                 float keyW = std::max(68.0f * dp, r.MeasureString(keyText, FontType::MonoSmall).width + 16.0f * dp);
-                D2D1_RECT_F badge = D2D1::RectF(rRect.right - keyW - 8.0f * dp, rRect.top + 6.0f * dp, rRect.right - 8.0f * dp, rRect.bottom - 6.0f * dp);
+                D2D1_RECT_F badge = D2D1::RectF(badgeRight - keyW, rRect.top + 6.0f * dp, badgeRight, rRect.bottom - 6.0f * dp);
+                D2D1_RECT_F nameRect = D2D1::RectF(rRect.left + 12.0f * dp, rRect.top, std::max(rRect.left + 24.0f * dp, badge.left - 8.0f * dp), rRect.bottom);
+                D2D1_COLOR_F rowTextCol = (isRebinding || isKbFocused || isHover) ? textPri : textNorm;
+                r.DrawString(FitSingleLine(r, Utf8ToUtf16(actionName), FontType::Regular, SafeWidth(nameRect.left, nameRect.right)), nameRect, rowTextCol, (isRebinding || isKbFocused) ? FontType::Medium : FontType::Regular, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
                 r.FillRoundedRect(badge, 6.0f * dp, isRebinding ? accentCol : surfaceBg);
                 r.DrawRoundedRect(badge, 6.0f * dp, isRebinding ? accentCol : surfaceBorder, 1.0f);
-                r.DrawString(keyText, badge, isRebinding ? surfaceBg : textMute, FontType::MonoSmall, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+                r.DrawString(keyText, badge, isRebinding ? surfaceBg : (isAssigned ? textNorm : textMute), FontType::MonoSmall, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+                if (showUnassignBtn) {
+                    D2D1_RECT_F unassignRect = D2D1::RectF(
+                        rRect.right - 6.0f * dp - unassignSize,
+                        rRect.top + (rowH - unassignSize) * 0.5f,
+                        rRect.right - 6.0f * dp,
+                        rRect.top + (rowH + unassignSize) * 0.5f);
+                    if (isUnassignHover) {
+                        r.FillRoundedRect(unassignRect, 5.0f * dp, ColorWithAlpha(dangerCol, 0.18f));
+                        r.DrawRoundedRect(unassignRect, 5.0f * dp, ColorWithAlpha(dangerCol, 0.65f), 1.0f);
+                    } else if (isHover || isKbFocused || isRebinding) {
+                        r.FillRoundedRect(unassignRect, 5.0f * dp, ColorWithAlpha(surfaceBg, 0.75f));
+                        r.DrawRoundedRect(unassignRect, 5.0f * dp, surfaceBorder, 1.0f);
+                    }
+                    const float cx = (unassignRect.left + unassignRect.right) * 0.5f;
+                    const float cy = (unassignRect.top + unassignRect.bottom) * 0.5f;
+                    const float arm = 4.0f * dp;
+                    const D2D1_COLOR_F xCol = isUnassignHover
+                        ? dangerCol
+                        : ((isHover || isKbFocused || isRebinding) ? textPri : ColorWithAlpha(textMute, 0.65f));
+                    r.DrawLine(cx - arm, cy - arm, cx + arm, cy + arm, xCol, 1.5f * dp);
+                    r.DrawLine(cx + arm, cy - arm, cx - arm, cy + arm, xCol, 1.5f * dp);
+                }
             };
             // Left column item (col 0)
             if (rowIdx < totalCount) { drawShortcutCell(rowIdx, contentBounds.left + padX, contentBounds.left + padX + colW, 0); }
