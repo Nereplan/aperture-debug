@@ -252,9 +252,9 @@ PodcastRefreshResult PodcastRefreshService::FetchFeeds(const std::vector<std::ws
     IHttpTransport* transport = customTransport ? customTransport : &defaultTransport;
     for (const std::wstring& feedUrl : feedUrls) {
         if (cancellation && cancellation->IsCancelled()) break;
-        // https only; non-https subscriptions fail up front with a per-feed error.
-        if (feedUrl.rfind(L"https://", 0) != 0) {
-            result.failures.push_back({ feedUrl, L"Only https:// podcast feed URLs are supported" });
+        // http(s) only; other schemes fail up front with a per-feed error.
+        if (feedUrl.rfind(L"https://", 0) != 0 && feedUrl.rfind(L"http://", 0) != 0) {
+            result.failures.push_back({ feedUrl, L"Only http:// or https:// podcast feed URLs are supported" });
             continue;
         }
         const std::wstring cachePath = GetCachePath(feedUrl, root);

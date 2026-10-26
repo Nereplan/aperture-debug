@@ -56,8 +56,11 @@ inline const CubicBezier kEaseSpring(0.16f, 1.0f, 0.3f, 1.0f);
 inline const CubicBezier kEaseEnter(0.2f, 0.0f, 0.0f, 1.0f);
 inline const CubicBezier kEaseExit(0.0f, 0.0f, 0.58f, 1.0f);
 inline const CubicBezier kEasePop(0.25f, 0.1f, 0.25f, 1.0f);
-// Dynamic-island morphs: fast attack with a slight overshoot, Apple-style.
+// Dynamic-island morphs per the reference design: shell spring (no
+// overshoot) for size/radius, collapse spring for the exit, pop for content.
 inline const CubicBezier kEaseIsland(0.34f, 1.36f, 0.42f, 1.0f);
+inline const CubicBezier kEaseIslandShell(0.22f, 1.0f, 0.36f, 1.0f);
+inline const CubicBezier kEaseIslandCollapse(0.32f, 0.72f, 0.0f, 1.0f);
 
 namespace MotionTokens {
 // Motion budget: hover and press transitions land fast (0.10-0.18s), larger

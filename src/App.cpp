@@ -858,7 +858,6 @@ void App::StartListenPlayback(const std::wstring& url, const std::wstring& title
     listenTitle = title;
     listenSubtitle = subtitle;
     listenUrl = url;
-    listenPopoverOpen = false;
     InvalidateRect(hWnd, NULL, FALSE);
 }
 
@@ -867,7 +866,6 @@ void App::StopListenPlayback() {
     listenPlayer.Stop();
     listenPlaybackActive = false;
     listenPlaybackPaused = false;
-    listenPopoverOpen = false;
     InvalidateRect(hWnd, NULL, FALSE);
 }
 
@@ -916,23 +914,17 @@ D2D1_RECT_F App::ListenPillBounds(float dp) {
     const auto nav = Presentation::Nav(winW, dp, false, [this](const std::wstring& t) {
         return renderer.MeasureString(t, FontType::Medium).width;
     });
-    const float h = 26.0f * dp;
-    // Fixed chrome: LIVE+EQ (radio) or icon (podcast), then title, then
-    // play/pause + stop controls.
-    const float pad = 9.0f * dp, ctrl = 20.0f * dp, ctrlGap = 4.0f * dp;
-    const float lead = (listenPlaybackIsRadio ? 58.0f : 22.0f) * dp;
-    const float chrome = pad + lead + 8.0f * dp + ctrl + ctrlGap + ctrl + pad;
-    const float right = nav.settings.left - 10.0f * dp;
     const float cy = nav.tabY + nav.tabH * 0.5f;
-    const float avail = std::max(120.0f * dp, right - (nav.tabs[2].right + 4.0f * dp) - 8.0f * dp);
-    const float w = std::min(avail, chrome + 150.0f * dp);
+    const float h = 32.0f * dp;
+    // Compact chrome (design: icon slot + counter slot, no buttons): LIVE+EQ
+    // (radio) or mic badge (podcast), then the title, ellipsized to fit.
+    const float pad = 13.0f * dp;
+    const float lead = (listenPlaybackIsRadio ? 58.0f : 21.0f) * dp;
+    const float chrome = pad + lead + 8.0f * dp + pad;
+    const float right = nav.settings.left - 10.0f * dp;
+    const float avail = std::max(140.0f * dp, right - (nav.tabs[2].right + 4.0f * dp) - 8.0f * dp);
+    const float w = std::clamp(chrome + 150.0f * dp, 140.0f * dp, avail);
     return D2D1::RectF(right - w, cy - h * 0.5f, right, cy + h * 0.5f);
-}
-
-D2D1_RECT_F App::ListenPopoverBounds(float dp) {
-    const D2D1_RECT_F pill = ListenPillBounds(dp);
-    const float w = 320.0f * dp, h = (listenPlaybackIsRadio ? 128.0f : 156.0f) * dp;
-    return D2D1::RectF(pill.right - w, pill.bottom + 8.0f * dp, pill.right, pill.bottom + 8.0f * dp + h);
 }
 
 D2D1_RECT_F App::ImportPillBounds(float dp) {
@@ -942,8 +934,8 @@ D2D1_RECT_F App::ImportPillBounds(float dp) {
     const auto nav = Presentation::Nav(winW, dp, false, [this](const std::wstring& t) {
         return renderer.MeasureString(t, FontType::Medium).width;
     });
-    const float w = ImportIslandTargetWidthDip() * dp;
-    const float h = 24.0f * dp;
+    const float w = std::max(136.0f * dp, ImportIslandTargetWidthDip() * dp);
+    const float h = 32.0f * dp;
     // Audio playback owns the slot nearest Settings; a concurrent import
     // island parks to its left.
     const float right = (listenPlaybackActive || listenIslandFade.current > 0.001f)
@@ -967,17 +959,11 @@ float App::ImportIslandTargetWidthDip() {
     return std::max(86.0f, iconSz + gap + textW + pad * 2.0f);
 }
 
-D2D1_RECT_F App::ImportPopoverBounds(float dp) {
-    const D2D1_RECT_F pill = ImportPillBounds(dp);
-    const float w = 300.0f * dp, h = 118.0f * dp;
-    return D2D1::RectF(pill.right - w, pill.bottom + 8.0f * dp, pill.right, pill.bottom + 8.0f * dp + h);
-}
-
-D2D1_RECT_F App::ImportCancelBounds(float dp) {
-    const D2D1_RECT_F pop = ImportPopoverBounds(dp);
-    const float cancelW = 104.0f * dp, cancelH = 30.0f * dp;
-    return D2D1::RectF(pop.right - 18.0f * dp - cancelW, pop.bottom - 16.0f * dp - cancelH,
-                       pop.right - 18.0f * dp, pop.bottom - 16.0f * dp);
+// Expanded island card: grows down and left from the compact pill's top
+// edge, clamped to the space the nav leaves free.
+D2D1_RECT_F App::IslandExpandedRect(const D2D1_RECT_F& compact, float dp) const {
+    const float w = std::min(304.0f * dp, std::max(150.0f * dp, compact.left - 4.0f * dp - 8.0f * dp));
+    return D2D1::RectF(compact.right - w, compact.top, compact.right, compact.top + 82.0f * dp);
 }
 
 void App::AnimateVisual(AnimatedFloat& animation, float target, float duration, const CubicBezier* curve) {
@@ -2134,46 +2120,94 @@ bool App::Update(float dt) {
         if (importDone.load(std::memory_order_acquire)) { FinishImportJob(); }
         needsRedraw = true;
     }
-    // Import island morph: a 6 DIP dot springs open into the pill and
-    // collapses back on exit; the dot fades only after the collapse lands.
-    if (importJobActive) {
-        AnimateVisual(importIslandWidthDip, ImportIslandTargetWidthDip(), 0.48f, &kEaseIsland);
-        AnimateVisual(importIslandHeightDip, 24.0f, 0.48f, &kEaseIsland);
-        AnimateVisual(importIslandFade, 1.0f, 0.18f, MotionTokens::Standard());
-    } else {
-        AnimateVisual(importIslandWidthDip, 6.0f, 0.32f, &kEaseExit);
-        AnimateVisual(importIslandHeightDip, 6.0f, 0.32f, &kEaseExit);
-        if (importIslandWidthDip.current <= 8.0f) AnimateVisual(importIslandFade, 0.0f, 0.16f, MotionTokens::Standard());
+    // Import island lifecycle (reference design): Active -> Complete (check
+    // mark, 1.5 s) -> Closing (28x8 collapse, 0.42 s) -> idle. A dismiss (X)
+    // during the job closes immediately; the import itself keeps running.
+    if (importIslandPhase == 0 && importJobActive && !importIslandDismissed) {
+        importIslandPhase = 1;
+        importPinExpanded = false;
     }
-    if (importIslandWidthDip.Tick()) needsRedraw = true;
-    if (importIslandHeightDip.Tick()) needsRedraw = true;
-    if (importIslandFade.Tick()) needsRedraw = true;
-    if (importJobActive) importSpinAngle = std::fmod(importSpinAngle + dt * 260.0f, 360.0f);
-    // Listen island: poll the audio player, keep the EQ bars alive at a
-    // throttled repaint rate, mirror master volume, and morph in/out.
-    if (listenPlaybackActive || listenIslandFade.current > 0.001f) {
-        if (listenPlaybackActive) {
-            if (listenPlayer.PollFinished()) OnListenFinished();
-            if (settings.volume != listenVolumeApplied) {
-                listenVolumeApplied = settings.volume;
-                listenPlayer.SetVolume(settings.volume);
-            }
-            listenEqPhase += dt;
-            listenEqRepaintAccum += dt;
-            if (listenEqRepaintAccum >= 0.07) { listenEqRepaintAccum = 0.0; InvalidateRect(hWnd, NULL, FALSE); }
+    if (importIslandPhase == 1 && importIslandDismissed) { importIslandPhase = 3; importIslandPhaseT = 0.0; }
+    if (importIslandPhase == 1 && !importJobActive) { importIslandPhase = 2; importIslandPhaseT = 0.0; }
+    if (importIslandPhase == 2) {
+        importIslandPhaseT += dt;
+        if (importIslandPhaseT >= 1.5) { importIslandPhase = 3; importIslandPhaseT = 0.0; }
+    }
+    if (importIslandPhase == 3) {
+        importIslandPhaseT += dt;
+        if (importIslandPhaseT >= 0.45) { importIslandPhase = 0; importIslandDismissed = false; }
+    }
+    if (importIslandPhase != 0) {
+        const bool expandedNow = importIslandPhase == 1 && !importIslandDismissed && (importPillHovered || importPinExpanded);
+        AnimateVisual(importIslandExpand, expandedNow ? 1.0f : 0.0f, 0.48f, &kEaseIslandShell);
+        const float dpIp = std::max(0.5f, renderer.GetDpiScale());
+        float wT = 136.0f, hT = 32.0f, rT = 16.0f, fadeT = 1.0f;
+        const CubicBezier* sizeCurve = &kEaseIslandShell;
+        float sizeDur = 0.48f;
+        if (importIslandPhase == 3) {
+            wT = 28.0f; hT = 8.0f; rT = 4.0f;
+            fadeT = (float)std::max(0.0, 1.0 - importIslandPhaseT / 0.30);
+            sizeCurve = &kEaseIslandCollapse; sizeDur = 0.42f;
+        } else if (importIslandPhase == 2) {
+            wT = 144.0f;
+        } else if (expandedNow) {
+            const D2D1_RECT_F comp = ImportPillBounds(dpIp);
+            wT = RectWidth(IslandExpandedRect(comp, dpIp)) / dpIp;
+            hT = 82.0f; rT = 20.0f;
+        } else {
+            wT = std::max(136.0f, ImportIslandTargetWidthDip());
         }
-        const bool listenOn = listenPlaybackActive;
-        const float dpNow = std::max(0.5f, renderer.GetDpiScale());
-        const float targetW = listenOn ? (RectWidth(ListenPillBounds(dpNow)) / dpNow) : 6.0f;
-        const float targetH = listenOn ? 26.0f : 6.0f;
-        AnimateVisual(listenIslandWidthDip, targetW, listenOn ? 0.48f : 0.32f, listenOn ? &kEaseIsland : &kEaseExit);
-        AnimateVisual(listenIslandHeightDip, targetH, listenOn ? 0.48f : 0.32f, listenOn ? &kEaseIsland : &kEaseExit);
-        if (!listenOn && listenIslandWidthDip.current <= 8.0f) AnimateVisual(listenIslandFade, 0.0f, 0.16f, MotionTokens::Standard());
-        else AnimateVisual(listenIslandFade, 1.0f, 0.18f, MotionTokens::Standard());
-        if (listenIslandWidthDip.Tick()) needsRedraw = true;
-        if (listenIslandHeightDip.Tick()) needsRedraw = true;
-        if (listenIslandFade.Tick()) needsRedraw = true;
+        AnimateVisual(importIslandWidthDip, wT, sizeDur, sizeCurve);
+        AnimateVisual(importIslandHeightDip, hT, sizeDur, sizeCurve);
+        AnimateVisual(importIslandRadiusDip, rT, sizeDur, sizeCurve);
+        AnimateVisual(importIslandFade, fadeT, 0.30f, MotionTokens::Standard());
+        needsRedraw = needsRedraw || importJobActive;
+    } else {
+        importIslandExpand.SnapTo(0.0f);
     }
+    needsRedraw = needsRedraw || importIslandWidthDip.Tick() || importIslandHeightDip.Tick() ||
+        importIslandRadiusDip.Tick() || importIslandExpand.Tick() || importIslandFade.Tick();
+    if (importIslandPhase == 1 || importIslandPhase == 2) {
+        importSpinAngle = std::fmod(importSpinAngle + dt * (360.0 / 1.85), 360.0);
+        needsRedraw = true;
+    }
+    // Listen island: poll the audio player, mirror master volume, morph the
+    // shell between compact / hover-expanded / closed states.
+    if (listenPlaybackActive) {
+        if (listenPlayer.PollFinished()) OnListenFinished();
+        if (listenPlaybackActive && settings.volume != listenVolumeApplied) {
+            listenVolumeApplied = settings.volume;
+            listenPlayer.SetVolume(settings.volume);
+        }
+        listenEqPhase += dt;
+        needsRedraw = true; // EQ bars animate while audio plays
+    }
+    if (listenPlaybackActive || listenIslandFade.current > 0.001f) {
+        const bool expandedNow = listenPlaybackActive && (listenPillHovered || listenPinExpanded);
+        AnimateVisual(listenIslandExpand, expandedNow ? 1.0f : 0.0f, 0.48f, &kEaseIslandShell);
+        const float dpLs = std::max(0.5f, renderer.GetDpiScale());
+        float wT = 140.0f, hT = 32.0f, rT = 16.0f, fadeT = 1.0f;
+        const CubicBezier* sizeCurve = &kEaseIslandShell;
+        float sizeDur = 0.48f;
+        if (!listenPlaybackActive) {
+            wT = 28.0f; hT = 8.0f; rT = 4.0f;
+            fadeT = 0.0f;
+            sizeCurve = &kEaseIslandCollapse; sizeDur = 0.42f;
+        } else if (expandedNow) {
+            const D2D1_RECT_F comp = ListenPillBounds(dpLs);
+            wT = RectWidth(IslandExpandedRect(comp, dpLs)) / dpLs;
+            hT = 82.0f; rT = 20.0f;
+        } else {
+            const D2D1_RECT_F comp = ListenPillBounds(dpLs);
+            wT = RectWidth(comp) / dpLs;
+        }
+        AnimateVisual(listenIslandWidthDip, wT, sizeDur, sizeCurve);
+        AnimateVisual(listenIslandHeightDip, hT, sizeDur, sizeCurve);
+        AnimateVisual(listenIslandRadiusDip, rT, sizeDur, sizeCurve);
+        AnimateVisual(listenIslandFade, fadeT, 0.30f, MotionTokens::Standard());
+    }
+    needsRedraw = needsRedraw || listenIslandWidthDip.Tick() || listenIslandHeightDip.Tick() ||
+        listenIslandRadiusDip.Tick() || listenIslandExpand.Tick() || listenIslandFade.Tick();
     if (backfillJobActive) {
         if (backfillDone.load(std::memory_order_acquire)) { FinishBackfillJob(); }
     }
@@ -3327,29 +3361,25 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                     if (isKeyboardNavActive) { isKeyboardNavActive = false; hoverChanged = true; }
                 }
                 if (activeTextInputField != TextInputField::None && textInputDragging) { SetTextInputCaretFromMouse(x, y, true); return 0; }
-                if (importJobActive) {
-                    const bool newPillHovered = PtInRectF(ImportPillBounds(dp), x, y);
-                    const bool newCancelHovered = importPopoverOpen && PtInRectF(ImportCancelBounds(dp), x, y);
-                    if (importPillHovered != newPillHovered || importCancelHovered != newCancelHovered) {
+                if (importIslandPhase != 0) {
+                    const bool newPillHovered = PtInRectF(importIslandHitRect, x, y);
+                    const bool newXHovered = newPillHovered && importIslandExpand.current > 0.5f &&
+                        PtInRectF(importIslandXBounds, x, y);
+                    if (importPillHovered != newPillHovered || importCancelHovered != newXHovered) {
                         importPillHovered = newPillHovered;
-                        importCancelHovered = newCancelHovered;
+                        importCancelHovered = newXHovered; // X-button hover
                         InvalidateRect(hWnd, NULL, FALSE);
                     }
                 }
                 if (listenPlaybackActive) {
-                    const bool newPillHovered = PtInRectF(ListenPillBounds(dp), x, y);
-                    const D2D1_RECT_F pop = ListenPopoverBounds(dp);
-                    const bool newPlay = listenPopoverOpen && PtInRectF(listenIslandPlayBounds, x, y);
-                    const bool newBack = listenPopoverOpen && PtInRectF(listenIslandBackBounds, x, y);
-                    const bool newFwd = listenPopoverOpen && PtInRectF(listenIslandFwdBounds, x, y);
-                    const bool newStop = listenPopoverOpen && PtInRectF(listenIslandStopBounds, x, y);
-                    if (listenPillHovered != newPillHovered || listenPlayHovered != newPlay ||
-                        listenBackHovered != newBack || listenFwdHovered != newFwd || listenStopHovered != newStop) {
+                    const bool newPillHovered = PtInRectF(listenIslandHitRect, x, y);
+                    const bool expandedNow = newPillHovered && listenIslandExpand.current > 0.5f;
+                    const bool newBadge = expandedNow && PtInRectF(listenIslandBadgeBounds, x, y);
+                    const bool newX = expandedNow && PtInRectF(listenIslandXBounds, x, y);
+                    if (listenPillHovered != newPillHovered || listenBadgeHovered != newBadge || listenXHovered != newX) {
                         listenPillHovered = newPillHovered;
-                        listenPlayHovered = newPlay;
-                        listenBackHovered = newBack;
-                        listenFwdHovered = newFwd;
-                        listenStopHovered = newStop;
+                        listenBadgeHovered = newBadge;
+                        listenXHovered = newX;
                         InvalidateRect(hWnd, NULL, FALSE);
                     }
                 }
@@ -3682,42 +3712,36 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                 return 0;
             }
             if (!playbackSession.IsOpen() && listenPlaybackActive) {
-                // Listen island: pill toggles the now-playing popover; the
-                // transport buttons act immediately. Clicks elsewhere close it.
-                if (PtInRectF(ListenPillBounds(dp), x, y)) {
-                    listenPopoverOpen = !listenPopoverOpen;
+                if (PtInRectF(listenIslandHitRect, x, y)) {
+                    if (listenIslandExpand.current > 0.5f && PtInRectF(listenIslandXBounds, x, y)) {
+                        StopListenPlayback();
+                        ShowOSD(IconType::Checkmark, L"Listening stopped");
+                        return 0;
+                    }
+                    if (listenIslandExpand.current > 0.5f && PtInRectF(listenIslandBadgeBounds, x, y)) {
+                        ToggleListenPause();
+                        return 0;
+                    }
+                    listenPinExpanded = !listenPinExpanded;
                     InvalidateRect(hWnd, NULL, FALSE);
                     return 0;
-                }
-                if (listenPopoverOpen) {
-                    if (PtInRectF(listenIslandPlayBounds, x, y)) { ToggleListenPause(); return 0; }
-                    if (PtInRectF(listenIslandBackBounds, x, y)) { ListenSeekBy(-15.0); return 0; }
-                    if (PtInRectF(listenIslandFwdBounds, x, y)) { ListenSeekBy(30.0); return 0; }
-                    if (PtInRectF(listenIslandStopBounds, x, y)) { StopListenPlayback(); ShowOSD(IconType::Checkmark, L"Listening stopped"); return 0; }
-                    if (!PtInRectF(ListenPopoverBounds(dp), x, y)) { listenPopoverOpen = false; InvalidateRect(hWnd, NULL, FALSE); }
                 }
             }
-            if (!playbackSession.IsOpen() && importJobActive) {
-                // Import island: the pill toggles its popover and Cancel lives
-                // inside it; the rest of the hub stays fully interactive.
-                if (PtInRectF(ImportPillBounds(dp), x, y)) {
-                    importPopoverOpen = !importPopoverOpen;
-                    importCancelHovered = false;
-                    InvalidateRect(hWnd, NULL, FALSE);
-                    return 0;
-                }
-                if (importPopoverOpen) {
-                    if (PtInRectF(ImportCancelBounds(dp), x, y)) {
-                        CancelImportJob();
-                        ShowOSD(IconType::VolumeMuted, L"Import canceled");
-                        importPopoverOpen = false;
+            if (!playbackSession.IsOpen() && importIslandPhase != 0) {
+                if (PtInRectF(importIslandHitRect, x, y)) {
+                    if (importIslandExpand.current > 0.5f && PtInRectF(importIslandXBounds, x, y)) {
+                        // Dismiss the island; the import itself keeps running.
+                        importIslandDismissed = true;
+                        importPinExpanded = false;
+                        ShowOSD(IconType::Checkmark, L"Import continues in the background (Esc cancels)");
                         InvalidateRect(hWnd, NULL, FALSE);
                         return 0;
                     }
-                    if (!PtInRectF(ImportPopoverBounds(dp), x, y)) {
-                        importPopoverOpen = false;
+                    if (importIslandPhase == 1) {
+                        importPinExpanded = !importPinExpanded;
                         InvalidateRect(hWnd, NULL, FALSE);
                     }
+                    return 0;
                 }
             }
             if (isContextMenuOpen) {

@@ -45,6 +45,9 @@ void App::StartImportJob(const std::vector<std::wstring>& paths, const std::stri
     importEarlyPlaybackPath.clear();
     importCancelHovered = false;
     importJobActive = true;
+    importIslandPhase = 1;
+    importIslandDismissed = false;
+    importPinExpanded = false;
     try {
     auto metadataSnapshot = MediaImportProbeCache::Capture(library);
     importWorker = std::thread([this, paths, launchFirst, metadataSnapshot = std::move(metadataSnapshot)]() mutable {
@@ -159,8 +162,7 @@ void App::FinishImportJob() {
     const bool canceled = importResult.outcome == LongOperationOutcome::Canceled || importCancelRequested.load(std::memory_order_acquire);
     const bool failed = importResult.outcome == LongOperationOutcome::Failed;
     importJobActive = false;
-    importPopoverOpen = false;
-    importPillHovered = false;
+    importPinExpanded = false;
     importCancelHovered = false;
     importDone.store(false, std::memory_order_release);
     const size_t skippedUnsupported = importResult.skippedUnsupported, skippedMissing = importResult.skippedMissing;

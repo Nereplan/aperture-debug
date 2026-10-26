@@ -2205,7 +2205,8 @@ bool App::PumpPodcastJobs() {
             podcastSubscriptions.Save(GetDataDir());
             ShowOSD(IconType::Checkmark, L"Podcast added: " + addResult.feed.title);
         } else {
-            ShowOSD(IconType::VolumeMuted, L"Podcast feed invalid");
+            const std::wstring reason = addResult.errorMessage.empty() ? L"the URL is not an RSS podcast feed" : addResult.errorMessage;
+            ShowOSD(IconType::VolumeMuted, L"Podcast feed invalid  14 " + reason, 5.0f);
         }
     }
     if (podcastJobs.Pump()) {

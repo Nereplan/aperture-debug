@@ -155,16 +155,43 @@ void App::OpenPodcastsContextMenu() {
         if (feeds.empty()) {
             contextMenuItems.push_back({ "pod_none", L"No podcast subscriptions", L"", IconType::Play, false, false, false, nullptr, true });
         } else {
-            // The centered overlay menu has no scrolling; cap the visible
-            // feeds to the rows that fit the window height.
+            // Flat list: each feed is a header row followed directly by its
+            // episodes (no second-level menu). Rows are capped to what fits.
+            const auto& parsed = podcastJobs.GetResult().feeds;
+            auto parsedFor = [&](const std::wstring& url) -> const PodcastFeed* {
+                for (const auto& f : parsed) { if (f.url == url) return &f; }
+                return nullptr;
+            };
             RECT fitRc{};
             GetClientRect(hWnd, &fitRc);
             const float fitDp = renderer.GetDpiScale();
-            const int maxVisible = std::max(4, static_cast<int>((static_cast<float>(fitRc.bottom - fitRc.top) * 0.9f / fitDp - 48.0f) / 32.0f));
-            const size_t count = std::min(feeds.size(), static_cast<size_t>(maxVisible));
-            for (size_t i = 0; i < count; ++i) {
-                contextMenuItems.push_back({ "pod_" + std::to_string(i), feeds[i].title, L"", IconType::Play, false, false, false,
-                    [this, i]() { OpenPodcastEpisodesContextMenu(i); }, false, false, true});
+            const int maxVisible = std::max(6, static_cast<int>((static_cast<float>(fitRc.bottom - fitRc.top) * 0.9f / fitDp - 64.0f) / 32.0f));
+            int rows = 0;
+            for (size_t i = 0; i < feeds.size() && rows < maxVisible; ++i) {
+                contextMenuItems.push_back({ "pod_hdr_" + std::to_string(i), feeds[i].title, L"", IconType::MicPodcast, false, false, false, nullptr, true });
+                ++rows;
+                const PodcastFeed* pf = parsedFor(feeds[i].url);
+                if (!pf) { continue; }
+                const size_t epCount = std::min(pf->episodes.size(), static_cast<size_t>(std::max(0, maxVisible - rows)));
+                for (size_t e = 0; e < epCount; ++e) {
+                    const auto& episode = pf->episodes[e];
+                    std::wstring label = episode.title.empty() ? L"Untitled episode" : episode.title;
+                    if (episode.publishedSec > 0) {
+                        std::tm tmValue{};
+                        if (gmtime_s(&tmValue, &episode.publishedSec) == 0) {
+                            wchar_t dateBuf[16];
+                            swprintf_s(dateBuf, L"%04d-%02d-%02d", tmValue.tm_year + 1900, tmValue.tm_mon + 1, tmValue.tm_mday);
+                            label += L" — ";
+                            label += dateBuf;
+                        }
+                    }
+                    contextMenuItems.push_back({ "pep_" + std::to_string(i) + "_" + std::to_string(e), label, L"", IconType::Play, false, false, false,
+                        [this, url = episode.url, epTitle = episode.title, feedTitle = feeds[i].title]() {
+                            // Island playback: audio never opens the player session.
+                            PlayListenStream(url, epTitle.empty() ? L"Untitled episode" : epTitle, feedTitle, false);
+                        }, false, false, true});
+                    ++rows;
+                }
             }
         }
     }
@@ -269,7 +296,7 @@ void App::ShowAddPodcastModal() {
     BlurTextInput();
     activeModal = ModalType::CustomSettingInput;
     modalTitle = L"Add Podcast";
-    modalPrompt = L"Podcast feed URL (https:// only):";
+    modalPrompt = L"Podcast feed URL (http(s)://, direct RSS link):";
     modalInput.SetText({});
     modalOnConfirm = [this]() {
         const std::wstring raw = Text16ToWideString(modalInput.GetText());

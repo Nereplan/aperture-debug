@@ -2413,7 +2413,8 @@ bool MpvListenPlayer::EnsureInitializedLocked(HMODULE hDll) {
     // Audio-only client: no video output, no on-screen window, no scripting.
     SetMpvOption(mpv, "vo", "null", MpvOptionRequirement::Essential);
     SetMpvOption(mpv, "vid", "no", MpvOptionRequirement::Essential);
-    SetMpvOption(mpv, "ao", "auto", MpvOptionRequirement::Essential);
+    // Leave --ao unset: mpv auto-selects the output. Pinning "auto" as a
+    // device name left the client with no usable output (silent playback).
     SetMpvOption(mpv, "cache", "yes", MpvOptionRequirement::Essential);
     // Radio streams and podcasts benefit from a wider read-ahead window than
     // the hover preview; nothing renders from this instance.
@@ -2605,8 +2606,11 @@ void MpvListenPlayer::DrainEventsLocked(bool recordFinish) {
         if (event->event_id == MPV_EVENT_NONE) break;
         if (!recordFinish) continue;
         if (event->event_id == MPV_EVENT_FILE_LOADED) { fileLoaded = true; } else if (event->event_id == MPV_EVENT_END_FILE) {
+            // EOF ends a good stream; an error end-file must also finish the
+            // session, or a failed load leaves the island "playing" silently.
             const auto* endFile = static_cast<const mpv_event_end_file*>(event->data);
-            if (endFile && endFile->reason == MPV_END_FILE_REASON_EOF) sawEof = true;
+            (void)endFile;
+            sawEof = true;
         }
     }
     if (recordFinish && !finished) {

@@ -7,6 +7,12 @@
 
 namespace Aperture {
 
+namespace {
+D2D1_RECT_F IslandRectUnion(const D2D1_RECT_F& a, const D2D1_RECT_F& b) {
+    return D2D1::RectF(std::min(a.left, b.left), std::min(a.top, b.top), std::max(a.right, b.right), std::max(a.bottom, b.bottom));
+}
+} // namespace
+
 bool App::IsMediaFileMissing(const std::wstring& path) {
     if (path.empty()) return true;
     const auto observation = pathAvailability.Lookup(path);
@@ -496,8 +502,8 @@ HubRenderViewModel App::BuildHubRenderViewModel() {
                     stVm.name = listenStations[i].name;
                     stVm.url = listenStations[i].url;
                     stVm.metaText = listenStations[i].bitrateKbps > 0 ? (std::to_wstring(listenStations[i].bitrateKbps) + L" kbps") : L"";
-                    if (!listenStations[i].codec.empty()) { if (!stVm.metaText.empty()) stVm.metaText += L"  B7 "; stVm.metaText += listenStations[i].codec; }
-                    if (!listenStations[i].country.empty()) { if (!stVm.metaText.empty()) stVm.metaText += L"  B7 "; stVm.metaText += listenStations[i].country; }
+                    if (!listenStations[i].codec.empty()) { if (!stVm.metaText.empty()) stVm.metaText += L" \x00B7 "; stVm.metaText += listenStations[i].codec; }
+                    if (!listenStations[i].country.empty()) { if (!stVm.metaText.empty()) stVm.metaText += L" \x00B7 "; stVm.metaText += listenStations[i].country; }
                     panel.stations.push_back(std::move(stVm));
                     panel.stationBounds.push_back(D2D1::RectF(panel.bounds.left + pad, y, panel.bounds.right - pad, y + stH));
                     y += stH + gap;
@@ -1151,8 +1157,7 @@ HubRenderViewModel App::BuildHubRenderViewModel() {
         vm.autoscroll.anchorPoint = autoscroll.anchorPoint;
         vm.autoscroll.dy = autoscroll.currentPoint.y - autoscroll.anchorPoint.y;
     }
-    // Listen island (now-playing audio) — takes the nav gap; the import pill
-    // shifts left when both are alive.
+    // Listen island (now-playing audio) — same shell as the import island.
     if (listenPlaybackActive || listenIslandFade.current > 0.001f) {
         auto& li = vm.listenIsland;
         li.isActive = listenPlaybackActive;
@@ -1162,69 +1167,76 @@ HubRenderViewModel App::BuildHubRenderViewModel() {
         li.subtitle = listenSubtitle;
         li.eqPhase = (float)std::fmod(listenEqPhase, 1000.0);
         li.pillHovered = listenPillHovered;
-        li.popoverOpen = listenPlaybackActive && listenPopoverOpen;
-        li.widthDip = std::max(6.0f, listenIslandWidthDip.current);
-        li.heightDip = std::max(6.0f, listenIslandHeightDip.current);
+        li.badgeHovered = listenBadgeHovered;
+        li.xHovered = listenXHovered;
+        li.widthDip = std::max(8.0f, listenIslandWidthDip.current);
+        li.heightDip = std::max(8.0f, listenIslandHeightDip.current);
+        li.radiusDip = std::max(4.0f, listenIslandRadiusDip.current);
+        li.expand = std::clamp(listenIslandExpand.current, 0.0f, 1.0f);
         li.fade = std::clamp(listenIslandFade.current, 0.0f, 1.0f);
         li.pillBounds = ListenPillBounds(dp);
+        li.expandedBounds = IslandExpandedRect(li.pillBounds, dp);
+        li.hitRect = IslandRectUnion(li.pillBounds, li.expandedBounds);
         const double pos = listenPlaybackActive ? listenPlayer.GetPositionSec() : -1.0;
         const double dur = listenPlaybackActive ? listenPlayer.GetDurationSec() : -1.0;
         li.progressRatio = (pos >= 0.0 && dur > 0.0) ? std::clamp(pos / dur, 0.0, 1.0) : 0.0;
-        li.timeText = (pos >= 0.0)
-            ? (FormatDuration(pos) + (dur > 0.0 ? L" / " + FormatDuration(dur) : L""))
-            : std::wstring(L"");
-        if (li.popoverOpen) {
-            li.popoverBounds = ListenPopoverBounds(dp);
-            const float btnSz = 34.0f * dp, btnGap = 10.0f * dp;
-            const float rowCy = li.popoverBounds.bottom - 30.0f * dp;
-            const float totalW = btnSz * 4.0f + btnGap * 3.0f;
-            float bx = (li.popoverBounds.left + li.popoverBounds.right) * 0.5f - totalW * 0.5f;
-            li.backBtn = D2D1::RectF(bx, rowCy - btnSz * 0.5f, bx + btnSz, rowCy + btnSz * 0.5f);
-            bx += btnSz + btnGap;
-            li.playBtn = D2D1::RectF(bx, rowCy - btnSz * 0.5f, bx + btnSz, rowCy + btnSz * 0.5f);
-            bx += btnSz + btnGap;
-            li.fwdBtn = D2D1::RectF(bx, rowCy - btnSz * 0.5f, bx + btnSz, rowCy + btnSz * 0.5f);
-            bx += btnSz + btnGap;
-            li.stopBtn = D2D1::RectF(bx, rowCy - btnSz * 0.5f, bx + btnSz, rowCy + btnSz * 0.5f);
-            li.playHovered = listenPlayHovered;
-            li.backHovered = listenBackHovered;
-            li.fwdHovered = listenFwdHovered;
-            li.stopHovered = listenStopHovered;
+        li.timeText = (pos >= 0.0) ? (FormatDuration(pos) + (dur > 0.0 ? L" / " + FormatDuration(dur) : L"")) : L"";
+        li.remainingText = (dur > 0.0 && pos >= 0.0) ? (L"-" + FormatDuration(std::max(0.0, dur - pos))) : L"";
+        // Expanded card hot spots (badge + X), scaled by the expand progress.
+        const float eA = li.expand;
+        if (eA > 0.001f) {
+            const D2D1_RECT_F& card = li.expandedBounds;
+            const float pad = 15.0f * dp;
+            const float badgeSz = 28.0f * dp * (0.9f + 0.1f * eA);
+            const float cyCard = card.top + 14.0f * dp + badgeSz * 0.5f;
+            li.badgeBounds = D2D1::RectF(card.left + pad, cyCard - badgeSz * 0.5f, card.left + pad + badgeSz, cyCard + badgeSz * 0.5f);
+            const float xSz = 24.0f * dp;
+            li.xBounds = D2D1::RectF(card.right - pad - xSz, cyCard - xSz * 0.5f, card.right - pad, cyCard + xSz * 0.5f);
+        } else {
+            li.badgeBounds = D2D1::RectF(0, 0, 0, 0);
+            li.xBounds = D2D1::RectF(0, 0, 0, 0);
         }
-        listenIslandPlayBounds = li.playBtn;
-        listenIslandBackBounds = li.backBtn;
-        listenIslandFwdBounds = li.fwdBtn;
-        listenIslandStopBounds = li.stopBtn;
+        listenIslandHitRect = li.hitRect;
+        listenIslandBadgeBounds = li.badgeBounds;
+        listenIslandXBounds = li.xBounds;
     }
-    // Import Progress: dynamic-island pill in the nav gap; the old modal card
-    // becomes an on-demand popover anchored below the pill.
-    if (importJobActive || importIslandFade.current > 0.001f) {
-        vm.importProgress.isActive = importJobActive;
+    // Import island: compact pill, hover-expanded card, complete check, exit.
+    if (importIslandPhase != 0 || importIslandFade.current > 0.001f) {
+        auto& ip = vm.importProgress;
+        ip.phase = importIslandPhase;
         const size_t processed = importProcessed.load(std::memory_order_acquire);
         const size_t total = importTotal.load(std::memory_order_acquire);
-        vm.importProgress.processed = processed;
-        vm.importProgress.total = total;
-        vm.importProgress.progressRatio = total ? (double)processed / (double)total : 0.0;
+        ip.processed = processed;
+        ip.total = total;
+        ip.progressRatio = total ? (double)processed / (double)total : 0.0;
         const std::wstring phase = importCancelRequested.load(std::memory_order_acquire) ? L"Canceling"
             : (total > 0 && processed >= total ? L"Finalizing" : L"Scanning and validating");
-        vm.importProgress.progressText = total > 0
-            ? (phase + L" — " + std::to_wstring(std::min(processed, total)) + L" of " + std::to_wstring(total) + L" files")
+        ip.progressText = total > 0
+            ? (phase + L"  14 " + std::to_wstring(std::min(processed, total)) + L" of " + std::to_wstring(total) + L" files")
             : phase + L" folders";
-        vm.importProgress.pillBounds = ImportPillBounds(dp);
-        vm.importProgress.pillText = total > 0
-            ? (std::to_wstring(std::min(processed, total)) + L" / " + std::to_wstring(total))
-            : std::wstring(L"Importing");
-        vm.importProgress.pillHovered = importPillHovered;
-        vm.importProgress.popoverOpen = importJobActive && importPopoverOpen;
-        vm.importProgress.widthDip = std::max(6.0f, importIslandWidthDip.current);
-        vm.importProgress.heightDip = std::max(6.0f, importIslandHeightDip.current);
-        vm.importProgress.fade = std::clamp(importIslandFade.current, 0.0f, 1.0f);
-        vm.importProgress.spinAngle = importSpinAngle;
-        if (vm.importProgress.popoverOpen) {
-            vm.importProgress.cardBounds = ImportPopoverBounds(dp);
-            vm.importProgress.cancelBounds = ImportCancelBounds(dp);
-            vm.importProgress.isCancelHovered = importCancelHovered;
+        ip.pillHovered = importPillHovered;
+        ip.xHovered = importCancelHovered;
+        ip.widthDip = std::max(8.0f, importIslandWidthDip.current);
+        ip.heightDip = std::max(8.0f, importIslandHeightDip.current);
+        ip.radiusDip = std::max(4.0f, importIslandRadiusDip.current);
+        ip.expand = std::clamp(importIslandExpand.current, 0.0f, 1.0f);
+        ip.fade = std::clamp(importIslandFade.current, 0.0f, 1.0f);
+        ip.spinAngle = importSpinAngle;
+        ip.pillBounds = ImportPillBounds(dp);
+        ip.expandedBounds = IslandExpandedRect(ip.pillBounds, dp);
+        ip.hitRect = IslandRectUnion(ip.pillBounds, ip.expandedBounds);
+        const float eA = ip.expand;
+        if (eA > 0.001f) {
+            const D2D1_RECT_F& card = ip.expandedBounds;
+            const float pad = 15.0f * dp;
+            const float xSz = 24.0f * dp;
+            const float cyCard = card.top + 14.0f * dp + 14.0f * dp;
+            ip.xBounds = D2D1::RectF(card.right - pad - xSz, cyCard - xSz * 0.5f, card.right - pad, cyCard + xSz * 0.5f);
+        } else {
+            ip.xBounds = D2D1::RectF(0, 0, 0, 0);
         }
+        importIslandHitRect = ip.hitRect;
+        importIslandXBounds = ip.xBounds;
     }
     // OSD Badge
     if (osdTimer > 0.0f) {

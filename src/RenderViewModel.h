@@ -463,21 +463,6 @@ struct ListenPanelViewModel {
     float scrollY = 0.0f, contentHeight = 0.0f, viewportHeight = 0.0f;
 };
 
-// Listen island: now-playing pill + popover for radio/podcast audio that
-// plays on the dedicated listen player (hub stays fully interactive).
-struct ListenIslandViewModel {
-    bool isActive = false, isRadio = true, paused = false;
-    std::wstring title, subtitle;
-    double progressRatio = 0.0;
-    std::wstring timeText;
-    float eqPhase = 0.0f;
-    bool pillHovered = false, popoverOpen = false;
-    bool playHovered = false, backHovered = false, fwdHovered = false, stopHovered = false;
-    D2D1_RECT_F pillBounds, popoverBounds;
-    D2D1_RECT_F playBtn, backBtn, fwdBtn, stopBtn;
-    float widthDip = 6.0f, heightDip = 6.0f, fade = 0.0f;
-};
-
 struct VisiblePlaylistEpisodeViewModel {
     size_t originalIndex = 0;
     std::wstring filePath, title, subtitle;
@@ -689,24 +674,32 @@ struct AutoscrollViewModel {
     float dy = 0.0f;
 };
 
+// Import island (ai_studio_code(5) design): compact pill that expands in
+// place on hover, complete state with a check, and a 28x8 collapsed exit.
 struct ImportProgressViewModel {
-    bool isActive = false;
+    int phase = 0; // 0 idle, 1 active, 2 complete, 3 closing
     size_t processed = 0, total = 0;
     double progressRatio = 0.0;
     std::wstring progressText;
-    bool isCancelHovered = false;
-    D2D1_RECT_F cardBounds = { 0, 0, 0, 0 };
-    // Dynamic-island pill in the nav bar (History <-> Settings gap).
-    D2D1_RECT_F pillBounds = { 0, 0, 0, 0 };
-    std::wstring pillText;
-    bool pillHovered = false, popoverOpen = false;
-    // Morph state: current pill width/height in DIP (springs between the 6 DIP
-    // dot and the content size), overall fade, and the content reveal derived
-    // from it (content appears only once the pill is mostly open).
-    float widthDip = 6.0f, heightDip = 6.0f, fade = 0.0f, spinAngle = 0.0f;
-
-    D2D1_RECT_F cancelBounds = { 0, 0, 0, 0 };
+    bool pillHovered = false, xHovered = false;
+    D2D1_RECT_F pillBounds, expandedBounds, hitRect, xBounds;
+    float widthDip = 28.0f, heightDip = 8.0f, radiusDip = 4.0f, expand = 0.0f, fade = 0.0f, spinAngle = 0.0f;
 };
+
+// Listen island: same shell; compact LIVE/EQ or mic+title pill expanding to
+// the now-playing card (badge = play/pause, X = stop).
+struct ListenIslandViewModel {
+    bool isActive = false, isRadio = true, paused = false;
+    std::wstring title, subtitle;
+    double progressRatio = 0.0;
+    std::wstring timeText, remainingText;
+    float eqPhase = 0.0f;
+    bool pillHovered = false, badgeHovered = false, xHovered = false;
+    D2D1_RECT_F pillBounds, expandedBounds, hitRect, badgeBounds, xBounds;
+    float widthDip = 28.0f, heightDip = 8.0f, radiusDip = 4.0f, expand = 0.0f, fade = 0.0f;
+};
+
+
 struct GlobalSearchItemViewModel {
     std::wstring filePath, title, fileName, durationText;
     double progressRatio = 0.0;

@@ -3202,105 +3202,106 @@ void UIComponents::DrawMediaToolbar(Renderer& r, const Settings& s, const MediaT
 // Listen island: the now-playing pill for radio/podcast audio. Same morph
 // language as the import island (dot springs open, collapse-then-fade out).
 void UIComponents::DrawListenIsland(Renderer& r, const Settings& s, const ListenIslandViewModel& vm) {
-    if (vm.fade <= 0.001f && vm.widthDip <= 6.5f) return;
+    if (!vm.isActive && vm.fade <= 0.001f) return;
     float dp = r.GetDpiScale();
     const auto& th = s.currentTheme;
-    const float a = vm.fade;
-    const float contentA = std::clamp((vm.heightDip - 13.0f) / 9.0f, 0.0f, 1.0f) * a;
-    const float cy = (vm.pillBounds.top + vm.pillBounds.bottom) * 0.5f;
+    const D2D1_RECT_F island = vm.pillBounds;
     const float w = vm.widthDip * dp, h = vm.heightDip * dp;
-    const D2D1_RECT_F pill = D2D1::RectF(vm.pillBounds.right - w, cy - h * 0.5f, vm.pillBounds.right, cy + h * 0.5f);
-    const float radius = std::min(w, h) * 0.5f;
-    r.FillRoundedRect(pill, radius, ColorWithAlpha(vm.pillHovered ? ColorWithAlpha(th.text, 0.10f) : th.surfaceFloating, a));
-    r.DrawRoundedRect(pill, radius, ColorWithAlpha(vm.pillHovered ? th.accent : th.border, (vm.pillHovered ? 0.55f : 0.85f) * a), 1.0f * dp);
-    if (contentA <= 0.001f) return;
+    const float cx = (island.left + island.right) * 0.5f;
+    const float cy = (island.top + island.bottom) * 0.5f;
+    const D2D1_RECT_F rect = D2D1::RectF(cx - w * 0.5f, cy - h * 0.5f, cx + w * 0.5f, cy + h * 0.5f);
+    const float radius = vm.radiusDip * dp;
+    DrawIslandShell(r, s, rect, radius, vm.expand, vm.pillHovered, vm.fade);
+    if (vm.fade < 0.05f) return;
 
-    float x = pill.left + 10.0f * dp;
+    const D2D1_COLOR_F accent = ColorWithAlpha(D2D1::ColorF(0x94, 0xb0, 0xd3, 1.0f), vm.fade);
+    const D2D1_COLOR_F textPri = ColorWithAlpha(th.text, vm.fade);
+    const D2D1_COLOR_F textSub = ColorWithAlpha(th.textMuted, vm.fade);
+    const D2D1_COLOR_F liveCol = ColorWithAlpha(D2D1::ColorF(0.95f, 0.30f, 0.36f, 1.0f), vm.fade);
+
+    if (vm.expand > 0.5f) {
+        // ---------- Expanded now-playing card ----------
+        const D2D1_RECT_F& card = vm.expandedBounds;
+        const float pad = 15.0f * dp;
+        const D2D1_RECT_F badge = vm.badgeBounds;
+        const bool playing = !vm.paused;
+        r.FillRoundedRect(badge, 8.0f * dp, ColorWithAlpha(D2D1::ColorF(0x94, 0xb0, 0xd3, 1.0f), 0.12f * vm.fade));
+        r.DrawRoundedRect(badge, 8.0f * dp, ColorWithAlpha(D2D1::ColorF(0x94, 0xb0, 0xd3, 1.0f), (vm.badgeHovered ? 0.45f : 0.22f) * vm.fade), 1.0f * dp);
+        if (vm.isRadio) {
+            // LIVE dot + EQ bars inside the badge.
+            const float pulse = 0.6f + 0.4f * (0.5f + 0.5f * std::sin(vm.eqPhase * 3.1f));
+            r.FillCircle(badge.left + 9.0f * dp, (badge.top + badge.bottom) * 0.5f, 2.6f * dp, ColorWithAlpha(liveCol, pulse));
+            const float eqH = 12.0f * dp, barW = 2.0f * dp;
+            float bx = badge.left + 14.0f * dp;
+            for (int i = 0; i < 3; ++i) {
+                const float level = playing ? 0.3f + 0.7f * (0.5f + 0.5f * std::sin(vm.eqPhase * 5.2f + i * 1.7f)) : 0.25f;
+                const float bh = eqH * level;
+                r.FillRoundedRect(D2D1::RectF(bx, (badge.top + badge.bottom) * 0.5f - bh * 0.5f, bx + barW, (badge.top + badge.bottom) * 0.5f + bh * 0.5f), 1.0f * dp, accent);
+                bx += barW + 2.0f * dp;
+            }
+        } else {
+            r.DrawIcon(playing ? IconType::Pause : IconType::Play, InsetRectF(badge, 8.0f * dp, 8.0f * dp), accent, 1.5f * dp);
+        }
+        const float textLeft = badge.right + 10.0f * dp;
+        r.DrawString(FitSingleLine(r, vm.title, FontType::Medium, vm.xBounds.left - 10.0f * dp - textLeft),
+                     D2D1::RectF(textLeft, card.top + 12.0f * dp, vm.xBounds.left - 10.0f * dp, card.top + 30.0f * dp),
+                     textPri, FontType::Medium, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+        const std::wstring sub = vm.isRadio ? (vm.subtitle.empty() ? L"Live radio" : vm.subtitle) : vm.timeText;
+        r.DrawString(FitSingleLine(r, sub, FontType::MonoSmall, vm.xBounds.left - 10.0f * dp - textLeft),
+                     D2D1::RectF(textLeft, card.top + 30.0f * dp, vm.xBounds.left - 10.0f * dp, card.top + 46.0f * dp),
+                     textSub, FontType::MonoSmall, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+        // X (stop) button.
+        r.FillRoundedRect(vm.xBounds, 6.0f * dp, ColorWithAlpha(D2D1::ColorF(1, 1, 1, 1.0f), (vm.xHovered ? 0.10f : 0.04f) * vm.fade));
+        r.DrawRoundedRect(vm.xBounds, 6.0f * dp, ColorWithAlpha(vm.xHovered ? D2D1::ColorF(0.95f, 0.35f, 0.40f, 1.0f) : D2D1::ColorF(1, 1, 1, 1.0f), (vm.xHovered ? 0.55f : 0.07f) * vm.fade), 1.0f * dp);
+        {
+            const float l = vm.xBounds.left, t = vm.xBounds.top, sz = RectWidth(vm.xBounds);
+            const float inset = sz * 0.32f;
+            const D2D1_COLOR_F xc = vm.xHovered ? ColorWithAlpha(D2D1::ColorF(0.97f, 0.55f, 0.58f, 1.0f), vm.fade) : textSub;
+            r.DrawLine(l + inset, t + inset, l + sz - inset, t + sz - inset, xc, 1.4f);
+            r.DrawLine(l + sz - inset, t + inset, l + inset, t + sz - inset, xc, 1.4f);
+        }
+        // Podcast: progress bar; radio: nothing to scrub.
+        if (!vm.isRadio && vm.progressRatio > 0.0) {
+            const float barY = card.bottom - 18.0f * dp;
+            const D2D1_RECT_F track = D2D1::RectF(card.left + pad, barY, card.right - pad, barY + 5.0f * dp);
+            r.FillRoundedRect(track, 2.5f * dp, ColorWithAlpha(D2D1::ColorF(1, 1, 1, 1.0f), 0.06f * vm.fade));
+            const float fillW = RectWidth(track) * (float)std::min(1.0, vm.progressRatio);
+            if (fillW > 1.0f) {
+                r.FillRoundedGradientRect(D2D1::RectF(track.left, track.top, track.left + fillW, track.bottom), 2.5f * dp,
+                    ColorWithAlpha(D2D1::ColorF(0x7c, 0x9b, 0xc3, 1.0f), vm.fade), accent, false);
+            }
+        }
+        return;
+    }
+
+    // ---------- Compact view ----------
+    float x = island.left + 13.0f * dp;
     if (vm.isRadio) {
-        // LIVE badge with a pulsing dot + mini EQ bars.
-        const float badgeW = 42.0f * dp, badgeH = 18.0f * dp;
-        const D2D1_RECT_F live = D2D1::RectF(x, cy - badgeH * 0.5f, x + badgeW, cy + badgeH * 0.5f);
-        r.FillRoundedRect(live, badgeH * 0.5f, ColorWithAlpha(D2D1::ColorF(0.95f, 0.25f, 0.32f, 1.0f), 0.14f * contentA));
-        const float pulse = 0.65f + 0.35f * (0.5f + 0.5f * std::sin(vm.eqPhase * 3.1f));
-        r.FillCircle(live.left + 9.0f * dp, cy, 3.0f * dp, ColorWithAlpha(D2D1::ColorF(0.95f, 0.3f, 0.36f, 1.0f), pulse * contentA));
-        r.DrawString(L"LIVE", D2D1::RectF(live.left + 15.0f * dp, live.top, live.right - 5.0f * dp, live.bottom),
-                     ColorWithAlpha(D2D1::ColorF(0.97f, 0.5f, 0.55f, 1.0f), contentA), FontType::Caption,
-                     DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-        x = live.right + 8.0f * dp;
-        const float eqH = 12.0f * dp, barW = 2.0f * dp, barGap = 2.0f * dp;
+        const float pulse = 0.6f + 0.4f * (0.5f + 0.5f * std::sin(vm.eqPhase * 3.1f));
+        r.FillCircle(x + 3.0f * dp, cy, 2.6f * dp, ColorWithAlpha(liveCol, pulse));
+        x += 10.0f * dp;
+        const float eqH = 12.0f * dp, barW = 2.0f * dp;
         for (int i = 0; i < 4; ++i) {
-            const float phase = vm.eqPhase * (vm.paused ? 0.0f : 5.2f) + i * 1.7f;
-            const float level = vm.paused ? 0.22f : 0.25f + 0.75f * (0.5f + 0.5f * std::sin(phase));
+            const float level = vm.paused ? 0.22f : 0.25f + 0.75f * (0.5f + 0.5f * std::sin(vm.eqPhase * 5.2f + i * 1.7f));
             const float bh = eqH * level;
-            r.FillRoundedRect(D2D1::RectF(x, cy + eqH * 0.5f - bh, x + barW, cy + eqH * 0.5f), 1.0f * dp,
-                              ColorWithAlpha(th.accent, contentA));
-            x += barW + barGap;
+            r.FillRoundedRect(D2D1::RectF(x, cy - bh * 0.5f, x + barW, cy + bh * 0.5f), 1.0f * dp, accent);
+            x += barW + 2.0f * dp;
         }
         x += 4.0f * dp;
     } else {
-        const float iconSz = 13.0f * dp;
-        r.DrawIcon(IconType::MicPodcast, D2D1::RectF(x, cy - iconSz * 0.5f, x + iconSz, cy + iconSz * 0.5f),
-                   ColorWithAlpha(th.accent, contentA), 1.4f * dp);
-        x += iconSz + 7.0f * dp;
+        const float iconSz = 14.0f * dp;
+        r.DrawIcon(IconType::MicPodcast, D2D1::RectF(x, cy - iconSz * 0.5f, x + iconSz, cy + iconSz * 0.5f), accent, 1.4f * dp);
+        x += iconSz + 8.0f * dp;
     }
-    // Title, then play/pause + stop pill controls.
-    const float ctrl = 20.0f * dp, ctrlGap = 4.0f * dp;
-    const float textRight = pill.right - 10.0f * dp - ctrl * 2.0f - ctrlGap - 6.0f * dp;
-    if (textRight > x + 20.0f * dp) {
-        r.DrawString(FitSingleLine(r, vm.title, FontType::Small, textRight - x),
-                     D2D1::RectF(x, pill.top, textRight, pill.bottom), ColorWithAlpha(th.text, contentA),
-                     FontType::Small, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+    r.DrawString(FitSingleLine(r, vm.title, FontType::Small, island.right - 13.0f * dp - x),
+                 D2D1::RectF(x, island.top, island.right - 13.0f * dp, island.bottom), textPri,
+                 FontType::Small, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+    // Podcast: bottom-edge progress line.
+    if (!vm.isRadio && vm.expand < 0.3f && vm.progressRatio > 0.0) {
+        const float trackL = island.left + 11.0f * dp, trackR = island.right - 11.0f * dp;
+        const float fillW = (trackR - trackL) * (float)std::min(1.0, vm.progressRatio);
+        r.FillRoundedRect(D2D1::RectF(trackL, island.bottom - 2.0f * dp, trackL + fillW, island.bottom), 1.0f * dp, accent);
     }
-    auto pillBtn = [&](const D2D1_RECT_F& rect, IconType icon) {
-        r.FillCircle((rect.left + rect.right) * 0.5f, (rect.top + rect.bottom) * 0.5f, (rect.bottom - rect.top) * 0.5f,
-                     ColorWithAlpha(th.text, 0.08f * contentA));
-        r.DrawIcon(icon, InsetRectF(rect, 4.0f * dp, 4.0f * dp), ColorWithAlpha(th.text, contentA), 1.5f * dp);
-    };
-    pillBtn(D2D1::RectF(pill.right - 10.0f * dp - ctrl, cy - ctrl * 0.5f, pill.right - 10.0f * dp, cy + ctrl * 0.5f),
-            vm.paused ? IconType::Play : IconType::Pause);
-    pillBtn(D2D1::RectF(pill.right - 10.0f * dp - ctrl * 2.0f - ctrlGap, cy - ctrl * 0.5f,
-                        pill.right - 10.0f * dp - ctrl - ctrlGap, cy + ctrl * 0.5f), IconType::CloseX);
-    if (!vm.isRadio && vm.progressRatio > 0.0 && pill.right > pill.left + 8.0f * dp) {
-        const float barW2 = (pill.right - pill.left - 4.0f * dp) * (float)vm.progressRatio;
-        r.FillRoundedRect(D2D1::RectF(pill.left + 2.0f * dp, pill.bottom - 3.0f * dp, pill.left + 2.0f * dp + barW2, pill.bottom - 1.0f * dp),
-                          1.0f * dp, ColorWithAlpha(th.accent, 0.9f * contentA));
-    }
-    if (!vm.popoverOpen) return;
-    // Now-playing popover.
-    const D2D1_RECT_F& pop = vm.popoverBounds;
-    r.DrawDropShadow(pop, 10.0f * dp, 16.0f * dp, 4.0f * dp, D2D1::ColorF(0, 0, 0, 0.45f));
-    r.FillRoundedRect(pop, 12.0f * dp, th.surfaceFloating);
-    r.DrawRoundedRect(pop, 12.0f * dp, th.border, 1.0f * dp);
-    r.DrawString(FitSingleLine(r, vm.title, FontType::Subheading, RectWidth(pop) - 36.0f * dp),
-                 D2D1::RectF(pop.left + 18.0f * dp, pop.top + 14.0f * dp, pop.right - 18.0f * dp, pop.top + 38.0f * dp),
-                 th.text, FontType::Subheading, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-    r.DrawString(FitSingleLine(r, vm.isRadio ? (vm.subtitle.empty() ? L"Live stream" : vm.subtitle) : vm.subtitle,
-                               FontType::Small, RectWidth(pop) - 36.0f * dp),
-                 D2D1::RectF(pop.left + 18.0f * dp, pop.top + 38.0f * dp, pop.right - 18.0f * dp, pop.top + 60.0f * dp),
-                 th.textMuted, FontType::Small, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-    if (!vm.isRadio && !vm.timeText.empty()) {
-        r.DrawProgressBar(D2D1::RectF(pop.left + 18.0f * dp, pop.top + 66.0f * dp, pop.right - 18.0f * dp, pop.top + 74.0f * dp),
-                          vm.progressRatio, D2D1::ColorF(1, 1, 1, 0.08f), th.accent, 4.0f * dp);
-        r.DrawString(vm.timeText, D2D1::RectF(pop.left + 18.0f * dp, pop.top + 76.0f * dp, pop.right - 18.0f * dp, pop.top + 94.0f * dp),
-                     th.textMuted, FontType::MonoSmall, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-    }
-    auto popBtn = [&](const D2D1_RECT_F& rect, IconType icon, bool hovered, bool accent) {
-        const float cx2 = (rect.left + rect.right) * 0.5f, cy2 = (rect.top + rect.bottom) * 0.5f;
-        const float rad = (rect.bottom - rect.top) * 0.5f;
-        if (accent) {
-            r.FillCircle(cx2, cy2, rad, hovered ? ColorWithAlpha(th.accent, 0.95f) : th.accent);
-            r.DrawIcon(icon, InsetRectF(rect, 9.0f * dp, 9.0f * dp), D2D1::ColorF(0.06f, 0.05f, 0.04f, 1.0f), 1.6f * dp);
-        } else {
-            r.FillCircle(cx2, cy2, rad, ColorWithAlpha(th.text, hovered ? 0.10f : 0.05f));
-            if (icon == IconType::CloseX) r.DrawIcon(icon, InsetRectF(rect, 9.0f * dp, 9.0f * dp),
-                                                     hovered ? th.red : ColorWithAlpha(th.red, 0.8f), 1.6f * dp);
-            else r.DrawIcon(icon, InsetRectF(rect, 8.0f * dp, 8.0f * dp), hovered ? th.text : th.textMuted, 1.6f * dp);
-        }
-    };
-    popBtn(vm.backBtn, IconType::HistoryClock, vm.backHovered, false);
-    popBtn(vm.playBtn, vm.paused ? IconType::Play : IconType::Pause, vm.playHovered, true);
-    popBtn(vm.fwdBtn, IconType::Next, vm.fwdHovered, false);
-    popBtn(vm.stopBtn, IconType::CloseX, vm.stopHovered, false);
 }
 
 // Listen panel: podcasts (with inline episode expansion) above the live radio
@@ -3377,7 +3378,7 @@ void UIComponents::DrawListenPanel(Renderer& r, const Settings& s, const ListenP
         r.FillCircle((play.left + play.right) * 0.5f, (play.top + play.bottom) * 0.5f, playSz * 0.5f, hovered ? th.accent : ColorWithAlpha(th.accent, 0.55f));
         r.DrawIcon(IconType::Play, InsetRectF(play, 6.0f * dp, 6.0f * dp), D2D1::ColorF(0.06f, 0.05f, 0.04f, 1.0f), 1.2f * dp);
         std::wstring tail = ep.dateText;
-        if (!ep.durationText.empty()) { if (!tail.empty()) tail += L"  B7 "; tail += ep.durationText; }
+        if (!ep.durationText.empty()) { if (!tail.empty()) tail += L" \x00B7 "; tail += ep.durationText; }
         const float tailW = tail.empty() ? 0.0f : r.MeasureString(tail, FontType::MonoSmall).width + 12.0f * dp;
         const float titleRight = rect.right - 12.0f * dp - tailW;
         r.DrawString(FitSingleLine(r, ep.title, FontType::Regular, std::max(40.0f * dp, titleRight - play.right - 10.0f * dp)),
@@ -4486,47 +4487,163 @@ void UIComponents::DrawOverlayContextMenu(OverlayRenderer& r, const Settings& s,
     DrawOverlayContextMenu(r, s, vm.origin, vm.items, vm.hoveredIndex, vm.animProgress);
 }
 
-void UIComponents::DrawImportProgress(Renderer& r, const Settings& s, const ImportProgressViewModel& vm) {
-    // Dynamic island, Apple-style: a 6 DIP dot springs open into the pill
-    // (slight overshoot), content fades in once mostly open, width changes
-    // glide, and the exit collapses back to the dot before fading. Colors
-    // follow the elevated floating surface, not a flat white wash.
-    if (vm.fade <= 0.001f && vm.widthDip <= 6.5f) return;
+// ---- Dynamic island shared shell (ai_studio_code(5)) ----
+// Gradient surface, 1 px keyline ring, ambient shadow, inner top highlight.
+void UIComponents::DrawIslandShell(Renderer& r, const Settings& s, const D2D1_RECT_F& islandRect, float radiusPx, float expand, bool hovered, float alpha) {
     float dp = r.GetDpiScale();
     const auto& th = s.currentTheme;
-    const float a = vm.fade;
-    // Content reveal: nothing readable until the pill is ~55% open.
-    const float contentA = std::clamp((vm.heightDip - 12.0f) / 10.0f, 0.0f, 1.0f) * a;
-    const D2D1_RECT_F target = vm.pillBounds;
-    const float cy = (target.top + target.bottom) * 0.5f;
-    const float w = vm.widthDip * dp, h = vm.heightDip * dp;
-    const D2D1_RECT_F pill = D2D1::RectF(target.right - w, cy - h * 0.5f, target.right, cy + h * 0.5f);
-    const float radius = std::min(w, h) * 0.5f;
-    const D2D1_COLOR_F fill = vm.pillHovered ? ColorWithAlpha(th.text, 0.10f * a) : ColorWithAlpha(th.surfaceFloating, 0.98f * a);
-    r.FillRoundedRect(pill, radius, fill);
-    r.DrawRoundedRect(pill, radius, ColorWithAlpha(vm.pillHovered ? th.accent : th.border, (vm.pillHovered ? 0.55f : 0.85f) * a), 1.0f * dp);
-    if (contentA <= 0.001f) return;
-    const float iconSz = 12.0f * dp;
-    r.DrawIconRotated(IconType::Refresh, D2D1::RectF(pill.left + 10.0f * dp, cy - iconSz * 0.5f, pill.left + 10.0f * dp + iconSz, cy + iconSz * 0.5f),
-                      ColorWithAlpha(th.accent, contentA), vm.spinAngle, 1.6f * dp);
-    const D2D1_RECT_F textRect = D2D1::RectF(pill.left + 10.0f * dp + iconSz + 7.0f * dp, pill.top, pill.right - 10.0f * dp, pill.bottom);
-    r.DrawString(vm.pillText, textRect, ColorWithAlpha(th.text, contentA), FontType::MonoSmall, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-    // Hairline progress underline hugging the pill's base.
-    if (vm.progressRatio > 0.0 && pill.right > pill.left + 6.0f * dp) {
-        const float barW = (pill.right - pill.left - 4.0f * dp) * (float)std::min(1.0, vm.progressRatio);
-        r.FillRoundedRect(D2D1::RectF(pill.left + 2.0f * dp, pill.bottom - 3.0f * dp, pill.left + 2.0f * dp + barW, pill.bottom - 1.0f * dp), 1.0f * dp, ColorWithAlpha(th.accent, 0.9f * contentA));
+    if (islandRect.right <= islandRect.left || islandRect.bottom <= islandRect.top) return;
+    const float lift = 6.0f * dp * expand;
+    D2D1_RECT_F lifted = islandRect;
+    lifted.top -= lift; lifted.bottom -= lift; lifted.left -= lift * 0.25f; lifted.right -= lift * 0.25f;
+    const float blur = 4.0f * dp * (1.0f - alpha);
+    const D2D1_COLOR_F tint = ColorWithAlpha(D2D1::ColorF(0, 0, 0, 1.0f), blur);
+    r.FillRoundedGradientRect(lifted, radiusPx,
+        ColorWithAlpha(D2D1::ColorF(0x1b, 0x1c, 0x20, 1.0f), alpha),
+        ColorWithAlpha(D2D1::ColorF(0x15, 0x16, 0x19, 1.0f), alpha), true);
+    r.DrawRoundedRect(InsetRectF(lifted, 0.5f * dp, 0.5f * dp), radiusPx,
+        ColorWithAlpha(D2D1::ColorF(0x2e, 0x31, 0x3a, 1.0f), alpha), 1.0f * dp);
+    r.DrawRoundedRect(InsetRectF(lifted, 2.0f * dp, 1.0f * dp), std::max(1.0f, radiusPx - 1.5f * dp),
+        ColorWithAlpha(D2D1::ColorF(1, 1, 1, 1.0f), 0.06f * alpha), 1.0f * dp);
+    (void)hovered; (void)tint; (void)blur;
+}
+
+// 16 px sync (two-arrow circular) icon, stroke style; angle spins it.
+static void DrawIslandSyncIcon(Renderer& r, const D2D1_RECT_F& rect, D2D1_COLOR_F color, float angleDeg) {
+    const float cx = (rect.left + rect.right) * 0.5f, cy = (rect.top + rect.bottom) * 0.5f;
+    const float rad = RectWidth(rect) * 0.42f;
+    const float ang = angleDeg * 3.14159265f / 180.0f;
+    const float c = std::cos(ang), sn = std::sin(ang);
+    auto pt = [&](float px, float py) {
+        const float dx = px - cx, dy = py - cy;
+        return D2D1::Point2F(cx + dx * c - dy * sn, cy + dx * sn + dy * c);
+    };
+    // Two arcs with arrowheads, like the reference sync glyph.
+    const float gap = 0.55f;
+    for (int half = 0; half < 2; ++half) {
+        const float a0 = ang + (half == 0 ? gap : 3.14159265f + gap);
+        const float a1 = ang + (half == 0 ? 3.14159265f - gap : 6.28318531f - gap);
+        const int steps = 14;
+        D2D1_POINT_2F prev = pt(cx + rad * std::cos(a0), cy + rad * std::sin(a0));
+        for (int i = 1; i <= steps; ++i) {
+            const float t = a0 + (a1 - a0) * i / steps;
+            const D2D1_POINT_2F cur = pt(cx + rad * std::cos(t), cy + rad * std::sin(t));
+            r.DrawLine(prev.x, prev.y, cur.x, cur.y, color, 1.4f);
+            prev = cur;
+        }
+        // Arrowhead at the arc end, tangential.
+        const float tEnd = a1;
+        const D2D1_POINT_2F tip = pt(cx + rad * std::cos(tEnd), cy + rad * std::sin(tEnd));
+        const float tang = tEnd + 1.5707963f;
+        const float ah = rad * 0.42f;
+        const D2D1_POINT_2F w1 = pt(tip.x + ah * std::cos(tang + 2.5f), tip.y + ah * std::sin(tang + 2.5f));
+        const D2D1_POINT_2F w2 = pt(tip.x + ah * std::cos(tang - 2.5f), tip.y + ah * std::sin(tang - 2.5f));
+        r.DrawLine(tip.x, tip.y, w1.x, w1.y, color, 1.4f);
+        r.DrawLine(tip.x, tip.y, w2.x, w2.y, color, 1.4f);
     }
-    if (!vm.popoverOpen) return;
-    // Details popover anchored under the pill.
-    r.DrawDropShadow(vm.cardBounds, 10.0f * dp, 16.0f * dp, 4.0f * dp, D2D1::ColorF(0, 0, 0, 0.45f));
-    r.FillRoundedRect(vm.cardBounds, 12.0f * dp, th.surfaceFloating);
-    r.DrawRoundedRect(vm.cardBounds, 12.0f * dp, th.border, 1.0f * dp);
-    r.DrawString(L"Importing media", D2D1::RectF(vm.cardBounds.left + 18.0f * dp, vm.cardBounds.top + 14.0f * dp, vm.cardBounds.right - 18.0f * dp, vm.cardBounds.top + 40.0f * dp), th.text, FontType::Subheading);
-    r.DrawString(vm.progressText, D2D1::RectF(vm.cardBounds.left + 18.0f * dp, vm.cardBounds.top + 42.0f * dp, vm.cardBounds.right - 18.0f * dp, vm.cardBounds.top + 64.0f * dp), th.textMuted, FontType::Small);
-    r.DrawProgressBar(D2D1::RectF(vm.cardBounds.left + 18.0f * dp, vm.cardBounds.top + 70.0f * dp, vm.cardBounds.right - 18.0f * dp, vm.cardBounds.top + 78.0f * dp), vm.progressRatio, D2D1::ColorF(1, 1, 1, 0.08f), th.accent, 4.0f * dp);
-    r.FillRoundedRect(vm.cancelBounds, 7.0f * dp, vm.isCancelHovered ? D2D1::ColorF(0.95f, 0.28f, 0.35f, 0.22f) : D2D1::ColorF(1, 1, 1, 0.05f));
-    r.DrawRoundedRect(vm.cancelBounds, 7.0f * dp, vm.isCancelHovered ? D2D1::ColorF(0.95f, 0.35f, 0.40f, 0.72f) : th.border, 1.0f * dp);
-    r.DrawString(L"Cancel", vm.cancelBounds, vm.isCancelHovered ? th.red : th.textMuted, FontType::Small, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+}
+
+// Check-mark glyph for the complete state.
+static void DrawIslandCheckIcon(Renderer& r, const D2D1_RECT_F& rect, D2D1_COLOR_F color) {
+    const float l = rect.left, t = rect.top, w = RectWidth(rect), h = RectHeight(rect);
+    r.DrawLine(l + w * 0.14f, t + h * 0.55f, l + w * 0.40f, t + h * 0.82f, color, 1.6f);
+    r.DrawLine(l + w * 0.40f, t + h * 0.82f, l + w * 0.88f, t + h * 0.22f, color, 1.6f);
+}
+
+void UIComponents::DrawImportProgress(Renderer& r, const Settings& s, const ImportProgressViewModel& vm) {
+    if (vm.phase == 0 || vm.fade <= 0.001f) return;
+    float dp = r.GetDpiScale();
+    const auto& th = s.currentTheme;
+    const D2D1_RECT_F island = vm.pillBounds;
+    const float w = vm.widthDip * dp, h = vm.heightDip * dp;
+    const float cx = (island.left + island.right) * 0.5f;
+    const float cy = (island.top + island.bottom) * 0.5f;
+    const D2D1_RECT_F rect = D2D1::RectF(cx - w * 0.5f, cy - h * 0.5f, cx + w * 0.5f, cy + h * 0.5f);
+    const float radius = vm.radiusDip * dp;
+    DrawIslandShell(r, s, rect, radius, vm.expand, vm.pillHovered, vm.fade);
+    if (vm.fade < 0.05f) return;
+
+    const float contentA = std::clamp((vm.heightDip - 10.0f) / 8.0f, 0.0f, 1.0f) * vm.fade;
+    if (contentA <= 0.001f) return;
+    const D2D1_COLOR_F accent = ColorWithAlpha(D2D1::ColorF(0x94, 0xb0, 0xd3, 1.0f), contentA);
+    const D2D1_COLOR_F textPri = ColorWithAlpha(th.text, contentA);
+    const D2D1_COLOR_F textSub = ColorWithAlpha(th.textMuted, contentA);
+
+    if (vm.expand > 0.5f) {
+        // ---------- Expanded card ----------
+        const D2D1_RECT_F& card = vm.expandedBounds;
+        const float pad = 15.0f * dp;
+        const D2D1_RECT_F badge = D2D1::RectF(card.left + pad, card.top + 14.0f * dp, card.left + pad + 28.0f * dp, card.top + 42.0f * dp);
+        r.FillRoundedRect(badge, 8.0f * dp, ColorWithAlpha(D2D1::ColorF(0x94, 0xb0, 0xd3, 1.0f), 0.12f * contentA));
+        r.DrawRoundedRect(badge, 8.0f * dp, ColorWithAlpha(D2D1::ColorF(0x94, 0xb0, 0xd3, 1.0f), 0.22f * contentA), 1.0f * dp);
+        DrawIslandSyncIcon(r, InsetRectF(badge, 7.0f * dp, 7.0f * dp), accent, vm.spinAngle);
+        const float textLeft = badge.right + 10.0f * dp;
+        const std::wstring name = vm.total > 0 ? (L"Importing " + std::to_wstring(vm.total) + L" files") : std::wstring(L"Importing");
+        r.DrawString(FitSingleLine(r, name, FontType::Medium, vm.xBounds.left - 10.0f * dp - textLeft),
+                     D2D1::RectF(textLeft, card.top + 12.0f * dp, vm.xBounds.left - 10.0f * dp, card.top + 30.0f * dp),
+                     textPri, FontType::Medium, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+        const std::wstring sub = std::to_wstring(std::min(vm.processed, vm.total)) + L" / " + std::to_wstring(vm.total) +
+            L" \x00B7 " + vm.progressText;
+        r.DrawString(FitSingleLine(r, sub, FontType::MonoSmall, vm.xBounds.left - 10.0f * dp - textLeft),
+                     D2D1::RectF(textLeft, card.top + 30.0f * dp, vm.xBounds.left - 10.0f * dp, card.top + 46.0f * dp),
+                     textSub, FontType::MonoSmall, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+        // Percent + X button (24 px, square-ish rounded).
+        const std::wstring pct = std::to_wstring((int)std::lround(vm.progressRatio * 100.0)) + L"%";
+        r.DrawString(pct, D2D1::RectF(vm.xBounds.left - 66.0f * dp, card.top + 14.0f * dp, vm.xBounds.left - 10.0f * dp, card.top + 42.0f * dp),
+                     accent, FontType::MonoSmall, DWRITE_TEXT_ALIGNMENT_TRAILING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+        r.FillRoundedRect(vm.xBounds, 6.0f * dp, ColorWithAlpha(D2D1::ColorF(1, 1, 1, 1.0f), (vm.xHovered ? 0.10f : 0.04f) * contentA));
+        r.DrawRoundedRect(vm.xBounds, 6.0f * dp, ColorWithAlpha(D2D1::ColorF(1, 1, 1, 1.0f), 0.07f * contentA), 1.0f * dp);
+        DrawIslandCheckIcon(r, vm.xBounds, textSub); // X glyph: drawn as crossing lines below
+        {
+            const float l = vm.xBounds.left, t = vm.xBounds.top, sz = RectWidth(vm.xBounds);
+            const float inset = sz * 0.32f;
+            r.DrawLine(l + inset, t + inset, l + sz - inset, t + sz - inset, vm.xHovered ? textPri : textSub, 1.4f);
+            r.DrawLine(l + sz - inset, t + inset, l + inset, t + sz - inset, vm.xHovered ? textPri : textSub, 1.4f);
+        }
+        // Progress track near the card's bottom (design: 5 px, inset shadow).
+        const float barY = card.bottom - 18.0f * dp;
+        const D2D1_RECT_F track = D2D1::RectF(card.left + pad, barY, card.right - pad, barY + 5.0f * dp);
+        r.FillRoundedRect(track, 2.5f * dp, ColorWithAlpha(D2D1::ColorF(1, 1, 1, 1.0f), 0.06f * contentA));
+        const float fillW = (RectWidth(track)) * (float)std::min(1.0, vm.progressRatio);
+        if (fillW > 1.0f) {
+            r.FillRoundedGradientRect(D2D1::RectF(track.left, track.top, track.left + fillW, track.bottom), 2.5f * dp,
+                ColorWithAlpha(D2D1::ColorF(0x7c, 0x9b, 0xc3, 1.0f), contentA), accent, false);
+        }
+        return;
+    }
+
+    // ---------- Compact view ----------
+    const float iconSz = 15.0f * dp;
+    const D2D1_RECT_F iconRect = D2D1::RectF(island.left + 13.0f * dp, cy - iconSz * 0.5f, island.left + 13.0f * dp + iconSz, cy + iconSz * 0.5f);
+    if (vm.phase == 2) {
+        DrawIslandCheckIcon(r, iconRect, accent);
+    } else {
+        DrawIslandSyncIcon(r, iconRect, accent, vm.spinAngle);
+    }
+    // Mono counter: current / total (or just total when unknown).
+    const std::wstring cur = std::to_wstring(std::min(vm.processed, vm.total));
+    const std::wstring tot = std::to_wstring(vm.total);
+    const float curW = vm.total > 0 ? r.MeasureString(cur, FontType::MonoSmall).width : 0.0f;
+    const float totW = r.MeasureString(tot, FontType::MonoSmall).width;
+    const float slashW = vm.total > 0 ? r.MeasureString(L"/", FontType::MonoSmall).width : 0.0f;
+    const float gap = 5.0f * dp;
+    const float blockW = curW + (vm.total > 0 ? gap + slashW + gap + totW : 0.0f);
+    float tx = island.right - 13.0f * dp - blockW;
+    if (vm.total > 0) {
+        r.DrawString(cur, D2D1::RectF(tx, island.top, tx + curW, island.bottom), textPri, FontType::MonoSmall, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+        tx += curW + gap;
+        r.DrawString(L"/", D2D1::RectF(tx, island.top, tx + slashW, island.bottom), ColorWithAlpha(th.textMuted, contentA * 0.7f), FontType::MonoSmall, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+        tx += slashW + gap;
+        r.DrawString(tot, D2D1::RectF(tx, island.top, tx + totW, island.bottom), textSub, FontType::MonoSmall, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+    }
+    // Bottom-edge progress line (hidden while expanded/closing).
+    if (vm.expand < 0.3f && vm.phase == 1 && vm.progressRatio > 0.0) {
+        const float trackL = island.left + 11.0f * dp, trackR = island.right - 11.0f * dp;
+        const float fillW = (trackR - trackL) * (float)std::min(1.0, vm.progressRatio);
+        r.FillRoundedRect(D2D1::RectF(trackL, island.bottom - 2.0f * dp, trackL + fillW, island.bottom), 1.0f * dp, accent);
+        r.FillRoundedRect(D2D1::RectF(trackL + fillW - 4.0f * dp, island.bottom - 2.0f * dp, trackL + fillW, island.bottom), 1.0f * dp,
+                          ColorWithAlpha(D2D1::ColorF(0xd0, 0xe2, 0xf8, 1.0f), 0.9f * contentA));
+    }
 }
 
 void UIComponents::DrawPlayerOverlay(OverlayRenderer& r, const Settings& s, const PlayerRenderViewModel& vm) {

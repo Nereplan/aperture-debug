@@ -321,18 +321,19 @@ private:
     std::atomic<size_t> importProcessed{ 0 };
     std::atomic<size_t> importTotal{ 0 };
     bool importJobActive = false, importLaunchFirst = false, importCancelHovered = false;
-    bool importPopoverOpen = false, importPillHovered = false;
+    bool importPillHovered = false, importPinExpanded = false, importIslandDismissed = false;
     // Listen island playback state (UI-thread only).
     MpvListenPlayer listenPlayer;
     bool listenPlayerInitialized = false;
     bool listenPlaybackActive = false, listenPlaybackIsRadio = true, listenPlaybackPaused = false;
-    bool listenPillHovered = false, listenPopoverOpen = false;
-    bool listenPlayHovered = false, listenBackHovered = false, listenFwdHovered = false, listenStopHovered = false;
+    bool listenPillHovered = false, listenPinExpanded = false;
+    bool listenBadgeHovered = false, listenXHovered = false;
     std::wstring listenTitle, listenSubtitle, listenUrl;
-    double listenEqPhase = 0.0, listenVolumeApplied = -1.0, listenEqRepaintAccum = 0.0;
-    AnimatedFloat listenIslandWidthDip, listenIslandHeightDip, listenIslandFade;
-    D2D1_RECT_F listenIslandPlayBounds = { 0, 0, 0, 0 }, listenIslandBackBounds = { 0, 0, 0, 0 },
-                listenIslandFwdBounds = { 0, 0, 0, 0 }, listenIslandStopBounds = { 0, 0, 0, 0 };
+    double listenEqPhase = 0.0, listenVolumeApplied = -1.0;
+    AnimatedFloat listenIslandWidthDip, listenIslandHeightDip, listenIslandRadiusDip, listenIslandExpand, listenIslandFade;
+    D2D1_RECT_F listenIslandBadgeBounds = { 0, 0, 0, 0 }, listenIslandXBounds = { 0, 0, 0, 0 };
+    D2D1_RECT_F importIslandHitRect = { 0, 0, 0, 0 }, listenIslandHitRect = { 0, 0, 0, 0 };
+    D2D1_RECT_F importIslandXBounds = { 0, 0, 0, 0 };
     // Listen panel state (podcasts + radio directory mirrors, UI-thread only).
     std::vector<PodcastFeed> listenFeeds;
     std::vector<RadioStation> listenStations;
@@ -342,10 +343,13 @@ private:
     bool listenAddPodcastHovered = false;
     bool listenJobsKicked = false;
     std::wstring listenRadioErrorCached;
-    // Island morph: width/height spring between a 6 DIP dot and the content
-    // pill; the dot fades out only after the collapse finishes.
-    AnimatedFloat importIslandWidthDip, importIslandHeightDip, importIslandFade;
+    // Island morph per the reference design: width/height/radius spring
+    // between compact, expanded and closed sizes; fade rides the exit.
+    AnimatedFloat importIslandWidthDip, importIslandHeightDip, importIslandRadiusDip, importIslandExpand, importIslandFade;
     float importSpinAngle = 0.0f;
+    // Import phases: Active -> Complete (check, 1.5 s) -> Closing (0.42 s) -> idle.
+    int importIslandPhase = 0; // 0 idle, 1 active, 2 complete, 3 closing
+    double importIslandPhaseT = 0.0;
     ImportPlaybackIntent importFirstPlayback;
     std::wstring importEarlyPlaybackPath;
     uint64_t playbackRequestGeneration = 0, importPlaybackGeneration = 0, importStartPlaybackGeneration = 0;
@@ -391,7 +395,6 @@ private:
     void ListenSeekBy(double deltaSec);
     void OnListenFinished();
     D2D1_RECT_F ListenPillBounds(float dp);
-    D2D1_RECT_F ListenPopoverBounds(float dp);
     void OpenListenFeedContextMenu(size_t feedIndex, float x, float y);
     void OpenListenStationContextMenu(size_t stationIndex, float x, float y);
     struct ListenPress {
@@ -402,8 +405,7 @@ private:
     // popover anchors below it. Single geometry source for draw + hit-tests.
     D2D1_RECT_F ImportPillBounds(float dp);
     float ImportIslandTargetWidthDip();
-    D2D1_RECT_F ImportPopoverBounds(float dp);
-    D2D1_RECT_F ImportCancelBounds(float dp);
+    D2D1_RECT_F IslandExpandedRect(const D2D1_RECT_F& compact, float dp) const;
     D2D1_RECT_F ContextMenuBounds(float dp) const;
     void OpenAddToPlaylistContextMenu(float x, float y, std::vector<std::wstring> paths);
     // A modal file dialog pumps messages on the UI thread; these guards keep
