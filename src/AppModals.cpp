@@ -300,16 +300,10 @@ void App::ShowAddPodcastModal() {
     modalInput.SetText({});
     modalOnConfirm = [this]() {
         const std::wstring raw = Text16ToWideString(modalInput.GetText());
-        const auto trimW = [](const std::wstring& s) {
-            const size_t b = s.find_first_not_of(L" \t\r\n");
-            if (b == std::wstring::npos) return std::wstring();
-            const size_t e = s.find_last_not_of(L" \t\r\n");
-            return s.substr(b, e - b + 1);
-        };
-        const std::wstring url = trimW(raw);
+        const std::wstring url = NormalizePodcastFeedUrl(raw);
         // Keep the modal open on invalid input (network-stream modal idiom) so
         // the URL can be corrected without retyping the surface path.
-        if (url.size() <= 8 || url.rfind(L"https://", 0) != 0) {
+        if (url.empty()) {
             ShowOSD(IconType::VolumeMuted, L"Podcast feed invalid", 4.0f);
             return;
         }

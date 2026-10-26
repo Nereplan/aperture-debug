@@ -26,7 +26,7 @@ bool LoadPodcastCacheImpl(const std::wstring& path, std::string& outBody, bool& 
     HANDLE hFile = CreateFileW(path.c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
     if (hFile == INVALID_HANDLE_VALUE) return false;
     LARGE_INTEGER size{};
-    bool ok = GetFileSizeEx(hFile, &size) && size.QuadPart > 0 && size.QuadPart <= 16 * 1024 * 1024;
+    bool ok = GetFileSizeEx(hFile, &size) && size.QuadPart > 0 && size.QuadPart <= 36 * 1024 * 1024;
     std::string content;
     if (ok) {
         content.resize(static_cast<size_t>(size.QuadPart));
@@ -179,24 +179,133 @@ double ParseItunesDuration(const std::string& text) {
 }
 
 // The enclosure tag is self-closing or paired; grab the full tag text first,
-// then read its url attribute.
+// then read its url attribute (falling back to <media:content url="..."> or
+// <link rel="enclosure" href="..."> when feeds use Media RSS / Atom links).
 std::string ExtractEnclosureUrl(const std::string& itemBlock) {
     const std::string lower = ToLowerAsciiCopy(itemBlock);
+    auto findTagAttr = [&](const char* tagPrefix, const char* attrName, const char* reqAttr = nullptr, const char* reqVal = nullptr) -> std::string {
+        size_t searchFrom = 0;
+        const size_t prefixLen = std::strlen(tagPrefix);
+        while (searchFrom < lower.size()) {
+            size_t open = lower.find(tagPrefix, searchFrom);
+            if (open == std::string::npos) return "";
+            size_t after = open + prefixLen;
+            if (after < lower.size() && lower[after] != '>' && lower[after] != ' ' && lower[after] != '\t' &&
+                lower[after] != '\r' && lower[after] != '\n' && lower[after] != '/') {
+                searchFrom = open + 1;
+                continue;
+            }
+            size_t close = lower.find('>', after);
+            if (close == std::string::npos) return "";
+            const std::string tag = itemBlock.substr(open, close - open + 1);
+            if (reqAttr && reqVal) {
+                const std::string rv = ToLowerAsciiCopy(Trim(ExtractXmlAttribute(tag, reqAttr)));
+                if (rv != reqVal) { searchFrom = close + 1; continue; }
+            }
+            std::string url = Trim(ExtractXmlAttribute(tag, attrName));
+            if (url.size() >= 12 && url.rfind("<![CDATA[", 0) == 0 && url.compare(url.size() - 3, 3, "]]>") == 0) {
+                url = Trim(url.substr(9, url.size() - 12));
+            }
+            if (!url.empty()) return url;
+            searchFrom = close + 1;
+        }
+        return "";
+    };
+    std::string url = findTagAttr("<enclosure", "url");
+    if (url.empty()) url = findTagAttr("<enclosure", "href");
+    if (url.empty()) url = findTagAttr("<media:content", "url");
+    if (url.empty()) url = findTagAttr("<link", "href", "rel", "enclosure");
+    return url;
+}
+
+// Extracts an alternate RSS/Atom <link> href from an HTML document when a user
+// pastes a podcast website URL instead of the raw XML feed URL.
+std::wstring ExtractHtmlFeedLink(const std::string& htmlBody) {
+    const std::string lower = ToLowerAsciiCopy(htmlBody);
     size_t searchFrom = 0;
     while (searchFrom < lower.size()) {
-        size_t open = lower.find("<enclosure", searchFrom);
-        if (open == std::string::npos) return "";
-        size_t close = lower.find('>', open);
-        if (close == std::string::npos) return "";
-        const std::string tag = itemBlock.substr(open, close - open + 1);
-        const std::string url = Trim(ExtractXmlAttribute(tag, "url"));
-        if (!url.empty()) return url;
-        searchFrom = close + 1; // Tolerate malformed enclosures without a url attribute.
+        size_t open = lower.find("<link", searchFrom);
+        if (open == std::string::npos) break;
+        size_t close = lower.find('>', open + 5);
+        if (close == std::string::npos) break;
+        const std::string tag = htmlBody.substr(open, close - open + 1);
+        const std::string type = ToLowerAsciiCopy(Trim(ExtractXmlAttribute(tag, "type")));
+        if (type == "application/rss+xml" || type == "application/atom+xml" || type == "text/xml") {
+            const std::string href = Trim(ExtractXmlAttribute(tag, "href"));
+            if (!href.empty()) return Utf8ToUtf16(href);
+        }
+        searchFrom = close + 1;
     }
-    return "";
+    return L"";
+}
+
+// Extracts an Apple Podcasts numeric ID from podcasts.apple.com / itunes.apple.com URLs.
+std::wstring ExtractApplePodcastId(const std::wstring& url) {
+    std::wstring lower = url;
+    for (wchar_t& c : lower) c = static_cast<wchar_t>(::towlower(c));
+    if (lower.find(L"podcasts.apple.com/") == std::wstring::npos &&
+        lower.find(L"itunes.apple.com/") == std::wstring::npos) {
+        return L"";
+    }
+    size_t idPos = lower.find(L"/id");
+    if (idPos == std::wstring::npos) idPos = lower.find(L"id=");
+    if (idPos == std::wstring::npos) return L"";
+    idPos += 3;
+    size_t endPos = idPos;
+    while (endPos < lower.size() && lower[endPos] >= L'0' && lower[endPos] <= L'9') ++endPos;
+    if (endPos == idPos) return L"";
+    return url.substr(idPos, endPos - idPos);
 }
 
 } // namespace
+
+std::wstring NormalizePodcastFeedUrl(const std::wstring& rawUrl) {
+    auto trimW = [](const std::wstring& s) {
+        const size_t b = s.find_first_not_of(L" \t\r\n\"'");
+        if (b == std::wstring::npos) return std::wstring();
+        const size_t e = s.find_last_not_of(L" \t\r\n\"'");
+        return s.substr(b, e - b + 1);
+    };
+    std::wstring url = trimW(rawUrl);
+    if (url.empty()) return L"";
+    auto startsWithInsensitive = [](const std::wstring& s, const wchar_t* prefix) {
+        const size_t n = std::wcslen(prefix);
+        if (s.size() < n) return false;
+        for (size_t i = 0; i < n; ++i) {
+            if (::towlower(s[i]) != ::towlower(prefix[i])) return false;
+        }
+        return true;
+    };
+    // Unwrap feed:https://, podcast:https://, pcast:https://, itpc:https://
+    for (const wchar_t* wrapper : { L"feed:", L"podcast:", L"pcast:", L"itpc:" }) {
+        if (startsWithInsensitive(url, wrapper)) {
+            std::wstring rest = trimW(url.substr(std::wcslen(wrapper)));
+            if (startsWithInsensitive(rest, L"//")) {
+                url = L"https:" + rest;
+            } else {
+                url = rest;
+            }
+            break;
+        }
+    }
+    if (startsWithInsensitive(url, L"https://")) {
+        url.replace(0, 8, L"https://");
+    } else if (startsWithInsensitive(url, L"http://")) {
+        url.replace(0, 7, L"http://");
+    } else if (url.find(L"://") == std::wstring::npos && url.find(L'.') != std::wstring::npos) {
+        url = L"https://" + url;
+    } else {
+        return L"";
+    }
+    if ((url.rfind(L"https://", 0) == 0 && url.size() <= 8) ||
+        (url.rfind(L"http://", 0) == 0 && url.size() <= 7)) {
+        return L"";
+    }
+    for (wchar_t c : url) {
+        if (c <= 32 || c == 127) return L"";
+    }
+    return url;
+}
 
 std::wstring PodcastRefreshService::GetCachePath(const std::wstring& feedUrl, const std::wstring& root) {
     std::wstring cacheDir = root + L"\\cache\\podcasts";
@@ -245,52 +354,105 @@ bool PodcastRefreshService::AnyCacheStale(const std::vector<std::wstring>& feedU
     return false;
 }
 
+PodcastAddPreviewResult PodcastRefreshService::FetchSingleFeed(const std::wstring& rawFeedUrl, const std::wstring& root,
+    IHttpTransport* customTransport, std::shared_ptr<OperationCancellation> cancellation) {
+    PodcastAddPreviewResult result;
+    std::wstring feedUrl = NormalizePodcastFeedUrl(rawFeedUrl);
+    if (feedUrl.empty()) {
+        result.errorMessage = L"Only http:// or https:// podcast feed URLs are supported";
+        return result;
+    }
+    WinHttpTransport defaultTransport;
+    IHttpTransport* transport = customTransport ? customTransport : &defaultTransport;
+
+    HttpRequestOptions options;
+    options.maxResponseBytes = kMaxResponseBytes;
+    options.timeoutMs = kFetchTimeoutMs;
+    options.maxRedirects = 8;
+    options.allowHttp = true;
+    options.cancellation = cancellation;
+
+    // Resolve Apple Podcasts directory URLs (podcasts.apple.com/.../id<digits>) to their underlying RSS feed URL.
+    const std::wstring appleId = ExtractApplePodcastId(feedUrl);
+    if (!appleId.empty()) {
+        HttpRequestOptions lookupOpts = options;
+        lookupOpts.maxResponseBytes = 2 * 1024 * 1024;
+        HttpResponse lookupRes = transport->Get(L"https://itunes.apple.com/lookup?id=" + appleId + L"&entity=podcast", lookupOpts);
+        if (lookupRes.success && !lookupRes.body.empty()) {
+            JsonValue json;
+            if (JsonValue::parse(lookupRes.body, json) && json.is_object() && json.has_key("results") && json.get("results").is_array()) {
+                const auto& arr = json.get("results").as_array();
+                for (const auto& entry : arr) {
+                    if (entry.is_object() && entry.has_key("feedUrl") && entry.get("feedUrl").is_string()) {
+                        std::wstring resolved = NormalizePodcastFeedUrl(Utf8ToUtf16(entry.get("feedUrl").as_string()));
+                        if (!resolved.empty()) { feedUrl = resolved; break; }
+                    }
+                }
+            }
+        }
+    }
+
+    const std::wstring cachePath = GetCachePath(feedUrl, root);
+    std::string cachedBody;
+    bool cacheFresh = false;
+    const bool haveCache = LoadPodcastCacheImpl(cachePath, cachedBody, cacheFresh);
+    if (haveCache && cacheFresh) {
+        PodcastFeed feed = ParseRssFeed(cachedBody, feedUrl);
+        if (!feed.title.empty() && !feed.episodes.empty()) {
+            result.feed = std::move(feed);
+            result.success = true;
+            return result;
+        }
+    }
+
+    HttpResponse response = transport->Get(feedUrl, options);
+    if (response.success && !response.body.empty()) {
+        PodcastFeed feed = ParseRssFeed(response.body, feedUrl);
+        if (feed.episodes.empty()) {
+            const std::wstring altFeed = NormalizePodcastFeedUrl(ExtractHtmlFeedLink(response.body));
+            if (!altFeed.empty() && altFeed != feedUrl) {
+                HttpResponse altRes = transport->Get(altFeed, options);
+                if (altRes.success && !altRes.body.empty()) {
+                    feed = ParseRssFeed(altRes.body, altFeed);
+                    if (!feed.episodes.empty()) {
+                        feedUrl = altFeed;
+                        response = std::move(altRes);
+                    }
+                }
+            }
+        }
+        if (!feed.title.empty() && !feed.episodes.empty()) {
+            SavePodcastCacheImpl(GetCachePath(feedUrl, root), response.body, time(nullptr));
+            result.feed = std::move(feed);
+            result.success = true;
+            return result;
+        }
+    }
+
+    if (haveCache) {
+        PodcastFeed feed = ParseRssFeed(cachedBody, feedUrl);
+        if (!feed.title.empty() && !feed.episodes.empty()) {
+            result.feed = std::move(feed);
+            result.success = true;
+            return result;
+        }
+    }
+
+    result.errorMessage = response.errorMessage.empty() ? L"the URL is not a valid RSS podcast feed" : response.errorMessage;
+    return result;
+}
+
 PodcastRefreshResult PodcastRefreshService::FetchFeeds(const std::vector<std::wstring>& feedUrls, const std::wstring& root,
     IHttpTransport* customTransport, std::shared_ptr<OperationCancellation> cancellation) {
     PodcastRefreshResult result;
-    WinHttpTransport defaultTransport;
-    IHttpTransport* transport = customTransport ? customTransport : &defaultTransport;
     for (const std::wstring& feedUrl : feedUrls) {
         if (cancellation && cancellation->IsCancelled()) break;
-        // http(s) only; other schemes fail up front with a per-feed error.
-        if (feedUrl.rfind(L"https://", 0) != 0 && feedUrl.rfind(L"http://", 0) != 0) {
-            result.failures.push_back({ feedUrl, L"Only http:// or https:// podcast feed URLs are supported" });
-            continue;
+        PodcastAddPreviewResult single = FetchSingleFeed(feedUrl, root, customTransport, cancellation);
+        if (single.success) {
+            result.feeds.push_back(std::move(single.feed));
+        } else {
+            result.failures.push_back({ feedUrl, single.errorMessage.empty() ? L"Podcast feed unavailable" : single.errorMessage });
         }
-        const std::wstring cachePath = GetCachePath(feedUrl, root);
-        std::string cachedBody;
-        bool cacheFresh = false;
-        const bool haveCache = LoadPodcastCacheImpl(cachePath, cachedBody, cacheFresh);
-        if (haveCache && cacheFresh) {
-            PodcastFeed feed = ParseRssFeed(cachedBody, feedUrl);
-            if (!feed.title.empty() || !feed.episodes.empty()) {
-                result.feeds.push_back(std::move(feed));
-                continue;
-            }
-        }
-        HttpRequestOptions options;
-        options.maxResponseBytes = kMaxResponseBytes;
-        options.timeoutMs = kFetchTimeoutMs;
-        options.maxRedirects = 3;
-        options.cancellation = cancellation;
-        HttpResponse response = transport->Get(feedUrl, options);
-        if (response.success && !response.body.empty()) {
-            PodcastFeed feed = ParseRssFeed(response.body, feedUrl);
-            if (!feed.title.empty() || !feed.episodes.empty()) {
-                SavePodcastCacheImpl(cachePath, response.body, time(nullptr));
-                result.feeds.push_back(std::move(feed));
-                continue;
-            }
-        }
-        // Network refresh failed: fall back to the stale cache when one exists.
-        if (haveCache) {
-            PodcastFeed feed = ParseRssFeed(cachedBody, feedUrl);
-            if (!feed.title.empty() || !feed.episodes.empty()) {
-                result.feeds.push_back(std::move(feed));
-                continue;
-            }
-        }
-        result.failures.push_back({ feedUrl, response.errorMessage.empty() ? L"Podcast feed unavailable" : response.errorMessage });
     }
     result.success = !result.feeds.empty();
     return result;
@@ -308,7 +470,9 @@ PodcastFeed ParseRssFeed(const std::string& utf8Xml, const std::wstring& feedUrl
     size_t headerEnd = lower.find("<item", channelOpen);
     if (headerEnd == std::string::npos) headerEnd = lower.find("</channel", channelOpen);
     const size_t headerLength = headerEnd == std::string::npos ? std::string::npos : headerEnd - channelOpen;
-    feed.title = Utf8ToUtf16(Trim(ExtractXmlElement(utf8Xml.substr(channelOpen, headerLength), "title")));
+    const std::string headerBlock = utf8Xml.substr(channelOpen, headerLength);
+    feed.title = Utf8ToUtf16(Trim(ExtractXmlElement(headerBlock, "title")));
+    if (feed.title.empty()) feed.title = Utf8ToUtf16(Trim(ExtractXmlElement(headerBlock, "itunes:author")));
     // Items: <item ...> ... </item> blocks, capped at maxEpisodes.
     size_t cursor = channelOpen;
     while (feed.episodes.size() < maxEpisodes) {
@@ -328,15 +492,23 @@ PodcastFeed ParseRssFeed(const std::string& utf8Xml, const std::wstring& feedUrl
         ++cursor;
         const std::string itemBlock = utf8Xml.substr(itemOpen, cursor - itemOpen);
         std::string enclosureUrl = ExtractEnclosureUrl(itemBlock);
-        if (enclosureUrl.rfind("http://", 0) != 0 && enclosureUrl.rfind("https://", 0) != 0) continue; // Skip items without an http(s) enclosure.
+        const std::string lowerEnc = ToLowerAsciiCopy(enclosureUrl);
+        if (lowerEnc.rfind("http://", 0) != 0 && lowerEnc.rfind("https://", 0) != 0) continue; // Skip items without an http(s) enclosure.
+        if (enclosureUrl.rfind("HTTPS://", 0) == 0 || lowerEnc.rfind("https://", 0) == 0) {
+            enclosureUrl.replace(0, 8, "https://");
+        } else if (lowerEnc.rfind("http://", 0) == 0) {
+            enclosureUrl.replace(0, 7, "http://");
+        }
         PodcastEpisode episode;
         episode.url = Utf8ToUtf16(enclosureUrl);
         episode.title = Utf8ToUtf16(Trim(ExtractXmlElement(itemBlock, "title")));
+        if (episode.title.empty()) episode.title = Utf8ToUtf16(Trim(ExtractXmlElement(itemBlock, "itunes:title")));
         episode.publishedSec = ParseRfc822Date(ExtractXmlElement(itemBlock, "pubDate"));
         episode.durationSec = ParseItunesDuration(ExtractXmlElement(itemBlock, "itunes:duration"));
         if (episode.title.empty()) episode.title = episode.url; // Unnamed episodes fall back to their URL.
         feed.episodes.push_back(std::move(episode));
     }
+    if (feed.title.empty() && !feed.episodes.empty()) feed.title = feedUrl;
     return feed;
 }
 

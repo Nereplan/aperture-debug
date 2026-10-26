@@ -452,7 +452,7 @@ HubRenderViewModel App::BuildHubRenderViewModel() {
                     for (const auto& f : fresh) { if (f.url == subs[i].url) { freshFeed = &f; break; } }
                     feedVm.metaText = freshFeed && !freshFeed->episodes.empty()
                         ? (std::to_wstring(freshFeed->episodes.size()) + L" episodes")
-                        : std::wstring(L"Loading episodes 26");
+                        : std::wstring(L"Loading episodes\u2026");
                     feedVm.expanded = ((int)i == listenExpandedFeed);
                     if (feedVm.expanded && freshFeed) {
                         for (const auto& ep : freshFeed->episodes) {
@@ -486,7 +486,7 @@ HubRenderViewModel App::BuildHubRenderViewModel() {
                 }
                 if (subs.empty()) {
                     // Drawn as a hint row; clicking it opens the add dialog.
-                    panel.feeds.push_back({ L"No podcasts yet  14 add a feed by URL", L"Click to subscribe", false, {} });
+                    panel.feeds.push_back({ L"No podcasts yet \u2014 add a feed by URL", L"Click to subscribe", false, {} });
                     panel.feedBounds.push_back(D2D1::RectF(panel.bounds.left + pad, y, panel.bounds.right - pad, y + rowH));
                     y += rowH + gap;
                 }
@@ -509,7 +509,7 @@ HubRenderViewModel App::BuildHubRenderViewModel() {
                     y += stH + gap;
                 }
                 if (panel.radioLoading && listenStations.empty()) {
-                    panel.stations.push_back({ L"Loading stations 26", L"", L"" });
+                    panel.stations.push_back({ L"Loading stations\u2026", L"", L"" });
                     panel.stationBounds.push_back(D2D1::RectF(panel.bounds.left + pad, y, panel.bounds.right - pad, y + stH));
                     y += stH + gap;
                 } else if (!panel.radioError.empty() && listenStations.empty()) {
@@ -1175,8 +1175,20 @@ HubRenderViewModel App::BuildHubRenderViewModel() {
         li.expand = std::clamp(listenIslandExpand.current, 0.0f, 1.0f);
         li.fade = std::clamp(listenIslandFade.current, 0.0f, 1.0f);
         li.pillBounds = ListenPillBounds(dp);
-        li.expandedBounds = IslandExpandedRect(li.pillBounds, dp);
-        li.hitRect = IslandRectUnion(li.pillBounds, li.expandedBounds);
+        {
+            const float w = li.widthDip * dp, h = li.heightDip * dp;
+            if (li.heightDip < 30.0f) {
+                const float cx = (li.pillBounds.left + li.pillBounds.right) * 0.5f;
+                const float cy = (li.pillBounds.top + li.pillBounds.bottom) * 0.5f;
+                li.expandedBounds = D2D1::RectF(cx - w * 0.5f, cy - h * 0.5f, cx + w * 0.5f, cy + h * 0.5f);
+            } else {
+                const float right = li.pillBounds.right;
+                const float left = std::max(12.0f * dp, right - w);
+                const float top = li.pillBounds.top - 2.0f * dp * li.expand;
+                li.expandedBounds = D2D1::RectF(left, top, right, top + h);
+            }
+        }
+        li.hitRect = (li.expand > 0.05f) ? IslandRectUnion(li.pillBounds, li.expandedBounds) : li.pillBounds;
         const double pos = listenPlaybackActive ? listenPlayer.GetPositionSec() : -1.0;
         const double dur = listenPlaybackActive ? listenPlayer.GetDurationSec() : -1.0;
         li.progressRatio = (pos >= 0.0 && dur > 0.0) ? std::clamp(pos / dur, 0.0, 1.0) : 0.0;
@@ -1184,7 +1196,7 @@ HubRenderViewModel App::BuildHubRenderViewModel() {
         li.remainingText = (dur > 0.0 && pos >= 0.0) ? (L"-" + FormatDuration(std::max(0.0, dur - pos))) : L"";
         // Expanded card hot spots (badge + X), scaled by the expand progress.
         const float eA = li.expand;
-        if (eA > 0.001f) {
+        if (eA > 0.05f) {
             const D2D1_RECT_F& card = li.expandedBounds;
             const float pad = 15.0f * dp;
             const float badgeSz = 28.0f * dp * (0.9f + 0.1f * eA);
@@ -1212,7 +1224,7 @@ HubRenderViewModel App::BuildHubRenderViewModel() {
         const std::wstring phase = importCancelRequested.load(std::memory_order_acquire) ? L"Canceling"
             : (total > 0 && processed >= total ? L"Finalizing" : L"Scanning and validating");
         ip.progressText = total > 0
-            ? (phase + L"  14 " + std::to_wstring(std::min(processed, total)) + L" of " + std::to_wstring(total) + L" files")
+            ? (phase + L" \u2014 " + std::to_wstring(std::min(processed, total)) + L" of " + std::to_wstring(total) + L" files")
             : phase + L" folders";
         ip.pillHovered = importPillHovered;
         ip.xHovered = importCancelHovered;
@@ -1223,10 +1235,22 @@ HubRenderViewModel App::BuildHubRenderViewModel() {
         ip.fade = std::clamp(importIslandFade.current, 0.0f, 1.0f);
         ip.spinAngle = importSpinAngle;
         ip.pillBounds = ImportPillBounds(dp);
-        ip.expandedBounds = IslandExpandedRect(ip.pillBounds, dp);
-        ip.hitRect = IslandRectUnion(ip.pillBounds, ip.expandedBounds);
+        {
+            const float w = ip.widthDip * dp, h = ip.heightDip * dp;
+            if (ip.heightDip < 30.0f) {
+                const float cx = (ip.pillBounds.left + ip.pillBounds.right) * 0.5f;
+                const float cy = (ip.pillBounds.top + ip.pillBounds.bottom) * 0.5f;
+                ip.expandedBounds = D2D1::RectF(cx - w * 0.5f, cy - h * 0.5f, cx + w * 0.5f, cy + h * 0.5f);
+            } else {
+                const float right = ip.pillBounds.right;
+                const float left = std::max(12.0f * dp, right - w);
+                const float top = ip.pillBounds.top - 2.0f * dp * ip.expand;
+                ip.expandedBounds = D2D1::RectF(left, top, right, top + h);
+            }
+        }
+        ip.hitRect = (ip.expand > 0.05f) ? IslandRectUnion(ip.pillBounds, ip.expandedBounds) : ip.pillBounds;
         const float eA = ip.expand;
-        if (eA > 0.001f) {
+        if (eA > 0.05f) {
             const D2D1_RECT_F& card = ip.expandedBounds;
             const float pad = 15.0f * dp;
             const float xSz = 24.0f * dp;

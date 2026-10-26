@@ -852,6 +852,13 @@ void App::StartListenPlayback(const std::wstring& url, const std::wstring& title
         ShowOSD(IconType::VolumeMuted, L"Could not start audio playback");
         return;
     }
+    if (!listenPlaybackActive && listenIslandFade.current <= 0.01f) {
+        listenIslandWidthDip.SnapTo(28.0f);
+        listenIslandHeightDip.SnapTo(8.0f);
+        listenIslandRadiusDip.SnapTo(4.0f);
+        listenIslandFade.SnapTo(0.0f);
+        listenIslandExpand.SnapTo(0.0f);
+    }
     listenPlaybackActive = true;
     listenPlaybackIsRadio = isRadio;
     listenPlaybackPaused = false;
@@ -866,6 +873,10 @@ void App::StopListenPlayback() {
     listenPlayer.Stop();
     listenPlaybackActive = false;
     listenPlaybackPaused = false;
+    listenPinExpanded = false;
+    listenPillHovered = false;
+    listenBadgeHovered = false;
+    listenXHovered = false;
     InvalidateRect(hWnd, NULL, FALSE);
 }
 
@@ -945,24 +956,24 @@ D2D1_RECT_F App::ImportPillBounds(float dp) {
     return D2D1::RectF(right - w, cy - h * 0.5f, right, cy + h * 0.5f);
 }
 
-// Content width of the island pill in DIP. The counter uses the monospace
-// face and a measured floor so digit rollovers (9 -> 10, 99 -> 100) and the
-// final-count text cannot jitter the pill; real size changes spring.
+// Content width of the island pill in DIP. Measured from the total digit width
+// (both sides of the slash) and floored at 136 DIP (ai_studio_code(5).html) so
+// per-file counter increments never change or jitter the pill width.
 float App::ImportIslandTargetWidthDip() {
     const size_t total = importTotal.load(std::memory_order_acquire);
-    const size_t done = importProcessed.load(std::memory_order_acquire);
-    const std::wstring label = total > 0
-        ? (std::to_wstring(std::min(done, total)) + L" / " + std::to_wstring(total))
-        : std::wstring(L"Importing");
-    const float textW = renderer.MeasureString(label, FontType::MonoSmall).width;
-    const float iconSz = 12.0f, gap = 7.0f, pad = 10.0f;
-    return std::max(86.0f, iconSz + gap + textW + pad * 2.0f);
+    const std::wstring maxLabel = total > 0
+        ? (std::to_wstring(total) + L" / " + std::to_wstring(total))
+        : std::wstring(L"000 / 000");
+    const float dp = std::max(0.5f, renderer.GetDpiScale());
+    const float textDip = renderer.MeasureString(maxLabel, FontType::MonoSmall).width / dp;
+    const float iconSz = 15.0f, gap = 10.0f, pad = 13.0f;
+    return std::max(136.0f, iconSz + gap + textDip + pad * 2.0f);
 }
 
-// Expanded island card: grows down and left from the compact pill's top
-// edge, clamped to the space the nav leaves free.
+// Expanded island card: grows down and left from the compact pill's top-right
+// corner, clamped to 304x82 DIP (ai_studio_code(5).html).
 D2D1_RECT_F App::IslandExpandedRect(const D2D1_RECT_F& compact, float dp) const {
-    const float w = std::min(304.0f * dp, std::max(150.0f * dp, compact.left - 4.0f * dp - 8.0f * dp));
+    const float w = std::min(304.0f * dp, std::max(180.0f * dp, compact.right - 12.0f * dp));
     return D2D1::RectF(compact.right - w, compact.top, compact.right, compact.top + 82.0f * dp);
 }
 
@@ -2125,17 +2136,39 @@ bool App::Update(float dt) {
     // during the job closes immediately; the import itself keeps running.
     if (importIslandPhase == 0 && importJobActive && !importIslandDismissed) {
         importIslandPhase = 1;
+        importIslandPhaseT = 0.0;
+        importPinExpanded = false;
+        importIslandWidthDip.SnapTo(28.0f);
+        importIslandHeightDip.SnapTo(8.0f);
+        importIslandRadiusDip.SnapTo(4.0f);
+        importIslandFade.SnapTo(0.0f);
+        importIslandExpand.SnapTo(0.0f);
+    }
+    if (importIslandPhase == 1 && importIslandDismissed) {
+        importIslandPhase = 3;
+        importIslandPhaseT = 0.0;
+        importPinExpanded = false;
+        importPillHovered = false;
+        importCancelHovered = false;
+    }
+    if (importIslandPhase == 1 && !importJobActive) {
+        importIslandPhase = 2;
+        importIslandPhaseT = 0.0;
         importPinExpanded = false;
     }
-    if (importIslandPhase == 1 && importIslandDismissed) { importIslandPhase = 3; importIslandPhaseT = 0.0; }
-    if (importIslandPhase == 1 && !importJobActive) { importIslandPhase = 2; importIslandPhaseT = 0.0; }
     if (importIslandPhase == 2) {
         importIslandPhaseT += dt;
         if (importIslandPhaseT >= 1.5) { importIslandPhase = 3; importIslandPhaseT = 0.0; }
     }
     if (importIslandPhase == 3) {
         importIslandPhaseT += dt;
-        if (importIslandPhaseT >= 0.45) { importIslandPhase = 0; importIslandDismissed = false; }
+        if (importIslandPhaseT >= 0.45 && importIslandFade.current <= 0.02f) {
+            importIslandPhase = 0;
+            importIslandDismissed = false;
+        } else if (importIslandPhaseT >= 0.65) {
+            importIslandPhase = 0;
+            importIslandDismissed = false;
+        }
     }
     if (importIslandPhase != 0) {
         const bool expandedNow = importIslandPhase == 1 && !importIslandDismissed && (importPillHovered || importPinExpanded);
@@ -2146,7 +2179,7 @@ bool App::Update(float dt) {
         float sizeDur = 0.48f;
         if (importIslandPhase == 3) {
             wT = 28.0f; hT = 8.0f; rT = 4.0f;
-            fadeT = (float)std::max(0.0, 1.0 - importIslandPhaseT / 0.30);
+            fadeT = 0.0f;
             sizeCurve = &kEaseIslandCollapse; sizeDur = 0.42f;
         } else if (importIslandPhase == 2) {
             wT = 144.0f;
@@ -2161,7 +2194,7 @@ bool App::Update(float dt) {
         AnimateVisual(importIslandHeightDip, hT, sizeDur, sizeCurve);
         AnimateVisual(importIslandRadiusDip, rT, sizeDur, sizeCurve);
         AnimateVisual(importIslandFade, fadeT, 0.30f, MotionTokens::Standard());
-        needsRedraw = needsRedraw || importJobActive;
+        needsRedraw = true;
     } else {
         importIslandExpand.SnapTo(0.0f);
     }
@@ -2500,7 +2533,6 @@ bool App::Update(float dt) {
         // Apply the idle policy during playback too: opening a movie stops
         // hub previews, but their decoder and frame cache otherwise stay warm.
         previewPlayer.Shutdown();
-        listenPlayer.Shutdown();
         previewInitialized = false;
         previewInitAttempted = false;
     }
@@ -3291,6 +3323,11 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
             const int oldHoveredContextMenuItem = hoveredContextMenuItem;
             const int oldHoveredIrisShoulder = hoveredIrisShoulder;
             const int oldActiveIrisDialIndex = activeIrisDialIndex;
+            const int oldListenHoveredFeed = listenHoveredFeed;
+            const int oldListenHoveredEpisode = listenHoveredEpisode;
+            const int oldListenHoveredEpisodeFeed = listenHoveredEpisodeFeed;
+            const int oldListenHoveredStation = listenHoveredStation;
+            const bool oldListenAddPodcastHovered = listenAddPodcastHovered;
             if (playbackSession.IsOpen() && activeModal == ModalType::None) {
                 if (activeTextInputField == TextInputField::PlaybackSpeed && textInputDragging) {
                     SetTextInputCaretFromMouse(x, y, true);
@@ -3361,18 +3398,23 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                     if (isKeyboardNavActive) { isKeyboardNavActive = false; hoverChanged = true; }
                 }
                 if (activeTextInputField != TextInputField::None && textInputDragging) { SetTextInputCaretFromMouse(x, y, true); return 0; }
-                if (importIslandPhase != 0) {
-                    const bool newPillHovered = PtInRectF(importIslandHitRect, x, y);
+                if (importIslandPhase != 0 || importIslandFade.current > 0.001f) {
+                    const bool newPillHovered = importIslandPhase != 0 && PtInRectF(importIslandHitRect, x, y);
                     const bool newXHovered = newPillHovered && importIslandExpand.current > 0.5f &&
                         PtInRectF(importIslandXBounds, x, y);
                     if (importPillHovered != newPillHovered || importCancelHovered != newXHovered) {
                         importPillHovered = newPillHovered;
-                        importCancelHovered = newXHovered; // X-button hover
+                        importCancelHovered = newXHovered;
+                        hoverChanged = true;
                         InvalidateRect(hWnd, NULL, FALSE);
                     }
+                } else if (importPillHovered || importCancelHovered) {
+                    importPillHovered = false;
+                    importCancelHovered = false;
+                    hoverChanged = true;
                 }
-                if (listenPlaybackActive) {
-                    const bool newPillHovered = PtInRectF(listenIslandHitRect, x, y);
+                if (listenPlaybackActive || listenIslandFade.current > 0.001f) {
+                    const bool newPillHovered = listenPlaybackActive && PtInRectF(listenIslandHitRect, x, y);
                     const bool expandedNow = newPillHovered && listenIslandExpand.current > 0.5f;
                     const bool newBadge = expandedNow && PtInRectF(listenIslandBadgeBounds, x, y);
                     const bool newX = expandedNow && PtInRectF(listenIslandXBounds, x, y);
@@ -3380,8 +3422,14 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                         listenPillHovered = newPillHovered;
                         listenBadgeHovered = newBadge;
                         listenXHovered = newX;
+                        hoverChanged = true;
                         InvalidateRect(hWnd, NULL, FALSE);
                     }
+                } else if (listenPillHovered || listenBadgeHovered || listenXHovered) {
+                    listenPillHovered = false;
+                    listenBadgeHovered = false;
+                    listenXHovered = false;
+                    hoverChanged = true;
                 }
                 if (activeModal != ModalType::None) {
                     const bool isInputModal = (activeModal == ModalType::NewPlaylist || activeModal == ModalType::NewSmartPlaylist || activeModal == ModalType::EditSmartPlaylist || activeModal == ModalType::SeekStepInput ||
@@ -3533,10 +3581,17 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                 if (!cursorInsideOpenMenu) {
                 hoverChanged = hoverChanged || UpdateHoverStates(x, y);
                 D2D1_RECT_F viewBounds = Presentation::HubView(winW, winH, dp);
+                if (currentTab == TabView::Media && libraryGroupMode == LibraryGroupMode::Listen) {
+                    ResolveListenHover(x, y);
+                } else {
+                    listenHoveredFeed = -1;
+                    listenHoveredEpisode = -1;
+                    listenHoveredEpisodeFeed = -1;
+                    listenHoveredStation = -1;
+                    listenAddPodcastHovered = false;
+                }
                 if (currentTab == TabView::Playlists) {
                     ResolvePlaylistHover(x, y);
-                } else if (currentTab == TabView::Media && libraryGroupMode == LibraryGroupMode::Listen) {
-                    ResolveListenHover(x, y);
                 } else if (currentTab == TabView::History) {
                     D2D1_SIZE_F clearSize = renderer.MeasureString(L"Clear History", FontType::Medium);
                     float clearW = clearSize.width + 24.0f * dp, clearH = 32.0f * dp;
@@ -3611,7 +3666,12 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                 oldHoveredShortcutIndex != hoveredShortcutIndex || oldResetShortcutsHovered != isResetShortcutsHovered ||
                 oldHoveredContextMenuItem != hoveredContextMenuItem ||
                 oldHoveredIrisShoulder != hoveredIrisShoulder ||
-                oldActiveIrisDialIndex != activeIrisDialIndex;
+                oldActiveIrisDialIndex != activeIrisDialIndex ||
+                oldListenHoveredFeed != listenHoveredFeed ||
+                oldListenHoveredEpisode != listenHoveredEpisode ||
+                oldListenHoveredEpisodeFeed != listenHoveredEpisodeFeed ||
+                oldListenHoveredStation != listenHoveredStation ||
+                oldListenAddPodcastHovered != listenAddPodcastHovered;
             // Settings rows resolve hover at draw time (pointerIn), so any
             // mousemove over the tab must repaint even when tracked state is
             // unchanged — otherwise highlights lag behind the cursor.
@@ -3718,12 +3778,7 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                         ShowOSD(IconType::Checkmark, L"Listening stopped");
                         return 0;
                     }
-                    if (listenIslandExpand.current > 0.5f && PtInRectF(listenIslandBadgeBounds, x, y)) {
-                        ToggleListenPause();
-                        return 0;
-                    }
-                    listenPinExpanded = !listenPinExpanded;
-                    InvalidateRect(hWnd, NULL, FALSE);
+                    ToggleListenPause();
                     return 0;
                 }
             }
@@ -3733,13 +3788,11 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                         // Dismiss the island; the import itself keeps running.
                         importIslandDismissed = true;
                         importPinExpanded = false;
+                        importPillHovered = false;
+                        importCancelHovered = false;
                         ShowOSD(IconType::Checkmark, L"Import continues in the background (Esc cancels)");
                         InvalidateRect(hWnd, NULL, FALSE);
                         return 0;
-                    }
-                    if (importIslandPhase == 1) {
-                        importPinExpanded = !importPinExpanded;
-                        InvalidateRect(hWnd, NULL, FALSE);
                     }
                     return 0;
                 }

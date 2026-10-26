@@ -22,6 +22,7 @@ struct HttpRequestOptions {
     size_t maxResponseBytes = 150 * 1024 * 1024; // 150 MB default ceiling
     int timeoutMs = 5000;                       // 5 seconds default timeout
     int maxRedirects = 3;                       // Max 3 redirects
+    bool allowHttp = false;
     std::wstring userAgent = L"Aperture/2.0";
     std::vector<std::wstring> allowedHosts; // Exact, case-insensitive destinations, including every redirect hop.
     std::function<bool()> isCancelled;

@@ -2413,9 +2413,13 @@ bool MpvListenPlayer::EnsureInitializedLocked(HMODULE hDll) {
     // Audio-only client: no video output, no on-screen window, no scripting.
     SetMpvOption(mpv, "vo", "null", MpvOptionRequirement::Essential);
     SetMpvOption(mpv, "vid", "no", MpvOptionRequirement::Essential);
+    SetMpvOption(mpv, "aid", "auto");
     // Leave --ao unset: mpv auto-selects the output. Pinning "auto" as a
     // device name left the client with no usable output (silent playback).
     SetMpvOption(mpv, "cache", "yes", MpvOptionRequirement::Essential);
+    // Many internet radio directory entries resolve to .pls / .m3u / .m3u8
+    // playlists; allow playlist expansion for those stream URLs.
+    SetMpvOption(mpv, "load-unsafe-playlists", "yes");
     // Radio streams and podcasts benefit from a wider read-ahead window than
     // the hover preview; nothing renders from this instance.
     SetMpvOption(mpv, "demuxer-max-bytes", "64MiB");
@@ -2452,6 +2456,7 @@ bool MpvListenPlayer::EnsureInitializedLocked(HMODULE hDll) {
 void MpvListenPlayer::TeardownLocked() {
     listenInitialized = false;
     currentPath.clear();
+    loadStarted = false;
     fileLoaded = false;
     paused = false;
     finished = false;
@@ -2496,6 +2501,7 @@ bool MpvListenPlayer::Start(const std::wstring& path, double startSec, double vo
     // fire for the load queued below.
     DrainEventsLocked(false);
     currentPath = path;
+    loadStarted = false;
     fileLoaded = false;
     paused = false;
     finished = false;
@@ -2537,6 +2543,7 @@ bool MpvListenPlayer::Start(const std::wstring& path, double startSec, double vo
 void MpvListenPlayer::Stop() {
     std::lock_guard<std::mutex> lifecycleLock(lifecycleMutex);
     currentPath.clear();
+    loadStarted = false;
     fileLoaded = false;
     paused = false;
     finished = false;
@@ -2601,23 +2608,39 @@ double MpvListenPlayer::GetDurationSec() const {
 // with different reasons, so they are ignored here).
 void MpvListenPlayer::DrainEventsLocked(bool recordFinish) {
     if (!mpv || !fn_mpv_wait_event) return;
-    bool sawEof = false;
+    bool sawTerminalEnd = false;
     while (auto* event = fn_mpv_wait_event(mpv, 0)) {
         if (event->event_id == MPV_EVENT_NONE) break;
         if (!recordFinish) continue;
-        if (event->event_id == MPV_EVENT_FILE_LOADED) { fileLoaded = true; } else if (event->event_id == MPV_EVENT_END_FILE) {
-            // EOF ends a good stream; an error end-file must also finish the
-            // session, or a failed load leaves the island "playing" silently.
+        if (event->event_id == MPV_EVENT_START_FILE) {
+            loadStarted = true;
+            sawTerminalEnd = false;
+        } else if (event->event_id == MPV_EVENT_FILE_LOADED) {
+            loadStarted = true;
+            fileLoaded = true;
+            sawTerminalEnd = false;
+        } else if (event->event_id == MPV_EVENT_END_FILE) {
+            // Only treat EOF or ERROR for the active load as terminal.
+            // Ignore STOP/QUIT (from a replaced stream) and REDIRECT (when a
+            // radio .m3u/.pls/.m3u8 playlist expands into its stream URL).
             const auto* endFile = static_cast<const mpv_event_end_file*>(event->data);
-            (void)endFile;
-            sawEof = true;
+            const mpv_end_file_reason reason = endFile ? endFile->reason : MPV_END_FILE_REASON_EOF;
+            if (loadStarted && (reason == MPV_END_FILE_REASON_EOF || reason == MPV_END_FILE_REASON_ERROR)) {
+                sawTerminalEnd = true;
+            }
         }
     }
     if (recordFinish && !finished) {
-        if (sawEof) { finished = true; } else {
+        if (sawTerminalEnd) {
+            int idle = 1;
+            if (fn_mpv_get_property && fn_mpv_get_property(mpv, "idle-active", MPV_FORMAT_FLAG, &idle) >= 0) {
+                if (idle) finished = true;
+            } else {
+                finished = true;
+            }
+        } else if (fileLoaded && fn_mpv_get_property) {
             int idle = 0;
-            if (fileLoaded && fn_mpv_get_property &&
-                fn_mpv_get_property(mpv, "idle-active", MPV_FORMAT_FLAG, &idle) >= 0 && idle) {
+            if (fn_mpv_get_property(mpv, "idle-active", MPV_FORMAT_FLAG, &idle) >= 0 && idle) {
                 finished = true;
             }
         }

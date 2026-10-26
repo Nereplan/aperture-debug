@@ -123,4 +123,37 @@ TEST_CASE(Podcasts, SubscriptionsTolerateUnknownFieldsAndMissingFile) {
     TEST_ASSERT(pristine.GetFeeds().empty());
 }
 
+TEST_CASE(Podcasts, NormalizeUrlAndCdataRssParsing) {
+    TEST_ASSERT_EQ(NormalizePodcastFeedUrl(L"  HTTPS://Example.com/feed.xml  "), std::wstring(L"https://Example.com/feed.xml"));
+    TEST_ASSERT_EQ(NormalizePodcastFeedUrl(L"http://feeds.example.com/rss"), std::wstring(L"http://feeds.example.com/rss"));
+    TEST_ASSERT_EQ(NormalizePodcastFeedUrl(L"feed://feeds.example.com/show.xml"), std::wstring(L"https://feeds.example.com/show.xml"));
+    TEST_ASSERT_EQ(NormalizePodcastFeedUrl(L"podcast://feeds.example.com/show.xml"), std::wstring(L"https://feeds.example.com/show.xml"));
+    TEST_ASSERT_EQ(NormalizePodcastFeedUrl(L"itpc://feeds.example.com/show.xml"), std::wstring(L"https://feeds.example.com/show.xml"));
+    TEST_ASSERT_EQ(NormalizePodcastFeedUrl(L"feed:http://feeds.example.com/show.xml"), std::wstring(L"http://feeds.example.com/show.xml"));
+    TEST_ASSERT_EQ(NormalizePodcastFeedUrl(L"feeds.example.com/podcast.rss"), std::wstring(L"https://feeds.example.com/podcast.rss"));
+    TEST_ASSERT(NormalizePodcastFeedUrl(L"").empty());
+    TEST_ASSERT(NormalizePodcastFeedUrl(L"ftp://feeds.example.com/podcast.rss").empty());
+
+    const std::string cdataXml =
+        "<rss version=\"2.0\" xmlns:itunes=\"http://www.itunes.com/dtds/podcast-1.0.dtd\" xmlns:media=\"http://search.yahoo.com/mrss/\">"
+        "<channel>"
+        "<title><![CDATA[The Daily &amp; Special Show]]></title>"
+        "<item>"
+        "<title><![CDATA[Episode #1: Launch]]></title>"
+        "<media:content url=\"HTTPS://cdn.example.com/ep1.mp3\" type=\"audio/mpeg\"/>"
+        "</item>"
+        "<item>"
+        "<itunes:title>Fallback Title</itunes:title>"
+        "<link rel=\"enclosure\" href=\"http://cdn.example.com/ep2.m4a\"/>"
+        "</item>"
+        "</channel></rss>";
+    const PodcastFeed feed = ParseRssFeed(cdataXml, L"https://feeds.example.com/show.xml");
+    TEST_ASSERT_EQ(feed.title, std::wstring(L"The Daily & Special Show"));
+    TEST_ASSERT_EQ(feed.episodes.size(), size_t(2));
+    TEST_ASSERT_EQ(feed.episodes[0].title, std::wstring(L"Episode #1: Launch"));
+    TEST_ASSERT_EQ(feed.episodes[0].url, std::wstring(L"https://cdn.example.com/ep1.mp3"));
+    TEST_ASSERT_EQ(feed.episodes[1].title, std::wstring(L"Fallback Title"));
+    TEST_ASSERT_EQ(feed.episodes[1].url, std::wstring(L"http://cdn.example.com/ep2.m4a"));
+}
+
 } // namespace Aperture::Test

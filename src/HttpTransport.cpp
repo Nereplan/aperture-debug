@@ -27,7 +27,9 @@ bool ParseDestination(const std::wstring& url, const HttpRequestOptions& options
     if (!WinHttpCrackUrl(url.c_str(), static_cast<DWORD>(url.size()), 0, &components) || !components.dwHostNameLength) {
         result = HttpFailure(HttpTransportStatus::InvalidUrl, L"Malformed URL structure", url); return false;
     }
-    if (components.nScheme != INTERNET_SCHEME_HTTPS) {
+    const bool isHttps = (components.nScheme == INTERNET_SCHEME_HTTPS);
+    const bool isHttp = (components.nScheme == INTERNET_SCHEME_HTTP);
+    if (!isHttps && !(options.allowHttp && isHttp)) {
         result = HttpFailure(HttpTransportStatus::HttpsRequired, L"HTTPS is strictly required", url); return false;
     }
     if (components.dwUserNameLength || components.dwPasswordLength) {
@@ -75,8 +77,9 @@ HttpResponse PerformGet(const std::wstring& initialUrl, const HttpRequestOptions
         if (path.empty()) path = L"/";
         InternetHandle connection(WinHttpConnect(session.get(), host.c_str(), components.nPort, 0));
         if (!connection) return networkFailure(L"Failed to connect to HTTPS host", currentUrl);
+        const DWORD requestFlags = (components.nScheme == INTERNET_SCHEME_HTTPS) ? WINHTTP_FLAG_SECURE : 0;
         InternetHandle request(WinHttpOpenRequest(connection.get(), L"GET", path.c_str(), nullptr, WINHTTP_NO_REFERER,
-            WINHTTP_DEFAULT_ACCEPT_TYPES, WINHTTP_FLAG_SECURE));
+            WINHTTP_DEFAULT_ACCEPT_TYPES, requestFlags));
         if (!request) return networkFailure(L"Failed to open HTTPS request", currentUrl);
         // Follow redirects explicitly so neither the count nor destination policy
         // can be bypassed by WinHTTP's automatic redirect handling.
@@ -206,7 +209,7 @@ HttpResponse MockHttpTransport::Get(const std::wstring& httpsUrl, const HttpRequ
     {
         std::lock_guard<std::mutex> lock(mockMutex_);
         requestedUrls_.push_back(httpsUrl);
-        if (httpsUrl.rfind(L"https://", 0) != 0) {
+        if (httpsUrl.rfind(L"https://", 0) != 0 && !(options.allowHttp && httpsUrl.rfind(L"http://", 0) == 0)) {
             HttpResponse res;
             res.success = false;
             res.status = HttpTransportStatus::HttpsRequired;

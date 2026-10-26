@@ -109,9 +109,22 @@ inline std::string ExtractXmlElement(const std::string& block, const std::string
         size_t close = lower.find('>', after);
         if (close == std::string::npos) return "";
         if (close > 0 && lower[close - 1] == '/') return ""; // Self-closing element has no content
+        size_t contentStart = close + 1;
+        while (contentStart < block.size() && (block[contentStart] == ' ' || block[contentStart] == '\t' || block[contentStart] == '\r' || block[contentStart] == '\n')) {
+            ++contentStart;
+        }
+        if (contentStart + 9 <= block.size() && block.compare(contentStart, 9, "<![CDATA[") == 0) {
+            size_t cdataEnd = block.find("]]>", contentStart + 9);
+            if (cdataEnd == std::string::npos) return "";
+            return DecodeXmlEntities(Trim(block.substr(contentStart + 9, cdataEnd - (contentStart + 9))));
+        }
         size_t end = lower.find("</" + lowerTag, close + 1);
         if (end == std::string::npos) return "";
-        return DecodeXmlEntities(Trim(block.substr(close + 1, end - close - 1)));
+        std::string inner = Trim(block.substr(close + 1, end - close - 1));
+        if (inner.size() >= 12 && inner.rfind("<![CDATA[", 0) == 0 && inner.compare(inner.size() - 3, 3, "]]>") == 0) {
+            inner = Trim(inner.substr(9, inner.size() - 12));
+        }
+        return DecodeXmlEntities(inner);
     }
     return "";
 }

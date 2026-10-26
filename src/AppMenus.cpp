@@ -736,10 +736,16 @@ void App::OpenBackgroundContextMenu(float x, float y) {
         }
     }
     if (currentTab == TabView::Media && libraryGroupMode == LibraryGroupMode::Listen) {
-        contextMenuItems.push_back({ "internet_radio", L"Internet Radio Directory...", L"", IconType::RadioWaves, false, false, false,
-                                    [this]() { OpenInternetRadioContextMenu(); }});
-        contextMenuItems.push_back({ "podcasts", L"Podcast Subscriptions...", L"", IconType::MicPodcast, false, false, false,
-                                    [this]() { OpenPodcastsContextMenu(); }});
+        contextMenuItems.push_back({ "add_podcast", L"Add Podcast by URL...", L"", IconType::MicPodcast, false, false, false,
+                                    [this]() { ShowAddPodcastModal(); }});
+        contextMenuItems.push_back({ "refresh_listen", L"Refresh Podcasts & Radio", L"", IconType::Refresh, false, false, false, [this]() {
+            if (playbackSession.IsPrivateMode()) return;
+            radioJobs.EnsureFetch();
+            std::vector<std::wstring> feedUrls;
+            for (const auto& f : podcastSubscriptions.GetFeeds()) feedUrls.push_back(f.url);
+            if (!feedUrls.empty()) podcastJobs.EnsureRefresh(feedUrls);
+            ShowOSD(IconType::Refresh, L"Refreshing podcasts & radio\u2026");
+        }});
     }
     contextMenuItems.push_back({ "sep_bg_2", L"", L"", IconType::Play, true });
     contextMenuItems.push_back({ "refresh", L"Refresh", L"F5", IconType::Refresh, false, false, false, [this]() {
@@ -2203,10 +2209,22 @@ bool App::PumpPodcastJobs() {
         if (addResult.success && !addResult.feed.title.empty() && !addResult.feed.episodes.empty()) {
             podcastSubscriptions.Add(addResult.feed.title, addResult.feed.url);
             podcastSubscriptions.Save(GetDataDir());
+            bool updatedExisting = false;
+            for (auto& existing : listenFeeds) {
+                if (existing.url == addResult.feed.url) {
+                    existing = addResult.feed;
+                    updatedExisting = true;
+                    break;
+                }
+            }
+            if (!updatedExisting) listenFeeds.push_back(addResult.feed);
+            if (listenExpandedFeed < 0 && !podcastSubscriptions.GetFeeds().empty()) {
+                listenExpandedFeed = static_cast<int>(podcastSubscriptions.GetFeeds().size()) - 1;
+            }
             ShowOSD(IconType::Checkmark, L"Podcast added: " + addResult.feed.title);
         } else {
             const std::wstring reason = addResult.errorMessage.empty() ? L"the URL is not an RSS podcast feed" : addResult.errorMessage;
-            ShowOSD(IconType::VolumeMuted, L"Podcast feed invalid  14 " + reason, 5.0f);
+            ShowOSD(IconType::VolumeMuted, L"Podcast feed invalid \u2014 " + reason, 5.0f);
         }
     }
     if (podcastJobs.Pump()) {

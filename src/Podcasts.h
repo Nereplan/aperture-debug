@@ -29,6 +29,11 @@ struct PodcastFeed {
 // matched by their literal spelling (the parser sees "<itunes:duration>").
 PodcastFeed ParseRssFeed(const std::string& utf8Xml, const std::wstring& feedUrl, size_t maxEpisodes = 100);
 
+// Normalizes user-entered podcast URLs (trims whitespace/quotes, converts
+// feed:// / podcast:// / itpc:// / pcast:// and scheme-less host/path strings
+// to https://, lowercases http(s)://). Returns empty on invalid input.
+std::wstring NormalizePodcastFeedUrl(const std::wstring& rawUrl);
+
 // Podcast subscriptions persisted at <dataDir>\podcasts.json:
 // { "schemaVersion": 1, "feeds": [ { "url": ..., "title": ... } ] }.
 // Unknown JSON fields are ignored on load; a missing file yields an empty list.
@@ -58,16 +63,21 @@ struct PodcastRefreshResult {
     std::vector<PodcastFeedFailure> failures;
 };
 
+struct PodcastAddPreviewResult {
+    bool success = false; // parsed feed with a title and at least one episode
+    PodcastFeed feed;
+    std::wstring errorMessage;
+};
+
 // Fetch orchestration for podcast feeds. Each feed URL is fetched sequentially
-// (https ONLY; non-https URLs fail up front with a per-feed error), capped at
-// 1 MB and 10 s per feed, with overall cancellation. Each response is cached
-// under <root>\cache\podcasts\<sanitized-url>.xml with a 6 h freshness wrapper
-// { "cachedAtSec": ..., "body": ... }; stale entries still serve as a fallback
-// when a refresh fails.
+// (http or https), capped at 24 MB and 15 s per feed, with overall cancellation.
+// Each response is cached under <root>\cache\podcasts\<sanitized-url>.xml with
+// a 6 h freshness wrapper { "cachedAtSec": ..., "body": ... }; stale entries
+// still serve as a fallback when a refresh fails.
 class PodcastRefreshService {
 public:
-    static constexpr int kFetchTimeoutMs = 10000;                      // 10 s per-feed network timeout
-    static constexpr size_t kMaxResponseBytes = 1024 * 1024;           // 1 MB; feed XML is far smaller
+    static constexpr int kFetchTimeoutMs = 15000;                      // 15 s per-feed network timeout
+    static constexpr size_t kMaxResponseBytes = 24 * 1024 * 1024;      // 24 MB ceiling for large multi-year RSS feeds
     static constexpr int64_t kCacheFreshnessSec = 6LL * 60LL * 60LL;   // 6 h freshness stamp
     static std::wstring GetCachePath(const std::wstring& feedUrl, const std::wstring& root = GetExeDir());
     // Cache wrapper { "cachedAtSec": ..., "body": ... } shared with PodcastJobs.
@@ -76,14 +86,10 @@ public:
     // Cheap UI-side probe (file timestamps only): true when any feed cache is
     // missing or older than kCacheFreshnessSec.
     static bool AnyCacheStale(const std::vector<std::wstring>& feedUrls, const std::wstring& root = GetExeDir());
+    static PodcastAddPreviewResult FetchSingleFeed(const std::wstring& feedUrl, const std::wstring& root = GetExeDir(),
+        IHttpTransport* customTransport = nullptr, std::shared_ptr<OperationCancellation> cancellation = {});
     static PodcastRefreshResult FetchFeeds(const std::vector<std::wstring>& feedUrls, const std::wstring& root = GetExeDir(),
         IHttpTransport* customTransport = nullptr, std::shared_ptr<OperationCancellation> cancellation = {});
-};
-
-struct PodcastAddPreviewResult {
-    bool success = false; // parsed feed with a title and at least one episode
-    PodcastFeed feed;
-    std::wstring errorMessage;
 };
 
 // UI-thread controller following the RadioDirectoryJobs member pattern: one
@@ -108,36 +114,7 @@ public:
     void EnsureAddPreview(const std::wstring& feedUrl, const std::wstring& root = GetExeDir(),
         IHttpTransport* testTransport = nullptr) {
         addPreview_.Start([feedUrl, root, testTransport](const auto& cancellation) {
-            PodcastAddPreviewResult result;
-            if (feedUrl.rfind(L"https://", 0) != 0) {
-                result.errorMessage = L"Only https:// podcast feed URLs are supported";
-                return result;
-            }
-            const std::wstring cachePath = PodcastRefreshService::GetCachePath(feedUrl, root);
-            std::string body;
-            bool cacheFresh = false;
-            const bool haveCache = PodcastRefreshService::LoadPodcastCache(cachePath, body, cacheFresh);
-            if (!haveCache || !cacheFresh) {
-                HttpRequestOptions options;
-                options.maxResponseBytes = PodcastRefreshService::kMaxResponseBytes;
-                options.timeoutMs = PodcastRefreshService::kFetchTimeoutMs;
-                options.maxRedirects = 3;
-                options.cancellation = cancellation;
-                WinHttpTransport defaultTransport;
-                IHttpTransport* transport = testTransport ? testTransport : &defaultTransport;
-                HttpResponse response = transport->Get(feedUrl, options);
-                if (response.success && !response.body.empty()) {
-                    body = std::move(response.body);
-                    PodcastRefreshService::SavePodcastCache(cachePath, body, time(nullptr));
-                } else if (!haveCache) {
-                    result.errorMessage = response.errorMessage.empty() ? L"Podcast feed unavailable" : response.errorMessage;
-                    return result;
-                }
-                // A failed network fetch falls back to the stale cache when one exists.
-            }
-            result.feed = ParseRssFeed(body, feedUrl);
-            result.success = !result.feed.title.empty() && !result.feed.episodes.empty();
-            return result;
+            return PodcastRefreshService::FetchSingleFeed(feedUrl, root, testTransport, cancellation);
         });
     }
     // Returns true once when the refresh job completes; state becomes Ready.

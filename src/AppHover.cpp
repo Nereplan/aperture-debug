@@ -327,6 +327,16 @@ void App::OnMouseLeave() {
     hoveredShortcutIndex = -1;
     isResetShortcutsHovered = false;
     isJumpAheadHovered = false;
+    listenHoveredFeed = -1;
+    listenHoveredEpisode = -1;
+    listenHoveredEpisodeFeed = -1;
+    listenHoveredStation = -1;
+    listenAddPodcastHovered = false;
+    importPillHovered = false;
+    importCancelHovered = false;
+    listenPillHovered = false;
+    listenBadgeHovered = false;
+    listenXHovered = false;
     if (GetCapture() != hWnd) {
         settingsPressState = {};
         isClearHistoryPressed = false;

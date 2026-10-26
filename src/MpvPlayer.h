@@ -448,6 +448,7 @@ private:
     mpv_handle* mpv = nullptr;
     std::wstring currentPath;
     bool listenInitialized = false;
+    bool loadStarted = false;     // MPV_EVENT_START_FILE seen for the current Start
     bool fileLoaded = false;      // MPV_EVENT_FILE_LOADED seen since the last Start
     bool paused = false;
     bool finished = false;        // EOF/idle observed after a load
