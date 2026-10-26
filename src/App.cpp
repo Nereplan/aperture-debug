@@ -839,19 +839,6 @@ bool App::IsReducedMotionEnabled() const { return settings.reduceMotionEnabled |
 void App::StartListenPlayback(const std::wstring& url, const std::wstring& title, const std::wstring& subtitle,
                               bool isRadio, double startSec) {
     if (url.empty()) return;
-    if (!listenPlayerInitialized) {
-        if (!listenPlayer.Initialize(playerInitialized ? player.GetMpvDll() : nullptr)) {
-            ShowOSD(IconType::VolumeMuted, L"Could not start audio playback");
-            return;
-        }
-        listenPlayerInitialized = true;
-    }
-    listenPlayer.SetVolume(settings.volume);
-    listenVolumeApplied = settings.volume;
-    if (!listenPlayer.Start(url, startSec, settings.volume)) {
-        ShowOSD(IconType::VolumeMuted, L"Could not start audio playback");
-        return;
-    }
     if (!listenPlaybackActive && listenIslandFade.current <= 0.01f) {
         listenIslandWidthDip.SnapTo(28.0f);
         listenIslandHeightDip.SnapTo(8.0f);
@@ -866,6 +853,21 @@ void App::StartListenPlayback(const std::wstring& url, const std::wstring& title
     listenSubtitle = subtitle;
     listenUrl = url;
     InvalidateRect(hWnd, NULL, FALSE);
+    if (!listenPlayerInitialized) {
+        if (!listenPlayer.Initialize(playerInitialized ? player.GetMpvDll() : nullptr)) {
+            listenPlaybackPaused = true;
+            ShowOSD(IconType::VolumeMuted, L"Could not start audio playback");
+            return;
+        }
+        listenPlayerInitialized = true;
+    }
+    listenPlayer.SetVolume(settings.volume);
+    listenVolumeApplied = settings.volume;
+    if (!listenPlayer.Start(url, startSec, settings.volume)) {
+        listenPlaybackPaused = true;
+        ShowOSD(IconType::VolumeMuted, L"Could not start audio playback");
+        return;
+    }
 }
 
 void App::StopListenPlayback() {
@@ -2238,6 +2240,7 @@ bool App::Update(float dt) {
         AnimateVisual(listenIslandHeightDip, hT, sizeDur, sizeCurve);
         AnimateVisual(listenIslandRadiusDip, rT, sizeDur, sizeCurve);
         AnimateVisual(listenIslandFade, fadeT, 0.30f, MotionTokens::Standard());
+        needsRedraw = true;
     }
     needsRedraw = needsRedraw || listenIslandWidthDip.Tick() || listenIslandHeightDip.Tick() ||
         listenIslandRadiusDip.Tick() || listenIslandExpand.Tick() || listenIslandFade.Tick();
@@ -3778,7 +3781,25 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                         ShowOSD(IconType::Checkmark, L"Listening stopped");
                         return 0;
                     }
-                    ToggleListenPause();
+                    if (listenIslandExpand.current > 0.5f && PtInRectF(listenIslandBadgeBounds, x, y)) {
+                        ToggleListenPause();
+                        return 0;
+                    }
+                    if (listenIslandExpand.current > 0.5f && !listenPlaybackIsRadio) {
+                        const float pad = 15.0f * dp;
+                        const float barY = listenIslandHitRect.bottom - 18.0f * dp;
+                        const D2D1_RECT_F seekHit = D2D1::RectF(listenIslandHitRect.left + pad, barY - 6.0f * dp,
+                                                                listenIslandHitRect.right - pad, barY + 11.0f * dp);
+                        const double dur = listenPlayer.GetDurationSec();
+                        if (dur > 0.0 && PtInRectF(seekHit, x, y)) {
+                            const double ratio = std::clamp((double)(x - seekHit.left) / (double)std::max(1.0f, RectWidth(seekHit)), 0.0, 1.0);
+                            listenPlayer.SeekAbsolute(ratio * dur);
+                            InvalidateRect(hWnd, NULL, FALSE);
+                            return 0;
+                        }
+                    }
+                    listenPinExpanded = !listenPinExpanded;
+                    InvalidateRect(hWnd, NULL, FALSE);
                     return 0;
                 }
             }
@@ -3794,6 +3815,8 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                         InvalidateRect(hWnd, NULL, FALSE);
                         return 0;
                     }
+                    importPinExpanded = !importPinExpanded;
+                    InvalidateRect(hWnd, NULL, FALSE);
                     return 0;
                 }
             }
@@ -4023,20 +4046,32 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                     if (PtInRectF(mediaListenBtnBounds, x, y)) { SetLibraryGroupMode(LibraryGroupMode::Listen); return 0; }
                     if (libraryGroupMode == LibraryGroupMode::Listen) {
                         if (PtInRectF(listenAddPodcastBounds, x, y)) { ShowAddPodcastModal(); return 0; }
+                        auto resolveFreshFeed = [&](size_t subIdx) -> const PodcastFeed* {
+                            const auto& subs = podcastSubscriptions.GetFeeds();
+                            if (subIdx >= subs.size()) return nullptr;
+                            const std::wstring normSubUrl = NormalizePodcastFeedUrl(subs[subIdx].url);
+                            for (const auto& f : listenFeeds) {
+                                if (f.url == subs[subIdx].url || (!normSubUrl.empty() && NormalizePodcastFeedUrl(f.url) == normSubUrl)) {
+                                    return &f;
+                                }
+                            }
+                            if (listenFeeds.size() == subs.size()) return &listenFeeds[subIdx];
+                            return nullptr;
+                        };
                         for (size_t i = 0; i < listenEpisodeBounds.size(); ++i) {
                             if (!PtInRectF(listenEpisodeBounds[i], x, y)) continue;
                             const int feedIdx = (i < listenEpisodeFeedIndex.size()) ? listenEpisodeFeedIndex[i] : -1;
                             if (feedIdx >= 0) {
-                                const auto& subs = podcastSubscriptions.GetFeeds();
-                                if ((size_t)feedIdx < subs.size()) {
-                                    const PodcastFeed* fresh = nullptr;
-                                    for (const auto& f : listenFeeds) { if (f.url == subs[feedIdx].url) { fresh = &f; break; } }
-                                    if (fresh && i < fresh->episodes.size()) {
-                                        PlayListenStream(fresh->episodes[i].url,
-                                                         fresh->episodes[i].title.empty() ? L"Untitled episode" : fresh->episodes[i].title,
-                                                         fresh->title.empty() ? L"Podcast" : fresh->title, false);
-                                        return 0;
-                                    }
+                                size_t epIdx = 0;
+                                for (size_t k = 0; k < i && k < listenEpisodeFeedIndex.size(); ++k) {
+                                    if (listenEpisodeFeedIndex[k] == feedIdx) ++epIdx;
+                                }
+                                const PodcastFeed* fresh = resolveFreshFeed((size_t)feedIdx);
+                                if (fresh && epIdx < fresh->episodes.size()) {
+                                    PlayListenStream(fresh->episodes[epIdx].url,
+                                                     fresh->episodes[epIdx].title.empty() ? L"Untitled episode" : fresh->episodes[epIdx].title,
+                                                     fresh->title.empty() ? L"Podcast" : fresh->title, false);
+                                    return 0;
                                 }
                             }
                             return 0;
@@ -4044,6 +4079,15 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                         for (size_t i = 0; i < listenFeedBounds.size(); ++i) {
                             if (!PtInRectF(listenFeedBounds[i], x, y)) continue;
                             if (podcastSubscriptions.GetFeeds().empty()) { ShowAddPodcastModal(); return 0; }
+                            const PodcastFeed* fresh = resolveFreshFeed(i);
+                            if (fresh && !fresh->episodes.empty() && x <= listenFeedBounds[i].left + 44.0f * dp) {
+                                listenExpandedFeed = (int)i;
+                                PlayListenStream(fresh->episodes[0].url,
+                                                 fresh->episodes[0].title.empty() ? L"Untitled episode" : fresh->episodes[0].title,
+                                                 fresh->title.empty() ? L"Podcast" : fresh->title, false);
+                                InvalidateRect(hWnd, NULL, FALSE);
+                                return 0;
+                            }
                             listenExpandedFeed = ((int)i == listenExpandedFeed) ? -1 : (int)i;
                             listenScrollY = 0.0f;
                             InvalidateRect(hWnd, NULL, FALSE);
@@ -4055,6 +4099,7 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                                 PlayListenStream(listenStations[i].url, listenStations[i].name, L"Live radio", true);
                             return 0;
                         }
+                        return 0;
                     }
                     if (libraryGroupMode != LibraryGroupMode::Flat) {
                         const auto& proj = GetCurrentMediaProjection();

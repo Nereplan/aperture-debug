@@ -2416,7 +2416,7 @@ bool MpvListenPlayer::EnsureInitializedLocked(HMODULE hDll) {
     SetMpvOption(mpv, "aid", "auto");
     // Leave --ao unset: mpv auto-selects the output. Pinning "auto" as a
     // device name left the client with no usable output (silent playback).
-    SetMpvOption(mpv, "cache", "yes", MpvOptionRequirement::Essential);
+    SetMpvOption(mpv, "cache", "yes");
     // Many internet radio directory entries resolve to .pls / .m3u / .m3u8
     // playlists; allow playlist expansion for those stream URLs.
     SetMpvOption(mpv, "load-unsafe-playlists", "yes");
@@ -2523,20 +2523,24 @@ bool MpvListenPlayer::Start(const std::wstring& path, double startSec, double vo
             ret = fn_mpv_command(mpv, loadCmd);
         }
     }
-    if (ret >= 0) {
-        if (fn_mpv_set_property_string) {
-            ret = fn_mpv_set_property_string(mpv, "pause", "no");
-        } else if (fn_mpv_command_string) { ret = fn_mpv_command_string(mpv, "set pause no"); }
-    }
-    if (ret >= 0) {
-        double v = std::clamp(volume, 0.0, 1.0) * 100.0;
-        if (fn_mpv_set_property) { ret = fn_mpv_set_property(mpv, "volume", MPV_FORMAT_DOUBLE, &v); } else if (fn_mpv_set_property_string) {
-            std::ostringstream value;
-            value << std::fixed << std::setprecision(3) << v;
-            ret = fn_mpv_set_property_string(mpv, "volume", value.str().c_str());
-        }
+    if (ret < 0 && fn_mpv_command_string) {
+        std::string quoted = "loadfile \"" + pathUtf8 + "\" replace";
+        ret = fn_mpv_command_string(mpv, quoted.c_str());
     }
     if (ret < 0) { currentPath.clear(); return false; }
+    if (fn_mpv_set_property_string) {
+        fn_mpv_set_property_string(mpv, "pause", "no");
+    } else if (fn_mpv_command_string) {
+        fn_mpv_command_string(mpv, "set pause no");
+    }
+    double v = std::clamp(volume, 0.0, kMaxVolumeRatio) * 100.0;
+    if (fn_mpv_set_property) {
+        fn_mpv_set_property(mpv, "volume", MPV_FORMAT_DOUBLE, &v);
+    } else if (fn_mpv_set_property_string) {
+        std::ostringstream value;
+        value << std::fixed << std::setprecision(3) << v;
+        fn_mpv_set_property_string(mpv, "volume", value.str().c_str());
+    }
     return true;
 }
 
@@ -2573,7 +2577,7 @@ void MpvListenPlayer::SeekAbsolute(double sec) {
 void MpvListenPlayer::SetVolume(double volume) {
     std::lock_guard<std::mutex> lifecycleLock(lifecycleMutex);
     if (!mpv) return;
-    double v = std::clamp(volume, 0.0, 1.0) * 100.0;
+    double v = std::clamp(volume, 0.0, kMaxVolumeRatio) * 100.0;
     if (fn_mpv_set_property) { fn_mpv_set_property(mpv, "volume", MPV_FORMAT_DOUBLE, &v); } else if (fn_mpv_set_property_string) {
         std::ostringstream value;
         value << std::fixed << std::setprecision(3) << v;
@@ -2620,12 +2624,13 @@ void MpvListenPlayer::DrainEventsLocked(bool recordFinish) {
             fileLoaded = true;
             sawTerminalEnd = false;
         } else if (event->event_id == MPV_EVENT_END_FILE) {
-            // Only treat EOF or ERROR for the active load as terminal.
-            // Ignore STOP/QUIT (from a replaced stream) and REDIRECT (when a
-            // radio .m3u/.pls/.m3u8 playlist expands into its stream URL).
+            // Only treat EOF after a file has actually loaded as terminal.
+            // Ignore STOP/QUIT (from a replaced stream), REDIRECT (when a
+            // radio .m3u/.pls/.m3u8 playlist expands into its stream URL),
+            // and pre-load container EOFs.
             const auto* endFile = static_cast<const mpv_event_end_file*>(event->data);
             const mpv_end_file_reason reason = endFile ? endFile->reason : MPV_END_FILE_REASON_EOF;
-            if (loadStarted && (reason == MPV_END_FILE_REASON_EOF || reason == MPV_END_FILE_REASON_ERROR)) {
+            if (fileLoaded && reason == MPV_END_FILE_REASON_EOF) {
                 sawTerminalEnd = true;
             }
         }

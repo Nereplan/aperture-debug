@@ -2230,7 +2230,12 @@ bool App::PumpPodcastJobs() {
     if (podcastJobs.Pump()) {
         changed = true;
         const PodcastRefreshResult& result = podcastJobs.GetResult();
-        if (result.success) listenFeeds = result.feeds;
+        if (result.success) {
+            listenFeeds = result.feeds;
+            if (listenExpandedFeed < 0 && !podcastSubscriptions.GetFeeds().empty()) {
+                listenExpandedFeed = 0;
+            }
+        }
         if (!result.success) ShowOSD(IconType::VolumeMuted, L"Podcast feeds unavailable");
     }
     if (changed && isContextMenuOpen && !contextMenuItems.empty() && contextMenuItems.front().id == "pod_title")

@@ -112,6 +112,14 @@ bool App::UpdateHoverStates(float mouseX, float mouseY) {
         } else if (PtInRectF(mediaSeriesBtnBounds, mouseX, mouseY)) { newHoveredGroupBtn = 1; }
         else if (PtInRectF(mediaListenBtnBounds, mouseX, mouseY)) { newHoveredGroupBtn = 2; }
         setIfChanged(hoveredGroupBtn, newHoveredGroupBtn);
+        if (libraryGroupMode == LibraryGroupMode::Listen) {
+            setIfChanged(hoveredMediaIndex, -1);
+            setIfChanged(isPinnedCloseHovered, false);
+            setIfChanged(hoveredMediaGroupHeader, -1);
+            setIfChanged(hoveredFolderDeleteIndex, -1);
+            setIfChanged(hoveredMediaEmptyBtn, -1);
+            return changed;
+        }
         const auto& visibleIndices = GetVisibleMediaIndices();
         float tbH = 32.0f * dp, listTop = viewBounds.top + tbH + 12.0f * dp, cardLeft = viewBounds.left + 1.0f * dp;
         float cardRight = viewBounds.right - 2.0f * dp;

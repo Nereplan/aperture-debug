@@ -449,10 +449,20 @@ HubRenderViewModel App::BuildHubRenderViewModel() {
                     ListenFeedViewModel feedVm;
                     feedVm.title = subs[i].title.empty() ? subs[i].url : subs[i].title;
                     const PodcastFeed* freshFeed = nullptr;
-                    for (const auto& f : fresh) { if (f.url == subs[i].url) { freshFeed = &f; break; } }
+                    const std::wstring normSubUrl = NormalizePodcastFeedUrl(subs[i].url);
+                    for (const auto& f : fresh) {
+                        if (f.url == subs[i].url || (!normSubUrl.empty() && NormalizePodcastFeedUrl(f.url) == normSubUrl)) {
+                            freshFeed = &f;
+                            break;
+                        }
+                    }
+                    if (!freshFeed && fresh.size() == subs.size()) freshFeed = &fresh[i];
+                    if (freshFeed && !freshFeed->title.empty() && (subs[i].title.empty() || subs[i].title == subs[i].url)) {
+                        feedVm.title = freshFeed->title;
+                    }
                     feedVm.metaText = freshFeed && !freshFeed->episodes.empty()
                         ? (std::to_wstring(freshFeed->episodes.size()) + L" episodes")
-                        : std::wstring(L"Loading episodes\u2026");
+                        : (podcastJobs.IsRunning() ? std::wstring(L"Loading episodes\u2026") : std::wstring(L"No episodes found"));
                     feedVm.expanded = ((int)i == listenExpandedFeed);
                     if (feedVm.expanded && freshFeed) {
                         for (const auto& ep : freshFeed->episodes) {

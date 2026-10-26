@@ -3228,7 +3228,7 @@ void UIComponents::DrawListenIsland(Renderer& r, const Settings& s, const Listen
         const bool playing = !vm.paused;
         r.FillRoundedRect(badge, 8.0f * dp, ColorWithAlpha(D2D1::ColorF(0x94b0d3, 1.0f), 0.12f * expandA));
         r.DrawRoundedRect(badge, 8.0f * dp, ColorWithAlpha(D2D1::ColorF(0x94b0d3, 1.0f), (vm.badgeHovered ? 0.45f : 0.22f) * expandA), 1.0f * dp);
-        if (vm.isRadio) {
+        if (vm.isRadio && !vm.badgeHovered && !vm.paused) {
             const float pulse = 0.6f + 0.4f * (0.5f + 0.5f * std::sin(vm.eqPhase * 3.1f));
             r.FillCircle(badge.left + 8.5f * dp, (badge.top + badge.bottom) * 0.5f, 2.5f * dp, ColorWithAlpha(liveCol, pulse));
             const float eqH = 12.0f * dp, barW = 2.0f * dp;

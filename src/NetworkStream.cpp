@@ -188,8 +188,13 @@ bool NetworkStreamValidator::IsValidHost(const std::wstring& host) {
     return IsValidDomain(host);
 }
 
-NetworkStreamUrl NetworkStreamValidator::ValidateAndParse(const std::wstring &rawUrl, const NetworkStreamValidationOptions &options) {
+NetworkStreamUrl NetworkStreamValidator::ValidateAndParse(const std::wstring &inputUrl, const NetworkStreamValidationOptions &options) {
     NetworkStreamUrl result;
+    size_t trimStart = 0;
+    size_t trimEnd = inputUrl.size();
+    while (trimStart < trimEnd && (inputUrl[trimStart] == L' ' || inputUrl[trimStart] == L'\t' || inputUrl[trimStart] == L'\r' || inputUrl[trimStart] == L'\n')) ++trimStart;
+    while (trimEnd > trimStart && (inputUrl[trimEnd - 1] == L' ' || inputUrl[trimEnd - 1] == L'\t' || inputUrl[trimEnd - 1] == L'\r' || inputUrl[trimEnd - 1] == L'\n')) --trimEnd;
+    const std::wstring rawUrl = inputUrl.substr(trimStart, trimEnd - trimStart);
     result.rawUrl = rawUrl;
     result.isValid = false;
     if (rawUrl.empty()) { result.error = NetworkStreamValidationError::EmptyUrl; return result; }
