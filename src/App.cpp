@@ -840,9 +840,11 @@ void App::StartListenPlayback(const std::wstring& url, const std::wstring& title
                               bool isRadio, double startSec) {
     if (url.empty()) return;
     if (!listenPlaybackActive && listenIslandFade.current <= 0.01f) {
-        listenIslandWidthDip.SnapTo(28.0f);
-        listenIslandHeightDip.SnapTo(8.0f);
-        listenIslandRadiusDip.SnapTo(4.0f);
+        const float dp = std::max(0.5f, renderer.GetDpiScale());
+        const float initW = std::max(220.0f, RectWidth(ListenPillBounds(dp)) / dp);
+        listenIslandWidthDip.SnapTo(initW);
+        listenIslandHeightDip.SnapTo(36.0f);
+        listenIslandRadiusDip.SnapTo(18.0f);
         listenIslandFade.SnapTo(0.0f);
         listenIslandExpand.SnapTo(0.0f);
     }
@@ -861,9 +863,10 @@ void App::StartListenPlayback(const std::wstring& url, const std::wstring& title
         }
         listenPlayerInitialized = true;
     }
-    listenPlayer.SetVolume(settings.volume);
-    listenVolumeApplied = settings.volume;
-    if (!listenPlayer.Start(url, startSec, settings.volume)) {
+    const double effectiveVol = settings.muted ? 0.0 : std::clamp(settings.volume, 0.0, 1.0);
+    listenPlayer.SetVolume(effectiveVol);
+    listenVolumeApplied = effectiveVol;
+    if (!listenPlayer.Start(url, startSec, effectiveVol)) {
         listenPlaybackPaused = true;
         ShowOSD(IconType::VolumeMuted, L"Could not start audio playback");
         return;
@@ -878,7 +881,12 @@ void App::StopListenPlayback() {
     listenPinExpanded = false;
     listenPillHovered = false;
     listenBadgeHovered = false;
+    listenMuteHovered = false;
+    listenVolumeHovered = false;
+    listenSeekHovered = false;
     listenXHovered = false;
+    isListenVolumeDragging = false;
+    isListenSeekDragging = false;
     InvalidateRect(hWnd, NULL, FALSE);
 }
 
@@ -928,16 +936,15 @@ D2D1_RECT_F App::ListenPillBounds(float dp) {
         return renderer.MeasureString(t, FontType::Medium).width;
     });
     const float cy = nav.tabY + nav.tabH * 0.5f;
-    const float h = 32.0f * dp;
-    // Compact chrome (design: icon slot + counter slot, no buttons): LIVE+EQ
-    // (radio) or mic badge (podcast), then the title, ellipsized to fit.
-    const float pad = 13.0f * dp;
-    const float lead = (listenPlaybackIsRadio ? 58.0f : 21.0f) * dp;
-    const float chrome = pad + lead + 8.0f * dp + pad;
-    const float right = nav.settings.left - 10.0f * dp;
-    const float avail = std::max(140.0f * dp, right - (nav.tabs[2].right + 4.0f * dp) - 8.0f * dp);
-    const float w = std::clamp(chrome + 150.0f * dp, 140.0f * dp, avail);
-    return D2D1::RectF(right - w, cy - h * 0.5f, right, cy + h * 0.5f);
+    const float h = 36.0f * dp;
+    // Positioned directly next to the History tab (nav.track.right), expanding rightward.
+    const float left = nav.track.right + 12.0f * dp;
+    const float rightLimit = ((importIslandPhase != 0 || importIslandFade.current > 0.001f)
+        ? ImportPillBounds(dp).left
+        : nav.settings.left) - 10.0f * dp;
+    const float avail = std::max(220.0f * dp, rightLimit - left);
+    const float w = std::clamp(340.0f * dp, 220.0f * dp, avail);
+    return D2D1::RectF(left, cy - h * 0.5f, left + w, cy + h * 0.5f);
 }
 
 D2D1_RECT_F App::ImportPillBounds(float dp) {
@@ -949,11 +956,7 @@ D2D1_RECT_F App::ImportPillBounds(float dp) {
     });
     const float w = std::max(136.0f * dp, ImportIslandTargetWidthDip() * dp);
     const float h = 32.0f * dp;
-    // Audio playback owns the slot nearest Settings; a concurrent import
-    // island parks to its left.
-    const float right = (listenPlaybackActive || listenIslandFade.current > 0.001f)
-        ? ListenPillBounds(dp).left - 10.0f * dp
-        : nav.settings.left - 10.0f * dp;
+    const float right = nav.settings.left - 10.0f * dp;
     const float cy = nav.tabY + nav.tabH * 0.5f;
     return D2D1::RectF(right - w, cy - h * 0.5f, right, cy + h * 0.5f);
 }
@@ -2219,40 +2222,36 @@ bool App::Update(float dt) {
         importSpinAngle = std::fmod(importSpinAngle + dt * (360.0 / 1.85), 360.0);
         needsRedraw = true;
     }
-    // Listen island: poll the audio player, mirror master volume, morph the
-    // shell between compact / hover-expanded / closed states.
+    // Listen island: poll the audio player, mirror master volume/mute, and
+    // transition smoothly between compact and click-expanded states.
     if (listenPlaybackActive) {
         if (listenPlayer.PollFinished()) OnListenFinished();
-        if (listenPlaybackActive && settings.volume != listenVolumeApplied) {
-            listenVolumeApplied = settings.volume;
-            listenPlayer.SetVolume(settings.volume);
+        const double effectiveVol = settings.muted ? 0.0 : std::clamp(settings.volume, 0.0, 1.0);
+        if (listenPlaybackActive && std::abs(effectiveVol - listenVolumeApplied) > 0.0005) {
+            listenVolumeApplied = effectiveVol;
+            listenPlayer.SetVolume(effectiveVol);
         }
         listenEqPhase += dt;
         needsRedraw = true; // EQ bars animate while audio plays
     }
     if (listenPlaybackActive || listenIslandFade.current > 0.001f) {
-        const bool expandedNow = listenPlaybackActive && (listenPillHovered || listenPinExpanded);
-        AnimateVisual(listenIslandExpand, expandedNow ? 1.0f : 0.0f, 0.48f, &kEaseIslandShell);
+        const bool expandedNow = listenPlaybackActive && listenPinExpanded;
+        AnimateVisual(listenIslandExpand, expandedNow ? 1.0f : 0.0f, 0.18f, MotionTokens::Standard());
         const float dpLs = std::max(0.5f, renderer.GetDpiScale());
-        float wT = 140.0f, hT = 32.0f, rT = 16.0f, fadeT = 1.0f;
-        const CubicBezier* sizeCurve = &kEaseIslandShell;
-        float sizeDur = 0.48f;
+        const D2D1_RECT_F comp = ListenPillBounds(dpLs);
+        const float compW = std::max(220.0f, RectWidth(comp) / dpLs);
+        float wT = compW, hT = 36.0f, rT = 18.0f, fadeT = 1.0f;
         if (!listenPlaybackActive) {
-            wT = 28.0f; hT = 8.0f; rT = 4.0f;
             fadeT = 0.0f;
-            sizeCurve = &kEaseIslandCollapse; sizeDur = 0.42f;
         } else if (expandedNow) {
-            const D2D1_RECT_F comp = ListenPillBounds(dpLs);
-            wT = RectWidth(IslandExpandedRect(comp, dpLs)) / dpLs;
-            hT = 82.0f; rT = 20.0f;
-        } else {
-            const D2D1_RECT_F comp = ListenPillBounds(dpLs);
-            wT = RectWidth(comp) / dpLs;
+            wT = std::max(compW, std::min(380.0f, compW + 40.0f));
+            hT = 88.0f;
+            rT = 14.0f;
         }
-        AnimateVisual(listenIslandWidthDip, wT, sizeDur, sizeCurve);
-        AnimateVisual(listenIslandHeightDip, hT, sizeDur, sizeCurve);
-        AnimateVisual(listenIslandRadiusDip, rT, sizeDur, sizeCurve);
-        AnimateVisual(listenIslandFade, fadeT, 0.30f, MotionTokens::Standard());
+        AnimateVisual(listenIslandWidthDip, wT, 0.18f, MotionTokens::Standard());
+        AnimateVisual(listenIslandHeightDip, hT, 0.18f, MotionTokens::Standard());
+        AnimateVisual(listenIslandRadiusDip, rT, 0.18f, MotionTokens::Standard());
+        AnimateVisual(listenIslandFade, fadeT, 0.16f, MotionTokens::Standard());
         needsRedraw = true;
     }
     if (listenIslandWidthDip.Tick()) needsRedraw = true;
@@ -3222,6 +3221,22 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                     MarkAccessibilityDirty();
                     return 0;
                 }
+                if (listenPlaybackActive) {
+                    POINT wheelPtLi{ GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
+                    ScreenToClient(hWnd, &wheelPtLi);
+                    if (PtInRectF(listenIslandHitRect, static_cast<float>(wheelPtLi.x), static_cast<float>(wheelPtLi.y))) {
+                        const double curVol = settings.muted ? 0.0 : std::clamp(settings.volume, 0.0, 1.0);
+                        const double newVol = std::clamp(curVol + (delta > 0 ? 0.05 : -0.05), 0.0, 1.0);
+                        settings.volume = newVol;
+                        settings.muted = (newVol <= 0.001);
+                        const double eff = settings.muted ? 0.0 : settings.volume;
+                        listenVolumeApplied = eff;
+                        listenPlayer.SetVolume(eff);
+                        SaveSettings();
+                        InvalidateRect(hWnd, NULL, FALSE);
+                        return 0;
+                    }
+                }
                 if (currentTab == TabView::Media) {
                     POINT wheelPt{ GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
                     ScreenToClient(hWnd, &wheelPt);
@@ -3432,21 +3447,61 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                     importCancelHovered = false;
                     hoverChanged = true;
                 }
+                if (isListenVolumeDragging) {
+                    if (!(wParam & MK_LBUTTON)) {
+                        isListenVolumeDragging = false;
+                        if (GetCapture() == hWnd) ReleaseCapture();
+                        SaveSettings();
+                    } else {
+                        const double ratio = std::clamp((double)(x - listenIslandVolumeBounds.left) / (double)std::max(1.0f, RectWidth(listenIslandVolumeBounds)), 0.0, 1.0);
+                        settings.volume = ratio;
+                        settings.muted = (ratio <= 0.001);
+                        const double eff = settings.muted ? 0.0 : settings.volume;
+                        listenVolumeApplied = eff;
+                        listenPlayer.SetVolume(eff);
+                        InvalidateRect(hWnd, NULL, FALSE);
+                        return 0;
+                    }
+                }
+                if (isListenSeekDragging) {
+                    if (!(wParam & MK_LBUTTON)) {
+                        isListenSeekDragging = false;
+                        if (GetCapture() == hWnd) ReleaseCapture();
+                    } else if (!listenPlaybackIsRadio) {
+                        const double dur = listenPlayer.GetDurationSec();
+                        if (dur > 0.0) {
+                            const double ratio = std::clamp((double)(x - listenIslandSeekBounds.left) / (double)std::max(1.0f, RectWidth(listenIslandSeekBounds)), 0.0, 1.0);
+                            listenPlayer.SeekAbsolute(ratio * dur);
+                            InvalidateRect(hWnd, NULL, FALSE);
+                        }
+                        return 0;
+                    }
+                }
                 if (listenPlaybackActive || listenIslandFade.current > 0.001f) {
                     const bool newPillHovered = listenPlaybackActive && PtInRectF(listenIslandHitRect, x, y);
-                    const bool expandedNow = newPillHovered && listenIslandExpand.current > 0.5f;
-                    const bool newBadge = expandedNow && PtInRectF(listenIslandBadgeBounds, x, y);
-                    const bool newX = expandedNow && PtInRectF(listenIslandXBounds, x, y);
-                    if (listenPillHovered != newPillHovered || listenBadgeHovered != newBadge || listenXHovered != newX) {
+                    const bool newBadge = newPillHovered && PtInRectF(listenIslandBadgeBounds, x, y);
+                    const bool newMute = newPillHovered && PtInRectF(listenIslandMuteBounds, x, y);
+                    const bool newVol = newPillHovered && PtInRectF(listenIslandVolumeBounds, x, y);
+                    const bool newSeek = newPillHovered && (listenIslandExpand.current > 0.25f) && !listenPlaybackIsRadio && PtInRectF(listenIslandSeekBounds, x, y);
+                    const bool newX = newPillHovered && PtInRectF(listenIslandXBounds, x, y);
+                    if (listenPillHovered != newPillHovered || listenBadgeHovered != newBadge ||
+                        listenMuteHovered != newMute || listenVolumeHovered != newVol ||
+                        listenSeekHovered != newSeek || listenXHovered != newX) {
                         listenPillHovered = newPillHovered;
                         listenBadgeHovered = newBadge;
+                        listenMuteHovered = newMute;
+                        listenVolumeHovered = newVol;
+                        listenSeekHovered = newSeek;
                         listenXHovered = newX;
                         hoverChanged = true;
                         InvalidateRect(hWnd, NULL, FALSE);
                     }
-                } else if (listenPillHovered || listenBadgeHovered || listenXHovered) {
+                } else if (listenPillHovered || listenBadgeHovered || listenMuteHovered || listenVolumeHovered || listenSeekHovered || listenXHovered) {
                     listenPillHovered = false;
                     listenBadgeHovered = false;
+                    listenMuteHovered = false;
+                    listenVolumeHovered = false;
+                    listenSeekHovered = false;
                     listenXHovered = false;
                     hoverChanged = true;
                 }
@@ -3792,23 +3847,43 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
             }
             if (!playbackSession.IsOpen() && listenPlaybackActive) {
                 if (PtInRectF(listenIslandHitRect, x, y)) {
-                    if (listenIslandExpand.current > 0.5f && PtInRectF(listenIslandXBounds, x, y)) {
+                    if (PtInRectF(listenIslandXBounds, x, y)) {
                         StopListenPlayback();
                         ShowOSD(IconType::Checkmark, L"Listening stopped");
                         return 0;
                     }
-                    if (listenIslandExpand.current > 0.5f && PtInRectF(listenIslandBadgeBounds, x, y)) {
+                    if (PtInRectF(listenIslandBadgeBounds, x, y)) {
                         ToggleListenPause();
                         return 0;
                     }
-                    if (listenIslandExpand.current > 0.5f && !listenPlaybackIsRadio) {
-                        const float pad = 15.0f * dp;
-                        const float barY = listenIslandHitRect.bottom - 18.0f * dp;
-                        const D2D1_RECT_F seekHit = D2D1::RectF(listenIslandHitRect.left + pad, barY - 6.0f * dp,
-                                                                listenIslandHitRect.right - pad, barY + 11.0f * dp);
+                    if (PtInRectF(listenIslandMuteBounds, x, y)) {
+                        settings.muted = !settings.muted;
+                        if (!settings.muted && settings.volume <= 0.01) settings.volume = 0.5;
+                        const double eff = settings.muted ? 0.0 : std::clamp(settings.volume, 0.0, 1.0);
+                        listenVolumeApplied = eff;
+                        listenPlayer.SetVolume(eff);
+                        SaveSettings();
+                        InvalidateRect(hWnd, NULL, FALSE);
+                        return 0;
+                    }
+                    if (PtInRectF(listenIslandVolumeBounds, x, y)) {
+                        isListenVolumeDragging = true;
+                        SetCapture(hWnd);
+                        const double ratio = std::clamp((double)(x - listenIslandVolumeBounds.left) / (double)std::max(1.0f, RectWidth(listenIslandVolumeBounds)), 0.0, 1.0);
+                        settings.volume = ratio;
+                        settings.muted = (ratio <= 0.001);
+                        const double eff = settings.muted ? 0.0 : settings.volume;
+                        listenVolumeApplied = eff;
+                        listenPlayer.SetVolume(eff);
+                        InvalidateRect(hWnd, NULL, FALSE);
+                        return 0;
+                    }
+                    if (listenIslandExpand.current > 0.25f && !listenPlaybackIsRadio && PtInRectF(listenIslandSeekBounds, x, y)) {
                         const double dur = listenPlayer.GetDurationSec();
-                        if (dur > 0.0 && PtInRectF(seekHit, x, y)) {
-                            const double ratio = std::clamp((double)(x - seekHit.left) / (double)std::max(1.0f, RectWidth(seekHit)), 0.0, 1.0);
+                        if (dur > 0.0) {
+                            isListenSeekDragging = true;
+                            SetCapture(hWnd);
+                            const double ratio = std::clamp((double)(x - listenIslandSeekBounds.left) / (double)std::max(1.0f, RectWidth(listenIslandSeekBounds)), 0.0, 1.0);
                             listenPlayer.SeekAbsolute(ratio * dur);
                             InvalidateRect(hWnd, NULL, FALSE);
                             return 0;
@@ -4119,7 +4194,19 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                                 if (listenPlaybackActive && listenUrl == listenStations[i].url) {
                                     ToggleListenPause();
                                 } else {
-                                    PlayListenStream(listenStations[i].url, listenStations[i].name, L"Live radio", true);
+                                    std::wstring meta = listenStations[i].bitrateKbps > 0
+                                        ? (std::to_wstring(listenStations[i].bitrateKbps) + L" kbps")
+                                        : L"";
+                                    if (!listenStations[i].codec.empty()) {
+                                        if (!meta.empty()) meta += L" \x00B7 ";
+                                        meta += listenStations[i].codec;
+                                    }
+                                    if (!listenStations[i].country.empty()) {
+                                        if (!meta.empty()) meta += L" \x00B7 ";
+                                        meta += listenStations[i].country;
+                                    }
+                                    if (meta.empty()) meta = L"Live radio stream";
+                                    PlayListenStream(listenStations[i].url, listenStations[i].name, meta, true);
                                 }
                             }
                             return 0;
@@ -4788,6 +4875,19 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
             float x = (float)GET_X_LPARAM(lParam);
             float y = (float)GET_Y_LPARAM(lParam);
             if (isPiPVolumeDragging) { isPiPVolumeDragging = false; if (GetCapture() == hWnd) ReleaseCapture(); }
+            if (isListenVolumeDragging) {
+                isListenVolumeDragging = false;
+                if (GetCapture() == hWnd) ReleaseCapture();
+                SaveSettings();
+                InvalidateRect(hWnd, NULL, FALSE);
+                return 0;
+            }
+            if (isListenSeekDragging) {
+                isListenSeekDragging = false;
+                if (GetCapture() == hWnd) ReleaseCapture();
+                InvalidateRect(hWnd, NULL, FALSE);
+                return 0;
+            }
             if (isPiPPotentialWindowDrag || isPiPDraggingWindow || isPiPDragOccurred) {
                 const bool wasDragging = isPiPDraggingWindow || isPiPDragOccurred;
                 isPiPPotentialWindowDrag = false;
@@ -5413,6 +5513,23 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                 InvalidateRect(hWnd, NULL, FALSE);
                 return 0;
             } else {
+                if (listenPlaybackActive && PtInRectF(listenIslandHitRect, x, y)) {
+                    if (PtInRectF(listenIslandBadgeBounds, x, y)) {
+                        ToggleListenPause();
+                    } else if (PtInRectF(listenIslandMuteBounds, x, y)) {
+                        settings.muted = !settings.muted;
+                        const double eff = settings.muted ? 0.0 : std::clamp(settings.volume, 0.0, 1.0);
+                        listenVolumeApplied = eff;
+                        listenPlayer.SetVolume(eff);
+                        SaveSettings();
+                        InvalidateRect(hWnd, NULL, FALSE);
+                    } else if (!PtInRectF(listenIslandVolumeBounds, x, y) && !PtInRectF(listenIslandXBounds, x, y) &&
+                               !(listenIslandExpand.current > 0.25f && !listenPlaybackIsRadio && PtInRectF(listenIslandSeekBounds, x, y))) {
+                        listenPinExpanded = !listenPinExpanded;
+                        InvalidateRect(hWnd, NULL, FALSE);
+                    }
+                    return 0;
+                }
                 RefreshHubHitTargets(x, y);
                 if (currentTab == TabView::Media) {
                     const auto& visibleIndices = GetVisibleMediaIndices();

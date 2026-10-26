@@ -1169,7 +1169,7 @@ HubRenderViewModel App::BuildHubRenderViewModel() {
         vm.autoscroll.anchorPoint = autoscroll.anchorPoint;
         vm.autoscroll.dy = autoscroll.currentPoint.y - autoscroll.anchorPoint.y;
     }
-    // Listen island (now-playing audio) — same shell as the import island.
+    // Listen island (now-playing audio) anchored next to History.
     if (listenPlaybackActive || listenIslandFade.current > 0.001f) {
         auto& li = vm.listenIsland;
         li.isActive = listenPlaybackActive;
@@ -1177,52 +1177,60 @@ HubRenderViewModel App::BuildHubRenderViewModel() {
         li.paused = listenPlaybackPaused;
         li.title = listenTitle;
         li.subtitle = listenSubtitle;
+        li.volume = std::clamp(settings.volume, 0.0, 1.0);
+        li.muted = settings.muted || (li.volume <= 0.001);
         li.eqPhase = (float)std::fmod(listenEqPhase, 1000.0);
         li.pillHovered = listenPillHovered;
         li.badgeHovered = listenBadgeHovered;
+        li.muteHovered = listenMuteHovered;
+        li.volumeHovered = listenVolumeHovered;
+        li.volumeDragging = isListenVolumeDragging;
+        li.seekHovered = listenSeekHovered || isListenSeekDragging;
         li.xHovered = listenXHovered;
-        li.widthDip = std::max(8.0f, listenIslandWidthDip.current);
-        li.heightDip = std::max(8.0f, listenIslandHeightDip.current);
-        li.radiusDip = std::max(4.0f, listenIslandRadiusDip.current);
+        li.widthDip = std::max(180.0f, listenIslandWidthDip.current);
+        li.heightDip = std::max(32.0f, listenIslandHeightDip.current);
+        li.radiusDip = std::max(8.0f, listenIslandRadiusDip.current);
         li.expand = std::clamp(listenIslandExpand.current, 0.0f, 1.0f);
         li.fade = std::clamp(listenIslandFade.current, 0.0f, 1.0f);
         li.pillBounds = ListenPillBounds(dp);
-        {
-            const float w = li.widthDip * dp, h = li.heightDip * dp;
-            if (li.heightDip < 30.0f) {
-                const float cx = (li.pillBounds.left + li.pillBounds.right) * 0.5f;
-                const float cy = (li.pillBounds.top + li.pillBounds.bottom) * 0.5f;
-                li.expandedBounds = D2D1::RectF(cx - w * 0.5f, cy - h * 0.5f, cx + w * 0.5f, cy + h * 0.5f);
-            } else {
-                const float right = li.pillBounds.right;
-                const float left = std::max(12.0f * dp, right - w);
-                const float top = li.pillBounds.top - 2.0f * dp * li.expand;
-                li.expandedBounds = D2D1::RectF(left, top, right, top + h);
-            }
-        }
-        li.hitRect = (li.expand > 0.05f) ? IslandRectUnion(li.pillBounds, li.expandedBounds) : li.pillBounds;
+        const float w = li.widthDip * dp, h = li.heightDip * dp;
+        const float left = li.pillBounds.left;
+        const float top = li.pillBounds.top;
+        li.expandedBounds = D2D1::RectF(left, top, left + w, top + h);
+        li.hitRect = li.expandedBounds;
         const bool queryTimeline = listenPlaybackActive && !listenPlaybackIsRadio;
         const double pos = queryTimeline ? listenPlayer.GetPositionSec() : -1.0;
         const double dur = queryTimeline ? listenPlayer.GetDurationSec() : -1.0;
         li.progressRatio = (pos >= 0.0 && dur > 0.0) ? std::clamp(pos / dur, 0.0, 1.0) : 0.0;
         li.timeText = (pos >= 0.0) ? (FormatDuration(pos) + (dur > 0.0 ? L" / " + FormatDuration(dur) : L"")) : L"";
         li.remainingText = (dur > 0.0 && pos >= 0.0) ? (L"-" + FormatDuration(std::max(0.0, dur - pos))) : L"";
-        // Expanded card hot spots (badge + X), scaled by the expand progress.
-        const float eA = li.expand;
-        if (eA > 0.05f) {
-            const D2D1_RECT_F& card = li.expandedBounds;
-            const float pad = 15.0f * dp;
-            const float badgeSz = 28.0f * dp * (0.9f + 0.1f * eA);
-            const float cyCard = card.top + 14.0f * dp + badgeSz * 0.5f;
-            li.badgeBounds = D2D1::RectF(card.left + pad, cyCard - badgeSz * 0.5f, card.left + pad + badgeSz, cyCard + badgeSz * 0.5f);
-            const float xSz = 24.0f * dp;
-            li.xBounds = D2D1::RectF(card.right - pad - xSz, cyCard - xSz * 0.5f, card.right - pad, cyCard + xSz * 0.5f);
+        // Always-present top row controls (Play/Pause, Mute, Volume slider, Close X).
+        const D2D1_RECT_F& card = li.expandedBounds;
+        const float rowCy = card.top + 18.0f * dp;
+        const float badgeSz = 26.0f * dp;
+        li.badgeBounds = D2D1::RectF(card.left + 6.0f * dp, rowCy - badgeSz * 0.5f,
+                                     card.left + 6.0f * dp + badgeSz, rowCy + badgeSz * 0.5f);
+        const float xSz = 24.0f * dp;
+        li.xBounds = D2D1::RectF(card.right - 6.0f * dp - xSz, rowCy - xSz * 0.5f,
+                                 card.right - 6.0f * dp, rowCy + xSz * 0.5f);
+        const float volW = 52.0f * dp, volHitH = 22.0f * dp;
+        const float volRight = li.xBounds.left - 7.0f * dp;
+        const float volLeft = volRight - volW;
+        li.volumeTrackBounds = D2D1::RectF(volLeft, rowCy - volHitH * 0.5f, volRight, rowCy + volHitH * 0.5f);
+        const float muteSz = 24.0f * dp;
+        const float muteRight = volLeft - 3.0f * dp;
+        li.muteBounds = D2D1::RectF(muteRight - muteSz, rowCy - muteSz * 0.5f, muteRight, rowCy + muteSz * 0.5f);
+        if (li.expand > 0.25f && !li.isRadio) {
+            const float pad = 14.0f * dp;
+            li.seekBounds = D2D1::RectF(card.left + pad, card.bottom - 22.0f * dp, card.right - pad, card.bottom - 6.0f * dp);
         } else {
-            li.badgeBounds = D2D1::RectF(0, 0, 0, 0);
-            li.xBounds = D2D1::RectF(0, 0, 0, 0);
+            li.seekBounds = D2D1::RectF(0, 0, 0, 0);
         }
         listenIslandHitRect = li.hitRect;
         listenIslandBadgeBounds = li.badgeBounds;
+        listenIslandMuteBounds = li.muteBounds;
+        listenIslandVolumeBounds = li.volumeTrackBounds;
+        listenIslandSeekBounds = li.seekBounds;
         listenIslandXBounds = li.xBounds;
     }
     // Import island: compact pill, hover-expanded card, complete check, exit.

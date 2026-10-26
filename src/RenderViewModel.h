@@ -688,17 +688,20 @@ struct ImportProgressViewModel {
     float widthDip = 28.0f, heightDip = 8.0f, radiusDip = 4.0f, expand = 0.0f, fade = 0.0f, spinAngle = 0.0f;
 };
 
-// Listen island: same shell; compact LIVE/EQ or mic+title pill expanding to
-// the now-playing card (badge = play/pause, X = stop).
+// Listen island: compact top-bar player next to History with always-visible
+// play/pause, volume/mute, and close controls; clicking empty space expands
+// downward to show stream/episode details and podcast seek bar.
 struct ListenIslandViewModel {
     bool isActive = false, isRadio = true, paused = false;
     std::wstring title, subtitle;
     double progressRatio = 0.0;
+    double volume = 1.0;
+    bool muted = false;
     std::wstring timeText, remainingText;
     float eqPhase = 0.0f;
-    bool pillHovered = false, badgeHovered = false, xHovered = false;
-    D2D1_RECT_F pillBounds, expandedBounds, hitRect, badgeBounds, xBounds;
-    float widthDip = 28.0f, heightDip = 8.0f, radiusDip = 4.0f, expand = 0.0f, fade = 0.0f;
+    bool pillHovered = false, badgeHovered = false, muteHovered = false, volumeHovered = false, volumeDragging = false, seekHovered = false, xHovered = false;
+    D2D1_RECT_F pillBounds{}, expandedBounds{}, hitRect{}, badgeBounds{}, muteBounds{}, volumeTrackBounds{}, seekBounds{}, xBounds{};
+    float widthDip = 340.0f, heightDip = 36.0f, radiusDip = 18.0f, expand = 0.0f, fade = 0.0f;
 };
 
 

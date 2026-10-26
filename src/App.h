@@ -327,11 +327,13 @@ private:
     bool listenPlayerInitialized = false;
     bool listenPlaybackActive = false, listenPlaybackIsRadio = true, listenPlaybackPaused = false;
     bool listenPillHovered = false, listenPinExpanded = false;
-    bool listenBadgeHovered = false, listenXHovered = false;
+    bool listenBadgeHovered = false, listenMuteHovered = false, listenVolumeHovered = false, listenSeekHovered = false, listenXHovered = false;
+    bool isListenVolumeDragging = false, isListenSeekDragging = false;
     std::wstring listenTitle, listenSubtitle, listenUrl;
     double listenEqPhase = 0.0, listenVolumeApplied = -1.0;
     AnimatedFloat listenIslandWidthDip, listenIslandHeightDip, listenIslandRadiusDip, listenIslandExpand, listenIslandFade;
-    D2D1_RECT_F listenIslandBadgeBounds = { 0, 0, 0, 0 }, listenIslandXBounds = { 0, 0, 0, 0 };
+    D2D1_RECT_F listenIslandBadgeBounds = { 0, 0, 0, 0 }, listenIslandMuteBounds = { 0, 0, 0, 0 };
+    D2D1_RECT_F listenIslandVolumeBounds = { 0, 0, 0, 0 }, listenIslandSeekBounds = { 0, 0, 0, 0 }, listenIslandXBounds = { 0, 0, 0, 0 };
     D2D1_RECT_F importIslandHitRect = { 0, 0, 0, 0 }, listenIslandHitRect = { 0, 0, 0, 0 };
     D2D1_RECT_F importIslandXBounds = { 0, 0, 0, 0 };
     // Listen panel state (podcasts + radio directory mirrors, UI-thread only).

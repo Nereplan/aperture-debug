@@ -3199,8 +3199,9 @@ void UIComponents::DrawMediaToolbar(Renderer& r, const Settings& s, const MediaT
     r.DrawString(vm.compactToolbar ? L"Listen" : L"Listen", vm.listenBtnBounds, listenCol, FontType::Small, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
 }
 
-// Listen island: the now-playing pill for radio/podcast audio. Same morph
-// language as the import island (dot springs open, collapse-then-fade out).
+// Listen island: now-playing bar next to History with always-present Play/Pause,
+// Mute + Volume slider, and Close (X) controls; clicking empty space expands
+// downward to reveal stream/episode metadata and podcast seek scrubbing.
 void UIComponents::DrawListenIsland(Renderer& r, const Settings& s, const ListenIslandViewModel& vm) {
     if (!vm.isActive && vm.fade <= 0.001f) return;
     float dp = r.GetDpiScale();
@@ -3210,111 +3211,183 @@ void UIComponents::DrawListenIsland(Renderer& r, const Settings& s, const Listen
     DrawIslandShell(r, s, rect, radius, vm.expand, vm.pillHovered, vm.fade);
     if (vm.fade < 0.05f) return;
 
-    const float contentA = std::clamp((vm.heightDip - 10.0f) / 14.0f, 0.0f, 1.0f) * vm.fade;
-    if (contentA <= 0.001f) return;
-    const float compactA = std::clamp(1.0f - vm.expand * 2.2f, 0.0f, 1.0f) * contentA;
-    const float expandA = std::clamp((vm.expand - 0.2f) / 0.8f, 0.0f, 1.0f) * contentA;
+    const float alpha = std::clamp(vm.fade, 0.0f, 1.0f);
+    const float expandA = std::clamp((vm.expand - 0.15f) / 0.85f, 0.0f, 1.0f) * alpha;
+    const D2D1_COLOR_F accent = ColorWithAlpha(D2D1::ColorF(0x94b0d3, 1.0f), alpha);
+    const D2D1_COLOR_F textPri = ColorWithAlpha(th.text, alpha);
+    const D2D1_COLOR_F textSub = ColorWithAlpha(th.textMuted, alpha);
+    const D2D1_COLOR_F liveCol = ColorWithAlpha(D2D1::ColorF(0.95f, 0.30f, 0.36f, 1.0f), alpha);
+    const bool playing = !vm.paused;
 
     r.PushClip(rect);
-    if (expandA > 0.01f) {
-        // ---------- Expanded now-playing card ----------
-        const D2D1_COLOR_F accent = ColorWithAlpha(D2D1::ColorF(0x94b0d3, 1.0f), expandA);
-        const D2D1_COLOR_F textPri = ColorWithAlpha(th.text, expandA);
-        const D2D1_COLOR_F textSub = ColorWithAlpha(th.textMuted, expandA);
-        const D2D1_COLOR_F liveCol = ColorWithAlpha(D2D1::ColorF(0.95f, 0.30f, 0.36f, 1.0f), expandA);
-        const D2D1_RECT_F& card = rect;
-        const float pad = 15.0f * dp;
-        const D2D1_RECT_F badge = vm.badgeBounds;
-        const bool playing = !vm.paused;
-        r.FillRoundedRect(badge, 8.0f * dp, ColorWithAlpha(D2D1::ColorF(0x94b0d3, 1.0f), 0.12f * expandA));
-        r.DrawRoundedRect(badge, 8.0f * dp, ColorWithAlpha(D2D1::ColorF(0x94b0d3, 1.0f), (vm.badgeHovered ? 0.45f : 0.22f) * expandA), 1.0f * dp);
-        if (vm.isRadio && !vm.badgeHovered && !vm.paused) {
-            const float pulse = 0.6f + 0.4f * (0.5f + 0.5f * std::sin(vm.eqPhase * 3.1f));
-            r.FillCircle(badge.left + 8.5f * dp, (badge.top + badge.bottom) * 0.5f, 2.5f * dp, ColorWithAlpha(liveCol, pulse));
-            const float eqH = 12.0f * dp, barW = 2.0f * dp;
-            float bx = badge.left + 13.5f * dp;
-            for (int i = 0; i < 3; ++i) {
-                const float level = playing ? 0.3f + 0.7f * (0.5f + 0.5f * std::sin(vm.eqPhase * 5.2f + i * 1.7f)) : 0.25f;
-                const float bh = eqH * level;
-                r.FillRoundedRect(D2D1::RectF(bx, (badge.top + badge.bottom) * 0.5f - bh * 0.5f, bx + barW, (badge.top + badge.bottom) * 0.5f + bh * 0.5f), 1.0f * dp, accent);
-                bx += barW + 2.0f * dp;
-            }
-        } else {
-            r.DrawIcon(playing ? IconType::Pause : IconType::Play, InsetRectF(badge, 8.0f * dp, 8.0f * dp), accent, 1.5f * dp);
+
+    // ---------- Top bar (always present in both compact and expanded states) ----------
+    const float rowCy = rect.top + 18.0f * dp;
+
+    // 1. Intuitive Play / Pause button (left)
+    const D2D1_RECT_F badge = vm.badgeBounds;
+    const float badgeR = RectHeight(badge) * 0.5f;
+    r.FillRoundedRect(badge, badgeR,
+        ColorWithAlpha(D2D1::ColorF(0x94b0d3, 1.0f), (vm.badgeHovered ? 0.28f : 0.16f) * alpha));
+    r.DrawRoundedRect(badge, badgeR,
+        ColorWithAlpha(D2D1::ColorF(0x94b0d3, 1.0f), (vm.badgeHovered ? 0.55f : 0.30f) * alpha), 1.0f * dp);
+    {
+        D2D1_RECT_F iconRc = InsetRectF(badge, 6.5f * dp, 6.5f * dp);
+        if (!playing) {
+            iconRc.left += 1.0f * dp;
+            iconRc.right += 1.0f * dp;
         }
-        const float textLeft = badge.right + 10.0f * dp;
-        const float textRight = std::max(textLeft + 10.0f * dp, vm.xBounds.left - 10.0f * dp);
-        r.DrawString(FitSingleLine(r, vm.title, FontType::Medium, textRight - textLeft),
-                     D2D1::RectF(textLeft, card.top + 12.0f * dp, textRight, card.top + 30.0f * dp),
+        r.DrawIcon(playing ? IconType::Pause : IconType::Play, iconRc,
+                   vm.badgeHovered ? textPri : accent, 1.6f * dp);
+    }
+
+    // 2. Status indicator (LIVE dot + mini EQ for radio, Mic icon for podcast) + Title
+    float contentX = badge.right + 8.0f * dp;
+    const float contentRight = std::max(contentX, vm.muteBounds.left - 8.0f * dp);
+    if (vm.isRadio) {
+        const float pulse = playing ? (0.6f + 0.4f * (0.5f + 0.5f * std::sin(vm.eqPhase * 3.1f))) : 0.45f;
+        r.FillCircle(contentX + 2.5f * dp, rowCy, 2.5f * dp, ColorWithAlpha(liveCol, pulse));
+        contentX += 8.0f * dp;
+        const float eqH = 11.0f * dp, barW = 2.0f * dp;
+        for (int i = 0; i < 3; ++i) {
+            const float level = playing ? (0.28f + 0.72f * (0.5f + 0.5f * std::sin(vm.eqPhase * 5.2f + i * 1.7f))) : 0.22f;
+            const float bh = eqH * level;
+            r.FillRoundedRect(D2D1::RectF(contentX, rowCy - bh * 0.5f, contentX + barW, rowCy + bh * 0.5f),
+                              1.0f * dp, accent);
+            contentX += barW + 1.8f * dp;
+        }
+        contentX += 4.0f * dp;
+    } else {
+        const float iconSz = 14.0f * dp;
+        r.DrawIcon(IconType::MicPodcast,
+                   D2D1::RectF(contentX, rowCy - iconSz * 0.5f, contentX + iconSz, rowCy + iconSz * 0.5f),
+                   accent, 1.4f * dp);
+        contentX += iconSz + 6.0f * dp;
+    }
+
+    const float titleW = std::max(0.0f, contentRight - contentX);
+    if (titleW > 8.0f) {
+        r.DrawString(FitSingleLine(r, vm.title, FontType::Medium, titleW),
+                     D2D1::RectF(contentX, rect.top + 2.0f * dp, contentRight, rect.top + 34.0f * dp),
                      textPri, FontType::Medium, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-        const std::wstring sub = vm.isRadio ? (vm.subtitle.empty() ? L"Live radio" : vm.subtitle) : vm.timeText;
-        r.DrawString(FitSingleLine(r, sub, FontType::MonoSmall, textRight - textLeft),
-                     D2D1::RectF(textLeft, card.top + 30.0f * dp, textRight, card.top + 46.0f * dp),
-                     textSub, FontType::MonoSmall, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-        // X (stop) button matching ai_studio_code(5).html (.close-btn)
-        r.FillRoundedRect(vm.xBounds, 6.0f * dp,
-            vm.xHovered ? ColorWithAlpha(D2D1::ColorF(0x94b0d3, 1.0f), 0.12f * expandA)
-                        : ColorWithAlpha(D2D1::ColorF(1, 1, 1, 1.0f), 0.04f * expandA));
-        r.DrawRoundedRect(vm.xBounds, 6.0f * dp,
-            vm.xHovered ? ColorWithAlpha(D2D1::ColorF(0x94b0d3, 1.0f), 0.22f * expandA)
-                        : ColorWithAlpha(D2D1::ColorF(1, 1, 1, 1.0f), 0.07f * expandA), 1.0f * dp);
-        {
-            const float l = vm.xBounds.left, t = vm.xBounds.top, sz = RectWidth(vm.xBounds);
-            const float inset = sz * 0.32f;
-            const D2D1_COLOR_F xc = vm.xHovered ? textPri : textSub;
-            r.DrawLine(l + inset, t + inset, l + sz - inset, t + sz - inset, xc, 1.4f);
-            r.DrawLine(l + sz - inset, t + inset, l + inset, t + sz - inset, xc, 1.4f);
-        }
-        // Podcast: progress bar; radio: live status bar.
-        const float barY = card.bottom - 18.0f * dp;
-        const D2D1_RECT_F track = D2D1::RectF(card.left + pad, barY, card.right - pad, barY + 5.0f * dp);
-        r.FillRoundedRect(track, 2.5f * dp, ColorWithAlpha(D2D1::ColorF(1, 1, 1, 1.0f), 0.06f * expandA));
-        const float ratio = vm.isRadio ? (playing ? 1.0f : 0.0f) : (float)std::min(1.0, vm.progressRatio);
-        const float fillW = RectWidth(track) * ratio;
+    }
+
+    // 3. Mute / Volume icon button (always present)
+    if (vm.muteHovered) {
+        r.FillRoundedRect(vm.muteBounds, 6.0f * dp, ColorWithAlpha(D2D1::ColorF(0x94b0d3, 1.0f), 0.14f * alpha));
+    }
+    const IconType volIcon = (vm.muted || vm.volume <= 0.01)
+        ? IconType::VolumeMuted
+        : (vm.volume <= 0.5 ? IconType::VolumeLow : IconType::VolumeHigh);
+    r.DrawIcon(volIcon, InsetRectF(vm.muteBounds, 5.0f * dp, 5.0f * dp),
+               (vm.muteHovered || vm.muted) ? textPri : textSub, 1.4f * dp);
+
+    // 4. Inline Volume slider bar (always present)
+    {
+        const float trackH = 4.0f * dp;
+        const D2D1_RECT_F volGroove = D2D1::RectF(vm.volumeTrackBounds.left, rowCy - trackH * 0.5f,
+                                                  vm.volumeTrackBounds.right, rowCy + trackH * 0.5f);
+        r.FillRoundedRect(volGroove, 2.0f * dp, ColorWithAlpha(D2D1::ColorF(1.0f, 1.0f, 1.0f, 1.0f), 0.12f * alpha));
+        const float effVol = vm.muted ? 0.0f : (float)std::clamp(vm.volume, 0.0, 1.0);
+        const float fillW = RectWidth(volGroove) * effVol;
         if (fillW > 1.0f) {
-            r.FillRoundedGradientRect(D2D1::RectF(track.left, track.top, track.left + fillW, track.bottom), 2.5f * dp,
-                ColorWithAlpha(D2D1::ColorF(0x7c9bc3, 1.0f), expandA), accent, false);
+            r.FillRoundedRect(D2D1::RectF(volGroove.left, volGroove.top, volGroove.left + fillW, volGroove.bottom),
+                              2.0f * dp, accent);
+        }
+        const float knobR = (vm.volumeHovered || vm.volumeDragging) ? 4.8f * dp : 3.5f * dp;
+        const float knobX = std::clamp(volGroove.left + fillW, volGroove.left + knobR * 0.5f, volGroove.right - knobR * 0.5f);
+        r.FillCircle(knobX, rowCy, knobR, (vm.volumeHovered || vm.volumeDragging) ? textPri : accent);
+    }
+
+    // 5. Close (X) button (always present)
+    r.FillRoundedRect(vm.xBounds, 6.0f * dp,
+        vm.xHovered ? ColorWithAlpha(D2D1::ColorF(0x94b0d3, 1.0f), 0.16f * alpha)
+                    : ColorWithAlpha(D2D1::ColorF(1.0f, 1.0f, 1.0f, 1.0f), 0.04f * alpha));
+    {
+        const float l = vm.xBounds.left, t = vm.xBounds.top, sz = RectWidth(vm.xBounds);
+        const float inset = sz * 0.31f;
+        const D2D1_COLOR_F xc = vm.xHovered ? textPri : textSub;
+        r.DrawLine(l + inset, t + inset, l + sz - inset, t + sz - inset, xc, 1.4f * dp);
+        r.DrawLine(l + sz - inset, t + inset, l + inset, t + sz - inset, xc, 1.4f * dp);
+    }
+
+    // Compact bottom progress hairline for podcasts when collapsed
+    if (!vm.isRadio && vm.expand < 0.2f && vm.progressRatio > 0.0) {
+        const float trackL = rect.left + 12.0f * dp, trackR = rect.right - 12.0f * dp;
+        const float fillW = std::max(0.0f, (trackR - trackL) * (float)std::min(1.0, vm.progressRatio));
+        if (fillW > 0.5f) {
+            r.FillRoundedRect(D2D1::RectF(trackL, rect.bottom - 2.0f * dp, trackL + fillW, rect.bottom),
+                              1.0f * dp, accent);
         }
     }
 
-    if (compactA > 0.01f) {
-        // ---------- Compact view ----------
-        const D2D1_COLOR_F accent = ColorWithAlpha(D2D1::ColorF(0x94b0d3, 1.0f), compactA);
-        const D2D1_COLOR_F textPri = ColorWithAlpha(th.text, compactA);
-        const D2D1_COLOR_F liveCol = ColorWithAlpha(D2D1::ColorF(0.95f, 0.30f, 0.36f, 1.0f), compactA);
-        const float cy = (rect.top + rect.bottom) * 0.5f;
-        float x = rect.left + 13.0f * dp;
+    // ---------- Expanded information drawer (revealed on click on empty space) ----------
+    if (expandA > 0.01f) {
+        const float pad = 14.0f * dp;
+        const float sepY = rect.top + 36.0f * dp;
+        r.DrawLine(rect.left + pad, sepY, rect.right - pad, sepY,
+                   ColorWithAlpha(D2D1::ColorF(1.0f, 1.0f, 1.0f, 1.0f), 0.07f * expandA), 1.0f * dp);
+
+        const D2D1_COLOR_F expPri = ColorWithAlpha(th.text, expandA);
+        const D2D1_COLOR_F expSub = ColorWithAlpha(th.textMuted, expandA);
+        const D2D1_COLOR_F expAccent = ColorWithAlpha(D2D1::ColorF(0x94b0d3, 1.0f), expandA);
+        const int volPct = vm.muted ? 0 : (int)std::round(std::clamp(vm.volume, 0.0, 1.0) * 100.0);
+        const std::wstring volText = vm.muted ? L"Muted" : (L"Vol " + std::to_wstring(volPct) + L"%");
+
         if (vm.isRadio) {
-            const float pulse = 0.6f + 0.4f * (0.5f + 0.5f * std::sin(vm.eqPhase * 3.1f));
-            r.FillCircle(x + 3.0f * dp, cy, 2.6f * dp, ColorWithAlpha(liveCol, pulse));
-            x += 10.0f * dp;
-            const float eqH = 12.0f * dp, barW = 2.0f * dp;
-            for (int i = 0; i < 4; ++i) {
-                const float level = vm.paused ? 0.22f : 0.25f + 0.75f * (0.5f + 0.5f * std::sin(vm.eqPhase * 5.2f + i * 1.7f));
-                const float bh = eqH * level;
-                r.FillRoundedRect(D2D1::RectF(x, cy - bh * 0.5f, x + barW, cy + bh * 0.5f), 1.0f * dp, accent);
-                x += barW + 2.0f * dp;
+            // Row 1 of expanded section: LIVE badge + station metadata (bitrate / codec / country)
+            const float infoY = sepY + 6.0f * dp;
+            const D2D1_RECT_F liveBadge = D2D1::RectF(rect.left + pad, infoY + 1.0f * dp,
+                                                      rect.left + pad + 38.0f * dp, infoY + 17.0f * dp);
+            r.FillRoundedRect(liveBadge, 4.0f * dp, ColorWithAlpha(D2D1::ColorF(0.95f, 0.30f, 0.36f, 1.0f), 0.18f * expandA));
+            r.DrawString(L"LIVE", liveBadge, ColorWithAlpha(D2D1::ColorF(0.98f, 0.42f, 0.46f, 1.0f), expandA),
+                         FontType::MonoSmall, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+
+            const std::wstring meta = vm.subtitle.empty() ? L"Live radio stream" : vm.subtitle;
+            const float metaLeft = liveBadge.right + 8.0f * dp;
+            const float metaRight = rect.right - pad;
+            if (metaRight > metaLeft) {
+                r.DrawString(FitSingleLine(r, meta, FontType::Small, metaRight - metaLeft),
+                             D2D1::RectF(metaLeft, infoY, metaRight, infoY + 18.0f * dp),
+                             expPri, FontType::Small, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
             }
-            x += 4.0f * dp;
+
+            // Row 2 of expanded section: stream state + volume readout
+            const float statusY = infoY + 20.0f * dp;
+            const std::wstring stateStr = (playing ? L"Streaming live" : L"Stream paused") + std::wstring(L" \x00B7 ") + volText;
+            r.DrawString(FitSingleLine(r, stateStr, FontType::MonoSmall, rect.right - rect.left - pad * 2.0f),
+                         D2D1::RectF(rect.left + pad, statusY, rect.right - pad, statusY + 16.0f * dp),
+                         expSub, FontType::MonoSmall, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
         } else {
-            const float iconSz = 14.0f * dp;
-            r.DrawIcon(IconType::MicPodcast, D2D1::RectF(x, cy - iconSz * 0.5f, x + iconSz, cy + iconSz * 0.5f), accent, 1.4f * dp);
-            x += iconSz + 8.0f * dp;
-        }
-        const float textW = std::max(0.0f, rect.right - 13.0f * dp - x);
-        if (textW > 4.0f) {
-            r.DrawString(FitSingleLine(r, vm.title, FontType::Small, textW),
-                         D2D1::RectF(x, rect.top, rect.right - 13.0f * dp, rect.bottom), textPri,
-                         FontType::Small, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-        }
-        if (!vm.isRadio && vm.progressRatio > 0.0) {
-            const float trackL = rect.left + 11.0f * dp, trackR = rect.right - 11.0f * dp;
-            const float fillW = std::max(0.0f, (trackR - trackL) * (float)std::min(1.0, vm.progressRatio));
-            if (fillW > 0.5f) {
-                r.FillRoundedRect(D2D1::RectF(trackL, rect.bottom - 2.0f * dp, trackL + fillW, rect.bottom), 1.0f * dp, accent);
+            // Podcast expanded section: show title + elapsed/duration + interactive seek bar
+            const float infoY = sepY + 5.0f * dp;
+            const std::wstring showName = vm.subtitle.empty() ? L"Podcast episode" : vm.subtitle;
+            const std::wstring rightTime = !vm.timeText.empty() ? vm.timeText : volText;
+            const float timeW = r.MeasureString(rightTime, FontType::MonoSmall).width + 8.0f * dp;
+            const float showRight = std::max(rect.left + pad + 40.0f * dp, rect.right - pad - timeW);
+            r.DrawString(FitSingleLine(r, showName, FontType::Small, showRight - (rect.left + pad)),
+                         D2D1::RectF(rect.left + pad, infoY, showRight, infoY + 18.0f * dp),
+                         expPri, FontType::Small, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+            r.DrawString(rightTime,
+                         D2D1::RectF(showRight, infoY, rect.right - pad, infoY + 18.0f * dp),
+                         expSub, FontType::MonoSmall, DWRITE_TEXT_ALIGNMENT_TRAILING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+
+            const float barY = rect.bottom - 14.0f * dp;
+            const D2D1_RECT_F track = D2D1::RectF(rect.left + pad, barY - 2.5f * dp, rect.right - pad, barY + 2.5f * dp);
+            r.FillRoundedRect(track, 2.5f * dp, ColorWithAlpha(D2D1::ColorF(1.0f, 1.0f, 1.0f, 1.0f), 0.10f * expandA));
+            const float ratio = (float)std::clamp(vm.progressRatio, 0.0, 1.0);
+            const float fillW = RectWidth(track) * ratio;
+            if (fillW > 1.0f) {
+                r.FillRoundedGradientRect(D2D1::RectF(track.left, track.top, track.left + fillW, track.bottom), 2.5f * dp,
+                    ColorWithAlpha(D2D1::ColorF(0x7c9bc3, 1.0f), expandA), expAccent, false);
+            }
+            if (vm.seekHovered) {
+                const float seekKnobX = std::clamp(track.left + fillW, track.left + 4.0f * dp, track.right - 4.0f * dp);
+                r.FillCircle(seekKnobX, barY, 4.5f * dp, expPri);
             }
         }
     }
+
     r.PopClip();
 }
 
