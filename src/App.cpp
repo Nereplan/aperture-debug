@@ -1035,6 +1035,16 @@ void App::SnapVisualAnimations() {
     for (auto& anim : systemRowHoverAnim) anim.SnapTo(anim.to);
     for (auto& anim : systemRowPressAnim) anim.SnapTo(anim.to);
     jumpAheadAnim.SnapTo(jumpAheadAnim.to);
+    importIslandWidthDip.SnapTo(importIslandWidthDip.to);
+    importIslandHeightDip.SnapTo(importIslandHeightDip.to);
+    importIslandRadiusDip.SnapTo(importIslandRadiusDip.to);
+    importIslandExpand.SnapTo(importIslandExpand.to);
+    importIslandFade.SnapTo(importIslandFade.to);
+    listenIslandWidthDip.SnapTo(listenIslandWidthDip.to);
+    listenIslandHeightDip.SnapTo(listenIslandHeightDip.to);
+    listenIslandRadiusDip.SnapTo(listenIslandRadiusDip.to);
+    listenIslandExpand.SnapTo(listenIslandExpand.to);
+    listenIslandFade.SnapTo(listenIslandFade.to);
     for (auto& pair : playlistCardExpands) {
         pair.second.SnapTo(pair.second.to);
     }
@@ -2200,8 +2210,11 @@ bool App::Update(float dt) {
     } else {
         importIslandExpand.SnapTo(0.0f);
     }
-    needsRedraw = needsRedraw || importIslandWidthDip.Tick() || importIslandHeightDip.Tick() ||
-        importIslandRadiusDip.Tick() || importIslandExpand.Tick() || importIslandFade.Tick();
+    if (importIslandWidthDip.Tick()) needsRedraw = true;
+    if (importIslandHeightDip.Tick()) needsRedraw = true;
+    if (importIslandRadiusDip.Tick()) needsRedraw = true;
+    if (importIslandExpand.Tick()) needsRedraw = true;
+    if (importIslandFade.Tick()) needsRedraw = true;
     if (importIslandPhase == 1 || importIslandPhase == 2) {
         importSpinAngle = std::fmod(importSpinAngle + dt * (360.0 / 1.85), 360.0);
         needsRedraw = true;
@@ -2242,8 +2255,11 @@ bool App::Update(float dt) {
         AnimateVisual(listenIslandFade, fadeT, 0.30f, MotionTokens::Standard());
         needsRedraw = true;
     }
-    needsRedraw = needsRedraw || listenIslandWidthDip.Tick() || listenIslandHeightDip.Tick() ||
-        listenIslandRadiusDip.Tick() || listenIslandExpand.Tick() || listenIslandFade.Tick();
+    if (listenIslandWidthDip.Tick()) needsRedraw = true;
+    if (listenIslandHeightDip.Tick()) needsRedraw = true;
+    if (listenIslandRadiusDip.Tick()) needsRedraw = true;
+    if (listenIslandExpand.Tick()) needsRedraw = true;
+    if (listenIslandFade.Tick()) needsRedraw = true;
     if (backfillJobActive) {
         if (backfillDone.load(std::memory_order_acquire)) { FinishBackfillJob(); }
     }
@@ -4068,9 +4084,13 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                                 }
                                 const PodcastFeed* fresh = resolveFreshFeed((size_t)feedIdx);
                                 if (fresh && epIdx < fresh->episodes.size()) {
-                                    PlayListenStream(fresh->episodes[epIdx].url,
-                                                     fresh->episodes[epIdx].title.empty() ? L"Untitled episode" : fresh->episodes[epIdx].title,
-                                                     fresh->title.empty() ? L"Podcast" : fresh->title, false);
+                                    if (listenPlaybackActive && listenUrl == fresh->episodes[epIdx].url) {
+                                        ToggleListenPause();
+                                    } else {
+                                        PlayListenStream(fresh->episodes[epIdx].url,
+                                                         fresh->episodes[epIdx].title.empty() ? L"Untitled episode" : fresh->episodes[epIdx].title,
+                                                         fresh->title.empty() ? L"Podcast" : fresh->title, false);
+                                    }
                                     return 0;
                                 }
                             }
@@ -4095,8 +4115,13 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                         }
                         for (size_t i = 0; i < listenStationBounds.size(); ++i) {
                             if (!PtInRectF(listenStationBounds[i], x, y)) continue;
-                            if (i < listenStations.size() && !listenStations[i].url.empty())
-                                PlayListenStream(listenStations[i].url, listenStations[i].name, L"Live radio", true);
+                            if (i < listenStations.size() && !listenStations[i].url.empty()) {
+                                if (listenPlaybackActive && listenUrl == listenStations[i].url) {
+                                    ToggleListenPause();
+                                } else {
+                                    PlayListenStream(listenStations[i].url, listenStations[i].name, L"Live radio", true);
+                                }
+                            }
                             return 0;
                         }
                         return 0;

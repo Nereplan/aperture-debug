@@ -3381,16 +3381,21 @@ void UIComponents::DrawListenPanel(Renderer& r, const Settings& s, const ListenP
         const auto& ep = feed.episodes[epIdx];
         const D2D1_RECT_F& rect = vm.episodeBounds[i];
         const bool hovered = (vm.hoveredEpisode == (int)i);
-        if (hovered) {
+        const bool playingThis = !vm.activeUrl.empty() && !ep.url.empty() && ep.url == vm.activeUrl;
+        if (playingThis || hovered) {
             SurfaceStyle epStyle;
             epStyle.radius = radius * dp;
-            epStyle.fill = ColorWithAlpha(th.text, 0.05f);
+            epStyle.fill = playingThis ? ColorWithAlpha(th.accent, 0.10f) : ColorWithAlpha(th.text, 0.05f);
+            if (playingThis) {
+                epStyle.border = ColorWithAlpha(th.accent, 0.38f);
+                epStyle.borderWidth = 1.0f;
+            }
             r.DrawSurface(rect, epStyle);
         }
         const float playSz = 22.0f * dp;
         const D2D1_RECT_F play = D2D1::RectF(rect.left + 4.0f * dp, rect.top + (RectHeight(rect) - playSz) * 0.5f, rect.left + 4.0f * dp + playSz, rect.top + (RectHeight(rect) + playSz) * 0.5f);
-        r.FillCircle((play.left + play.right) * 0.5f, (play.top + play.bottom) * 0.5f, playSz * 0.5f, hovered ? th.accent : ColorWithAlpha(th.accent, 0.55f));
-        r.DrawIcon(IconType::Play, InsetRectF(play, 6.0f * dp, 6.0f * dp), D2D1::ColorF(0.06f, 0.05f, 0.04f, 1.0f), 1.2f * dp);
+        r.FillCircle((play.left + play.right) * 0.5f, (play.top + play.bottom) * 0.5f, playSz * 0.5f, (hovered || playingThis) ? th.accent : ColorWithAlpha(th.accent, 0.55f));
+        r.DrawIcon((playingThis && !vm.activePaused) ? IconType::Pause : IconType::Play, InsetRectF(play, 6.0f * dp, 6.0f * dp), D2D1::ColorF(0.06f, 0.05f, 0.04f, 1.0f), 1.2f * dp);
         std::wstring tail = ep.dateText;
         if (!ep.durationText.empty()) { if (!tail.empty()) tail += L" \x00B7 "; tail += ep.durationText; }
         const float tailW = tail.empty() ? 0.0f : r.MeasureString(tail, FontType::MonoSmall).width + 12.0f * dp;
@@ -3410,16 +3415,21 @@ void UIComponents::DrawListenPanel(Renderer& r, const Settings& s, const ListenP
         const auto& st = vm.stations[i];
         const D2D1_RECT_F& rect = vm.stationBounds[i];
         const bool hovered = (vm.hoveredStation == (int)i);
-        if (hovered) {
+        const bool playingThis = !vm.activeUrl.empty() && !st.url.empty() && st.url == vm.activeUrl;
+        if (playingThis || hovered) {
             SurfaceStyle stStyle;
             stStyle.radius = radius * dp;
-            stStyle.fill = ColorWithAlpha(th.text, 0.05f);
+            stStyle.fill = playingThis ? ColorWithAlpha(th.accent, 0.10f) : ColorWithAlpha(th.text, 0.05f);
+            if (playingThis) {
+                stStyle.border = ColorWithAlpha(th.accent, 0.38f);
+                stStyle.borderWidth = 1.0f;
+            }
             r.DrawSurface(rect, stStyle);
         }
         const float badgeW = 46.0f * dp, badgeH = 20.0f * dp;
         const D2D1_RECT_F live = D2D1::RectF(rect.left + 10.0f * dp, rect.top + (RectHeight(rect) - badgeH) * 0.5f, rect.left + 10.0f * dp + badgeW, rect.top + (RectHeight(rect) + badgeH) * 0.5f);
-        r.FillRoundedRect(live, badgeH * 0.5f, ColorWithAlpha(D2D1::ColorF(0.95f, 0.25f, 0.32f, 1.0f), 0.14f));
-        r.DrawRoundedRect(live, badgeH * 0.5f, ColorWithAlpha(D2D1::ColorF(0.95f, 0.35f, 0.40f, 1.0f), 0.35f), 1.0f * dp);
+        r.FillRoundedRect(live, badgeH * 0.5f, ColorWithAlpha(D2D1::ColorF(0.95f, 0.25f, 0.32f, 1.0f), playingThis ? 0.24f : 0.14f));
+        r.DrawRoundedRect(live, badgeH * 0.5f, ColorWithAlpha(D2D1::ColorF(0.95f, 0.35f, 0.40f, 1.0f), playingThis ? 0.55f : 0.35f), 1.0f * dp);
         const float dotR = 3.0f * dp, dotCx = live.left + 10.0f * dp;
         const float dotCy = (live.top + live.bottom) * 0.5f;
         r.FillCircle(dotCx, dotCy, dotR, D2D1::ColorF(0.95f, 0.3f, 0.36f, 1.0f));
@@ -3437,8 +3447,8 @@ void UIComponents::DrawListenPanel(Renderer& r, const Settings& s, const ListenP
                          D2D1::RectF(nameRight, rect.top, play.left - 12.0f * dp, rect.bottom),
                          th.textMuted, FontType::MonoSmall, DWRITE_TEXT_ALIGNMENT_TRAILING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
         }
-        r.FillCircle((play.left + play.right) * 0.5f, (play.top + play.bottom) * 0.5f, playSz * 0.5f, hovered ? th.accent : ColorWithAlpha(th.accent, 0.45f));
-        r.DrawIcon(IconType::Play, InsetRectF(play, 6.0f * dp, 6.0f * dp), D2D1::ColorF(0.06f, 0.05f, 0.04f, 1.0f), 1.2f * dp);
+        r.FillCircle((play.left + play.right) * 0.5f, (play.top + play.bottom) * 0.5f, playSz * 0.5f, (hovered || playingThis) ? th.accent : ColorWithAlpha(th.accent, 0.45f));
+        r.DrawIcon((playingThis && !vm.activePaused) ? IconType::Pause : IconType::Play, InsetRectF(play, 6.0f * dp, 6.0f * dp), D2D1::ColorF(0.06f, 0.05f, 0.04f, 1.0f), 1.2f * dp);
     }
     r.PopClip();
 }

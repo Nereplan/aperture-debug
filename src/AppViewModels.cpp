@@ -541,6 +541,8 @@ HubRenderViewModel App::BuildHubRenderViewModel() {
                 panel.hoveredEpisodeFeed = listenHoveredEpisodeFeed;
                 panel.hoveredStation = listenHoveredStation;
                 panel.addPodcastHovered = listenAddPodcastHovered;
+                panel.activeUrl = listenPlaybackActive ? listenUrl : std::wstring();
+                panel.activePaused = listenPlaybackPaused;
             } else {
                 listenJobsKicked = false;
             }
@@ -1199,8 +1201,9 @@ HubRenderViewModel App::BuildHubRenderViewModel() {
             }
         }
         li.hitRect = (li.expand > 0.05f) ? IslandRectUnion(li.pillBounds, li.expandedBounds) : li.pillBounds;
-        const double pos = listenPlaybackActive ? listenPlayer.GetPositionSec() : -1.0;
-        const double dur = listenPlaybackActive ? listenPlayer.GetDurationSec() : -1.0;
+        const bool queryTimeline = listenPlaybackActive && !listenPlaybackIsRadio;
+        const double pos = queryTimeline ? listenPlayer.GetPositionSec() : -1.0;
+        const double dur = queryTimeline ? listenPlayer.GetDurationSec() : -1.0;
         li.progressRatio = (pos >= 0.0 && dur > 0.0) ? std::clamp(pos / dur, 0.0, 1.0) : 0.0;
         li.timeText = (pos >= 0.0) ? (FormatDuration(pos) + (dur > 0.0 ? L" / " + FormatDuration(dur) : L"")) : L"";
         li.remainingText = (dur > 0.0 && pos >= 0.0) ? (L"-" + FormatDuration(std::max(0.0, dur - pos))) : L"";

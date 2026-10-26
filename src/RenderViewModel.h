@@ -454,6 +454,8 @@ struct ListenPanelViewModel {
     std::vector<ListenStationViewModel> stations;
     bool radioLoading = false;
     std::wstring radioError;
+    std::wstring activeUrl;
+    bool activePaused = false;
     D2D1_RECT_F bounds, podcastsHeaderRect, addPodcastRect, radioHeaderRect;
     std::vector<D2D1_RECT_F> feedBounds, episodeBounds, stationBounds;
     std::vector<int> episodeFeedIndex;   // episodeBounds[i] belongs to feeds[episodeFeedIndex[i]]
