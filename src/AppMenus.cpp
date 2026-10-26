@@ -735,18 +735,6 @@ void App::OpenBackgroundContextMenu(float x, float y) {
             }});
         }
     }
-    if (currentTab == TabView::Media && libraryGroupMode == LibraryGroupMode::Listen) {
-        contextMenuItems.push_back({ "add_podcast", L"Add Podcast by URL...", L"", IconType::MicPodcast, false, false, false,
-                                    [this]() { ShowAddPodcastModal(); }});
-        contextMenuItems.push_back({ "refresh_listen", L"Refresh Podcasts & Radio", L"", IconType::Refresh, false, false, false, [this]() {
-            if (playbackSession.IsPrivateMode()) return;
-            radioJobs.EnsureFetch();
-            std::vector<std::wstring> feedUrls;
-            for (const auto& f : podcastSubscriptions.GetFeeds()) feedUrls.push_back(f.url);
-            if (!feedUrls.empty()) podcastJobs.EnsureRefresh(feedUrls);
-            ShowOSD(IconType::Refresh, L"Refreshing podcasts & radio\u2026");
-        }});
-    }
     contextMenuItems.push_back({ "sep_bg_2", L"", L"", IconType::Play, true });
     contextMenuItems.push_back({ "refresh", L"Refresh", L"F5", IconType::Refresh, false, false, false, [this]() {
         if (!libraryLoadInProgress) { StartLibraryLoad(libraryGroupMode, true); ShowOSD(IconType::Refresh, L"Refreshing library\x2026"); }
@@ -894,15 +882,45 @@ void App::OpenListenFeedContextMenu(size_t feedIndex, float x, float y) {
     PresentHubContextMenu(x, y, 220.0f);
 }
 
-void App::OpenListenStationContextMenu(size_t stationIndex, float x, float y) {
-    if (stationIndex >= listenStations.size()) return;
-    const std::wstring url = listenStations[stationIndex].url;
-    const std::wstring name = listenStations[stationIndex].name;
+// Background (non-row) right-click inside the Listen panel: each tab gets a
+// focused menu with its own refresh/add/import actions instead of the generic
+// hub background menu.
+void App::OpenListenSectionContextMenu(float x, float y) {
+    PushFocusSnapshot(TransientSurfaceType::ContextMenu);
+    contextMenuItems.clear();
+    if (listenSubTab == 0) {
+        contextMenuItems.push_back({ "lsm_title", L"Podcasts", L"", IconType::MicPodcast, false, false, false, nullptr, true });
+        contextMenuItems.push_back({ "sep_lsm1", L"", L"", IconType::Play, true });
+        contextMenuItems.push_back({ "lsm_refresh", L"Refresh Podcasts", L"", IconType::Refresh, false, false, false, [this]() {
+            std::vector<std::wstring> feedUrls;
+            for (const auto& f : podcastSubscriptions.GetFeeds()) feedUrls.push_back(f.url);
+            if (!feedUrls.empty() && !playbackSession.IsPrivateMode()) { podcastJobs.EnsureRefresh(feedUrls); ShowOSD(IconType::Refresh, L"Refreshing podcasts"); }
+        }});
+        contextMenuItems.push_back({ "lsm_add", L"Add Podcast by URL...", L"", IconType::Plus, false, false, false,
+                                    [this]() { ShowAddPodcastModal(); }});
+        contextMenuItems.push_back({ "lsm_import", L"Import Podcast List (OPML/TXT)...", L"", IconType::MicPodcast, false, false, false,
+                                    [this]() { ImportPodcastListDialog(); }});
+    } else {
+        contextMenuItems.push_back({ "lsm_title", L"Radio", L"", IconType::RadioWaves, false, false, false, nullptr, true });
+        contextMenuItems.push_back({ "sep_lsm1", L"", L"", IconType::Play, true });
+        contextMenuItems.push_back({ "lsm_add_station", L"Add Station by URL...", L"", IconType::Plus, false, false, false,
+                                    [this]() { ShowAddRadioStationModal(); }});
+        contextMenuItems.push_back({ "lsm_import_stations", L"Import Station List (M3U/PLS/TXT)...", L"", IconType::RadioWaves, false, false, false,
+                                    [this]() { ImportRadioStationsDialog(); }});
+    }
+    PresentHubContextMenu(x, y, 240.0f);
+}
+
+void App::OpenListenStationContextMenu(const RadioStation& station, float x, float y) {
+    if (station.url.empty()) return;
+    const bool isFavorite = radioFavorites.Contains(station.url);
     PushFocusSnapshot(TransientSurfaceType::ContextMenu);
     contextMenuItems.clear();
     contextMenuItems.push_back({ "listen_play_station", L"Play Station", L"", IconType::Play, false, false, false,
-                                [this, url, name]() { PlayListenStream(url, name, L"Live radio", true); }});
-    contextMenuItems.push_back({ "listen_copy_url", L"Copy Station URL", L"", IconType::Link, false, false, false, [this, url]() {
+                                [this, station]() { PlayListenStation(station); }});
+    contextMenuItems.push_back({ "listen_toggle_favorite", isFavorite ? L"Remove from Favorites" : L"Add to Favorites", L"", IconType::Star,
+                                false, false, false, [this, station]() { ToggleRadioFavorite(station); }});
+    contextMenuItems.push_back({ "listen_copy_url", L"Copy Station URL", L"", IconType::Link, false, false, false, [this, url = station.url]() {
         if (OpenClipboard(hWnd)) {
             EmptyClipboard();
             HGLOBAL mem = GlobalAlloc(GMEM_MOVEABLE, (url.size() + 1) * sizeof(wchar_t));
@@ -2187,7 +2205,26 @@ bool App::PumpOnlineSubtitleJobs() {
 }
 
 bool App::PumpRadioDirectoryJobs() {
-    if (!radioJobs.Pump()) return false;
+    bool changed = false;
+    RadioSearchResult searchResult;
+    if (radioJobs.PumpSearch(searchResult)) {
+        changed = true;
+        // Ignore answers for queries that are no longer current; the debounced
+        // kick guarantees the newest query wins, so a stale completion here is
+        // only possible right after a rapid edit+clear.
+        if (searchResult.success) {
+            listenSearchResults = std::move(searchResult.stations);
+            listenSearchDoneQuery = searchResult.query;
+            listenSearchFailed = false;
+            listenSearchError.clear();
+        } else {
+            listenSearchResults.clear();
+            listenSearchDoneQuery = searchResult.query;
+            listenSearchFailed = true;
+            listenSearchError = searchResult.errorMessage.empty() ? L"Station search unavailable" : searchResult.errorMessage;
+        }
+    }
+    if (!radioJobs.Pump()) return changed;
     const RadioDirectoryResult& result = radioJobs.GetResult();
     if (result.success) {
         listenStations = result.stations;
@@ -2226,6 +2263,18 @@ bool App::PumpPodcastJobs() {
             const std::wstring reason = addResult.errorMessage.empty() ? L"the URL is not an RSS podcast feed" : addResult.errorMessage;
             ShowOSD(IconType::VolumeMuted, L"Podcast feed invalid \u2014 " + reason, 5.0f);
         }
+    }
+    if (!podcastImportQueue.empty()) {
+        // Batch import: the previous add-preview settled (subscribed or
+        // rejected), so start the next pending feed.
+        const std::wstring nextUrl = podcastImportQueue.front();
+        podcastImportQueue.erase(podcastImportQueue.begin());
+        const size_t done = podcastImportTotal - podcastImportQueue.size() - 1;
+        podcastJobs.EnsureAddPreview(nextUrl);
+        ShowOSD(IconType::MicPodcast, L"Importing podcasts\u2026 " + std::to_wstring(done + 1) + L" of " + std::to_wstring(podcastImportTotal), 2.0f);
+    } else if (podcastImportTotal > 0) {
+        ShowOSD(IconType::Checkmark, L"Podcast import finished (" + std::to_wstring(podcastImportTotal) + L" feeds)");
+        podcastImportTotal = 0;
     }
     if (podcastJobs.Pump()) {
         changed = true;

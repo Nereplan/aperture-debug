@@ -339,12 +339,51 @@ private:
     // Listen panel state (podcasts + radio directory mirrors, UI-thread only).
     std::vector<PodcastFeed> listenFeeds;
     std::vector<RadioStation> listenStations;
+    // Stations in visible row order (favorites, then directory or search hits);
+    // row hit-testing resolves clicks through this list.
+    std::vector<RadioStation> listenVisibleStations;
     int listenExpandedFeed = -1;
     float listenScrollY = 0.0f, listenContentHeight = 0.0f, listenViewportHeight = 0.0f;
     int listenHoveredFeed = -1, listenHoveredEpisodeFeed = -1, listenHoveredEpisode = -1, listenHoveredStation = -1;
     bool listenAddPodcastHovered = false;
     bool listenJobsKicked = false;
     std::wstring listenRadioErrorCached;
+    // Listen sub-surface: Podcasts | Radio tabs, search field, favorites.
+    int listenSubTab = 0; // 0 podcasts, 1 radio
+    AnimatedFloat listenSubTabIndicator;
+    bool listenSubTabIndicatorReady = false;
+    double listenSpinAngle = 0.0;
+    std::vector<D2D1_RECT_F> listenFeedPlayBounds, listenFeedRemoveBounds, listenEpisodePlayBounds, listenStationPlayBounds;
+    int listenHoveredFeedPlay = -1, listenHoveredFeedRemove = -1, listenHoveredStationPlay = -1;
+    D2D1_RECT_F listenSubTabBounds = { 0, 0, 0, 0 }, listenSubTabPodcastsBounds = { 0, 0, 0, 0 }, listenSubTabRadioBounds = { 0, 0, 0, 0 };
+    D2D1_RECT_F listenPodcastBannerRetryBounds = { 0, 0, 0, 0 };
+    bool listenBannerRetryHovered = false;
+    D2D1_RECT_F listenRadioSearchBounds = { 0, 0, 0, 0 }, listenRadioSearchClearBounds = { 0, 0, 0, 0 };
+    D2D1_RECT_F listenRadioAddStationBounds = { 0, 0, 0, 0 };
+    bool listenRadioSearchClearHovered = false, listenRadioAddStationHovered = false;
+    D2D1_RECT_F listenStateButtonBounds = { 0, 0, 0, 0 };
+    bool listenStateButtonHovered = false;
+    // Eased header-button hover progress (0 add-podcast, 1 banner retry,
+    // 2 add-station, 3 state button) so Listen header actions animate.
+    AnimatedFloat listenHeaderHoverAnim[4];
+    // Island podcast skip buttons (-15s/+15s) in the expanded drawer.
+    bool listenSkipBackHovered = false, listenSkipFwdHovered = false;
+    D2D1_RECT_F listenIslandSkipBackBounds = { 0, 0, 0, 0 }, listenIslandSkipFwdBounds = { 0, 0, 0, 0 };
+    // Batch podcast import: pending feed URLs fetched one at a time through
+    // the add-preview pipeline; each completion subscribes and starts the next.
+    std::vector<std::wstring> podcastImportQueue;
+    size_t podcastImportTotal = 0;
+    // Radio name search: debounced on the UI thread; the query a completed
+    // result belongs to is kept so stale answers never replace newer ones.
+    TextInputModel radioSearchInput;
+    bool isRadioSearchFocused = false;
+    ULONGLONG radioSearchEditTick = 0;
+    std::vector<RadioStation> listenSearchResults;
+    std::wstring listenSearchDoneQuery;
+    bool listenSearchFailed = false;
+    std::wstring listenSearchError;
+    RadioFavorites radioFavorites;
+    bool radioFavoritesLoaded = false;
     // Island morph per the reference design: width/height/radius spring
     // between compact, expanded and closed sizes; fade rides the exit.
     AnimatedFloat importIslandWidthDip, importIslandHeightDip, importIslandRadiusDip, importIslandExpand, importIslandFade;
@@ -398,7 +437,18 @@ private:
     void OnListenFinished();
     D2D1_RECT_F ListenPillBounds(float dp);
     void OpenListenFeedContextMenu(size_t feedIndex, float x, float y);
-    void OpenListenStationContextMenu(size_t stationIndex, float x, float y);
+    void OpenListenStationContextMenu(const RadioStation& station, float x, float y);
+    // Per-tab background menu for the Listen panel (refresh/add/import).
+    void OpenListenSectionContextMenu(float x, float y);
+    void ShowAddRadioStationModal();
+    void ToggleRadioFavorite(const RadioStation& station);
+    // Batch import surfaces: file pickers for OPML/TXT podcast lists and
+    // M3U/PLS/TXT station lists.
+    void ImportPodcastListDialog();
+    void ImportRadioStationsDialog();
+    // Shared station/episode playback path for one radio station (meta built from
+    // bitrate/codec/country, then PlayListenStream).
+    void PlayListenStation(const RadioStation& station);
     struct ListenPress {
         int target = 0; // 0 none, 1 feed, 2 episode, 3 station, 4 add-podcast
         int a = -1, b = -1;
@@ -678,7 +728,7 @@ private:
     LibraryRevisions cachedSearchKeyRevisions;
     uint64_t cachedSearchPathsGeneration = 0;
     std::vector<std::wstring> cachedPlaylistSearchKeys;
-    enum class TextInputField { None, PlaylistSearch, Modal, InlineRename, GlobalSearch, MediaSearch, PlaybackSpeed };
+    enum class TextInputField { None, PlaylistSearch, Modal, InlineRename, GlobalSearch, MediaSearch, RadioSearch, PlaybackSpeed };
     TextInputModel modalInput;
     TextInputModel inlineRenameInput;
     TextInputField activeTextInputField = TextInputField::None;

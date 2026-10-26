@@ -3326,7 +3326,17 @@ void UIComponents::DrawListenIsland(Renderer& r, const Settings& s, const Listen
         r.FillCircle(knobX, rowCy, knobR, (vm.volumeHovered || vm.volumeDragging) ? textPri : accent);
     }
 
-    // 5. Close (X) button (always present)
+    // 5. Expand chevron (signals the pill opens; body click toggles it)
+    if (vm.chevronBounds.right > vm.chevronBounds.left) {
+        const float chevSz = 12.0f * dp;
+        const float chevCx = (vm.chevronBounds.left + vm.chevronBounds.right) * 0.5f;
+        const float chevCy = (vm.chevronBounds.top + vm.chevronBounds.bottom) * 0.5f;
+        r.DrawIcon(vm.expand > 0.5f ? IconType::ChevronDown : IconType::ChevronUp,
+                   D2D1::RectF(chevCx - chevSz * 0.5f, chevCy - chevSz * 0.5f, chevCx + chevSz * 0.5f, chevCy + chevSz * 0.5f),
+                   (vm.pillHovered && !vm.xHovered && !vm.muteHovered) ? textPri : textSub, 1.4f * dp);
+    }
+
+    // 6. Close (X) button (always present)
     r.FillRoundedRect(vm.xBounds, 6.0f * dp,
         vm.xHovered ? ColorWithAlpha(D2D1::ColorF(0x94b0d3, 1.0f), 0.16f * alpha)
                     : ColorWithAlpha(D2D1::ColorF(1.0f, 1.0f, 1.0f, 1.0f), 0.04f * alpha));
@@ -3386,7 +3396,8 @@ void UIComponents::DrawListenIsland(Renderer& r, const Settings& s, const Listen
                          D2D1::RectF(rect.left + pad, statusY, rect.right - pad, statusY + 16.0f * dp),
                          expSub, FontType::MonoSmall, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
         } else {
-            // Podcast expanded section: show title + elapsed/duration + interactive seek bar
+            // Podcast expanded section: show + time + interactive seek bar
+            // flanked by -15s/+15s skip buttons.
             const float infoY = sepY + 5.0f * dp;
             const std::wstring showName = vm.subtitle.empty() ? L"Podcast episode" : vm.subtitle;
             const std::wstring rightTime = !vm.timeText.empty() ? vm.timeText : volText;
@@ -3400,7 +3411,21 @@ void UIComponents::DrawListenIsland(Renderer& r, const Settings& s, const Listen
                          expSub, FontType::MonoSmall, DWRITE_TEXT_ALIGNMENT_TRAILING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
 
             const float barY = rect.bottom - 14.0f * dp;
-            const D2D1_RECT_F track = D2D1::RectF(rect.left + pad, barY - 2.5f * dp, rect.right - pad, barY + 2.5f * dp);
+            const float skipW = 34.0f * dp, skipH = 20.0f * dp;
+            const D2D1_RECT_F skipBackRect = D2D1::RectF(rect.left + pad, barY - skipH * 0.5f,
+                                                         rect.left + pad + skipW, barY + skipH * 0.5f);
+            const D2D1_RECT_F skipFwdRect = D2D1::RectF(rect.right - pad - skipW, barY - skipH * 0.5f,
+                                                        rect.right - pad, barY + skipH * 0.5f);
+            const D2D1_RECT_F track = D2D1::RectF(skipBackRect.right + 8.0f * dp, barY - 2.5f * dp,
+                                                  skipFwdRect.left - 8.0f * dp, barY + 2.5f * dp);
+            const auto drawSkip = [&](const D2D1_RECT_F& btn, bool hoveredBtn, const wchar_t* label) {
+                const float t = (hoveredBtn ? 0.16f : 0.07f) * expandA;
+                r.FillRoundedRect(btn, 6.0f * dp, ColorWithAlpha(th.text, t));
+                r.DrawString(label, btn, expSub, FontType::MonoSmall,
+                             DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+            };
+            drawSkip(skipBackRect, vm.skipBackHovered, L"-15s");
+            drawSkip(skipFwdRect, vm.skipFwdHovered, L"+15s");
             r.FillRoundedRect(track, 2.5f * dp, ColorWithAlpha(D2D1::ColorF(1.0f, 1.0f, 1.0f, 1.0f), 0.10f * expandA));
             const float ratio = (float)std::clamp(vm.progressRatio, 0.0, 1.0);
             const float fillW = RectWidth(track) * ratio;
@@ -3418,28 +3443,237 @@ void UIComponents::DrawListenIsland(Renderer& r, const Settings& s, const Listen
     r.PopClip();
 }
 
-// Listen panel: podcasts (with inline episode expansion) above the live radio
-// directory. Audio-first surfaces — icon badges and text instead of video
-// thumbnails — with the same row rhythm as the rest of the hub.
+// Listen panel: a Podcasts | Radio segmented control switches between the two
+// audio surfaces. Each side has its own header actions, section captions, and
+// proper empty/loading/error state cards instead of fake placeholder rows.
+// Rows put identity on the left (badge, LIVE pill) and the play action on the
+// right, so podcast and radio rows behave identically.
+namespace {
+
+// Small arc spinner for header/list loading states (App advances the angle).
+void DrawListenSpinner(Renderer& r, const D2D1_RECT_F& rect, D2D1_COLOR_F color, float angleDeg, float dp) {
+    const float cx = (rect.left + rect.right) * 0.5f, cy = (rect.top + rect.bottom) * 0.5f;
+    const float rad = RectWidth(rect) * 0.42f;
+    const float base = angleDeg * 3.14159265f / 180.0f;
+    const float a0 = base, a1 = base + 4.4f;
+    const int steps = 16;
+    D2D1_POINT_2F prev = D2D1::Point2F(cx + rad * std::cos(a0), cy + rad * std::sin(a0));
+    for (int i = 1; i <= steps; ++i) {
+        const float t = a0 + (a1 - a0) * i / steps;
+        const D2D1_POINT_2F cur = D2D1::Point2F(cx + rad * std::cos(t), cy + rad * std::sin(t));
+        r.DrawLine(prev.x, prev.y, cur.x, cur.y, color, 1.5f * dp);
+        prev = cur;
+    }
+}
+
+// Compact icon+label button used by the Listen header rows. hoverProg eases
+// 0..1 so the fill/border/text blend between rest and hover states.
+void DrawListenHeaderButton(Renderer& r, const Settings& s, const D2D1_RECT_F& rect, IconType icon,
+                            const std::wstring& label, float hoverProg, float dp) {
+    const auto& th = s.currentTheme;
+    const auto rest = Presentation::Button(th, false, false, false, false);
+    const auto hovered = Presentation::Button(th, false, false, true, false);
+    const float t = std::clamp(hoverProg, 0.0f, 1.0f);
+    const D2D1_COLOR_F fill = LerpColor(rest.fill, hovered.fill, t);
+    const D2D1_COLOR_F border = LerpColor(rest.border, hovered.border, t);
+    const D2D1_COLOR_F text = LerpColor(rest.text, hovered.text, t);
+    r.FillRoundedRect(rect, 7.0f * dp, fill);
+    r.DrawRoundedRect(rect, 7.0f * dp, border, dp);
+    const float iconSz = 13.0f * dp;
+    D2D1_SIZE_F textSz = label.empty() ? D2D1_SIZE_F{ 0, 0 } : r.MeasureString(label, FontType::Small);
+    const float totalW = iconSz + (label.empty() ? 0.0f : 6.0f * dp + textSz.width);
+    float x = (rect.left + rect.right) * 0.5f - totalW * 0.5f;
+    const float cy = (rect.top + rect.bottom) * 0.5f;
+    r.DrawIcon(icon, D2D1::RectF(x, cy - iconSz * 0.5f, x + iconSz, cy + iconSz * 0.5f), text, 1.5f * dp);
+    if (!label.empty()) {
+        r.DrawString(label, D2D1::RectF(x + iconSz + 6.0f * dp, rect.top, rect.right, rect.bottom),
+                     text, FontType::Small, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+    }
+}
+
+// Round play/pause control used on episode and station rows.
+void DrawListenPlayButton(Renderer& r, const Settings& s, const D2D1_RECT_F& rect, bool playingThis,
+                          bool paused, bool hovered, float dp) {
+    const auto& th = s.currentTheme;
+    r.FillCircle((rect.left + rect.right) * 0.5f, (rect.top + rect.bottom) * 0.5f, RectWidth(rect) * 0.5f,
+                 (hovered || playingThis) ? th.accent : ColorWithAlpha(th.accent, 0.5f));
+    D2D1_RECT_F iconRect = InsetRectF(rect, 6.0f * dp, 6.0f * dp);
+    if (!playingThis || paused) iconRect.left += 0.8f * dp;
+    r.DrawIcon((playingThis && !paused) ? IconType::Pause : IconType::Play,
+               iconRect, D2D1::ColorF(0.06f, 0.05f, 0.04f, 1.0f), 1.2f * dp);
+}
+
+} // namespace
+
 void UIComponents::DrawListenPanel(Renderer& r, const Settings& s, const ListenPanelViewModel& vm) {
     float dp = r.GetDpiScale();
     const auto& th = s.currentTheme;
     r.PushClip(vm.bounds);
     const float radius = 8.0f;
-    // ---- Podcasts ----
-    r.DrawString(L"PODCASTS", vm.podcastsHeaderRect, th.textMuted, FontType::Caption, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+
+    // ---- Sub-tab segmented control: Podcasts | Radio ----
+    r.FillRoundedRect(vm.subTabBounds, 7.0f * dp, D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.03f));
+    r.DrawRoundedRect(vm.subTabBounds, 7.0f * dp, D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.08f), 1.0f * dp);
     {
-        const bool addHover = vm.addPodcastHovered;
-        SurfaceStyle addStyle;
-        addStyle.radius = addHover ? 14.0f * dp : 13.0f * dp;
-        addStyle.fill = addHover ? ColorWithAlpha(th.accent, 0.16f) : ColorWithAlpha(th.text, 0.05f);
-        addStyle.border = addHover ? ColorWithAlpha(th.accent, 0.45f) : ColorWithAlpha(th.text, 0.08f);
-        r.DrawSurface(vm.addPodcastRect, addStyle);
-        r.DrawIcon(IconType::Plus, InsetRectF(D2D1::RectF(vm.addPodcastRect.left + 8.0f * dp, vm.addPodcastRect.top, vm.addPodcastRect.left + 22.0f * dp, vm.addPodcastRect.bottom), 4.0f * dp, 8.0f * dp),
-                   addHover ? th.accent : th.textMuted, 1.6f * dp);
-        r.DrawString(L"Add by URL", D2D1::RectF(vm.addPodcastRect.left + 24.0f * dp, vm.addPodcastRect.top, vm.addPodcastRect.right - 6.0f * dp, vm.addPodcastRect.bottom),
-                     addHover ? th.text : th.textMuted, FontType::Small, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+        const float t = std::clamp(vm.subTabIndicatorPos, 0.0f, 1.0f);
+        const D2D1_RECT_F& segA = vm.subTabPodcastsRect;
+        const D2D1_RECT_F& segB = vm.subTabRadioRect;
+        const D2D1_RECT_F pill = D2D1::RectF(segA.left + t * (segB.left - segA.left), segA.top,
+                                             segA.right + t * (segB.right - segA.right), segA.bottom);
+        r.FillRoundedRect(pill, 5.0f * dp, LerpColor(th.cardBg, th.text, 0.10f));
+        r.DrawRoundedRect(pill, 5.0f * dp, ColorWithAlpha(th.accent, 0.38f), 1.0f * dp);
+        const auto drawSeg = [&](const D2D1_RECT_F& seg, float sel, IconType icon, const wchar_t* label) {
+            const D2D1_COLOR_F col = LerpColor(th.textMuted, th.text, std::max(sel, 0.0f));
+            const float iconSz = 13.0f * dp;
+            D2D1_SIZE_F labelSz = r.MeasureString(label, FontType::Small);
+            const float totalW = iconSz + 7.0f * dp + labelSz.width;
+            float x = (seg.left + seg.right) * 0.5f - totalW * 0.5f;
+            const float cy = (seg.top + seg.bottom) * 0.5f;
+            r.DrawIcon(icon, D2D1::RectF(x, cy - iconSz * 0.5f, x + iconSz, cy + iconSz * 0.5f), col, 1.5f * dp);
+            r.DrawString(label, D2D1::RectF(x + iconSz + 7.0f * dp, seg.top, seg.right, seg.bottom),
+                         col, FontType::Small, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+        };
+        drawSeg(vm.subTabPodcastsRect, 1.0f - t, IconType::MicPodcast, L"Podcasts");
+        drawSeg(vm.subTabRadioRect, t, IconType::RadioWaves, L"Radio");
     }
+
+    if (vm.subTab == ListenSubTab::Podcasts) {
+        // ---- Podcasts header: Add Podcast action + optional failure banner ----
+        DrawListenHeaderButton(r, s, vm.addPodcastRect, IconType::Plus, L"Add Podcast", vm.addPodcastHoverProg, dp);
+        if (!vm.podcastErrorText.empty()) {
+            // Refresh-failure banner with an inline retry; keeps cached rows below usable.
+            r.FillRoundedRect(vm.podcastBannerRect, 7.0f * dp, ColorWithAlpha(D2D1::ColorF(0.95f, 0.30f, 0.36f, 1.0f), 0.10f));
+            r.DrawRoundedRect(vm.podcastBannerRect, 7.0f * dp, ColorWithAlpha(D2D1::ColorF(0.95f, 0.35f, 0.40f, 1.0f), 0.35f), 1.0f * dp);
+            const float warnSz = 13.0f * dp;
+            const float cy = (vm.podcastBannerRect.top + vm.podcastBannerRect.bottom) * 0.5f;
+            r.DrawIcon(IconType::VolumeMuted, D2D1::RectF(vm.podcastBannerRect.left + 10.0f * dp, cy - warnSz * 0.5f,
+                       vm.podcastBannerRect.left + 10.0f * dp + warnSz, cy + warnSz * 0.5f),
+                       ColorWithAlpha(D2D1::ColorF(0.97f, 0.55f, 0.60f, 1.0f), 1.0f), 1.4f * dp);
+            const float msgLeft = vm.podcastBannerRect.left + 10.0f * dp + warnSz + 8.0f * dp;
+            const float msgRight = vm.podcastBannerRetryRect.left - 10.0f * dp;
+            if (msgRight > msgLeft) {
+                r.DrawString(FitSingleLine(r, vm.podcastErrorText, FontType::Small, msgRight - msgLeft),
+                             D2D1::RectF(msgLeft, vm.podcastBannerRect.top, msgRight, vm.podcastBannerRect.bottom),
+                             th.text, FontType::Small, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+            }
+            const auto retryRest = Presentation::Button(th, false, false, false, false);
+            const auto retryHover = Presentation::Button(th, false, false, true, false);
+            const float retryT = std::clamp(vm.bannerRetryHoverProg, 0.0f, 1.0f);
+            const D2D1_COLOR_F retryFill = LerpColor(retryRest.fill, retryHover.fill, retryT);
+            const D2D1_COLOR_F retryBorder = LerpColor(retryRest.border, retryHover.border, retryT);
+            const D2D1_COLOR_F retryText = LerpColor(retryRest.text, retryHover.text, retryT);
+            r.FillRoundedRect(vm.podcastBannerRetryRect, 6.0f * dp, retryFill);
+            r.DrawRoundedRect(vm.podcastBannerRetryRect, 6.0f * dp, retryBorder, dp);
+            const float retryIcon = 11.0f * dp;
+            D2D1_SIZE_F retryTextSz = r.MeasureString(L"Retry", FontType::Small);
+            float rx = (vm.podcastBannerRetryRect.left + vm.podcastBannerRetryRect.right) * 0.5f
+                - (retryIcon + 5.0f * dp + retryTextSz.width) * 0.5f;
+            r.DrawIcon(IconType::Refresh, D2D1::RectF(rx, cy - retryIcon * 0.5f, rx + retryIcon, cy + retryIcon * 0.5f),
+                       retryText, 1.4f * dp);
+            r.DrawString(L"Retry", D2D1::RectF(rx + retryIcon + 5.0f * dp, vm.podcastBannerRetryRect.top,
+                         vm.podcastBannerRetryRect.right, vm.podcastBannerRetryRect.bottom),
+                         retryText, FontType::Small, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+        }
+    } else {
+        // ---- Radio header: search field + add-station (no directory refresh) ----
+        const bool searchValid = vm.radioSearchRect.right > vm.radioSearchRect.left;
+        if (searchValid) {
+            if (vm.radioSearchFocused) {
+                r.FillRoundedRect(vm.radioSearchRect, 7.0f * dp, D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.045f));
+                r.DrawRoundedRect(vm.radioSearchRect, 7.0f * dp, ColorWithAlpha(th.accent, 0.75f), 1.5f * dp);
+            } else {
+                r.FillRoundedRect(vm.radioSearchRect, 7.0f * dp, D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.022f));
+                r.DrawRoundedRect(vm.radioSearchRect, 7.0f * dp, D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.075f), 1.0f * dp);
+            }
+            const float actionIcon = 13.0f * dp;
+            const float iconLeft = vm.radioSearchRect.left + 9.0f * dp;
+            const float iconTop = vm.radioSearchRect.top + (RectHeight(vm.radioSearchRect) - actionIcon) * 0.5f;
+            if (vm.radioSearching) {
+                DrawListenSpinner(r, D2D1::RectF(iconLeft, iconTop, iconLeft + actionIcon, iconTop + actionIcon),
+                                  th.accent, vm.spinnerAngle, dp);
+            } else {
+                r.DrawIcon(IconType::Search, D2D1::RectF(iconLeft, iconTop, iconLeft + actionIcon, iconTop + actionIcon),
+                           vm.radioSearchFocused ? th.accent : th.textMuted, 1.5f * dp);
+            }
+            const bool hasQuery = !vm.radioSearchVisual.displayText.empty();
+            float textRight = vm.radioSearchRect.right - 8.0f * dp;
+            if (hasQuery && vm.radioSearchClearRect.right > vm.radioSearchClearRect.left) {
+                textRight = vm.radioSearchClearRect.left - 4.0f * dp;
+                const float clearCx = (vm.radioSearchClearRect.left + vm.radioSearchClearRect.right) * 0.5f;
+                const float clearCy = (vm.radioSearchClearRect.top + vm.radioSearchClearRect.bottom) * 0.5f;
+                if (vm.radioSearchClearHovered) {
+                    r.FillCircle(clearCx, clearCy, 9.0f * dp, D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.12f));
+                } else { r.FillCircle(clearCx, clearCy, 9.0f * dp, D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.035f)); }
+                const float closeIconSz = 10.0f * dp;
+                r.DrawIcon(IconType::CloseX, D2D1::RectF(clearCx - closeIconSz * 0.5f, clearCy - closeIconSz * 0.5f,
+                    clearCx + closeIconSz * 0.5f, clearCy + closeIconSz * 0.5f),
+                    vm.radioSearchClearHovered ? th.text : th.textMuted);
+            }
+            const D2D1_RECT_F textRect = D2D1::RectF(iconLeft + actionIcon + 7.0f * dp, vm.radioSearchRect.top,
+                                                     textRight, vm.radioSearchRect.bottom);
+            DrawTextInput(r, s, textRect, vm.radioSearchVisual, L"Search stations\x2026", FontType::Small, 0.0f);
+        }
+        if (vm.radioAddStationRect.right > vm.radioAddStationRect.left) {
+            DrawListenHeaderButton(r, s, vm.radioAddStationRect, IconType::Plus, L"", vm.addStationHoverProg, dp);
+        }
+    }
+
+    // Rows scroll beneath the fixed header: clip the row viewport so entries
+    // never paint over the sub-tab bar or the search field.
+    const D2D1_RECT_F rowViewport = D2D1::RectF(vm.bounds.left, vm.subTabBounds.bottom + 4.0f * dp,
+                                                vm.bounds.right, vm.bounds.bottom);
+    r.PushClip(rowViewport);
+
+    // ---- Centered state card (empty / loading / error) fills the rest ----
+    if (vm.state.visible) {
+        const D2D1_RECT_F area = vm.state.bounds;
+        const float iconSz = 34.0f * dp;
+        const float cx = (area.left + area.right) * 0.5f;
+        const float top = area.top + 26.0f * dp;
+        r.DrawIcon(vm.state.icon, D2D1::RectF(cx - iconSz * 0.5f, top, cx + iconSz * 0.5f, top + iconSz),
+                   ColorWithAlpha(th.accent, 0.85f), 1.4f * dp);
+        D2D1_RECT_F titleRect = D2D1::RectF(area.left + 24.0f * dp, top + iconSz + 12.0f * dp,
+                                            area.right - 24.0f * dp, top + iconSz + 38.0f * dp);
+        r.DrawString(vm.state.title, titleRect, th.text, FontType::Subheading,
+                     DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+        if (!vm.state.body.empty()) {
+            D2D1_RECT_F bodyRect = D2D1::RectF(cx - 250.0f * dp, titleRect.bottom + 4.0f * dp,
+                                               cx + 250.0f * dp, titleRect.bottom + 52.0f * dp);
+            r.DrawStringWrapped(vm.state.body, bodyRect, th.textMuted, FontType::Small,
+                                DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_NEAR);
+        }
+        if (!vm.state.actionText.empty() && vm.state.buttonBounds.right > vm.state.buttonBounds.left) {
+            const auto rest = Presentation::Button(th, true, false, false, false);
+            const auto hovered = Presentation::Button(th, true, false, true, false);
+            const float t = std::clamp(vm.stateButtonHoverProg, 0.0f, 1.0f);
+            const D2D1_COLOR_F fill = LerpColor(rest.fill, hovered.fill, t);
+            const D2D1_COLOR_F border = LerpColor(rest.border, hovered.border, t);
+            const D2D1_COLOR_F text = LerpColor(rest.text, hovered.text, t);
+            r.FillRoundedRect(vm.state.buttonBounds, Presentation::ButtonRadius * dp, fill);
+            r.DrawRoundedRect(vm.state.buttonBounds, Presentation::ButtonRadius * dp, border, dp);
+            const float btnIconSz = 13.0f * dp;
+            D2D1_SIZE_F btnText = r.MeasureString(vm.state.actionText, FontType::Medium);
+            const float btnCy = (vm.state.buttonBounds.top + vm.state.buttonBounds.bottom) * 0.5f;
+            float bx = (vm.state.buttonBounds.left + vm.state.buttonBounds.right) * 0.5f
+                - (btnIconSz + 6.0f * dp + btnText.width) * 0.5f;
+            r.DrawIcon(IconType::Plus, D2D1::RectF(bx, btnCy - btnIconSz * 0.5f, bx + btnIconSz, btnCy + btnIconSz * 0.5f),
+                       text, 1.5f * dp);
+            r.DrawString(vm.state.actionText, D2D1::RectF(bx + btnIconSz + 6.0f * dp, vm.state.buttonBounds.top,
+                         vm.state.buttonBounds.right, vm.state.buttonBounds.bottom),
+                         text, FontType::Medium, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+        }
+        r.PopClip();
+        r.PopClip();
+        return;
+    }
+
+    // ---- Inline section captions between row groups ----
+    for (size_t i = 0; i < vm.sectionCaptions.size() && i < vm.sectionCaptionBounds.size(); ++i) {
+        r.DrawString(vm.sectionCaptions[i], vm.sectionCaptionBounds[i], th.textMuted, FontType::Caption,
+                     DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+    }
+
+    // ---- Podcast rows ----
     for (size_t i = 0; i < vm.feeds.size(); ++i) {
         const auto& feed = vm.feeds[i];
         const D2D1_RECT_F& rect = vm.feedBounds[i];
@@ -3451,20 +3685,40 @@ void UIComponents::DrawListenPanel(Renderer& r, const Settings& s, const ListenP
         else if (hovered) { rowStyle.fill = ColorWithAlpha(th.text, 0.05f); }
         if (rowStyle.fill.a > 0.0f || expanded) r.DrawSurface(rect, rowStyle);
         const float badgeSz = 28.0f * dp;
-        const D2D1_RECT_F badge = D2D1::RectF(rect.left + 10.0f * dp, rect.top + (RectHeight(rect) - badgeSz) * 0.5f, rect.left + 10.0f * dp + badgeSz, rect.top + (RectHeight(rect) + badgeSz) * 0.5f);
+        const D2D1_RECT_F badge = D2D1::RectF(rect.left + 10.0f * dp, rect.top + (RectHeight(rect) - badgeSz) * 0.5f,
+                                              rect.left + 10.0f * dp + badgeSz, rect.top + (RectHeight(rect) + badgeSz) * 0.5f);
         r.FillRoundedRect(badge, 8.0f * dp, ColorWithAlpha(th.accent, 0.14f));
         r.DrawIcon(IconType::MicPodcast, InsetRectF(badge, 6.0f * dp, 6.0f * dp), th.accent, 1.4f * dp);
-        const float textLeft = badge.right + 12.0f * dp;
+        // Right-aligned actions: chevron (always), then hover-revealed play-latest + remove.
         const float chevSz = 16.0f * dp;
-        const D2D1_RECT_F chev = D2D1::RectF(rect.right - chevSz - 12.0f * dp, rect.top + (RectHeight(rect) - chevSz) * 0.5f, rect.right - 12.0f * dp, rect.top + (RectHeight(rect) + chevSz) * 0.5f);
-        const float nameW = chev.left - 10.0f * dp - textLeft;
-        r.DrawString(FitSingleLine(r, feed.title, FontType::Medium, nameW),
-                     D2D1::RectF(textLeft, rect.top + 5.0f * dp, chev.left - 10.0f * dp, rect.top + 24.0f * dp),
+        const D2D1_RECT_F chev = D2D1::RectF(rect.right - chevSz - 12.0f * dp, rect.top + (RectHeight(rect) - chevSz) * 0.5f,
+                                             rect.right - 12.0f * dp, rect.top + (RectHeight(rect) + chevSz) * 0.5f);
+        r.DrawIcon(expanded ? IconType::ChevronDown : IconType::ChevronRight, chev,
+                   hovered ? th.text : th.textMuted, 1.4f * dp);
+        const bool hasEpisodes = !feed.episodes.empty();
+        if (hovered && hasEpisodes && i < vm.feedPlayBounds.size()) {
+            DrawListenPlayButton(r, s, vm.feedPlayBounds[i], false, vm.activePaused, vm.hoveredFeedPlay == (int)i, dp);
+        }
+        if (hovered && i < vm.feedRemoveBounds.size()) {
+            const float trashSz = 15.0f * dp;
+            const D2D1_RECT_F& tb = vm.feedRemoveBounds[i];
+            const float tcy = (tb.top + tb.bottom) * 0.5f;
+            r.DrawIcon(IconType::Trash, D2D1::RectF((tb.left + tb.right) * 0.5f - trashSz * 0.5f, tcy - trashSz * 0.5f,
+                       (tb.left + tb.right) * 0.5f + trashSz * 0.5f, tcy + trashSz * 0.5f),
+                       vm.hoveredFeedRemove == (int)i ? th.red : ColorWithAlpha(th.textMuted, 0.85f), 1.3f * dp);
+        }
+        const float actionsLeft = hovered
+            ? std::min(i < vm.feedPlayBounds.size() && hasEpisodes ? vm.feedPlayBounds[i].left : chev.left,
+                       i < vm.feedRemoveBounds.size() ? vm.feedRemoveBounds[i].left : chev.left)
+            : chev.left;
+        const float textLeft = badge.right + 12.0f * dp;
+        const float nameW = actionsLeft - 10.0f * dp - textLeft;
+        r.DrawString(FitSingleLine(r, feed.title, FontType::Medium, std::max(30.0f * dp, nameW)),
+                     D2D1::RectF(textLeft, rect.top + 5.0f * dp, actionsLeft - 10.0f * dp, rect.top + 24.0f * dp),
                      th.text, FontType::Medium, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-        r.DrawString(FitSingleLine(r, feed.metaText, FontType::Small, nameW),
-                     D2D1::RectF(textLeft, rect.top + 24.0f * dp, chev.left - 10.0f * dp, rect.bottom - 4.0f * dp),
+        r.DrawString(FitSingleLine(r, feed.metaText, FontType::Small, std::max(30.0f * dp, nameW)),
+                     D2D1::RectF(textLeft, rect.top + 24.0f * dp, actionsLeft - 10.0f * dp, rect.bottom - 4.0f * dp),
                      th.textMuted, FontType::Small, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-        r.DrawIcon(expanded ? IconType::ChevronDown : IconType::ChevronRight, chev, th.textMuted, 1.4f * dp);
     }
     // Episodes of the expanded feed (episodeBounds carry their feed index).
     for (size_t i = 0; i < vm.episodeBounds.size(); ++i) {
@@ -3492,25 +3746,23 @@ void UIComponents::DrawListenPanel(Renderer& r, const Settings& s, const ListenP
             }
             r.DrawSurface(rect, epStyle);
         }
-        const float playSz = 22.0f * dp;
-        const D2D1_RECT_F play = D2D1::RectF(rect.left + 4.0f * dp, rect.top + (RectHeight(rect) - playSz) * 0.5f, rect.left + 4.0f * dp + playSz, rect.top + (RectHeight(rect) + playSz) * 0.5f);
-        r.FillCircle((play.left + play.right) * 0.5f, (play.top + play.bottom) * 0.5f, playSz * 0.5f, (hovered || playingThis) ? th.accent : ColorWithAlpha(th.accent, 0.55f));
-        r.DrawIcon((playingThis && !vm.activePaused) ? IconType::Pause : IconType::Play, InsetRectF(play, 6.0f * dp, 6.0f * dp), D2D1::ColorF(0.06f, 0.05f, 0.04f, 1.0f), 1.2f * dp);
         std::wstring tail = ep.dateText;
         if (!ep.durationText.empty()) { if (!tail.empty()) tail += L" \x00B7 "; tail += ep.durationText; }
+        const bool havePlay = i < vm.episodePlayBounds.size();
+        const D2D1_RECT_F& play = havePlay ? vm.episodePlayBounds[i] : rect;
         const float tailW = tail.empty() ? 0.0f : r.MeasureString(tail, FontType::MonoSmall).width + 12.0f * dp;
-        const float titleRight = rect.right - 12.0f * dp - tailW;
-        r.DrawString(FitSingleLine(r, ep.title, FontType::Regular, std::max(40.0f * dp, titleRight - play.right - 10.0f * dp)),
-                     D2D1::RectF(play.right + 10.0f * dp, rect.top, titleRight, rect.bottom),
-                     hovered ? th.text : th.text, FontType::Regular, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-        if (!tail.empty()) {
+        const float titleRight = havePlay ? (play.left - 12.0f * dp - tailW) : (rect.right - 12.0f * dp - tailW);
+        r.DrawString(FitSingleLine(r, ep.title, FontType::Regular, std::max(40.0f * dp, titleRight - rect.left - 6.0f * dp)),
+                     D2D1::RectF(rect.left + 6.0f * dp, rect.top, std::max(rect.left + 6.0f * dp, titleRight), rect.bottom),
+                     th.text, FontType::Regular, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+        if (!tail.empty() && tailW > 0.0f) {
             r.DrawString(FitSingleLine(r, tail, FontType::MonoSmall, tailW),
-                         D2D1::RectF(titleRight, rect.top, rect.right - 12.0f * dp, rect.bottom),
+                         D2D1::RectF(titleRight, rect.top, titleRight + tailW, rect.bottom),
                          th.textMuted, FontType::MonoSmall, DWRITE_TEXT_ALIGNMENT_TRAILING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
         }
+        if (havePlay) DrawListenPlayButton(r, s, play, playingThis, vm.activePaused, hovered, dp);
     }
-    // ---- Radio ----
-    r.DrawString(L"RADIO", vm.radioHeaderRect, th.textMuted, FontType::Caption, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+    // ---- Radio rows ----
     for (size_t i = 0; i < vm.stations.size(); ++i) {
         const auto& st = vm.stations[i];
         const D2D1_RECT_F& rect = vm.stationBounds[i];
@@ -3526,31 +3778,41 @@ void UIComponents::DrawListenPanel(Renderer& r, const Settings& s, const ListenP
             }
             r.DrawSurface(rect, stStyle);
         }
-        const float badgeW = 46.0f * dp, badgeH = 20.0f * dp;
-        const D2D1_RECT_F live = D2D1::RectF(rect.left + 10.0f * dp, rect.top + (RectHeight(rect) - badgeH) * 0.5f, rect.left + 10.0f * dp + badgeW, rect.top + (RectHeight(rect) + badgeH) * 0.5f);
-        r.FillRoundedRect(live, badgeH * 0.5f, ColorWithAlpha(D2D1::ColorF(0.95f, 0.25f, 0.32f, 1.0f), playingThis ? 0.24f : 0.14f));
-        r.DrawRoundedRect(live, badgeH * 0.5f, ColorWithAlpha(D2D1::ColorF(0.95f, 0.35f, 0.40f, 1.0f), playingThis ? 0.55f : 0.35f), 1.0f * dp);
-        const float dotR = 3.0f * dp, dotCx = live.left + 10.0f * dp;
-        const float dotCy = (live.top + live.bottom) * 0.5f;
-        r.FillCircle(dotCx, dotCy, dotR, D2D1::ColorF(0.95f, 0.3f, 0.36f, 1.0f));
-        r.DrawString(L"LIVE", D2D1::RectF(live.left + 16.0f * dp, live.top, live.right - 6.0f * dp, live.bottom),
-                     D2D1::ColorF(0.97f, 0.5f, 0.55f, 1.0f), FontType::Caption, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-        const float playSz = 22.0f * dp;
-        const D2D1_RECT_F play = D2D1::RectF(rect.right - playSz - 12.0f * dp, rect.top + (RectHeight(rect) - playSz) * 0.5f, rect.right - 12.0f * dp, rect.top + (RectHeight(rect) + playSz) * 0.5f);
-        float metaW = st.metaText.empty() ? 0.0f : r.MeasureString(st.metaText, FontType::MonoSmall).width + 14.0f * dp;
+        // Quiet live marker: red dot + small caption, no pill repeating per row.
+        const float dotR = 3.0f * dp;
+        const float cy = (rect.top + rect.bottom) * 0.5f;
+        const float dotCx = rect.left + 12.0f * dp;
+        r.FillCircle(dotCx, cy, dotR, playingThis ? D2D1::ColorF(0.95f, 0.3f, 0.36f, 1.0f)
+                                                  : ColorWithAlpha(D2D1::ColorF(0.95f, 0.3f, 0.36f, 1.0f), 0.75f));
+        r.DrawString(L"LIVE", D2D1::RectF(dotCx + dotR + 4.0f * dp, rect.top, dotCx + dotR + 4.0f * dp + 26.0f * dp, rect.bottom),
+                     ColorWithAlpha(D2D1::ColorF(0.95f, 0.45f, 0.50f, 1.0f), playingThis ? 0.95f : 0.7f),
+                     FontType::Caption, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+        // Favorite marker for saved stations.
+        float nameLeft = dotCx + dotR + 4.0f * dp + 26.0f * dp + 10.0f * dp;
+        if (st.isFavorite) {
+            const float starSz = 13.0f * dp;
+            const float starCy = (rect.top + rect.bottom) * 0.5f;
+            r.DrawIcon(IconType::Star, D2D1::RectF(nameLeft, starCy - starSz * 0.5f, nameLeft + starSz, starCy + starSz * 0.5f),
+                       ColorWithAlpha(D2D1::ColorF(0.98f, 0.80f, 0.35f, 1.0f), 1.0f), 1.3f * dp);
+            nameLeft += starSz + 8.0f * dp;
+        }
+        // Play action (right) + meta text before it.
+        const bool havePlay = i < vm.stationPlayBounds.size();
+        const D2D1_RECT_F& play = havePlay ? vm.stationPlayBounds[i] : rect;
+        const float metaW = st.metaText.empty() ? 0.0f : r.MeasureString(st.metaText, FontType::MonoSmall).width + 14.0f * dp;
         const float nameRight = play.left - 12.0f * dp - metaW;
-        r.DrawString(FitSingleLine(r, st.name, FontType::Medium, std::max(50.0f * dp, nameRight - live.right - 12.0f * dp)),
-                     D2D1::RectF(live.right + 12.0f * dp, rect.top, nameRight, rect.bottom),
-                     hovered ? th.text : th.text, FontType::Medium, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-        if (!st.metaText.empty()) {
+        r.DrawString(FitSingleLine(r, st.name, FontType::Medium, std::max(50.0f * dp, nameRight - nameLeft)),
+                     D2D1::RectF(nameLeft, rect.top, std::max(nameLeft, nameRight), rect.bottom),
+                     th.text, FontType::Medium, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+        if (!st.metaText.empty() && metaW > 0.0f) {
             r.DrawString(FitSingleLine(r, st.metaText, FontType::MonoSmall, metaW),
                          D2D1::RectF(nameRight, rect.top, play.left - 12.0f * dp, rect.bottom),
                          th.textMuted, FontType::MonoSmall, DWRITE_TEXT_ALIGNMENT_TRAILING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
         }
-        r.FillCircle((play.left + play.right) * 0.5f, (play.top + play.bottom) * 0.5f, playSz * 0.5f, (hovered || playingThis) ? th.accent : ColorWithAlpha(th.accent, 0.45f));
-        r.DrawIcon((playingThis && !vm.activePaused) ? IconType::Pause : IconType::Play, InsetRectF(play, 6.0f * dp, 6.0f * dp), D2D1::ColorF(0.06f, 0.05f, 0.04f, 1.0f), 1.2f * dp);
+        if (havePlay) DrawListenPlayButton(r, s, play, playingThis, vm.activePaused, vm.hoveredStationPlay == (int)i, dp);
     }
-    r.PopClip();
+    r.PopClip(); // row viewport
+    r.PopClip(); // panel bounds
 }
 
 void UIComponents::DrawMediaGroupHeader(Renderer& r, const Settings& s, const VisibleMediaGroupHeaderViewModel& vm) {

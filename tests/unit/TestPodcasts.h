@@ -156,4 +156,44 @@ TEST_CASE(Podcasts, NormalizeUrlAndCdataRssParsing) {
     TEST_ASSERT_EQ(feed.episodes[1].url, std::wstring(L"http://cdn.example.com/ep2.m4a"));
 }
 
+TEST_CASE(Podcasts, ParseOpmlFeedsWalksNestedOutlinesAndDedupes) {
+    const std::string opml =
+        "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
+        "<opml version=\"2.0\"><body>"
+        "<outline text=\"Tech\">"
+        "<outline type=\"rss\" text=\"The Daily Show\" xmlUrl=\"https://feeds.example.com/daily.xml\"/>"
+        "<outline type=\"rss\" text=\"Quoted &amp; More\" xmlUrl=\"feed://feeds.example.com/quoted.rss\"/>"
+        "</outline>"
+        "<outline type=\"rss\" text=\"Dup\" xmlUrl=\"https://feeds.example.com/daily.xml\"/>"
+        "<outline type=\"rss\" xmlUrl=\"ftp://not.example/valid\"/>"
+        "<outline text=\"Folder without xmlUrl\"><outline text=\"Deep\"/></outline>"
+        "</body></opml>";
+    const auto entries = ParseOpmlFeeds(opml);
+    TEST_ASSERT_EQ(entries.size(), size_t(2));
+    TEST_ASSERT_EQ(entries[0].title, std::wstring(L"The Daily Show"));
+    TEST_ASSERT_EQ(entries[0].url, std::wstring(L"https://feeds.example.com/daily.xml"));
+    // feed:// shorthand normalizes to https and the title decodes entities.
+    TEST_ASSERT_EQ(entries[1].title, std::wstring(L"Quoted & More"));
+    TEST_ASSERT_EQ(entries[1].url, std::wstring(L"https://feeds.example.com/quoted.rss"));
+
+    TEST_ASSERT(ParseOpmlFeeds("").empty());
+    TEST_ASSERT(ParseOpmlFeeds("not xml").empty());
+}
+
+TEST_CASE(Podcasts, ParseUrlListTextSkipsCommentsAndInvalidLines) {
+    const std::string text =
+        "# comment line\n"
+        "  https://feeds.example.com/one.xml  \n"
+        "\n"
+        "feeds.example.com/two.rss\n"
+        "not a url\n"
+        "https://feeds.example.com/one.xml\n"
+        "ftp://feeds.example.com/invalid\n";
+    const auto urls = ParseUrlListText(text);
+    TEST_ASSERT_EQ(urls.size(), size_t(2));
+    TEST_ASSERT_EQ(urls[0], std::wstring(L"https://feeds.example.com/one.xml"));
+    TEST_ASSERT_EQ(urls[1], std::wstring(L"https://feeds.example.com/two.rss"));
+    TEST_ASSERT(ParseUrlListText("# only comments\n\n").empty());
+}
+
 } // namespace Aperture::Test

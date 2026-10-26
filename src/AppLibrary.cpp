@@ -231,6 +231,8 @@ void App::SetLibraryGroupMode(LibraryGroupMode mode) {
     else if (mode == LibraryGroupMode::Series) settings.libraryGroupMode = "series";
     else if (mode == LibraryGroupMode::Duplicates) settings.libraryGroupMode = "duplicates";
     else if (mode == LibraryGroupMode::Listen) settings.libraryGroupMode = "listen";
+    // Leaving Listen takes the radio search field (and its IME state) with it.
+    if (mode != LibraryGroupMode::Listen && activeTextInputField == TextInputField::RadioSearch) { BlurTextInput(); }
     settings.Save();
     InvalidateMediaLayoutCache();
     mediaScrollY = 0.0f;

@@ -307,6 +307,59 @@ std::wstring NormalizePodcastFeedUrl(const std::wstring& rawUrl) {
     return url;
 }
 
+std::vector<PodcastImportEntry> ParseOpmlFeeds(const std::string& utf8Xml, size_t maxFeeds) {
+    std::vector<PodcastImportEntry> entries;
+    if (utf8Xml.empty()) return entries;
+    // A flat scan over <outline ...> opening tags covers nested folder trees:
+    // every entry outline carries its xmlUrl on the tag itself, whatever the
+    // nesting depth. Tag case and attribute quoting are handled by the shared
+    // XmlLite helpers.
+    const std::string lower = XmlLite::ToLowerAsciiCopy(utf8Xml);
+    size_t searchFrom = 0;
+    while (entries.size() < maxFeeds) {
+        const size_t open = lower.find("<outline", searchFrom);
+        if (open == std::string::npos) break;
+        searchFrom = open + 8;
+        const size_t tagEnd = utf8Xml.find('>', open);
+        if (tagEnd == std::string::npos) break;
+        const std::string tag = utf8Xml.substr(open, tagEnd - open + 1);
+        PodcastImportEntry entry;
+        entry.url = Utf8ToUtf16(XmlLite::ExtractXmlAttribute(tag, "xmlUrl"));
+        entry.title = Utf8ToUtf16(XmlLite::ExtractXmlAttribute(tag, "text"));
+        if (entry.title.empty()) entry.title = Utf8ToUtf16(XmlLite::ExtractXmlAttribute(tag, "title"));
+        const std::wstring normalized = NormalizePodcastFeedUrl(entry.url);
+        if (normalized.empty()) continue;
+        entry.url = normalized;
+        if (entry.title.empty()) entry.title = entry.url;
+        bool duplicate = false;
+        for (const auto& existing : entries) {
+            if (existing.url == entry.url) { duplicate = true; break; }
+        }
+        if (!duplicate) entries.push_back(std::move(entry));
+    }
+    return entries;
+}
+
+std::vector<std::wstring> ParseUrlListText(const std::string& utf8Text, size_t maxUrls) {
+    std::vector<std::wstring> urls;
+    size_t lineStart = 0;
+    while (lineStart <= utf8Text.size() && urls.size() < maxUrls) {
+        size_t lineEnd = utf8Text.find('\n', lineStart);
+        if (lineEnd == std::string::npos) lineEnd = utf8Text.size();
+        std::string line = XmlLite::Trim(utf8Text.substr(lineStart, lineEnd - lineStart));
+        lineStart = lineEnd + 1;
+        if (line.empty() || line[0] == '#') continue;
+        const std::wstring normalized = NormalizePodcastFeedUrl(Utf8ToUtf16(line));
+        if (normalized.empty()) continue;
+        bool duplicate = false;
+        for (const auto& existing : urls) {
+            if (existing == normalized) { duplicate = true; break; }
+        }
+        if (!duplicate) urls.push_back(normalized);
+    }
+    return urls;
+}
+
 std::wstring PodcastRefreshService::GetCachePath(const std::wstring& feedUrl, const std::wstring& root) {
     std::wstring cacheDir = root + L"\\cache\\podcasts";
     DWORD attr = GetFileAttributesW(cacheDir.c_str());

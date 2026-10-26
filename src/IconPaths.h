@@ -8,7 +8,7 @@ enum class IconType {
     Play, Pause, Next, Prev, VolumeHigh, VolumeLow, VolumeMuted, Subtitles, SettingsGear, PictureInPicture, Pin, Fullscreen, ExitFullscreen,
     FolderPlaylist, HistoryClock, MediaFilm, Plus, Trash, CloseX, Checkmark, Refresh, ChevronRight, ChevronLeft,
     ChevronDown, SpeedGauge, AspectFrame, LoopRepeat, AutoplayNext, DragHandle, Search, ApertureLogo,
-    MicPodcast, RadioWaves, Link
+    MicPodcast, RadioWaves, Link, Star, ChevronUp
 };
 
 struct IconPath { IconType icon; const char* path; float viewBox; bool fill; bool overlaySupported; };
@@ -48,6 +48,8 @@ inline constexpr IconPath kIconPaths[] = {
     {IconType::MicPodcast, "M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.49 6-3.31 6-6.72h-1.7z", 24.0f, true, true},
     {IconType::RadioWaves, "M8 10.3 m-1.3 0 a1.3 1.3 0 1 0 2.6 0 a1.3 1.3 0 1 0 -2.6 0 M5.4 7.9 a4.4 4.4 0 0 1 5.2 0 M3.4 5.4 a7.4 7.4 0 0 1 9.2 0", 16.0f, false, false},
     {IconType::Link, "M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z", 24.0f, true, true},
+    {IconType::Star, "M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z", 24.0f, true, true},
+    {IconType::ChevronUp, "M7.41 15.41L12 9.83l4.59 5.58L18 14l-6-6-6 6z", 24.0f, true, true},
 };
 static_assert([] {
     for (std::size_t i = 0; i < sizeof(kIconPaths) / sizeof(*kIconPaths); ++i) {

@@ -1194,7 +1194,18 @@ void App::ResolveListenHover(float x, float y) {
     listenHoveredEpisode = -1;
     listenHoveredEpisodeFeed = -1;
     listenHoveredStation = -1;
+    listenHoveredFeedPlay = -1;
+    listenHoveredFeedRemove = -1;
+    listenHoveredStationPlay = -1;
     listenAddPodcastHovered = PtInRectF(listenAddPodcastBounds, x, y);
+    listenBannerRetryHovered = PtInRectF(listenPodcastBannerRetryBounds, x, y);
+    listenRadioSearchClearHovered = PtInRectF(listenRadioSearchClearBounds, x, y);
+    listenRadioAddStationHovered = PtInRectF(listenRadioAddStationBounds, x, y);
+    listenStateButtonHovered = PtInRectF(listenStateButtonBounds, x, y);
+    if (activeTextInputField == TextInputField::RadioSearch && !PtInRectF(listenRadioSearchBounds, x, y) &&
+        !PtInRectF(listenRadioSearchClearBounds, x, y)) {
+        BlurTextInput();
+    }
     for (size_t i = 0; i < listenEpisodeBounds.size(); ++i) {
         if (PtInRectF(listenEpisodeBounds[i], x, y)) {
             listenHoveredEpisode = (int)i;
@@ -1203,10 +1214,19 @@ void App::ResolveListenHover(float x, float y) {
         }
     }
     for (size_t i = 0; i < listenFeedBounds.size(); ++i) {
-        if (PtInRectF(listenFeedBounds[i], x, y)) { listenHoveredFeed = (int)i; return; }
+        if (PtInRectF(listenFeedBounds[i], x, y)) {
+            listenHoveredFeed = (int)i;
+            if (i < listenFeedPlayBounds.size() && PtInRectF(listenFeedPlayBounds[i], x, y)) listenHoveredFeedPlay = (int)i;
+            if (i < listenFeedRemoveBounds.size() && PtInRectF(listenFeedRemoveBounds[i], x, y)) listenHoveredFeedRemove = (int)i;
+            return;
+        }
     }
     for (size_t i = 0; i < listenStationBounds.size(); ++i) {
-        if (PtInRectF(listenStationBounds[i], x, y)) { listenHoveredStation = (int)i; return; }
+        if (PtInRectF(listenStationBounds[i], x, y)) {
+            listenHoveredStation = (int)i;
+            if (i < listenStationPlayBounds.size() && PtInRectF(listenStationPlayBounds[i], x, y)) listenHoveredStationPlay = (int)i;
+            return;
+        }
     }
 }
 
@@ -1223,6 +1243,27 @@ void App::PlayListenStream(const std::wstring& url, const std::wstring& title, c
         networkStreamModel.SaveRecentStreams(GetExeDir());
     }
     StartListenPlayback(parsed.rawUrl, title, subtitle, isRadio);
+}
+
+void App::PlayListenStation(const RadioStation& station) {
+    std::wstring meta = station.bitrateKbps > 0 ? (std::to_wstring(station.bitrateKbps) + L" kbps") : L"";
+    if (!station.codec.empty()) { if (!meta.empty()) meta += L" \x00B7 "; meta += station.codec; }
+    if (!station.country.empty()) { if (!meta.empty()) meta += L" \x00B7 "; meta += station.country; }
+    if (meta.empty()) meta = L"Live radio stream";
+    PlayListenStream(station.url, station.name, meta, true);
+}
+
+void App::ToggleRadioFavorite(const RadioStation& station) {
+    if (station.url.empty()) return;
+    if (radioFavorites.Contains(station.url)) {
+        radioFavorites.Remove(station.url);
+        ShowOSD(IconType::Trash, L"Removed favorite: " + station.name);
+    } else if (radioFavorites.Add(station)) {
+        ShowOSD(IconType::Star, L"Added favorite: " + station.name);
+    }
+    // Private mode leaves the favorites file untouched on disk.
+    if (!playbackSession.IsPrivateMode()) radioFavorites.Save(GetDataDir());
+    InvalidateRect(hWnd, NULL, FALSE);
 }
 
 void App::ResolveSettingsHover(float x, float y) {
@@ -2088,6 +2129,51 @@ bool App::Update(float dt) {
     needsRedraw = PumpOnlineSubtitleJobs() || needsRedraw;
     needsRedraw = PumpRadioDirectoryJobs() || needsRedraw;
     needsRedraw = PumpPodcastJobs() || needsRedraw;
+    // Listen panel: advance the header/list spinner while fetch jobs run.
+    if (currentTab == TabView::Media && libraryGroupMode == LibraryGroupMode::Listen
+        && (radioJobs.IsRunning() || radioJobs.IsSearchRunning() || podcastJobs.IsRunning())) {
+        listenSpinAngle = std::fmod(listenSpinAngle + elapsedDt * (360.0 / 1.1), 360.0);
+        needsRedraw = true;
+    }
+    if (listenSubTabIndicator.Tick()) needsRedraw = true;
+    if (currentTab == TabView::Media && libraryGroupMode == LibraryGroupMode::Listen) {
+        const float hoverTargets[4] = {
+            listenAddPodcastHovered ? 1.0f : 0.0f,
+            listenBannerRetryHovered ? 1.0f : 0.0f,
+            listenRadioAddStationHovered ? 1.0f : 0.0f,
+            listenStateButtonHovered ? 1.0f : 0.0f,
+        };
+        for (int i = 0; i < 4; ++i) {
+            AnimateVisual(listenHeaderHoverAnim[i], hoverTargets[i], MotionTokens::kFast, MotionTokens::Standard());
+            if (listenHeaderHoverAnim[i].Tick()) needsRedraw = true;
+        }
+    }
+    // Radio name search: debounced kick after typing stops. An empty query
+    // clears pending work so the popular list returns immediately.
+    if (currentTab == TabView::Media && libraryGroupMode == LibraryGroupMode::Listen && listenSubTab == 1) {
+        const std::wstring query = Text16ToWideString(radioSearchInput.GetText());
+        const auto first = query.find_first_not_of(L" \t");
+        const std::wstring trimmed = (first == std::wstring::npos) ? std::wstring() : query.substr(first);
+        const auto last = trimmed.find_last_not_of(L" \t");
+        const std::wstring trimmedQuery = (last == std::wstring::npos) ? std::wstring() : trimmed.substr(0, last + 1);
+        if (trimmedQuery.empty()) {
+            if (!listenSearchDoneQuery.empty() || !listenSearchResults.empty() || radioJobs.IsSearchRunning()) {
+                radioJobs.CancelSearch();
+                listenSearchResults.clear();
+                listenSearchDoneQuery.clear();
+                listenSearchFailed = false;
+                listenSearchError.clear();
+                needsRedraw = true;
+            }
+        } else if (!radioJobs.IsSearchRunning() && trimmedQuery != listenSearchDoneQuery
+                   && radioSearchEditTick != 0
+                   && GetTickCount64() - radioSearchEditTick >= 400) {
+            listenSearchFailed = false;
+            listenSearchError.clear();
+            radioJobs.EnsureSearch(trimmedQuery);
+            needsRedraw = true;
+        }
+    }
     needsRedraw = PumpUpdateJobs() || needsRedraw;
     // Jump list: seed once the async library snapshot is ready (Initialize
     // returns before the background load publishes), then pump dirty rebuilds
@@ -3504,16 +3590,21 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                     const bool newMute = newPillHovered && PtInRectF(listenIslandMuteBounds, x, y);
                     const bool newVol = newPillHovered && PtInRectF(listenIslandVolumeBounds, x, y);
                     const bool newSeek = newPillHovered && (listenIslandExpand.current > 0.25f) && !listenPlaybackIsRadio && PtInRectF(listenIslandSeekBounds, x, y);
+                    const bool newSkipBack = newSeek && PtInRectF(listenIslandSkipBackBounds, x, y);
+                    const bool newSkipFwd = newSeek && PtInRectF(listenIslandSkipFwdBounds, x, y);
                     const bool newX = newPillHovered && PtInRectF(listenIslandXBounds, x, y);
                     if (listenPillHovered != newPillHovered || listenBadgeHovered != newBadge ||
                         listenMuteHovered != newMute || listenVolumeHovered != newVol ||
-                        listenSeekHovered != newSeek || listenXHovered != newX) {
+                        listenSeekHovered != newSeek || listenXHovered != newX ||
+                        listenSkipBackHovered != newSkipBack || listenSkipFwdHovered != newSkipFwd) {
                         listenPillHovered = newPillHovered;
                         listenBadgeHovered = newBadge;
                         listenMuteHovered = newMute;
                         listenVolumeHovered = newVol;
                         listenSeekHovered = newSeek;
                         listenXHovered = newX;
+                        listenSkipBackHovered = newSkipBack;
+                        listenSkipFwdHovered = newSkipFwd;
                         hoverChanged = true;
                         InvalidateRect(hWnd, NULL, FALSE);
                     }
@@ -3684,6 +3775,13 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                     listenHoveredEpisodeFeed = -1;
                     listenHoveredStation = -1;
                     listenAddPodcastHovered = false;
+                    listenHoveredFeedPlay = -1;
+                    listenHoveredFeedRemove = -1;
+                    listenHoveredStationPlay = -1;
+                    listenBannerRetryHovered = false;
+                    listenRadioSearchClearHovered = false;
+                    listenRadioAddStationHovered = false;
+                    listenStateButtonHovered = false;
                 }
                 if (currentTab == TabView::Playlists) {
                     ResolvePlaylistHover(x, y);
@@ -3899,15 +3997,19 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                         InvalidateRect(hWnd, NULL, FALSE);
                         return 0;
                     }
-                    if (listenIslandExpand.current > 0.25f && !listenPlaybackIsRadio && PtInRectF(listenIslandSeekBounds, x, y)) {
-                        const double dur = listenPlayer.GetDurationSec();
-                        if (dur > 0.0) {
-                            isListenSeekDragging = true;
-                            SetCapture(hWnd);
-                            const double ratio = std::clamp((double)(x - listenIslandSeekBounds.left) / (double)std::max(1.0f, RectWidth(listenIslandSeekBounds)), 0.0, 1.0);
-                            listenPlayer.SeekAbsolute(ratio * dur);
-                            InvalidateRect(hWnd, NULL, FALSE);
-                            return 0;
+                    if (listenIslandExpand.current > 0.25f && !listenPlaybackIsRadio) {
+                        if (PtInRectF(listenIslandSkipBackBounds, x, y)) { ListenSeekBy(-15.0); InvalidateRect(hWnd, NULL, FALSE); return 0; }
+                        if (PtInRectF(listenIslandSkipFwdBounds, x, y)) { ListenSeekBy(15.0); InvalidateRect(hWnd, NULL, FALSE); return 0; }
+                        if (PtInRectF(listenIslandSeekBounds, x, y)) {
+                            const double dur = listenPlayer.GetDurationSec();
+                            if (dur > 0.0) {
+                                isListenSeekDragging = true;
+                                SetCapture(hWnd);
+                                const double ratio = std::clamp((double)(x - listenIslandSeekBounds.left) / (double)std::max(1.0f, RectWidth(listenIslandSeekBounds)), 0.0, 1.0);
+                                listenPlayer.SeekAbsolute(ratio * dur);
+                                InvalidateRect(hWnd, NULL, FALSE);
+                                return 0;
+                            }
                         }
                     }
                     listenPinExpanded = !listenPinExpanded;
@@ -4157,7 +4259,20 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                     }
                     if (PtInRectF(mediaListenBtnBounds, x, y)) { SetLibraryGroupMode(LibraryGroupMode::Listen); return 0; }
                     if (libraryGroupMode == LibraryGroupMode::Listen) {
-                        if (PtInRectF(listenAddPodcastBounds, x, y)) { ShowAddPodcastModal(); return 0; }
+                        // Sub-tab segmented control.
+                        const bool podcastsClicked = PtInRectF(listenSubTabPodcastsBounds, x, y);
+                        const bool radioClicked = PtInRectF(listenSubTabRadioBounds, x, y);
+                        if (podcastsClicked || radioClicked) {
+                            const int newTab = podcastsClicked ? 0 : 1;
+                            if (listenSubTab != newTab) {
+                                listenSubTab = newTab;
+                                listenScrollY = 0.0f;
+                                BlurTextInput();
+                                AnimateVisual(listenSubTabIndicator, (float)listenSubTab, MotionTokens::kResponsive, MotionTokens::Standard());
+                                InvalidateRect(hWnd, NULL, FALSE);
+                            }
+                            return 0;
+                        }
                         auto resolveFreshFeed = [&](size_t subIdx) -> const PodcastFeed* {
                             const auto& subs = podcastSubscriptions.GetFeeds();
                             if (subIdx >= subs.size()) return nullptr;
@@ -4170,64 +4285,113 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                             if (listenFeeds.size() == subs.size()) return &listenFeeds[subIdx];
                             return nullptr;
                         };
-                        for (size_t i = 0; i < listenEpisodeBounds.size(); ++i) {
-                            if (!PtInRectF(listenEpisodeBounds[i], x, y)) continue;
-                            const int feedIdx = (i < listenEpisodeFeedIndex.size()) ? listenEpisodeFeedIndex[i] : -1;
-                            if (feedIdx >= 0) {
-                                size_t epIdx = 0;
-                                for (size_t k = 0; k < i && k < listenEpisodeFeedIndex.size(); ++k) {
-                                    if (listenEpisodeFeedIndex[k] == feedIdx) ++epIdx;
+                        if (listenSubTab == 0) {
+                            // ---- Podcasts tab ----
+                            if (PtInRectF(listenAddPodcastBounds, x, y)) { ShowAddPodcastModal(); return 0; }
+                            if (PtInRectF(listenPodcastBannerRetryBounds, x, y)) {
+                                std::vector<std::wstring> feedUrls;
+                                for (const auto& f : podcastSubscriptions.GetFeeds()) feedUrls.push_back(f.url);
+                                if (!feedUrls.empty() && !playbackSession.IsPrivateMode()) {
+                                    podcastJobs.EnsureRefresh(feedUrls);
+                                    ShowOSD(IconType::Refresh, L"Refreshing podcasts");
                                 }
-                                const PodcastFeed* fresh = resolveFreshFeed((size_t)feedIdx);
-                                if (fresh && epIdx < fresh->episodes.size()) {
-                                    if (listenPlaybackActive && listenUrl == fresh->episodes[epIdx].url) {
-                                        ToggleListenPause();
-                                    } else {
-                                        PlayListenStream(fresh->episodes[epIdx].url,
-                                                         fresh->episodes[epIdx].title.empty() ? L"Untitled episode" : fresh->episodes[epIdx].title,
-                                                         fresh->title.empty() ? L"Podcast" : fresh->title, false);
-                                    }
-                                    return 0;
-                                }
-                            }
-                            return 0;
-                        }
-                        for (size_t i = 0; i < listenFeedBounds.size(); ++i) {
-                            if (!PtInRectF(listenFeedBounds[i], x, y)) continue;
-                            if (podcastSubscriptions.GetFeeds().empty()) { ShowAddPodcastModal(); return 0; }
-                            const PodcastFeed* fresh = resolveFreshFeed(i);
-                            if (fresh && !fresh->episodes.empty() && x <= listenFeedBounds[i].left + 44.0f * dp) {
-                                listenExpandedFeed = (int)i;
-                                PlayListenStream(fresh->episodes[0].url,
-                                                 fresh->episodes[0].title.empty() ? L"Untitled episode" : fresh->episodes[0].title,
-                                                 fresh->title.empty() ? L"Podcast" : fresh->title, false);
                                 InvalidateRect(hWnd, NULL, FALSE);
                                 return 0;
                             }
-                            listenExpandedFeed = ((int)i == listenExpandedFeed) ? -1 : (int)i;
-                            listenScrollY = 0.0f;
+                            if (PtInRectF(listenStateButtonBounds, x, y) && listenStateButtonHovered) { ShowAddPodcastModal(); return 0; }
+                            for (size_t i = 0; i < listenEpisodeBounds.size(); ++i) {
+                                if (!PtInRectF(listenEpisodeBounds[i], x, y)) continue;
+                                const int feedIdx = (i < listenEpisodeFeedIndex.size()) ? listenEpisodeFeedIndex[i] : -1;
+                                if (feedIdx >= 0) {
+                                    size_t epIdx = 0;
+                                    for (size_t k = 0; k < i && k < listenEpisodeFeedIndex.size(); ++k) {
+                                        if (listenEpisodeFeedIndex[k] == feedIdx) ++epIdx;
+                                    }
+                                    const PodcastFeed* fresh = resolveFreshFeed((size_t)feedIdx);
+                                    if (fresh && epIdx < fresh->episodes.size()) {
+                                        if (listenPlaybackActive && listenUrl == fresh->episodes[epIdx].url) {
+                                            ToggleListenPause();
+                                        } else {
+                                            PlayListenStream(fresh->episodes[epIdx].url,
+                                                             fresh->episodes[epIdx].title.empty() ? L"Untitled episode" : fresh->episodes[epIdx].title,
+                                                             fresh->title.empty() ? L"Podcast" : fresh->title, false);
+                                        }
+                                    }
+                                    return 0;
+                                }
+                                return 0;
+                            }
+                            for (size_t i = 0; i < listenFeedBounds.size(); ++i) {
+                                if (!PtInRectF(listenFeedBounds[i], x, y)) continue;
+                                if (podcastSubscriptions.GetFeeds().empty()) { ShowAddPodcastModal(); return 0; }
+                                // Explicit hover actions first: play latest, then remove.
+                                if (i < listenFeedPlayBounds.size() && PtInRectF(listenFeedPlayBounds[i], x, y)) {
+                                    const PodcastFeed* fresh = resolveFreshFeed(i);
+                                    if (fresh && !fresh->episodes.empty()) {
+                                        listenExpandedFeed = (int)i;
+                                        PlayListenStream(fresh->episodes[0].url,
+                                                         fresh->episodes[0].title.empty() ? L"Untitled episode" : fresh->episodes[0].title,
+                                                         fresh->title.empty() ? L"Podcast" : fresh->title, false);
+                                    }
+                                    InvalidateRect(hWnd, NULL, FALSE);
+                                    return 0;
+                                }
+                                if (i < listenFeedRemoveBounds.size() && PtInRectF(listenFeedRemoveBounds[i], x, y)) {
+                                    const auto& subs = podcastSubscriptions.GetFeeds();
+                                    if (i < subs.size()) {
+                                        const std::wstring removedTitle = subs[i].title.empty() ? subs[i].url : subs[i].title;
+                                        podcastSubscriptions.Remove(subs[i].url);
+                                        podcastSubscriptions.Save(GetDataDir());
+                                        listenExpandedFeed = -1;
+                                        ShowOSD(IconType::Trash, L"Removed podcast: " + removedTitle);
+                                    }
+                                    InvalidateRect(hWnd, NULL, FALSE);
+                                    return 0;
+                                }
+                                // Row body toggles episode expansion; the scroll
+                                // position survives so the list does not jump.
+                                listenExpandedFeed = ((int)i == listenExpandedFeed) ? -1 : (int)i;
+                                InvalidateRect(hWnd, NULL, FALSE);
+                                return 0;
+                            }
+                            return 0;
+                        }
+                        // ---- Radio tab ----
+                        if (PtInRectF(listenRadioSearchClearBounds, x, y)) {
+                            radioSearchInput.SetText(u"");
+                            radioJobs.CancelSearch();
+                            listenSearchResults.clear();
+                            listenSearchDoneQuery.clear();
+                            listenSearchFailed = false;
+                            listenSearchError.clear();
+                            InvalidateRect(hWnd, NULL, FALSE);
+                            return 0;
+                        }
+                        if (PtInRectF(listenRadioSearchBounds, x, y)) {
+                            FocusTextInput(TextInputField::RadioSearch);
+                            return 0;
+                        }
+                        if (PtInRectF(listenRadioAddStationBounds, x, y)) { ShowAddRadioStationModal(); return 0; }
+                        if (PtInRectF(listenStateButtonBounds, x, y) && listenStateButtonHovered) {
+                            // Search failure retries the search; the empty
+                            // favorites card opens the add-station modal.
+                            const std::wstring query = Text16ToWideString(radioSearchInput.GetText());
+                            const auto first = query.find_first_not_of(L" \t");
+                            if (first != std::wstring::npos) {
+                                radioSearchEditTick = 0; // fire the debounce immediately
+                            } else {
+                                ShowAddRadioStationModal();
+                            }
                             InvalidateRect(hWnd, NULL, FALSE);
                             return 0;
                         }
                         for (size_t i = 0; i < listenStationBounds.size(); ++i) {
                             if (!PtInRectF(listenStationBounds[i], x, y)) continue;
-                            if (i < listenStations.size() && !listenStations[i].url.empty()) {
-                                if (listenPlaybackActive && listenUrl == listenStations[i].url) {
+                            if (i < listenVisibleStations.size() && !listenVisibleStations[i].url.empty()) {
+                                if (listenPlaybackActive && listenUrl == listenVisibleStations[i].url) {
                                     ToggleListenPause();
                                 } else {
-                                    std::wstring meta = listenStations[i].bitrateKbps > 0
-                                        ? (std::to_wstring(listenStations[i].bitrateKbps) + L" kbps")
-                                        : L"";
-                                    if (!listenStations[i].codec.empty()) {
-                                        if (!meta.empty()) meta += L" \x00B7 ";
-                                        meta += listenStations[i].codec;
-                                    }
-                                    if (!listenStations[i].country.empty()) {
-                                        if (!meta.empty()) meta += L" \x00B7 ";
-                                        meta += listenStations[i].country;
-                                    }
-                                    if (meta.empty()) meta = L"Live radio stream";
-                                    PlayListenStream(listenStations[i].url, listenStations[i].name, meta, true);
+                                    PlayListenStation(listenVisibleStations[i]);
                                 }
                             }
                             return 0;
@@ -5616,12 +5780,12 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                             }
                         }
                         for (size_t i = 0; i < listenStationBounds.size() && !rowHandled; ++i) {
-                            if (PtInRectF(listenStationBounds[i], x, y) && i < listenStations.size()) {
-                                OpenListenStationContextMenu(i, x, y);
+                            if (PtInRectF(listenStationBounds[i], x, y) && i < listenVisibleStations.size()) {
+                                OpenListenStationContextMenu(listenVisibleStations[i], x, y);
                                 rowHandled = true;
                             }
                         }
-                        if (!rowHandled) OpenBackgroundContextMenu(x, y);
+                        if (!rowHandled) OpenListenSectionContextMenu(x, y);
                     } else if (hoveredMediaGroupHeader >= 0) { OpenFolderContextMenu(hoveredMediaGroupHeader, x, y); } else {
                         const auto& visibleIndices = GetVisibleMediaIndices();
                         if (hoveredMediaIndex >= 0 && hoveredMediaIndex < (int)visibleIndices.size()) {

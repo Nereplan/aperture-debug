@@ -324,6 +324,44 @@ void App::ShowAddPodcastModal() {
 }
 
 
+// Add-by-URL modal for favorite radio stations, mirroring the podcast modal.
+// The stream URL is validated locally (scheme + host) rather than fetched:
+// radio streams are audio endpoints, and probing one would start playback.
+void App::ShowAddRadioStationModal() {
+    PushFocusSnapshot(TransientSurfaceType::Modal);
+    BlurTextInput();
+    activeModal = ModalType::CustomSettingInput;
+    modalTitle = L"Add Radio Station";
+    modalPrompt = L"Radio stream URL (http(s)://, direct audio stream):";
+    modalInput.SetText({});
+    modalOnConfirm = [this]() {
+        const std::wstring raw = Text16ToWideString(modalInput.GetText());
+        NetworkStreamUrl parsed = NetworkStreamValidator::ValidateAndParse(raw);
+        // Scheme-less input defaults to http:// — most radio stream endpoints
+        // are plain http, and https is still entered explicitly.
+        if (!parsed.isValid && !raw.empty() && raw.find(L"://") == std::wstring::npos) {
+            parsed = NetworkStreamValidator::ValidateAndParse(L"http://" + raw);
+        }
+        if (!parsed.isValid || playbackSession.IsPrivateMode()) {
+            ShowOSD(IconType::VolumeMuted, L"Radio stream URL invalid", 4.0f);
+            return;
+        }
+        activeModal = ModalType::None;
+        BlurTextInput();
+        PopAndRestoreFocus(TransientSurfaceType::Modal);
+        RadioStation station;
+        station.url = parsed.rawUrl;
+        station.name = parsed.host; // replaced by the live stream title in the island
+        radioFavorites.Add(station);
+        radioFavorites.Save(GetDataDir());
+        ShowOSD(IconType::Star, L"Station added to favorites");
+        InvalidateRect(hWnd, NULL, FALSE);
+    };
+    FocusTextInput(TextInputField::Modal);
+    InvalidateRect(hWnd, NULL, FALSE);
+}
+
+
 // Second-level page for the specialist controls that used to clutter the main
 // player menu. Every entry remains reachable, one step further away.
 

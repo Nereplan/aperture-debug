@@ -425,122 +425,318 @@ HubRenderViewModel App::BuildHubRenderViewModel() {
                 // idempotent; private mode skips podcast refresh).
                 if (!listenJobsKicked) {
                     listenJobsKicked = true;
-                    radioJobs.EnsureFetch();
                     std::vector<std::wstring> feedUrls;
                     for (const auto& f : podcastSubscriptions.GetFeeds()) feedUrls.push_back(f.url);
                     if (!feedUrls.empty() && !playbackSession.IsPrivateMode()) podcastJobs.EnsureRefresh(feedUrls);
                 }
+                if (!radioFavoritesLoaded) {
+                    radioFavoritesLoaded = true;
+                    radioFavorites.Load(GetDataDir());
+                }
                 const D2D1_RECT_F view = Presentation::HubView(winW, winH, dp);
-                vm.listenPanel.bounds = D2D1::RectF(view.left, view.top + 44.0f * dp, view.right, view.bottom);
                 auto& panel = vm.listenPanel;
-                float pad = 14.0f * dp;
-                float y = panel.bounds.top + 10.0f * dp - listenScrollY;
-                const float rowH = 46.0f * dp, epH = 40.0f * dp, stH = 44.0f * dp, gap = 4.0f * dp;
+                panel.bounds = D2D1::RectF(view.left, view.top + 44.0f * dp, view.right, view.bottom);
                 panel.scrollY = listenScrollY;
                 panel.viewportHeight = RectHeight(panel.bounds);
-                // Podcasts header + Add-by-URL button.
-                panel.podcastsHeaderRect = D2D1::RectF(panel.bounds.left + pad, y, panel.bounds.right - pad, y + 24.0f * dp);
-                const float addW = 118.0f * dp, addH = 26.0f * dp;
-                panel.addPodcastRect = D2D1::RectF(panel.bounds.right - pad - addW, y - 1.0f * dp, panel.bounds.right - pad, y - 1.0f * dp + addH);
-                y += 34.0f * dp;
-                const auto& subs = podcastSubscriptions.GetFeeds();
-                const auto& fresh = listenFeeds;
-                for (size_t i = 0; i < subs.size(); ++i) {
-                    ListenFeedViewModel feedVm;
-                    feedVm.title = subs[i].title.empty() ? subs[i].url : subs[i].title;
-                    const PodcastFeed* freshFeed = nullptr;
-                    const std::wstring normSubUrl = NormalizePodcastFeedUrl(subs[i].url);
-                    for (const auto& f : fresh) {
-                        if (f.url == subs[i].url || (!normSubUrl.empty() && NormalizePodcastFeedUrl(f.url) == normSubUrl)) {
-                            freshFeed = &f;
-                            break;
+                panel.subTab = (listenSubTab == 1) ? ListenSubTab::Radio : ListenSubTab::Podcasts;
+                panel.spinnerAngle = (float)listenSpinAngle;
+                if (!listenSubTabIndicatorReady) {
+                    listenSubTabIndicatorReady = true;
+                    listenSubTabIndicator.SnapTo((float)listenSubTab);
+                }
+                panel.subTabIndicatorPos = listenSubTabIndicator.current;
+                const float pad = 14.0f * dp;
+                // Fixed header: segmented control + per-tab actions; only the
+                // row area below scrolls.
+                const float bandH = 30.0f * dp, segW = 118.0f * dp;
+                panel.subTabBounds = D2D1::RectF(panel.bounds.left + pad, panel.bounds.top + 8.0f * dp,
+                                                 panel.bounds.left + pad + segW * 2.0f, panel.bounds.top + 8.0f * dp + bandH);
+                panel.subTabPodcastsRect = D2D1::RectF(panel.subTabBounds.left + 2.0f * dp, panel.subTabBounds.top + 2.0f * dp,
+                                                       panel.subTabBounds.left + segW, panel.subTabBounds.bottom - 2.0f * dp);
+                panel.subTabRadioRect = D2D1::RectF(panel.subTabBounds.left + segW, panel.subTabPodcastsRect.top,
+                                                    panel.subTabBounds.right - 2.0f * dp, panel.subTabPodcastsRect.bottom);
+                const float rowH = 46.0f * dp, epH = 38.0f * dp, stH = 44.0f * dp, gap = 4.0f * dp;
+                const float contentTop = panel.subTabBounds.bottom + 8.0f * dp;
+                float y = contentTop - listenScrollY;
+                // Stations render in row order (podcasts tab leaves it empty);
+                // clicks resolve through the mirrored listenVisibleStations list.
+                std::vector<RadioStation> visibleStations;
+                const auto resolveFreshFeed = [&](size_t subIdx) -> const PodcastFeed* {
+                    const auto& subs = podcastSubscriptions.GetFeeds();
+                    if (subIdx >= subs.size()) return nullptr;
+                    const std::wstring normSubUrl = NormalizePodcastFeedUrl(subs[subIdx].url);
+                    for (const auto& f : listenFeeds) {
+                        if (f.url == subs[subIdx].url || (!normSubUrl.empty() && NormalizePodcastFeedUrl(f.url) == normSubUrl)) {
+                            return &f;
                         }
                     }
-                    if (!freshFeed && fresh.size() == subs.size()) freshFeed = &fresh[i];
-                    if (freshFeed && !freshFeed->title.empty() && (subs[i].title.empty() || subs[i].title == subs[i].url)) {
-                        feedVm.title = freshFeed->title;
+                    if (listenFeeds.size() == subs.size()) return &listenFeeds[subIdx];
+                    return nullptr;
+                };
+                if (panel.subTab == ListenSubTab::Podcasts) {
+                    const float addW = 112.0f * dp, addH = 26.0f * dp;
+                    panel.addPodcastRect = D2D1::RectF(panel.bounds.right - pad - addW,
+                        panel.subTabBounds.top + (bandH - addH) * 0.5f, panel.bounds.right - pad,
+                        panel.subTabBounds.top + (bandH - addH) * 0.5f + addH);
+                    const bool refreshFailed = podcastJobs.GetFetchState() == PodcastJobs::FetchState::Ready
+                        && !podcastJobs.GetResult().success && !podcastSubscriptions.GetFeeds().empty();
+                    if (refreshFailed) {
+                        panel.podcastRefreshFailed = true;
+                        const auto& failures = podcastJobs.GetResult().failures;
+                        panel.podcastErrorText = (!failures.empty() && !failures.front().reason.empty())
+                            ? (L"Couldn't refresh podcasts \u2014 " + failures.front().reason)
+                            : std::wstring(L"Couldn't refresh podcasts \u2014 check your connection");
+                        const float bannerH = 34.0f * dp;
+                        panel.podcastBannerRect = D2D1::RectF(panel.bounds.left + pad, y, panel.bounds.right - pad, y + bannerH);
+                        const float retryW = 78.0f * dp, retryH = 22.0f * dp;
+                        panel.podcastBannerRetryRect = D2D1::RectF(panel.podcastBannerRect.right - 8.0f * dp - retryW,
+                            panel.podcastBannerRect.top + (bannerH - retryH) * 0.5f,
+                            panel.podcastBannerRect.right - 8.0f * dp,
+                            panel.podcastBannerRect.top + (bannerH - retryH) * 0.5f + retryH);
+                        y += bannerH + 10.0f * dp;
                     }
-                    feedVm.metaText = freshFeed && !freshFeed->episodes.empty()
-                        ? (std::to_wstring(freshFeed->episodes.size()) + L" episodes")
-                        : (podcastJobs.IsRunning() ? std::wstring(L"Loading episodes\u2026") : std::wstring(L"No episodes found"));
-                    feedVm.expanded = ((int)i == listenExpandedFeed);
-                    if (feedVm.expanded && freshFeed) {
-                        for (const auto& ep : freshFeed->episodes) {
-                            ListenEpisodeViewModel epVm;
-                            epVm.title = ep.title.empty() ? L"Untitled episode" : ep.title;
-                            epVm.url = ep.url;
-                            if (ep.publishedSec > 0) {
-                                std::time_t tt = (std::time_t)ep.publishedSec;
-                                std::tm tmLocal{};
-                                if (localtime_s(&tmLocal, &tt) == 0) {
-                                    wchar_t buf[32]{};
-                                    swprintf_s(buf, L"%d/%d/%d", tmLocal.tm_mon + 1, tmLocal.tm_mday, tmLocal.tm_year + 1900);
-                                    epVm.dateText = buf;
-                                }
+                    const auto& subs = podcastSubscriptions.GetFeeds();
+                    const auto& fresh = listenFeeds;
+                    for (size_t i = 0; i < subs.size(); ++i) {
+                        ListenFeedViewModel feedVm;
+                        feedVm.title = subs[i].title.empty() ? subs[i].url : subs[i].title;
+                        const PodcastFeed* freshFeed = resolveFreshFeed(i);
+                        if (freshFeed && !freshFeed->title.empty() && (subs[i].title.empty() || subs[i].title == subs[i].url)) {
+                            feedVm.title = freshFeed->title;
+                        }
+                        feedVm.metaText = freshFeed && !freshFeed->episodes.empty()
+                            ? (std::to_wstring(freshFeed->episodes.size()) + L" episodes")
+                            : (podcastJobs.IsRunning() ? std::wstring(L"Loading episodes\u2026") : std::wstring(L"No episodes found"));
+                        if (freshFeed && !freshFeed->episodes.empty() && freshFeed->episodes.front().publishedSec > 0) {
+                            std::time_t tt = (std::time_t)freshFeed->episodes.front().publishedSec;
+                            std::tm tmLocal{};
+                            if (localtime_s(&tmLocal, &tt) == 0) {
+                                wchar_t buf[40]{};
+                                swprintf_s(buf, L" \x00B7 latest %d/%d/%d", tmLocal.tm_mon + 1, tmLocal.tm_mday, tmLocal.tm_year + 1900);
+                                feedVm.metaText += buf;
                             }
-                            if (ep.durationSec > 0.0) epVm.durationText = FormatDuration(ep.durationSec);
-                            feedVm.episodes.push_back(std::move(epVm));
+                        }
+                        feedVm.expanded = ((int)i == listenExpandedFeed);
+                        if (feedVm.expanded && freshFeed) {
+                            for (const auto& ep : freshFeed->episodes) {
+                                ListenEpisodeViewModel epVm;
+                                epVm.title = ep.title.empty() ? L"Untitled episode" : ep.title;
+                                epVm.url = ep.url;
+                                if (ep.publishedSec > 0) {
+                                    std::time_t tt = (std::time_t)ep.publishedSec;
+                                    std::tm tmLocal{};
+                                    if (localtime_s(&tmLocal, &tt) == 0) {
+                                        wchar_t buf[32]{};
+                                        swprintf_s(buf, L"%d/%d/%d", tmLocal.tm_mon + 1, tmLocal.tm_mday, tmLocal.tm_year + 1900);
+                                        epVm.dateText = buf;
+                                    }
+                                }
+                                if (ep.durationSec > 0.0) epVm.durationText = FormatDuration(ep.durationSec);
+                                feedVm.episodes.push_back(std::move(epVm));
+                            }
+                        }
+                        feedVm.episodes.resize(std::min<size_t>(feedVm.episodes.size(), 60));
+                        panel.feeds.push_back(std::move(feedVm));
+                        panel.feedBounds.push_back(D2D1::RectF(panel.bounds.left + pad, y, panel.bounds.right - pad, y + rowH));
+                        // Hover actions at the row's right edge: [trash][play latest][chevron].
+                        const float chevSz = 16.0f * dp, playSz = 22.0f * dp, trashBox = 20.0f * dp;
+                        const float chevL = panel.bounds.right - pad - 12.0f * dp - chevSz;
+                        const float playR = chevL - 10.0f * dp, playL = playR - playSz;
+                        const float trashR = playL - 8.0f * dp, trashL = trashR - trashBox;
+                        const float midTop = y + (rowH - playSz) * 0.5f, midBottom = midTop + playSz;
+                        panel.feedPlayBounds.push_back(D2D1::RectF(playL, midTop, playR, midBottom));
+                        panel.feedRemoveBounds.push_back(D2D1::RectF(trashL, y, trashR, y + rowH));
+                        y += rowH + gap;
+                        if (((int)i == listenExpandedFeed) && !panel.feeds.back().episodes.empty()) {
+                            for (size_t e = 0; e < panel.feeds.back().episodes.size(); ++e) {
+                                panel.episodeBounds.push_back(D2D1::RectF(panel.bounds.left + pad + 40.0f * dp, y, panel.bounds.right - pad, y + epH));
+                                const float epPlaySz = 22.0f * dp;
+                                panel.episodePlayBounds.push_back(D2D1::RectF(panel.bounds.right - pad - 12.0f * dp - epPlaySz,
+                                    y + (epH - epPlaySz) * 0.5f, panel.bounds.right - pad - 12.0f * dp,
+                                    y + (epH - epPlaySz) * 0.5f + epPlaySz));
+                                panel.episodeFeedIndex.push_back((int)i);
+                                y += epH + gap;
+                            }
                         }
                     }
-                    feedVm.episodes.resize(std::min<size_t>(feedVm.episodes.size(), 60));
-                    panel.feeds.push_back(std::move(feedVm));
-                    panel.feedBounds.push_back(D2D1::RectF(panel.bounds.left + pad, y, panel.bounds.right - pad, y + rowH));
-                    y += rowH + gap;
-                    if (((int)i == listenExpandedFeed) && !panel.feeds.back().episodes.empty()) {
-                        for (size_t e = 0; e < panel.feeds.back().episodes.size(); ++e) {
-                            panel.episodeBounds.push_back(D2D1::RectF(panel.bounds.left + pad + 40.0f * dp, y, panel.bounds.right - pad, y + epH));
-                            panel.episodeFeedIndex.push_back((int)i);
-                            y += epH + gap;
+                    if (subs.empty()) {
+                        panel.state.visible = true;
+                        panel.state.icon = IconType::MicPodcast;
+                        panel.state.title = L"No podcasts yet";
+                        panel.state.body = L"Follow a show by pasting its RSS feed URL \u2014 new episodes appear here automatically.";
+                        panel.state.actionText = L"Add Podcast";
+                        panel.state.bounds = D2D1::RectF(panel.bounds.left, contentTop, panel.bounds.right, panel.bounds.bottom);
+                        const float btnW = 150.0f * dp, btnH = 36.0f * dp;
+                        const float bcx = (panel.state.bounds.left + panel.state.bounds.right) * 0.5f;
+                        const float bcy = panel.state.bounds.top + 164.0f * dp + btnH * 0.5f; // below the draw-side title+body stack
+                        panel.state.buttonBounds = D2D1::RectF(bcx - btnW * 0.5f, bcy - btnH * 0.5f, bcx + btnW * 0.5f, bcy + btnH * 0.5f);
+                    }
+                } else {
+                    // Radio header actions: search field + add station.
+                    const float actH = 26.0f * dp, iconBtnW = 30.0f * dp;
+                    const float actTop = panel.subTabBounds.top + (bandH - actH) * 0.5f;
+                    const float actBottom = actTop + actH;
+                    panel.radioAddStationRect = D2D1::RectF(panel.bounds.right - pad - iconBtnW, actTop, panel.bounds.right - pad, actBottom);
+                    const float maxSearchW = panel.radioAddStationRect.left - 10.0f * dp - (panel.subTabBounds.right + 12.0f * dp);
+                    const float searchW = std::clamp(240.0f * dp, std::min(120.0f * dp, maxSearchW), maxSearchW);
+                    panel.radioSearchRect = D2D1::RectF(panel.radioAddStationRect.left - 10.0f * dp - searchW, actTop,
+                                                        panel.radioAddStationRect.left - 10.0f * dp, actBottom);
+                    const float clearSz = 18.0f * dp;
+                    panel.radioSearchClearRect = D2D1::RectF(panel.radioSearchRect.right - 6.0f * dp - clearSz,
+                        panel.radioSearchRect.top + (actH - clearSz) * 0.5f,
+                        panel.radioSearchRect.right - 6.0f * dp,
+                        panel.radioSearchRect.top + (actH - clearSz) * 0.5f + clearSz);
+                    panel.radioSearchFocused = isRadioSearchFocused;
+                    panel.radioSearchVisual.displayText = Text16ToWideString(radioSearchInput.GetText());
+                    panel.radioSearchVisual.selectionStart = radioSearchInput.GetSelection().start;
+                    panel.radioSearchVisual.selectionEnd = radioSearchInput.GetSelection().end;
+                    panel.radioSearchVisual.caretIndex = radioSearchInput.GetCaret();
+                    panel.radioSearchVisual.focused = panel.radioSearchFocused;
+                    panel.radioSearchVisual.caretVisible = panel.radioSearchFocused && textInputCaretVisible;
+                    if (radioSearchInput.IsComposing()) {
+                        const auto compositionRange = radioSearchInput.GetCompositionRange();
+                        panel.radioSearchVisual.hasCompositionRange = true;
+                        panel.radioSearchVisual.compositionStart = compositionRange.start;
+                        panel.radioSearchVisual.compositionEnd = compositionRange.end;
+                        panel.radioSearchVisual.compositionCaretIndex = radioSearchInput.GetDisplayCaret();
+                    }
+                    const std::wstring query = Text16ToWideString(radioSearchInput.GetText());
+                    const auto trim = [](const std::wstring& s) {
+                        size_t b = s.find_first_not_of(L" \t");
+                        if (b == std::wstring::npos) return std::wstring();
+                        size_t e = s.find_last_not_of(L" \t");
+                        return s.substr(b, e - b + 1);
+                    };
+                    const std::wstring trimmed = trim(query);
+                    const bool searching = radioJobs.IsSearchRunning();
+                    panel.radioSearching = searching;
+                    const auto addStationRow = [&](const RadioStation& st) {
+                        visibleStations.push_back(st);
+                    };
+                    if (!trimmed.empty()) {
+                        // Search results view (the directory list is replaced).
+                        const bool resultsCurrent = (listenSearchDoneQuery == trimmed);
+                        if (searching) {
+                            panel.sectionCaptions.push_back(L"SEARCHING\u2026");
+                            panel.sectionCaptionBounds.push_back(D2D1::RectF(panel.bounds.left + pad, y, panel.bounds.right - pad, y + 18.0f * dp));
+                            y += 24.0f * dp;
+                        }
+                        if (!resultsCurrent && !searching) {
+                            // The pending debounce will fire; keep the empty frame minimal.
+                        } else if (listenSearchFailed && !searching && resultsCurrent) {
+                            panel.state.visible = true;
+                            panel.state.icon = IconType::Search;
+                            panel.state.title = L"Station search unavailable";
+                            panel.state.body = listenSearchError.empty()
+                                ? std::wstring(L"Check your connection and try again.")
+                                : listenSearchError;
+                            panel.state.actionText = L"Retry";
+                            panel.state.bounds = D2D1::RectF(panel.bounds.left, contentTop, panel.bounds.right, panel.bounds.bottom);
+                            const float btnW = 120.0f * dp, btnH = 36.0f * dp;
+                            const float bcx = (panel.state.bounds.left + panel.state.bounds.right) * 0.5f;
+                            const float bcy = panel.state.bounds.top + 164.0f * dp + btnH * 0.5f; // below the draw-side title+body stack
+                            panel.state.buttonBounds = D2D1::RectF(bcx - btnW * 0.5f, bcy - btnH * 0.5f, bcx + btnW * 0.5f, bcy + btnH * 0.5f);
+                        } else if (resultsCurrent && listenSearchResults.empty() && !searching) {
+                            panel.state.visible = true;
+                            panel.state.icon = IconType::Search;
+                            panel.state.title = L"No stations found";
+                            panel.state.body = L"Nothing matches \u201C" + trimmed + L"\u201D. Try a different station name.";
+                            panel.state.bounds = D2D1::RectF(panel.bounds.left, contentTop, panel.bounds.right, panel.bounds.bottom);
+                        } else if (resultsCurrent || searching) {
+                            if (!searching) {
+                                panel.sectionCaptions.push_back(L"RESULTS \x2014 \u201C" + trimmed + L"\u201D");
+                                panel.sectionCaptionBounds.push_back(D2D1::RectF(panel.bounds.left + pad, y, panel.bounds.right - pad, y + 18.0f * dp));
+                                y += 24.0f * dp;
+                            }
+                            for (const auto& st : listenSearchResults) addStationRow(st);
+                        }
+                    } else {
+                        // No query: saved favorites, nothing else — the
+                        // popular-stations directory is gone.
+                        if (!radioFavorites.GetStations().empty()) {
+                            panel.sectionCaptions.push_back(L"FAVORITES");
+                            panel.sectionCaptionBounds.push_back(D2D1::RectF(panel.bounds.left + pad, y, panel.bounds.right - pad, y + 18.0f * dp));
+                            y += 24.0f * dp;
+                            for (const auto& st : radioFavorites.GetStations()) addStationRow(st);
+                        } else {
+                            panel.state.visible = true;
+                            panel.state.icon = IconType::RadioWaves;
+                            panel.state.title = L"No favorite stations yet";
+                            panel.state.body = L"Search a station by name, or add one by its stream URL. Favorites are saved here.";
+                            panel.state.actionText = L"Add Station";
+                            panel.state.bounds = D2D1::RectF(panel.bounds.left, contentTop, panel.bounds.right, panel.bounds.bottom);
+                            const float btnW = 140.0f * dp, btnH = 36.0f * dp;
+                            const float bcx = (panel.state.bounds.left + panel.state.bounds.right) * 0.5f;
+                            const float bcy = panel.state.bounds.top + 164.0f * dp + btnH * 0.5f; // below the draw-side title+body stack
+                            panel.state.buttonBounds = D2D1::RectF(bcx - btnW * 0.5f, bcy - btnH * 0.5f, bcx + btnW * 0.5f, bcy + btnH * 0.5f);
                         }
                     }
+                    for (const auto& st : visibleStations) {
+                        ListenStationViewModel stVm;
+                        stVm.name = st.name;
+                        stVm.url = st.url;
+                        stVm.isFavorite = radioFavorites.Contains(st.url);
+                        stVm.metaText = st.bitrateKbps > 0 ? (std::to_wstring(st.bitrateKbps) + L" kbps") : L"";
+                        if (!st.codec.empty()) { if (!stVm.metaText.empty()) stVm.metaText += L" \x00B7 "; stVm.metaText += st.codec; }
+                        if (!st.country.empty()) { if (!stVm.metaText.empty()) stVm.metaText += L" \x00B7 "; stVm.metaText += st.country; }
+                        panel.stations.push_back(std::move(stVm));
+                        panel.stationBounds.push_back(D2D1::RectF(panel.bounds.left + pad, y, panel.bounds.right - pad, y + stH));
+                        const float playSz = 22.0f * dp;
+                        panel.stationPlayBounds.push_back(D2D1::RectF(panel.bounds.right - pad - 12.0f * dp - playSz,
+                            y + (stH - playSz) * 0.5f, panel.bounds.right - pad - 12.0f * dp,
+                            y + (stH - playSz) * 0.5f + playSz));
+                        y += stH + gap;
+                    }
                 }
-                if (subs.empty()) {
-                    // Drawn as a hint row; clicking it opens the add dialog.
-                    panel.feeds.push_back({ L"No podcasts yet \u2014 add a feed by URL", L"Click to subscribe", false, {} });
-                    panel.feedBounds.push_back(D2D1::RectF(panel.bounds.left + pad, y, panel.bounds.right - pad, y + rowH));
-                    y += rowH + gap;
-                }
-                y += 16.0f * dp;
-                panel.radioHeaderRect = D2D1::RectF(panel.bounds.left + pad, y, panel.bounds.right - pad, y + 24.0f * dp);
-                y += 34.0f * dp;
-                panel.radioLoading = radioJobs.IsRunning();
-                if (!panel.radioLoading && listenStations.empty() && !listenRadioErrorCached.empty()) {
-                    panel.radioError = listenRadioErrorCached;
-                }
-                for (size_t i = 0; i < listenStations.size(); ++i) {
-                    ListenStationViewModel stVm;
-                    stVm.name = listenStations[i].name;
-                    stVm.url = listenStations[i].url;
-                    stVm.metaText = listenStations[i].bitrateKbps > 0 ? (std::to_wstring(listenStations[i].bitrateKbps) + L" kbps") : L"";
-                    if (!listenStations[i].codec.empty()) { if (!stVm.metaText.empty()) stVm.metaText += L" \x00B7 "; stVm.metaText += listenStations[i].codec; }
-                    if (!listenStations[i].country.empty()) { if (!stVm.metaText.empty()) stVm.metaText += L" \x00B7 "; stVm.metaText += listenStations[i].country; }
-                    panel.stations.push_back(std::move(stVm));
-                    panel.stationBounds.push_back(D2D1::RectF(panel.bounds.left + pad, y, panel.bounds.right - pad, y + stH));
-                    y += stH + gap;
-                }
-                if (panel.radioLoading && listenStations.empty()) {
-                    panel.stations.push_back({ L"Loading stations\u2026", L"", L"" });
-                    panel.stationBounds.push_back(D2D1::RectF(panel.bounds.left + pad, y, panel.bounds.right - pad, y + stH));
-                    y += stH + gap;
-                } else if (!panel.radioError.empty() && listenStations.empty()) {
-                    panel.stations.push_back({ panel.radioError, L"", L"" });
-                    panel.stationBounds.push_back(D2D1::RectF(panel.bounds.left + pad, y, panel.bounds.right - pad, y + stH));
-                    y += stH + gap;
-                }
-                panel.contentHeight = (y + listenScrollY) - panel.bounds.top + 10.0f * dp;
+                panel.contentHeight = (y + listenScrollY) - contentTop + 10.0f * dp;
                 listenContentHeight = panel.contentHeight;
                 listenViewportHeight = panel.viewportHeight;
-                // Mirror hit-test state for the input handlers.
-                listenFeedBounds = panel.feedBounds;
-                listenEpisodeBounds = panel.episodeBounds;
+                // Mirror hit-test state for the input handlers. Row rects are
+                // clipped to the row viewport: a row scrolled beneath the fixed
+                // header must not keep a clickable rect inside the header band.
+                const D2D1_RECT_F rowHitViewport = D2D1::RectF(panel.bounds.left, panel.subTabBounds.bottom + 4.0f * dp,
+                                                               panel.bounds.right, panel.bounds.bottom);
+                const auto clipToViewport = [rowHitViewport](const D2D1_RECT_F& r) {
+                    return D2D1::RectF(std::max(r.left, rowHitViewport.left), std::max(r.top, rowHitViewport.top),
+                                       std::min(r.right, rowHitViewport.right), std::min(r.bottom, rowHitViewport.bottom));
+                };
+                listenFeedBounds.clear();
+                for (const auto& r : panel.feedBounds) listenFeedBounds.push_back(clipToViewport(r));
+                listenEpisodeBounds.clear();
+                for (const auto& r : panel.episodeBounds) listenEpisodeBounds.push_back(clipToViewport(r));
                 listenEpisodeFeedIndex = panel.episodeFeedIndex;
-                listenStationBounds = panel.stationBounds;
+                listenStationBounds.clear();
+                for (const auto& r : panel.stationBounds) listenStationBounds.push_back(clipToViewport(r));
+                listenVisibleStations = std::move(visibleStations);
+                listenFeedPlayBounds.clear();
+                for (const auto& r : panel.feedPlayBounds) listenFeedPlayBounds.push_back(clipToViewport(r));
+                listenFeedRemoveBounds.clear();
+                for (const auto& r : panel.feedRemoveBounds) listenFeedRemoveBounds.push_back(clipToViewport(r));
+                listenEpisodePlayBounds.clear();
+                for (const auto& r : panel.episodePlayBounds) listenEpisodePlayBounds.push_back(clipToViewport(r));
+                listenStationPlayBounds.clear();
+                for (const auto& r : panel.stationPlayBounds) listenStationPlayBounds.push_back(clipToViewport(r));
                 listenAddPodcastBounds = panel.addPodcastRect;
+                listenSubTabBounds = panel.subTabBounds;
+                listenSubTabPodcastsBounds = panel.subTabPodcastsRect;
+                listenSubTabRadioBounds = panel.subTabRadioRect;
+                listenPodcastBannerRetryBounds = panel.podcastBannerRetryRect;
+                listenRadioSearchBounds = panel.radioSearchRect;
+                listenRadioSearchClearBounds = panel.radioSearchClearRect;
+                listenRadioAddStationBounds = panel.radioAddStationRect;
+                listenStateButtonBounds = panel.state.buttonBounds;
                 panel.hoveredFeed = listenHoveredFeed;
                 panel.hoveredEpisode = listenHoveredEpisode;
                 panel.hoveredEpisodeFeed = listenHoveredEpisodeFeed;
                 panel.hoveredStation = listenHoveredStation;
-                panel.addPodcastHovered = listenAddPodcastHovered;
+                panel.hoveredFeedPlay = listenHoveredFeedPlay;
+                panel.hoveredFeedRemove = listenHoveredFeedRemove;
+                panel.hoveredStationPlay = listenHoveredStationPlay;
+                panel.addPodcastHoverProg = listenHeaderHoverAnim[0].current;
+                panel.bannerRetryHoverProg = listenHeaderHoverAnim[1].current;
+                panel.addStationHoverProg = listenHeaderHoverAnim[2].current;
+                panel.stateButtonHoverProg = listenHeaderHoverAnim[3].current;
+                panel.radioSearchClearHovered = listenRadioSearchClearHovered;
                 panel.activeUrl = listenPlaybackActive ? listenUrl : std::wstring();
                 panel.activePaused = listenPlaybackPaused;
             } else {
@@ -1214,24 +1410,39 @@ HubRenderViewModel App::BuildHubRenderViewModel() {
         const float xSz = 24.0f * dp;
         li.xBounds = D2D1::RectF(card.right - 6.0f * dp - xSz, rowCy - xSz * 0.5f,
                                  card.right - 6.0f * dp, rowCy + xSz * 0.5f);
+        // Expand chevron sits between the volume slider and the close button.
+        li.chevronBounds = D2D1::RectF(li.xBounds.left - 20.0f * dp, rowCy - 7.0f * dp,
+                                       li.xBounds.left - 6.0f * dp, rowCy + 7.0f * dp);
         const float volW = 52.0f * dp, volHitH = 22.0f * dp;
-        const float volRight = li.xBounds.left - 7.0f * dp;
+        const float volRight = li.chevronBounds.left - 4.0f * dp;
         const float volLeft = volRight - volW;
         li.volumeTrackBounds = D2D1::RectF(volLeft, rowCy - volHitH * 0.5f, volRight, rowCy + volHitH * 0.5f);
         const float muteSz = 24.0f * dp;
         const float muteRight = volLeft - 3.0f * dp;
         li.muteBounds = D2D1::RectF(muteRight - muteSz, rowCy - muteSz * 0.5f, muteRight, rowCy + muteSz * 0.5f);
         if (li.expand > 0.25f && !li.isRadio) {
+            // Seek bar flanked by -15s/+15s skip buttons.
             const float pad = 14.0f * dp;
-            li.seekBounds = D2D1::RectF(card.left + pad, card.bottom - 22.0f * dp, card.right - pad, card.bottom - 6.0f * dp);
+            const float skipW = 34.0f * dp, skipH = 20.0f * dp;
+            const float barY = card.bottom - 14.0f * dp;
+            li.skipBackBounds = D2D1::RectF(card.left + pad, barY - skipH * 0.5f, card.left + pad + skipW, barY + skipH * 0.5f);
+            li.skipFwdBounds = D2D1::RectF(card.right - pad - skipW, barY - skipH * 0.5f, card.right - pad, barY + skipH * 0.5f);
+            li.seekBounds = D2D1::RectF(li.skipBackBounds.right + 8.0f * dp, card.bottom - 22.0f * dp,
+                                        li.skipFwdBounds.left - 8.0f * dp, card.bottom - 6.0f * dp);
         } else {
             li.seekBounds = D2D1::RectF(0, 0, 0, 0);
+            li.skipBackBounds = D2D1::RectF(0, 0, 0, 0);
+            li.skipFwdBounds = D2D1::RectF(0, 0, 0, 0);
         }
+        li.skipBackHovered = listenSkipBackHovered;
+        li.skipFwdHovered = listenSkipFwdHovered;
         listenIslandHitRect = li.hitRect;
         listenIslandBadgeBounds = li.badgeBounds;
         listenIslandMuteBounds = li.muteBounds;
         listenIslandVolumeBounds = li.volumeTrackBounds;
         listenIslandSeekBounds = li.seekBounds;
+        listenIslandSkipBackBounds = li.skipBackBounds;
+        listenIslandSkipFwdBounds = li.skipFwdBounds;
         listenIslandXBounds = li.xBounds;
     }
     // Import island: compact pill, hover-expanded card, complete check, exit.

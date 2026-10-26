@@ -34,6 +34,21 @@ PodcastFeed ParseRssFeed(const std::string& utf8Xml, const std::wstring& feedUrl
 // to https://, lowercases http(s)://). Returns empty on invalid input.
 std::wstring NormalizePodcastFeedUrl(const std::wstring& rawUrl);
 
+// One entry extracted from a batch-import source (OPML outline or URL list).
+struct PodcastImportEntry {
+    std::wstring title, url;
+};
+
+// Parse an OPML subscription export: every <outline> carrying an xmlUrl
+// attribute becomes one entry (nested folder outlines are walked). Entries
+// without a usable URL are skipped; titles fall back to the URL.
+std::vector<PodcastImportEntry> ParseOpmlFeeds(const std::string& utf8Xml, size_t maxFeeds = 200);
+
+// Parse a plain-text list of podcast URLs, one per line (accepts # comments
+// and the same scheme shorthand as NormalizePodcastFeedUrl). Invalid or
+// duplicate lines are dropped.
+std::vector<std::wstring> ParseUrlListText(const std::string& utf8Text, size_t maxUrls = 200);
+
 // Podcast subscriptions persisted at <dataDir>\podcasts.json:
 // { "schemaVersion": 1, "feeds": [ { "url": ..., "title": ... } ] }.
 // Unknown JSON fields are ignored on load; a missing file yields an empty list.

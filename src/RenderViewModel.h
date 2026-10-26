@@ -446,23 +446,61 @@ struct ListenFeedViewModel {
 
 struct ListenStationViewModel {
     std::wstring name, metaText, url;
+    bool isFavorite = false;
+};
+
+// Which half of the Listen panel is shown. The segmented control at the top of
+// the panel switches between them; each side keeps its own header actions.
+enum class ListenSubTab { Podcasts = 0, Radio = 1 };
+
+// Centered state card for the Listen surfaces (no subscriptions, failed
+// refresh, radio loading/search failures). Icon + title + body + one action.
+struct ListenStateViewModel {
+    bool visible = false;
+    IconType icon = IconType::MicPodcast;
+    std::wstring title, body;
+    std::wstring actionText; // empty = no action button
+    D2D1_RECT_F bounds{}, buttonBounds{};
+    bool actionHovered = false;
 };
 
 struct ListenPanelViewModel {
     bool isActive = false;
+    ListenSubTab subTab = ListenSubTab::Podcasts;
+    float subTabIndicatorPos = 0.0f; // eased 0 (Podcasts) .. 1 (Radio)
+    D2D1_RECT_F bounds{}, subTabBounds{}, subTabPodcastsRect{}, subTabRadioRect{};
+    // Podcasts tab: header actions and optional refresh-failure banner. The
+    // hoverProg floats are eased 0..1 so header buttons animate like the rest
+    // of the hub instead of snapping between two colors.
+    float addPodcastHoverProg = 0.0f, bannerRetryHoverProg = 0.0f;
+    bool podcastRefreshFailed = false;
+    std::wstring podcastErrorText;
+    D2D1_RECT_F addPodcastRect{}, podcastBannerRect{}, podcastBannerRetryRect{};
+    // Radio tab: search field and add-by-URL (no directory refresh: the
+    // popular-stations feed is gone; radio is favorites + search).
+    bool radioSearchFocused = false, radioSearchClearHovered = false;
+    bool radioAddStationHovered = false;
+    float addStationHoverProg = 0.0f, stateButtonHoverProg = 0.0f;
+    bool radioSearching = false;
+    TextInputVisualState radioSearchVisual;
+    D2D1_RECT_F radioSearchRect{}, radioSearchClearRect{}, radioAddStationRect{};
+    // Rows (bounds mirror the App-side hit-test vectors).
     std::vector<ListenFeedViewModel> feeds;
     std::vector<ListenStationViewModel> stations;
-    bool radioLoading = false;
-    std::wstring radioError;
-    std::wstring activeUrl;
-    bool activePaused = false;
-    D2D1_RECT_F bounds, podcastsHeaderRect, addPodcastRect, radioHeaderRect;
     std::vector<D2D1_RECT_F> feedBounds, episodeBounds, stationBounds;
+    std::vector<D2D1_RECT_F> feedPlayBounds, feedRemoveBounds, episodePlayBounds, stationPlayBounds;
+    // Inline section captions between row groups (e.g. FAVORITES / ALL STATIONS).
+    std::vector<std::wstring> sectionCaptions;
+    std::vector<D2D1_RECT_F> sectionCaptionBounds;
     std::vector<int> episodeFeedIndex;   // episodeBounds[i] belongs to feeds[episodeFeedIndex[i]]
     int hoveredFeed = -1, hoveredStation = -1, hoveredEpisode = -1;
     int hoveredEpisodeFeed = -1;
-    bool addPodcastHovered = false;
+    int hoveredFeedPlay = -1, hoveredFeedRemove = -1, hoveredStationPlay = -1;
+    std::wstring activeUrl;
+    bool activePaused = false;
+    float spinnerAngle = 0.0f; // degrees; App advances while fetch jobs run
     float scrollY = 0.0f, contentHeight = 0.0f, viewportHeight = 0.0f;
+    ListenStateViewModel state;
 };
 
 struct VisiblePlaylistEpisodeViewModel {
@@ -691,7 +729,9 @@ struct ImportProgressViewModel {
 
 // Listen island: compact top-bar player next to History with always-visible
 // play/pause, volume/mute, and close controls; clicking empty space expands
-// downward to show stream/episode details and podcast seek bar.
+// downward to show stream/episode details and podcast seek bar. Expanded
+// podcasts also get -15s/+15s skip buttons flanking the seek bar, and a
+// chevron signals that the pill expands.
 struct ListenIslandViewModel {
     bool isActive = false, isRadio = true, paused = false;
     std::wstring title, subtitle;
@@ -701,7 +741,9 @@ struct ListenIslandViewModel {
     std::wstring timeText, remainingText;
     float eqPhase = 0.0f;
     bool pillHovered = false, badgeHovered = false, muteHovered = false, volumeHovered = false, volumeDragging = false, seekHovered = false, xHovered = false;
+    bool skipBackHovered = false, skipFwdHovered = false;
     D2D1_RECT_F pillBounds{}, expandedBounds{}, hitRect{}, badgeBounds{}, muteBounds{}, volumeTrackBounds{}, seekBounds{}, xBounds{};
+    D2D1_RECT_F skipBackBounds{}, skipFwdBounds{}, chevronBounds{};
     float widthDip = 340.0f, heightDip = 36.0f, radiusDip = 18.0f, expand = 0.0f, fade = 0.0f;
 };
 

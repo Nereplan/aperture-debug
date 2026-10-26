@@ -27,6 +27,133 @@ namespace Aperture {
 void App::OpenFileDialog() { OpenFileDialogForTarget("", true); }
 
 
+// Shared one-file picker for the Listen batch-import flows. Returns the
+// chosen path, or an empty string when the dialog was cancelled. Callers own
+// the systemDialogActive guard and the focus snapshot.
+namespace {
+std::wstring PickListenListFile(HWND owner, const wchar_t* title, const wchar_t* patterns) {
+    std::wstring result;
+    IFileOpenDialog* dialog = nullptr;
+    if (SUCCEEDED(CoCreateInstance(CLSID_FileOpenDialog, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&dialog))) && dialog) {
+        const COMDLG_FILTERSPEC filters[] = {
+            { L"List Files", patterns },
+            { L"All Files", L"*.*" },
+        };
+        dialog->SetFileTypes(static_cast<UINT>(std::size(filters)), filters);
+        dialog->SetFileTypeIndex(1);
+        DWORD options = 0;
+        dialog->GetOptions(&options);
+        dialog->SetOptions(options | FOS_FORCEFILESYSTEM | FOS_PATHMUSTEXIST | FOS_FILEMUSTEXIST | FOS_NOCHANGEDIR);
+        dialog->SetTitle(title);
+        if (dialog->Show(owner) == S_OK) {
+            IShellItem* item = nullptr;
+            if (SUCCEEDED(dialog->GetResult(&item)) && item) {
+                PWSTR path = nullptr;
+                if (SUCCEEDED(item->GetDisplayName(SIGDN_FILESYSPATH, &path)) && path) {
+                    result = path;
+                    CoTaskMemFree(path);
+                }
+                item->Release();
+            }
+        }
+        dialog->Release();
+    }
+    return result;
+}
+
+std::wstring LowerFileExtension(const std::wstring& path) {
+    const size_t dot = path.find_last_of(L'.');
+    if (dot == std::wstring::npos) return std::wstring();
+    std::wstring ext = path.substr(dot);
+    for (wchar_t& c : ext) c = static_cast<wchar_t>(::towlower(c));
+    return ext;
+}
+} // namespace
+
+// Batch podcast import: an OPML subscription export or a plain URL-per-line
+// text file. Feeds are queued and fetched one at a time through the shared
+// add-preview pipeline, so each subscription is validated before it lands.
+void App::ImportPodcastListDialog() {
+    if (systemDialogActive) return;
+    if (playbackSession.IsPrivateMode()) {
+        ShowOSD(IconType::VolumeMuted, L"Podcast import unavailable in private mode", 4.0f);
+        return;
+    }
+    struct DialogGuard { bool& flag; ~DialogGuard() { flag = false; } } dialogGuard{systemDialogActive};
+    systemDialogActive = true;
+    PushFocusSnapshot(TransientSurfaceType::SystemDialog);
+    const std::wstring path = PickListenListFile(hWnd, L"Import podcast list", L"*.opml;*.xml;*.txt");
+    PopAndRestoreFocus(TransientSurfaceType::SystemDialog);
+    if (path.empty()) return;
+    std::string content;
+    if (!ReadTextFile(path, content).is_ok()) {
+        ShowOSD(IconType::VolumeMuted, L"Could not read the list file", 4.0f);
+        return;
+    }
+    std::vector<std::wstring> urls;
+    const std::wstring ext = LowerFileExtension(path);
+    if (ext == L".opml" || ext == L".xml") {
+        for (const auto& entry : ParseOpmlFeeds(content)) urls.push_back(entry.url);
+    } else {
+        urls = ParseUrlListText(content);
+    }
+    // Skip feeds already subscribed (normalized comparison, like the panel).
+    std::vector<std::wstring> fresh;
+    const auto& subs = podcastSubscriptions.GetFeeds();
+    for (const std::wstring& url : urls) {
+        bool exists = false;
+        for (const auto& sub : subs) {
+            const std::wstring normSub = NormalizePodcastFeedUrl(sub.url);
+            if (sub.url == url || (!normSub.empty() && normSub == url)) { exists = true; break; }
+        }
+        if (!exists) fresh.push_back(url);
+    }
+    if (fresh.empty()) {
+        ShowOSD(IconType::Checkmark, L"No new podcast feeds in the list");
+        return;
+    }
+    podcastImportQueue.assign(fresh.begin() + 1, fresh.end());
+    podcastImportTotal = fresh.size();
+    podcastJobs.EnsureAddPreview(fresh.front());
+    ShowOSD(IconType::MicPodcast, L"Importing podcasts\u2026 1 of " + std::to_wstring(podcastImportTotal), 2.0f);
+}
+
+// Batch radio import: an M3U/M3U8/PLS playlist or URL-per-line text file.
+// Entries are validated and merged into the favorites store in one pass.
+void App::ImportRadioStationsDialog() {
+    if (systemDialogActive) return;
+    if (playbackSession.IsPrivateMode()) {
+        ShowOSD(IconType::VolumeMuted, L"Station import unavailable in private mode", 4.0f);
+        return;
+    }
+    struct DialogGuard { bool& flag; ~DialogGuard() { flag = false; } } dialogGuard{systemDialogActive};
+    systemDialogActive = true;
+    PushFocusSnapshot(TransientSurfaceType::SystemDialog);
+    const std::wstring path = PickListenListFile(hWnd, L"Import station list", L"*.m3u;*.m3u8;*.pls;*.txt");
+    PopAndRestoreFocus(TransientSurfaceType::SystemDialog);
+    if (path.empty()) return;
+    std::string content;
+    if (!ReadTextFile(path, content).is_ok()) {
+        ShowOSD(IconType::VolumeMuted, L"Could not read the list file", 4.0f);
+        return;
+    }
+    const auto parsed = ParseRadioPlaylistText(content);
+    size_t added = 0, skipped = 0;
+    for (const auto& station : parsed) {
+        if (radioFavorites.Contains(station.url)) { ++skipped; continue; }
+        if (radioFavorites.Add(station)) ++added; else ++skipped;
+    }
+    if (added == 0) {
+        ShowOSD(IconType::VolumeMuted, L"No new stations found in the list", 4.0f);
+        return;
+    }
+    radioFavorites.Save(GetDataDir());
+    std::wstring message = L"Imported " + std::to_wstring(added) + L" stations";
+    if (skipped > 0) message += L" (" + std::to_wstring(skipped) + L" skipped)";
+    ShowOSD(IconType::Star, message);
+}
+
+
 void App::OpenFileDialogForPlaylist(const std::string& playlistId) {
     if (playlistId.empty()) return;
     Playlist* playlist = library.FindPlaylist(playlistId);

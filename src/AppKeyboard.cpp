@@ -28,6 +28,7 @@ namespace Aperture {
 TextInputModel* App::ActiveTextInputModel() {
     if (activeTextInputField == TextInputField::PlaylistSearch) return &playlistSearchInput;
     if (activeTextInputField == TextInputField::MediaSearch) return &mediaSearchInput;
+    if (activeTextInputField == TextInputField::RadioSearch) return &radioSearchInput;
     if (activeTextInputField == TextInputField::Modal) return &modalInput;
     if (activeTextInputField == TextInputField::PlaybackSpeed) return &playbackSpeedInput;
     if (activeTextInputField == TextInputField::InlineRename) return &inlineRenameInput;
@@ -39,6 +40,7 @@ TextInputModel* App::ActiveTextInputModel() {
 const TextInputModel* App::ActiveTextInputModel() const {
     if (activeTextInputField == TextInputField::PlaylistSearch) return &playlistSearchInput;
     if (activeTextInputField == TextInputField::MediaSearch) return &mediaSearchInput;
+    if (activeTextInputField == TextInputField::RadioSearch) return &radioSearchInput;
     if (activeTextInputField == TextInputField::Modal) return &modalInput;
     if (activeTextInputField == TextInputField::PlaybackSpeed) return &playbackSpeedInput;
     if (activeTextInputField == TextInputField::InlineRename) return &inlineRenameInput;
@@ -54,6 +56,7 @@ void App::FocusTextInput(TextInputField field) {
     }
     isPlaylistSearchFocused = field == TextInputField::PlaylistSearch;
     isMediaSearchFocused = field == TextInputField::MediaSearch;
+    isRadioSearchFocused = field == TextInputField::RadioSearch;
     textInputDragging = false;
     hasPendingHighSurrogate = false;
     pendingImeEcho.clear();
@@ -76,6 +79,7 @@ void App::BlurTextInput() {
     activeTextInputField = TextInputField::None;
     isPlaylistSearchFocused = false;
     isMediaSearchFocused = false;
+    isRadioSearchFocused = false;
     textInputDragging = false;
     hasPendingHighSurrogate = false;
     pendingImeEcho.clear();
@@ -101,6 +105,9 @@ void App::MarkTextInputEdit(bool committed) {
         mediaScrollY = 0.0f;
         m_mediaQueryEngine.InvalidateCache();
         ClampScrollOffsets();
+    }
+    if (activeTextInputField == TextInputField::RadioSearch) {
+        radioSearchEditTick = GetTickCount64();
     }
     if (activeTextInputField == TextInputField::GlobalSearch)
         globalSearchModel.SetQuery(Text16ToWideString(globalSearchModel.GetTextInputModel().GetText()), library, true);
@@ -207,7 +214,8 @@ bool App::HandleTextInputKeyDown(WPARAM wParam, LPARAM) {
         }
         if (input->IsComposing()) { input->CancelComposition(); MarkTextInputEdit(false); return true; }
         if (activeTextInputField == TextInputField::InlineRename) { CancelInlinePlaylistRename(); return true; }
-        if (activeTextInputField == TextInputField::PlaylistSearch || activeTextInputField == TextInputField::MediaSearch) {
+        if (activeTextInputField == TextInputField::PlaylistSearch || activeTextInputField == TextInputField::MediaSearch
+            || activeTextInputField == TextInputField::RadioSearch) {
             if (!input->GetText().empty() || input->HasSelection()) {
                 input->SelectAll();
                 const TextInputModel::Text before = input->GetText();
@@ -237,7 +245,8 @@ bool App::HandleTextInputKeyDown(WPARAM wParam, LPARAM) {
             if (confirm) confirm();
             return true;
         }
-        if (activeTextInputField == TextInputField::PlaylistSearch || activeTextInputField == TextInputField::MediaSearch) {
+        if (activeTextInputField == TextInputField::PlaylistSearch || activeTextInputField == TextInputField::MediaSearch
+            || activeTextInputField == TextInputField::RadioSearch) {
             BlurTextInput();
             return true;
         }
@@ -360,6 +369,12 @@ void App::UpdateImeCandidateWindow() {
         right = mediaSearchBtnBounds.right - (mediaSearchInput.GetText().empty() ? 8.0f : 26.0f) * dp;
         bottom = mediaSearchBtnBounds.bottom;
         font = FontType::Small;
+    } else if (activeTextInputField == TextInputField::RadioSearch) {
+        if (currentTab != TabView::Media) return;
+        left = listenRadioSearchBounds.left + 26.0f * dp;
+        right = listenRadioSearchBounds.right - (radioSearchInput.GetText().empty() ? 8.0f : 26.0f) * dp;
+        bottom = listenRadioSearchBounds.bottom;
+        font = FontType::Small;
     } else {
         const D2D1_RECT_F view = Presentation::HubView(winW, winH, dp);
         const float railW = std::min(260.0f * dp, std::max(120.0f * dp, RectWidth(view) * 0.42f));
@@ -453,6 +468,13 @@ bool App::HitTestTextInput(float x, float y, std::size_t& outIndex) {
         right = mediaSearchBtnBounds.right - (mediaSearchInput.GetText().empty() ? 8.0f : 26.0f) * dp;
         top = mediaSearchBtnBounds.top;
         bottom = mediaSearchBtnBounds.bottom;
+        font = FontType::Small;
+    } else if (activeTextInputField == TextInputField::RadioSearch) {
+        if (currentTab != TabView::Media) return false;
+        left = listenRadioSearchBounds.left + 26.0f * dp;
+        right = listenRadioSearchBounds.right - (radioSearchInput.GetText().empty() ? 8.0f : 26.0f) * dp;
+        top = listenRadioSearchBounds.top;
+        bottom = listenRadioSearchBounds.bottom;
         font = FontType::Small;
     } else {
         if (currentTab != TabView::Playlists) return false;
