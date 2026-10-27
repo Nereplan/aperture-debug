@@ -1367,11 +1367,11 @@ HubRenderViewModel App::BuildHubRenderViewModel() {
         vm.autoscroll.dy = autoscroll.currentPoint.y - autoscroll.anchorPoint.y;
     }
     // Listen island (now-playing audio) anchored next to History.
-    if (listenPlaybackActive || listenIslandFade.current > 0.001f) {
+    if (listenPlaybackActive || listenIslandRetained || listenIslandFade.current > 0.001f) {
         auto& li = vm.listenIsland;
-        li.isActive = listenPlaybackActive;
+        li.isActive = listenPlaybackActive || listenIslandRetained;
         li.isRadio = listenPlaybackIsRadio;
-        li.paused = listenPlaybackPaused;
+        li.paused = listenPlaybackActive ? listenPlaybackPaused : true;
         li.title = listenTitle;
         li.subtitle = listenSubtitle;
         li.volume = std::clamp(settings.volume, 0.0, 1.0);
@@ -1395,7 +1395,7 @@ HubRenderViewModel App::BuildHubRenderViewModel() {
         const float top = li.pillBounds.top;
         li.expandedBounds = D2D1::RectF(left, top, left + w, top + h);
         li.hitRect = li.expandedBounds;
-        const bool queryTimeline = listenPlaybackActive && !listenPlaybackIsRadio;
+        const bool queryTimeline = listenPlaybackActive && !listenPlaybackIsRadio; // suspended: progress resets, times hide
         const double pos = queryTimeline ? listenPlayer.GetPositionSec() : -1.0;
         const double dur = queryTimeline ? listenPlayer.GetDurationSec() : -1.0;
         li.progressRatio = (pos >= 0.0 && dur > 0.0) ? std::clamp(pos / dur, 0.0, 1.0) : 0.0;

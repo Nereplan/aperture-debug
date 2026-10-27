@@ -848,6 +848,8 @@ void App::StartListenPlayback(const std::wstring& url, const std::wstring& title
         listenIslandFade.SnapTo(0.0f);
         listenIslandExpand.SnapTo(0.0f);
     }
+    listenIslandRetained = false;
+    listenRetainedPositionSec = -1.0;
     listenPlaybackActive = true;
     listenPlaybackIsRadio = isRadio;
     listenPlaybackPaused = false;
@@ -874,6 +876,8 @@ void App::StartListenPlayback(const std::wstring& url, const std::wstring& title
 }
 
 void App::StopListenPlayback() {
+    listenIslandRetained = false;
+    listenRetainedPositionSec = -1.0;
     if (!listenPlaybackActive) { listenPlayer.Stop(); return; }
     listenPlayer.Stop();
     listenPlaybackActive = false;
@@ -888,6 +892,30 @@ void App::StopListenPlayback() {
     isListenVolumeDragging = false;
     isListenSeekDragging = false;
     InvalidateRect(hWnd, NULL, FALSE);
+}
+
+// Video takeover: stop the audio output but keep the island visible in a
+// paused, resumable state. Podcasts remember their position for the resume.
+void App::SuspendListenPlaybackForVideo() {
+    if (!listenPlaybackActive) return;
+    listenRetainedPositionSec = (!listenPlaybackIsRadio && listenPlayer.IsActive())
+        ? listenPlayer.GetPositionSec() : -1.0;
+    listenPlayer.Stop();
+    listenPlaybackActive = false;
+    listenPlaybackPaused = true;
+    listenIslandRetained = true;
+    isListenVolumeDragging = false;
+    isListenSeekDragging = false;
+    InvalidateRect(hWnd, NULL, FALSE);
+}
+
+void App::ResumeRetainedListen() {
+    if (!listenIslandRetained || listenUrl.empty()) { listenIslandRetained = false; return; }
+    const double startSec = (!listenPlaybackIsRadio && listenRetainedPositionSec > 1.0)
+        ? listenRetainedPositionSec : 0.0;
+    listenIslandRetained = false;
+    listenRetainedPositionSec = -1.0;
+    StartListenPlayback(listenUrl, listenTitle, listenSubtitle, listenPlaybackIsRadio, startSec);
 }
 
 void App::ToggleListenPause() {
@@ -1202,10 +1230,6 @@ void App::ResolveListenHover(float x, float y) {
     listenRadioSearchClearHovered = PtInRectF(listenRadioSearchClearBounds, x, y);
     listenRadioAddStationHovered = PtInRectF(listenRadioAddStationBounds, x, y);
     listenStateButtonHovered = PtInRectF(listenStateButtonBounds, x, y);
-    if (activeTextInputField == TextInputField::RadioSearch && !PtInRectF(listenRadioSearchBounds, x, y) &&
-        !PtInRectF(listenRadioSearchClearBounds, x, y)) {
-        BlurTextInput();
-    }
     for (size_t i = 0; i < listenEpisodeBounds.size(); ++i) {
         if (PtInRectF(listenEpisodeBounds[i], x, y)) {
             listenHoveredEpisode = (int)i;
@@ -2341,14 +2365,15 @@ bool App::Update(float dt) {
         listenEqPhase += dt;
         needsRedraw = true; // EQ bars animate while audio plays
     }
-    if (listenPlaybackActive || listenIslandFade.current > 0.001f) {
-        const bool expandedNow = listenPlaybackActive && listenPinExpanded;
+    const bool listenIslandVisible = listenPlaybackActive || listenIslandRetained;
+    if (listenIslandVisible || listenIslandFade.current > 0.001f) {
+        const bool expandedNow = listenIslandVisible && listenPinExpanded;
         AnimateVisual(listenIslandExpand, expandedNow ? 1.0f : 0.0f, 0.18f, MotionTokens::Standard());
         const float dpLs = std::max(0.5f, renderer.GetDpiScale());
         const D2D1_RECT_F comp = ListenPillBounds(dpLs);
         const float compW = std::max(220.0f, RectWidth(comp) / dpLs);
         float wT = compW, hT = 36.0f, rT = 18.0f, fadeT = 1.0f;
-        if (!listenPlaybackActive) {
+        if (!listenIslandVisible) {
             fadeT = 0.0f;
         } else if (expandedNow) {
             wT = std::max(compW, std::min(380.0f, compW + 40.0f));
@@ -3584,8 +3609,8 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                         return 0;
                     }
                 }
-                if (listenPlaybackActive || listenIslandFade.current > 0.001f) {
-                    const bool newPillHovered = listenPlaybackActive && PtInRectF(listenIslandHitRect, x, y);
+                if (listenPlaybackActive || listenIslandRetained || listenIslandFade.current > 0.001f) {
+                    const bool newPillHovered = (listenPlaybackActive || listenIslandRetained) && PtInRectF(listenIslandHitRect, x, y);
                     const bool newBadge = newPillHovered && PtInRectF(listenIslandBadgeBounds, x, y);
                     const bool newMute = newPillHovered && PtInRectF(listenIslandMuteBounds, x, y);
                     const bool newVol = newPillHovered && PtInRectF(listenIslandVolumeBounds, x, y);
@@ -3964,7 +3989,7 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                 InvalidateRect(hWnd, NULL, FALSE);
                 return 0;
             }
-            if (!playbackSession.IsOpen() && listenPlaybackActive) {
+            if (!playbackSession.IsOpen() && (listenPlaybackActive || listenIslandRetained)) {
                 if (PtInRectF(listenIslandHitRect, x, y)) {
                     if (PtInRectF(listenIslandXBounds, x, y)) {
                         StopListenPlayback();
@@ -3972,7 +3997,11 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                         return 0;
                     }
                     if (PtInRectF(listenIslandBadgeBounds, x, y)) {
-                        ToggleListenPause();
+                        if (listenIslandRetained && !listenPlaybackActive) {
+                            ResumeRetainedListen();
+                        } else {
+                            ToggleListenPause();
+                        }
                         return 0;
                     }
                     if (PtInRectF(listenIslandMuteBounds, x, y)) {
@@ -4369,6 +4398,12 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                         }
                         if (PtInRectF(listenRadioSearchBounds, x, y)) {
                             FocusTextInput(TextInputField::RadioSearch);
+                            const bool extendSelection = (GetKeyState(VK_SHIFT) & 0x8000) != 0;
+                            SetTextInputCaretFromMouse(x, y, extendSelection);
+                            textInputDragging = true;
+                            textInputDragAnchor = extendSelection ? radioSearchInput.GetAnchor() : radioSearchInput.GetCaret();
+                            SetCapture(hWnd);
+                            InvalidateRect(hWnd, NULL, FALSE);
                             return 0;
                         }
                         if (PtInRectF(listenRadioAddStationBounds, x, y)) { ShowAddRadioStationModal(); return 0; }
@@ -5713,9 +5748,10 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                 InvalidateRect(hWnd, NULL, FALSE);
                 return 0;
             } else {
-                if (listenPlaybackActive && PtInRectF(listenIslandHitRect, x, y)) {
+                if ((listenPlaybackActive || listenIslandRetained) && PtInRectF(listenIslandHitRect, x, y)) {
                     if (PtInRectF(listenIslandBadgeBounds, x, y)) {
-                        ToggleListenPause();
+                        if (listenIslandRetained && !listenPlaybackActive) { ResumeRetainedListen(); }
+                        else { ToggleListenPause(); }
                     } else if (PtInRectF(listenIslandMuteBounds, x, y)) {
                         settings.muted = !settings.muted;
                         const double eff = settings.muted ? 0.0 : std::clamp(settings.volume, 0.0, 1.0);

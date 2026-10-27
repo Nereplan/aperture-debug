@@ -326,6 +326,10 @@ private:
     MpvListenPlayer listenPlayer;
     bool listenPlayerInitialized = false;
     bool listenPlaybackActive = false, listenPlaybackIsRadio = true, listenPlaybackPaused = false;
+    // Parked by video playback: audio stopped, island stays visible (paused)
+    // so the stream can be resumed when the hub returns.
+    bool listenIslandRetained = false;
+    double listenRetainedPositionSec = -1.0;
     bool listenPillHovered = false, listenPinExpanded = false;
     bool listenBadgeHovered = false, listenMuteHovered = false, listenVolumeHovered = false, listenSeekHovered = false, listenXHovered = false;
     bool isListenVolumeDragging = false, isListenSeekDragging = false;
@@ -432,6 +436,10 @@ private:
     void StartListenPlayback(const std::wstring& url, const std::wstring& title, const std::wstring& subtitle,
                              bool isRadio, double startSec = 0.0);
     void StopListenPlayback();
+    // Video takeover: stop the audio output but keep the island visible in a
+    // paused, resumable state.
+    void SuspendListenPlaybackForVideo();
+    void ResumeRetainedListen();
     void ToggleListenPause();
     void ListenSeekBy(double deltaSec);
     void OnListenFinished();
