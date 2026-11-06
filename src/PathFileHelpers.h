@@ -53,7 +53,7 @@ inline std::wstring GetExePath() {
     return {};
 }
 
-inline std::wstring GetExeDir() {
+inline const std::wstring& GetExeDir() {
     // The executable location is fixed for the process lifetime. Resolve once;
     // this function is a default argument on ResolveAppPath and friends, so it
     // sits under every path-key normalization, lookup, and save.

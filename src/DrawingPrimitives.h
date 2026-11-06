@@ -49,6 +49,7 @@ protected:
     [[nodiscard]] TransformScope ApplyTransform(const D2D1_MATRIX_3X2_F& transform) {
         return TransformScope(static_cast<Backend*>(this)->DrawingTarget(), transform);
     }
+    void OnPrimitiveDrawn() {}
     void FillPolygon(const D2D1_POINT_2F* points, UINT32 count, const D2D1_COLOR_F& color) {
         auto* target = static_cast<Backend*>(this)->DrawingTarget();
         if (!target || !solidBrush || count < 3) return;
@@ -64,18 +65,21 @@ protected:
         if (FAILED(sink->Close())) return;
         solidBrush->SetColor(color);
         target->FillGeometry(path.Get(), solidBrush.Get());
+        static_cast<Backend*>(this)->OnPrimitiveDrawn();
     }
     void FillRect(const D2D1_RECT_F& rect, const D2D1_COLOR_F& color) {
         auto* target = static_cast<Backend*>(this)->DrawingTarget();
         if (!target || !solidBrush) return;
         solidBrush->SetColor(color);
         target->FillRectangle(SnapDrawingRect(rect), solidBrush.Get());
+        static_cast<Backend*>(this)->OnPrimitiveDrawn();
     }
     void DrawLine(float x1, float y1, float x2, float y2, const D2D1_COLOR_F& color, float strokeWidth = 1.0f) {
         auto* target = static_cast<Backend*>(this)->DrawingTarget();
         if (!target || !solidBrush) return;
         solidBrush->SetColor(color);
         target->DrawLine(D2D1::Point2F(x1, y1), D2D1::Point2F(x2, y2), solidBrush.Get(), strokeWidth);
+        static_cast<Backend*>(this)->OnPrimitiveDrawn();
     }
     void FillCircle(float cx, float cy, float radius, const D2D1_COLOR_F& color) {
         auto* target = static_cast<Backend*>(this)->DrawingTarget();
@@ -83,6 +87,7 @@ protected:
         solidBrush->SetColor(color);
         D2D1_ELLIPSE e = D2D1::Ellipse(D2D1::Point2F(cx, cy), radius, radius);
         target->FillEllipse(e, solidBrush.Get());
+        static_cast<Backend*>(this)->OnPrimitiveDrawn();
     }
     void DrawCircle(float cx, float cy, float radius, const D2D1_COLOR_F& color, float strokeWidth = 1.0f) {
         auto* target = static_cast<Backend*>(this)->DrawingTarget();
@@ -90,6 +95,7 @@ protected:
         solidBrush->SetColor(color);
         D2D1_ELLIPSE e = D2D1::Ellipse(D2D1::Point2F(cx, cy), radius, radius);
         target->DrawEllipse(e, solidBrush.Get(), strokeWidth);
+        static_cast<Backend*>(this)->OnPrimitiveDrawn();
     }
     void FillRoundedRect(const D2D1_RECT_F& rect, float radius, const D2D1_COLOR_F& color) {
         auto* target = static_cast<Backend*>(this)->DrawingTarget();
@@ -97,6 +103,7 @@ protected:
         solidBrush->SetColor(color);
         D2D1_ROUNDED_RECT r = D2D1::RoundedRect(SnapDrawingRect(rect), radius, radius);
         target->FillRoundedRectangle(r, solidBrush.Get());
+        static_cast<Backend*>(this)->OnPrimitiveDrawn();
     }
     void DrawRoundedRect(const D2D1_RECT_F& rect, float radius, const D2D1_COLOR_F& color, float strokeWidth = 1.0f) {
         auto* target = static_cast<Backend*>(this)->DrawingTarget();
@@ -109,6 +116,7 @@ protected:
         float adjustedRadius = std::max(0.0f, radius - halfStroke);
         D2D1_ROUNDED_RECT r = D2D1::RoundedRect(insetRect, adjustedRadius, adjustedRadius);
         target->DrawRoundedRectangle(r, solidBrush.Get(), strokeWidth);
+        static_cast<Backend*>(this)->OnPrimitiveDrawn();
     }
     void FillRoundedGradientRect(const D2D1_RECT_F& rect, float radius, const D2D1_COLOR_F& startColor, const D2D1_COLOR_F& endColor,
                                  bool vertical) {
@@ -146,6 +154,7 @@ protected:
         gradBrush->SetStartPoint(startPt);
         gradBrush->SetEndPoint(endPt);
         target->FillRoundedRectangle( D2D1::RoundedRect(snappedRect, radius, radius), gradBrush.Get());
+        static_cast<Backend*>(this)->OnPrimitiveDrawn();
     }
     void DrawInnerHighlight(const D2D1_RECT_F& rect, float radius, const D2D1_COLOR_F& highlightColor, float borderWidth = 1.0f) {
         auto* target = static_cast<Backend*>(this)->DrawingTarget();
@@ -185,6 +194,7 @@ protected:
             gradBrush->SetStartPoint(startPt);
             gradBrush->SetEndPoint(endPt);
             target->FillRectangle(lineRect, gradBrush.Get());
+            static_cast<Backend*>(this)->OnPrimitiveDrawn();
         }
     }
 };

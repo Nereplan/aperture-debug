@@ -85,6 +85,10 @@ public:
     DWORD GetPlaybackFrameWaitMs() const { return overlayRenderer.GetFrameWaitMs(); }
     bool RequiresSubtitleTick() const { return playbackSession.IsOpen() && player.IsPlaying() && subtitles.GetActiveTrack(); }
     bool IsOccluded() const { return playbackSession.IsOpen() ? IsIconic(hWnd) != FALSE : renderer.IsOccluded(); }
+    const std::wstring& GetGraphicsAdapterName() const { return renderer.GetAdapterName(); }
+    bool IsSoftwareGraphicsDevice() const { return renderer.IsSoftwareDevice(); }
+    double GetLastPresentMs() const { return playbackSession.IsOpen() ? 0.0 : renderer.GetLastPresentMs(); }
+    double TakeMaxPresentMs() { return playbackSession.IsOpen() ? 0.0 : renderer.TakeMaxPresentMs(); }
     // ICommandContext Implementation
     Settings& GetSettings() override { return settings; }
     MpvPlayer& GetPlayer() override { return player; }
@@ -294,6 +298,7 @@ private:
     std::deque<AppError> pendingPlayerWarnings;
     std::atomic<bool> playerEventPosted{ false };
     bool accessibilityDirty = true;
+    bool accessibilityClientActive = false;
     ULONGLONG accessibilityLastRefreshMs = 0;
     std::unordered_map<LONG, std::function<void()>> accessibilityActions;
     DWORD mainThreadId = 0;
@@ -836,7 +841,8 @@ private:
     int hoveredMediaIndex = -1, selectedMediaIndex = -1;
     std::string activePlaylistId = "pl_favorites";
     int hoveredPlaylistRailIndex = -1, hoveredPlaylistDetailItemIndex = -1, hoveredPlaylistDetailDeleteIndex = -1, hoveredHistoryIndex = -1;
-    int hoveredHistoryDeleteIndex = -1, hoveredSettingsRow = -1, hoveredShortcutIndex = -1, hoveredShortcutUnassignIndex = -1;
+    int hoveredHistoryDeleteIndex = -1, hoveredSettingsRow = -1, hoveredSettingsOptionRow = -1, hoveredSettingsOptionSub = -1;
+    int hoveredShortcutIndex = -1, hoveredShortcutUnassignIndex = -1;
     bool isResetShortcutsHovered = false;
     std::string rebindingActionId = "";
     std::string rebindingActionName = "";

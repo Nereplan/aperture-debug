@@ -89,6 +89,12 @@ public:
     bool HasPresentedFrame() const { return hasPresentedFrame; }
     HANDLE GetFrameLatencyWaitableObject() const { return frameLatencyWaitableObject; }
     bool IsOccluded() const { return isOccluded; }
+    // Diagnostic identity of the device actually presenting the hub, not just
+    // the adapter Windows reports as primary.
+    const std::wstring& GetAdapterName() const { return adapterName; }
+    bool IsSoftwareDevice() const { return softwareDevice; }
+    double GetLastPresentMs() const { return lastPresentMs; }
+    double TakeMaxPresentMs() { double value = maxPresentMs; maxPresentMs = 0.0; return value; }
     float GetDpiScale() const { return dpiScale; }
     float Scale(float val) const { return val * dpiScale; }
     void SetPrimitiveSnapping(bool enabled) { primitiveSnapping = enabled; }
@@ -222,6 +228,8 @@ private:
     static constexpr uint64_t kShadowCacheByteLimit = 16ull * 1024ull * 1024ull;
     std::map<ShadowKey, ShadowEntry> shadowCache;
     std::list<ShadowKey> shadowLru;
+    std::set<ShadowKey> prevFrameShadowKeys;
+    std::set<ShadowKey> currFrameShadowKeys;
     uint64_t shadowCacheBytes = 0;
     ComPtr<ID2D1Bitmap> GetOrCreateShadowBitmap(const ShadowKey& key);
     void TouchShadow(std::map<ShadowKey, ShadowEntry>::iterator it);
@@ -231,6 +239,10 @@ private:
     HANDLE frameLatencyWaitableObject = NULL;
     bool isOccluded = false;
     bool buffersTrimmed = false;
+    std::wstring adapterName;
+    bool softwareDevice = false;
+    double lastPresentMs = 0.0;
+    double maxPresentMs = 0.0;
     float dpi = 96.0f;
     UINT width = 0, height = 0;
     ComPtr<ID3D11Device> d3dDevice;

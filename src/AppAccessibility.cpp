@@ -39,7 +39,9 @@ void App::ConfigureAccessibleScroll(AccessibilityNode& n, float App::*offset, fl
 void App::RefreshAccessibilityTree(bool force) {
     if (!hWnd || shutdownComplete) return;
     const ULONGLONG now = GetTickCount64();
-    if (!force && !accessibilityDirty && (now - accessibilityLastRefreshMs < 125)) return;
+    if (!force && !accessibilityDirty) {
+        if (!accessibilityClientActive || !playbackSession.IsOpen() || (now - accessibilityLastRefreshMs < 250)) return;
+    }
     accessibilityLastRefreshMs = now;
     accessibilityDirty = false;
     accessibilityActions.clear();
@@ -573,7 +575,7 @@ void App::RefreshAccessibilityTree(bool force) {
             const bool isFiniteDuration = (dur > 0.0 && std::isfinite(dur));
             const double safeDur = isFiniteDuration ? dur : 0.0;
             const double remTime = isFiniteDuration ? std::max(0.0, safeDur - curTime) : 0.0;
-            auto chapters = player.GetChapters();
+            const auto& chapters = GetCachedChapters();
             int curChap = player.GetCurrentChapter();
             if (curChap < 0 && !chapters.empty() && isFiniteDuration) {
                 for (int i = (int)chapters.size() - 1; i >= 0; --i) {

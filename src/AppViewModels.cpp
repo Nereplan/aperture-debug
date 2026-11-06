@@ -170,47 +170,49 @@ PlayerRenderViewModel App::BuildPlayerRenderViewModel() const {
         vm.topBar.opacity = controlsOpacity;
         vm.bottomBar.visible = true;
         vm.bottomBar.bounds = D2D1::RectF(0, vm.winBounds.bottom - bottomBarH, vm.winBounds.right, vm.winBounds.bottom);
-        const auto& subTracks = GetCachedSubtitleTracks();
-        bool isSubtitlesActive = subtitles.GetActiveTrack() != nullptr;
-        for (const auto& track : subTracks) {
-            if (track.isSelected) { isSubtitlesActive = true; break; }
-        }
-        vm.bottomBar.isPlaying = player.IsPlaying();
-        vm.bottomBar.currentTime = (isScrubbing && scrubTargetTime >= 0.0) ? scrubTargetTime : player.GetCurrentTime();
-        vm.bottomBar.duration = player.GetDuration();
-        vm.bottomBar.cacheDuration = player.GetCacheDuration();
-        vm.bottomBar.isScrubbing = isScrubbing;
-        vm.bottomBar.volume = player.GetVolume();
-        vm.bottomBar.isMuted = player.IsMuted();
-        vm.bottomBar.isVolumeSliderHovered = (isVolumeHovered || isVolumeScrubbing);
-        vm.bottomBar.isTimelineHovered = isTimelineHovered;
-        vm.bottomBar.timelineHoverX = (isTimelineHovered && !isScrubbing) ? lastPlayerMouseX : -1.0f;
-        vm.bottomBar.timelineHoverProgress = (timelineHoverAnim.animating || timelineHoverAnim.current > 0.0f) ? timelineHoverAnim.current
-            : ((isTimelineHovered || isScrubbing) ? 1.0f : 0.0f);
-        vm.bottomBar.isSubtitlesActive = isSubtitlesActive;
-        vm.bottomBar.isFullscreen = playbackSession.IsFullscreen();
-        vm.bottomBar.isPiP = playbackSession.IsPiP();
-        vm.bottomBar.isQueuePlayback = playbackSession.IsQueuePlayback();
-        vm.bottomBar.isFirstQueueButtonDisabled = playbackSession.IsQueuePlayback() && playbackSession.GetQueueIndex() == 0 && !settings.loop;
         vm.bottomBar.hoveredButtonId = hoveredPlayerButtonId;
         vm.bottomBar.focusedControlId = playerKeyboardFocusId;
         vm.bottomBar.showKeyboardFocus = isKeyboardNavActive;
         vm.bottomBar.opacity = controlsOpacity;
-        const std::vector<MpvChapterInfo>& chapters = GetCachedChapters();
-        double duration = player.GetDuration();
-        double currentTime = player.GetCurrentTime();
-        int curChap = player.GetCurrentChapter();
-        std::wstring currentChapterTitle;
-        if (curChap >= 0 && curChap < (int)chapters.size()) {
-            currentChapterTitle = chapters[curChap].title;
-        } else if (!chapters.empty() && duration > 0.0) {
-            for (int i = (int)chapters.size() - 1; i >= 0; --i) {
-                if (chapters[i].time <= currentTime + 0.25) { currentChapterTitle = chapters[i].title; break; }
+        if (controlsOpacity > 0.001f) {
+            const auto& subTracks = GetCachedSubtitleTracks();
+            bool isSubtitlesActive = subtitles.GetActiveTrack() != nullptr;
+            for (const auto& track : subTracks) {
+                if (track.isSelected) { isSubtitlesActive = true; break; }
             }
+            vm.bottomBar.isPlaying = player.IsPlaying();
+            vm.bottomBar.currentTime = (isScrubbing && scrubTargetTime >= 0.0) ? scrubTargetTime : player.GetCurrentTime();
+            vm.bottomBar.duration = player.GetDuration();
+            vm.bottomBar.cacheDuration = player.GetCacheDuration();
+            vm.bottomBar.isScrubbing = isScrubbing;
+            vm.bottomBar.volume = player.GetVolume();
+            vm.bottomBar.isMuted = player.IsMuted();
+            vm.bottomBar.isVolumeSliderHovered = (isVolumeHovered || isVolumeScrubbing);
+            vm.bottomBar.isTimelineHovered = isTimelineHovered;
+            vm.bottomBar.timelineHoverX = (isTimelineHovered && !isScrubbing) ? lastPlayerMouseX : -1.0f;
+            vm.bottomBar.timelineHoverProgress = (timelineHoverAnim.animating || timelineHoverAnim.current > 0.0f) ? timelineHoverAnim.current
+                : ((isTimelineHovered || isScrubbing) ? 1.0f : 0.0f);
+            vm.bottomBar.isSubtitlesActive = isSubtitlesActive;
+            vm.bottomBar.isFullscreen = playbackSession.IsFullscreen();
+            vm.bottomBar.isPiP = playbackSession.IsPiP();
+            vm.bottomBar.isQueuePlayback = playbackSession.IsQueuePlayback();
+            vm.bottomBar.isFirstQueueButtonDisabled = playbackSession.IsQueuePlayback() && playbackSession.GetQueueIndex() == 0 && !settings.loop;
+            const std::vector<MpvChapterInfo>& chapters = GetCachedChapters();
+            double duration = vm.bottomBar.duration;
+            double currentTime = vm.bottomBar.currentTime;
+            int curChap = player.GetCurrentChapter();
+            std::wstring currentChapterTitle;
+            if (curChap >= 0 && curChap < (int)chapters.size()) {
+                currentChapterTitle = chapters[curChap].title;
+            } else if (!chapters.empty() && duration > 0.0) {
+                for (int i = (int)chapters.size() - 1; i >= 0; --i) {
+                    if (chapters[i].time <= currentTime + 0.25) { currentChapterTitle = chapters[i].title; break; }
+                }
+            }
+            vm.bottomBar.currentChapterTitle = currentChapterTitle;
+            vm.topBar.chapterTitle = currentChapterTitle;
+            vm.bottomBar.chapterMarkers = GetChapterMarkersSnapshot();
         }
-        vm.bottomBar.currentChapterTitle = currentChapterTitle;
-        vm.topBar.chapterTitle = currentChapterTitle;
-        vm.bottomBar.chapterMarkers = GetChapterMarkersSnapshot();
     }
     // 6. Settings Flyout
     if (isSettingsFlyoutOpen || flyoutClosing) {

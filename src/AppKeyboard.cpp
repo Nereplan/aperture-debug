@@ -342,7 +342,7 @@ bool App::HandleTextInputIme(UINT message, WPARAM, LPARAM lParam) {
 
 
 void App::UpdateImeCandidateWindow() {
-    if (!hWnd || activeTextInputField == TextInputField::None) return;
+    if (!hWnd || !IsWindowVisible(hWnd) || activeTextInputField == TextInputField::None) return;
     const TextInputModel* input = ActiveTextInputModel();
     if (!input) return;
     RECT rc{};

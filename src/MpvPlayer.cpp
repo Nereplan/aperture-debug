@@ -1390,10 +1390,12 @@ bool MpvPlayer::IsCustomMpvOptionSafe(const std::string& rawName, const std::str
         // Storage / file dumps / filesystem paths / directory overrides
         "log-file", "dump-stats", "record-file", "stream-dump", "o", "of", "ovc", "ovac", "ofopts", "audio-file", "sub-file",
         "external-file", "sub-files", "audio-files", "screenshot-directory", "screenshot-template", "screenshot-tag-colorspace",
-        "gpu-shader-cache-dir", "sub-fonts-dir", "fonts-dir", "directory-mode",
+        "gpu-shader-cache-dir", "sub-fonts-dir", "fonts-dir", "directory-mode", "playlist", "chapters-file", "ordered-chapters-files",
+        "merge-files", "lavfi-complex", "bluray-device", "dvd-device", "cdda-device",
         // Network / proxy / protocol / TLS
         "http-proxy", "ytdl", "ytdl-format", "ytdl-raw-options", "network-timeout",
         "tls-ca-file", "tls-cert-file", "tls-key-file", "tls-verify", "cookies", "cookies-file", "user-agent", "referrer", "stream-lavf-o",
+        "http-header-fields",
         // Host window / library / driver hijacking
         "wid", "force-window-position", "input-default-bindings", "input-vo-keyboard", "input-media-keys", "dll", "vo-null", "ao-null",
         "sub-font-provider"};
@@ -1404,12 +1406,19 @@ bool MpvPlayer::IsCustomMpvOptionSafe(const std::string& rawName, const std::str
         }
     }
     static const char *kUnsafePrefixes[] = {"script-", "script_", "ipc-",  "ipc_",  "input-ipc",      "input_ipc", "input-",
-                                            "tls-",    "tls_",    "ytdl-", "ytdl_", "screenshot-dir", "log-",      "load-"};
+                                            "tls-",    "tls_",    "ytdl-", "ytdl_", "screenshot-dir", "log-",      "load-",
+                                            "stream-lavf-o-", "http-header-fields-", "ordered-chapters-"};
     for (const char* prefix : kUnsafePrefixes) {
         if (lowerName.rfind(prefix, 0) == 0 || baseName.rfind(prefix, 0) == 0) {
             if (outReason) *outReason = "Option '" + rawName + "' matches restricted prefix '" + prefix + "'";
             return false;
         }
+    }
+    std::string lowerValue = value;
+    for (char& c : lowerValue) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+    if (lowerValue.find("movie=") != std::string::npos || lowerValue.find("amovie=") != std::string::npos) {
+        if (outReason) *outReason = "Option value contains restricted external filter source ('movie=' or 'amovie=').";
+        return false;
     }
     return true;
 }
@@ -2494,6 +2503,10 @@ bool MpvListenPlayer::IsPlaying() const {
 
 bool MpvListenPlayer::Start(const std::wstring& path, double startSec, double volume) {
     if (path.empty()) return false;
+    for (wchar_t c : path) {
+        if (c < 0x20 || c == 0x7f) return false;
+    }
+    if (_wcsnicmp(path.c_str(), L"http://", 7) != 0 && _wcsnicmp(path.c_str(), L"https://", 8) != 0) return false;
     std::lock_guard<std::mutex> lifecycleLock(lifecycleMutex);
     if (!EnsureInitializedLocked(nullptr)) return false;
     if (!std::isfinite(startSec) || startSec < 0.0) startSec = 0.0;

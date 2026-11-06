@@ -96,7 +96,7 @@ git diff --check</pre>
 <script id="checkpoint-data" type="application/json">
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-10-21T17:40:39+00:00",
+  "updatedAt": "2026-11-03T01:05:25+00:00",
   "metrics": {
     "visible-ms": {
       "label": "Visible window",
@@ -434,6 +434,11 @@ git diff --check</pre>
       "label": "Installed hidden-library graphics: fresh-source AV1 resource comparison",
       "category": "Playback",
       "method": "One warmup and three fresh measured processes per variant; HubThenOpen3s; AV11080p30/AAC stereo; actual1280x720 visible canvas at96DPI;20.5s playback alignment;30s observation with seven guarded snapshots per run. Fresh runtime and profile per process, warm OS cache. Compare frozen stock601e629 to clean installed sourcef868ad7; all eight calls must sample and close normally. Mean snapshots within runs; report all three run means and paired differences. Memory categories reported separately because they overlap. Scope is an observed resource comparison only; no CPU/VLC ranking, confidence interval, decoder/output quality equivalence, cadence/audio/drop or retirement-transition claim."
+    },
+    "audit-optimizations-20261103-comparison": {
+      "label": "Overlay, subtitle, RSS XML, and library path lookup micro-benchmarks",
+      "category": "Rendering",
+      "method": "Three fresh processes (run1.csv..run3.csv) compiled with /O1 /Ob2 /MT /GL /LTCG matching CMake Release flags and pinned to the first allowed logical processor, one warmup and seven measured samples per workload per process (21 measured samples pooled). Compares pre-audit vs post-audit paths in audit_perf_bench.cpp linked against Release objects with AllocationProbe: (1) 60 calls to OverlayRenderer::ReleaseEmptySurface across a full 3840x2160 buffer (representing 60 HUD fade-out full-surface scans or bottom-corner secondary overlay checks when controlsOpacity \u003c= 0.0f), (2) 30 vlc-outline subtitle draws on a pre-allocated wstring inside a 3840x2160 DC render target with BeginDraw+Flush before the timer and EndDraw inside the timed region (24-pass step-1 ring vs 12-pass gap-free 1px+cardinal-2px ring + 1 fill), (3) 20 calls to ParseRssFeed on a 100-episode RSS XML payload with XML entities (\u0026amp;, \u0026#39;) using verbatim git HEAD ParseRfc822Date/DecodeXmlEntities in before, and (4) 1,000 uniformly distributed HubExtractStartSecForPath lookups (indices 0, 10, ..., 9990) on a 10,000-item MediaLibrary."
     }
   },
   "environments": {
@@ -20652,6 +20657,660 @@ git diff --check</pre>
           "scope": "49 source files analyzed; zero warnings against zero baseline; zero analysis errors."
         }
       ]
+    },
+    {
+      "id": "audit-optimizations-20261103-before",
+      "label": "Pre-audit baseline: 4K overlay pixel scan, 24-pass subtitle outline, RSS copies, linear path scan",
+      "measuredAt": "2026-11-03T00:55:30Z",
+      "commit": "c71923fa4b366728ad9fd43640679d870d15992c",
+      "dirty": true,
+      "sourceNote": "Base commit c71923fa4b366728ad9fd43640679d870d15992c; verbatim pre-optimization paths in audit_perf_bench.cpp (SHA-256 0aa80055a220251c0a32f997888949dabfcec3aee87a9e8f177194f8b031e948). Full source hashes in docs/evidence/audit-optimizations-20261103/summary.json.",
+      "notes": [
+        "Baseline before the performance, responsiveness, and security audit fixes. OverlayRenderer::ReleaseEmptySurface scanned all 8,294,400 pixels of the 3840x2160 DIB with std::any_of (141.1332 ms pooled median across 60 full-buffer checks, ranges 137.0442..158.5350 ms, ~2.35 ms per HUD fade-out or bottom-corner overlay check). In App::Render, ReleaseEmptySurface runs once when the HUD finishes fading out on an empty surface, and per-frame only when a secondary overlay (OSD, diagnostics, jump-ahead, play/pause badge, context menu, modal) is active while controlsOpacity \u003c= 0.0f.",
+        "OverlayRenderer::DrawSubtitle in vlc-outline-24 mode issued 24 outline DrawTextLayout passes plus 1 fill pass per subtitle (8.6467 ms pooled median for 30 draws + EndDraw flush on the 4K DC target, ranges 8.3793..10.0340 ms, 0 allocations once subtitleLayout is cached).",
+        "Verbatim git HEAD ParseRssFeed (including ParseRfc822Date, ParseItunesDuration, and DecodeXmlEntities on a 100-episode feed with XML entities) sliced and lowercased each \u003citem\u003e five times (39.0150 ms pooled median for 20x100-item feeds, ranges 38.4166..60.0368 ms, 56,440 allocations, 21,430,000 B).",
+        "App::HubExtractStartSecForPath linearly scanned library.mediaItems (31.6131 ms pooled median for 1,000 uniformly distributed lookups across indices 0..9990 of 10,000 items, ranges 30.8855..32.1266 ms, 0 allocations)."
+      ],
+      "results": [
+        {
+          "metric": "elapsed-ms",
+          "protocol": "audit-optimizations-20261103-comparison",
+          "environment": "ryzen3900x-4070super-20261020",
+          "workload": "3840x2160 overlay / 60 ReleaseEmptySurface full-buffer checks",
+          "session": "audit-optimizations-20261103",
+          "value": 141.1332,
+          "samples": 21,
+          "samplingNote": "Three fresh processes x seven measured samples per workload; one warmup per workload/process excluded. Value is the pooled median of 21 samples.",
+          "runRange": {
+            "min": 137.0442,
+            "max": 158.535,
+            "runs": 3,
+            "scope": "Observed min/max across all 21 measured samples from three processes (seven measured samples per process after one warmup); not a confidence interval."
+          },
+          "evidence": "docs/evidence/audit-optimizations-20261103/summary.json"
+        },
+        {
+          "metric": "allocations",
+          "protocol": "audit-optimizations-20261103-comparison",
+          "environment": "ryzen3900x-4070super-20261020",
+          "workload": "3840x2160 overlay / 60 ReleaseEmptySurface full-buffer checks",
+          "session": "audit-optimizations-20261103",
+          "value": 0,
+          "samples": 21,
+          "samplingNote": "Three fresh processes x seven measured samples per workload; one warmup per workload/process excluded. Value is the pooled median of 21 samples.",
+          "runRange": {
+            "min": 0,
+            "max": 0,
+            "runs": 3,
+            "scope": "Observed min/max across all 21 measured samples from three processes (seven measured samples per process after one warmup); not a confidence interval."
+          },
+          "evidence": "docs/evidence/audit-optimizations-20261103/summary.json"
+        },
+        {
+          "metric": "allocated-bytes",
+          "protocol": "audit-optimizations-20261103-comparison",
+          "environment": "ryzen3900x-4070super-20261020",
+          "workload": "3840x2160 overlay / 60 ReleaseEmptySurface full-buffer checks",
+          "session": "audit-optimizations-20261103",
+          "value": 0,
+          "samples": 21,
+          "samplingNote": "Three fresh processes x seven measured samples per workload; one warmup per workload/process excluded. Value is the pooled median of 21 samples.",
+          "runRange": {
+            "min": 0,
+            "max": 0,
+            "runs": 3,
+            "scope": "Observed min/max across all 21 measured samples from three processes (seven measured samples per process after one warmup); not a confidence interval."
+          },
+          "evidence": "docs/evidence/audit-optimizations-20261103/summary.json"
+        },
+        {
+          "metric": "peak-cpp-bytes",
+          "protocol": "audit-optimizations-20261103-comparison",
+          "environment": "ryzen3900x-4070super-20261020",
+          "workload": "3840x2160 overlay / 60 ReleaseEmptySurface full-buffer checks",
+          "session": "audit-optimizations-20261103",
+          "value": 0,
+          "samples": 21,
+          "samplingNote": "Three fresh processes x seven measured samples per workload; one warmup per workload/process excluded. Value is the pooled median of 21 samples.",
+          "runRange": {
+            "min": 0,
+            "max": 0,
+            "runs": 3,
+            "scope": "Observed min/max across all 21 measured samples from three processes (seven measured samples per process after one warmup); not a confidence interval."
+          },
+          "evidence": "docs/evidence/audit-optimizations-20261103/summary.json"
+        },
+        {
+          "metric": "elapsed-ms",
+          "protocol": "audit-optimizations-20261103-comparison",
+          "environment": "ryzen3900x-4070super-20261020",
+          "workload": "3840x2160 overlay / 30 vlc-outline subtitle draws + EndDraw flush",
+          "session": "audit-optimizations-20261103",
+          "value": 8.6467,
+          "samples": 21,
+          "samplingNote": "Three fresh processes x seven measured samples per workload; one warmup per workload/process excluded. Value is the pooled median of 21 samples.",
+          "runRange": {
+            "min": 8.3793,
+            "max": 10.034,
+            "runs": 3,
+            "scope": "Observed min/max across all 21 measured samples from three processes (seven measured samples per process after one warmup); not a confidence interval."
+          },
+          "evidence": "docs/evidence/audit-optimizations-20261103/summary.json"
+        },
+        {
+          "metric": "allocations",
+          "protocol": "audit-optimizations-20261103-comparison",
+          "environment": "ryzen3900x-4070super-20261020",
+          "workload": "3840x2160 overlay / 30 vlc-outline subtitle draws + EndDraw flush",
+          "session": "audit-optimizations-20261103",
+          "value": 0,
+          "samples": 21,
+          "samplingNote": "Three fresh processes x seven measured samples per workload; one warmup per workload/process excluded. Value is the pooled median of 21 samples.",
+          "runRange": {
+            "min": 0,
+            "max": 0,
+            "runs": 3,
+            "scope": "Observed min/max across all 21 measured samples from three processes (seven measured samples per process after one warmup); not a confidence interval."
+          },
+          "evidence": "docs/evidence/audit-optimizations-20261103/summary.json"
+        },
+        {
+          "metric": "allocated-bytes",
+          "protocol": "audit-optimizations-20261103-comparison",
+          "environment": "ryzen3900x-4070super-20261020",
+          "workload": "3840x2160 overlay / 30 vlc-outline subtitle draws + EndDraw flush",
+          "session": "audit-optimizations-20261103",
+          "value": 0,
+          "samples": 21,
+          "samplingNote": "Three fresh processes x seven measured samples per workload; one warmup per workload/process excluded. Value is the pooled median of 21 samples.",
+          "runRange": {
+            "min": 0,
+            "max": 0,
+            "runs": 3,
+            "scope": "Observed min/max across all 21 measured samples from three processes (seven measured samples per process after one warmup); not a confidence interval."
+          },
+          "evidence": "docs/evidence/audit-optimizations-20261103/summary.json"
+        },
+        {
+          "metric": "peak-cpp-bytes",
+          "protocol": "audit-optimizations-20261103-comparison",
+          "environment": "ryzen3900x-4070super-20261020",
+          "workload": "3840x2160 overlay / 30 vlc-outline subtitle draws + EndDraw flush",
+          "session": "audit-optimizations-20261103",
+          "value": 0,
+          "samples": 21,
+          "samplingNote": "Three fresh processes x seven measured samples per workload; one warmup per workload/process excluded. Value is the pooled median of 21 samples.",
+          "runRange": {
+            "min": 0,
+            "max": 0,
+            "runs": 3,
+            "scope": "Observed min/max across all 21 measured samples from three processes (seven measured samples per process after one warmup); not a confidence interval."
+          },
+          "evidence": "docs/evidence/audit-optimizations-20261103/summary.json"
+        },
+        {
+          "metric": "elapsed-ms",
+          "protocol": "audit-optimizations-20261103-comparison",
+          "environment": "ryzen3900x-4070super-20261020",
+          "workload": "20 RSS feeds x 100 episodes (with XML entities) / ParseRssFeed + XmlLite",
+          "session": "audit-optimizations-20261103",
+          "value": 39.015,
+          "samples": 21,
+          "samplingNote": "Three fresh processes x seven measured samples per workload; one warmup per workload/process excluded. Value is the pooled median of 21 samples.",
+          "runRange": {
+            "min": 38.4166,
+            "max": 60.0368,
+            "runs": 3,
+            "scope": "Observed min/max across all 21 measured samples from three processes (seven measured samples per process after one warmup); not a confidence interval."
+          },
+          "evidence": "docs/evidence/audit-optimizations-20261103/summary.json"
+        },
+        {
+          "metric": "allocations",
+          "protocol": "audit-optimizations-20261103-comparison",
+          "environment": "ryzen3900x-4070super-20261020",
+          "workload": "20 RSS feeds x 100 episodes (with XML entities) / ParseRssFeed + XmlLite",
+          "session": "audit-optimizations-20261103",
+          "value": 56440,
+          "samples": 21,
+          "samplingNote": "Three fresh processes x seven measured samples per workload; one warmup per workload/process excluded. Value is the pooled median of 21 samples.",
+          "runRange": {
+            "min": 56440,
+            "max": 56440,
+            "runs": 3,
+            "scope": "Observed min/max across all 21 measured samples from three processes (seven measured samples per process after one warmup); not a confidence interval."
+          },
+          "evidence": "docs/evidence/audit-optimizations-20261103/summary.json"
+        },
+        {
+          "metric": "allocated-bytes",
+          "protocol": "audit-optimizations-20261103-comparison",
+          "environment": "ryzen3900x-4070super-20261020",
+          "workload": "20 RSS feeds x 100 episodes (with XML entities) / ParseRssFeed + XmlLite",
+          "session": "audit-optimizations-20261103",
+          "value": 21430000,
+          "samples": 21,
+          "samplingNote": "Three fresh processes x seven measured samples per workload; one warmup per workload/process excluded. Value is the pooled median of 21 samples.",
+          "runRange": {
+            "min": 21430000,
+            "max": 21430000,
+            "runs": 3,
+            "scope": "Observed min/max across all 21 measured samples from three processes (seven measured samples per process after one warmup); not a confidence interval."
+          },
+          "evidence": "docs/evidence/audit-optimizations-20261103/summary.json"
+        },
+        {
+          "metric": "peak-cpp-bytes",
+          "protocol": "audit-optimizations-20261103-comparison",
+          "environment": "ryzen3900x-4070super-20261020",
+          "workload": "20 RSS feeds x 100 episodes (with XML entities) / ParseRssFeed + XmlLite",
+          "session": "audit-optimizations-20261103",
+          "value": 193957,
+          "samples": 21,
+          "samplingNote": "Three fresh processes x seven measured samples per workload; one warmup per workload/process excluded. Value is the pooled median of 21 samples.",
+          "runRange": {
+            "min": 193957,
+            "max": 193957,
+            "runs": 3,
+            "scope": "Observed min/max across all 21 measured samples from three processes (seven measured samples per process after one warmup); not a confidence interval."
+          },
+          "evidence": "docs/evidence/audit-optimizations-20261103/summary.json"
+        },
+        {
+          "metric": "elapsed-ms",
+          "protocol": "audit-optimizations-20261103-comparison",
+          "environment": "ryzen3900x-4070super-20261020",
+          "workload": "10,000-item MediaLibrary / 1,000 uniform HubExtractStartSecForPath lookups",
+          "session": "audit-optimizations-20261103",
+          "value": 31.6131,
+          "samples": 21,
+          "samplingNote": "Three fresh processes x seven measured samples per workload; one warmup per workload/process excluded. Value is the pooled median of 21 samples.",
+          "runRange": {
+            "min": 30.8855,
+            "max": 32.1266,
+            "runs": 3,
+            "scope": "Observed min/max across all 21 measured samples from three processes (seven measured samples per process after one warmup); not a confidence interval."
+          },
+          "evidence": "docs/evidence/audit-optimizations-20261103/summary.json"
+        },
+        {
+          "metric": "allocations",
+          "protocol": "audit-optimizations-20261103-comparison",
+          "environment": "ryzen3900x-4070super-20261020",
+          "workload": "10,000-item MediaLibrary / 1,000 uniform HubExtractStartSecForPath lookups",
+          "session": "audit-optimizations-20261103",
+          "value": 0,
+          "samples": 21,
+          "samplingNote": "Three fresh processes x seven measured samples per workload; one warmup per workload/process excluded. Value is the pooled median of 21 samples.",
+          "runRange": {
+            "min": 0,
+            "max": 0,
+            "runs": 3,
+            "scope": "Observed min/max across all 21 measured samples from three processes (seven measured samples per process after one warmup); not a confidence interval."
+          },
+          "evidence": "docs/evidence/audit-optimizations-20261103/summary.json"
+        },
+        {
+          "metric": "allocated-bytes",
+          "protocol": "audit-optimizations-20261103-comparison",
+          "environment": "ryzen3900x-4070super-20261020",
+          "workload": "10,000-item MediaLibrary / 1,000 uniform HubExtractStartSecForPath lookups",
+          "session": "audit-optimizations-20261103",
+          "value": 0,
+          "samples": 21,
+          "samplingNote": "Three fresh processes x seven measured samples per workload; one warmup per workload/process excluded. Value is the pooled median of 21 samples.",
+          "runRange": {
+            "min": 0,
+            "max": 0,
+            "runs": 3,
+            "scope": "Observed min/max across all 21 measured samples from three processes (seven measured samples per process after one warmup); not a confidence interval."
+          },
+          "evidence": "docs/evidence/audit-optimizations-20261103/summary.json"
+        },
+        {
+          "metric": "peak-cpp-bytes",
+          "protocol": "audit-optimizations-20261103-comparison",
+          "environment": "ryzen3900x-4070super-20261020",
+          "workload": "10,000-item MediaLibrary / 1,000 uniform HubExtractStartSecForPath lookups",
+          "session": "audit-optimizations-20261103",
+          "value": 0,
+          "samples": 21,
+          "samplingNote": "Three fresh processes x seven measured samples per workload; one warmup per workload/process excluded. Value is the pooled median of 21 samples.",
+          "runRange": {
+            "min": 0,
+            "max": 0,
+            "runs": 3,
+            "scope": "Observed min/max across all 21 measured samples from three processes (seven measured samples per process after one warmup); not a confidence interval."
+          },
+          "evidence": "docs/evidence/audit-optimizations-20261103/summary.json"
+        }
+      ],
+      "tests": [
+        {
+          "name": "Local PR build, test, package and install gate",
+          "status": "pass",
+          "passed": 23,
+          "total": 23,
+          "durationSeconds": 381.53,
+          "evidence": "docs/evidence/audit-optimizations-20261103/summary.json",
+          "scope": "23/23 PR test suites passed via build_and_release.ps1, including static_analysis (MSVC /analyze), loading, backend, stress, workflows, corpus, persistence, ipc, loader, updater, and threat_boundaries."
+        },
+        {
+          "name": "Native unit test suite",
+          "status": "partial",
+          "passed": 199,
+          "total": 200,
+          "durationSeconds": 8.26,
+          "evidence": "docs/evidence/audit-optimizations-20261103/unit-tests.log",
+          "scope": "199 passed, 0 failed, 1 visible-window geometry test skipped by default off-screen gate; plus 14/14 runner self-test scenarios."
+        },
+        {
+          "name": "Native hidden playback UI interaction suite",
+          "status": "pass",
+          "passed": 30,
+          "total": 30,
+          "durationSeconds": null,
+          "evidence": "docs/evidence/audit-optimizations-20261103/playback-ui-checks.log",
+          "scope": "30/30 hidden interaction checks passed with zero visible windows."
+        },
+        {
+          "name": "Threat boundary and security invariant validation",
+          "status": "pass",
+          "passed": 12,
+          "total": 12,
+          "durationSeconds": 0.15,
+          "evidence": "docs/evidence/audit-optimizations-20261103/threat-boundaries.log",
+          "scope": "All 12 threat boundaries verified, including hardened custom mpv option denylist and HTTP/HTTPS radio stream scheme validation."
+        }
+      ],
+      "pairedWith": "audit-optimizations-20261103-after"
+    },
+    {
+      "id": "audit-optimizations-20261103-after",
+      "label": "Post-audit optimizations: O(1) overlay dirty flag, 12-pass outline, string_view RSS, O(1) FindByPath",
+      "measuredAt": "2026-11-03T00:55:46Z",
+      "commit": "c71923fa4b366728ad9fd43640679d870d15992c",
+      "dirty": true,
+      "sourceNote": "Modified working tree on commit c71923fa4b366728ad9fd43640679d870d15992c; Aperture.Release.exe SHA-256 422578fcd0f5d5de4aac39e9fdedeb092f59e4ae0eed9084215187de41c141a6; probe SHA-256 0aa80055a220251c0a32f997888949dabfcec3aee87a9e8f177194f8b031e948. Full source hashes in docs/evidence/audit-optimizations-20261103/summary.json.",
+      "notes": [
+        "Tracked surfaceHasContent across DrawingPrimitives and OverlayRenderer so ReleaseEmptySurface checks a boolean instead of scanning 33.18 MB of 4K pixels: 60 checks drop from 141.1332 ms to \u003c= 0.0001 ms (timer resolution floor; ranges 137.0442..158.5350 ms vs 0.0000..0.0001 ms, \u003e1,000x faster).",
+        "Reduced vlc-outline subtitle rendering from 24 outline passes to a gap-free 12-pass ring (full 1px 8-neighborhood plus 4 cardinal 2px offsets) + 1 fill: 30 4K subtitle draws + EndDraw flush drop from 8.6467 ms to 7.6381 ms (11.66% lower total EndDraw+rasterization median, ~1.01 ms saved across 30 subtitle draws on top of the fixed ~6.5 ms 4K GDI EndDraw blit; ranges 8.3793..10.0340 ms vs 6.9952..8.4307 ms; 0 allocations in both variants).",
+        "Reused string_view slices in ParseRssFeed/XmlLite, added chunked find('\u0026') entity decoding with std::from_chars, and replaced the ParseItunesDuration vector with a stack array: 20x100-item RSS parses with XML entities drop from 39.0150 ms to 11.0279 ms (71.73% lower median, 3.54x faster; ranges 38.4166..60.0368 ms vs 10.7668..11.5321 ms), allocations drop from 56,440 to 20,360 (-63.93%), and allocated bytes drop from 21,430,000 B to 5,269,360 B (-75.41%).",
+        "Switched HubExtractStartSecForPath to library.FindByPath(path), returned const std::wstring\u0026 from GetExeDir(), and added a thread_local normalized key buffer in MediaLibrary::FindByPath: 1,000 uniform lookups across a 10,000-item library drop from 31.6131 ms to 0.3901 ms (98.77% lower median, 81.0x faster; ranges 30.8855..32.1266 ms vs 0.3757..0.4209 ms) with 0 heap allocations (0 B) in both before and after."
+      ],
+      "results": [
+        {
+          "metric": "elapsed-ms",
+          "protocol": "audit-optimizations-20261103-comparison",
+          "environment": "ryzen3900x-4070super-20261020",
+          "workload": "3840x2160 overlay / 60 ReleaseEmptySurface full-buffer checks",
+          "session": "audit-optimizations-20261103",
+          "value": 0.0001,
+          "samples": 21,
+          "samplingNote": "Three fresh processes x seven measured samples per workload; one warmup per workload/process excluded. Value is the pooled median of 21 samples.",
+          "runRange": {
+            "min": 0.0,
+            "max": 0.0001,
+            "runs": 3,
+            "scope": "Observed min/max across all 21 measured samples from three processes (seven measured samples per process after one warmup); not a confidence interval."
+          },
+          "evidence": "docs/evidence/audit-optimizations-20261103/summary.json"
+        },
+        {
+          "metric": "allocations",
+          "protocol": "audit-optimizations-20261103-comparison",
+          "environment": "ryzen3900x-4070super-20261020",
+          "workload": "3840x2160 overlay / 60 ReleaseEmptySurface full-buffer checks",
+          "session": "audit-optimizations-20261103",
+          "value": 0,
+          "samples": 21,
+          "samplingNote": "Three fresh processes x seven measured samples per workload; one warmup per workload/process excluded. Value is the pooled median of 21 samples.",
+          "runRange": {
+            "min": 0,
+            "max": 0,
+            "runs": 3,
+            "scope": "Observed min/max across all 21 measured samples from three processes (seven measured samples per process after one warmup); not a confidence interval."
+          },
+          "evidence": "docs/evidence/audit-optimizations-20261103/summary.json"
+        },
+        {
+          "metric": "allocated-bytes",
+          "protocol": "audit-optimizations-20261103-comparison",
+          "environment": "ryzen3900x-4070super-20261020",
+          "workload": "3840x2160 overlay / 60 ReleaseEmptySurface full-buffer checks",
+          "session": "audit-optimizations-20261103",
+          "value": 0,
+          "samples": 21,
+          "samplingNote": "Three fresh processes x seven measured samples per workload; one warmup per workload/process excluded. Value is the pooled median of 21 samples.",
+          "runRange": {
+            "min": 0,
+            "max": 0,
+            "runs": 3,
+            "scope": "Observed min/max across all 21 measured samples from three processes (seven measured samples per process after one warmup); not a confidence interval."
+          },
+          "evidence": "docs/evidence/audit-optimizations-20261103/summary.json"
+        },
+        {
+          "metric": "peak-cpp-bytes",
+          "protocol": "audit-optimizations-20261103-comparison",
+          "environment": "ryzen3900x-4070super-20261020",
+          "workload": "3840x2160 overlay / 60 ReleaseEmptySurface full-buffer checks",
+          "session": "audit-optimizations-20261103",
+          "value": 0,
+          "samples": 21,
+          "samplingNote": "Three fresh processes x seven measured samples per workload; one warmup per workload/process excluded. Value is the pooled median of 21 samples.",
+          "runRange": {
+            "min": 0,
+            "max": 0,
+            "runs": 3,
+            "scope": "Observed min/max across all 21 measured samples from three processes (seven measured samples per process after one warmup); not a confidence interval."
+          },
+          "evidence": "docs/evidence/audit-optimizations-20261103/summary.json"
+        },
+        {
+          "metric": "elapsed-ms",
+          "protocol": "audit-optimizations-20261103-comparison",
+          "environment": "ryzen3900x-4070super-20261020",
+          "workload": "3840x2160 overlay / 30 vlc-outline subtitle draws + EndDraw flush",
+          "session": "audit-optimizations-20261103",
+          "value": 7.6381,
+          "samples": 21,
+          "samplingNote": "Three fresh processes x seven measured samples per workload; one warmup per workload/process excluded. Value is the pooled median of 21 samples.",
+          "runRange": {
+            "min": 6.9952,
+            "max": 8.4307,
+            "runs": 3,
+            "scope": "Observed min/max across all 21 measured samples from three processes (seven measured samples per process after one warmup); not a confidence interval."
+          },
+          "evidence": "docs/evidence/audit-optimizations-20261103/summary.json"
+        },
+        {
+          "metric": "allocations",
+          "protocol": "audit-optimizations-20261103-comparison",
+          "environment": "ryzen3900x-4070super-20261020",
+          "workload": "3840x2160 overlay / 30 vlc-outline subtitle draws + EndDraw flush",
+          "session": "audit-optimizations-20261103",
+          "value": 0,
+          "samples": 21,
+          "samplingNote": "Three fresh processes x seven measured samples per workload; one warmup per workload/process excluded. Value is the pooled median of 21 samples.",
+          "runRange": {
+            "min": 0,
+            "max": 0,
+            "runs": 3,
+            "scope": "Observed min/max across all 21 measured samples from three processes (seven measured samples per process after one warmup); not a confidence interval."
+          },
+          "evidence": "docs/evidence/audit-optimizations-20261103/summary.json"
+        },
+        {
+          "metric": "allocated-bytes",
+          "protocol": "audit-optimizations-20261103-comparison",
+          "environment": "ryzen3900x-4070super-20261020",
+          "workload": "3840x2160 overlay / 30 vlc-outline subtitle draws + EndDraw flush",
+          "session": "audit-optimizations-20261103",
+          "value": 0,
+          "samples": 21,
+          "samplingNote": "Three fresh processes x seven measured samples per workload; one warmup per workload/process excluded. Value is the pooled median of 21 samples.",
+          "runRange": {
+            "min": 0,
+            "max": 0,
+            "runs": 3,
+            "scope": "Observed min/max across all 21 measured samples from three processes (seven measured samples per process after one warmup); not a confidence interval."
+          },
+          "evidence": "docs/evidence/audit-optimizations-20261103/summary.json"
+        },
+        {
+          "metric": "peak-cpp-bytes",
+          "protocol": "audit-optimizations-20261103-comparison",
+          "environment": "ryzen3900x-4070super-20261020",
+          "workload": "3840x2160 overlay / 30 vlc-outline subtitle draws + EndDraw flush",
+          "session": "audit-optimizations-20261103",
+          "value": 0,
+          "samples": 21,
+          "samplingNote": "Three fresh processes x seven measured samples per workload; one warmup per workload/process excluded. Value is the pooled median of 21 samples.",
+          "runRange": {
+            "min": 0,
+            "max": 0,
+            "runs": 3,
+            "scope": "Observed min/max across all 21 measured samples from three processes (seven measured samples per process after one warmup); not a confidence interval."
+          },
+          "evidence": "docs/evidence/audit-optimizations-20261103/summary.json"
+        },
+        {
+          "metric": "elapsed-ms",
+          "protocol": "audit-optimizations-20261103-comparison",
+          "environment": "ryzen3900x-4070super-20261020",
+          "workload": "20 RSS feeds x 100 episodes (with XML entities) / ParseRssFeed + XmlLite",
+          "session": "audit-optimizations-20261103",
+          "value": 11.0279,
+          "samples": 21,
+          "samplingNote": "Three fresh processes x seven measured samples per workload; one warmup per workload/process excluded. Value is the pooled median of 21 samples.",
+          "runRange": {
+            "min": 10.7668,
+            "max": 11.5321,
+            "runs": 3,
+            "scope": "Observed min/max across all 21 measured samples from three processes (seven measured samples per process after one warmup); not a confidence interval."
+          },
+          "evidence": "docs/evidence/audit-optimizations-20261103/summary.json"
+        },
+        {
+          "metric": "allocations",
+          "protocol": "audit-optimizations-20261103-comparison",
+          "environment": "ryzen3900x-4070super-20261020",
+          "workload": "20 RSS feeds x 100 episodes (with XML entities) / ParseRssFeed + XmlLite",
+          "session": "audit-optimizations-20261103",
+          "value": 20360,
+          "samples": 21,
+          "samplingNote": "Three fresh processes x seven measured samples per workload; one warmup per workload/process excluded. Value is the pooled median of 21 samples.",
+          "runRange": {
+            "min": 20360,
+            "max": 20360,
+            "runs": 3,
+            "scope": "Observed min/max across all 21 measured samples from three processes (seven measured samples per process after one warmup); not a confidence interval."
+          },
+          "evidence": "docs/evidence/audit-optimizations-20261103/summary.json"
+        },
+        {
+          "metric": "allocated-bytes",
+          "protocol": "audit-optimizations-20261103-comparison",
+          "environment": "ryzen3900x-4070super-20261020",
+          "workload": "20 RSS feeds x 100 episodes (with XML entities) / ParseRssFeed + XmlLite",
+          "session": "audit-optimizations-20261103",
+          "value": 5269360,
+          "samples": 21,
+          "samplingNote": "Three fresh processes x seven measured samples per workload; one warmup per workload/process excluded. Value is the pooled median of 21 samples.",
+          "runRange": {
+            "min": 5269360,
+            "max": 5269360,
+            "runs": 3,
+            "scope": "Observed min/max across all 21 measured samples from three processes (seven measured samples per process after one warmup); not a confidence interval."
+          },
+          "evidence": "docs/evidence/audit-optimizations-20261103/summary.json"
+        },
+        {
+          "metric": "peak-cpp-bytes",
+          "protocol": "audit-optimizations-20261103-comparison",
+          "environment": "ryzen3900x-4070super-20261020",
+          "workload": "20 RSS feeds x 100 episodes (with XML entities) / ParseRssFeed + XmlLite",
+          "session": "audit-optimizations-20261103",
+          "value": 192373,
+          "samples": 21,
+          "samplingNote": "Three fresh processes x seven measured samples per workload; one warmup per workload/process excluded. Value is the pooled median of 21 samples.",
+          "runRange": {
+            "min": 192373,
+            "max": 192373,
+            "runs": 3,
+            "scope": "Observed min/max across all 21 measured samples from three processes (seven measured samples per process after one warmup); not a confidence interval."
+          },
+          "evidence": "docs/evidence/audit-optimizations-20261103/summary.json"
+        },
+        {
+          "metric": "elapsed-ms",
+          "protocol": "audit-optimizations-20261103-comparison",
+          "environment": "ryzen3900x-4070super-20261020",
+          "workload": "10,000-item MediaLibrary / 1,000 uniform HubExtractStartSecForPath lookups",
+          "session": "audit-optimizations-20261103",
+          "value": 0.3901,
+          "samples": 21,
+          "samplingNote": "Three fresh processes x seven measured samples per workload; one warmup per workload/process excluded. Value is the pooled median of 21 samples.",
+          "runRange": {
+            "min": 0.3757,
+            "max": 0.4209,
+            "runs": 3,
+            "scope": "Observed min/max across all 21 measured samples from three processes (seven measured samples per process after one warmup); not a confidence interval."
+          },
+          "evidence": "docs/evidence/audit-optimizations-20261103/summary.json"
+        },
+        {
+          "metric": "allocations",
+          "protocol": "audit-optimizations-20261103-comparison",
+          "environment": "ryzen3900x-4070super-20261020",
+          "workload": "10,000-item MediaLibrary / 1,000 uniform HubExtractStartSecForPath lookups",
+          "session": "audit-optimizations-20261103",
+          "value": 0,
+          "samples": 21,
+          "samplingNote": "Three fresh processes x seven measured samples per workload; one warmup per workload/process excluded. Value is the pooled median of 21 samples.",
+          "runRange": {
+            "min": 0,
+            "max": 0,
+            "runs": 3,
+            "scope": "Observed min/max across all 21 measured samples from three processes (seven measured samples per process after one warmup); not a confidence interval."
+          },
+          "evidence": "docs/evidence/audit-optimizations-20261103/summary.json"
+        },
+        {
+          "metric": "allocated-bytes",
+          "protocol": "audit-optimizations-20261103-comparison",
+          "environment": "ryzen3900x-4070super-20261020",
+          "workload": "10,000-item MediaLibrary / 1,000 uniform HubExtractStartSecForPath lookups",
+          "session": "audit-optimizations-20261103",
+          "value": 0,
+          "samples": 21,
+          "samplingNote": "Three fresh processes x seven measured samples per workload; one warmup per workload/process excluded. Value is the pooled median of 21 samples.",
+          "runRange": {
+            "min": 0,
+            "max": 0,
+            "runs": 3,
+            "scope": "Observed min/max across all 21 measured samples from three processes (seven measured samples per process after one warmup); not a confidence interval."
+          },
+          "evidence": "docs/evidence/audit-optimizations-20261103/summary.json"
+        },
+        {
+          "metric": "peak-cpp-bytes",
+          "protocol": "audit-optimizations-20261103-comparison",
+          "environment": "ryzen3900x-4070super-20261020",
+          "workload": "10,000-item MediaLibrary / 1,000 uniform HubExtractStartSecForPath lookups",
+          "session": "audit-optimizations-20261103",
+          "value": 0,
+          "samples": 21,
+          "samplingNote": "Three fresh processes x seven measured samples per workload; one warmup per workload/process excluded. Value is the pooled median of 21 samples.",
+          "runRange": {
+            "min": 0,
+            "max": 0,
+            "runs": 3,
+            "scope": "Observed min/max across all 21 measured samples from three processes (seven measured samples per process after one warmup); not a confidence interval."
+          },
+          "evidence": "docs/evidence/audit-optimizations-20261103/summary.json"
+        }
+      ],
+      "tests": [
+        {
+          "name": "Local PR build, test, package and install gate",
+          "status": "pass",
+          "passed": 23,
+          "total": 23,
+          "durationSeconds": 381.53,
+          "evidence": "docs/evidence/audit-optimizations-20261103/summary.json",
+          "scope": "23/23 PR test suites passed via build_and_release.ps1, including static_analysis (MSVC /analyze), loading, backend, stress, workflows, corpus, persistence, ipc, loader, updater, and threat_boundaries."
+        },
+        {
+          "name": "Native unit test suite",
+          "status": "partial",
+          "passed": 199,
+          "total": 200,
+          "durationSeconds": 8.26,
+          "evidence": "docs/evidence/audit-optimizations-20261103/unit-tests.log",
+          "scope": "199 passed, 0 failed, 1 visible-window geometry test skipped by default off-screen gate; plus 14/14 runner self-test scenarios."
+        },
+        {
+          "name": "Native hidden playback UI interaction suite",
+          "status": "pass",
+          "passed": 30,
+          "total": 30,
+          "durationSeconds": null,
+          "evidence": "docs/evidence/audit-optimizations-20261103/playback-ui-checks.log",
+          "scope": "30/30 hidden interaction checks passed with zero visible windows."
+        },
+        {
+          "name": "Threat boundary and security invariant validation",
+          "status": "pass",
+          "passed": 12,
+          "total": 12,
+          "durationSeconds": 0.15,
+          "evidence": "docs/evidence/audit-optimizations-20261103/threat-boundaries.log",
+          "scope": "All 12 threat boundaries verified, including hardened custom mpv option denylist and HTTP/HTTPS radio stream scheme validation."
+        }
+      ],
+      "pairedWith": "audit-optimizations-20261103-before"
     }
   ],
   "reports": [

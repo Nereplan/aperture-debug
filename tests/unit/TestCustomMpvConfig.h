@@ -30,7 +30,10 @@ TEST_CASE(CustomMpvConfig, SecurityDenylistBoundsAndRecovery) {
     const std::vector<std::string> unsafeOptions = {
         "script", "scripts", "script-opts", "lua", "js", "load-scripts",
         "ipc", "input-ipc-server", "include", "config", "log-file",
-        "record-file", "stream-dump", "http-proxy", "ytdl", "wid", "dll"
+        "record-file", "stream-dump", "http-proxy", "ytdl", "wid", "dll",
+        "playlist", "chapters-file", "ordered-chapters-files", "merge-files",
+        "lavfi-complex", "bluray-device", "dvd-device", "cdda-device",
+        "http-header-fields", "http-header-fields-append", "stream-lavf-o-append"
     };
     for (const auto& opt : unsafeOptions) {
         std::string reason;
@@ -43,6 +46,8 @@ TEST_CASE(CustomMpvConfig, SecurityDenylistBoundsAndRecovery) {
     TEST_ASSERT(!MpvPlayer::IsCustomMpvOptionSafe("scale", "spline36`whoami`", &reason));
     TEST_ASSERT(!MpvPlayer::IsCustomMpvOptionSafe("scale", "spline36$(calc)", &reason));
     TEST_ASSERT(!MpvPlayer::IsCustomMpvOptionSafe("scale", "../other/file", &reason));
+    TEST_ASSERT(!MpvPlayer::IsCustomMpvOptionSafe("vf", "movie=secret.mkv", &reason));
+    TEST_ASSERT(!MpvPlayer::IsCustomMpvOptionSafe("af", "amovie=secret.wav", &reason));
     TEST_ASSERT(MpvPlayer::IsCustomMpvOptionSafe("scale", "spline36", &reason));
 
     std::string mixedConfig =

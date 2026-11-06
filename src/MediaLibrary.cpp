@@ -744,6 +744,28 @@ PlaylistStats MediaLibrary::GetPlaylistStats(const std::string& playlistId) cons
 MediaItem* MediaLibrary::FindByPath(const std::wstring& p) {
     if (p.empty() || mediaItems.empty()) return nullptr;
     if (pathToIndex.empty() && !mediaItems.empty()) RebuildPathIndex();
+    const bool isAbsDrive = p.size() >= 3 && iswalpha(p[0]) && p[1] == L':' && (p[2] == L'\\' || p[2] == L'/');
+    const bool isAbsUnc = p.size() >= 2 && (p[0] == L'\\' || p[0] == L'/') && (p[1] == L'\\' || p[1] == L'/');
+    if ((isAbsDrive || isAbsUnc) && p.back() != L'.') {
+        static thread_local std::wstring scratchKey;
+        if (scratchKey.capacity() < p.size()) scratchKey.reserve((std::max)(p.size(), static_cast<size_t>(260)));
+        scratchKey.resize(p.size());
+        bool hasDotSegment = false;
+        for (size_t i = 0; i < p.size(); ++i) {
+            const wchar_t c = p[i];
+            const wchar_t norm = (c == L'/') ? L'\\' : static_cast<wchar_t>(::towlower(c));
+            scratchKey[i] = norm;
+            if (i > 0 && norm == L'.' && scratchKey[i - 1] == L'\\') hasDotSegment = true;
+        }
+        if (!hasDotSegment) {
+            while (scratchKey.size() > 3 && scratchKey.back() == L'\\') scratchKey.pop_back();
+            if (scratchKey.back() != L'.') {
+                auto it = pathToIndex.find(scratchKey);
+                if (it != pathToIndex.end() && it->second < mediaItems.size()) { return &mediaItems[it->second]; }
+                return nullptr;
+            }
+        }
+    }
     std::wstring key = NormalizePathKey(p);
     auto it = pathToIndex.find(key);
     if (it != pathToIndex.end() && it->second < mediaItems.size()) { return &mediaItems[it->second]; }
@@ -751,12 +773,7 @@ MediaItem* MediaLibrary::FindByPath(const std::wstring& p) {
 }
 
 const MediaItem* MediaLibrary::FindByPath(const std::wstring& p) const {
-    if (p.empty() || mediaItems.empty()) return nullptr;
-    if (pathToIndex.empty() && !mediaItems.empty()) const_cast<MediaLibrary*>(this)->RebuildPathIndex();
-    std::wstring key = NormalizePathKey(p);
-    auto it = pathToIndex.find(key);
-    if (it != pathToIndex.end() && it->second < mediaItems.size()) { return &mediaItems[it->second]; }
-    return nullptr;
+    return const_cast<MediaLibrary*>(this)->FindByPath(p);
 }
 
 MediaItem* MediaLibrary::FindById(const std::string& id) {

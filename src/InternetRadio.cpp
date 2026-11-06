@@ -325,6 +325,10 @@ std::vector<RadioStation> ParseRadioPlaylistText(const std::string& utf8Text, si
 
 bool RadioFavorites::Add(const RadioStation& station) {
     if (station.url.empty()) return false;
+    for (wchar_t c : station.url) {
+        if (c < 0x20 || c == 0x7f) return false;
+    }
+    if (_wcsnicmp(station.url.c_str(), L"http://", 7) != 0 && _wcsnicmp(station.url.c_str(), L"https://", 8) != 0) return false;
     if (Contains(station.url)) return false;
     if (stations_.size() >= kMaxStations) return false;
     RadioStation copy = station;
@@ -385,6 +389,11 @@ StorageStatus RadioFavorites::Load(const std::wstring& dataDir, const std::wstri
             station.codec = Utf8ToUtf16(item.get("codec").as_string(""));
             station.country = Utf8ToUtf16(item.get("country").as_string(""));
             if (station.url.empty()) continue;
+            bool validUrl = (_wcsnicmp(station.url.c_str(), L"http://", 7) == 0 || _wcsnicmp(station.url.c_str(), L"https://", 8) == 0);
+            for (wchar_t c : station.url) {
+                if (c < 0x20 || c == 0x7f) { validUrl = false; break; }
+            }
+            if (!validUrl) continue;
             if (station.name.empty()) station.name = L"Unnamed station";
             if (!Contains(station.url)) stations_.push_back(std::move(station));
         }

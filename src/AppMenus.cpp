@@ -24,6 +24,7 @@ void App::ApplyExperienceMenuFilter() {
     const ExperienceMode mode = FeatureGate::ModeFromString(settings.experienceMode);
     contextMenuItems.erase(std::remove_if(contextMenuItems.begin(), contextMenuItems.end(),
         [this, mode](const ContextMenuItem& item) {
+            if (item.id == "ab_cycle" && abLoopA >= 0.0) return false;
             return !FeatureGate::MenuItemVisible(mode, settings.customEnabledFeatures, item.id);
         }), contextMenuItems.end());
 }

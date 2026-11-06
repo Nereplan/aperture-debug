@@ -81,16 +81,18 @@ StorageStatus SavePodcastCacheImpl(const std::wstring& path, const std::string& 
 // followed by a zone offset (+HHMM/-HHMM) or a named zone (GMT/UT/UTC and the
 // common US zone names). Anything unparseable yields 0.
 int64_t ParseRfc822Date(const std::string& text) {
-    std::string value = Trim(text);
+    std::string_view value = XmlLite::TrimView(text);
     if (value.empty()) return 0;
     // Drop the optional weekday prefix ("Mon, ").
     const size_t comma = value.find(',');
-    if (comma != std::string::npos && comma <= 10) value = Trim(value.substr(comma + 1));
+    if (comma != std::string_view::npos && comma <= 10) value = XmlLite::TrimView(value.substr(comma + 1));
     const auto readInt = [&value](size_t& pos) {
         size_t begin = pos;
         while (pos < value.size() && std::isdigit(static_cast<unsigned char>(value[pos]))) ++pos;
-        if (begin == pos) return -1;
-        try { return std::stoi(value.substr(begin, pos - begin)); } catch (...) { return -1; }
+        if (begin == pos || pos - begin > 9) return -1;
+        int parsed = 0;
+        for (size_t i = begin; i < pos; ++i) parsed = parsed * 10 + (value[i] - '0');
+        return parsed;
     };
     // Day: leading run of digits.
     size_t cursor = 0;
@@ -104,10 +106,15 @@ int64_t ParseRfc822Date(const std::string& text) {
     static const char* const kMonths[12] = {
         "jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"
     };
-    const std::string monthToken = ToLowerAsciiCopy(value.substr(monthBegin, cursor - monthBegin));
+    const std::string_view monthSlice = value.substr(monthBegin, cursor - monthBegin);
     int month = 0;
-    for (int i = 0; i < 12; ++i) {
-        if (monthToken.rfind(kMonths[i], 0) == 0) { month = i + 1; break; } // "september" matches "sep"
+    if (monthSlice.size() >= 3) {
+        const char m0 = static_cast<char>(std::tolower(static_cast<unsigned char>(monthSlice[0])));
+        const char m1 = static_cast<char>(std::tolower(static_cast<unsigned char>(monthSlice[1])));
+        const char m2 = static_cast<char>(std::tolower(static_cast<unsigned char>(monthSlice[2])));
+        for (int i = 0; i < 12; ++i) {
+            if (m0 == kMonths[i][0] && m1 == kMonths[i][1] && m2 == kMonths[i][2]) { month = i + 1; break; }
+        }
     }
     if (month == 0) return 0;
     // Year: next run of digits.
@@ -156,24 +163,27 @@ int64_t ParseRfc822Date(const std::string& text) {
 
 // <itunes:duration>: "H:MM:SS", "MM:SS", or plain seconds; 0 when absent/invalid.
 double ParseItunesDuration(const std::string& text) {
-    const std::string value = Trim(text);
+    const std::string_view value = XmlLite::TrimView(text);
     if (value.empty()) return 0.0;
-    std::vector<int64_t> parts;
+    int64_t parts[3]{};
+    size_t partCount = 0;
     size_t begin = 0;
     for (size_t i = 0; i <= value.size(); ++i) {
         if (i == value.size() || value[i] == ':') {
-            const std::string part = value.substr(begin, i - begin);
+            if (partCount >= 3) return 0.0;
+            const std::string_view part = value.substr(begin, i - begin);
             if (part.empty() || part.size() > 5 ||
                 !std::all_of(part.begin(), part.end(), [](char c) { return std::isdigit(static_cast<unsigned char>(c)); })) {
                 return 0.0;
             }
-            try { parts.push_back(std::stoll(part)); } catch (...) { return 0.0; }
+            int64_t parsed = 0;
+            for (char c : part) parsed = parsed * 10 + (c - '0');
+            parts[partCount++] = parsed;
             begin = i + 1;
         }
     }
-    if (parts.size() > 3) return 0.0;
     int64_t totalSec = 0;
-    for (int64_t units : parts) totalSec = totalSec * 60 + units;
+    for (size_t i = 0; i < partCount; ++i) totalSec = totalSec * 60 + parts[i];
     if (totalSec < 0) return 0.0;
     return static_cast<double>(totalSec);
 }
@@ -181,14 +191,13 @@ double ParseItunesDuration(const std::string& text) {
 // The enclosure tag is self-closing or paired; grab the full tag text first,
 // then read its url attribute (falling back to <media:content url="..."> or
 // <link rel="enclosure" href="..."> when feeds use Media RSS / Atom links).
-std::string ExtractEnclosureUrl(const std::string& itemBlock) {
-    const std::string lower = ToLowerAsciiCopy(itemBlock);
+std::string ExtractEnclosureUrl(std::string_view itemBlock, std::string_view lower) {
     auto findTagAttr = [&](const char* tagPrefix, const char* attrName, const char* reqAttr = nullptr, const char* reqVal = nullptr) -> std::string {
         size_t searchFrom = 0;
         const size_t prefixLen = std::strlen(tagPrefix);
         while (searchFrom < lower.size()) {
             size_t open = lower.find(tagPrefix, searchFrom);
-            if (open == std::string::npos) return "";
+            if (open == std::string_view::npos) return "";
             size_t after = open + prefixLen;
             if (after < lower.size() && lower[after] != '>' && lower[after] != ' ' && lower[after] != '\t' &&
                 lower[after] != '\r' && lower[after] != '\n' && lower[after] != '/') {
@@ -196,8 +205,8 @@ std::string ExtractEnclosureUrl(const std::string& itemBlock) {
                 continue;
             }
             size_t close = lower.find('>', after);
-            if (close == std::string::npos) return "";
-            const std::string tag = itemBlock.substr(open, close - open + 1);
+            if (close == std::string_view::npos) return "";
+            const std::string tag(itemBlock.substr(open, close - open + 1));
             if (reqAttr && reqVal) {
                 const std::string rv = ToLowerAsciiCopy(Trim(ExtractXmlAttribute(tag, reqAttr)));
                 if (rv != reqVal) { searchFrom = close + 1; continue; }
@@ -522,10 +531,11 @@ PodcastFeed ParseRssFeed(const std::string& utf8Xml, const std::wstring& feedUrl
     // first <item> (item titles must not win).
     size_t headerEnd = lower.find("<item", channelOpen);
     if (headerEnd == std::string::npos) headerEnd = lower.find("</channel", channelOpen);
-    const size_t headerLength = headerEnd == std::string::npos ? std::string::npos : headerEnd - channelOpen;
-    const std::string headerBlock = utf8Xml.substr(channelOpen, headerLength);
-    feed.title = Utf8ToUtf16(Trim(ExtractXmlElement(headerBlock, "title")));
-    if (feed.title.empty()) feed.title = Utf8ToUtf16(Trim(ExtractXmlElement(headerBlock, "itunes:author")));
+    const size_t headerLength = headerEnd == std::string::npos ? (utf8Xml.size() - channelOpen) : (headerEnd - channelOpen);
+    const std::string_view headerBlock(utf8Xml.data() + channelOpen, headerLength);
+    const std::string_view lowerHeaderBlock(lower.data() + channelOpen, headerLength);
+    feed.title = Utf8ToUtf16(Trim(ExtractXmlElement(headerBlock, lowerHeaderBlock, "title")));
+    if (feed.title.empty()) feed.title = Utf8ToUtf16(Trim(ExtractXmlElement(headerBlock, lowerHeaderBlock, "itunes:author")));
     // Items: <item ...> ... </item> blocks, capped at maxEpisodes.
     size_t cursor = channelOpen;
     while (feed.episodes.size() < maxEpisodes) {
@@ -543,8 +553,9 @@ PodcastFeed ParseRssFeed(const std::string& utf8Xml, const std::wstring& feedUrl
         cursor = lower.find('>', itemClose);
         if (cursor == std::string::npos) break;
         ++cursor;
-        const std::string itemBlock = utf8Xml.substr(itemOpen, cursor - itemOpen);
-        std::string enclosureUrl = ExtractEnclosureUrl(itemBlock);
+        const std::string_view itemBlock(utf8Xml.data() + itemOpen, cursor - itemOpen);
+        const std::string_view lowerItemBlock(lower.data() + itemOpen, cursor - itemOpen);
+        std::string enclosureUrl = ExtractEnclosureUrl(itemBlock, lowerItemBlock);
         const std::string lowerEnc = ToLowerAsciiCopy(enclosureUrl);
         if (lowerEnc.rfind("http://", 0) != 0 && lowerEnc.rfind("https://", 0) != 0) continue; // Skip items without an http(s) enclosure.
         if (enclosureUrl.rfind("HTTPS://", 0) == 0 || lowerEnc.rfind("https://", 0) == 0) {
@@ -554,10 +565,10 @@ PodcastFeed ParseRssFeed(const std::string& utf8Xml, const std::wstring& feedUrl
         }
         PodcastEpisode episode;
         episode.url = Utf8ToUtf16(enclosureUrl);
-        episode.title = Utf8ToUtf16(Trim(ExtractXmlElement(itemBlock, "title")));
-        if (episode.title.empty()) episode.title = Utf8ToUtf16(Trim(ExtractXmlElement(itemBlock, "itunes:title")));
-        episode.publishedSec = ParseRfc822Date(ExtractXmlElement(itemBlock, "pubDate"));
-        episode.durationSec = ParseItunesDuration(ExtractXmlElement(itemBlock, "itunes:duration"));
+        episode.title = Utf8ToUtf16(Trim(ExtractXmlElement(itemBlock, lowerItemBlock, "title")));
+        if (episode.title.empty()) episode.title = Utf8ToUtf16(Trim(ExtractXmlElement(itemBlock, lowerItemBlock, "itunes:title")));
+        episode.publishedSec = ParseRfc822Date(ExtractXmlElement(itemBlock, lowerItemBlock, "pubDate"));
+        episode.durationSec = ParseItunesDuration(ExtractXmlElement(itemBlock, lowerItemBlock, "itunes:duration"));
         if (episode.title.empty()) episode.title = episode.url; // Unnamed episodes fall back to their URL.
         feed.episodes.push_back(std::move(episode));
     }

@@ -15,6 +15,38 @@ using namespace Aperture;
 
 static App* g_pApp = nullptr;
 
+namespace {
+
+// Opt-in frame profiler for input/render latency investigations. The probe is
+// environment-gated so ordinary builds and release runs pay no disk cost.
+bool FrameProfilingEnabled() {
+    static const bool enabled = []() {
+        wchar_t value[8]{};
+        const DWORD length = GetEnvironmentVariableW(L"APERTURE_FRAME_PROFILE", value, ARRAYSIZE(value));
+        return length > 0 && value[0] != L'0';
+    }();
+    return enabled;
+}
+
+double QpcMilliseconds(const LARGE_INTEGER& start, const LARGE_INTEGER& end, const LARGE_INTEGER& frequency) {
+    if (frequency.QuadPart <= 0) return 0.0;
+    return static_cast<double>(end.QuadPart - start.QuadPart) * 1000.0 / static_cast<double>(frequency.QuadPart);
+}
+
+FILE* FrameProfileFile() {
+    static FILE* file = []() -> FILE* {
+        const std::wstring directory = GetExeDir() + L"\\diagnostics";
+        CreateDirectoryW(directory.c_str(), nullptr);
+        const std::wstring path = directory + L"\\frame_profile.log";
+        FILE* opened = nullptr;
+        _wfopen_s(&opened, path.c_str(), L"w, ccs=UTF-8");
+        return opened;
+    }();
+    return file;
+}
+
+} // namespace
+
 LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
     if (uMsg == WM_CREATE) {
         CREATESTRUCT* pCreate = reinterpret_cast<CREATESTRUCT*>(lParam);
@@ -329,11 +361,13 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
     QueryPerformanceCounter(&qpcNow);
     double elapsedMs = (double)(qpcNow.QuadPart - qpcStart.QuadPart) * 1000.0 / (double)qpcFreq.QuadPart;
     double shownMs = (double)(qpcShell.QuadPart - qpcStart.QuadPart) * 1000.0 / (double)qpcFreq.QuadPart;
-    std::wstring logPath = GetDataDir() + L"\\startup_perf.txt";
-    FILE* f = nullptr;
-    if (_wfopen_s(&f, logPath.c_str(), L"w") == 0 && f) {
-        fwprintf(f, L"%s Native Direct2D Startup: %.2f ms (window shown: %.2f ms)\n", std::wstring(Version::ProductNameWide).c_str(), elapsedMs, shownMs);
-        fclose(f);
+    if (initialOptions.benchmarkProbe || startupSettings.diagnosticsLogging) {
+        std::wstring logPath = GetDataDir() + L"\\startup_perf.txt";
+        FILE* f = nullptr;
+        if (_wfopen_s(&f, logPath.c_str(), L"w") == 0 && f) {
+            fwprintf(f, L"%s Native Direct2D Startup: %.2f ms (window shown: %.2f ms)\n", std::wstring(Version::ProductNameWide).c_str(), elapsedMs, shownMs);
+            fclose(f);
+        }
     }
     // Probe/capture modes do not enter the normal message loop. Pump the same UI messages here so the asynchronous library package can be
     // adopted and painted without turning production startup back into a blocking load.
@@ -351,7 +385,7 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
             if (redraw || app.IsLibraryReady()) { InvalidateRect(hWnd, nullptr, FALSE); UpdateWindow(hWnd); }
             if (app.HasRenderedLibrarySnapshot()) break;
             if (GetTickCount64() >= deadline) return false;
-            MsgWaitForMultipleObjects(0, nullptr, FALSE, 8, QS_ALLINPUT);
+            MsgWaitForMultipleObjectsEx(0, nullptr, 8, QS_ALLINPUT, MWMO_INPUTAVAILABLE);
         }
         return app.HasRenderedLibrarySnapshot();
     };
@@ -467,12 +501,55 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
     QueryPerformanceCounter(&qpcLast);
     DWORD idleWaitMs = 16;
     MSG msg = {};
+    const bool frameProfile = FrameProfilingEnabled();
+    LARGE_INTEGER profileWindowStart{};
+    if (frameProfile) QueryPerformanceCounter(&profileWindowStart);
+    int profileFrames = 0;
+    int profilePaints = 0;
+    double profilePumpMs = 0.0, profileUpdateMs = 0.0, profilePaintMs = 0.0, profileWaitMs = 0.0;
+    double profileMaxDispatchMs = 0.0, profileMaxInputPaintMs = 0.0, profileMaxWaitMs = 0.0, profileMaxPresentMs = 0.0;
+    UINT profileSlowestMessage = 0;
+    LARGE_INTEGER profileLastMouseInput{};
+    bool profileHasMouseInput = false;
+    bool profileWroteHeader = false;
     while (true) {
-        // Process all pending Windows messages without blocking
-        while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
+        const auto profileIterationStart = [&]() {
+            LARGE_INTEGER value{};
+            if (frameProfile) QueryPerformanceCounter(&value);
+            return value;
+        }();
+        // Process all pending non-paint Windows messages first so bursts of
+        // input (mouse move, wheel) coalesce into a single Update + Render pass
+        // instead of presenting an un-ticked frame before Update(dt) can run.
+        while (PeekMessage(&msg, NULL, 0, WM_PAINT - 1, PM_REMOVE) ||
+               PeekMessage(&msg, NULL, WM_PAINT + 1, 0xFFFFFFFF, PM_REMOVE)) {
             if (msg.message == WM_QUIT) goto ExitApp;
+            LARGE_INTEGER dispatchStart{};
+            if (frameProfile) {
+                QueryPerformanceCounter(&dispatchStart);
+                if (msg.message == WM_MOUSEMOVE) {
+                    profileLastMouseInput = dispatchStart;
+                    profileHasMouseInput = true;
+                }
+            }
             TranslateMessage(&msg);
             DispatchMessage(&msg);
+            if (frameProfile) {
+                LARGE_INTEGER dispatchEnd{};
+                QueryPerformanceCounter(&dispatchEnd);
+                const double dispatchMs = QpcMilliseconds(dispatchStart, dispatchEnd, qpcFreq);
+                profilePumpMs += dispatchMs;
+                if (dispatchMs > profileMaxDispatchMs) {
+                    profileMaxDispatchMs = dispatchMs;
+                    profileSlowestMessage = msg.message;
+                }
+                if (dispatchMs >= 50.0) {
+                    if (FILE* file = FrameProfileFile()) {
+                        fwprintf(file, L"slow-message msg=0x%04X duration=%.2fms\n", msg.message, dispatchMs);
+                        fflush(file);
+                    }
+                }
+            }
         }
         // Measure true delta time
         QueryPerformanceCounter(&qpcNow);
@@ -481,14 +558,105 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
         if (dt < 0.0f) dt = 0.0f;
         if (g_pApp) {
             bool needsRedraw = g_pApp->Update(dt);
-            if (needsRedraw) { InvalidateRect(hWnd, NULL, FALSE); UpdateWindow(hWnd); }
+            if (frameProfile) {
+                LARGE_INTEGER afterUpdate{};
+                QueryPerformanceCounter(&afterUpdate);
+                profileUpdateMs += QpcMilliseconds(qpcNow, afterUpdate, qpcFreq);
+            }
+            if (needsRedraw) {
+                if (g_pApp->GetPlaybackSession().IsOpen()) {
+                    g_pApp->Render();
+                } else {
+                    InvalidateRect(hWnd, NULL, FALSE);
+                }
+            }
+            while (PeekMessage(&msg, NULL, WM_PAINT, WM_PAINT, PM_REMOVE)) {
+                if (msg.message == WM_QUIT) goto ExitApp;
+                LARGE_INTEGER dispatchStart{};
+                if (frameProfile) QueryPerformanceCounter(&dispatchStart);
+                TranslateMessage(&msg);
+                DispatchMessage(&msg);
+                if (frameProfile) {
+                    LARGE_INTEGER dispatchEnd{};
+                    QueryPerformanceCounter(&dispatchEnd);
+                    const double dispatchMs = QpcMilliseconds(dispatchStart, dispatchEnd, qpcFreq);
+                    profilePaintMs += dispatchMs;
+                    ++profilePaints;
+                    if (dispatchMs > profileMaxDispatchMs) {
+                        profileMaxDispatchMs = dispatchMs;
+                        profileSlowestMessage = msg.message;
+                    }
+                    if (profileHasMouseInput) {
+                        profileMaxInputPaintMs = std::max(profileMaxInputPaintMs,
+                            QpcMilliseconds(profileLastMouseInput, dispatchStart, qpcFreq));
+                        profileHasMouseInput = false;
+                    }
+                    if (dispatchMs >= 50.0) {
+                        if (FILE* file = FrameProfileFile()) {
+                            fwprintf(file, L"slow-paint duration=%.2fms\n", dispatchMs);
+                            fflush(file);
+                        }
+                    }
+                }
+            }
+            profileMaxPresentMs = std::max(profileMaxPresentMs, g_pApp->TakeMaxPresentMs());
             if (needsRedraw) { idleWaitMs = 16; } else { idleWaitMs = std::min<DWORD>(64, idleWaitMs * 2); }
             HANDLE hWaitable = g_pApp->GetFrameLatencyWaitableObject();
+            LARGE_INTEGER waitStart{};
+            if (frameProfile) QueryPerformanceCounter(&waitStart);
+            DWORD waitResult = WAIT_TIMEOUT;
             if (needsRedraw || g_pApp->HasPendingPlaybackFrame()) {
-                if (g_pApp->IsOccluded()) { MsgWaitForMultipleObjects(0, NULL, FALSE, 16, QS_ALLINPUT); } else if (hWaitable) {
-                    MsgWaitForMultipleObjectsEx(1, &hWaitable, 1000, QS_ALLINPUT, 0);
-                } else { MsgWaitForMultipleObjects(0, NULL, FALSE, g_pApp->HasPendingPlaybackFrame() ? g_pApp->GetPlaybackFrameWaitMs() : 8, QS_ALLINPUT); }
-            } else { MsgWaitForMultipleObjects(0, NULL, FALSE, g_pApp->RequiresSubtitleTick() ? std::min<DWORD>(16, idleWaitMs) : idleWaitMs, QS_ALLINPUT); }
+                if (g_pApp->IsOccluded()) {
+                    waitResult = MsgWaitForMultipleObjectsEx(0, NULL, 16, QS_ALLINPUT, MWMO_INPUTAVAILABLE);
+                } else if (hWaitable && !g_pApp->GetPlaybackSession().IsOpen()) {
+                    waitResult = MsgWaitForMultipleObjectsEx(1, &hWaitable, 1000, QS_ALLINPUT, MWMO_INPUTAVAILABLE);
+                } else {
+                    waitResult = MsgWaitForMultipleObjectsEx(0, NULL, g_pApp->HasPendingPlaybackFrame() ? g_pApp->GetPlaybackFrameWaitMs() : 8, QS_ALLINPUT, MWMO_INPUTAVAILABLE);
+                }
+            } else {
+                waitResult = MsgWaitForMultipleObjectsEx(0, NULL, g_pApp->RequiresSubtitleTick() ? std::min<DWORD>(16, idleWaitMs) : idleWaitMs, QS_ALLINPUT, MWMO_INPUTAVAILABLE);
+            }
+            if (frameProfile) {
+                LARGE_INTEGER waitEnd{};
+                QueryPerformanceCounter(&waitEnd);
+                const double waitMs = QpcMilliseconds(waitStart, waitEnd, qpcFreq);
+                profileWaitMs += waitMs;
+                profileMaxWaitMs = std::max(profileMaxWaitMs, waitMs);
+                ++profileFrames;
+                LARGE_INTEGER now{};
+                QueryPerformanceCounter(&now);
+                const double windowMs = QpcMilliseconds(profileWindowStart, now, qpcFreq);
+                if (windowMs >= 1000.0) {
+                    if (FILE* file = FrameProfileFile()) {
+                        const std::string adapter = Utf16ToUtf8(g_pApp->GetGraphicsAdapterName());
+                        if (!profileWroteHeader) {
+                            RECT client{};
+                            GetClientRect(hWnd, &client);
+                            fwprintf(file, L"# Aperture frame profile adapter=\"%hs\" software=%d client=%ldx%ld dpi=%u\n",
+                                adapter.c_str(), g_pApp->IsSoftwareGraphicsDevice() ? 1 : 0,
+                                static_cast<long>(client.right - client.left), static_cast<long>(client.bottom - client.top),
+                                GetDpiForWindow(hWnd));
+                            profileWroteHeader = true;
+                        }
+                        fwprintf(file,
+                            L"t=%.1fs frames=%d fps=%.1f pump=%.1f update=%.1f paint=%.1f wait=%.1f maxWait=%.0f maxDispatch=%.1f(msg=0x%04X) maxInputPaint=%.0f maxPresent=%.1f occluded=%d pendingPaint=%d waitResult=%lu\n",
+                            windowMs / 1000.0, profileFrames, profileFrames * 1000.0 / windowMs,
+                            profilePumpMs / profileFrames, profileUpdateMs / profileFrames,
+                            profilePaintMs / std::max(1, profilePaints), profileWaitMs / profileFrames,
+                            profileMaxWaitMs, profileMaxDispatchMs, profileSlowestMessage, profileMaxInputPaintMs,
+                            profileMaxPresentMs, g_pApp->IsOccluded() ? 1 : 0, profileHasMouseInput ? 1 : 0,
+                            static_cast<unsigned long>(waitResult));
+                        fflush(file);
+                    }
+                    profileWindowStart = now;
+                    profileFrames = 0;
+                    profilePaints = 0;
+                    profilePumpMs = profileUpdateMs = profilePaintMs = profileWaitMs = 0.0;
+                    profileMaxDispatchMs = profileMaxInputPaintMs = profileMaxWaitMs = profileMaxPresentMs = 0.0;
+                    profileSlowestMessage = 0;
+                    profileHasMouseInput = false;
+                }
+            }
         }
     }
 

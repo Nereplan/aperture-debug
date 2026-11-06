@@ -91,7 +91,7 @@ struct PlaybackUiTestAccess {
         SetWindowLongPtrW(a.hWnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(&a));
         SetWindowLongPtrW(a.hOverlayWnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(&a));
         a.hInstance = wc.hInstance;
-        a.settings.muted = true; a.settings.volume = 0;
+        a.settings.muted = true; a.settings.volume = 0; a.settings.experienceMode = "advanced";
         a.playbackSpeedInput.SetMaxLength(32);
         Require(a.renderer.Initialize(a.hWnd, a.settings.uiFontFamily, false), "CPU renderer initialization");
         Require(a.EnsureOverlayReady(), "Hidden overlay initialization");

@@ -1,0 +1,248 @@
+{
+  "session": "audit-optimizations-20261103",
+  "measuredAt": "2026-11-03T00:55:46Z",
+  "baseCommit": "c71923fa4b366728ad9fd43640679d870d15992c",
+  "dirty": true,
+  "releaseExeSha256": "422578fcd0f5d5de4aac39e9fdedeb092f59e4ae0eed9084215187de41c141a6",
+  "probeSourceSha256": "0aa80055a220251c0a32f997888949dabfcec3aee87a9e8f177194f8b031e948",
+  "sourceHashes": {
+    "src/DrawingPrimitives.h": "e8e419c5a54b22482d4bb0b242de06b67d2829b4064c41b9a5d325dfd0161ded",
+    "src/OverlayRenderer.h": "97831568dcc6da054022204f6c4afd2df36b2accd04ef773c1b0f0795c69897f",
+    "src/OverlayRenderer.cpp": "76dfd0fc88db9e0ef7c9adabd74281736c9f74ee248a60c383e61406009f924e",
+    "src/XmlLite.h": "167b282c26a612c645e39b936ef68c30ce8de02650cd3bc7e41f821e48334ba4",
+    "src/Podcasts.cpp": "10c8be025f0a18b25e5400dde7fe24ad9fc5d462acceb591db8b8c0386ed9e4b",
+    "src/PathFileHelpers.h": "1d7e6e33f1e807eab82a67be12a4d913e6587bdfb3748168ffb5f472058f3db3",
+    "src/MediaLibrary.cpp": "671985779ddfa30f583de4b7f0e19a53094951cf643eac2432b1bc4f47c7a2c8",
+    "src/AppLibrary.cpp": "b99508c0348924735b506a325551e2c5361f6d927e39f04f3399eaf263b15bef",
+    "src/App.h": "92144c3799682e891712052fad0811dc68ba2cea0f621cfc140338e06b9c5f49",
+    "src/App.cpp": "c5d994f14ba5483ae096ccc0905802aa2856dac4db09dc81e70850a96abc1ee0",
+    "src/AppAccessibility.cpp": "5e6fde4257b1b9060233f9716731319a7483695c365c7b29e56e8ab6322531b9",
+    "src/AppTooltips.cpp": "0adffc867433334c76eae2b2c0c943a28b0e2462ab4a9f3eb6c3d9980cdec7b6",
+    "src/AppViewModels.cpp": "c932f42d89148321daeb4bbdf0b0581514a85f08ccff1b6a698ea41813ac7166",
+    "src/AppKeyboard.cpp": "b8ba5959e64049458e734e3af4c63498d107d21fd25196f124d91d1ae15e3f45",
+    "src/AppMenus.cpp": "90cc6f1c07cd6e1e8a659ea259055cf05ddd179c0dc3fbe1520151d959f93279",
+    "src/main.cpp": "7ff33d9f8328d6b515cd082e59dc4aae07c67bbaadf9f72133d72dcfa0e5b0bf",
+    "src/MpvPlayer.cpp": "f405b6b82a8d1e7c98a3890b304919d3bea920ba8616523974781d5f5cde4612",
+    "src/InternetRadio.cpp": "28390571f7cafccf40230564c51ed93ebee03e189b237d3f928a81427b7b3eb6",
+    "tests/unit/TestCustomMpvConfig.h": "1df22e7f8dee9050c9bea513361f3a9260ea1bebf436d4d124a527b361dde5c4",
+    "tests/playback_ui/main.cpp": "8c6270786322185b15223e5cfeb5ce7a7ad6b04b1304dd3665711b18db05db08"
+  },
+  "workloads": {
+    "overlay_release_empty_4k": {
+      "before": {
+        "elapsed-ms": {
+          "median": 141.1332,
+          "min": 137.0442,
+          "max": 158.535,
+          "samples": 21
+        },
+        "allocations": {
+          "median": 0,
+          "min": 0,
+          "max": 0,
+          "samples": 21
+        },
+        "allocated-bytes": {
+          "median": 0,
+          "min": 0,
+          "max": 0,
+          "samples": 21
+        },
+        "peak-cpp-bytes": {
+          "median": 0,
+          "min": 0,
+          "max": 0,
+          "samples": 21
+        }
+      },
+      "after": {
+        "elapsed-ms": {
+          "median": 0.0001,
+          "min": 0.0,
+          "max": 0.0001,
+          "samples": 21
+        },
+        "allocations": {
+          "median": 0,
+          "min": 0,
+          "max": 0,
+          "samples": 21
+        },
+        "allocated-bytes": {
+          "median": 0,
+          "min": 0,
+          "max": 0,
+          "samples": 21
+        },
+        "peak-cpp-bytes": {
+          "median": 0,
+          "min": 0,
+          "max": 0,
+          "samples": 21
+        }
+      }
+    },
+    "subtitle_vlc_outline_4k": {
+      "before": {
+        "elapsed-ms": {
+          "median": 8.6467,
+          "min": 8.3793,
+          "max": 10.034,
+          "samples": 21
+        },
+        "allocations": {
+          "median": 0,
+          "min": 0,
+          "max": 0,
+          "samples": 21
+        },
+        "allocated-bytes": {
+          "median": 0,
+          "min": 0,
+          "max": 0,
+          "samples": 21
+        },
+        "peak-cpp-bytes": {
+          "median": 0,
+          "min": 0,
+          "max": 0,
+          "samples": 21
+        }
+      },
+      "after": {
+        "elapsed-ms": {
+          "median": 7.6381,
+          "min": 6.9952,
+          "max": 8.4307,
+          "samples": 21
+        },
+        "allocations": {
+          "median": 0,
+          "min": 0,
+          "max": 0,
+          "samples": 21
+        },
+        "allocated-bytes": {
+          "median": 0,
+          "min": 0,
+          "max": 0,
+          "samples": 21
+        },
+        "peak-cpp-bytes": {
+          "median": 0,
+          "min": 0,
+          "max": 0,
+          "samples": 21
+        }
+      }
+    },
+    "podcast_rss_parse_100": {
+      "before": {
+        "elapsed-ms": {
+          "median": 39.015,
+          "min": 38.4166,
+          "max": 60.0368,
+          "samples": 21
+        },
+        "allocations": {
+          "median": 56440,
+          "min": 56440,
+          "max": 56440,
+          "samples": 21
+        },
+        "allocated-bytes": {
+          "median": 21430000,
+          "min": 21430000,
+          "max": 21430000,
+          "samples": 21
+        },
+        "peak-cpp-bytes": {
+          "median": 193957,
+          "min": 193957,
+          "max": 193957,
+          "samples": 21
+        }
+      },
+      "after": {
+        "elapsed-ms": {
+          "median": 11.0279,
+          "min": 10.7668,
+          "max": 11.5321,
+          "samples": 21
+        },
+        "allocations": {
+          "median": 20360,
+          "min": 20360,
+          "max": 20360,
+          "samples": 21
+        },
+        "allocated-bytes": {
+          "median": 5269360,
+          "min": 5269360,
+          "max": 5269360,
+          "samples": 21
+        },
+        "peak-cpp-bytes": {
+          "median": 192373,
+          "min": 192373,
+          "max": 192373,
+          "samples": 21
+        }
+      }
+    },
+    "hub_extract_start_sec_10k": {
+      "before": {
+        "elapsed-ms": {
+          "median": 31.6131,
+          "min": 30.8855,
+          "max": 32.1266,
+          "samples": 21
+        },
+        "allocations": {
+          "median": 0,
+          "min": 0,
+          "max": 0,
+          "samples": 21
+        },
+        "allocated-bytes": {
+          "median": 0,
+          "min": 0,
+          "max": 0,
+          "samples": 21
+        },
+        "peak-cpp-bytes": {
+          "median": 0,
+          "min": 0,
+          "max": 0,
+          "samples": 21
+        }
+      },
+      "after": {
+        "elapsed-ms": {
+          "median": 0.3901,
+          "min": 0.3757,
+          "max": 0.4209,
+          "samples": 21
+        },
+        "allocations": {
+          "median": 0,
+          "min": 0,
+          "max": 0,
+          "samples": 21
+        },
+        "allocated-bytes": {
+          "median": 0,
+          "min": 0,
+          "max": 0,
+          "samples": 21
+        },
+        "peak-cpp-bytes": {
+          "median": 0,
+          "min": 0,
+          "max": 0,
+          "samples": 21
+        }
+      }
+    }
+  }
+}

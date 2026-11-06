@@ -552,12 +552,10 @@ void App::TogglePrivateMode() {
 
 
 double App::HubExtractStartSecForPath(const std::wstring& path) {
-    for (const auto& item : library.mediaItems) {
-        if (item.filePath == path) {
-            if (item.lastPosSec > 0.0) return item.lastPosSec;
-            if (item.durationSec > 5.0) return std::min(item.durationSec * 0.1, 10.0);
-            return 0.0;
-        }
+    if (const MediaItem* item = library.FindByPath(path)) {
+        if (item->lastPosSec > 0.0) return item->lastPosSec;
+        if (item->durationSec > 5.0) return std::min(item->durationSec * 0.1, 10.0);
+        return 0.0;
     }
     return 0.0;
 }

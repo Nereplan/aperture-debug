@@ -27,6 +27,10 @@ void App::RefreshHubTooltips(bool force) {
     if (!hWnd) return;
     if (!hubTooltips.IsCreated() && !EnsureHubTooltips()) return;
     if (playbackSession.IsOpen()) { if (hubTooltips.IsActive()) hubTooltips.SetActive(false); hubTooltips.HideForKeyboard(); return; }
+    const bool scrollAnimating = IsAutoscrolling() ||
+        (touchPanPane != AutoscrollPane::None &&
+         (touchHub.phase() == Touch::Phase::Panning || touchPanVelocity != 0.0f || touchSpringBack));
+    if (!force && hubTooltipSignature != 0 && scrollAnimating) return;
     RECT client{};
     if (!GetClientRect(hWnd, &client)) return;
     const float dp = std::max(0.5f, renderer.GetDpiScale());

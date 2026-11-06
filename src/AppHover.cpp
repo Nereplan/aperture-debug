@@ -186,7 +186,9 @@ bool App::UpdateHoverStates(float mouseX, float mouseY) {
                 if (!row.isHovering) {
                     row.isHovering = true;
                     row.hoverEnterTime = NowSeconds();
-                    AnimateVisual(row.liftY, 2.0f, MotionTokens::kReveal, MotionTokens::Spring());
+                    if (!IsReducedMotionEnabled()) {
+                        AnimateVisual(row.liftY, 2.0f, MotionTokens::kReveal, MotionTokens::Spring());
+                    }
                     EnqueueActiveRowAnimation((size_t)newHoveredIndex);
                 }
             }
@@ -332,6 +334,8 @@ void App::OnMouseLeave() {
     isModalCancelHovered = false;
     hoveredSettingsCat = (SettingsCategory)-1;
     hoveredSettingsRow = -1;
+    hoveredSettingsOptionRow = -1;
+    hoveredSettingsOptionSub = -1;
     hoveredShortcutIndex = -1;
     hoveredShortcutUnassignIndex = -1;
     isResetShortcutsHovered = false;
@@ -341,6 +345,13 @@ void App::OnMouseLeave() {
     listenHoveredEpisodeFeed = -1;
     listenHoveredStation = -1;
     listenAddPodcastHovered = false;
+    listenHoveredFeedPlay = -1;
+    listenHoveredFeedRemove = -1;
+    listenHoveredStationPlay = -1;
+    listenBannerRetryHovered = false;
+    listenRadioSearchClearHovered = false;
+    listenRadioAddStationHovered = false;
+    listenStateButtonHovered = false;
     importPillHovered = false;
     importCancelHovered = false;
     listenPillHovered = false;

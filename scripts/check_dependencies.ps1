@@ -306,11 +306,21 @@ foreach ($tool in @($manifest.toolchain)) {
         }
 
         "cmake" {
+            $cmakeExe = $null
             $cmakeCmd = Get-Command "cmake.exe" -ErrorAction SilentlyContinue
-            if ($cmakeCmd) {
+            if ($cmakeCmd -and (Test-Path -LiteralPath $cmakeCmd.Source)) {
+                $cmakeExe = $cmakeCmd.Source
+            }
+            if (-not $cmakeExe -and $vsPath) {
+                $bundledCmake = Join-Path $vsPath "Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe"
+                if (Test-Path -LiteralPath $bundledCmake) {
+                    $cmakeExe = $bundledCmake
+                }
+            }
+            if ($cmakeExe) {
                 $found = $true
                 try {
-                    $out = & $cmakeCmd.Source --version | Select-Object -First 1
+                    $out = & $cmakeExe --version | Select-Object -First 1
                     if ($out -match 'cmake version ([0-9\.]+)') {
                         $detectedVersion = $Matches[1]
                     } else {
@@ -323,7 +333,7 @@ foreach ($tool in @($manifest.toolchain)) {
                 $cmp = Compare-SemVer $detectedVersion $tool.minimumVersion
                 if ($cmp -ge 0) {
                     $status = "OK"
-                    $details = "CMake $detectedVersion located in PATH"
+                    $details = "CMake $detectedVersion located"
                 } else {
                     $status = "VERSION_TOO_LOW"
                     $details = "CMake $detectedVersion is below required minimum $($tool.minimumVersion)"
@@ -331,7 +341,7 @@ foreach ($tool in @($manifest.toolchain)) {
                 }
             } else {
                 $status = "NOT_FOUND"
-                $details = "CMake executable not found in PATH"
+                $details = "CMake executable not found in PATH or Visual Studio"
                 if ($tool.category -eq "required") {
                     $errors += "Required tool missing: CMake ($($tool.minimumVersion)+)"
                 }
@@ -339,11 +349,21 @@ foreach ($tool in @($manifest.toolchain)) {
         }
 
         "ninja" {
+            $ninjaExe = $null
             $ninjaCmd = Get-Command "ninja.exe" -ErrorAction SilentlyContinue
-            if ($ninjaCmd) {
+            if ($ninjaCmd -and (Test-Path -LiteralPath $ninjaCmd.Source)) {
+                $ninjaExe = $ninjaCmd.Source
+            }
+            if (-not $ninjaExe -and $vsPath) {
+                $bundledNinja = Join-Path $vsPath "Common7\IDE\CommonExtensions\Microsoft\CMake\Ninja\ninja.exe"
+                if (Test-Path -LiteralPath $bundledNinja) {
+                    $ninjaExe = $bundledNinja
+                }
+            }
+            if ($ninjaExe) {
                 $found = $true
                 try {
-                    $out = & $ninjaCmd.Source --version | Select-Object -First 1
+                    $out = & $ninjaExe --version | Select-Object -First 1
                     $detectedVersion = $out.Trim()
                 } catch {
                     $detectedVersion = "1.10.0"
@@ -351,7 +371,7 @@ foreach ($tool in @($manifest.toolchain)) {
                 $cmp = Compare-SemVer $detectedVersion $tool.minimumVersion
                 if ($cmp -ge 0) {
                     $status = "OK"
-                    $details = "Ninja $detectedVersion located in PATH"
+                    $details = "Ninja $detectedVersion located"
                 } else {
                     $status = "VERSION_TOO_LOW"
                     $details = "Ninja $detectedVersion is below recommended $($tool.minimumVersion)"

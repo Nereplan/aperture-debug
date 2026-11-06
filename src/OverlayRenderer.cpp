@@ -208,6 +208,7 @@ void OverlayRenderer::DrawStringSized(const std::wstring& text, const D2D1_RECT_
     tf->SetParagraphAlignment(valign);
     solidBrush->SetColor(color);
     dcRenderTarget->DrawTextW( text.c_str(), (UINT32)text.length(), tf, rect, solidBrush.Get(), D2D1_DRAW_TEXT_OPTIONS_ENABLE_COLOR_FONT );
+    surfaceHasContent = true;
 }
 
 ComPtr<IDWriteTextLayout> OverlayRenderer::GetOrCreateTextLayout( const std::wstring& text, FontType font, float maxW, float maxH,
@@ -283,6 +284,7 @@ void OverlayRenderer::ReleaseDIB() {
     if (hBitmap) { DeleteObject(hBitmap); hBitmap = NULL; }
     hOldBitmap = NULL;
     pBitmapBits = nullptr;
+    surfaceHasContent = false;
 }
 
 void OverlayRenderer::RecreateDIB() {
@@ -306,11 +308,9 @@ void OverlayRenderer::RecreateDIB() {
 
 bool OverlayRenderer::ReleaseEmptySurface() {
     if (drawActive || !pBitmapBits || !hBitmap) return false;
-    const auto* pixels = static_cast<const uint32_t*>(pBitmapBits);
-    const size_t count = static_cast<size_t>(width) * height;
-    // Checking the complete premultiplied pixel also rejects invalid residual
-    // RGB with zero alpha. Never discard a frame containing visible content.
-    if (std::any_of(pixels, pixels + count, [](uint32_t pixel) { return pixel != 0; })) return false;
+    // Fast-path O(1) check: if any draw call or non-zero Clear occurred since
+    // BeginDraw, reject immediately without scanning the 32-bit DIB buffer.
+    if (surfaceHasContent) return false;
     ReleaseRenderTarget();
     ReleaseDIB();
     return true;
@@ -328,6 +328,7 @@ void OverlayRenderer::BeginDraw() {
     if (FAILED(dcRenderTarget->BindDC(hdcMem, &rc))) return;
     dcRenderTarget->BeginDraw();
     drawActive = true;
+    surfaceHasContent = false;
     dcRenderTarget->SetAntialiasMode(D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
     dcRenderTarget->SetTextAntialiasMode(D2D1_TEXT_ANTIALIAS_MODE_GRAYSCALE);
     if (textRenderingParams) dcRenderTarget->SetTextRenderingParams(textRenderingParams.Get());
@@ -374,7 +375,12 @@ bool OverlayRenderer::EndDrawAndPresent(HWND hOverlayWnd, int screenX, int scree
     return presented;
 }
 
-void OverlayRenderer::Clear(const D2D1_COLOR_F& color) { if (dcRenderTarget) dcRenderTarget->Clear(color); }
+void OverlayRenderer::Clear(const D2D1_COLOR_F& color) {
+    if (dcRenderTarget) {
+        dcRenderTarget->Clear(color);
+        surfaceHasContent = (color.a > 0.0f || color.r > 0.0f || color.g > 0.0f || color.b > 0.0f);
+    }
+}
 
 void OverlayRenderer::FillGradientRect(const D2D1_RECT_F& rect, const D2D1_COLOR_F& startColor, const D2D1_COLOR_F& endColor, bool vertical) {
     if (!dcRenderTarget) return;
@@ -416,12 +422,14 @@ void OverlayRenderer::FillGradientRect(const D2D1_RECT_F& rect, const D2D1_COLOR
         gradBrush->SetStartPoint(startPt);
         gradBrush->SetEndPoint(endPt);
         dcRenderTarget->FillRectangle(snappedRect, gradBrush.Get());
+        surfaceHasContent = true;
     }
 }
 
 void OverlayRenderer::DrawBitmap(ID2D1Bitmap* pBitmap, const D2D1_RECT_F& dstRect, float opacity) {
     if (!dcRenderTarget || !pBitmap || opacity <= 0.001f) return;
     dcRenderTarget->DrawBitmap(pBitmap, SnapRect(dstRect), opacity, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
+    surfaceHasContent = true;
 }
 
 
@@ -437,6 +445,7 @@ void OverlayRenderer::DrawString(const std::wstring& text, const D2D1_RECT_F& re
     dcRenderTarget->DrawTextLayout( D2D1::Point2F(snappedRect.left, snappedRect.top),
         layout.Get(), solidBrush.Get(), D2D1_DRAW_TEXT_OPTIONS_ENABLE_COLOR_FONT );
     if (menuText) dcRenderTarget->SetTextRenderingParams(textRenderingParams.Get());
+    surfaceHasContent = true;
 }
 
 void OverlayRenderer::DrawStringWrapped(const std::wstring& text, const D2D1_RECT_F& rect, const D2D1_COLOR_F& color, FontType font, DWRITE_TEXT_ALIGNMENT align, DWRITE_PARAGRAPH_ALIGNMENT valign) {
@@ -449,6 +458,7 @@ void OverlayRenderer::DrawStringWrapped(const std::wstring& text, const D2D1_REC
     solidBrush->SetColor(color);
     dcRenderTarget->DrawTextLayout( D2D1::Point2F(snappedRect.left, snappedRect.top), layout.Get(), solidBrush.Get(),
         D2D1_DRAW_TEXT_OPTIONS_ENABLE_COLOR_FONT | D2D1_DRAW_TEXT_OPTIONS_CLIP );
+    surfaceHasContent = true;
 }
 
 
@@ -493,6 +503,7 @@ void OverlayRenderer::DrawSvgPath(const char* svgPath, const D2D1_RECT_F& rect, 
         dcRenderTarget->FillGeometry(geom, solidBrush.Get());
     } else { dcRenderTarget->DrawGeometry(geom, solidBrush.Get(), strokeWidth / scale); }
     dcRenderTarget->SetTransform(oldTransform);
+    surfaceHasContent = true;
 }
 
 void OverlayRenderer::DrawIcon(IconType icon, const D2D1_RECT_F& rect, const D2D1_COLOR_F& color, float) {
@@ -517,6 +528,7 @@ void OverlayRenderer::DrawDropShadow(const D2D1_RECT_F& rect, float radius, floa
         solidBrush->SetColor(D2D1::ColorF(color.r, color.g, color.b, a));
         dcRenderTarget->FillRoundedRectangle(s, solidBrush.Get());
     }
+    surfaceHasContent = true;
 }
 
 void OverlayRenderer::DrawGlow(const D2D1_RECT_F& rect, float radius, float blur, const D2D1_COLOR_F& glowColor) {
@@ -592,17 +604,35 @@ void OverlayRenderer::DrawSubtitle(const std::wstring& text, const D2D1_RECT_F& 
         float alpha = (style == "solid") ? 0.85f : 0.45f;
         FillRoundedRect(subRect, 8.0f * dp, D2D1::ColorF(0.0f, 0.0f, 0.0f, alpha));
     } else if (style == "vlc-outline") {
+        solidBrush->SetColor(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.95f));
+        // Full 1px 8-neighborhood plus 4 cardinal 2px offsets (12 passes vs 24):
+        // preserves a continuous, gap-free 2px outline at 96 DPI while cutting
+        // software ID2D1DCRenderTarget glyph rasterization passes in half.
+        static constexpr int kOffsets[12][2] = {
+            {-1, -1}, {-1, 0}, {-1, 1},
+            { 0, -1},          { 0, 1},
+            { 1, -1}, { 1, 0}, { 1, 1},
+            {-2,  0}, { 2, 0}, { 0, -2}, { 0, 2}
+        };
+        for (const auto& off : kOffsets) {
+            dcRenderTarget->DrawTextLayout(
+                D2D1::Point2F(subRect.left + off[0] * dp, subRect.top + off[1] * dp),
+                subtitleLayout.Get(), solidBrush.Get(), D2D1_DRAW_TEXT_OPTIONS_CLIP);
+        }
+    } else if (style == "vlc-outline-24") {
+        solidBrush->SetColor(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.95f));
         for (int ox = -2; ox <= 2; ++ox) {
             for (int oy = -2; oy <= 2; ++oy) {
                 if (ox == 0 && oy == 0) continue;
-                D2D1_RECT_F oRect = D2D1::RectF(subRect.left + ox * dp, subRect.top + oy * dp, subRect.right + ox * dp, subRect.bottom + oy * dp);
-                solidBrush->SetColor(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.95f));
-                dcRenderTarget->DrawTextLayout(D2D1::Point2F(oRect.left, oRect.top), subtitleLayout.Get(), solidBrush.Get(), D2D1_DRAW_TEXT_OPTIONS_CLIP);
+                dcRenderTarget->DrawTextLayout(
+                    D2D1::Point2F(subRect.left + ox * dp, subRect.top + oy * dp),
+                    subtitleLayout.Get(), solidBrush.Get(), D2D1_DRAW_TEXT_OPTIONS_CLIP);
             }
         }
     }
     solidBrush->SetColor(textColor);
     dcRenderTarget->DrawTextLayout(D2D1::Point2F(subRect.left, subRect.top), subtitleLayout.Get(), solidBrush.Get(), D2D1_DRAW_TEXT_OPTIONS_CLIP);
+    surfaceHasContent = true;
 }
 
 void OverlayRenderer::PushClip(const D2D1_RECT_F& rect) {

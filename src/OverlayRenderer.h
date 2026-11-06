@@ -44,6 +44,7 @@ public:
     };
     FrameStatistics GetFrameStatistics() const;
     void BeginDraw();
+    void Flush() { if (dcRenderTarget && drawActive) dcRenderTarget->Flush(); }
     // After presentation, discard CPU drawing buffers only for an empty frame.
     // The layered window keeps its presented image; drawing recreates buffers.
     bool ReleaseEmptySurface();
@@ -89,6 +90,7 @@ private:
     friend struct PlaybackUiTestAccess;
     friend class DrawingPrimitives<OverlayRenderer>;
     auto DrawingTarget() const { return dcRenderTarget.Get(); }
+    void OnPrimitiveDrawn() { surfaceHasContent = true; }
     using DrawingPrimitives::FillRoundedGradientRect;
     UINT width = 0, height = 0;
     HDC hdcMem = NULL;
@@ -155,6 +157,7 @@ private:
     // Set only while a DC target is between BeginDraw and EndDraw.  This
     // avoids attempting a target rebuild from an invalid draw state.
     bool drawActive = false;
+    bool surfaceHasContent = false;
     ComPtr<IDWriteTextFormat> subtitleFormat;
     ComPtr<IDWriteTextLayout> subtitleLayout;
     std::wstring subtitleLayoutText;

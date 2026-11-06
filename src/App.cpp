@@ -445,6 +445,8 @@ void App::RestoreLogicalFocus(const FocusSnapshot& snapshot) {
             keyboardFocusedIndex = std::clamp(snapshot.keyboardIndex, 0, 7);
             currentSettingsCat = static_cast<SettingsCategory>(keyboardFocusedIndex);
             hoveredSettingsRow = -1;
+            hoveredSettingsOptionRow = -1;
+            hoveredSettingsOptionSub = -1;
             targetAccessibilityId = 500 + keyboardFocusedIndex;
             break;
         }
@@ -1079,11 +1081,18 @@ void App::SnapVisualAnimations() {
     for (auto& pair : playlistCardExpands) {
         pair.second.SnapTo(pair.second.to);
     }
-    for (auto& row : rowAnimStates) {
-        row.height.SnapTo(row.height.to);
-        row.liftY.SnapTo(row.liftY.to);
-        row.previewOpacity.SnapTo(row.previewOpacity.to);
+    const auto& visibleIndices = GetVisibleMediaIndices();
+    const bool hasPinned = !isLastWatchedCleared && !visibleIndices.empty() && libraryGroupMode == LibraryGroupMode::Flat &&
+        (visibleIndices[0] < library.mediaItems.size() && library.mediaItems[visibleIndices[0]].lastWatchedTimestamp > 0);
+    for (size_t i = 0; i < rowAnimStates.size(); ++i) {
+        auto& row = rowAnimStates[i];
+        const float restH = (hasPinned && i == 0) ? kMediaPinnedRestHeight : kMediaRestHeight;
+        row.height.SnapTo(restH);
+        row.liftY.SnapTo(0.0f);
+        row.previewOpacity.SnapTo(0.0f);
     }
+    InvalidateMediaLayoutCache();
+    previewPlayer.StopPreview();
     if (playbackSession.IsOpen()) {
         const bool controlsForcedVisible = isScrubbing || isVolumeScrubbing || isSettingsFlyoutOpen || isContextMenuOpen;
         controlsOpacity = controlsForcedVisible ? 1.0f : (controlsIdleTimer >= (player.IsPlaying() ? 1.2f : 2.0f) ? 0.0f : 1.0f);
@@ -1302,6 +1311,8 @@ void App::ResolveSettingsHover(float x, float y) {
     float curCatY = viewBounds.top + SettingsLayout::kSidebarTopInset * dp;
     hoveredSettingsCat = (SettingsCategory)-1;
     hoveredSettingsRow = -1;
+    hoveredSettingsOptionRow = -1;
+    hoveredSettingsOptionSub = -1;
     hoveredShortcutIndex = -1;
     hoveredShortcutUnassignIndex = -1;
     isResetShortcutsHovered = false;
@@ -1320,7 +1331,127 @@ void App::ResolveSettingsHover(float x, float y) {
         ? SettingsLayout::kSubtitlePageHeaderReserve : SettingsLayout::kPageHeaderReserve;
     float contentY = SettingsLayout::ContentTop(contentBounds, dp, settingsScrollY, headerReserve);
     float contentW = RectWidth(contentBounds) - padX * 2.0f;
-    if (currentSettingsCat == SettingsCategory::System) {
+    if (currentSettingsCat == SettingsCategory::Experience) {
+        const bool customSettings = FeatureGate::ModeFromString(settings.experienceMode) == ExperienceMode::Custom;
+        const auto layout = SettingsLayout::MakeExperienceLayout(contentBounds.left + padX, contentBounds.right - padX, contentY, dp, customSettings);
+        for (int i = 0; i < 3; ++i) {
+            if (PtInRectF(layout.modeTiles[i], x, y)) {
+                hoveredSettingsOptionRow = 0;
+                hoveredSettingsOptionSub = i;
+                return;
+            }
+        }
+        if (customSettings) {
+            for (size_t i = 0; i < FeatureGate::Catalog().size(); ++i) {
+                if (PtInRectF(layout.rows[i], x, y)) {
+                    hoveredSettingsOptionRow = static_cast<int>(i) + 1;
+                    hoveredSettingsOptionSub = 0;
+                    return;
+                }
+            }
+        }
+    } else if (currentSettingsCat == SettingsCategory::Appearance) {
+        contentY += 28.0f * dp;
+        const auto& allThemes = settings.GetAllThemes();
+        float cardW = (contentW - 12.0f * dp) * 0.5f;
+        float cardH = 46.0f * dp;
+        for (size_t i = 0; i < allThemes.size(); ++i) {
+            float col = (float)(i % 2);
+            float row = (float)(i / 2);
+            float tx = contentBounds.left + padX + col * (cardW + 12.0f * dp);
+            float ty = contentY + row * (cardH + 8.0f * dp);
+            if (x >= tx && x <= tx + cardW && y >= ty && y <= ty + cardH) {
+                hoveredSettingsOptionRow = 0;
+                hoveredSettingsOptionSub = static_cast<int>(i);
+                return;
+            }
+        }
+        contentY += (((allThemes.size() + 1) / 2) * (cardH + 8.0f * dp)) + 16.0f * dp;
+        contentY += 28.0f * dp;
+        auto languages = settings.GetAvailableLanguages();
+        float langW = (contentW - 16.0f * dp) / 3.0f;
+        float langH = 34.0f * dp;
+        for (size_t i = 0; i < languages.size(); ++i) {
+            float col = (float)(i % 3);
+            float row = (float)(i / 3);
+            float lx = contentBounds.left + padX + col * (langW + 8.0f * dp);
+            float ly = contentY + row * (langH + 8.0f * dp);
+            if (x >= lx && x <= lx + langW && y >= ly && y <= ly + langH) {
+                hoveredSettingsOptionRow = 1;
+                hoveredSettingsOptionSub = static_cast<int>(i);
+                return;
+            }
+        }
+    } else if (currentSettingsCat == SettingsCategory::Playback) {
+        const bool simpleSettings = FeatureGate::ModeFromString(settings.experienceMode) == ExperienceMode::Simple;
+        const float cardGap = SettingsLayout::kSectionCardGap * dp, titleH = SettingsLayout::kPlaybackCardTitleHeight * dp;
+        const float rowH = SettingsLayout::kPlaybackBehaviorRowHeight * dp;
+        const float simpleCardH = SettingsLayout::kPlaybackSimpleCardHeight * dp, contentLeft = contentBounds.left + padX;
+        const float contentRight = contentBounds.right - padX;
+        const float behaviorTop = contentY;
+        contentY = behaviorTop + titleH;
+        for (int i = 0; i < 4; ++i) {
+            D2D1_RECT_F rRect = D2D1::RectF(contentLeft, contentY + i * rowH, contentRight, contentY + (i + 1) * rowH);
+            if (PtInRectF(rRect, x, y)) {
+                hoveredSettingsOptionRow = i;
+                hoveredSettingsOptionSub = 0;
+                return;
+            }
+        }
+        contentY = behaviorTop + SettingsLayout::kPlaybackBehaviorCardHeight * dp + cardGap;
+        const float seekCardTop = contentY;
+        D2D1_RECT_F seekRowRect = D2D1::RectF(contentLeft, seekCardTop + 8.0f * dp, contentRight, seekCardTop + simpleCardH - 8.0f * dp);
+        D2D1_RECT_F dropRect = D2D1::RectF(seekRowRect.right - 220.0f * dp, seekRowRect.top + 8.0f * dp, seekRowRect.right - 100.0f * dp, seekRowRect.bottom - 8.0f * dp);
+        D2D1_RECT_F custBtnRect = D2D1::RectF(seekRowRect.right - 92.0f * dp, seekRowRect.top + 8.0f * dp, seekRowRect.right - 10.0f * dp, seekRowRect.bottom - 8.0f * dp);
+        if (PtInRectF(dropRect, x, y)) { hoveredSettingsOptionRow = 4; hoveredSettingsOptionSub = 0; return; }
+        if (PtInRectF(custBtnRect, x, y)) { hoveredSettingsOptionRow = 4; hoveredSettingsOptionSub = 1; return; }
+        contentY = seekCardTop + simpleCardH + cardGap;
+        const float frameCardTop = contentY;
+        D2D1_RECT_F frameRowRect = D2D1::RectF(contentLeft, frameCardTop + 8.0f * dp, contentRight, frameCardTop + simpleCardH - 8.0f * dp);
+        D2D1_RECT_F fDropRect = D2D1::RectF(frameRowRect.right - 220.0f * dp, frameRowRect.top + 8.0f * dp, frameRowRect.right - 100.0f * dp, frameRowRect.bottom - 8.0f * dp);
+        D2D1_RECT_F fCustBtnRect = D2D1::RectF(frameRowRect.right - 92.0f * dp, frameRowRect.top + 8.0f * dp, frameRowRect.right - 10.0f * dp, frameRowRect.bottom - 8.0f * dp);
+        if (PtInRectF(fDropRect, x, y)) { hoveredSettingsOptionRow = 5; hoveredSettingsOptionSub = 0; return; }
+        if (PtInRectF(fCustBtnRect, x, y)) { hoveredSettingsOptionRow = 5; hoveredSettingsOptionSub = 1; return; }
+        contentY = frameCardTop + simpleCardH + cardGap;
+        const float speedCardTop = contentY;
+        float spdW = (contentW - 25.0f * dp) / 6.0f;
+        float pH = 34.0f * dp;
+        contentY = speedCardTop + 42.0f * dp;
+        for (int i = 0; i < 6; ++i) {
+            D2D1_RECT_F spdRect = D2D1::RectF(contentLeft + i * (spdW + 5.0f * dp), contentY, contentLeft + i * (spdW + 5.0f * dp) + spdW, contentY + pH);
+            if (PtInRectF(spdRect, x, y)) { hoveredSettingsOptionRow = 6; hoveredSettingsOptionSub = i; return; }
+        }
+        if (!simpleSettings) {
+            const float mpvCardTop = speedCardTop + SettingsLayout::kPlaybackSpeedCardHeight * dp + cardGap;
+            contentY = mpvCardTop + titleH;
+            D2D1_RECT_F mpvSwitchRect = D2D1::RectF(contentLeft, contentY, contentRight, contentY + SettingsLayout::kPlaybackMpvSwitchHeight * dp);
+            if (PtInRectF(mpvSwitchRect, x, y)) { hoveredSettingsOptionRow = 7; hoveredSettingsOptionSub = 0; return; }
+            contentY = mpvCardTop + SettingsLayout::kPlaybackMpvActionTop * dp;
+            const float mpvActCardH = SettingsLayout::kPlaybackMpvActionHeight * dp;
+            const float mpvActGap = SettingsLayout::kPlaybackMpvActionGap * dp;
+            for (int i = 0; i < 3; ++i) {
+                D2D1_RECT_F actRowRect = D2D1::RectF(contentLeft, contentY + i * (mpvActCardH + mpvActGap), contentRight, contentY + i * (mpvActCardH + mpvActGap) + mpvActCardH);
+                if (PtInRectF(actRowRect, x, y)) { hoveredSettingsOptionRow = 8; hoveredSettingsOptionSub = i; return; }
+            }
+            contentY = mpvCardTop + SettingsLayout::kPlaybackMpvCardHeight * dp + cardGap;
+            for (int i = 9; i <= 11; ++i) {
+                D2D1_RECT_F sysCardRect = D2D1::RectF(contentLeft, contentY, contentRight, contentY + simpleCardH);
+                if (PtInRectF(sysCardRect, x, y)) { hoveredSettingsOptionRow = i; hoveredSettingsOptionSub = 0; return; }
+                contentY += simpleCardH + cardGap;
+            }
+            D2D1_RECT_F fwdCacheRowRect = D2D1::RectF(contentLeft, contentY + 8.0f * dp, contentRight, contentY + simpleCardH - 8.0f * dp);
+            D2D1_RECT_F fwdDropRect = D2D1::RectF(fwdCacheRowRect.right - 220.0f * dp, fwdCacheRowRect.top + 8.0f * dp, fwdCacheRowRect.right - 100.0f * dp, fwdCacheRowRect.bottom - 8.0f * dp);
+            D2D1_RECT_F fwdCustBtnRect = D2D1::RectF(fwdCacheRowRect.right - 92.0f * dp, fwdCacheRowRect.top + 8.0f * dp, fwdCacheRowRect.right - 10.0f * dp, fwdCacheRowRect.bottom - 8.0f * dp);
+            if (PtInRectF(fwdDropRect, x, y)) { hoveredSettingsOptionRow = 12; hoveredSettingsOptionSub = 0; return; }
+            if (PtInRectF(fwdCustBtnRect, x, y)) { hoveredSettingsOptionRow = 12; hoveredSettingsOptionSub = 1; return; }
+            contentY += simpleCardH + cardGap;
+            D2D1_RECT_F backCacheRowRect = D2D1::RectF(contentLeft, contentY + 8.0f * dp, contentRight, contentY + simpleCardH - 8.0f * dp);
+            D2D1_RECT_F backDropRect = D2D1::RectF(backCacheRowRect.right - 220.0f * dp, backCacheRowRect.top + 8.0f * dp, backCacheRowRect.right - 100.0f * dp, backCacheRowRect.bottom - 8.0f * dp);
+            D2D1_RECT_F backCustBtnRect = D2D1::RectF(backCacheRowRect.right - 92.0f * dp, backCacheRowRect.top + 8.0f * dp, backCacheRowRect.right - 10.0f * dp, backCacheRowRect.bottom - 8.0f * dp);
+            if (PtInRectF(backDropRect, x, y)) { hoveredSettingsOptionRow = 13; hoveredSettingsOptionSub = 0; return; }
+            if (PtInRectF(backCustBtnRect, x, y)) { hoveredSettingsOptionRow = 13; hoveredSettingsOptionSub = 1; return; }
+        }
+    } else if (currentSettingsCat == SettingsCategory::System) {
         hoveredSettingsRow = HitTestSystemSettingsRow(contentBounds, contentY, x, y);
     } else if (currentSettingsCat == SettingsCategory::Shortcuts) {
         float resetW = 150.0f * dp, resetH = 26.0f * dp;
@@ -1524,15 +1655,15 @@ void App::ClampScrollOffsets() {
             const float dp = std::max(0.5f, renderer.GetDpiScale());
             const float winW = static_cast<float>(std::max<LONG>(1, rc.right - rc.left));
             const float winH = static_cast<float>(std::max<LONG>(1, rc.bottom - rc.top));
-            if (!(touchOwnsPane && touchPanPane == AutoscrollPane::Media))
+            if (!(touchOwnsPane && touchPanPane == AutoscrollPane::Media) && (currentTab == TabView::Media || mediaScrollY > 0.0f))
                 mediaScrollY = clamp(mediaScrollY, GetMaxScrollForPaneInViewport(AutoscrollPane::Media, winW, winH, dp));
-            if (!(touchOwnsPane && touchPanPane == AutoscrollPane::PlaylistRail))
+            if (!(touchOwnsPane && touchPanPane == AutoscrollPane::PlaylistRail) && (currentTab == TabView::Playlists || playlistRailScrollY > 0.0f))
                 playlistRailScrollY = clamp(playlistRailScrollY, GetMaxScrollForPaneInViewport(AutoscrollPane::PlaylistRail, winW, winH, dp));
-            if (!(touchOwnsPane && touchPanPane == AutoscrollPane::PlaylistDetail))
+            if (!(touchOwnsPane && touchPanPane == AutoscrollPane::PlaylistDetail) && (currentTab == TabView::Playlists || playlistDetailScrollY > 0.0f))
                 playlistDetailScrollY = clamp(playlistDetailScrollY, GetMaxScrollForPaneInViewport(AutoscrollPane::PlaylistDetail, winW, winH, dp));
-            if (!(touchOwnsPane && touchPanPane == AutoscrollPane::History))
+            if (!(touchOwnsPane && touchPanPane == AutoscrollPane::History) && (currentTab == TabView::History || historyScrollY > 0.0f))
                 historyScrollY = clamp(historyScrollY, GetMaxScrollForPaneInViewport(AutoscrollPane::History, winW, winH, dp));
-            if (!(touchOwnsPane && touchPanPane == AutoscrollPane::Settings))
+            if (!(touchOwnsPane && touchPanPane == AutoscrollPane::Settings) && (currentTab == TabView::Settings || settingsScrollY > 0.0f))
                 settingsScrollY = clamp(settingsScrollY, GetMaxScrollForPaneInViewport(AutoscrollPane::Settings, winW, winH, dp));
         }
     }
@@ -2490,7 +2621,7 @@ bool App::Update(float dt) {
                     (!visibleIndices.empty() && visibleIndices[0] < library.mediaItems.size() && library.mediaItems[visibleIndices[0]].lastWatchedTimestamp > 0));
                 if (!IsAutoscrolling() && activeDragType == DragType::None && !touchPressSuppressesHoverExpand &&
                     row.isHovering && row.hoverEnterTime >= 0.0f) {
-                    if ((NowSeconds() - row.hoverEnterTime) >= MotionTokens::kHoverRevealDelay) {
+                    if ((NowSeconds() - row.hoverEnterTime) >= MotionTokens::kHoverRevealDelay && !IsReducedMotionEnabled()) {
                         const float expandedH = isPinned ? kMediaPinnedRestHeight : 180.0f;
                         if (!isPinned && std::abs(row.height.to - expandedH) > 0.01f) {
                             AnimateVisual(row.height, expandedH, MotionTokens::kPreview, MotionTokens::Standard());
@@ -2500,7 +2631,7 @@ bool App::Update(float dt) {
                             AnimateVisual(row.liftY, 2.0f, MotionTokens::kReveal, MotionTokens::Spring());
                             AnimateVisual(row.previewOpacity, 1.0f, MotionTokens::kPreview, MotionTokens::Spring());
                         }
-                        if (settings.hoverPreviewEnabled && idx < visibleIndices.size()) {
+                        if (settings.hoverPreviewEnabled && !row.height.animating && idx < visibleIndices.size()) {
                             size_t origIdx = visibleIndices[idx];
                             if (origIdx < library.mediaItems.size()) {
                                 const auto& item = library.mediaItems[origIdx];
@@ -2512,7 +2643,7 @@ bool App::Update(float dt) {
                                     if (GetClientRect(hWnd, &prc) && prc.right > prc.left) {
                                         const float pdp = std::max(0.5f, renderer.GetDpiScale());
                                         const float rowPxW = std::max(0.0f, (float)(prc.right - prc.left) - 24.0f * pdp);
-                                        int wantW = (int)std::clamp(rowPxW, 640.0f, 960.0f);
+                                        int wantW = (int)std::clamp(rowPxW * 0.5f, 384.0f, 480.0f);
                                         int wantH = wantW * 9 / 16;
                                         previewPlayer.SetPreviewOutputSize(wantW, wantH);
                                     }
@@ -2549,7 +2680,7 @@ bool App::Update(float dt) {
         }
         // Playlist "Continue Watching" card hover preview (same behavior as the media-row expanded preview).
         if (currentTab == TabView::Playlists && isPlaylistResumeHovered && !playbackSession.IsOpen() &&
-            !touchPressSuppressesHoverExpand && !resumePreviewPath.empty()) {
+            !touchPressSuppressesHoverExpand && !IsReducedMotionEnabled() && !resumePreviewPath.empty()) {
             if (resumeHoverEnter < 0.0) resumeHoverEnter = NowSeconds();
             if (!resumePreviewStarted && (NowSeconds() - resumeHoverEnter) >= MotionTokens::kHoverRevealDelay) {
                 const bool canPreview = previewInitialized || (!previewInitAttempted && EnsurePreviewInitialized());
@@ -2558,7 +2689,8 @@ bool App::Update(float dt) {
                     if (GetClientRect(hWnd, &prc) && prc.right > prc.left) {
                         const float pdp = std::max(0.5f, renderer.GetDpiScale());
                         const float rowPxW = std::max(0.0f, (float)(prc.right - prc.left) - 24.0f * pdp);
-                        previewPlayer.SetPreviewOutputSize((int)std::clamp(rowPxW, 640.0f, 1280.0f), (int)std::clamp(rowPxW, 640.0f, 1280.0f) * 9 / 16);
+                        const int wantW = (int)std::clamp(rowPxW * 0.5f, 384.0f, 512.0f);
+                        previewPlayer.SetPreviewOutputSize(wantW, wantW * 9 / 16);
                     }
                     if (previewPlayer.GetCurrentPreviewPath() != resumePreviewPath)
                         previewPlayer.StartPreview(resumePreviewPath, resumeResumePos);
@@ -2644,14 +2776,17 @@ bool App::Update(float dt) {
         // Experience feature toggles ease toward the enabled state of their
         // catalog feature; the target re-resolves whenever the mode changes.
         // Index by catalog position (render order), never by FeatureId.
-        for (int i = 0; i < 40; ++i) {
-            const bool enabled = FeatureGate::FeatureEnabledAt(FeatureGate::ModeFromString(settings.experienceMode),
-                                                               settings.customEnabledFeatures, static_cast<size_t>(i));
-            const float toggleTarget = enabled ? 1.0f : 0.0f;
-            if (std::abs(experienceToggleAnim[i].to - toggleTarget) > 0.001f) {
-                AnimateVisual(experienceToggleAnim[i], toggleTarget, MotionTokens::kToggle, MotionTokens::Standard());
+        if (currentTab == TabView::Settings && currentSettingsCat == SettingsCategory::Experience) {
+            const auto expMode = FeatureGate::ModeFromString(settings.experienceMode);
+            for (int i = 0; i < 40; ++i) {
+                const bool enabled = FeatureGate::FeatureEnabledAt(expMode,
+                                                                   settings.customEnabledFeatures, static_cast<size_t>(i));
+                const float toggleTarget = enabled ? 1.0f : 0.0f;
+                if (std::abs(experienceToggleAnim[i].to - toggleTarget) > 0.001f) {
+                    AnimateVisual(experienceToggleAnim[i], toggleTarget, MotionTokens::kToggle, MotionTokens::Standard());
+                }
+                if (experienceToggleAnim[i].Tick()) needsRedraw = true;
             }
-            if (experienceToggleAnim[i].Tick()) needsRedraw = true;
         }
         // System & Storage rows ease toward their hover/press targets here; the
         // pressed flag itself flips inside the mouse handlers and renders
@@ -2797,12 +2932,10 @@ void App::Render() {
     RefreshAccessibilityTree(false);
     playerTooltips.SetActive(false);
     playerTooltips.HideForKeyboard();
-    RefreshHubTooltips();
     // --- Hub Library View (Rendered directly on main window) ---
     if (!RenderHubFrame()) return;
-    // The first refresh above predates this frame's render; run it again so
-    // tools laid out during the frame (e.g. compact Settings descriptions)
-    // are registered at their final positions.
+    // Register tooltips after the frame so tools laid out during rendering
+    // (e.g. compact Settings descriptions) use their final positions.
     RefreshHubTooltips();
     // Reveal a complete hub frame before removing playback surfaces.
     if (hVideoWnd && IsWindowVisible(hVideoWnd)) ShowWindow(hVideoWnd, SW_HIDE);
@@ -2906,6 +3039,7 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
         case WM_GETOBJECT:
             if (bootstrapping) break;
             if (static_cast<LONG>(lParam) == OBJID_CLIENT || static_cast<LONG>(lParam) == static_cast<LONG>(UiaRootObjectId)) {
+                accessibilityClientActive = true;
                 RefreshAccessibilityTree(true);
                 return accessibilityTree.HandleGetObject(wParam, lParam);
             }
@@ -3484,7 +3618,10 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
             const int oldHoveredHistoryEmptyBtn = hoveredHistoryEmptyBtn;
             const SettingsCategory oldHoveredSettingsCat = hoveredSettingsCat;
             const int oldHoveredSettingsRow = hoveredSettingsRow;
+            const int oldHoveredSettingsOptionRow = hoveredSettingsOptionRow;
+            const int oldHoveredSettingsOptionSub = hoveredSettingsOptionSub;
             const int oldHoveredShortcutIndex = hoveredShortcutIndex;
+            const int oldHoveredShortcutUnassignIndex = hoveredShortcutUnassignIndex;
             const bool oldResetShortcutsHovered = isResetShortcutsHovered;
             const int oldHoveredContextMenuItem = hoveredContextMenuItem;
             const int oldHoveredIrisShoulder = hoveredIrisShoulder;
@@ -3494,6 +3631,13 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
             const int oldListenHoveredEpisodeFeed = listenHoveredEpisodeFeed;
             const int oldListenHoveredStation = listenHoveredStation;
             const bool oldListenAddPodcastHovered = listenAddPodcastHovered;
+            const int oldListenHoveredFeedPlay = listenHoveredFeedPlay;
+            const int oldListenHoveredFeedRemove = listenHoveredFeedRemove;
+            const int oldListenHoveredStationPlay = listenHoveredStationPlay;
+            const bool oldListenBannerRetryHovered = listenBannerRetryHovered;
+            const bool oldListenRadioSearchClearHovered = listenRadioSearchClearHovered;
+            const bool oldListenRadioAddStationHovered = listenRadioAddStationHovered;
+            const bool oldListenStateButtonHovered = listenStateButtonHovered;
             if (playbackSession.IsOpen() && activeModal == ModalType::None) {
                 if (activeTextInputField == TextInputField::PlaybackSpeed && textInputDragging) {
                     SetTextInputCaretFromMouse(x, y, true);
@@ -3881,7 +4025,11 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                 oldHoveredHistoryIndex != hoveredHistoryIndex || oldHoveredHistoryDeleteIndex != hoveredHistoryDeleteIndex ||
                 oldHoveredHistoryEmptyBtn != hoveredHistoryEmptyBtn || oldHoveredSettingsCat != hoveredSettingsCat ||
                 oldHoveredSettingsRow != hoveredSettingsRow ||
-                oldHoveredShortcutIndex != hoveredShortcutIndex || oldResetShortcutsHovered != isResetShortcutsHovered ||
+                oldHoveredSettingsOptionRow != hoveredSettingsOptionRow ||
+                oldHoveredSettingsOptionSub != hoveredSettingsOptionSub ||
+                oldHoveredShortcutIndex != hoveredShortcutIndex ||
+                oldHoveredShortcutUnassignIndex != hoveredShortcutUnassignIndex ||
+                oldResetShortcutsHovered != isResetShortcutsHovered ||
                 oldHoveredContextMenuItem != hoveredContextMenuItem ||
                 oldHoveredIrisShoulder != hoveredIrisShoulder ||
                 oldActiveIrisDialIndex != activeIrisDialIndex ||
@@ -3889,11 +4037,15 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                 oldListenHoveredEpisode != listenHoveredEpisode ||
                 oldListenHoveredEpisodeFeed != listenHoveredEpisodeFeed ||
                 oldListenHoveredStation != listenHoveredStation ||
-                oldListenAddPodcastHovered != listenAddPodcastHovered;
-            // Settings rows resolve hover at draw time (pointerIn), so any
-            // mousemove over the tab must repaint even when tracked state is
-            // unchanged — otherwise highlights lag behind the cursor.
-            if (hoverChanged || currentTab == TabView::Settings) InvalidateRect(hWnd, NULL, FALSE);
+                oldListenAddPodcastHovered != listenAddPodcastHovered ||
+                oldListenHoveredFeedPlay != listenHoveredFeedPlay ||
+                oldListenHoveredFeedRemove != listenHoveredFeedRemove ||
+                oldListenHoveredStationPlay != listenHoveredStationPlay ||
+                oldListenBannerRetryHovered != listenBannerRetryHovered ||
+                oldListenRadioSearchClearHovered != listenRadioSearchClearHovered ||
+                oldListenRadioAddStationHovered != listenRadioAddStationHovered ||
+                oldListenStateButtonHovered != listenStateButtonHovered;
+            if (hoverChanged) InvalidateRect(hWnd, NULL, FALSE);
             return 0;
         }
         case WM_MOUSELEAVE: { OnMouseLeave(); InvalidateRect(hWnd, NULL, FALSE); return 0; }
@@ -4502,20 +4654,39 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                     int pressedMediaIndex = -1;
                     bool pressedPinnedClose = false;
                     if (!visibleIndices.empty()) {
-                        const auto mediaVm = BuildHubRenderViewModel();
-                        for (const auto& card : mediaVm.mediaTab.visibleCards) {
-                            if (card.isPlaceholder) continue;
-                            D2D1_RECT_F visualRect = card.itemRect;
-                            visualRect.top -= card.liftY;
-                            visualRect.bottom -= card.liftY;
+                        EnsureMediaLayoutCache();
+                        const float tbH = 32.0f * dp, listTop = viewBounds.top + tbH + 12.0f * dp;
+                        const float cardLeft = viewBounds.left + 1.0f * dp, cardRight = viewBounds.right - 2.0f * dp;
+                        const bool hasPinned = !isLastWatchedCleared && libraryGroupMode == LibraryGroupMode::Flat &&
+                            (visibleIndices[0] < library.mediaItems.size() && library.mediaItems[visibleIndices[0]].lastWatchedTimestamp > 0);
+                        const bool isMediaDrag = (activeDragType == DragType::MediaList);
+                        const float scrollYDIP = mediaScrollY / dp;
+                        const float viewportHDIP = (winH - listTop) / dp;
+                        const auto [firstVisible, lastVisible] = GetVisibleMediaRowRange(scrollYDIP, viewportHDIP, visibleIndices.size(), 2);
+                        for (size_t i = firstVisible; i < lastVisible; ++i) {
+                            if (isMediaDrag && (int)i == dragFromIndex) continue;
+                            const size_t origIdx = visibleIndices[i];
+                            if (origIdx >= library.mediaItems.size()) continue;
+                            const float rowTopDIP = GetMediaRowTopDIP(i);
+                            float curY = listTop + (rowTopDIP * dp) - mediaScrollY;
+                            const bool isPinned = (hasPinned && i == 0);
+                            const float baseH = isPinned ? kMediaPinnedRestHeight : kMediaRestHeight;
+                            const float itemH = (i < rowAnimStates.size() && rowAnimStates[i].height.current > 10.0f)
+                                ? (rowAnimStates[i].height.current * dp) : (baseH * dp);
+                            const float lift = (i < rowAnimStates.size() && !isMediaDrag) ? (rowAnimStates[i].liftY.current * dp) : 0.0f;
+                            if (isMediaDrag && dragFromIndex >= 0 && dragToIndex >= 0 && (int)i != dragFromIndex) {
+                                const int slot = Reorder::Slot(static_cast<int>(i), dragFromIndex, dragToIndex);
+                                const float desired = (GetMediaRowTopDIP(static_cast<size_t>(slot)) - rowTopDIP) * dp;
+                                curY += CardDragOffset(static_cast<int>(i), 0, desired).y;
+                            }
+                            if (curY + itemH < listTop || curY > winH) continue;
+                            const D2D1_RECT_F visualRect = D2D1::RectF(cardLeft, curY - lift, cardRight, curY + itemH - lift);
                             if (!PtInRectF(visualRect, x, y)) continue;
-                            auto it = std::find(visibleIndices.begin(), visibleIndices.end(), card.originalIndex);
-                            if (it == visibleIndices.end()) break;
-                            pressedMediaIndex = static_cast<int>(std::distance(visibleIndices.begin(), it));
-                            if (card.isPinned) {
+                            pressedMediaIndex = static_cast<int>(i);
+                            if (isPinned) {
                                 const float closeSize = 28.0f * dp, closeX = visualRect.right - 14.0f * dp - closeSize;
                                 const float closeY = visualRect.top + (RectHeight(visualRect) - closeSize) * 0.5f;
-                                const D2D1_RECT_F closeRect = D2D1::RectF( closeX, closeY, closeX + closeSize, closeY + closeSize);
+                                const D2D1_RECT_F closeRect = D2D1::RectF(closeX, closeY, closeX + closeSize, closeY + closeSize);
                                 pressedPinnedClose = PtInRectF(closeRect, x, y);
                             }
                             break;
@@ -6041,6 +6212,8 @@ LRESULT App::HandleOverlayMessage(HWND hOverlay, UINT uMsg, WPARAM wParam, LPARA
             }
             // If controls are hidden and not scrubbing/flying out, suppress hover calculations
             if (controlsOpacity <= 0.02f && controlsIdleTimer >= (player.IsPlaying() ? 1.2f : 2.0f) && !isScrubbing && !isVolumeScrubbing && !isSettingsFlyoutOpen && !isContextMenuOpen && !isJumpAheadVisible && !isVideoPanDragging) {
+                const bool hadHover = (hoveredPlayerButtonId != 0 || isBackHovered || isVolumeHovered || isTimelineHovered ||
+                                       hoveredFlyoutOption != -1 || hoveredContextMenuItem != -1 || isJumpAheadHovered);
                 hoveredPlayerButtonId = 0;
                 isBackHovered = false;
                 isVolumeHovered = false;
@@ -6048,7 +6221,7 @@ LRESULT App::HandleOverlayMessage(HWND hOverlay, UINT uMsg, WPARAM wParam, LPARA
                 hoveredFlyoutOption = -1;
                 hoveredContextMenuItem = -1;
                 isJumpAheadHovered = false;
-                Render();
+                if (hadHover) Render();
                 return 0;
             }
             // Check scrubbing (timeline track drag)
@@ -6571,6 +6744,8 @@ void App::SetSettingsCategory(SettingsCategory cat) {
     currentTab = TabView::Settings;
     settingsScrollY = 0.0f;
     hoveredSettingsRow = -1;
+    hoveredSettingsOptionRow = -1;
+    hoveredSettingsOptionSub = -1;
     if (hWnd) InvalidateRect(hWnd, NULL, FALSE);
 }
 

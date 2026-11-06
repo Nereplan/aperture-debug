@@ -3,6 +3,7 @@
 #include "Localization.h"
 #include "MpvPlayer.h"
 #include "MediaProbeIsolation.h"
+#include <chrono>
 #include <cmath>
 
 namespace Aperture {
@@ -29,7 +30,11 @@ float Renderer::SnapPixel(float value) const { return primitiveSnapping ? std::r
 
 D2D1_RECT_F Renderer::SnapRect(const D2D1_RECT_F& rect) const {
     if (!primitiveSnapping) return rect;
-    return D2D1::RectF( std::round(rect.left), std::round(rect.top), std::round(rect.right), std::round(rect.bottom) );
+    const float left = std::round(rect.left);
+    const float top = std::round(rect.top);
+    const float w = std::round(rect.right - rect.left);
+    const float h = std::round(rect.bottom - rect.top);
+    return D2D1::RectF(left, top, left + w, top + h);
 }
 
 static bool CreateD3DDevice(ComPtr<ID3D11Device>& device, ComPtr<ID3D11DeviceContext>& context) {
@@ -405,6 +410,14 @@ bool Renderer::CreateDeviceResources() {
         ReleaseDeviceResources();
         return false;
     }
+    DXGI_ADAPTER_DESC adapterDesc{};
+    if (SUCCEEDED(dxgiAdapter->GetDesc(&adapterDesc))) {
+        adapterName = adapterDesc.Description;
+        // WARP exposes the Microsoft Basic Render Driver (vendor 0x1414,
+        // device 0x008c); the name check also covers software adapter variants.
+        softwareDevice = (adapterDesc.VendorId == 0x1414 && adapterDesc.DeviceId == 0x008c) ||
+            adapterName.find(L"Basic Render") != std::wstring::npos;
+    }
     if (SUCCEEDED(d3dDevice.As(&dxgiDevice1)) && dxgiDevice1) { dxgiDevice1->SetMaximumFrameLatency(1); }
     if (FAILED(d2dFactory->CreateDevice(dxgiDevice.Get(), &d2dDevice)) ||
         FAILED(d2dDevice->CreateDeviceContext(D2D1_DEVICE_CONTEXT_OPTIONS_NONE, &d2dContext))) {
@@ -539,6 +552,8 @@ void Renderer::BeginDraw() {
     }
     if ((!d2dContext || !d2dTargetBitmap) && hWnd && !recoveringDevice) RecreateDeviceResources();
     ++thumbnailRequestFrame;
+    prevFrameShadowKeys.swap(currFrameShadowKeys);
+    currFrameShadowKeys.clear();
     for (auto it = thumbnailDemandFrames.begin(); it != thumbnailDemandFrames.end();) {
         if (thumbnailRequestFrame - it->second > 1) it = thumbnailDemandFrames.erase(it);
         else ++it;
@@ -563,7 +578,10 @@ bool Renderer::EndDraw(bool present) {
         DXGI_PRESENT_PARAMETERS params = {};
         // The very first present skips the vblank wait: it only gates how quickly the first composed frame appears, never pacing.
         const UINT interval = hasPresentedFrame ? 1u : 0u;
+        const auto presentStart = std::chrono::steady_clock::now();
         HRESULT presentHr = swapChain->Present1(interval, 0, &params);
+        lastPresentMs = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - presentStart).count();
+        maxPresentMs = std::max(maxPresentMs, lastPresentMs);
         isOccluded = (presentHr == DXGI_STATUS_OCCLUDED);
         if (IsDeviceLost(presentHr)) { RecreateDeviceResources(); return false; }
         if (FAILED(presentHr) && presentHr != DXGI_STATUS_OCCLUDED) return false;
@@ -923,12 +941,25 @@ void Renderer::TouchShadow(std::map<ShadowKey, ShadowEntry>::iterator it) {
     it->second.lruIt = shadowLru.begin();
 }
 
-void Renderer::ClearShadowCache() { shadowCache.clear(); shadowLru.clear(); shadowCacheBytes = 0; }
+void Renderer::ClearShadowCache() {
+    shadowCache.clear();
+    shadowLru.clear();
+    prevFrameShadowKeys.clear();
+    currFrameShadowKeys.clear();
+    shadowCacheBytes = 0;
+}
 
 ComPtr<ID2D1Bitmap> Renderer::GetOrCreateShadowBitmap(const ShadowKey& key) {
     if (!d2dContext || key.widthPx <= 0 || key.heightPx <= 0 || key.blurQ <= 0) return nullptr;
+    currFrameShadowKeys.insert(key);
     auto cached = shadowCache.find(key);
     if (cached != shadowCache.end()) { TouchShadow(cached); return cached->second.bitmap; }
+    // Only allocate an off-screen D2D bitmap render target when the shadow key
+    // has held its exact dimensions for at least two consecutive frames.
+    // Actively resizing or morphing surfaces (card hover expansion, sliding nav
+    // pills between different-width tabs, dynamic island morphs) use the direct
+    // 6-pass draw path without thrashing GPU texture allocations every frame.
+    if (prevFrameShadowKeys.find(key) == prevFrameShadowKeys.end()) return nullptr;
     const float radius = std::max(0.0f, key.radiusQ / 4.0f);
     const float blur = std::max(0.0f, key.blurQ / 4.0f);
     const float yOffset = key.offsetYQ / 4.0f;
