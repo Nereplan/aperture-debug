@@ -628,7 +628,7 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
                 if (g_pApp->IsOccluded()) {
                     waitResult = MsgWaitForMultipleObjectsEx(0, NULL, 16, QS_ALLINPUT, MWMO_INPUTAVAILABLE);
                 } else if (hWaitable && !g_pApp->GetPlaybackSession().IsOpen()) {
-                    waitResult = WaitForSingleObjectEx(hWaitable, 1000, FALSE);
+                    waitResult = MsgWaitForMultipleObjectsEx(1, &hWaitable, 16, QS_ALLINPUT, MWMO_INPUTAVAILABLE);
                 } else {
                     waitResult = MsgWaitForMultipleObjectsEx(0, NULL, g_pApp->HasPendingPlaybackFrame() ? g_pApp->GetPlaybackFrameWaitMs() : 8, QS_ALLINPUT, MWMO_INPUTAVAILABLE);
                 }

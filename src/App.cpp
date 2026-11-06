@@ -2729,16 +2729,19 @@ bool App::Update(float dt) {
                 ++it;
             }
         }
-        if (DriveHubExtraction()) needsRedraw = true;
-        if (renderer.HasDeferredThumbnailUploads()) needsRedraw = true;
-        MaybePrefetchVisibleThumbnails();
+        const bool navIndicatorMoving = navIndicator.animating;
+        if (!navIndicatorMoving) {
+            if (DriveHubExtraction()) needsRedraw = true;
+            if (renderer.HasDeferredThumbnailUploads()) needsRedraw = true;
+            MaybePrefetchVisibleThumbnails();
+        }
         // No unconditional idle prewarm: an idle hub must not load libmpv or create main/preview mpv instances merely to make the first
         // hover faster. The preview initializes on first hover-intent (see hover path calling EnsurePreviewInitialized), where it loads its
         // own DLL mapping independently of the main player.
         const auto updateIndicator = [&](AnimatedFloat& indicator, bool& ready, float target) {
             if (!ready) { indicator.SnapTo(target); ready = true; }
             else if (std::abs(indicator.to - target) > 0.001f) {
-                AnimateVisual(indicator, target, 0.34f, &kEaseSpring);
+                AnimateVisual(indicator, target, MotionTokens::kResponsive, MotionTokens::Standard());
                 needsRedraw = true;
             }
         };

@@ -99,10 +99,10 @@ struct AnimatedFloat {
         // Do not restart a zero-distance animation and keep repainting forever.
         if (target == current) { SnapTo(target); return; }
         // When reversing mid-flight, scale duration proportionally to remaining distance
-        float totalDist = std::abs(target - from);
+        float prevTravel = std::abs(to - from);
         float remDist = std::abs(target - current);
-        if (animating && totalDist > 0.001f && remDist < totalDist)
-            durSec = std::max(MotionTokens::kMinReversal, durSec * (remDist / totalDist));
+        if (animating && prevTravel > 0.001f && remDist < prevTravel)
+            durSec = std::max(MotionTokens::kMinReversal, durSec * (remDist / prevTravel));
         from = current;
         to = target;
         duration = std::max(MotionTokens::kMinimumDuration, durSec);

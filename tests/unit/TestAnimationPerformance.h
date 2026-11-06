@@ -27,6 +27,25 @@ TEST_CASE(AnimationPerformance, CurvesAndVirtualLayoutReuse) {
     TEST_ASSERT(value.Tick(value.startTime + value.duration + 0.01f));
     TEST_ASSERT_EQ(value.current, 160.0f);
 
+    // Verify mid-flight reversal back to the original start point scales duration down proportionally
+    AnimatedFloat nav;
+    nav.SnapTo(0.0f);
+    nav.AnimateTo(1.0f, MotionTokens::kResponsive);
+    TEST_ASSERT(nav.animating);
+    // Advance partially
+    TEST_ASSERT(nav.Tick(nav.startTime + nav.duration * 0.2f));
+    const float midPos = nav.current;
+    TEST_ASSERT(midPos > 0.05f && midPos < 0.95f);
+    // Reverse mid-flight back to 0.0f
+    nav.AnimateTo(0.0f, MotionTokens::kResponsive);
+    TEST_ASSERT(nav.animating);
+    // Duration must be scaled down proportionally (strictly less than full kResponsive)
+    TEST_ASSERT(nav.duration < MotionTokens::kResponsive);
+    TEST_ASSERT(nav.duration >= MotionTokens::kMinReversal);
+    TEST_ASSERT(nav.Tick(nav.startTime + nav.duration + 0.01f));
+    TEST_ASSERT_EQ(nav.current, 0.0f);
+    TEST_ASSERT(!nav.animating);
+
     std::vector<float> heights(25000, kMediaRestHeight);
     heights[0] = kMediaPinnedRestHeight;
     std::vector<float> partial, full;
