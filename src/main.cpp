@@ -10,6 +10,8 @@
 #include "Version.h"
 #include "Localization.h"
 #include <psapi.h>
+#include <timeapi.h>
+#pragma comment(lib, "winmm.lib")
 
 using namespace Aperture;
 
@@ -133,18 +135,22 @@ LRESULT CALLBACK VideoWndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam
 }
 
 int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPWSTR lpCmdLine, _In_ int nCmdShow) {
+    timeBeginPeriod(1);
     // Check if invoked in update-helper mode before mutex acquisition or UI creation
     int argCount = 0;
     LPWSTR* argList = CommandLineToArgvW(GetCommandLineW(), &argCount);
     if (Aperture::IsMediaProbeHelperCommand(argCount, argList)) {
         const int result = Aperture::RunMediaProbeHelper(argCount, argList);
-        LocalFree(argList); return result;
+        LocalFree(argList);
+        timeEndPeriod(1);
+        return result;
     }
     if (argList && argCount > 1) {
         for (int i = 1; i < argCount; ++i) {
             if (wcscmp(argList[i], L"--update-helper") == 0) {
                 int helperRes = Aperture::RunHelperMode(argCount, argList);
                 LocalFree(argList);
+                timeEndPeriod(1);
                 return helperRes;
             }
         }
@@ -174,6 +180,7 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
         MessageBoxW(NULL, cmdLineParse.errorMessage.c_str(), L"Aperture Command-Line Error", MB_ICONERROR | MB_OK);
         Renderer::ShutdownPrewarm();
         Diagnostics::Shutdown();
+        timeEndPeriod(1);
         return 1;
     }
     const PlaybackCommandLineOptions& initialOptions = cmdLineParse.options;
@@ -213,8 +220,10 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
             if (!delivered) {
                 MessageBoxW(nullptr, L"The running Aperture window could not accept this request. Wait for it to respond, then try again.",
                     L"Aperture", MB_OK | MB_ICONWARNING);
+                timeEndPeriod(1);
                 return ERROR_TIMEOUT;
             }
+            timeEndPeriod(1);
             return 0;
         }
         windowReadyEvent.reset(CreateEventW(nullptr, TRUE, FALSE, L"Local\\Aperture_WindowReady_V1"));
@@ -305,6 +314,7 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
         if (hSingleInstanceMutex) { CloseHandle(hSingleInstanceMutex); hSingleInstanceMutex = NULL; }
         Renderer::ShutdownPrewarm();
         Diagnostics::Shutdown();
+        timeEndPeriod(1);
         return -1;
     }
     ChangeWindowMessageFilterEx(hWnd, WM_COPYDATA, MSGFLT_ALLOW, NULL);
@@ -342,6 +352,7 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
         if (hSingleInstanceMutex) { CloseHandle(hSingleInstanceMutex); hSingleInstanceMutex = NULL; }
         Renderer::ShutdownPrewarm();
         Diagnostics::Shutdown();
+        timeEndPeriod(1);
         return -1;
     }
     if (windowReadyEvent) SetEvent(windowReadyEvent.get());
@@ -445,6 +456,7 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
         Renderer::ShutdownPrewarm();
         Diagnostics::RecordHeartbeat();
         Diagnostics::Shutdown();
+        timeEndPeriod(1);
         return 0;
     }
     if (initialOptions.visualCaptureProbe) {
@@ -490,6 +502,7 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
         Renderer::ShutdownPrewarm();
         Diagnostics::RecordHeartbeat();
         Diagnostics::Shutdown();
+        timeEndPeriod(1);
         return captureSuccess ? 0 : 1;
     }
     // 7. Event-driven message loop. A short wait caps idle polling while
@@ -523,7 +536,10 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
         // instead of presenting an un-ticked frame before Update(dt) can run.
         while (PeekMessage(&msg, NULL, 0, WM_PAINT - 1, PM_REMOVE) ||
                PeekMessage(&msg, NULL, WM_PAINT + 1, 0xFFFFFFFF, PM_REMOVE)) {
-            if (msg.message == WM_QUIT) goto ExitApp;
+            if (msg.message == WM_QUIT) {
+                timeEndPeriod(1);
+                goto ExitApp;
+            }
             LARGE_INTEGER dispatchStart{};
             if (frameProfile) {
                 QueryPerformanceCounter(&dispatchStart);
@@ -571,7 +587,10 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
                 }
             }
             while (PeekMessage(&msg, NULL, WM_PAINT, WM_PAINT, PM_REMOVE)) {
-                if (msg.message == WM_QUIT) goto ExitApp;
+                if (msg.message == WM_QUIT) {
+                    timeEndPeriod(1);
+                    goto ExitApp;
+                }
                 LARGE_INTEGER dispatchStart{};
                 if (frameProfile) QueryPerformanceCounter(&dispatchStart);
                 TranslateMessage(&msg);
@@ -609,7 +628,7 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
                 if (g_pApp->IsOccluded()) {
                     waitResult = MsgWaitForMultipleObjectsEx(0, NULL, 16, QS_ALLINPUT, MWMO_INPUTAVAILABLE);
                 } else if (hWaitable && !g_pApp->GetPlaybackSession().IsOpen()) {
-                    waitResult = MsgWaitForMultipleObjectsEx(1, &hWaitable, 1000, QS_ALLINPUT, MWMO_INPUTAVAILABLE);
+                    waitResult = WaitForSingleObjectEx(hWaitable, 1000, FALSE);
                 } else {
                     waitResult = MsgWaitForMultipleObjectsEx(0, NULL, g_pApp->HasPendingPlaybackFrame() ? g_pApp->GetPlaybackFrameWaitMs() : 8, QS_ALLINPUT, MWMO_INPUTAVAILABLE);
                 }
@@ -661,6 +680,7 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
     }
 
 ExitApp:
+    timeEndPeriod(1);
     if (hSingleInstanceMutex) { CloseHandle(hSingleInstanceMutex); hSingleInstanceMutex = NULL; }
     Renderer::ShutdownPrewarm();
     Diagnostics::RecordHeartbeat();

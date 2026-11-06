@@ -402,7 +402,6 @@ bool Renderer::CreateDeviceResources() {
         height = (UINT)(rc.bottom - rc.top);
     }
     ComPtr<IDXGIDevice> dxgiDevice;
-    ComPtr<IDXGIDevice1> dxgiDevice1;
     ComPtr<IDXGIAdapter> dxgiAdapter;
     ComPtr<IDXGIFactory2> dxgiFactory;
     if (FAILED(d3dDevice.As(&dxgiDevice)) || FAILED(dxgiDevice->GetAdapter(&dxgiAdapter)) ||
@@ -418,7 +417,6 @@ bool Renderer::CreateDeviceResources() {
         softwareDevice = (adapterDesc.VendorId == 0x1414 && adapterDesc.DeviceId == 0x008c) ||
             adapterName.find(L"Basic Render") != std::wstring::npos;
     }
-    if (SUCCEEDED(d3dDevice.As(&dxgiDevice1)) && dxgiDevice1) { dxgiDevice1->SetMaximumFrameLatency(1); }
     if (FAILED(d2dFactory->CreateDevice(dxgiDevice.Get(), &d2dDevice)) ||
         FAILED(d2dDevice->CreateDeviceContext(D2D1_DEVICE_CONTEXT_OPTIONS_NONE, &d2dContext))) {
         ReleaseDeviceResources();
@@ -433,31 +431,36 @@ bool Renderer::CreateDeviceResources() {
     scDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
     scDesc.SampleDesc.Count = 1;
     scDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-    scDesc.BufferCount = 2;
+    scDesc.BufferCount = 3;
     scDesc.Scaling = DXGI_SCALING_NONE;
     scDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
     scDesc.AlphaMode = DXGI_ALPHA_MODE_IGNORE;
     scDesc.Flags = DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT;
     HRESULT hr = dxgiFactory->CreateSwapChainForHwnd(d3dDevice.Get(), hWnd, &scDesc, nullptr, nullptr, &swapChain);
     if (FAILED(hr)) {
+        scDesc.BufferCount = 3;
         scDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
         hr = dxgiFactory->CreateSwapChainForHwnd(d3dDevice.Get(), hWnd, &scDesc, nullptr, nullptr, &swapChain);
     }
     if (FAILED(hr)) {
+        scDesc.BufferCount = 3;
         scDesc.Flags = 0;
         scDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
         hr = dxgiFactory->CreateSwapChainForHwnd(d3dDevice.Get(), hWnd, &scDesc, nullptr, nullptr, &swapChain);
     }
     if (FAILED(hr)) {
+        scDesc.BufferCount = 3;
         scDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
         hr = dxgiFactory->CreateSwapChainForHwnd(d3dDevice.Get(), hWnd, &scDesc, nullptr, nullptr, &swapChain);
     }
     if (FAILED(hr)) {
+        scDesc.BufferCount = 3;
         scDesc.Scaling = DXGI_SCALING_STRETCH;
         scDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
         hr = dxgiFactory->CreateSwapChainForHwnd(d3dDevice.Get(), hWnd, &scDesc, nullptr, nullptr, &swapChain);
     }
     if (FAILED(hr)) {
+        scDesc.BufferCount = 3;
         scDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
         hr = dxgiFactory->CreateSwapChainForHwnd(d3dDevice.Get(), hWnd, &scDesc, nullptr, nullptr, &swapChain);
     }

@@ -354,7 +354,7 @@ TEST_CASE(RendererCache, HiddenBackbuffersRestoreWithoutReplacingDeviceOrThumbna
     const auto original = RendererCacheTestAccess::Buffers(renderer);
     TEST_ASSERT_EQ(original.Width, 1920u);
     TEST_ASSERT_EQ(original.Height, 1080u);
-    TEST_ASSERT_EQ(original.BufferCount, 2u);
+    TEST_ASSERT_EQ(original.BufferCount, 3u);
 
     for (UINT cycle = 0; cycle < 3; ++cycle) {
         renderer.TrimHiddenLibraryCaches();
