@@ -567,10 +567,31 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
                 profileUpdateMs += QpcMilliseconds(qpcNow, afterUpdate, qpcFreq);
             }
             if (needsRedraw) {
-                if (g_pApp->GetPlaybackSession().IsOpen()) {
-                    g_pApp->Render();
-                } else {
-                    InvalidateRect(hWnd, NULL, FALSE);
+                LARGE_INTEGER renderStart{};
+                if (frameProfile) QueryPerformanceCounter(&renderStart);
+                g_pApp->Render();
+                ValidateRect(hWnd, NULL);
+                if (frameProfile) {
+                    LARGE_INTEGER renderEnd{};
+                    QueryPerformanceCounter(&renderEnd);
+                    const double renderMs = QpcMilliseconds(renderStart, renderEnd, qpcFreq);
+                    profilePaintMs += renderMs;
+                    ++profilePaints;
+                    if (renderMs > profileMaxDispatchMs) {
+                        profileMaxDispatchMs = renderMs;
+                        profileSlowestMessage = WM_PAINT;
+                    }
+                    if (profileHasMouseInput) {
+                        profileMaxInputPaintMs = std::max(profileMaxInputPaintMs,
+                            QpcMilliseconds(profileLastMouseInput, renderStart, qpcFreq));
+                        profileHasMouseInput = false;
+                    }
+                    if (renderMs >= 50.0) {
+                        if (FILE* file = FrameProfileFile()) {
+                            fwprintf(file, L"slow-paint duration=%.2fms\n", renderMs);
+                            fflush(file);
+                        }
+                    }
                 }
             }
             while (PeekMessage(&msg, NULL, WM_PAINT, WM_PAINT, PM_REMOVE)) {

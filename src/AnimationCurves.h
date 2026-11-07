@@ -94,7 +94,7 @@ struct AnimatedFloat {
     bool animating = false;
     void SnapTo(float v) { from = to = current = v; animating = false; }
     void AnimateTo(float target, float durSec, const CubicBezier* curve = &kEaseStandard) {
-        if (std::abs(target - to) < 0.0001f && animating) return;
+        if (animating && std::abs(target - to) < 0.0001f) return;
         // Hover handlers may request the settled target on every update.
         // Do not restart a zero-distance animation and keep repainting forever.
         if (target == current) { SnapTo(target); return; }
@@ -106,7 +106,7 @@ struct AnimatedFloat {
         from = current;
         to = target;
         duration = std::max(MotionTokens::kMinimumDuration, durSec);
-        ease = curve;
+        ease = curve ? curve : &kEaseStandard;
         startTime = NowSeconds();
         animating = true;
     }
@@ -115,9 +115,10 @@ struct AnimatedFloat {
     }
     bool Tick(float now) {
         if (!animating) return false;
-        float t = (now - startTime) / duration;
+        float elapsed = now - startTime;
         // The terminal sample still changes the visual state and layout.
-        if (t >= 1.0f) { current = to; animating = false; return true; }
+        if (elapsed >= duration) { current = to; animating = false; return true; }
+        float t = std::clamp(elapsed / duration, 0.0f, 1.0f);
         current = from + (to - from) * ease->Ease(t);
         return true;
     }
