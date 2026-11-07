@@ -636,7 +636,7 @@ void OverlayRenderer::DrawSubtitle(const std::wstring& text, const D2D1_RECT_F& 
 }
 
 void OverlayRenderer::PushClip(const D2D1_RECT_F& rect) {
-    if (dcRenderTarget) dcRenderTarget->PushAxisAlignedClip(SnapRect(rect), D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
+    if (dcRenderTarget) dcRenderTarget->PushAxisAlignedClip(SnapRect(rect), D2D1_ANTIALIAS_MODE_ALIASED);
 }
 
 void OverlayRenderer::PopClip() { if (dcRenderTarget) dcRenderTarget->PopAxisAlignedClip(); }

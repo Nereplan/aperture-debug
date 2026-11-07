@@ -2741,7 +2741,7 @@ bool App::Update(float dt) {
         const auto updateIndicator = [&](AnimatedFloat& indicator, bool& ready, float target) {
             if (!ready) { indicator.SnapTo(target); ready = true; }
             else if (std::abs(indicator.to - target) > 0.001f) {
-                AnimateVisual(indicator, target, MotionTokens::kResponsive, MotionTokens::Standard());
+                AnimateVisual(indicator, target, 0.34f, &kEaseSpring);
                 needsRedraw = true;
             }
         };
