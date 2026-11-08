@@ -39,3 +39,44 @@ For an existing source checkout, **Update Source.cmd** fast-forwards from its co
 Open the [performance checkpoint dashboard](docs/checkpoints.html) to compare Aperture revisions with measured VLC baselines, inspect benchmark graphs and validation, or read historical reports. The single HTML works offline; [checkpoint instructions](docs/CHECKPOINTS.md) explain how agents add new measurements.
 
 See the [documentation index](docs/README.md) for build, testing, portable-data, engine-build, and measured optimization references.
+
+## Linux Port (CachyOS / Arch Linux)
+
+Aperture also provides an independent native Linux x86_64 port (`src/linux/`) sharing the core C++17 UI and playback codebase so features and updates apply to both Windows and Linux simultaneously.
+
+### Runtime Dependencies (CachyOS / Arch Linux)
+
+```bash
+sudo pacman -S mpv sdl2 cairo pango glib2 gdk-pixbuf2 curl dbus openssl
+# Optional (recommended for network streams, thumbnails, and native file dialogs):
+sudo pacman -S yt-dlp ffmpeg kdialog zenity
+```
+
+### Option 1: Portable `.tar.gz` Release
+
+Extract `dist/Aperture-<version>-linux-x86_64.tar.gz` to any writable folder and run `./aperture`.
+
+- **Hybrid Data Storage & Windows-to-CachyOS Migration**: If a writable `data/` folder exists beside the `aperture` binary, Aperture runs in portable mode and stores your library, playlists, settings, and watch history in `./data/` (you can copy your Windows `data/` folder directly into the portable Linux folder when migrating to CachyOS). When installed system-wide to `/usr/bin/aperture`, it automatically stores user data in `$XDG_DATA_HOME/aperture` (`~/.local/share/aperture`).
+
+### Option 2: Native CachyOS / Arch Package (`PKGBUILD`)
+
+From a CachyOS or Arch Linux terminal:
+
+```bash
+cd packaging/arch
+makepkg -si
+```
+
+This builds and installs `/usr/bin/aperture`, `/usr/share/applications/aperture.desktop`, `/usr/share/aperture/fonts/`, and `/usr/share/aperture/locales/`.
+
+### Building the Linux Port
+
+- **On CachyOS / Linux (Native CMake + Ninja)**:
+  ```bash
+  ./build_linux.sh              # Builds dist/linux-x86_64/aperture
+  ./build_and_release_linux.sh  # Builds and packages dist/Aperture-<version>-linux-x86_64.tar.gz
+  ```
+- **On Windows (Cross-compile to Linux x86_64 ELF + `.tar.gz`)**:
+  ```powershell
+  ./build_linux.ps1
+  ```

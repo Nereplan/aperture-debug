@@ -1,0 +1,14 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Aperture
+GenericName=Media Player
+Comment=Fast, modern media player and library hub powered by libmpv
+Exec=aperture %U
+Icon=multimedia-video-player
+Terminal=false
+Categories=AudioVideo;Video;Audio;Player;TV;
+MimeType=video/mp4;video/x-matroska;video/webm;video/x-msvideo;video/quicktime;video/x-flv;video/x-ms-wmv;video/mp2t;video/mpeg;video/ogg;audio/mpeg;audio/flac;audio/x-flac;audio/ogg;audio/opus;audio/mp4;audio/aac;audio/x-wav;audio/wav;audio/x-m4a;audio/x-mpegurl;application/x-mpegurl;application/vnd.apple.mpegurl;
+StartupNotify=true
+StartupWMClass=aperture
+Keywords=Player;Media;Video;Audio;Music;Podcast;Radio;mpv;

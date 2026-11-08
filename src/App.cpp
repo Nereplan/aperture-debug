@@ -659,7 +659,7 @@ void App::SetWallpaperMode(bool enabled) {
     RECT cover = { 0, 0, GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN) };
     if (GetMonitorInfoW(monitor, &monitorInfo)) cover = monitorInfo.rcMonitor;
     SetWindowPos(hVideoWnd, NULL, cover.left, cover.top,
-        std::max(1L, cover.right - cover.left), std::max(1L, cover.bottom - cover.top),
+        std::max<LONG>(1, cover.right - cover.left), std::max<LONG>(1, cover.bottom - cover.top),
         SWP_NOZORDER | SWP_SHOWWINDOW);
     player.SetVideoBounds(0, 0, (int)(cover.right - cover.left), (int)(cover.bottom - cover.top));
     // Keep the main window minimized so the taskbar stays usable.
@@ -680,7 +680,7 @@ void App::DisableWallpaperMode() {
         // layout: the WM_SIZE path positions the child at the main window's
         // client size and keeps mpv's video bounds in sync with it.
         SetWindowPos(hVideoWnd, NULL, childRect.left, childRect.top,
-            std::max(1L, childRect.right - childRect.left), std::max(1L, childRect.bottom - childRect.top),
+            std::max<LONG>(1, childRect.right - childRect.left), std::max<LONG>(1, childRect.bottom - childRect.top),
             SWP_NOZORDER | SWP_NOACTIVATE | SWP_SHOWWINDOW);
         RECT rc{};
         if (hWnd && GetClientRect(hWnd, &rc)) {
@@ -2156,8 +2156,8 @@ bool App::Initialize(HWND hwnd, HWND hVideoChild, HINSTANCE hinst, const Playbac
     GetClientScreenRect(hWnd, clientScreenRect);
     const int overlayX = clientScreenRect.left;
     const int overlayY = clientScreenRect.top;
-    const int overlayW = std::max(1L, clientScreenRect.right - clientScreenRect.left);
-    const int overlayH = std::max(1L, clientScreenRect.bottom - clientScreenRect.top);
+    const int overlayW = std::max<LONG>(1, clientScreenRect.right - clientScreenRect.left);
+    const int overlayH = std::max<LONG>(1, clientScreenRect.bottom - clientScreenRect.top);
     hOverlayWnd = CreateWindowExW( WS_EX_LAYERED | WS_EX_TOOLWINDOW, L"ApertureOverlay", L"", WS_POPUP, overlayX, overlayY,
         overlayW, overlayH, hWnd, NULL, hInstance, NULL );
     if (hOverlayWnd) {
@@ -3212,8 +3212,8 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
             if (bootstrapping) {
                 RECT* prcNewWindow = (RECT*)lParam;
                 if (prcNewWindow) {
-                    SetWindowPos(hWnd, NULL, prcNewWindow->left, prcNewWindow->top, std::max(1L, prcNewWindow->right - prcNewWindow->left),
-                        std::max(1L, prcNewWindow->bottom - prcNewWindow->top), SWP_NOZORDER | SWP_NOACTIVATE);
+                    SetWindowPos(hWnd, NULL, prcNewWindow->left, prcNewWindow->top, std::max<LONG>(1, prcNewWindow->right - prcNewWindow->left),
+                        std::max<LONG>(1, prcNewWindow->bottom - prcNewWindow->top), SWP_NOZORDER | SWP_NOACTIVATE);
                 }
                 InvalidateRect(hWnd, NULL, FALSE);
                 return 0;
@@ -3221,8 +3221,8 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
             overlayRenderer.SetDpi(newDpi / 96.0f);
             RECT* prcNewWindow = (RECT*)lParam;
             if (prcNewWindow && !playbackSession.IsFullscreen() && !playbackSession.IsPiP()) {
-                SetWindowPos(hWnd, NULL, prcNewWindow->left, prcNewWindow->top, std::max(1L, prcNewWindow->right - prcNewWindow->left),
-                    std::max(1L, prcNewWindow->bottom - prcNewWindow->top), SWP_NOZORDER | SWP_NOACTIVATE);
+                SetWindowPos(hWnd, NULL, prcNewWindow->left, prcNewWindow->top, std::max<LONG>(1, prcNewWindow->right - prcNewWindow->left),
+                    std::max<LONG>(1, prcNewWindow->bottom - prcNewWindow->top), SWP_NOZORDER | SWP_NOACTIVATE);
             }
             SyncOverlayPosition();
             ClampScrollOffsets();

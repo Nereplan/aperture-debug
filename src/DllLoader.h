@@ -28,6 +28,9 @@ inline bool IsAbsolutePath(const std::wstring& path) {
     if (path.size() >= 2 && (path[0] == L'\\' || path[0] == L'/') && (path[1] == L'\\' || path[1] == L'/')) {
         return true; // UNC path
     }
+#if !defined(_WIN32)
+    if (!path.empty() && path[0] == L'/') { return true; }
+#endif
     return false;
 }
 
@@ -48,7 +51,14 @@ inline HMODULE LoadPackageLocalDll(const std::wstring& dllName) {
     if (IsAbsolutePath(dllName)) { absPath = dllName; } else { absPath = ResolvePackageDllPath(dllName); }
     // Verify the file exists before attempting load
     DWORD attr = GetFileAttributesW(absPath.c_str());
-    if (attr == INVALID_FILE_ATTRIBUTES || (attr & FILE_ATTRIBUTE_DIRECTORY)) { return NULL; }
+    if (attr == INVALID_FILE_ATTRIBUTES || (attr & FILE_ATTRIBUTE_DIRECTORY)) {
+#if !defined(_WIN32)
+        // On Linux (e.g. CachyOS / Arch), fall back to system dynamic linker for libmpv.so.2
+        return LoadLibraryW(dllName.c_str());
+#else
+        return NULL;
+#endif
+    }
     // Restrict dependency resolution to application directory and system32
     DWORD flags = LOAD_LIBRARY_SEARCH_APPLICATION_DIR | LOAD_LIBRARY_SEARCH_SYSTEM32;
     HMODULE hMod = LoadLibraryExW(absPath.c_str(), NULL, flags);

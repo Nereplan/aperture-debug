@@ -29,8 +29,11 @@ set(APERTURE_PROJECT_VERSION "${APERTURE_VERSION_MAJOR}.${APERTURE_VERSION_MINOR
 project(Aperture
     VERSION ${APERTURE_PROJECT_VERSION}
     DESCRIPTION "${APERTURE_FILE_DESCRIPTION}"
-    LANGUAGES CXX RC
+    LANGUAGES CXX
 )
+if(WIN32)
+    enable_language(RC)
+endif()
 
 # Generated build artifacts directory
 set(APERTURE_GENERATED_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated")
@@ -45,16 +48,18 @@ configure_file(
     "${APERTURE_GENERATED_DIR}/Version.h"
     @ONLY
 )
-configure_file(
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/app.manifest.in"
-    "${APERTURE_GENERATED_DIR}/app.manifest"
-    @ONLY
-)
-configure_file(
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/resources.rc.in"
-    "${APERTURE_GENERATED_DIR}/resources.rc"
-    @ONLY
-)
+if(WIN32)
+    configure_file(
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/app.manifest.in"
+        "${APERTURE_GENERATED_DIR}/app.manifest"
+        @ONLY
+    )
+    configure_file(
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/resources.rc.in"
+        "${APERTURE_GENERATED_DIR}/resources.rc"
+        @ONLY
+    )
+endif()
 # Standard C++17 settings
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -143,6 +148,61 @@ set(APERTURE_SOURCES
     src/main.cpp
 )
 
+set(APERTURE_LINUX_SOURCES
+    src/Accessibility.cpp
+    src/App.cpp
+    src/AppAccessibility.cpp
+    src/AppDragDrop.cpp
+    src/AppFileOps.cpp
+    src/AppHover.cpp
+    src/AppImportJobs.cpp
+    src/AppKeyboard.cpp
+    src/AppLibrary.cpp
+    src/AppMenus.cpp
+    src/AppModals.cpp
+    src/AppPersistence.cpp
+    src/AppPlayback.cpp
+    src/AppSelection.cpp
+    src/AppTooltips.cpp
+    src/AppTouch.cpp
+    src/AppViewModels.cpp
+    src/AudioConfig.cpp
+    src/ChannelPolicy.cpp
+    src/CommandDispatcher.cpp
+    src/GlobalSearch.cpp
+    src/InternetRadio.cpp
+    src/Json.cpp
+    src/LibraryQuery.cpp
+    src/LibrarySnapshot.cpp
+    src/Localization.cpp
+    src/MediaLibrary.cpp
+    src/MpvPlayer.cpp
+    src/NetworkStream.cpp
+    src/OnlineSubtitles.cpp
+    src/OverlayRenderer.cpp
+    src/PlaybackSession.cpp
+    src/PlaylistIO.cpp
+    src/Podcasts.cpp
+    src/Renderer.cpp
+    src/Settings.cpp
+    src/SubtitleDiscovery.cpp
+    src/Subtitles.cpp
+    src/SystemVisualPreferences.cpp
+    src/TaskbarController.cpp
+    src/TextInputModel.cpp
+    src/TooltipManager.cpp
+    src/UIComponents.cpp
+    src/Updater.cpp
+    src/linux/LinuxPlatformCore.cpp
+    src/linux/LinuxPlatformGraphics.cpp
+    src/linux/LinuxPlatformWindow.cpp
+    src/linux/LinuxHttpTransport.cpp
+    src/linux/LinuxFolderWatcher.cpp
+    src/linux/LinuxMediaTransport.cpp
+    src/linux/LinuxOSIntegration.cpp
+    src/linux/LinuxMain.cpp
+)
+
 # Header files (for IDE visibility and change tracking)
 set(APERTURE_HEADERS
     src/Accessibility.h
@@ -202,17 +262,28 @@ set(APERTURE_HEADERS
     "${APERTURE_GENERATED_DIR}/Version.h"
 )
 
-# Resource files (embeds app.ico, version, and app.manifest with longPathAware)
-set(APERTURE_RESOURCES
-    "${APERTURE_GENERATED_DIR}/resources.rc"
-)
+if(WIN32)
+    # Resource files (embeds app.ico, version, and app.manifest with longPathAware)
+    set(APERTURE_RESOURCES
+        "${APERTURE_GENERATED_DIR}/resources.rc"
+    )
 
-# Executable target
-add_executable(Aperture WIN32
-    ${APERTURE_SOURCES}
-    ${APERTURE_HEADERS}
-    ${APERTURE_RESOURCES}
-)
+    # Executable target
+    add_executable(Aperture WIN32
+        ${APERTURE_SOURCES}
+        ${APERTURE_HEADERS}
+        ${APERTURE_RESOURCES}
+    )
+else()
+    add_executable(Aperture
+        ${APERTURE_LINUX_SOURCES}
+        ${APERTURE_HEADERS}
+    )
+    set_target_properties(Aperture PROPERTIES OUTPUT_NAME "aperture")
+    target_include_directories(Aperture BEFORE PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/linux/include
+    )
+endif()
 
 # Include directories
 target_include_directories(Aperture PRIVATE
@@ -327,40 +398,54 @@ if(MSVC)
     )
 endif()
 
-# Win32 / Direct2D / MediaFoundation / System libraries
-target_link_libraries(Aperture PRIVATE
-    d2d1
-    dwrite
-    d3d11
-    dxgi
-    windowscodecs
-    mfreadwrite
-    mfplat
-    mfuuid
-    dwmapi
-    shell32
-    shlwapi
-    comctl32
-    comdlg32
-    uxtheme
-    user32
-    gdi32
-    ole32
-    oleaut32
-    oleacc
-    advapi32
-    propsys
-    dxguid
-    imm32
-    dbghelp
-    runtimeobject
-    winhttp
-    bcrypt
-    crypt32
-    wintrust
-    psapi
-    delayimp
-)
+if(WIN32)
+    # Win32 / Direct2D / MediaFoundation / System libraries
+    target_link_libraries(Aperture PRIVATE
+        d2d1
+        dwrite
+        d3d11
+        dxgi
+        windowscodecs
+        mfreadwrite
+        mfplat
+        mfuuid
+        dwmapi
+        shell32
+        shlwapi
+        comctl32
+        comdlg32
+        uxtheme
+        user32
+        gdi32
+        ole32
+        oleaut32
+        oleacc
+        advapi32
+        propsys
+        dxguid
+        imm32
+        dbghelp
+        runtimeobject
+        winhttp
+        bcrypt
+        crypt32
+        wintrust
+        psapi
+        delayimp
+    )
+else()
+    target_compile_options(Aperture PRIVATE
+        -Wno-c++11-narrowing
+        -Wno-constant-conversion
+        -Wno-unknown-pragmas
+        $<$<CXX_COMPILER_ID:Clang>:-fno-autolink>
+    )
+    target_link_libraries(Aperture PRIVATE
+        dl
+        pthread
+        m
+    )
+endif()
 
 # Cold-path delay-load: these DLLs are demonstrably unnecessary
 # for the GDI bootstrap shell and the idle hub. Core shell dependencies

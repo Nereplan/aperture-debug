@@ -63,6 +63,23 @@ inline const std::wstring& GetExeDir() {
         const size_t pos = path.find_last_of(L"\\/");
         std::wstring dir = pos == std::wstring::npos ? std::wstring(L".") : path.substr(0, pos);
         while (dir.size() > 3 && (dir.back() == L'\\' || dir.back() == L'/')) { dir.pop_back(); }
+#if !defined(_WIN32)
+        // Hybrid portable + XDG mode on Linux: use the directory beside the binary when portable
+        // (e.g. ./data exists or not installed under /usr or /bin); fall back to XDG_DATA_HOME/aperture when installed system-wide.
+        std::wstring localData = dir + L"/data";
+        DWORD localAttr = GetFileAttributesW(localData.c_str());
+        bool hasPortableData = (localAttr != INVALID_FILE_ATTRIBUTES && (localAttr & FILE_ATTRIBUTE_DIRECTORY));
+        bool isSystemBin = (dir.rfind(L"/usr", 0) == 0 || dir.rfind(L"/bin", 0) == 0 || dir.rfind(L"/opt", 0) == 0);
+        if (!hasPortableData && isSystemBin) {
+            wchar_t xdgBuf[1024] = {};
+            if (GetEnvironmentVariableW(L"XDG_DATA_HOME", xdgBuf, 1024) > 0 && xdgBuf[0] != L'\0') {
+                dir = std::wstring(xdgBuf) + L"/aperture";
+            } else if (GetEnvironmentVariableW(L"HOME", xdgBuf, 1024) > 0 && xdgBuf[0] != L'\0') {
+                dir = std::wstring(xdgBuf) + L"/.local/share/aperture";
+            }
+            SHCreateDirectoryExW(NULL, dir.c_str(), NULL);
+        }
+#endif
         return dir;
     }();
     return cached;
@@ -127,6 +144,9 @@ inline std::wstring ResolveAppPath(const std::wstring& path, const std::wstring&
     std::wstring p = NormalizePathSeparators(path);
     bool isAbsolute = (p.size() >= 3 && iswalpha(p[0]) && p[1] == L':' && p[2] == L'\\') ||
                       (p.size() >= 2 && p[0] == L'\\' && p[1] == L'\\');
+#if !defined(_WIN32)
+    if (!p.empty() && p[0] == L'\\') isAbsolute = true;
+#endif
     // Fast path: an absolute path with no dot directory components and no
     // trailing separator is already fully qualified. GetFullPathNameW would
     // return it unchanged; skipping the call keeps per-item normalization free

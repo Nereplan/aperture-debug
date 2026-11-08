@@ -1,0 +1,74 @@
+# Maintainer: Aperture Contributors
+pkgname=aperture-player
+pkgver=2.0.0.0
+pkgrel=1
+pkgdesc="Native media player and library hub powered by libmpv (CachyOS / Arch Linux)"
+arch=('x86_64')
+url="https://github.com/alperen/aperture"
+license=('MIT')
+depends=(
+    'mpv'
+    'sdl2'
+    'cairo'
+    'pango'
+    'glib2'
+    'gdk-pixbuf2'
+    'curl'
+    'dbus'
+    'openssl'
+)
+makedepends=(
+    'cmake'
+    'ninja'
+    'gcc'
+    'python'
+)
+optdepends=(
+    'yt-dlp: Network stream and online media resolution'
+    'ffmpeg: Fast local media metadata and thumbnail extraction'
+    'kdialog: Native KDE Plasma file and folder dialogs'
+    'zenity: Native GTK file and folder dialogs'
+)
+provides=('aperture')
+conflicts=('aperture')
+source=()
+sha256sums=()
+
+pkgver() {
+    local repo_root="${startdir}/../.."
+    if [ -f "${repo_root}/version.json" ]; then
+        python3 -c "import json; print(json.load(open('${repo_root}/version.json'))['versionString'])"
+    else
+        echo "2.0.0.0"
+    fi
+}
+
+build() {
+    local repo_root="${startdir}/../.."
+    cmake -S "${repo_root}" -B "${srcdir}/build" \
+        -G Ninja \
+        -DCMAKE_BUILD_TYPE=Release
+    cmake --build "${srcdir}/build" --config Release
+}
+
+package() {
+    local repo_root="${startdir}/../.."
+    install -Dm755 "${srcdir}/build/aperture" "${pkgdir}/usr/bin/aperture"
+    install -Dm644 "${repo_root}/packaging/linux/aperture.desktop" "${pkgdir}/usr/share/applications/aperture.desktop"
+    if [ -f "${repo_root}/LICENSE" ]; then
+        install -Dm644 "${repo_root}/LICENSE" "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
+    fi
+    if [ -f "${repo_root}/THIRD_PARTY_NOTICES.txt" ]; then
+        install -Dm644 "${repo_root}/THIRD_PARTY_NOTICES.txt" "${pkgdir}/usr/share/licenses/${pkgname}/THIRD_PARTY_NOTICES.txt"
+    fi
+
+    if [ -d "${repo_root}/fonts" ]; then
+        install -dm755 "${pkgdir}/usr/share/aperture/fonts"
+        cp -r "${repo_root}/fonts/"* "${pkgdir}/usr/share/aperture/fonts/"
+    fi
+
+    if [ -d "${repo_root}/locales" ]; then
+        install -dm755 "${pkgdir}/usr/share/aperture/locales"
+        cp -r "${repo_root}/locales/"* "${pkgdir}/usr/share/aperture/locales/"
+    fi
+}

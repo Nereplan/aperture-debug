@@ -636,7 +636,8 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
                 } else if (g_pApp->GetPlaybackSession().IsOpen()) {
                     waitResult = MsgWaitForMultipleObjectsEx(0, NULL, g_pApp->HasPendingPlaybackFrame() ? g_pApp->GetPlaybackFrameWaitMs() : 8, QS_ALLINPUT, MWMO_INPUTAVAILABLE);
                 } else {
-                    // Hub animations: swapChain->Present1(1, 0) has already blocked until VBlank.
+                    // Hub animations: Present1(1, 0) is paced by the device's maximum frame latency
+                    // (the hub swap chain has no waitable object), so it has already blocked as needed.
                     // Yield only to process any pending input messages; do not sleep again after Present1.
                     waitResult = MsgWaitForMultipleObjectsEx(0, NULL, 0, QS_ALLINPUT, MWMO_INPUTAVAILABLE);
                 }

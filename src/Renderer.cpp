@@ -437,7 +437,15 @@ bool Renderer::CreateDeviceResources() {
     scDesc.Scaling = DXGI_SCALING_NONE;
     scDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
     scDesc.AlphaMode = DXGI_ALPHA_MODE_IGNORE;
-    scDesc.Flags = DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT;
+    // No FRAME_LATENCY_WAITABLE_OBJECT: with that flag DXGI stops blocking in
+    // Present and the app must wait on the semaphore exactly once before every
+    // frame. Hub frames are also rendered from input wakes and WM_PAINT, which
+    // never waited, so the semaphore count drifted upward and pacing was lost.
+    // The CPU then queued frames far ahead of a GPU-bound integrated adapter,
+    // which showed up as delayed hover feedback and sluggish tab switches.
+    // Without the flag, IDXGIDevice1::SetMaximumFrameLatency(1) above makes
+    // Present1(1, 0) itself block, bounding the queue on every render path.
+    scDesc.Flags = 0;
     HRESULT hr = dxgiFactory->CreateSwapChainForHwnd(d3dDevice.Get(), hWnd, &scDesc, nullptr, nullptr, &swapChain);
     if (FAILED(hr)) {
         scDesc.BufferCount = 2;
@@ -467,11 +475,7 @@ bool Renderer::CreateDeviceResources() {
         hr = dxgiFactory->CreateSwapChainForHwnd(d3dDevice.Get(), hWnd, &scDesc, nullptr, nullptr, &swapChain);
     }
     if (FAILED(hr)) { ReleaseDeviceResources(); return false; }
-    ComPtr<IDXGISwapChain2> swapChain2;
-    if (SUCCEEDED(swapChain.As(&swapChain2)) && swapChain2) {
-        swapChain2->SetMaximumFrameLatency(1);
-        frameLatencyWaitableObject = swapChain2->GetFrameLatencyWaitableObject();
-    }
+    // frameLatencyWaitableObject intentionally stays NULL (see swap chain flags above).
     dxgiFactory->MakeWindowAssociation(hWnd, DXGI_MWA_NO_ALT_ENTER);
     if (FAILED(d2dContext->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::White), &solidBrush))) {
         ReleaseDeviceResources();

@@ -239,8 +239,8 @@ void App::PersistWindowPlacement() {
     settings.windowX = windowRect.left;
     settings.hasWindowPlacement = true;
     settings.windowY = windowRect.top;
-    settings.windowWidth = std::max(1L, windowRect.right - windowRect.left);
-    settings.windowHeight = std::max(1L, windowRect.bottom - windowRect.top);
+    settings.windowWidth = std::max<LONG>(1, windowRect.right - windowRect.left);
+    settings.windowHeight = std::max<LONG>(1, windowRect.bottom - windowRect.top);
 }
 
 

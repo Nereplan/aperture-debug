@@ -178,15 +178,23 @@ bool MpvPlayer::Initialize(HWND hParentWnd, HWND hChildVideoWnd) {
     // Builds without Lua omit ytdl; retain the checked disable on builds that expose it.
     SetMpvOption(mpv, "ytdl", "no");
     // High performance playback settings: universal hardware decoding & EAC3/AC3 audio
+#if defined(_WIN32)
     SetMpvOption(mpv, "gpu-context", "d3d11", MpvOptionRequirement::Essential);
     SetMpvOption(mpv, "gpu-api", "d3d11", MpvOptionRequirement::Essential);
     // Use D3D11VA direct surfaces. The safe/auto modes can select the copy path on Windows, retaining a second full-resolution system
     // memory frame queue alongside the GPU decoder surfaces.
     SetMpvOption(mpv, "hwdec", "d3d11va", MpvOptionRequirement::Optional, "no");
+#else
+    SetMpvOption(mpv, "gpu-context", "auto", MpvOptionRequirement::Optional);
+    SetMpvOption(mpv, "gpu-api", "auto", MpvOptionRequirement::Optional);
+    SetMpvOption(mpv, "hwdec", "auto-safe", MpvOptionRequirement::Optional, "no");
+#endif
     SetMpvOption(mpv, "vo", "gpu", MpvOptionRequirement::Essential);
+#if defined(_WIN32)
     // Per-pass GPU timestamps feed diagnostics, not playback or image quality.
     // Custom mpv configuration can re-enable them when profiling the renderer.
     SetMpvOption(mpv, "d3d11-gpu-timing", "no");
+#endif
     // Compatible NV12 frames can keep the existing filter LUTs while avoiding
     // full-sized RGB intermediates. Specialized/custom paths retain the original pipeline.
     SetMpvOption(mpv, "scale-direct-nv12", "yes");
@@ -1119,7 +1127,11 @@ void MpvPlayer::SetHardwareAcceleration(bool enabled) {
     {
         std::lock_guard<std::mutex> apiLock(mpvMutex);
         if (!mpv || !fn_mpv_set_property_string) return;
+#if defined(_WIN32)
         ret = fn_mpv_set_property_string(mpv, "hwdec", enabled ? "d3d11va" : "no");
+#else
+        ret = fn_mpv_set_property_string(mpv, "hwdec", enabled ? "auto-safe" : "no");
+#endif
     }
     if (ret < 0) ReportError("Unable to set hardware acceleration", ret);
 }
