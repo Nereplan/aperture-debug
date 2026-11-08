@@ -2,7 +2,7 @@
 pkgname=aperture-player
 pkgver=2.0.0.0
 pkgrel=1
-pkgdesc="Native media player and library hub powered by libmpv (CachyOS / Arch Linux)"
+pkgdesc="Media player powered by libmpv"
 arch=('x86_64')
 url="https://github.com/alperen/aperture"
 license=('MIT')
