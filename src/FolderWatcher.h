@@ -70,6 +70,8 @@ private:
     void WorkerLoop();
     void ApplyPendingConfiguration();
     void ArmInactiveWatches();
+    DWORD ComputeWaitTimeoutMs();
+    void WakeWorker();
     void CancelDirectoryReads();
     void ReclaimRetiredWatchLocked(DirectoryWatch* watch);
     bool HasPendingReadsLocked() const;
@@ -81,6 +83,7 @@ private:
     std::atomic<bool> isRunning{ false };
     std::atomic<bool> stopRequested{ false };
     std::atomic<bool> workerDone{ true };
+    std::atomic<DWORD> workerThreadId{ 0 };
     std::mutex configurationMutex;
     std::optional<std::vector<std::wstring>> pendingConfiguration;
     std::atomic<uint64_t> requestedConfiguration{0}, appliedConfiguration{0};
@@ -103,6 +106,7 @@ private:
     bool rescanPending = false;
     std::unordered_set<std::wstring> rescanRoots;
     static constexpr ULONG_PTR kStopCompletionKey = 0xDEADBEEF;
+    static constexpr ULONG_PTR kWakeCompletionKey = 0xDEADBEF0;
     static constexpr DWORD kBufferSize = 64 * 1024; // 64 KB buffer for change notifications
 };
 

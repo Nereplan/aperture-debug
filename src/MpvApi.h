@@ -97,6 +97,7 @@ protected:
         diagnostics.clear();
         essentialOptionFailed = false;
         ownerName = owner;
+#if defined(_WIN32)
         if (hint) GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS,
                                     reinterpret_cast<LPCWSTR>(hint), &hMpvDll);
         if (!hMpvDll) hMpvDll = DllLoader::LoadPackageLocalDll(L"libmpv-2.dll");
@@ -105,6 +106,15 @@ protected:
                                         std::to_string(GetLastError()) + ")", 0);
             return false;
         }
+#else
+        (void)hint;
+        hMpvDll = DllLoader::LoadPackageLocalDll(L"libmpv.so.2");
+        if (!hMpvDll) hMpvDll = DllLoader::LoadPackageLocalDll(L"libmpv.so");
+        if (!hMpvDll) {
+            RecordInitializationFailure("load libmpv.so.2 or libmpv.so", 0);
+            return false;
+        }
+#endif
         std::string missing;
         if (!Bind(hMpvDll, profile, missing)) {
             RecordInitializationFailure("missing required API: " + missing, 0);

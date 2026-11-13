@@ -70,6 +70,7 @@ public:
     static void DrawImportProgress(Renderer& r, const Settings& s, const ImportProgressViewModel& vm);
     static void DrawIslandShell(Renderer& r, const Settings& s, const D2D1_RECT_F& islandRect, float radiusPx, float expand, bool hovered, float alpha);
     static void DrawGlobalSearchSurface(Renderer& r, const Settings& s, const GlobalSearchSurfaceViewModel& vm);
+    static bool HasVisibleOverlayContent(const PlayerRenderViewModel& vm);
     static void DrawPlayerOverlay(OverlayRenderer& r, const Settings& s, const PlayerRenderViewModel& vm);
     static void DrawHub(Renderer& r, const Settings& s, HubRenderViewModel& vm);
 };

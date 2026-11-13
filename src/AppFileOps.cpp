@@ -14,12 +14,21 @@
 #include "SettingsLayout.h"
 #include "Presentation.h"
 #include "WindowGeometry.h"
+#if defined(_WIN32)
 #include <commdlg.h>
 #include <shellapi.h>
 #include <shlwapi.h>
 #include <shlobj.h>
 #include <imm.h>
+#endif
 #include <numeric>
+#if !defined(_WIN32)
+#include <dlfcn.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/wait.h>
+#include <unistd.h>
+#endif
 
 namespace Aperture {
 
@@ -300,9 +309,15 @@ void App::SetCoverArtFromFile(const MediaItem& item) {
         } else {
             const std::wstring fileName =
                 MediaMetadataOverrides::CoverArtFileName(item.fileIndex, item.volumeSerialNumber, sourcePath);
+#if defined(_WIN32)
             const std::wstring coversDir = GetDataDir() + L"\\covers";
             SHCreateDirectoryExW(NULL, coversDir.c_str(), NULL);
             const std::wstring storedPath = coversDir + L"\\" + fileName;
+#else
+            const std::wstring coversDir = GetDataDir() + L"/covers";
+            SHCreateDirectoryExW(NULL, coversDir.c_str(), NULL);
+            const std::wstring storedPath = coversDir + L"/" + fileName;
+#endif
             // CopyFileW overwrites the stored file on re-pick; the renderer
             // evicts its cached copy when the new path is registered below.
             if (fileName.empty() || !CopyFileW(sourcePath.c_str(), storedPath.c_str(), FALSE)) {
@@ -363,8 +378,121 @@ void App::OpenOnlineSubtitlesDialog() {
 
 void App::OpenInExplorer(const std::wstring& filePath) {
     if (filePath.empty()) return;
+#if defined(_WIN32)
     std::wstring param = L"/select,\"" + filePath + L"\"";
     ShellExecuteW(NULL, L"open", L"explorer.exe", param.c_str(), NULL, SW_SHOWNORMAL);
+#else
+    const std::string utf8Path = Utf16ToUtf8(filePath);
+    if (utf8Path.empty()) return;
+    struct stat st{};
+    const bool isDir = (::stat(utf8Path.c_str(), &st) == 0) && S_ISDIR(st.st_mode);
+    // For files, prefer org.freedesktop.FileManager1.ShowItems so the item is highlighted.
+    if (!isDir) {
+        static void* dbusLib = []() -> void* {
+            void* lib = ::dlopen("libdbus-1.so.3", RTLD_LAZY);
+            return lib ? lib : ::dlopen("libdbus-1.so", RTLD_LAZY);
+        }();
+        if (dbusLib) {
+            using FnThreadsInit = int (*)();
+            using FnBusGet = void* (*)(int, void*);
+            using FnMsgNew = void* (*)(const char*, const char*, const char*, const char*);
+            using FnIterInitAppend = void (*)(void*, void*);
+            using FnIterOpenContainer = int (*)(void*, int, const char*, void*);
+            using FnIterAppendBasic = int (*)(void*, int, const void*);
+            using FnIterCloseContainer = int (*)(void*, void*);
+            using FnSendReply = void* (*)(void*, void*, int, void*);
+            using FnMsgUnref = void (*)(void*);
+            using FnConnUnref = void (*)(void*);
+            static auto pThreadsInit = reinterpret_cast<FnThreadsInit>(::dlsym(dbusLib, "dbus_threads_init_default"));
+            static auto pBusGet = reinterpret_cast<FnBusGet>(::dlsym(dbusLib, "dbus_bus_get"));
+            static auto pMsgNew = reinterpret_cast<FnMsgNew>(::dlsym(dbusLib, "dbus_message_new_method_call"));
+            static auto pIterInit = reinterpret_cast<FnIterInitAppend>(::dlsym(dbusLib, "dbus_message_iter_init_append"));
+            static auto pIterOpen = reinterpret_cast<FnIterOpenContainer>(::dlsym(dbusLib, "dbus_message_iter_open_container"));
+            static auto pIterAppend = reinterpret_cast<FnIterAppendBasic>(::dlsym(dbusLib, "dbus_message_iter_append_basic"));
+            static auto pIterClose = reinterpret_cast<FnIterCloseContainer>(::dlsym(dbusLib, "dbus_message_iter_close_container"));
+            static auto pSendReply = reinterpret_cast<FnSendReply>(::dlsym(dbusLib, "dbus_connection_send_with_reply_and_block"));
+            static auto pMsgUnref = reinterpret_cast<FnMsgUnref>(::dlsym(dbusLib, "dbus_message_unref"));
+            static auto pConnUnref = reinterpret_cast<FnConnUnref>(::dlsym(dbusLib, "dbus_connection_unref"));
+            bool dbusOk = false;
+            if (pBusGet && pMsgNew && pIterInit && pIterOpen && pIterAppend && pIterClose && pSendReply && pMsgUnref) {
+                static std::once_flag dbusThreadsOnce;
+                std::call_once(dbusThreadsOnce, []() {
+                    if (pThreadsInit) pThreadsInit();
+                });
+                std::string fileUri = "file://";
+                for (unsigned char c : utf8Path) {
+                    if ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') ||
+                        c == '/' || c == '-' || c == '_' || c == '.' || c == '~') {
+                        fileUri.push_back(static_cast<char>(c));
+                    } else {
+                        static constexpr char kHex[] = "0123456789ABCDEF";
+                        fileUri.push_back('%');
+                        fileUri.push_back(kHex[(c >> 4) & 0xF]);
+                        fileUri.push_back(kHex[c & 0xF]);
+                    }
+                }
+                void* conn = pBusGet(0 /* DBUS_BUS_SESSION */, nullptr);
+                if (conn) {
+                    void* msg = pMsgNew("org.freedesktop.FileManager1",
+                                        "/org/freedesktop/FileManager1",
+                                        "org.freedesktop.FileManager1",
+                                        "ShowItems");
+                    if (msg) {
+                        struct RawIter { uintptr_t words[16]; } iter{}, subIter{};
+                        pIterInit(msg, &iter);
+                        if (pIterOpen(&iter, 'a', "s", &subIter)) {
+                            const char* uriPtr = fileUri.c_str();
+                            const char* startupId = "";
+                            if (pIterAppend(&subIter, 's', &uriPtr) &&
+                                pIterClose(&iter, &subIter) &&
+                                pIterAppend(&iter, 's', &startupId)) {
+                                void* reply = pSendReply(conn, msg, 1500, nullptr);
+                                if (reply) {
+                                    dbusOk = true;
+                                    pMsgUnref(reply);
+                                }
+                            }
+                        }
+                        pMsgUnref(msg);
+                    }
+                    if (pConnUnref) pConnUnref(conn);
+                }
+            }
+            if (dbusOk) return;
+        }
+    }
+    std::string targetDir = utf8Path;
+    if (!isDir) {
+        const size_t slash = targetDir.find_last_of('/');
+        targetDir = (slash == std::string::npos) ? "." : (slash == 0 ? "/" : targetDir.substr(0, slash));
+    }
+    // Double-fork so xdg-open runs detached without creating a zombie child.
+    const pid_t pid = ::fork();
+    if (pid == 0) {
+        ::setsid();
+        const pid_t grand = ::fork();
+        if (grand == 0) {
+            const int devNull = ::open("/dev/null", O_RDWR);
+            if (devNull >= 0) {
+                ::dup2(devNull, STDIN_FILENO);
+                ::dup2(devNull, STDOUT_FILENO);
+                ::dup2(devNull, STDERR_FILENO);
+                if (devNull > STDERR_FILENO) ::close(devNull);
+            }
+            char* const argv[] = {
+                const_cast<char*>("xdg-open"),
+                const_cast<char*>(targetDir.c_str()),
+                nullptr
+            };
+            ::execvp("xdg-open", argv);
+            ::_exit(127);
+        }
+        ::_exit(0);
+    } else if (pid > 0) {
+        int status = 0;
+        ::waitpid(pid, &status, 0);
+    }
+#endif
 }
 
 bool App::TakeScreenshot() {

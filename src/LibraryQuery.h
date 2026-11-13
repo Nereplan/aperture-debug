@@ -221,8 +221,10 @@ private:
     static LibraryViewProjection BuildView(const MediaLibrary& library, const LibraryQueryOptions& options,
         const std::function<bool(const std::wstring&)>& fileExistsFn);
     LibraryViewProjection FilterPlan(const MediaLibrary& library, const LibraryQueryOptions& options);
-    struct SearchFields { std::wstring title, originalTitle, path, series; };
-    std::vector<SearchFields> searchFields;
+    // Flat arena storing normalized "title\noriginalTitle\npath\nseries" per item;
+    // \n never appears in normalized queries, preserving field-boundary isolation.
+    std::wstring searchArena;
+    std::vector<size_t> searchOffsets;
     uint64_t searchCatalogRevision = (std::numeric_limits<uint64_t>::max)();
     LibraryViewProjection cachedView, cachedPlan;
     LibraryRevisions viewRevisions, planRevisions;

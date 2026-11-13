@@ -13,11 +13,13 @@
 #include "SettingsLayout.h"
 #include "Presentation.h"
 #include "WindowGeometry.h"
+#if defined(_WIN32)
 #include <commdlg.h>
 #include <shellapi.h>
 #include <shlwapi.h>
 #include <shlobj.h>
 #include <imm.h>
+#endif
 #include <numeric>
 
 namespace Aperture {
@@ -134,8 +136,12 @@ void App::ReportStorageFailure(const StorageStatus& status, const std::wstring& 
     // Do not replace a dialog in progress or interrupt active playback.
     if (appInitialized && !playbackSession.IsOpen() && activeModal == ModalType::None && !shutdownComplete) {
         ShowConfirmationModal(Loc::Tr("ux.storage_title"), osdMsg, Loc::Tr("ux.open_folder"), [this]() {
+#if defined(_WIN32)
             const auto result = reinterpret_cast<INT_PTR>(ShellExecuteW(hWnd, L"open", GetExeDir().c_str(), nullptr, nullptr, SW_SHOWNORMAL));
             if (result <= 32) ShowOSD(IconType::FolderPlaylist, Loc::Tr("ux.storage_retry"), 6.0f);
+#else
+            OpenInExplorer(GetDataDir());
+#endif
         }, nullptr, false);
     }
 }

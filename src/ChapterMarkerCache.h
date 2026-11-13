@@ -1,7 +1,9 @@
 #pragma once
 
 #include "RenderViewModel.h"
+#include <algorithm>
 #include <cmath>
+#include <limits>
 
 namespace Aperture {
 
@@ -11,9 +13,25 @@ class ChapterMarkerCache {
 public:
     std::shared_ptr<const std::vector<TimelineChapterMarker>> Get(
         const std::vector<MpvChapterInfo>& chapters, uint64_t version, double duration, double time) {
-        if (snapshot_ && version_ == version && duration_ == duration &&
-            (duration <= 0.0 || (std::isfinite(time) && time >= validFrom_ && time < validUntil_))) {
-            return snapshot_;
+        if (snapshot_ && version_ == version && duration_ == duration) {
+            if (duration <= 0.0 || (std::isfinite(time) && time >= validFrom_ && time < validUntil_)) {
+                return snapshot_;
+            }
+            // No external caller retains the previous snapshot: update isPassed
+            // and the validity interval in place to avoid re-copying chapter titles.
+            if (snapshot_.use_count() == 1) {
+                auto mutableMarkers = std::const_pointer_cast<std::vector<TimelineChapterMarker>>(snapshot_);
+                double validFrom = -std::numeric_limits<double>::infinity();
+                double validUntil = std::numeric_limits<double>::infinity();
+                for (auto& marker : *mutableMarkers) {
+                    marker.isPassed = marker.time <= time;
+                    if (marker.isPassed) validFrom = std::max(validFrom, marker.time);
+                    else validUntil = std::min(validUntil, marker.time);
+                }
+                validFrom_ = std::isfinite(time) ? validFrom : 0.0;
+                validUntil_ = std::isfinite(time) ? validUntil : 0.0;
+                return snapshot_;
+            }
         }
         auto markers = std::make_shared<std::vector<TimelineChapterMarker>>();
         double validFrom = -std::numeric_limits<double>::infinity();

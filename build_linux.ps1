@@ -71,24 +71,32 @@ if (-not $zigCandidates) {
 }
 $zig = @($zigCandidates)[0]
 
-# 4. Prepare object & stub library directories
+$zigRoot = Split-Path -Parent $zig
+$zigLibcDir = Join-Path $zigRoot "lib\libc"
+$zigConfigCheck = Join-Path $zigLibcDir "glibc\include\config.h"
+if ((Test-Path -LiteralPath $zigLibcDir) -and (-not (Test-Path -LiteralPath $zigConfigCheck))) {
+    $zigParent = Split-Path -Parent $zigRoot
+    $zigZip = Join-Path $zigParent "zig.zip"
+    if (Test-Path -LiteralPath $zigZip) {
+        Write-Host "  [FIX] Incomplete Zig libc detected; restoring from $zigZip ..." -ForegroundColor Yellow
+        Remove-Item -LiteralPath $zigRoot -Recurse -Force
+        Add-Type -AssemblyName System.IO.Compression.FileSystem
+        [System.IO.Compression.ZipFile]::ExtractToDirectory($zigZip, $zigParent)
+    }
+    if (-not (Test-Path -LiteralPath $zigConfigCheck)) {
+        throw "Zig C++ installation at '$zigRoot' is incomplete (missing lib\libc\glibc\include\config.h). Re-extract or reinstall Zig 0.13.0."
+    }
+}
+
+# 4. Prepare object & staging directories
 $objDir = Join-Path $repoRoot "build\linux-obj"
-$libDir = Join-Path $repoRoot "build\linux-lib"
 $stageDir = Join-Path $repoRoot "dist\linux-x86_64"
 
 if ($Rebuild -and (Test-Path -LiteralPath $objDir)) {
     Remove-Item -LiteralPath $objDir -Recurse -Force
 }
 New-Item -ItemType Directory -Force -Path $objDir | Out-Null
-New-Item -ItemType Directory -Force -Path $libDir | Out-Null
 New-Item -ItemType Directory -Force -Path $stageDir | Out-Null
-
-$winLibs = @("uiautomationcore","mfplat","windowscodecs","winhttp","shlwapi","dwmapi","dxgi","dwrite","uxtheme","mfuuid","dxguid","oleaut32","user32","comctl32","shell32","advapi32","gdi32","comdlg32","ole32","d2d1","d3d11","bcrypt","crypt32","wintrust")
-foreach ($l in $winLibs) {
-    $arBytes = [System.Text.Encoding]::ASCII.GetBytes("!<arch>`n")
-    [System.IO.File]::WriteAllBytes((Join-Path $libDir "lib$l.lib.a"), $arBytes)
-    [System.IO.File]::WriteAllBytes((Join-Path $libDir "$l.lib"), $arBytes)
-}
 
 # 5. Collect Linux target sources
 $winOnly = @("main.cpp","FolderWatcher.cpp","HttpTransport.cpp","MediaTransport.cpp","Diagnostics.cpp","FileAssociations.cpp","JumpList.cpp","MediaFoundation.cpp","MediaProbeIsolation.cpp")
@@ -103,19 +111,39 @@ $compiledCount = 0
 foreach ($src in $sources) {
     $base = [System.IO.Path]::GetFileNameWithoutExtension($src.Name)
     $obj = Join-Path $objDir "$base.o"
+    $depFile = Join-Path $objDir "$base.d"
     $objs += $obj
 
-    $needsCompile = $Rebuild -or (-not (Test-Path -LiteralPath $obj))
+    $needsCompile = $Rebuild -or (-not (Test-Path -LiteralPath $obj)) -or (-not (Test-Path -LiteralPath $depFile))
     if (-not $needsCompile) {
         $objTime = (Get-Item -LiteralPath $obj).LastWriteTimeUtc
         if ($src.LastWriteTimeUtc -gt $objTime) {
             $needsCompile = $true
+        } else {
+            $depRaw = [System.IO.File]::ReadAllText($depFile)
+            $depJoined = $depRaw -replace "\\\r?\n", " "
+            $colonMatch = [regex]::Match($depJoined, ':(?=\s|$)')
+            if (-not $colonMatch.Success) {
+                $needsCompile = $true
+            } else {
+                $rhs = $depJoined.Substring($colonMatch.Index + 1)
+                $deps = [regex]::Matches($rhs, '(?:\\.|[^\s\\])+') | ForEach-Object {
+                    ($_.Value -replace '\\ ', ' ') -replace '\\\\', '\'
+                }
+                foreach ($dep in $deps) {
+                    if (-not $dep) { continue }
+                    if (-not (Test-Path -LiteralPath $dep) -or ((Get-Item -LiteralPath $dep).LastWriteTimeUtc -gt $objTime)) {
+                        $needsCompile = $true
+                        break
+                    }
+                }
+            }
         }
     }
 
     if ($needsCompile) {
         Write-Host "  [CXX] $($src.Name)" -ForegroundColor Cyan
-        & $zig c++ -target x86_64-linux-gnu.2.31 -std=c++17 $optFlag -fno-autolink -Wno-c++11-narrowing -Wno-constant-conversion -c `
+        & $zig c++ -target x86_64-linux-gnu.2.31 -std=c++17 $optFlag -fno-autolink -Wno-c++11-narrowing -Wno-constant-conversion -MMD -MF $depFile -c `
             "-I$repoRoot/src/linux/include" "-I$repoRoot/src" "-I$repoRoot" "-I$genDir" `
             $src.FullName -o $obj
         if ($LASTEXITCODE -ne 0) {
@@ -129,7 +157,7 @@ foreach ($src in $sources) {
 $outElf = Join-Path $stageDir "aperture"
 $stripFlag = if ($Configuration -eq "Release") { "-s" } else { "-g" }
 Write-Host "  [LD]  dist/linux-x86_64/aperture ($($objs.Count) objects, $compiledCount recompiled)" -ForegroundColor Cyan
-& $zig c++ -target x86_64-linux-gnu.2.31 $optFlag $stripFlag "-L$libDir" $objs -ldl -lpthread -lm -o $outElf
+& $zig c++ -target x86_64-linux-gnu.2.31 $optFlag $stripFlag $objs -ldl -lpthread -lm -o $outElf
 if ($LASTEXITCODE -ne 0) {
     throw "Failed to link Linux executable $outElf"
 }

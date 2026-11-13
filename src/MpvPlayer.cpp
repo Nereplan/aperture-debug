@@ -3,7 +3,11 @@
 #include "AudioConfig.h"
 #include "PlaybackScaling.h"
 #include "Settings.h"
+#if defined(_WIN32)
 #include <shlwapi.h>
+#else
+#include "linux/LinuxPlatform.h"
+#endif
 #include <sstream>
 #include <cstring>
 #include <cctype>
@@ -159,11 +163,31 @@ bool MpvPlayer::Initialize(HWND hParentWnd, HWND hChildVideoWnd) {
     hVideoWnd = hChildVideoWnd;
     std::wstring exeDir = GetExeDir();
     if (!LoadMpvApi(MpvApiProfile::Playback, "Playback")) return false;
+    fn_mpv_free_node_contents = hMpvDll
+        ? reinterpret_cast<decltype(&::mpv_free_node_contents)>(GetProcAddress(hMpvDll, "mpv_free_node_contents"))
+        : nullptr;
     mpv = fn_mpv_create();
     if (!mpv) { RecordInitializationFailure("mpv_create", MPV_ERROR_NOMEM); ResetMpvApi(); return false; }
+#if defined(_WIN32)
     // Attach to child HWND for direct hardware-accelerated video rendering
     int64_t wid = (int64_t)hVideoWnd;
     SetMpvWindow(mpv, wid);
+#else
+    const bool useWaylandSw = ApertureLinuxIsWayland(hParent ? hParent : hVideoWnd);
+    if (useWaylandSw && (!fn_mpv_render_context_create || !fn_mpv_render_context_set_update_callback ||
+                         !fn_mpv_render_context_update || !fn_mpv_render_context_render ||
+                         !fn_mpv_render_context_free)) {
+        RecordInitializationFailure("missing libmpv render API for Wayland", MPV_ERROR_UNSUPPORTED);
+        fn_mpv_destroy ? fn_mpv_destroy(mpv) : fn_mpv_terminate_destroy(mpv);
+        mpv = nullptr;
+        ResetMpvApi();
+        return false;
+    }
+    const uint64_t x11Wid = useWaylandSw ? 0 : ApertureLinuxGetX11WindowId(hVideoWnd ? hVideoWnd : hParent);
+    if (!useWaylandSw && x11Wid != 0) {
+        SetMpvWindow(mpv, static_cast<int64_t>(x11Wid));
+    }
+#endif
     // Disable mpv default keyboard bindings so Win32/Direct2D receives all key events
     SetMpvOption(mpv, "input-default-bindings", "no", MpvOptionRequirement::Essential);
     SetMpvOption(mpv, "input-vo-keyboard", "no", MpvOptionRequirement::Essential);
@@ -184,16 +208,23 @@ bool MpvPlayer::Initialize(HWND hParentWnd, HWND hChildVideoWnd) {
     // Use D3D11VA direct surfaces. The safe/auto modes can select the copy path on Windows, retaining a second full-resolution system
     // memory frame queue alongside the GPU decoder surfaces.
     SetMpvOption(mpv, "hwdec", "d3d11va", MpvOptionRequirement::Optional, "no");
-#else
-    SetMpvOption(mpv, "gpu-context", "auto", MpvOptionRequirement::Optional);
-    SetMpvOption(mpv, "gpu-api", "auto", MpvOptionRequirement::Optional);
-    SetMpvOption(mpv, "hwdec", "auto-safe", MpvOptionRequirement::Optional, "no");
-#endif
     SetMpvOption(mpv, "vo", "gpu", MpvOptionRequirement::Essential);
-#if defined(_WIN32)
     // Per-pass GPU timestamps feed diagnostics, not playback or image quality.
     // Custom mpv configuration can re-enable them when profiling the renderer.
     SetMpvOption(mpv, "d3d11-gpu-timing", "no");
+#else
+    if (useWaylandSw) {
+        SetMpvOption(mpv, "vo", "libmpv", MpvOptionRequirement::Essential);
+        SetMpvOption(mpv, "hwdec", "auto-copy", MpvOptionRequirement::Optional, "no");
+    } else if (x11Wid != 0) {
+        SetMpvOption(mpv, "gpu-context", "auto", MpvOptionRequirement::Optional);
+        SetMpvOption(mpv, "gpu-api", "auto", MpvOptionRequirement::Optional);
+        SetMpvOption(mpv, "hwdec", "auto-safe", MpvOptionRequirement::Optional, "no");
+        SetMpvOption(mpv, "vo", "gpu", MpvOptionRequirement::Essential);
+    } else {
+        SetMpvOption(mpv, "vo", "null", MpvOptionRequirement::Optional);
+        SetMpvOption(mpv, "hwdec", "no", MpvOptionRequirement::Optional);
+    }
 #endif
     // Compatible NV12 frames can keep the existing filter LUTs while avoiding
     // full-sized RGB intermediates. Specialized/custom paths retain the original pipeline.
@@ -220,7 +251,15 @@ bool MpvPlayer::Initialize(HWND hParentWnd, HWND hChildVideoWnd) {
     // Frame-accurate seeking for every seek type. mpv's default makes relative seeks keyframe-fast, which snaps quick skip steps onto
     // the same keyframe and can land past a subtitle cue that should be on screen, both reported as seek imprecision.
     SetMpvOption(mpv, "hr-seek", "always");
+#if defined(_WIN32)
     SetMpvOption(mpv, "force-window", "yes", MpvOptionRequirement::Essential);
+#else
+    if (!useWaylandSw && x11Wid != 0) {
+        SetMpvOption(mpv, "force-window", "yes", MpvOptionRequirement::Essential);
+    } else {
+        SetMpvOption(mpv, "force-window", "no", MpvOptionRequirement::Optional);
+    }
+#endif
     SetMpvOption(mpv, "keep-open", "yes");
     SetMpvOption(mpv, "sub-auto", "fuzzy");
     // Bound libass' rendered subtitle bitmap cache. Entries are recreated on demand, so this retains subtitle correctness without
@@ -242,7 +281,22 @@ bool MpvPlayer::Initialize(HWND hParentWnd, HWND hChildVideoWnd) {
     SetMpvOption(mpv, "demuxer-max-bytes", "8MiB");
     SetMpvOption(mpv, "demuxer-max-back-bytes", "0");
     // Let libass resolve the shipped private fonts (Inter, Space Grotesk, JetBrains Mono) for subtitles without a system-wide install.
+#if defined(_WIN32)
     std::string subFontsDir = Utf16ToUtf8(exeDir + L"\\fonts");
+#else
+    std::wstring subFontsDirW = exeDir + L"/fonts";
+    if (!DirectoryExists(subFontsDirW)) {
+        const std::wstring exeBinDir = ExtractDirectory(GetExePath());
+        for (const std::wstring& candidate : {
+                exeBinDir + L"/fonts",
+                std::wstring(L"/usr/share/aperture/fonts"),
+                std::wstring(L"/usr/local/share/aperture/fonts")
+            }) {
+            if (!candidate.empty() && DirectoryExists(candidate)) { subFontsDirW = candidate; break; }
+        }
+    }
+    std::string subFontsDir = Utf16ToUtf8(subFontsDirW);
+#endif
     SetMpvOption(mpv, "sub-fonts-dir", subFontsDir.c_str());
     // Persist compiled GPU shaders under the app's root-local cache directory
     // so later playback starts skip recompiling pipeline shaders.
@@ -258,6 +312,39 @@ bool MpvPlayer::Initialize(HWND hParentWnd, HWND hChildVideoWnd) {
         ResetMpvApi();
         return false;
     }
+#if !defined(_WIN32)
+    if (useWaylandSw) {
+        RECT vrc{};
+        HWND boundsWnd = hVideoWnd ? hVideoWnd : hParent;
+        if (boundsWnd && GetClientRect(boundsWnd, &vrc)) {
+            int cw = static_cast<int>(vrc.right - vrc.left);
+            int ch = static_cast<int>(vrc.bottom - vrc.top);
+            if (cw > 1 && ch > 1) {
+                linuxVideoW.store(cw & ~1, std::memory_order_release);
+                linuxVideoH.store(ch & ~1, std::memory_order_release);
+            }
+        }
+        mpv_render_param params[] = {
+            { MPV_RENDER_PARAM_API_TYPE, (void*)MPV_RENDER_API_TYPE_SW },
+            { MPV_RENDER_PARAM_INVALID, nullptr }
+        };
+        const int renderResult = fn_mpv_render_context_create(&linuxRenderCtx, mpv, params);
+        if (renderResult < 0 || !linuxRenderCtx) {
+            RecordInitializationFailure("Wayland software render context", renderResult);
+            fn_mpv_terminate_destroy(mpv);
+            mpv = nullptr;
+            ResetMpvApi();
+            return false;
+        }
+        fn_mpv_render_context_set_update_callback(linuxRenderCtx, &MpvPlayer::OnWaylandRenderUpdate, this);
+        {
+            std::lock_guard<std::mutex> lock(waylandRenderMutex);
+            waylandFramePending = false;
+            waylandRenderStop = false;
+        }
+        waylandRenderThread = std::thread(&MpvPlayer::WaylandRenderLoop, this);
+    }
+#endif
     // Observe properties
     if (fn_mpv_observe_property) {
         fn_mpv_observe_property(mpv, 1, "time-pos", MPV_FORMAT_DOUBLE);
@@ -277,6 +364,7 @@ bool MpvPlayer::Initialize(HWND hParentWnd, HWND hChildVideoWnd) {
     isInitialized = true;
     isRunning = true;
     ended = false;
+    { std::lock_guard<std::mutex> lock(mpvMutex); SeedInitialAppliedPropertiesLocked(); }
     { std::lock_guard<std::mutex> lock(stateMutex); lastError.clear(); }
     eventThread = std::thread(&MpvPlayer::EventLoop, this);
     if (customMpvConfigEnabled) {
@@ -292,6 +380,20 @@ bool MpvPlayer::Initialize(HWND hParentWnd, HWND hChildVideoWnd) {
 
 void MpvPlayer::Shutdown() {
     isRunning = false;
+#if !defined(_WIN32)
+    {
+        std::lock_guard<std::mutex> lock(waylandRenderMutex);
+        waylandRenderStop = true;
+    }
+    waylandRenderCv.notify_all();
+    if (waylandRenderThread.joinable()) { waylandRenderThread.join(); }
+    if (linuxRenderCtx) {
+        if (fn_mpv_render_context_set_update_callback) { fn_mpv_render_context_set_update_callback(linuxRenderCtx, nullptr, nullptr); }
+        if (fn_mpv_render_context_free) { fn_mpv_render_context_free(linuxRenderCtx); }
+        linuxRenderCtx = nullptr;
+    }
+    std::vector<uint8_t>().swap(waylandPixelBuffer);
+#endif
     {
         std::lock_guard<std::mutex> lock(mpvMutex);
         if (mpv) {
@@ -316,7 +418,10 @@ void MpvPlayer::Shutdown() {
             else if (fn_mpv_destroy) fn_mpv_destroy(mpv);
             mpv = nullptr;
         }
+        appliedProps.Clear();
+        lastDeinterlaceMode = "off";
     }
+    fn_mpv_free_node_contents = nullptr;
     ResetMpvApi();
     isInitialized = false;
     ended = true;
@@ -337,6 +442,54 @@ void MpvPlayer::Shutdown() {
         lastError.clear();
     }
 }
+
+#if !defined(_WIN32)
+void MpvPlayer::OnWaylandRenderUpdate(void* ctx) {
+    MpvPlayer* self = static_cast<MpvPlayer*>(ctx);
+    if (!self) return;
+    {
+        std::lock_guard<std::mutex> lock(self->waylandRenderMutex);
+        self->waylandFramePending = true;
+    }
+    self->waylandRenderCv.notify_one();
+}
+
+void MpvPlayer::WaylandRenderLoop() {
+    int lastW = 0, lastH = 0;
+    while (true) {
+        {
+            std::unique_lock<std::mutex> lock(waylandRenderMutex);
+            waylandRenderCv.wait(lock, [this]() { return waylandRenderStop || waylandFramePending; });
+            if (waylandRenderStop) break;
+            waylandFramePending = false;
+        }
+        if (!linuxRenderCtx || !fn_mpv_render_context_render) continue;
+        const int w = std::clamp(linuxVideoW.load(std::memory_order_acquire), 2, 3840) & ~1;
+        const int h = std::clamp(linuxVideoH.load(std::memory_order_acquire), 2, 2160) & ~1;
+        const bool sizeChanged = (w != lastW || h != lastH);
+        uint64_t flags = fn_mpv_render_context_update ? fn_mpv_render_context_update(linuxRenderCtx) : MPV_RENDER_UPDATE_FRAME;
+        if (!(flags & MPV_RENDER_UPDATE_FRAME) && !sizeChanged) continue;
+        const size_t neededBytes = static_cast<size_t>(w) * static_cast<size_t>(h) * 4u;
+        // Grow-only / reuse capacity across frames to avoid per-frame heap allocations.
+        if (waylandPixelBuffer.size() != neededBytes) { waylandPixelBuffer.resize(neededBytes); }
+        int size[2] = { w, h };
+        char format[] = "bgr0";
+        size_t stride = static_cast<size_t>(w) * 4u;
+        mpv_render_param drawParams[] = {
+            { MPV_RENDER_PARAM_SW_SIZE, size },
+            { MPV_RENDER_PARAM_SW_FORMAT, format },
+            { MPV_RENDER_PARAM_SW_STRIDE, &stride },
+            { MPV_RENDER_PARAM_SW_POINTER, waylandPixelBuffer.data() },
+            { MPV_RENDER_PARAM_INVALID, nullptr }
+        };
+        if (fn_mpv_render_context_render(linuxRenderCtx, drawParams) >= 0) {
+            lastW = w;
+            lastH = h;
+            ApertureLinuxPresentVideoFrame(hVideoWnd ? hVideoWnd : hParent, waylandPixelBuffer.data(), w, h);
+        }
+    }
+}
+#endif
 
 void MpvPlayer::HandleEofTransition() {
     // keep-open=yes intentionally retains the current file, so MPV_EVENT_END_FILE is not guaranteed to arrive. eof-reached is the
@@ -361,148 +514,217 @@ void MpvPlayer::EventLoop() {
         // not poll 20 times per second. Keep a bounded wait for older DLLs.
         mpv_event* event = fn_mpv_wait_event(mpv, fn_mpv_wakeup ? -1.0 : 0.05);
         if (!event || event->event_id == MPV_EVENT_NONE) continue;
-        if (event->event_id == MPV_EVENT_SHUTDOWN) { isRunning = false; break; }
-        if (event->event_id == MPV_EVENT_PROPERTY_CHANGE) {
-            mpv_event_property* prop = (mpv_event_property*)event->data;
-            if (!prop || !prop->name) continue;
-            if (strcmp(prop->name, "time-pos") == 0 && prop->format == MPV_FORMAT_DOUBLE && prop->data) {
-                double t = *(double*)prop->data;
-                if (!std::isfinite(t)) t = 0.0;
-                t = std::max(0.0, t);
-                { std::lock_guard<std::mutex> lock(stateMutex); currentTime = t; }
-                auto callback = CopyCallback(onTimeUpdated);
-                if (callback) callback(t);
-            } else if (strcmp(prop->name, "duration") == 0 && prop->format == MPV_FORMAT_DOUBLE && prop->data) {
-                double d = *(double*)prop->data;
-                if (!std::isfinite(d) || d < 0.0) d = 0.0;
-                { std::lock_guard<std::mutex> lock(stateMutex); duration = d; }
-                auto callback = CopyCallback(onDurationChanged);
-                if (callback) callback(d);
-            } else if (strcmp(prop->name, "pause") == 0 && prop->format == MPV_FORMAT_FLAG && prop->data) {
-                int p = *(int*)prop->data;
-                bool changed = false;
-                { std::lock_guard<std::mutex> lock(stateMutex); changed = isPaused != (p != 0); isPaused = (p != 0); }
-                if (changed) { auto callback = CopyCallback(onPlayStateChanged); if (callback) callback(p == 0); }
-            }
-            else if (strcmp(prop->name, "volume") == 0 && prop->format == MPV_FORMAT_DOUBLE && prop->data) {
-                double v = *(double*)prop->data;
-                if (!std::isfinite(v)) v = 0.0;
-                std::lock_guard<std::mutex> lock(stateMutex);
-                volume = std::clamp(v / 100.0, 0.0, kMaxVolumeRatio);
-            } else if (strcmp(prop->name, "mute") == 0 && prop->format == MPV_FORMAT_FLAG && prop->data) {
-                int m = *(int*)prop->data;
-                std::lock_guard<std::mutex> lock(stateMutex);
-                isMuted = (m != 0);
-            } else if (strcmp(prop->name, "speed") == 0 && prop->format == MPV_FORMAT_DOUBLE && prop->data) {
-                double s = *(double*)prop->data;
-                if (!std::isfinite(s) || s <= 0.0) s = 1.0;
-                std::lock_guard<std::mutex> lock(stateMutex);
-                speed = s;
-            } else if (strcmp(prop->name, "dwidth") == 0 && prop->format == MPV_FORMAT_INT64 && prop->data) {
-                int64_t width = *(int64_t*)prop->data;
-                std::lock_guard<std::mutex> lock(stateMutex);
-                videoWidth = width > 0 ? (uint32_t)std::min<int64_t>(width, std::numeric_limits<uint32_t>::max()) : 0;
-            } else if (strcmp(prop->name, "dheight") == 0 && prop->format == MPV_FORMAT_INT64 && prop->data) {
-                int64_t height = *(int64_t*)prop->data;
-                std::lock_guard<std::mutex> lock(stateMutex);
-                videoHeight = height > 0 ? (uint32_t)std::min<int64_t>(height, std::numeric_limits<uint32_t>::max()) : 0;
-            }
-            else if (strcmp(prop->name, "track-list") == 0) { RefreshTracks(); }
-            else if (strcmp(prop->name, "chapter") == 0 && prop->format == MPV_FORMAT_INT64 && prop->data) {
-                int64_t chap = *(int64_t*)prop->data;
-                bool changed = false;
-                { std::lock_guard<std::mutex> lock(stateMutex); changed = (currentChapter != (int)chap); currentChapter = (int)chap; }
-                if (changed) { auto callback = CopyCallback(onChaptersChanged); if (callback) callback(); }
-            }
-            else if (strcmp(prop->name, "chapter-list") == 0) { RefreshChapters(); }
-            else if (strcmp(prop->name, "audio-device-list") == 0) { RefreshAudioDevices(); }
-            else if (strcmp(prop->name, "eof-reached") == 0 && prop->format == MPV_FORMAT_FLAG && prop->data) {
-                const bool eofReached = *(int*)prop->data != 0;
-                if (eofReached) { HandleEofTransition(); } else {
-                    // A seek-back/replay clears eof-reached. Re-arm the one-shot transition so a later EOF is delivered again.
-                    ended.store(false, std::memory_order_release);
+        bool dirtyTracks = false;
+        bool dirtyChapters = false;
+        bool dirtyAudioDevices = false;
+        do {
+            if (event->event_id == MPV_EVENT_SHUTDOWN) { isRunning = false; break; }
+            if (event->event_id == MPV_EVENT_PROPERTY_CHANGE) {
+                mpv_event_property* prop = (mpv_event_property*)event->data;
+                if (!prop || !prop->name) continue;
+                if (strcmp(prop->name, "time-pos") == 0 && prop->format == MPV_FORMAT_DOUBLE && prop->data) {
+                    double t = *(double*)prop->data;
+                    if (!std::isfinite(t)) t = 0.0;
+                    t = std::max(0.0, t);
+                    { std::lock_guard<std::mutex> lock(stateMutex); currentTime = t; }
+                    auto callback = CopyCallback(onTimeUpdated);
+                    if (callback) callback(t);
+                } else if (strcmp(prop->name, "duration") == 0 && prop->format == MPV_FORMAT_DOUBLE && prop->data) {
+                    double d = *(double*)prop->data;
+                    if (!std::isfinite(d) || d < 0.0) d = 0.0;
+                    { std::lock_guard<std::mutex> lock(stateMutex); duration = d; }
+                    auto callback = CopyCallback(onDurationChanged);
+                    if (callback) callback(d);
+                } else if (strcmp(prop->name, "pause") == 0 && prop->format == MPV_FORMAT_FLAG && prop->data) {
+                    int p = *(int*)prop->data;
+                    bool changed = false;
+                    { std::lock_guard<std::mutex> lock(stateMutex); changed = isPaused != (p != 0); isPaused = (p != 0); }
+                    if (changed) { auto callback = CopyCallback(onPlayStateChanged); if (callback) callback(p == 0); }
                 }
+                else if (strcmp(prop->name, "volume") == 0 && prop->format == MPV_FORMAT_DOUBLE && prop->data) {
+                    double v = *(double*)prop->data;
+                    if (!std::isfinite(v)) v = 0.0;
+                    std::lock_guard<std::mutex> lock(stateMutex);
+                    volume = std::clamp(v / 100.0, 0.0, kMaxVolumeRatio);
+                } else if (strcmp(prop->name, "mute") == 0 && prop->format == MPV_FORMAT_FLAG && prop->data) {
+                    int m = *(int*)prop->data;
+                    std::lock_guard<std::mutex> lock(stateMutex);
+                    isMuted = (m != 0);
+                } else if (strcmp(prop->name, "speed") == 0 && prop->format == MPV_FORMAT_DOUBLE && prop->data) {
+                    double s = *(double*)prop->data;
+                    if (!std::isfinite(s) || s <= 0.0) s = 1.0;
+                    std::lock_guard<std::mutex> lock(stateMutex);
+                    speed = s;
+                } else if (strcmp(prop->name, "dwidth") == 0 && prop->format == MPV_FORMAT_INT64 && prop->data) {
+                    int64_t width = *(int64_t*)prop->data;
+                    std::lock_guard<std::mutex> lock(stateMutex);
+                    videoWidth = width > 0 ? (uint32_t)std::min<int64_t>(width, std::numeric_limits<uint32_t>::max()) : 0;
+                } else if (strcmp(prop->name, "dheight") == 0 && prop->format == MPV_FORMAT_INT64 && prop->data) {
+                    int64_t height = *(int64_t*)prop->data;
+                    std::lock_guard<std::mutex> lock(stateMutex);
+                    videoHeight = height > 0 ? (uint32_t)std::min<int64_t>(height, std::numeric_limits<uint32_t>::max()) : 0;
+                }
+                else if (strcmp(prop->name, "track-list") == 0) { dirtyTracks = true; }
+                else if (strcmp(prop->name, "chapter") == 0 && prop->format == MPV_FORMAT_INT64 && prop->data) {
+                    int64_t chap = *(int64_t*)prop->data;
+                    bool changed = false;
+                    { std::lock_guard<std::mutex> lock(stateMutex); changed = (currentChapter != (int)chap); currentChapter = (int)chap; }
+                    if (changed) { auto callback = CopyCallback(onChaptersChanged); if (callback) callback(); }
+                }
+                else if (strcmp(prop->name, "chapter-list") == 0) { dirtyChapters = true; }
+                else if (strcmp(prop->name, "audio-device-list") == 0) { dirtyAudioDevices = true; }
+                else if (strcmp(prop->name, "eof-reached") == 0 && prop->format == MPV_FORMAT_FLAG && prop->data) {
+                    const bool eofReached = *(int*)prop->data != 0;
+                    if (eofReached) { HandleEofTransition(); } else {
+                        // A seek-back/replay clears eof-reached. Re-arm the one-shot transition so a later EOF is delivered again.
+                        ended.store(false, std::memory_order_release);
+                    }
+                }
+            } else if (event->event_id == MPV_EVENT_FILE_LOADED) {
+                ended = false;
+                { std::lock_guard<std::mutex> lock(stateMutex); lastError.clear(); }
+                dirtyTracks = true;
+                dirtyChapters = true;
+                dirtyAudioDevices = true;
+            } else if (event->event_id == MPV_EVENT_END_FILE) {
+                mpv_event_end_file* end = static_cast<mpv_event_end_file*>(event->data);
+                const mpv_end_file_reason reason = end ? end->reason : MPV_END_FILE_REASON_EOF;
+                if (reason == MPV_END_FILE_REASON_ERROR) {
+                    { std::lock_guard<std::mutex> lock(stateMutex); isPaused = true; }
+                    ReportError("Playback error", end ? end->error : -1, ErrorSeverity::Fatal);
+                    continue;
+                }
+                if (reason == MPV_END_FILE_REASON_EOF) HandleEofTransition();
             }
-        } else if (event->event_id == MPV_EVENT_FILE_LOADED) {
-            ended = false;
-            { std::lock_guard<std::mutex> lock(stateMutex); lastError.clear(); }
-            RefreshTracks();
-            RefreshChapters();
-            RefreshAudioDevices();
-        } else if (event->event_id == MPV_EVENT_END_FILE) {
-            mpv_event_end_file* end = static_cast<mpv_event_end_file*>(event->data);
-            const mpv_end_file_reason reason = end ? end->reason : MPV_END_FILE_REASON_EOF;
-            if (reason == MPV_END_FILE_REASON_ERROR) {
-                { std::lock_guard<std::mutex> lock(stateMutex); isPaused = true; }
-                ReportError("Playback error", end ? end->error : -1, ErrorSeverity::Fatal);
-                continue;
-            }
-            if (reason == MPV_END_FILE_REASON_EOF) HandleEofTransition();
-        }
+        } while (isRunning && mpv && (event = fn_mpv_wait_event(mpv, 0.0)) && event->event_id != MPV_EVENT_NONE);
+        if (!isRunning || !mpv) break;
+        if (dirtyTracks) RefreshTracks();
+        if (dirtyChapters) RefreshChapters();
+        if (dirtyAudioDevices) RefreshAudioDevices();
     }
 }
 
 void MpvPlayer::RefreshTracks() {
     std::vector<MpvTrackInfo> newAudio;
     std::vector<MpvTrackInfo> newSub;
+    auto appendTrack = [&](MpvTrackInfo info, const char* externalFilename) {
+        if (info.title.empty()) {
+            if (info.isExternal && externalFilename && *externalFilename) {
+                const std::wstring externalPath = Utf8ToUtf16(externalFilename);
+                info.title = L"External: " + GetFileNameFromPath(externalPath);
+            } else if (!info.lang.empty()) info.title = info.lang;
+            else info.title = (info.type == "audio") ? (L"Audio Track " + std::to_wstring(info.id)) : (L"Subtitle " + std::to_wstring(info.id));
+        }
+        if (info.type == "audio" && !info.codec.empty()) { info.title += L" (" + info.codec + L")"; }
+        if (info.type == "audio") { newAudio.push_back(std::move(info)); } else if (info.type == "sub") { newSub.push_back(std::move(info)); }
+    };
     {
         std::lock_guard<std::mutex> apiLock(mpvMutex);
-        if (!mpv || !fn_mpv_get_property_string || !fn_mpv_get_property) return;
-    int64_t trackCount = 0, secondarySid = 0;
-    fn_mpv_get_property(mpv, "secondary-sid", MPV_FORMAT_INT64, &secondarySid);
-    if (fn_mpv_get_property(mpv, "track-list/count", MPV_FORMAT_INT64, &trackCount) >= 0) {
-        for (int64_t i = 0; i < trackCount; ++i) {
-            std::string prefix = "track-list/" + std::to_string(i) + "/";
-            char* type = fn_mpv_get_property_string(mpv, (prefix + "type").c_str());
-            if (!type) continue;
-            int64_t id = 0;
-            fn_mpv_get_property(mpv, (prefix + "id").c_str(), MPV_FORMAT_INT64, &id);
-            int selected = 0;
-            fn_mpv_get_property(mpv, (prefix + "selected").c_str(), MPV_FORMAT_FLAG, &selected);
-            int defTrack = 0;
-            fn_mpv_get_property(mpv, (prefix + "default").c_str(), MPV_FORMAT_FLAG, &defTrack);
-            int external = 0;
-            fn_mpv_get_property(mpv, (prefix + "external").c_str(), MPV_FORMAT_FLAG, &external);
-            int forced = 0;
-            fn_mpv_get_property(mpv, (prefix + "forced").c_str(), MPV_FORMAT_FLAG, &forced);
-            char* title = fn_mpv_get_property_string(mpv, (prefix + "title").c_str());
-            char* lang = fn_mpv_get_property_string(mpv, (prefix + "lang").c_str());
-            char* codec = fn_mpv_get_property_string(mpv, (prefix + "codec").c_str());
-            char* codecDesc = fn_mpv_get_property_string(mpv, (prefix + "codec-desc").c_str());
-            int64_t channels = 0;
-            fn_mpv_get_property(mpv, (prefix + "demux-channel-count").c_str(), MPV_FORMAT_INT64, &channels);
-            MpvTrackInfo info;
-            info.id = (int)id;
-            info.type = type;
-            info.isSelected = (selected != 0);
-            info.isSecondarySelected = (id > 0 && id == secondarySid);
-            info.isDefault = (defTrack != 0);
-            info.isExternal = (external != 0);
-            info.isForced = (forced != 0);
-            info.channels = channels > 0 ? (int)std::min<int64_t>(channels, std::numeric_limits<int>::max()) : 0;
-            info.title = title ? Utf8ToUtf16(title) : L"";
-            info.lang = lang ? Utf8ToUtf16(lang) : L"";
-            info.codec = codecDesc ? Utf8ToUtf16(codecDesc) : (codec ? Utf8ToUtf16(codec) : L"");
-            char* externalFilename = info.isExternal ? fn_mpv_get_property_string(mpv, (prefix + "external-filename").c_str()) : nullptr;
-            if (info.title.empty()) {
-                if (info.isExternal && externalFilename && *externalFilename) {
-                    const std::wstring externalPath = Utf8ToUtf16(externalFilename);
-                    info.title = L"External: " + GetFileNameFromPath(externalPath);
-                } else if (!info.lang.empty()) info.title = info.lang;
-                else info.title = (info.type == "audio") ? (L"Audio Track " + std::to_wstring(id)) : (L"Subtitle " + std::to_wstring(id));
-            }
-            if (strcmp(type, "audio") == 0 && !info.codec.empty()) { info.title += L" (" + info.codec + L")"; }
-            if (strcmp(type, "audio") == 0) { newAudio.push_back(info); } else if (strcmp(type, "sub") == 0) { newSub.push_back(info); }
-            if (fn_mpv_free) {
-                if (type) fn_mpv_free(type);
-                if (title) fn_mpv_free(title);
-                if (lang) fn_mpv_free(lang);
-                if (codec) fn_mpv_free(codec);
-                if (codecDesc) fn_mpv_free(codecDesc);
-                if (externalFilename) fn_mpv_free(externalFilename);
+        if (!mpv || !fn_mpv_get_property) return;
+        int64_t secondarySid = 0;
+        fn_mpv_get_property(mpv, "secondary-sid", MPV_FORMAT_INT64, &secondarySid);
+        bool loadedFromNode = false;
+        if (fn_mpv_free_node_contents) {
+            mpv_node trackListNode{};
+            if (fn_mpv_get_property(mpv, "track-list", MPV_FORMAT_NODE, &trackListNode) >= 0) {
+                if (trackListNode.format == MPV_FORMAT_NODE_ARRAY && trackListNode.u.list) {
+                    loadedFromNode = true;
+                    const mpv_node_list* list = trackListNode.u.list;
+                    for (int i = 0; i < list->num; ++i) {
+                        const mpv_node& entry = list->values[i];
+                        if (entry.format != MPV_FORMAT_NODE_MAP || !entry.u.list) continue;
+                        const mpv_node_list* map = entry.u.list;
+                        const char* type = nullptr;
+                        const char* title = nullptr;
+                        const char* lang = nullptr;
+                        const char* codec = nullptr;
+                        const char* codecDesc = nullptr;
+                        const char* externalFilename = nullptr;
+                        int64_t id = 0, channels = 0;
+                        int selected = 0, defTrack = 0, external = 0, forced = 0;
+                        for (int k = 0; k < map->num; ++k) {
+                            const char* key = map->keys[k];
+                            const mpv_node& val = map->values[k];
+                            if (!key) continue;
+                            if (strcmp(key, "type") == 0 && val.format == MPV_FORMAT_STRING) type = val.u.string;
+                            else if (strcmp(key, "id") == 0 && val.format == MPV_FORMAT_INT64) id = val.u.int64;
+                            else if (strcmp(key, "selected") == 0 && val.format == MPV_FORMAT_FLAG) selected = val.u.flag;
+                            else if (strcmp(key, "default") == 0 && val.format == MPV_FORMAT_FLAG) defTrack = val.u.flag;
+                            else if (strcmp(key, "external") == 0 && val.format == MPV_FORMAT_FLAG) external = val.u.flag;
+                            else if (strcmp(key, "forced") == 0 && val.format == MPV_FORMAT_FLAG) forced = val.u.flag;
+                            else if (strcmp(key, "title") == 0 && val.format == MPV_FORMAT_STRING) title = val.u.string;
+                            else if (strcmp(key, "lang") == 0 && val.format == MPV_FORMAT_STRING) lang = val.u.string;
+                            else if (strcmp(key, "codec") == 0 && val.format == MPV_FORMAT_STRING) codec = val.u.string;
+                            else if (strcmp(key, "codec-desc") == 0 && val.format == MPV_FORMAT_STRING) codecDesc = val.u.string;
+                            else if (strcmp(key, "demux-channel-count") == 0 && val.format == MPV_FORMAT_INT64) channels = val.u.int64;
+                            else if (strcmp(key, "external-filename") == 0 && val.format == MPV_FORMAT_STRING) externalFilename = val.u.string;
+                        }
+                        if (!type) continue;
+                        MpvTrackInfo info;
+                        info.id = (int)id;
+                        info.type = type;
+                        info.isSelected = (selected != 0);
+                        info.isSecondarySelected = (id > 0 && id == secondarySid);
+                        info.isDefault = (defTrack != 0);
+                        info.isExternal = (external != 0);
+                        info.isForced = (forced != 0);
+                        info.channels = channels > 0 ? (int)std::min<int64_t>(channels, std::numeric_limits<int>::max()) : 0;
+                        info.title = title ? Utf8ToUtf16(title) : L"";
+                        info.lang = lang ? Utf8ToUtf16(lang) : L"";
+                        info.codec = codecDesc ? Utf8ToUtf16(codecDesc) : (codec ? Utf8ToUtf16(codec) : L"");
+                        appendTrack(std::move(info), info.isExternal ? externalFilename : nullptr);
+                    }
+                }
+                fn_mpv_free_node_contents(&trackListNode);
             }
         }
-    }
+        int64_t trackCount = 0;
+        if (!loadedFromNode && fn_mpv_get_property_string &&
+            fn_mpv_get_property(mpv, "track-list/count", MPV_FORMAT_INT64, &trackCount) >= 0) {
+            for (int64_t i = 0; i < trackCount; ++i) {
+                std::string prefix = "track-list/" + std::to_string(i) + "/";
+                char* type = fn_mpv_get_property_string(mpv, (prefix + "type").c_str());
+                if (!type) continue;
+                int64_t id = 0;
+                fn_mpv_get_property(mpv, (prefix + "id").c_str(), MPV_FORMAT_INT64, &id);
+                int selected = 0;
+                fn_mpv_get_property(mpv, (prefix + "selected").c_str(), MPV_FORMAT_FLAG, &selected);
+                int defTrack = 0;
+                fn_mpv_get_property(mpv, (prefix + "default").c_str(), MPV_FORMAT_FLAG, &defTrack);
+                int external = 0;
+                fn_mpv_get_property(mpv, (prefix + "external").c_str(), MPV_FORMAT_FLAG, &external);
+                int forced = 0;
+                fn_mpv_get_property(mpv, (prefix + "forced").c_str(), MPV_FORMAT_FLAG, &forced);
+                char* title = fn_mpv_get_property_string(mpv, (prefix + "title").c_str());
+                char* lang = fn_mpv_get_property_string(mpv, (prefix + "lang").c_str());
+                char* codec = fn_mpv_get_property_string(mpv, (prefix + "codec").c_str());
+                char* codecDesc = fn_mpv_get_property_string(mpv, (prefix + "codec-desc").c_str());
+                int64_t channels = 0;
+                fn_mpv_get_property(mpv, (prefix + "demux-channel-count").c_str(), MPV_FORMAT_INT64, &channels);
+                MpvTrackInfo info;
+                info.id = (int)id;
+                info.type = type;
+                info.isSelected = (selected != 0);
+                info.isSecondarySelected = (id > 0 && id == secondarySid);
+                info.isDefault = (defTrack != 0);
+                info.isExternal = (external != 0);
+                info.isForced = (forced != 0);
+                info.channels = channels > 0 ? (int)std::min<int64_t>(channels, std::numeric_limits<int>::max()) : 0;
+                info.title = title ? Utf8ToUtf16(title) : L"";
+                info.lang = lang ? Utf8ToUtf16(lang) : L"";
+                info.codec = codecDesc ? Utf8ToUtf16(codecDesc) : (codec ? Utf8ToUtf16(codec) : L"");
+                char* externalFilename = info.isExternal ? fn_mpv_get_property_string(mpv, (prefix + "external-filename").c_str()) : nullptr;
+                appendTrack(std::move(info), externalFilename);
+                if (fn_mpv_free) {
+                    if (type) fn_mpv_free(type);
+                    if (title) fn_mpv_free(title);
+                    if (lang) fn_mpv_free(lang);
+                    if (codec) fn_mpv_free(codec);
+                    if (codecDesc) fn_mpv_free(codecDesc);
+                    if (externalFilename) fn_mpv_free(externalFilename);
+                }
+            }
+        }
     }
     // Subtitle menus should read like a player UI, not a codec inspector.
     // Keep the human label alone when it is already unique; only add the
@@ -557,11 +779,57 @@ void MpvPlayer::RefreshTracks() {
 void MpvPlayer::RefreshChapters() {
     std::vector<MpvChapterInfo> newChapters;
     int newCurrentChapter = -1;
+    auto buildTitle = [](const char* title, int64_t index) -> std::wstring {
+        if (title && *title) {
+            std::wstring titleW = Utf8ToUtf16(title);
+            if (titleW.length() > 128) titleW = titleW.substr(0, 125) + L"...";
+            return titleW;
+        }
+        return L"Chapter " + std::to_wstring(index + 1);
+    };
     {
         std::lock_guard<std::mutex> apiLock(mpvMutex);
         if (!mpv || !fn_mpv_get_property) return;
+        bool loadedFromNode = false;
+        if (fn_mpv_free_node_contents) {
+            mpv_node chapterListNode{};
+            if (fn_mpv_get_property(mpv, "chapter-list", MPV_FORMAT_NODE, &chapterListNode) >= 0) {
+                if (chapterListNode.format == MPV_FORMAT_NODE_ARRAY && chapterListNode.u.list) {
+                    loadedFromNode = true;
+                    const mpv_node_list* list = chapterListNode.u.list;
+                    const int boundedCount = std::min<int>(list->num, 1000);
+                    newChapters.reserve(static_cast<size_t>(boundedCount));
+                    for (int i = 0; i < boundedCount; ++i) {
+                        const mpv_node& entry = list->values[i];
+                        double chTime = 0.0;
+                        const char* title = nullptr;
+                        if (entry.format == MPV_FORMAT_NODE_MAP && entry.u.list) {
+                            const mpv_node_list* map = entry.u.list;
+                            for (int k = 0; k < map->num; ++k) {
+                                const char* key = map->keys[k];
+                                const mpv_node& val = map->values[k];
+                                if (!key) continue;
+                                if (strcmp(key, "time") == 0) {
+                                    if (val.format == MPV_FORMAT_DOUBLE) chTime = val.u.double_;
+                                    else if (val.format == MPV_FORMAT_INT64) chTime = static_cast<double>(val.u.int64);
+                                } else if (strcmp(key, "title") == 0 && val.format == MPV_FORMAT_STRING) {
+                                    title = val.u.string;
+                                }
+                            }
+                        }
+                        if (!std::isfinite(chTime) || chTime < 0.0) chTime = 0.0;
+                        MpvChapterInfo info;
+                        info.index = i;
+                        info.title = buildTitle(title, i);
+                        info.time = chTime;
+                        newChapters.push_back(std::move(info));
+                    }
+                }
+                fn_mpv_free_node_contents(&chapterListNode);
+            }
+        }
         int64_t chapterCount = 0;
-        if (fn_mpv_get_property(mpv, "chapter-list/count", MPV_FORMAT_INT64, &chapterCount) >= 0 && chapterCount > 0) {
+        if (!loadedFromNode && fn_mpv_get_property(mpv, "chapter-list/count", MPV_FORMAT_INT64, &chapterCount) >= 0 && chapterCount > 0) {
             int64_t boundedCount = std::min<int64_t>(chapterCount, 1000);
             newChapters.reserve(static_cast<size_t>(boundedCount));
             for (int64_t i = 0; i < boundedCount; ++i) {
@@ -570,17 +838,12 @@ void MpvPlayer::RefreshChapters() {
                 if (fn_mpv_get_property(mpv, (prefix + "time").c_str(), MPV_FORMAT_DOUBLE, &chTime) < 0) { chTime = 0.0; }
                 if (!std::isfinite(chTime) || chTime < 0.0) { chTime = 0.0; }
                 char* title = fn_mpv_get_property_string ? fn_mpv_get_property_string(mpv, (prefix + "title").c_str()) : nullptr;
-                std::wstring titleW;
-                if (title && *title) {
-                    titleW = Utf8ToUtf16(title);
-                    if (titleW.length() > 128) { titleW = titleW.substr(0, 125) + L"..."; }
-                } else { titleW = L"Chapter " + std::to_wstring(i + 1); }
-                if (fn_mpv_free && title) { fn_mpv_free(title); }
                 MpvChapterInfo info;
                 info.index = static_cast<int>(i);
-                info.title = titleW;
+                info.title = buildTitle(title, i);
                 info.time = chTime;
-                newChapters.push_back(info);
+                if (fn_mpv_free && title) { fn_mpv_free(title); }
+                newChapters.push_back(std::move(info));
             }
         }
         int64_t curChap = -1;
@@ -650,6 +913,84 @@ bool MpvPlayer::Open(const std::wstring& filePath, double startSec) {
     return true;
 }
 
+int MpvPlayer::SetStringPropertyCached(const char* property, const char* value) {
+    if (!mpv || !property || !value) return -1;
+    auto it = appliedProps.strings.find(property);
+    if (it != appliedProps.strings.end() && it->second == value) return 0;
+    if (!fn_mpv_set_property_string) return -1;
+    int ret = fn_mpv_set_property_string(mpv, property, value);
+    if (ret >= 0) appliedProps.strings[property] = value;
+    return ret;
+}
+
+int MpvPlayer::SetDoublePropertyCached(const char* property, double value, int stringPrecision) {
+    if (!mpv || !property) return -1;
+    auto it = appliedProps.doubles.find(property);
+    if (it != appliedProps.doubles.end() && it->second == value) return 0;
+    int ret = -1;
+    if (fn_mpv_set_property) {
+        ret = fn_mpv_set_property(mpv, property, MPV_FORMAT_DOUBLE, &value);
+    } else if (fn_mpv_set_property_string) {
+        std::ostringstream os;
+        os << std::fixed << std::setprecision(stringPrecision) << value;
+        ret = fn_mpv_set_property_string(mpv, property, os.str().c_str());
+    }
+    if (ret >= 0) appliedProps.doubles[property] = value;
+    return ret;
+}
+
+int MpvPlayer::SetInt64PropertyCached(const char* property, int64_t value) {
+    if (!mpv || !property) return -1;
+    auto it = appliedProps.int64s.find(property);
+    if (it != appliedProps.int64s.end() && it->second == value) return 0;
+    int ret = -1;
+    if (fn_mpv_set_property) {
+        ret = fn_mpv_set_property(mpv, property, MPV_FORMAT_INT64, &value);
+    } else if (fn_mpv_set_property_string) {
+        std::string s = std::to_string(value);
+        ret = fn_mpv_set_property_string(mpv, property, s.c_str());
+    }
+    if (ret >= 0) appliedProps.int64s[property] = value;
+    return ret;
+}
+
+int MpvPlayer::SetFlagPropertyCached(const char* property, int value) {
+    if (!mpv || !property) return -1;
+    const int normalized = value ? 1 : 0;
+    auto it = appliedProps.flags.find(property);
+    if (it != appliedProps.flags.end() && it->second == normalized) return 0;
+    int ret = -1;
+    if (fn_mpv_set_property) {
+        int flagValue = normalized;
+        ret = fn_mpv_set_property(mpv, property, MPV_FORMAT_FLAG, &flagValue);
+    } else if (fn_mpv_set_property_string) {
+        ret = fn_mpv_set_property_string(mpv, property, normalized ? "yes" : "no");
+    }
+    if (ret >= 0) appliedProps.flags[property] = normalized;
+    return ret;
+}
+
+void MpvPlayer::SeedInitialAppliedPropertiesLocked() {
+    appliedProps.Clear();
+    appliedProps.strings["sub-auto"] = "fuzzy";
+    appliedProps.strings["audio-channels"] = "stereo";
+    appliedProps.strings["audio-pitch-correction"] = "yes";
+    appliedProps.strings["sub-font"] = "Inter";
+    appliedProps.strings["sub-font-size"] = "46";
+    appliedProps.strings["sub-border-size"] = "3.0";
+    appliedProps.strings["sub-shadow-offset"] = "1.5";
+    appliedProps.strings["sub-color"] = "#FFFFFF";
+    appliedProps.strings["sub-border-color"] = "#000000";
+    appliedProps.strings["secondary-sub-pos"] = "10";
+    appliedProps.strings["secondary-sub-visibility"] = "yes";
+    appliedProps.strings["secondary-sid"] = "no";
+    appliedProps.strings["demuxer-max-bytes"] = "8MiB";
+    appliedProps.strings["demuxer-max-back-bytes"] = "0";
+    appliedProps.doubles["video-zoom"] = 0.0;
+    appliedProps.doubles["video-pan-x"] = 0.0;
+    appliedProps.doubles["video-pan-y"] = 0.0;
+}
+
 void MpvPlayer::Close() {
     int ret = 0;
     bool commandIssued = false;
@@ -663,11 +1004,9 @@ void MpvPlayer::Close() {
             }
             // Zoom & pan are session state; clear the runtime properties with
             // the file so the next open never inherits them.
-            if (fn_mpv_set_property_string) {
-                fn_mpv_set_property_string(mpv, "video-zoom", "0");
-                fn_mpv_set_property_string(mpv, "video-pan-x", "0");
-                fn_mpv_set_property_string(mpv, "video-pan-y", "0");
-            }
+            SetDoublePropertyCached("video-zoom", 0.0);
+            SetDoublePropertyCached("video-pan-x", 0.0);
+            SetDoublePropertyCached("video-pan-y", 0.0);
         }
     }
     {
@@ -779,7 +1118,7 @@ void MpvPlayer::SetABLoopA(double timeSec) {
     std::ostringstream value;
     value << std::fixed << std::setprecision(3) << timeSec;
     std::lock_guard<std::mutex> lock(mpvMutex);
-    if (mpv && fn_mpv_set_property_string) fn_mpv_set_property_string(mpv, "ab-loop-a", value.str().c_str());
+    SetStringPropertyCached("ab-loop-a", value.str().c_str());
 }
 
 void MpvPlayer::SetABLoopB(double timeSec) {
@@ -787,14 +1126,13 @@ void MpvPlayer::SetABLoopB(double timeSec) {
     std::ostringstream value;
     value << std::fixed << std::setprecision(3) << timeSec;
     std::lock_guard<std::mutex> lock(mpvMutex);
-    if (mpv && fn_mpv_set_property_string) fn_mpv_set_property_string(mpv, "ab-loop-b", value.str().c_str());
+    SetStringPropertyCached("ab-loop-b", value.str().c_str());
 }
 
 void MpvPlayer::ClearABLoop() {
     std::lock_guard<std::mutex> lock(mpvMutex);
-    if (!mpv || !fn_mpv_set_property_string) return;
-    fn_mpv_set_property_string(mpv, "ab-loop-a", "no");
-    fn_mpv_set_property_string(mpv, "ab-loop-b", "no");
+    SetStringPropertyCached("ab-loop-a", "no");
+    SetStringPropertyCached("ab-loop-b", "no");
 }
 void MpvPlayer::StepFrame(int frameCount) {
     if (frameCount == 0) return;
@@ -823,11 +1161,7 @@ void MpvPlayer::SetVolume(double volume0to1) {
     {
         std::lock_guard<std::mutex> apiLock(mpvMutex);
         if (!mpv) { std::lock_guard<std::mutex> lock(stateMutex); volume = normalized; return; }
-        if (fn_mpv_set_property) { ret = fn_mpv_set_property(mpv, "volume", MPV_FORMAT_DOUBLE, &v); } else if (fn_mpv_set_property_string) {
-            std::ostringstream value;
-            value << std::fixed << std::setprecision(3) << v;
-            ret = fn_mpv_set_property_string(mpv, "volume", value.str().c_str());
-        }
+        ret = SetDoublePropertyCached("volume", v);
     }
     if (ret < 0) { ReportError("Unable to set volume", ret); return; }
     std::lock_guard<std::mutex> lock(stateMutex);
@@ -841,9 +1175,7 @@ void MpvPlayer::SetMuted(bool mute) {
     {
         std::lock_guard<std::mutex> apiLock(mpvMutex);
         if (!mpv) { std::lock_guard<std::mutex> lock(stateMutex); isMuted = mute; return; }
-        if (fn_mpv_set_property_string) {
-            ret = fn_mpv_set_property_string(mpv, "mute", mute ? "yes" : "no");
-        } else if (fn_mpv_set_property) { int value = mute ? 1 : 0; ret = fn_mpv_set_property(mpv, "mute", MPV_FORMAT_FLAG, &value); }
+        ret = SetFlagPropertyCached("mute", mute ? 1 : 0);
     }
     if (ret < 0) { ReportError("Unable to set mute", ret); return; }
     std::lock_guard<std::mutex> lock(stateMutex);
@@ -859,11 +1191,7 @@ void MpvPlayer::SetPlaybackRate(double rate) {
     {
         std::lock_guard<std::mutex> apiLock(mpvMutex);
         if (!mpv) { std::lock_guard<std::mutex> lock(stateMutex); speed = s; return; }
-        if (fn_mpv_set_property) { ret = fn_mpv_set_property(mpv, "speed", MPV_FORMAT_DOUBLE, &s); } else if (fn_mpv_set_property_string) {
-            std::ostringstream value;
-            value << std::fixed << std::setprecision(3) << s;
-            ret = fn_mpv_set_property_string(mpv, "speed", value.str().c_str());
-        }
+        ret = SetDoublePropertyCached("speed", s);
     }
     if (ret < 0) { ReportError("Unable to set playback speed", ret); return; }
     std::lock_guard<std::mutex> lock(stateMutex);
@@ -881,7 +1209,7 @@ void MpvPlayer::SetAspectRatio(const std::string& mode) {
     {
         std::lock_guard<std::mutex> apiLock(mpvMutex);
         if (!mpv || !fn_mpv_set_property_string) return;
-        auto set = [&](const char* property, const char* value) { if (ret >= 0) ret = fn_mpv_set_property_string(mpv, property, value); };
+        auto set = [&](const char* property, const char* value) { if (ret >= 0) ret = SetStringPropertyCached(property, value); };
         if (mode == "fill") {
             set("video-aspect-override", "-1");
             set("keepaspect", "no");
@@ -959,12 +1287,7 @@ void MpvPlayer::SetVideoRotate(int degrees) {
     {
         std::lock_guard<std::mutex> apiLock(mpvMutex);
         if (!mpv) return;
-        if (fn_mpv_set_property) {
-            int64_t val = clamped;
-            ret = fn_mpv_set_property(mpv, "video-rotate", MPV_FORMAT_INT64, &val);
-        } else if (fn_mpv_set_property_string) {
-            ret = fn_mpv_set_property_string(mpv, "video-rotate", std::to_string(clamped).c_str());
-        }
+        ret = SetInt64PropertyCached("video-rotate", static_cast<int64_t>(clamped));
     }
     if (ret < 0) ReportError("Unable to set video-rotate", ret);
 }
@@ -978,10 +1301,7 @@ void MpvPlayer::SetImageAdjustment(int& state, int val, const char* property, co
     {
         std::lock_guard<std::mutex> apiLock(mpvMutex);
         if (!mpv) return;
-        if (fn_mpv_set_property) {
-            int64_t v = val;
-            ret = fn_mpv_set_property(mpv, property, MPV_FORMAT_INT64, &v);
-        } else if (fn_mpv_set_property_string) { ret = fn_mpv_set_property_string(mpv, property, std::to_string(val).c_str()); }
+        ret = SetInt64PropertyCached(property, static_cast<int64_t>(val));
     }
     if (ret < 0) ReportError(operation, ret);
 }
@@ -1024,14 +1344,7 @@ void MpvPlayer::AdjustVideoZoom(double delta) {
     {
         std::lock_guard<std::mutex> apiLock(mpvMutex);
         if (!mpv) return;
-        std::ostringstream value;
-        value << std::fixed << std::setprecision(3) << videoZoomCur;
-        if (fn_mpv_set_property) {
-            double val = videoZoomCur;
-            ret = fn_mpv_set_property(mpv, "video-zoom", MPV_FORMAT_DOUBLE, &val);
-        } else if (fn_mpv_set_property_string) {
-            ret = fn_mpv_set_property_string(mpv, "video-zoom", value.str().c_str());
-        }
+        ret = SetDoublePropertyCached("video-zoom", videoZoomCur);
     }
     if (ret < 0) ReportError("Unable to set video-zoom", ret);
 }
@@ -1044,17 +1357,8 @@ void MpvPlayer::NudgeVideoPan(double dx, double dy) {
     {
         std::lock_guard<std::mutex> apiLock(mpvMutex);
         if (!mpv) return;
-        std::ostringstream valueX, valueY;
-        valueX << std::fixed << std::setprecision(3) << videoPanXCur;
-        valueY << std::fixed << std::setprecision(3) << videoPanYCur;
-        if (fn_mpv_set_property) {
-            double valX = videoPanXCur, valY = videoPanYCur;
-            retX = fn_mpv_set_property(mpv, "video-pan-x", MPV_FORMAT_DOUBLE, &valX);
-            retY = fn_mpv_set_property(mpv, "video-pan-y", MPV_FORMAT_DOUBLE, &valY);
-        } else if (fn_mpv_set_property_string) {
-            retX = fn_mpv_set_property_string(mpv, "video-pan-x", valueX.str().c_str());
-            retY = fn_mpv_set_property_string(mpv, "video-pan-y", valueY.str().c_str());
-        }
+        retX = SetDoublePropertyCached("video-pan-x", videoPanXCur);
+        retY = SetDoublePropertyCached("video-pan-y", videoPanYCur);
     }
     if (retX < 0) ReportError("Unable to set video-pan-x", retX);
     if (retY < 0) ReportError("Unable to set video-pan-y", retY);
@@ -1068,16 +1372,9 @@ void MpvPlayer::ResetVideoZoomPan() {
     {
         std::lock_guard<std::mutex> apiLock(mpvMutex);
         if (!mpv) return;
-        if (fn_mpv_set_property) {
-            double zero = 0.0;
-            retZ = fn_mpv_set_property(mpv, "video-zoom", MPV_FORMAT_DOUBLE, &zero);
-            retX = fn_mpv_set_property(mpv, "video-pan-x", MPV_FORMAT_DOUBLE, &zero);
-            retY = fn_mpv_set_property(mpv, "video-pan-y", MPV_FORMAT_DOUBLE, &zero);
-        } else if (fn_mpv_set_property_string) {
-            retZ = fn_mpv_set_property_string(mpv, "video-zoom", "0");
-            retX = fn_mpv_set_property_string(mpv, "video-pan-x", "0");
-            retY = fn_mpv_set_property_string(mpv, "video-pan-y", "0");
-        }
+        retZ = SetDoublePropertyCached("video-zoom", 0.0);
+        retX = SetDoublePropertyCached("video-pan-x", 0.0);
+        retY = SetDoublePropertyCached("video-pan-y", 0.0);
     }
     if (retZ < 0) ReportError("Unable to set video-zoom", retZ);
     if (retX < 0) ReportError("Unable to set video-pan-x", retX);
@@ -1091,14 +1388,7 @@ void MpvPlayer::SetAudioDelay(double delaySec) {
     {
         std::lock_guard<std::mutex> apiLock(mpvMutex);
         if (!mpv) return;
-        if (fn_mpv_set_property) {
-            ret = fn_mpv_set_property(mpv, "audio-delay", MPV_FORMAT_DOUBLE, &delaySec);
-        } else if (fn_mpv_set_property_string) {
-            std::ostringstream value;
-            value << std::fixed << std::setprecision(3) << delaySec;
-            std::string delay = value.str();
-            ret = fn_mpv_set_property_string(mpv, "audio-delay", delay.c_str());
-        }
+        ret = SetDoublePropertyCached("audio-delay", delaySec);
     }
     if (ret < 0) ReportError("Unable to set audio delay", ret);
 }
@@ -1110,14 +1400,7 @@ void MpvPlayer::SetSubDelay(double delaySec) {
     {
         std::lock_guard<std::mutex> apiLock(mpvMutex);
         if (!mpv) return;
-        if (fn_mpv_set_property) {
-            ret = fn_mpv_set_property(mpv, "sub-delay", MPV_FORMAT_DOUBLE, &delaySec);
-        } else if (fn_mpv_set_property_string) {
-            std::ostringstream value;
-            value << std::fixed << std::setprecision(3) << delaySec;
-            std::string delay = value.str();
-            ret = fn_mpv_set_property_string(mpv, "sub-delay", delay.c_str());
-        }
+        ret = SetDoublePropertyCached("sub-delay", delaySec);
     }
     if (ret < 0) ReportError("Unable to set subtitle delay", ret);
 }
@@ -1128,9 +1411,9 @@ void MpvPlayer::SetHardwareAcceleration(bool enabled) {
         std::lock_guard<std::mutex> apiLock(mpvMutex);
         if (!mpv || !fn_mpv_set_property_string) return;
 #if defined(_WIN32)
-        ret = fn_mpv_set_property_string(mpv, "hwdec", enabled ? "d3d11va" : "no");
+        ret = SetStringPropertyCached("hwdec", enabled ? "d3d11va" : "no");
 #else
-        ret = fn_mpv_set_property_string(mpv, "hwdec", enabled ? "auto-safe" : "no");
+        ret = SetStringPropertyCached("hwdec", enabled ? "auto-safe" : "no");
 #endif
     }
     if (ret < 0) ReportError("Unable to set hardware acceleration", ret);
@@ -1145,8 +1428,8 @@ void MpvPlayer::SetNetworkCache(int forwardCacheMB, int backCacheMB) {
     {
         std::lock_guard<std::mutex> apiLock(mpvMutex);
         if (!mpv || !fn_mpv_set_property_string) return;
-        fn_mpv_set_property_string(mpv, "demuxer-max-bytes", forwardStr.c_str());
-        ret = fn_mpv_set_property_string(mpv, "demuxer-max-back-bytes", backStr.c_str());
+        SetStringPropertyCached("demuxer-max-bytes", forwardStr.c_str());
+        ret = SetStringPropertyCached("demuxer-max-back-bytes", backStr.c_str());
     }
     if (ret < 0) ReportError("Unable to set network cache limits", ret);
 }
@@ -1157,7 +1440,7 @@ void MpvPlayer::SetPreferredAudioLanguage(const std::string& language) {
     {
         std::lock_guard<std::mutex> apiLock(mpvMutex);
         if (!mpv || !fn_mpv_set_property_string) return;
-        ret = fn_mpv_set_property_string(mpv, "alang", normalized.c_str());
+        ret = SetStringPropertyCached("alang", normalized.c_str());
     }
     if (ret < 0) ReportError("Unable to set preferred audio language", ret);
 }
@@ -1168,7 +1451,7 @@ void MpvPlayer::SetPreferredSubtitleLanguage(const std::string& language) {
     {
         std::lock_guard<std::mutex> apiLock(mpvMutex);
         if (!mpv || !fn_mpv_set_property_string) return;
-        ret = fn_mpv_set_property_string(mpv, "slang", normalized.c_str());
+        ret = SetStringPropertyCached("slang", normalized.c_str());
     }
     if (ret < 0) ReportError("Unable to set preferred subtitle language", ret);
 }
@@ -1231,7 +1514,7 @@ void MpvPlayer::SetSubtitleStyle(const std::string& fontSize, const std::string&
     {
         std::lock_guard<std::mutex> apiLock(mpvMutex);
         if (!mpv || !fn_mpv_set_property_string) return;
-        auto set = [&](const char* property, const char* value) { if (ret >= 0) ret = fn_mpv_set_property_string(mpv, property, value); };
+        auto set = [&](const char* property, const char* value) { if (ret >= 0) ret = SetStringPropertyCached(property, value); };
         set("sub-font-size", normalizedFontSize.c_str());
         set("sub-color", normalizedColor.c_str());
         set("sub-back-color", backColor);
@@ -1337,7 +1620,7 @@ std::vector<ColorPropertyResult> MpvPlayer::SetColorPreferences( const std::stri
         return results;
     }
     for (const auto& act : plan.actions) {
-        int ret = fn_mpv_set_property_string(mpv, act.property.c_str(), act.value.c_str());
+        int ret = SetStringPropertyCached(act.property.c_str(), act.value.c_str());
         ColorPropertyResult res;
         res.property = act.property;
         res.value = act.value;
@@ -1510,6 +1793,7 @@ CustomMpvApplyResult MpvPlayer::ApplyCustomMpvOptions(const std::vector<CustomMp
             result.errorMessage = "Failed to apply option '" + opt.name + "=" + opt.value + "': " + errDetail;
         } else { result.appliedOptions.push_back(opt.name + "=" + opt.value); }
     }
+    if (!result.appliedOptions.empty()) appliedProps.Clear();
     return result;
 }
 
@@ -1626,7 +1910,7 @@ std::vector<AudioPropertyResult> MpvPlayer::SetAudioPreferences( const std::stri
         return results;
     }
     for (const auto& act : plan.actions) {
-        int ret = fn_mpv_set_property_string(mpv, act.property.c_str(), act.value.c_str());
+        int ret = SetStringPropertyCached(act.property.c_str(), act.value.c_str());
         AudioPropertyResult res;
         res.property = act.property;
         res.value = act.value;
@@ -1692,7 +1976,7 @@ void MpvPlayer::SetSubtitleVisibility(bool visible) {
     {
         std::lock_guard<std::mutex> apiLock(mpvMutex);
         if (!mpv || !fn_mpv_set_property_string) return;
-        ret = fn_mpv_set_property_string(mpv, "sub-visibility", visible ? "yes" : "no");
+        ret = SetStringPropertyCached("sub-visibility", visible ? "yes" : "no");
     }
     if (ret < 0) ReportError("Unable to set subtitle visibility", ret);
 }
@@ -1794,7 +2078,7 @@ void MpvPlayer::SetSecondarySubtitleVisibility(bool visible) {
     {
         std::lock_guard<std::mutex> apiLock(mpvMutex);
         if (!mpv || !fn_mpv_set_property_string) return;
-        ret = fn_mpv_set_property_string(mpv, "secondary-sub-visibility", visible ? "yes" : "no");
+        ret = SetStringPropertyCached("secondary-sub-visibility", visible ? "yes" : "no");
     }
     if (ret < 0) ReportError("Unable to set secondary subtitle visibility", ret);
 }
@@ -1970,7 +2254,7 @@ double MpvPlayer::GetCacheDuration() const {
     return sec;
 }
 
-PlayerDiagnostics MpvPlayer::GetDiagnostics() const {
+PlayerDiagnostics MpvPlayer::GetDiagnostics(bool queryLiveProperties) const {
     PlayerDiagnostics d;
     std::string hdrMode, toneMapping;
     {
@@ -1990,6 +2274,14 @@ PlayerDiagnostics MpvPlayer::GetDiagnostics() const {
         d.isEnded = ended.load();
         d.videoWidth = videoWidth;
         d.videoHeight = videoHeight;
+        if (videoWidth > 0 && videoHeight > 0) {
+            if (videoHeight >= 2160 || videoWidth >= 3840) d.resolutionStr = L"2160p";
+            else if (videoHeight >= 1440) d.resolutionStr = L"1440p";
+            else if (videoHeight >= 1080) d.resolutionStr = L"1080p";
+            else if (videoHeight >= 720) d.resolutionStr = L"720p";
+            else if (videoHeight >= 480) d.resolutionStr = L"480p";
+            else d.resolutionStr = std::to_wstring(videoWidth) + L"x" + std::to_wstring(videoHeight);
+        }
         d.audioTrackTitle = audioTracks.empty() ? L"None" : audioTracks[0].title;
         for (const auto& t : audioTracks) {
             if (t.isSelected) { d.audioTrackTitle = t.title; break; }
@@ -2013,61 +2305,70 @@ PlayerDiagnostics MpvPlayer::GetDiagnostics() const {
         if (d.activeAudioDeviceDescription.empty())
             d.activeAudioDeviceDescription = d.activeAudioDevice.empty() ? L"auto" : d.activeAudioDevice;
     }
-    d.resolutionStr = GetResolutionString();
-    d.videoCodec = GetVideoCodec();
-    d.audioCodec = GetAudioCodec();
-    std::lock_guard<std::mutex> apiLock(mpvMutex);
-    if (!mpv) return d;
-    // Keep fallback reads ordered and retain the snapshot value when a property is unavailable.
-    const auto readString = [&](std::wstring& value, const char* key, const char* fallback = nullptr, bool keepEmpty = true) {
-        if (!fn_mpv_get_property_string) return;
-        char* text = fn_mpv_get_property_string(mpv, key);
-        if (!text && fallback) text = fn_mpv_get_property_string(mpv, fallback);
-        if (!text) return;
-        if (keepEmpty || *text) value = Utf8ToUtf16(text);
-        if (fn_mpv_free) fn_mpv_free(text);
-    };
-    const auto readDouble = [&](double& value, std::initializer_list<const char*> keys, bool positive = false, double divisor = 1.0) {
-        if (!fn_mpv_get_property) return;
-        double result = 0.0;
-        for (const char* key : keys) {
-            if (fn_mpv_get_property(mpv, key, MPV_FORMAT_DOUBLE, &result) >= 0 && std::isfinite(result) && (!positive || result > 0.0)) {
-                value = result / divisor;
-                return;
-            }
+    const bool liveQuery = queryLiveProperties || diagnosticsActive.load(std::memory_order_acquire);
+    if (liveQuery) {
+        std::lock_guard<std::mutex> apiLock(mpvMutex);
+        if (mpv) {
+            // Keep fallback reads ordered and retain the snapshot value when a property is unavailable.
+            const auto readString = [&](std::wstring& value, const char* key, const char* fallback = nullptr, bool keepEmpty = true) {
+                if (!fn_mpv_get_property_string) return;
+                char* text = fn_mpv_get_property_string(mpv, key);
+                if (!text && fallback) text = fn_mpv_get_property_string(mpv, fallback);
+                if (!text) return;
+                if (keepEmpty || *text) value = Utf8ToUtf16(text);
+                if (fn_mpv_free) fn_mpv_free(text);
+            };
+            const auto readCodec = [&](std::wstring& value, const char* primary, const char* fallback) {
+                readString(value, primary, fallback);
+                size_t paren = value.find(L" (");
+                if (paren != std::wstring::npos) value.resize(paren);
+                for (auto& c : value) c = towupper(c);
+            };
+            const auto readDouble = [&](double& value, std::initializer_list<const char*> keys, bool positive = false, double divisor = 1.0) {
+                if (!fn_mpv_get_property) return;
+                double result = 0.0;
+                for (const char* key : keys) {
+                    if (fn_mpv_get_property(mpv, key, MPV_FORMAT_DOUBLE, &result) >= 0 && std::isfinite(result) && (!positive || result > 0.0)) {
+                        value = result / divisor;
+                        return;
+                    }
+                }
+            };
+            const auto readInteger = [&](int64_t& value, std::initializer_list<const char*> keys) {
+                if (!fn_mpv_get_property) return;
+                int64_t result = 0;
+                for (const char* key : keys) {
+                    if (fn_mpv_get_property(mpv, key, MPV_FORMAT_INT64, &result) >= 0) { value = result; return; }
+                }
+            };
+            readCodec(d.videoCodec, "video-codec", "video-format");
+            readCodec(d.audioCodec, "audio-codec-name", "audio-format");
+            readString(d.hwDec, "hwdec-current");
+            readString(d.pixelFormat, "video-params/pixelformat", "video-format");
+            readDouble(d.currentTime, {"time-pos"});
+            readDouble(d.videoFps, {"container-fps", "estimated-vf-fps", "fps"}, true);
+            readDouble(d.displayFps, {"display-fps", "estimated-display-fps"}, true);
+            readInteger(d.droppedFrames, {"decoder-frame-drop-count"});
+            readInteger(d.voDroppedFrames, {"frame-drop-count"});
+            readInteger(d.mistimedFrames, {"mistimed-frame-count"});
+            readDouble(d.videoBitrate, {"video-bitrate"}, true, 1000.0);
+            readDouble(d.audioBitrate, {"audio-bitrate"}, true, 1000.0);
+            readDouble(d.cacheDuration, {"demuxer-cache-duration"}, true);
+            readInteger(d.cacheUsedBytes, {"demuxer-cache-state/total-bytes"});
+            readDouble(d.avSync, {"avsync"});
+            readInteger(d.audioSampleRate, {"audio-params/samplerate"});
+            readInteger(d.audioChannels, {"audio-params/channel-count"});
+            readString(d.colorPrimaries, "video-params/primaries");
+            readString(d.colorTransfer, "video-params/gamma", "video-params/colortransfer");
+            readString(d.activeToneMapping, "tone-mapping");
+            readString(d.activeIccProfile, "icc-profile");
+            readString(d.activeAudioDevice, "audio-device", nullptr, false);
+            readString(d.activeAudioLayout, "audio-channels", nullptr, false);
+            readDouble(d.sigPeak, {"video-params/sig-peak"});
+            readDouble(d.maxCll, {"video-params/max-cll"});
+            readDouble(d.maxFall, {"video-params/max-fall"});
         }
-    };
-    const auto readInteger = [&](int64_t& value, std::initializer_list<const char*> keys) {
-        if (!fn_mpv_get_property) return;
-        int64_t result = 0;
-        for (const char* key : keys) {
-            if (fn_mpv_get_property(mpv, key, MPV_FORMAT_INT64, &result) >= 0) { value = result; return; }
-        }
-    };
-    readString(d.hwDec, "hwdec-current");
-    readString(d.pixelFormat, "video-params/pixelformat", "video-format");
-    readDouble(d.currentTime, {"time-pos"});
-    readDouble(d.videoFps, {"container-fps", "estimated-vf-fps", "fps"}, true);
-    readDouble(d.displayFps, {"display-fps", "estimated-display-fps"}, true);
-    readInteger(d.droppedFrames, {"decoder-frame-drop-count"});
-    readInteger(d.voDroppedFrames, {"frame-drop-count"});
-    readInteger(d.mistimedFrames, {"mistimed-frame-count"});
-    readDouble(d.videoBitrate, {"video-bitrate"}, true, 1000.0);
-    readDouble(d.audioBitrate, {"audio-bitrate"}, true, 1000.0);
-    readDouble(d.cacheDuration, {"demuxer-cache-duration"}, true);
-    readInteger(d.cacheUsedBytes, {"demuxer-cache-state/total-bytes"});
-    readDouble(d.avSync, {"avsync"});
-    readInteger(d.audioSampleRate, {"audio-params/samplerate"});
-    readInteger(d.audioChannels, {"audio-params/channel-count"});
-    readString(d.colorPrimaries, "video-params/primaries");
-    readString(d.colorTransfer, "video-params/gamma", "video-params/colortransfer");
-    readString(d.activeToneMapping, "tone-mapping");
-    readString(d.activeIccProfile, "icc-profile");
-    readString(d.activeAudioDevice, "audio-device", nullptr, false);
-    readString(d.activeAudioLayout, "audio-channels", nullptr, false);
-    readDouble(d.sigPeak, {"video-params/sig-peak"});
-    readDouble(d.maxCll, {"video-params/max-cll"});
-    readDouble(d.maxFall, {"video-params/max-fall"});
+    }
     std::wstring trLower = d.colorTransfer;
     for (auto& c : trLower) c = (wchar_t)towlower(c);
     std::wstring primLower = d.colorPrimaries;
@@ -2093,6 +2394,19 @@ PlayerDiagnostics MpvPlayer::GetDiagnostics() const {
 }
 
 void MpvPlayer::SetVideoBounds(int x, int y, int w, int h) {
+#if !defined(_WIN32)
+    if (w > 0 && h > 0) {
+        const bool sizeChanged = (linuxVideoW.exchange(w, std::memory_order_relaxed) != w) ||
+                                 (linuxVideoH.exchange(h, std::memory_order_relaxed) != h);
+        if (sizeChanged && linuxRenderCtx) {
+            {
+                std::lock_guard<std::mutex> lock(waylandRenderMutex);
+                waylandFramePending = true;
+            }
+            waylandRenderCv.notify_one();
+        }
+    }
+#endif
     if (hVideoWnd) { SetWindowPos(hVideoWnd, HWND_TOP, x, y, w, h, SWP_NOACTIVATE); }
 }
 
@@ -2136,7 +2450,7 @@ bool LoadHubThumbnailFromDiskCache( const std::wstring& filePath, int width, int
     if (filePath.empty() || width <= 0 || height <= 0) return false;
     std::wstring key = MakeHubThumbnailCacheKey(filePath, width, height);
     std::string rawData;
-    StorageStatus status = ReadCacheFile(CacheClass::Thumbnails, key, rawData, root, migrateLegacy);
+    StorageStatus status = ReadCacheFile(CacheClass::Thumbnails, key, rawData, root, false);
     if (!status.is_ok() || rawData.size() < sizeof(ThumbnailDiskHeader)) { return false; }
     if (!ReadThumbnailBuffer(rawData, filePath, outFrame)) return false;
     if (migrateLegacy && GetGlobalCacheBudgets().IsEnabled(CacheClass::Thumbnails))
@@ -2170,6 +2484,170 @@ size_t PruneOrphanedHubThumbnailDiskCache( const std::vector<std::wstring>& live
 }
 
 // =========================================================================
+// MpvClientBase Shared Helper Implementation
+// =========================================================================
+
+void MpvClientBase::OnRenderUpdate(void* ctx) {
+    if (auto* self = static_cast<MpvClientBase*>(ctx)) {
+        self->frameReady.store(true, std::memory_order_release);
+    }
+}
+
+bool MpvClientBase::InitializeClientLocked(MpvApiProfile profile, const char* owner, HMODULE hDll,
+                                           const OptionSpec* options, size_t optionCount,
+                                           bool withSwRenderContext, bool requireWaitEvent) {
+    if (!LoadMpvApi(profile, owner, hDll)) return false;
+    if (requireWaitEvent && !fn_mpv_wait_event) {
+        RecordInitializationFailure("preview event API", MPV_ERROR_UNSUPPORTED);
+        ResetMpvApi();
+        return false;
+    }
+    mpv = fn_mpv_create();
+    if (!mpv) {
+        RecordInitializationFailure("mpv_create", MPV_ERROR_NOMEM);
+        ResetMpvApi();
+        return false;
+    }
+    for (size_t i = 0; i < optionCount; ++i) {
+        SetMpvOption(mpv, options[i].name, options[i].value, options[i].requirement, options[i].fallback);
+    }
+    if (!EssentialOptionsAccepted()) {
+        TeardownMpvLocked();
+        return false;
+    }
+    const int initializeResult = fn_mpv_initialize(mpv);
+    if (initializeResult < 0) {
+        RecordInitializationFailure("mpv_initialize", initializeResult);
+        TeardownMpvLocked();
+        return false;
+    }
+    if (withSwRenderContext) {
+        mpv_render_param params[] = {
+            { MPV_RENDER_PARAM_API_TYPE, (void*)MPV_RENDER_API_TYPE_SW },
+            { MPV_RENDER_PARAM_INVALID, nullptr }
+        };
+        const int renderResult = fn_mpv_render_context_create(&renderCtx, mpv, params);
+        if (renderResult < 0) {
+            RecordInitializationFailure("software render context", renderResult);
+            TeardownMpvLocked();
+            return false;
+        }
+        if (fn_mpv_render_context_set_update_callback) {
+            fn_mpv_render_context_set_update_callback(renderCtx, OnRenderUpdate, this);
+        }
+    }
+    return true;
+}
+
+void MpvClientBase::StopMpvLocked() {
+    if (!mpv) return;
+    if (fn_mpv_command_string) {
+        fn_mpv_command_string(mpv, "stop");
+    } else if (fn_mpv_command) {
+        const char* cmd[] = { "stop", nullptr };
+        fn_mpv_command(mpv, cmd);
+    }
+}
+
+void MpvClientBase::TeardownMpvLocked() {
+    frameReady.store(false, std::memory_order_release);
+    if (renderCtx) {
+        if (fn_mpv_render_context_set_update_callback) {
+            fn_mpv_render_context_set_update_callback(renderCtx, nullptr, nullptr);
+        }
+        if (fn_mpv_render_context_free) {
+            fn_mpv_render_context_free(renderCtx);
+        }
+        renderCtx = nullptr;
+    }
+    if (mpv && fn_mpv_terminate_destroy) {
+        fn_mpv_terminate_destroy(mpv);
+        mpv = nullptr;
+    }
+    ResetMpvApi();
+    std::vector<uint8_t>().swap(pixelBuffer);
+}
+
+bool MpvClientBase::LoadFileLocked(const std::wstring& path, double startSec, bool allowCmdStringFallback) {
+    if (!mpv) return false;
+    std::string pathUtf8 = Utf16ToUtf8(path);
+    std::string startOption;
+    if (startSec > 0.0) {
+        std::ostringstream start;
+        start << "start=" << std::fixed << std::setprecision(3) << startSec;
+        startOption = start.str();
+    }
+    int ret = -1;
+    if (fn_mpv_command) {
+        if (!startOption.empty()) {
+            const char* loadCmd[] = { "loadfile", pathUtf8.c_str(), "replace", "-1", startOption.c_str(), nullptr };
+            ret = fn_mpv_command(mpv, loadCmd);
+        } else {
+            const char* loadCmd[] = { "loadfile", pathUtf8.c_str(), "replace", nullptr };
+            ret = fn_mpv_command(mpv, loadCmd);
+        }
+    }
+    if (ret < 0 && allowCmdStringFallback && fn_mpv_command_string) {
+        std::string quoted = "loadfile \"" + pathUtf8 + "\" replace";
+        ret = fn_mpv_command_string(mpv, quoted.c_str());
+    }
+    return ret >= 0;
+}
+
+void MpvClientBase::SetPauseLocked(bool paused) {
+    if (!mpv) return;
+    if (fn_mpv_set_property_string) {
+        fn_mpv_set_property_string(mpv, "pause", paused ? "yes" : "no");
+    } else if (fn_mpv_command_string) {
+        fn_mpv_command_string(mpv, paused ? "set pause yes" : "set pause no");
+    }
+}
+
+void MpvClientBase::SetVolumeLocked(double volume) {
+    if (!mpv) return;
+    double v = std::clamp(volume, 0.0, kMaxVolumeRatio) * 100.0;
+    if (fn_mpv_set_property) {
+        fn_mpv_set_property(mpv, "volume", MPV_FORMAT_DOUBLE, &v);
+    } else if (fn_mpv_set_property_string) {
+        std::ostringstream value;
+        value << std::fixed << std::setprecision(3) << v;
+        fn_mpv_set_property_string(mpv, "volume", value.str().c_str());
+    }
+}
+
+void MpvClientBase::DrainSimpleEventsLocked() {
+    if (!mpv || !fn_mpv_wait_event) return;
+    while (auto* event = fn_mpv_wait_event(mpv, 0)) {
+        if (event->event_id == MPV_EVENT_NONE) break;
+    }
+}
+
+bool MpvClientBase::RenderSwFrameLocked(int width, int height) {
+    if (!mpv || !renderCtx || !fn_mpv_render_context_render || width <= 0 || height <= 0 || pixelBuffer.empty()) {
+        return false;
+    }
+    uint64_t flags = 0;
+    if (fn_mpv_render_context_update) {
+        flags = fn_mpv_render_context_update(renderCtx);
+    }
+    if (!(flags & MPV_RENDER_UPDATE_FRAME) && !frameReady.load(std::memory_order_acquire)) {
+        return false;
+    }
+    frameReady.store(false, std::memory_order_release);
+    int size[2] = { width, height };
+    char format[] = "bgr0";
+    size_t stride = static_cast<size_t>(width) * 4u;
+    mpv_render_param drawParams[] = {
+        { MPV_RENDER_PARAM_SW_SIZE, size },
+        { MPV_RENDER_PARAM_SW_FORMAT, format },
+        { MPV_RENDER_PARAM_SW_STRIDE, &stride },
+        { MPV_RENDER_PARAM_SW_POINTER, pixelBuffer.data() },
+        { MPV_RENDER_PARAM_INVALID, nullptr }
+    };
+    return fn_mpv_render_context_render(renderCtx, drawParams) >= 0;
+}
+
+// =========================================================================
 // MpvPreviewPlayer Implementation
 // =========================================================================
 
@@ -2177,74 +2655,37 @@ MpvPreviewPlayer::MpvPreviewPlayer() {}
 
 MpvPreviewPlayer::~MpvPreviewPlayer() { Shutdown(); }
 
-void MpvPreviewPlayer::OnRenderUpdate(void* ctx) {
-    MpvPreviewPlayer* self = static_cast<MpvPreviewPlayer*>(ctx);
-    if (self) { self->frameReady = true; }
-}
-
 bool MpvPreviewPlayer::Initialize(ID2D1DeviceContext* pD2DContext, HMODULE hDll) {
     Shutdown();
-    if (!LoadMpvApi(MpvApiProfile::SoftwareRenderer, "Hover preview", hDll)) return false;
-    // Drain the client queue while consuming hover frames.
-    if (!fn_mpv_wait_event) {
-        RecordInitializationFailure("preview event API", MPV_ERROR_UNSUPPORTED);
-        ResetMpvApi();
+    // Bounded local read window + timed display-sync prevents libmpv from queueing hundreds of MiB on hover.
+    static constexpr OptionSpec kOptions[] = {
+        { "vo", "libmpv", MpvOptionRequirement::Essential },
+        { "hwdec", "no", MpvOptionRequirement::Essential },
+        { "audio", "no", MpvOptionRequirement::Essential },
+        { "mute", "yes" },
+        { "sid", "no", MpvOptionRequirement::Essential },
+        { "sub-auto", "no", MpvOptionRequirement::Essential },
+        { "vd-lavc-threads", "2" },
+        { "framedrop", "vo" },
+        { "video-sync", "display-desync" },
+        { "demuxer-max-bytes", "8MiB" },
+        { "demuxer-max-back-bytes", "0" },
+        { "loop-file", "no" },
+        { "keep-open", "no" },
+        { "untimed", "no" },
+        { "hr-seek", "yes" },
+        { "video-timing-offset", "0" },
+        { "input-default-bindings", "no", MpvOptionRequirement::Essential },
+        { "input-vo-keyboard", "no", MpvOptionRequirement::Essential },
+        { "input-media-keys", "no", MpvOptionRequirement::Essential },
+        { "load-scripts", "no", MpvOptionRequirement::Essential },
+        { "scripts", "", MpvOptionRequirement::Essential },
+        { "ytdl", "no" },
+    };
+    if (!InitializeClientLocked(MpvApiProfile::SoftwareRenderer, "Hover preview", hDll,
+                                kOptions, sizeof(kOptions) / sizeof(kOptions[0]), true, true)) {
         return false;
     }
-    mpv = fn_mpv_create();
-    if (!mpv) { RecordInitializationFailure("mpv_create", MPV_ERROR_NOMEM); ResetMpvApi(); return false; }
-    SetMpvOption(mpv, "vo", "libmpv", MpvOptionRequirement::Essential);
-    SetMpvOption(mpv, "hwdec", "no", MpvOptionRequirement::Essential);
-    SetMpvOption(mpv, "audio", "no", MpvOptionRequirement::Essential);
-    SetMpvOption(mpv, "mute", "yes");
-    // mpv scales directly into the card-sized software target.
-    SetMpvOption(mpv, "sid", "no", MpvOptionRequirement::Essential);
-    SetMpvOption(mpv, "sub-auto", "no", MpvOptionRequirement::Essential);
-    SetMpvOption(mpv, "vd-lavc-threads", "2");
-    SetMpvOption(mpv, "framedrop", "vo");
-    SetMpvOption(mpv, "video-sync", "display-desync");
-    // The preview renders into a bounded software target. It needs only a
-    // small local read window; leaving mpv's larger default cache here
-    // creates a second high-bitrate media cache on card/timeline hover.
-    SetMpvOption(mpv, "demuxer-max-bytes", "8MiB");
-    SetMpvOption(mpv, "demuxer-max-back-bytes", "0");
-    // The preview is displayed at normal playback speed.  untimed=yes
-    // makes libmpv decode as fast as the CPU can produce frames while the
-    // UI consumes one frame per tick, allowing its queued frames to grow
-    // into hundreds of MiB on a 1080p source.  A hover preview also has no
-    // reason to loop or retain the demuxer at EOF.
-    SetMpvOption(mpv, "loop-file", "no");
-    SetMpvOption(mpv, "keep-open", "no");
-    SetMpvOption(mpv, "untimed", "no");
-    SetMpvOption(mpv, "hr-seek", "yes");
-    SetMpvOption(mpv, "video-timing-offset", "0");
-    SetMpvOption(mpv, "input-default-bindings", "no", MpvOptionRequirement::Essential);
-    SetMpvOption(mpv, "input-vo-keyboard", "no", MpvOptionRequirement::Essential);
-    SetMpvOption(mpv, "input-media-keys", "no", MpvOptionRequirement::Essential);
-    // Direct URLs only: never invoke the Lua hook path.
-    SetMpvOption(mpv, "load-scripts", "no", MpvOptionRequirement::Essential);
-    SetMpvOption(mpv, "scripts", "", MpvOptionRequirement::Essential);
-    // Builds without Lua omit ytdl; retain the checked disable on builds that expose it.
-    SetMpvOption(mpv, "ytdl", "no");
-    if (!EssentialOptionsAccepted()) { Shutdown(); return false; }
-    const int initializeResult = fn_mpv_initialize(mpv);
-    if (initializeResult < 0) {
-        RecordInitializationFailure("mpv_initialize", initializeResult);
-        fn_mpv_terminate_destroy(mpv);
-        mpv = nullptr;
-        ResetMpvApi();
-        return false;
-    }
-    mpv_render_param params[] = {{MPV_RENDER_PARAM_API_TYPE, (void *)MPV_RENDER_API_TYPE_SW}, {MPV_RENDER_PARAM_INVALID, nullptr}};
-    const int renderResult = fn_mpv_render_context_create(&renderCtx, mpv, params);
-    if (renderResult < 0) {
-        RecordInitializationFailure("software render context", renderResult);
-        fn_mpv_terminate_destroy(mpv);
-        mpv = nullptr;
-        ResetMpvApi();
-        return false;
-    }
-    if (fn_mpv_render_context_set_update_callback) { fn_mpv_render_context_set_update_callback(renderCtx, OnRenderUpdate, this); }
     BindDeviceContext(pD2DContext);
     return true;
 }
@@ -2253,23 +2694,10 @@ void MpvPreviewPlayer::Shutdown() {
     std::lock_guard<std::mutex> lifecycleLock(lifecycleMutex);
     isActive = false;
     currentPreviewPath.clear();
-    frameReady = false;
-    if (mpv) {
-        if (fn_mpv_command_string) { fn_mpv_command_string(mpv, "stop"); } else if (fn_mpv_command) {
-            const char* cmd[] = { "stop", nullptr };
-            fn_mpv_command(mpv, cmd);
-        }
-    }
-    if (renderCtx) {
-        if (fn_mpv_render_context_set_update_callback) { fn_mpv_render_context_set_update_callback(renderCtx, nullptr, nullptr); }
-        if (fn_mpv_render_context_free) { fn_mpv_render_context_free(renderCtx); }
-        renderCtx = nullptr;
-    }
-    if (mpv && fn_mpv_terminate_destroy) { fn_mpv_terminate_destroy(mpv); mpv = nullptr; }
+    StopMpvLocked();
+    TeardownMpvLocked();
     previewBitmap.Reset();
     bitmapDevice.Reset();
-    std::vector<uint8_t>().swap(pixelBuffer);
-    ResetMpvApi();
 }
 
 void MpvPreviewPlayer::SetPreviewOutputSize(int width, int height) {
@@ -2303,17 +2731,20 @@ void MpvPreviewPlayer::BindDeviceContext(ID2D1DeviceContext* context) {
     std::lock_guard<std::mutex> lifecycleLock(lifecycleMutex);
     BindDeviceContextLocked(context);
 }
+
 void MpvPreviewPlayer::BindDeviceContextLocked(ID2D1DeviceContext* context) {
     ComPtr<ID2D1Device> device;
     if (context) context->GetDevice(&device);
     if (device.Get() == bitmapDevice.Get()) return;
     // Keep the previous device alive until this comparison so pointer reuse
     // cannot conceal a device generation change.
-    previewBitmap.Reset(); bitmapDevice = device;
-    frameReady = true;
+    previewBitmap.Reset();
+    bitmapDevice = device;
+    frameReady.store(true, std::memory_order_release);
 }
+
 bool MpvPreviewPlayer::UploadBitmapLocked(ComPtr<ID2D1Bitmap>& bitmap, ID2D1DeviceContext* context,
-                                         UINT width, UINT height, const uint8_t* pixels) {
+                                          UINT width, UINT height, const uint8_t* pixels) {
     if (!context || !pixels || !width || !height) return false;
     if (bitmap) {
         const auto size = bitmap->GetPixelSize();
@@ -2330,76 +2761,33 @@ void MpvPreviewPlayer::StartPreview(const std::wstring& filePath, double startSe
     if (!mpv || filePath.empty()) return;
     if (isActive && currentPreviewPath == filePath && bufferWidth == requestedPreviewWidth && bufferHeight == requestedPreviewHeight) return;
     if (!std::isfinite(startSec) || startSec < 0.0) startSec = 0.0;
-    DrainPreviewEventsLocked();
+    DrainSimpleEventsLocked();
     EnsureBufferDimensionsLocked(requestedPreviewWidth, requestedPreviewHeight);
     currentPreviewPath = filePath;
     isActive = true;
-    frameReady = false;
-    std::string pathUtf8 = Utf16ToUtf8(filePath);
-    std::string startOption;
-    if (startSec > 0.0) {
-        std::ostringstream start;
-        start << "start=" << std::fixed << std::setprecision(3) << startSec;
-        startOption = start.str();
+    frameReady.store(false, std::memory_order_release);
+    if (!LoadFileLocked(filePath, startSec, false)) {
+        isActive = false;
+        currentPreviewPath.clear();
+        return;
     }
-    int ret = -1;
-    if (fn_mpv_command) {
-        if (!startOption.empty()) {
-            const char* loadCmd[] = { "loadfile", pathUtf8.c_str(), "replace", "-1", startOption.c_str(), nullptr };
-            ret = fn_mpv_command(mpv, loadCmd);
-        } else {
-            const char* loadCmd[] = { "loadfile", pathUtf8.c_str(), "replace", nullptr };
-            ret = fn_mpv_command(mpv, loadCmd);
-        }
-    }
-    if (ret >= 0) {
-        if (fn_mpv_set_property_string) {
-            ret = fn_mpv_set_property_string(mpv, "pause", "no");
-        } else if (fn_mpv_command_string) { ret = fn_mpv_command_string(mpv, "set pause no"); }
-    }
-    if (ret < 0) { isActive = false; currentPreviewPath.clear(); }
-}
-
-void MpvPreviewPlayer::StopMpvLocked() {
-    if (!mpv) return;
-    if (fn_mpv_command_string) { fn_mpv_command_string(mpv, "stop"); } else if (fn_mpv_command) {
-        const char* cmd[] = { "stop", nullptr };
-        fn_mpv_command(mpv, cmd);
-    }
+    SetPauseLocked(false);
 }
 
 void MpvPreviewPlayer::StopPreview() {
     std::lock_guard<std::mutex> lifecycleLock(lifecycleMutex);
     isActive = false;
     currentPreviewPath.clear();
-    frameReady = false;
+    frameReady.store(false, std::memory_order_release);
     StopMpvLocked();
-}
-
-void MpvPreviewPlayer::DrainPreviewEventsLocked() {
-    if (!mpv || !fn_mpv_wait_event) return;
-    while (auto* event = fn_mpv_wait_event(mpv, 0)) {
-        if (event->event_id == MPV_EVENT_NONE) break;
-    }
 }
 
 bool MpvPreviewPlayer::UpdateFrame(ID2D1DeviceContext* pD2DContext) {
     std::lock_guard<std::mutex> lifecycleLock(lifecycleMutex);
-    if (!isActive || !mpv || !renderCtx || !fn_mpv_render_context_render) return false;
+    if (!isActive) return false;
     BindDeviceContextLocked(pD2DContext);
-    DrainPreviewEventsLocked();
-    uint64_t flags = 0;
-    if (fn_mpv_render_context_update) flags = fn_mpv_render_context_update(renderCtx);
-    if (!(flags & MPV_RENDER_UPDATE_FRAME) && !frameReady) return false;
-    frameReady = false;
-    int size[2] = { bufferWidth, bufferHeight };
-    char format[] = "bgr0";
-    size_t stride = bufferWidth * 4;
-    mpv_render_param drawParams[] = {
-        { MPV_RENDER_PARAM_SW_SIZE, size }, { MPV_RENDER_PARAM_SW_FORMAT, format }, { MPV_RENDER_PARAM_SW_STRIDE, &stride },
-        { MPV_RENDER_PARAM_SW_POINTER, pixelBuffer.data() }, { MPV_RENDER_PARAM_INVALID, nullptr }
-    };
-    return fn_mpv_render_context_render(renderCtx, drawParams) >= 0 &&
+    DrainSimpleEventsLocked();
+    return RenderSwFrameLocked(bufferWidth, bufferHeight) &&
         UploadBitmapLocked(previewBitmap, pD2DContext, bufferWidth, bufferHeight, pixelBuffer.data());
 }
 
@@ -2426,46 +2814,31 @@ bool MpvListenPlayer::Initialize(HMODULE hDll) {
 bool MpvListenPlayer::EnsureInitializedLocked(HMODULE hDll) {
     if (listenInitialized && mpv) return true;
     TeardownLocked();
-    // The Listen island binds no render symbols, so the Playback profile
-    // suffices even though no window is involved.
-    if (!LoadMpvApi(MpvApiProfile::Playback, "Listen player", hDll)) return false;
-    mpv = fn_mpv_create();
-    if (!mpv) { RecordInitializationFailure("mpv_create", MPV_ERROR_NOMEM); ResetMpvApi(); return false; }
-    // Audio-only client: no video output, no on-screen window, no scripting.
-    SetMpvOption(mpv, "vo", "null", MpvOptionRequirement::Essential);
-    SetMpvOption(mpv, "vid", "no", MpvOptionRequirement::Essential);
-    SetMpvOption(mpv, "aid", "auto");
-    // Leave --ao unset: mpv auto-selects the output. Pinning "auto" as a
-    // device name left the client with no usable output (silent playback).
-    SetMpvOption(mpv, "cache", "yes");
-    // Many internet radio directory entries resolve to .pls / .m3u / .m3u8
-    // playlists; allow playlist expansion for those stream URLs.
-    SetMpvOption(mpv, "load-unsafe-playlists", "yes");
-    // Radio streams and podcasts benefit from a wider read-ahead window than
-    // the hover preview; nothing renders from this instance.
-    SetMpvOption(mpv, "demuxer-max-bytes", "64MiB");
-    SetMpvOption(mpv, "demuxer-max-back-bytes", "16MiB");
-    SetMpvOption(mpv, "loop-file", "no");
-    SetMpvOption(mpv, "keep-open", "no");
-    SetMpvOption(mpv, "hr-seek", "yes");
-    SetMpvOption(mpv, "input-default-bindings", "no", MpvOptionRequirement::Essential);
-    SetMpvOption(mpv, "input-vo-keyboard", "no", MpvOptionRequirement::Essential);
-    SetMpvOption(mpv, "input-media-keys", "no", MpvOptionRequirement::Essential);
-    // Direct URLs only: never invoke the Lua hook path.
-    SetMpvOption(mpv, "load-scripts", "no", MpvOptionRequirement::Essential);
-    SetMpvOption(mpv, "scripts", "", MpvOptionRequirement::Essential);
-    // Builds without Lua omit ytdl; retain the checked disable on builds that expose it.
-    SetMpvOption(mpv, "ytdl", "no");
-    SetMpvOption(mpv, "mute", "no");
-    // Tolerate slow radio servers; none of these are fatal when unsupported.
-    SetMpvOption(mpv, "network-timeout", "15");
-    SetMpvOption(mpv, "force-window", "no");
-    SetMpvOption(mpv, "audio-display", "no");
-    if (!EssentialOptionsAccepted()) { TeardownLocked(); return false; }
-    const int initializeResult = fn_mpv_initialize(mpv);
-    if (initializeResult < 0) {
-        RecordInitializationFailure("mpv_initialize", initializeResult);
-        TeardownLocked();
+    // Leave --ao unset so mpv auto-selects output; pinning "auto" breaks audio output on some backends.
+    static constexpr OptionSpec kOptions[] = {
+        { "vo", "null", MpvOptionRequirement::Essential },
+        { "vid", "no", MpvOptionRequirement::Essential },
+        { "aid", "auto" },
+        { "cache", "yes" },
+        { "load-unsafe-playlists", "yes" },
+        { "demuxer-max-bytes", "64MiB" },
+        { "demuxer-max-back-bytes", "16MiB" },
+        { "loop-file", "no" },
+        { "keep-open", "no" },
+        { "hr-seek", "yes" },
+        { "input-default-bindings", "no", MpvOptionRequirement::Essential },
+        { "input-vo-keyboard", "no", MpvOptionRequirement::Essential },
+        { "input-media-keys", "no", MpvOptionRequirement::Essential },
+        { "load-scripts", "no", MpvOptionRequirement::Essential },
+        { "scripts", "", MpvOptionRequirement::Essential },
+        { "ytdl", "no" },
+        { "mute", "no" },
+        { "network-timeout", "15" },
+        { "force-window", "no" },
+        { "audio-display", "no" },
+    };
+    if (!InitializeClientLocked(MpvApiProfile::Playback, "Listen player", hDll,
+                                kOptions, sizeof(kOptions) / sizeof(kOptions[0]), false, false)) {
         return false;
     }
     listenInitialized = true;
@@ -2482,20 +2855,8 @@ void MpvListenPlayer::TeardownLocked() {
     paused = false;
     finished = false;
     finishedReported = false;
-    if (mpv) {
-        SendStopLocked();
-        if (fn_mpv_terminate_destroy) fn_mpv_terminate_destroy(mpv);
-        mpv = nullptr;
-    }
-    ResetMpvApi();
-}
-
-void MpvListenPlayer::SendStopLocked() {
-    if (!mpv) return;
-    if (fn_mpv_command_string) { fn_mpv_command_string(mpv, "stop"); } else if (fn_mpv_command) {
-        const char* cmd[] = { "stop", nullptr };
-        fn_mpv_command(mpv, cmd);
-    }
+    StopMpvLocked();
+    TeardownMpvLocked();
 }
 
 void MpvListenPlayer::Shutdown() {
@@ -2531,41 +2892,12 @@ bool MpvListenPlayer::Start(const std::wstring& path, double startSec, double vo
     paused = false;
     finished = false;
     finishedReported = false;
-    std::string pathUtf8 = Utf16ToUtf8(path);
-    std::string startOption;
-    if (startSec > 0.0) {
-        std::ostringstream start;
-        start << "start=" << std::fixed << std::setprecision(3) << startSec;
-        startOption = start.str();
+    if (!LoadFileLocked(path, startSec, true)) {
+        currentPath.clear();
+        return false;
     }
-    int ret = -1;
-    if (fn_mpv_command) {
-        if (!startOption.empty()) {
-            const char* loadCmd[] = { "loadfile", pathUtf8.c_str(), "replace", "-1", startOption.c_str(), nullptr };
-            ret = fn_mpv_command(mpv, loadCmd);
-        } else {
-            const char* loadCmd[] = { "loadfile", pathUtf8.c_str(), "replace", nullptr };
-            ret = fn_mpv_command(mpv, loadCmd);
-        }
-    }
-    if (ret < 0 && fn_mpv_command_string) {
-        std::string quoted = "loadfile \"" + pathUtf8 + "\" replace";
-        ret = fn_mpv_command_string(mpv, quoted.c_str());
-    }
-    if (ret < 0) { currentPath.clear(); return false; }
-    if (fn_mpv_set_property_string) {
-        fn_mpv_set_property_string(mpv, "pause", "no");
-    } else if (fn_mpv_command_string) {
-        fn_mpv_command_string(mpv, "set pause no");
-    }
-    double v = std::clamp(volume, 0.0, kMaxVolumeRatio) * 100.0;
-    if (fn_mpv_set_property) {
-        fn_mpv_set_property(mpv, "volume", MPV_FORMAT_DOUBLE, &v);
-    } else if (fn_mpv_set_property_string) {
-        std::ostringstream value;
-        value << std::fixed << std::setprecision(3) << v;
-        fn_mpv_set_property_string(mpv, "volume", value.str().c_str());
-    }
+    SetPauseLocked(false);
+    SetVolumeLocked(volume);
     return true;
 }
 
@@ -2577,14 +2909,13 @@ void MpvListenPlayer::Stop() {
     paused = false;
     finished = false;
     finishedReported = false;
-    SendStopLocked();
+    StopMpvLocked();
 }
 
 void MpvListenPlayer::SetPaused(bool paused) {
     std::lock_guard<std::mutex> lifecycleLock(lifecycleMutex);
     this->paused = paused;
-    if (!mpv || !fn_mpv_set_property_string) return;
-    fn_mpv_set_property_string(mpv, "pause", paused ? "yes" : "no");
+    SetPauseLocked(paused);
 }
 
 void MpvListenPlayer::SeekAbsolute(double sec) {
@@ -2601,13 +2932,7 @@ void MpvListenPlayer::SeekAbsolute(double sec) {
 
 void MpvListenPlayer::SetVolume(double volume) {
     std::lock_guard<std::mutex> lifecycleLock(lifecycleMutex);
-    if (!mpv) return;
-    double v = std::clamp(volume, 0.0, kMaxVolumeRatio) * 100.0;
-    if (fn_mpv_set_property) { fn_mpv_set_property(mpv, "volume", MPV_FORMAT_DOUBLE, &v); } else if (fn_mpv_set_property_string) {
-        std::ostringstream value;
-        value << std::fixed << std::setprecision(3) << v;
-        fn_mpv_set_property_string(mpv, "volume", value.str().c_str());
-    }
+    SetVolumeLocked(volume);
 }
 
 bool MpvListenPlayer::IsPaused() const {
@@ -2649,10 +2974,6 @@ void MpvListenPlayer::DrainEventsLocked(bool recordFinish) {
             fileLoaded = true;
             sawTerminalEnd = false;
         } else if (event->event_id == MPV_EVENT_END_FILE) {
-            // Only treat EOF after a file has actually loaded as terminal.
-            // Ignore STOP/QUIT (from a replaced stream), REDIRECT (when a
-            // radio .m3u/.pls/.m3u8 playlist expands into its stream URL),
-            // and pre-load container EOFs.
             const auto* endFile = static_cast<const mpv_event_end_file*>(event->data);
             const mpv_end_file_reason reason = endFile ? endFile->reason : MPV_END_FILE_REASON_EOF;
             if (fileLoaded && reason == MPV_END_FILE_REASON_EOF) {
@@ -2698,88 +3019,57 @@ MpvHubExtractor::MpvHubExtractor() = default;
 
 MpvHubExtractor::~MpvHubExtractor() { Shutdown(); }
 
-void MpvHubExtractor::OnRenderUpdate(void* ctx) {
-    MpvHubExtractor* self = static_cast<MpvHubExtractor*>(ctx);
-    if (self) { self->frameReady.store(true, std::memory_order_release); }
-}
-
-void MpvHubExtractor::StopMpvLocked() {
-    if (!mpv) return;
-    if (fn_mpv_command_string) { fn_mpv_command_string(mpv, "stop"); } else if (fn_mpv_command) {
-        const char* cmd[] = { "stop", nullptr };
-        fn_mpv_command(mpv, cmd);
-    }
-}
-
 bool MpvHubExtractor::EnsureInitialized() {
     if (mpv && renderCtx) return true;
-    // Caller (Begin) holds mutex; use the lock-free teardown on failure.
     TeardownLocked();
-    if (!LoadMpvApi(MpvApiProfile::SoftwareRenderer, "Hub extractor")) return false;
-    mpv = fn_mpv_create();
-    if (!mpv) { RecordInitializationFailure("mpv_create", MPV_ERROR_NOMEM); TeardownLocked(); return false; }
-    // Single-frame grab tunables: keyframe seeks, skipped loop filtering, and a tiny demuxer window. Exactness is irrelevant
-    // for a representative card frame; speed is everything.
-    SetMpvOption(mpv, "vo", "libmpv", MpvOptionRequirement::Essential);
-    SetMpvOption(mpv, "hwdec", "no", MpvOptionRequirement::Essential);
-    SetMpvOption(mpv, "audio", "no", MpvOptionRequirement::Essential);
-    SetMpvOption(mpv, "sid", "no", MpvOptionRequirement::Essential);
-    SetMpvOption(mpv, "sub-auto", "no", MpvOptionRequirement::Essential);
-    SetMpvOption(mpv, "vd-lavc-threads", "2");
-    SetMpvOption(mpv, "vd-lavc-skiploopfilter", "all");
-    SetMpvOption(mpv, "vd-lavc-fast", "yes");
-    SetMpvOption(mpv, "hr-seek", "no");
-    SetMpvOption(mpv, "demuxer-max-bytes", "4MiB");
-    SetMpvOption(mpv, "demuxer-max-back-bytes", "0");
-    SetMpvOption(mpv, "loop-file", "no");
-    SetMpvOption(mpv, "keep-open", "no");
-    SetMpvOption(mpv, "untimed", "no");
-    SetMpvOption(mpv, "video-sync", "display-desync");
-    SetMpvOption(mpv, "input-default-bindings", "no", MpvOptionRequirement::Essential);
-    SetMpvOption(mpv, "input-vo-keyboard", "no", MpvOptionRequirement::Essential);
-    SetMpvOption(mpv, "input-media-keys", "no", MpvOptionRequirement::Essential);
-    SetMpvOption(mpv, "load-scripts", "no", MpvOptionRequirement::Essential);
-    SetMpvOption(mpv, "scripts", "", MpvOptionRequirement::Essential);
-    // Builds without Lua omit ytdl; retain the checked disable on builds that expose it.
-    SetMpvOption(mpv, "ytdl", "no");
-    if (!EssentialOptionsAccepted()) { TeardownLocked(); return false; }
-    const int initializeResult = fn_mpv_initialize(mpv);
-    if (initializeResult < 0) { RecordInitializationFailure("mpv_initialize", initializeResult); TeardownLocked(); return false; }
-    mpv_render_param params[] = {
-        { MPV_RENDER_PARAM_API_TYPE, (void*)MPV_RENDER_API_TYPE_SW }, { MPV_RENDER_PARAM_INVALID, nullptr }
+    // Single-frame grab tunables: keyframe seeks, skipped loop filtering, and a tiny demuxer window.
+    static constexpr OptionSpec kOptions[] = {
+        { "vo", "libmpv", MpvOptionRequirement::Essential },
+        { "hwdec", "no", MpvOptionRequirement::Essential },
+        { "audio", "no", MpvOptionRequirement::Essential },
+        { "sid", "no", MpvOptionRequirement::Essential },
+        { "sub-auto", "no", MpvOptionRequirement::Essential },
+        { "vd-lavc-threads", "2" },
+        { "vd-lavc-skiploopfilter", "all" },
+        { "vd-lavc-fast", "yes" },
+        { "hr-seek", "no" },
+        { "demuxer-max-bytes", "4MiB" },
+        { "demuxer-max-back-bytes", "0" },
+        { "loop-file", "no" },
+        { "keep-open", "no" },
+        { "untimed", "no" },
+        { "video-sync", "display-desync" },
+        { "input-default-bindings", "no", MpvOptionRequirement::Essential },
+        { "input-vo-keyboard", "no", MpvOptionRequirement::Essential },
+        { "input-media-keys", "no", MpvOptionRequirement::Essential },
+        { "load-scripts", "no", MpvOptionRequirement::Essential },
+        { "scripts", "", MpvOptionRequirement::Essential },
+        { "ytdl", "no" },
     };
-    const int renderResult = fn_mpv_render_context_create(&renderCtx, mpv, params);
-    if (renderResult < 0) { RecordInitializationFailure("software render context", renderResult); TeardownLocked(); return false; }
-    if (fn_mpv_render_context_set_update_callback) { fn_mpv_render_context_set_update_callback(renderCtx, OnRenderUpdate, this); }
-    pixelBuffer.resize((size_t)kExtractWidth * kExtractHeight * 4u);
+    if (!InitializeClientLocked(MpvApiProfile::SoftwareRenderer, "Hub extractor", nullptr,
+                                kOptions, sizeof(kOptions) / sizeof(kOptions[0]), true, false)) {
+        return false;
+    }
+    pixelBuffer.resize(static_cast<size_t>(kExtractWidth) * kExtractHeight * 4u);
     StartSaveWorker();
     return true;
 }
 
-void MpvHubExtractor::Shutdown() { std::lock_guard<std::mutex> lock(mutex); StopSaveWorker(); TeardownLocked(); }
+void MpvHubExtractor::Shutdown() { std::lock_guard<std::mutex> lock(lifecycleMutex); StopSaveWorker(); TeardownLocked(); }
 
-bool MpvHubExtractor::IsInitialized() const { std::lock_guard<std::mutex> lock(mutex); return mpv != nullptr; }
+bool MpvHubExtractor::IsInitialized() const { std::lock_guard<std::mutex> lock(lifecycleMutex); return mpv != nullptr; }
 
 void MpvHubExtractor::TeardownLocked() {
     active = false;
     resultReady = false;
     extractPath.clear();
     resultFrame = PreviewThumbnailFrame();
-    frameReady.store(false, std::memory_order_release);
-    if (renderCtx) {
-        if (fn_mpv_render_context_set_update_callback) { fn_mpv_render_context_set_update_callback(renderCtx, nullptr, nullptr); }
-        if (fn_mpv_render_context_free) { fn_mpv_render_context_free(renderCtx); }
-        renderCtx = nullptr;
-    }
-    if (mpv && fn_mpv_terminate_destroy) { fn_mpv_terminate_destroy(mpv); mpv = nullptr; }
-    ResetMpvApi();
-    std::vector<uint8_t>().swap(pixelBuffer);
+    TeardownMpvLocked();
 }
 
 bool MpvHubExtractor::Begin(const std::wstring& filePath, double startSec) {
-    std::lock_guard<std::mutex> lock(mutex);
-    if (filePath.empty()) return false;
-    if (active) return false;
+    std::lock_guard<std::mutex> lock(lifecycleMutex);
+    if (filePath.empty() || active) return false;
     if (!EnsureInitialized()) return false;
     if (!std::isfinite(startSec) || startSec < 0.0) startSec = 0.0;
     extractPath = filePath;
@@ -2788,27 +3078,18 @@ bool MpvHubExtractor::Begin(const std::wstring& filePath, double startSec) {
     active = true;
     resultReady = false;
     frameReady.store(false, std::memory_order_release);
-    std::string pathUtf8 = Utf16ToUtf8(filePath);
-    int ret = -1;
-    if (fn_mpv_command) {
-        if (startSec > 0.0) {
-            std::ostringstream start;
-            start << "start=" << std::fixed << std::setprecision(3) << startSec;
-            std::string startOption = start.str();
-            const char* loadCmd[] = { "loadfile", pathUtf8.c_str(), "replace", "-1", startOption.c_str(), nullptr };
-            ret = fn_mpv_command(mpv, loadCmd);
-        } else {
-            const char* loadCmd[] = { "loadfile", pathUtf8.c_str(), "replace", nullptr };
-            ret = fn_mpv_command(mpv, loadCmd);
-        }
+    if (!LoadFileLocked(filePath, startSec, false)) {
+        active = false;
+        extractPath.clear();
+        StopMpvLocked();
+        return false;
     }
-    if (ret >= 0 && fn_mpv_set_property_string) { ret = fn_mpv_set_property_string(mpv, "pause", "no"); }
-    if (ret < 0) { active = false; extractPath.clear(); StopMpvLocked(); return false; }
+    SetPauseLocked(false);
     return true;
 }
 
 void MpvHubExtractor::Cancel() {
-    std::lock_guard<std::mutex> lock(mutex);
+    std::lock_guard<std::mutex> lock(lifecycleMutex);
     active = false;
     resultReady = false;
     extractPath.clear();
@@ -2816,12 +3097,12 @@ void MpvHubExtractor::Cancel() {
     StopMpvLocked();
 }
 
-bool MpvHubExtractor::IsActive() const { std::lock_guard<std::mutex> lock(mutex); return active; }
+bool MpvHubExtractor::IsActive() const { std::lock_guard<std::mutex> lock(lifecycleMutex); return active; }
 
-const std::wstring& MpvHubExtractor::GetPath() const { std::lock_guard<std::mutex> lock(mutex); return extractPath; }
+const std::wstring& MpvHubExtractor::GetPath() const { std::lock_guard<std::mutex> lock(lifecycleMutex); return extractPath; }
 
 bool MpvHubExtractor::TakeResult(PreviewThumbnailFrame& outFrame) {
-    std::lock_guard<std::mutex> lock(mutex);
+    std::lock_guard<std::mutex> lock(lifecycleMutex);
     if (!resultReady) return false;
     outFrame = std::move(resultFrame);
     resultFrame = PreviewThumbnailFrame();
@@ -2830,26 +3111,15 @@ bool MpvHubExtractor::TakeResult(PreviewThumbnailFrame& outFrame) {
 }
 
 bool MpvHubExtractor::Pump() {
-    std::lock_guard<std::mutex> lock(mutex);
-    if (!active || !mpv || !renderCtx || !fn_mpv_render_context_render) return false;
+    std::lock_guard<std::mutex> lock(lifecycleMutex);
+    if (!active) return false;
     if (((long long)GetTickCount64() - extractStartTickMs) > kExtractTimeoutMs) {
         active = false;
         extractPath.clear();
         StopMpvLocked();
         return false;
     }
-    uint64_t flags = 0;
-    if (fn_mpv_render_context_update) { flags = fn_mpv_render_context_update(renderCtx); }
-    if (!(flags & MPV_RENDER_UPDATE_FRAME) && !frameReady.load(std::memory_order_acquire)) { return false; }
-    frameReady.store(false, std::memory_order_release);
-    int size[2] = { kExtractWidth, kExtractHeight };
-    char format[] = "bgr0";
-    size_t stride = (size_t)kExtractWidth * 4u;
-    mpv_render_param drawParams[] = {
-        { MPV_RENDER_PARAM_SW_SIZE, size }, { MPV_RENDER_PARAM_SW_FORMAT, format }, { MPV_RENDER_PARAM_SW_STRIDE, &stride },
-        { MPV_RENDER_PARAM_SW_POINTER, pixelBuffer.data() }, { MPV_RENDER_PARAM_INVALID, nullptr }
-    };
-    if (fn_mpv_render_context_render(renderCtx, drawParams) < 0) { return false; }
+    if (!RenderSwFrameLocked(kExtractWidth, kExtractHeight)) return false;
     PreviewThumbnailFrame frame;
     frame.filePath = extractPath;
     frame.timestampSec = extractStartSec;

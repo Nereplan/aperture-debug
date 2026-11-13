@@ -19,7 +19,6 @@
 #include <atomic>
 #include <thread>
 #include <array>
-#include <unordered_map>
 namespace Aperture {
 
 enum class Elevation {
@@ -96,6 +95,7 @@ public:
     double GetLastPresentMs() const { return lastPresentMs; }
     double TakeMaxPresentMs() { double value = maxPresentMs; maxPresentMs = 0.0; return value; }
     float GetDpiScale() const { return dpiScale; }
+    float GetTextScale() const { return textScale; }
     float Scale(float val) const { return val * dpiScale; }
     void SetPrimitiveSnapping(bool enabled) { primitiveSnapping = enabled; }
     bool IsPrimitiveSnapping() const { return primitiveSnapping; }
@@ -112,7 +112,7 @@ public:
     using DrawingPrimitives::FillPolygon;
     void Clear(const D2D1_COLOR_F& color);
     using DrawingPrimitives::FillRect;
-    void FillGradientRect(const D2D1_RECT_F& rect, const D2D1_COLOR_F& startColor, const D2D1_COLOR_F& endColor, bool vertical = true);
+    using DrawingPrimitives::FillGradientRect;
     using DrawingPrimitives::FillRoundedRect;
     using DrawingPrimitives::FillRoundedGradientRect;
     using DrawingPrimitives::DrawRoundedRect;
@@ -123,36 +123,33 @@ public:
     void DrawRingProgress(float cx, float cy, float radius, float thickness, float progress, const D2D1_COLOR_F& trackCol, const D2D1_COLOR_F& accentCol);
     // 5-Primitive Real Rendering Engine
     void DrawSurface(const D2D1_RECT_F& rect, const SurfaceStyle& style);
-    void DrawDropShadow(const D2D1_RECT_F& rect, float radius, float blur, float yOffset, const D2D1_COLOR_F& color);
-    void DrawGlow(const D2D1_RECT_F& rect, float radius, float blur, const D2D1_COLOR_F& glowColor);
+    using DrawingPrimitives::DrawDropShadow;
+    using DrawingPrimitives::DrawGlow;
     using DrawingPrimitives::DrawInnerHighlight;
     void CreateFonts(const std::wstring& customFamily = L"");
     void UpdateFontFamily(const std::string& familyName);
     void SetTextScale(float scale);
     SurfaceStyle CreateSurfaceStyle(Elevation elevation, const Settings& s, bool isHovered = false, bool isSelected = false, bool isPinned = false);
     // Text & Badges
-    void DrawString(const std::wstring& text, const D2D1_RECT_F& rect, const D2D1_COLOR_F& color, FontType font = FontType::Regular, DWRITE_TEXT_ALIGNMENT align = DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT valign = DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-    void DrawStringWrapped(const std::wstring& text, const D2D1_RECT_F& rect, const D2D1_COLOR_F& color, FontType font = FontType::Regular, DWRITE_TEXT_ALIGNMENT align = DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT valign = DWRITE_PARAGRAPH_ALIGNMENT_NEAR);
-    void DrawStringWithShadow(const std::wstring& text, const D2D1_RECT_F& rect, const D2D1_COLOR_F& color, const D2D1_COLOR_F& shadowColor, FontType font = FontType::Regular, DWRITE_TEXT_ALIGNMENT align = DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT valign = DWRITE_PARAGRAPH_ALIGNMENT_CENTER, float shadowOffsetY = 1.0f);
+    using DrawingPrimitives::DrawString;
+    using DrawingPrimitives::DrawStringWrapped;
+    using DrawingPrimitives::DrawStringWithShadow;
     // Text at an arbitrary pixel size (dp units), for live previews that must
     // track a slider continuously instead of stepping through font roles.
-    void DrawStringSized(const std::wstring& text, const D2D1_RECT_F& rect, const D2D1_COLOR_F& color, float sizeDp,
-                         DWRITE_FONT_WEIGHT weight = DWRITE_FONT_WEIGHT_SEMI_BOLD,
-                         DWRITE_TEXT_ALIGNMENT align = DWRITE_TEXT_ALIGNMENT_CENTER,
-                         DWRITE_PARAGRAPH_ALIGNMENT valign = DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+    using DrawingPrimitives::DrawStringSized;
     using FontResources::MeasureStringSized;
-    D2D1_SIZE_F MeasureString(const std::wstring& text, FontType font, float maxW = 10000.0f, float maxH = 10000.0f);
-    float MeasureStringWrappedHeight(const std::wstring& text, FontType font, float maxWidth);
+    using FontResources::MeasureString;
+    using FontResources::MeasureStringWrappedHeight;
     D2D1_SIZE_F GetRenderTargetSize() const { return d2dContext ? d2dContext->GetSize() : D2D1::SizeF(0, 0); }
     void DrawProgressBar(const D2D1_RECT_F& rect, double progress, const D2D1_COLOR_F& trackCol, const D2D1_COLOR_F& fillCol, float radius = 3.0f);
     // Vector Icons
     void DrawIcon(IconType icon, const D2D1_RECT_F& rect, const D2D1_COLOR_F& color, float strokeWidth = 1.6f);
     void DrawIconRotated(IconType icon, const D2D1_RECT_F& rect, const D2D1_COLOR_F& color, float angleDegrees, float strokeWidth = 1.6f);
-    void DrawSvgPath(const char* svgPath, const D2D1_RECT_F& rect, const D2D1_COLOR_F& color, float viewBox = 24.0f, bool fill = true, float strokeWidth = 1.4f, bool cacheGeometry = true);
+    using DrawingPrimitives::DrawSvgPath;
     // Shadows & Effects
     void DrawCardShadow(const D2D1_RECT_F& rect, float radius, float elevation = 4.0f);
-    void PushClip(const D2D1_RECT_F& rect);
-    void PopClip();
+    using DrawingPrimitives::PushClip;
+    using DrawingPrimitives::PopClip;
     // Thumbnails & Backdrop Art Requests canonicalize internally (hub -> 320x180, backdrop -> 640x360).
     // startSec >= 0 pins the extracted frame to that playback position (15 s
     // buckets); -1 keeps the automatic choice. Pinned requests bypass the
@@ -195,45 +192,28 @@ public:
     bool HasDeferredThumbnailUploads() const { return deferredThumbnailUploads; }
     void DrawBitmapRounded(const D2D1_RECT_F& rect, float radius, ID2D1Bitmap* pBitmap, float opacity = 1.0f, bool cropToFill = true);
     void DrawThumbnailCroppedBottom(const D2D1_RECT_F& visibleRect, const D2D1_RECT_F& originalRect, float radius, ID2D1Bitmap* pBitmap, float opacity = 1.0f);
-    // Subtitle Rendering
-    // Luxury Ambient Atmospheric Lighting
-    void DrawAmbientBackground(const D2D1_RECT_F& bounds, const Settings& s);
     // Visual Regression Capture
     bool CaptureBackBufferToPng(const std::wstring& outputPath);
 
 private:
     friend class DrawingPrimitives<Renderer>;
     auto DrawingTarget() const { return d2dContext.Get(); }
+    D2D1_RECT_F SnapTargetRect(const D2D1_RECT_F& r) const { return SnapRect(r); }
+    ID2D1Factory* GeometryFactory() const { return d2dFactory.Get(); }
+    static constexpr ShadowConfig GetShadowConfig() {
+        return { 24, 16ull * 1024ull * 1024ull, 0.20f, 1.20f, 1.65f, 0.62f, true };
+    }
     friend struct RendererCacheTestAccess;
+    using FontResources::sizedFormatCache;
+    using FontResources::GetTextFormat;
+    using FontResources::GetOrCreateTextLayout;
+    using FontResources::layoutCache;
+    using FontResources::layoutLru;
+    using FontResources::layoutCacheBytes;
     float SnapPixel(float value) const;
     D2D1_RECT_F SnapRect(const D2D1_RECT_F& rect) const;
-    struct ShadowKey {
-        int widthPx = 0, heightPx = 0, radiusQ = 0, blurQ = 0;
-        int offsetYQ = 0;
-        uint32_t colorR = 0, colorG = 0, colorB = 0, colorA = 0;
-        bool operator<(const ShadowKey& o) const {
-            if (widthPx != o.widthPx) return widthPx < o.widthPx;
-            if (heightPx != o.heightPx) return heightPx < o.heightPx;
-            if (radiusQ != o.radiusQ) return radiusQ < o.radiusQ;
-            if (blurQ != o.blurQ) return blurQ < o.blurQ;
-            if (offsetYQ != o.offsetYQ) return offsetYQ < o.offsetYQ;
-            if (colorR != o.colorR) return colorR < o.colorR;
-            if (colorG != o.colorG) return colorG < o.colorG;
-            if (colorB != o.colorB) return colorB < o.colorB;
-            return colorA < o.colorA;
-        }
-    };
-    struct ShadowEntry { ComPtr<ID2D1Bitmap> bitmap; uint64_t approximateBytes = 0; std::list<ShadowKey>::iterator lruIt; };
-    static constexpr size_t kShadowCacheEntryLimit = 24;
-    static constexpr uint64_t kShadowCacheByteLimit = 16ull * 1024ull * 1024ull;
-    std::map<ShadowKey, ShadowEntry> shadowCache;
-    std::list<ShadowKey> shadowLru;
-    std::set<ShadowKey> prevFrameShadowKeys;
-    std::set<ShadowKey> currFrameShadowKeys;
-    uint64_t shadowCacheBytes = 0;
-    ComPtr<ID2D1Bitmap> GetOrCreateShadowBitmap(const ShadowKey& key);
-    void TouchShadow(std::map<ShadowKey, ShadowEntry>::iterator it);
-    void ClearShadowCache();
+    void FillRoundedBitmapWithBrush(const D2D1_RECT_F& fillRect, float radius, ID2D1Bitmap* pBitmap,
+                                    float scale, float drawX, float drawY, float opacity, bool allowTempBrush);
     bool primitiveSnapping = true;
     HWND hWnd = NULL;
     HANDLE frameLatencyWaitableObject = NULL;
@@ -249,8 +229,6 @@ private:
     ComPtr<ID3D11DeviceContext> d3dContext;
     ComPtr<IDXGISwapChain1> swapChain;
     ComPtr<ID2D1Factory1> d2dFactory;
-    // Geometry belongs to this factory and survives device-only retirement.
-    std::unordered_map<std::string, ComPtr<ID2D1PathGeometry>> svgGeometryCache;
     ComPtr<ID2D1Device> d2dDevice;
     ComPtr<ID2D1DeviceContext> d2dContext;
     ComPtr<ID2D1Bitmap1> d2dTargetBitmap;
@@ -372,6 +350,7 @@ private:
     bool thumbnailWorkerStopping = false;
     uint64_t thumbnailGeneration = 0, thumbnailRequestFrame = 0, thumbnailRequestOrder = 0;
     std::deque<ThumbnailRequest> pendingThumbnailRequests;
+    uint64_t pendingThumbnailBytes = 0;
     std::set<ThumbnailKey, ThumbnailKeyLess> inFlightThumbnailKeys;
     std::vector<ThumbnailResult> completedThumbnailResults;
     static constexpr size_t kMaxCompletedThumbnailResults = 64;
@@ -380,53 +359,8 @@ private:
     std::atomic<bool> thumbnailNotificationPosted{ false };
     // Stop collections are device resources and can be shared by all of the short-lived gradient brushes used during a frame.
     ComPtr<ID2D1StrokeStyle> dashedStrokeStyle, ringStrokeStyle;
-    // Font Formats
-    enum class TextLayoutMode { SingleLine, Wrapped, WrappedEllipsis };
-    struct LayoutKey {
-        std::wstring text;
-        FontType font;
-        int maxW, maxH;
-        DWRITE_TEXT_ALIGNMENT align;
-        DWRITE_PARAGRAPH_ALIGNMENT valign;
-        TextLayoutMode mode;
-    };
-    // Copy-free lookup key: GetOrCreateTextLayout is called hundreds of times
-    // per rendered frame, and probing with a full LayoutKey would copy the text
-    // every time. The transparent comparator also keeps the existing order.
-    struct LayoutKeyProbe {
-        std::wstring_view text;
-        FontType font;
-        int maxW, maxH;
-        DWRITE_TEXT_ALIGNMENT align;
-        DWRITE_PARAGRAPH_ALIGNMENT valign;
-        TextLayoutMode mode;
-    };
-    struct LayoutKeyLess {
-        using is_transparent = void;
-        template <typename A, typename B>
-        bool operator()(const A& a, const B& b) const {
-            if (a.font != b.font) return a.font < b.font;
-            if (a.maxW != b.maxW) return a.maxW < b.maxW;
-            if (a.maxH != b.maxH) return a.maxH < b.maxH;
-            if (a.align != b.align) return a.align < b.align;
-            if (a.valign != b.valign) return a.valign < b.valign;
-            if (a.mode != b.mode) return a.mode < b.mode;
-            return a.text < b.text;
-        }
-    };
-    struct LayoutCacheEntry { ComPtr<IDWriteTextLayout> layout; std::list<LayoutKey>::iterator lruIt; };
-    static constexpr size_t kLayoutCacheEntryLimit = 512;
-    // Byte-bound in addition to the entry limit: each layout owns shaped glyph
-    // runs plus its key text (stored twice: map + LRU). Default 3 MiB covers
-    // stable UI labels; rapidly changing time/progress strings bypass the
-    // cache entirely (see GetOrCreateTextLayout).
-    static constexpr uint64_t kLayoutCacheByteLimit = 3ull * 1024ull * 1024ull;
-    std::map<LayoutKey, LayoutCacheEntry, LayoutKeyLess> layoutCache;
-    std::list<LayoutKey> layoutLru;
-    uint64_t layoutCacheBytes = 0;
-    ComPtr<IDWriteTextLayout> GetOrCreateTextLayout( const std::wstring& text, FontType font, float maxW, float maxH,
-        DWRITE_TEXT_ALIGNMENT align = DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT valign = DWRITE_PARAGRAPH_ALIGNMENT_NEAR,
-        TextLayoutMode mode = TextLayoutMode::SingleLine );
+    static constexpr size_t kRingGeometryCacheLimit = 64;
+    std::map<std::pair<int, int>, ComPtr<ID2D1PathGeometry>> ringGeometryCache;
     IWICImagingFactory* EnsureWicFactory();
     // D3D11CreateDevice is pure driver initialization (~190 ms) and does not need the HWND, so it runs on a worker kicked off at startup
     // and is joined by the first CreateDeviceResources call.

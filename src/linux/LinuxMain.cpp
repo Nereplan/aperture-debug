@@ -14,6 +14,7 @@
 
 #include <sys/socket.h>
 #include <sys/un.h>
+#include <signal.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <fstream>
@@ -24,6 +25,12 @@ using namespace Aperture;
 extern void LinuxSetCommandLine(int argc, char** argv);
 
 static App* g_pApp = nullptr;
+static volatile sig_atomic_t g_linuxTermSignal = 0;
+
+static void LinuxTermSignalHandler(int /*sig*/) {
+    g_linuxTermSignal = 1;
+    LinuxWakeMessageLoop();
+}
 
 LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
     if (uMsg == WM_CREATE) {
@@ -38,6 +45,66 @@ LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
     }
     App* pApp = reinterpret_cast<App*>(GetWindowLongPtrW(hWnd, GWLP_USERDATA));
     if (pApp) {
+        if (uMsg == WM_COPYDATA) {
+            if (pApp->IsClosing()) return FALSE;
+            PCOPYDATASTRUCT pCDS = reinterpret_cast<PCOPYDATASTRUCT>(lParam);
+            if (!pCDS || !pCDS->lpData || pCDS->cbData == 0 || pCDS->cbData > Ipc::MAX_IPC_PAYLOAD_SIZE) {
+                return FALSE;
+            }
+            if (pCDS->dwData == Ipc::IPC_MAGIC_V2) {
+                if (pCDS->cbData < sizeof(Ipc::EnvelopeHeader)) return FALSE;
+                const Ipc::EnvelopeHeader* peekHeader = reinterpret_cast<const Ipc::EnvelopeHeader*>(pCDS->lpData);
+                if (peekHeader->magic != Ipc::IPC_MAGIC_V2) return FALSE;
+                if (peekHeader->command == static_cast<uint32_t>(Ipc::Command::Automation)) {
+                    Ipc::AutomationCommand autoCmd;
+                    Ipc::EnvelopeHeader header = {};
+                    if (Ipc::DeserializeAutomationEnvelope(pCDS->lpData, pCDS->cbData, autoCmd, &header, true, true) !=
+                        Ipc::ValidationResult::Success) {
+                        return FALSE;
+                    }
+                    Ipc::AutomationStatus status = {};
+                    if (!pApp->ExecuteAutomationCommand(autoCmd, &status)) return FALSE;
+                    if (autoCmd.op == Ipc::AutomationOp::QueryStatus) {
+                        HWND hSenderWnd = reinterpret_cast<HWND>(wParam);
+                        if (hSenderWnd && IsWindow(hSenderWnd)) {
+                            std::vector<uint8_t> replyEnv = Ipc::SerializeAutomationResponse(status);
+                            if (!replyEnv.empty()) {
+                                COPYDATASTRUCT replyCds = {};
+                                replyCds.dwData = Ipc::IPC_MAGIC_V2;
+                                replyCds.cbData = static_cast<DWORD>(replyEnv.size());
+                                replyCds.lpData = replyEnv.data();
+                                DWORD_PTR dwRes = 0;
+                                SendMessageTimeoutW(hSenderWnd, WM_COPYDATA, reinterpret_cast<WPARAM>(hWnd),
+                                                    reinterpret_cast<LPARAM>(&replyCds), SMTO_ABORTIFHUNG | SMTO_BLOCK,
+                                                    2000, &dwRes);
+                            }
+                        }
+                    }
+                    if (header.flags & 1) {
+                        if (IsIconic(hWnd)) ShowWindow(hWnd, SW_RESTORE);
+                        SetForegroundWindow(hWnd);
+                    }
+                    return TRUE;
+                }
+                PlaybackCommandLineOptions options;
+                Ipc::EnvelopeHeader header = {};
+                if (Ipc::DeserializeEnvelope(pCDS->lpData, pCDS->cbData, options, &header, true) !=
+                    Ipc::ValidationResult::Success) {
+                    return FALSE;
+                }
+                pApp->ExecuteCommandLineOptions(options);
+                if (header.flags & 1) {
+                    if (IsIconic(hWnd)) ShowWindow(hWnd, SW_RESTORE);
+                    SetForegroundWindow(hWnd);
+                }
+                return TRUE;
+            }
+            if (pCDS->dwData == Ipc::IPC_LEGACY_MAGIC) {
+                if (pCDS->cbData < sizeof(wchar_t) || (pCDS->cbData % sizeof(wchar_t)) != 0) return FALSE;
+                return pApp->HandleMessage(hWnd, uMsg, wParam, lParam);
+            }
+            return FALSE;
+        }
         return pApp->HandleMessage(hWnd, uMsg, wParam, lParam);
     }
     return DefWindowProcW(hWnd, uMsg, wParam, lParam);
@@ -100,6 +167,49 @@ int main(int argc, char** argv) {
     }
     const PlaybackCommandLineOptions& initialOptions = cmdLineParse.options;
 
+    HANDLE hSingleInstanceMutex = nullptr;
+    HANDLE hWindowReadyEvent = nullptr;
+    if (!initialOptions.benchmarkProbe && !initialOptions.visualCaptureProbe) {
+        hSingleInstanceMutex = CreateMutexW(nullptr, FALSE, L"Local\\Aperture_SingleInstance_Mutex_V1");
+        if (hSingleInstanceMutex && GetLastError() == ERROR_ALREADY_EXISTS) {
+            HWND hExistingWnd = nullptr;
+            const ULONGLONG readinessDeadline = GetTickCount64() + 10000;
+            while (GetTickCount64() < readinessDeadline) {
+                HANDLE ready = OpenEventW(SYNCHRONIZE, FALSE, L"Local\\Aperture_WindowReady_V1");
+                if (!ready || WaitForSingleObject(ready, 40) == WAIT_OBJECT_0) {
+                    if (ready) CloseHandle(ready);
+                    hExistingWnd = FindWindowW(CLASS_NAME, nullptr);
+                    if (hExistingWnd) break;
+                } else {
+                    CloseHandle(ready);
+                }
+                Sleep(40);
+            }
+            bool delivered = false;
+            if (hExistingWnd) {
+                std::vector<uint8_t> envelope = Ipc::SerializeEnvelope(initialOptions, Ipc::Command::OpenFiles, 1);
+                if (!envelope.empty()) {
+                    COPYDATASTRUCT cds = {};
+                    cds.dwData = Ipc::IPC_MAGIC_V2;
+                    cds.cbData = static_cast<DWORD>(envelope.size());
+                    cds.lpData = envelope.data();
+                    DWORD_PTR dwResult = 0;
+                    delivered = SendMessageTimeoutW(hExistingWnd, WM_COPYDATA, 0, reinterpret_cast<LPARAM>(&cds),
+                                                    SMTO_ABORTIFHUNG | SMTO_BLOCK, 5000, &dwResult) != 0 &&
+                                dwResult != FALSE;
+                }
+                if (IsIconic(hExistingWnd)) ShowWindow(hExistingWnd, SW_RESTORE);
+                SetForegroundWindow(hExistingWnd);
+            }
+            CloseHandle(hSingleInstanceMutex);
+            Renderer::ShutdownPrewarm();
+            Diagnostics::Shutdown();
+            CoUninitialize();
+            return delivered ? 0 : 1;
+        }
+        hWindowReadyEvent = CreateEventW(nullptr, TRUE, FALSE, L"Local\\Aperture_WindowReady_V1");
+    }
+
     if (initialOptions.mediaTargets.empty()) {
         Renderer::PrewarmD3DDeviceAsync();
     }
@@ -141,12 +251,15 @@ int main(int argc, char** argv) {
 
     HWND hWnd = CreateWindowExW(dwExStyle, CLASS_NAME, L"Aperture", dwStyle, winX, winY, winW, winH, nullptr, nullptr, hInstance, &app);
     if (!hWnd) {
+        if (hWindowReadyEvent) CloseHandle(hWindowReadyEvent);
+        if (hSingleInstanceMutex) CloseHandle(hSingleInstanceMutex);
         Renderer::ShutdownPrewarm();
         Diagnostics::Shutdown();
         return -1;
     }
 
     Diagnostics::RecordStartupMilestone(L"window-created");
+    if (hWindowReadyEvent) SetEvent(hWindowReadyEvent);
     HWND hVideoChild = CreateWindowExW(0, VIDEO_CLASS_NAME, nullptr, WS_CHILD | WS_CLIPSIBLINGS, 0, 0, winW, winH, hWnd, nullptr, hInstance, nullptr);
 
     {
@@ -211,10 +324,23 @@ int main(int argc, char** argv) {
 
     LARGE_INTEGER qpcLast{};
     QueryPerformanceCounter(&qpcLast);
-    DWORD idleWaitMs = 16;
     MSG msg{};
 
+    {
+        LinuxWakeMessageLoop();
+        struct sigaction termSa{};
+        termSa.sa_handler = LinuxTermSignalHandler;
+        sigemptyset(&termSa.sa_mask);
+        termSa.sa_flags = SA_RESTART;
+        ::sigaction(SIGINT, &termSa, nullptr);
+        ::sigaction(SIGTERM, &termSa, nullptr);
+    }
+
     while (true) {
+        if (g_linuxTermSignal) {
+            g_linuxTermSignal = 0;
+            PostMessageW(hWnd, WM_CLOSE, 0, 0);
+        }
         while (PeekMessageW(&msg, nullptr, 0, 0, PM_REMOVE)) {
             if (msg.message == WM_QUIT) {
                 goto ExitApp;
@@ -233,16 +359,23 @@ int main(int argc, char** argv) {
             if (needsRedraw) {
                 g_pApp->Render();
             }
-            if (needsRedraw) {
-                idleWaitMs = 16;
-            } else {
-                idleWaitMs = std::min<DWORD>(64, idleWaitMs * 2);
+            DWORD waitMs = g_pApp->GetNextIdleWaitMs();
+            if (needsRedraw || g_pApp->HasPendingPlaybackFrame()) {
+                if (g_pApp->IsOccluded()) {
+                    waitMs = 16;
+                } else if (g_pApp->HasPendingPlaybackFrame()) {
+                    waitMs = g_pApp->GetPlaybackFrameWaitMs();
+                } else {
+                    waitMs = 0;
+                }
             }
-            MsgWaitForMultipleObjects(0, nullptr, FALSE, needsRedraw ? 8 : idleWaitMs, QS_ALLINPUT);
+            MsgWaitForMultipleObjects(0, nullptr, FALSE, waitMs, QS_ALLINPUT);
         }
     }
 
 ExitApp:
+    if (hWindowReadyEvent) CloseHandle(hWindowReadyEvent);
+    if (hSingleInstanceMutex) CloseHandle(hSingleInstanceMutex);
     Renderer::ShutdownPrewarm();
     Diagnostics::RecordHeartbeat();
     Diagnostics::Shutdown();

@@ -290,6 +290,7 @@ inline LONGLONG InterlockedCompareExchange64(volatile LONGLONG* destination, LON
 #define ERROR_IO_PENDING 997L
 #define ERROR_NOT_FOUND 1168L
 #define ERROR_CANCELLED 1223L
+#define ERROR_INVALID_WINDOW_HANDLE 1400L
 #define ERROR_WRITE_FAULT 29L
 #define ERROR_FILE_TOO_LARGE 223L
 #define ERROR_TIMEOUT 1460L
@@ -1037,14 +1038,7 @@ struct DEVMODEW {
     DWORD dmDisplayFrequency;
 };
 
-inline BOOL EnumDisplaySettingsW(LPCWSTR /*lpszDeviceName*/, DWORD /*iModeNum*/, DEVMODEW* lpDevMode) {
-    if (!lpDevMode) return FALSE;
-    lpDevMode->dmDisplayFrequency = 60;
-    lpDevMode->dmPelsWidth = 1920;
-    lpDevMode->dmPelsHeight = 1080;
-    lpDevMode->dmBitsPerPel = 32;
-    return TRUE;
-}
+BOOL EnumDisplaySettingsW(LPCWSTR lpszDeviceName, DWORD iModeNum, DEVMODEW* lpDevMode);
 
 struct COPYDATASTRUCT {
     ULONG_PTR dwData;
@@ -1316,6 +1310,25 @@ std::wstring LinuxUtf8ToWide(const std::string& str);
 std::string LinuxWinPathToPosix(const std::wstring& wpath);
 std::wstring LinuxPosixPathToWin(const std::string& path);
 
+// XDG Base Directory & Portable Install Helpers
+bool LinuxIsPortableInstall();
+std::wstring LinuxGetXdgConfigDir();
+std::wstring LinuxGetXdgDataDir();
+std::wstring LinuxGetXdgCacheDir();
+std::wstring LinuxGetXdgRuntimeDir();
+std::wstring LinuxGetXdgPicturesDir();
+
+// Event-Driven Message Loop & Cross-Process Single-Instance IPC Helpers
+void LinuxWakeMessageLoop();
+int LinuxGetMessageWakeFd();
+void LinuxSetDisplayWakeFd(int fd);
+void LinuxIpcRegisterWindow(HWND hWnd, LPCWSTR lpClassName);
+void LinuxIpcUnregisterWindow(HWND hWnd);
+bool LinuxIpcIsRemoteWindow(HWND hWnd);
+LRESULT LinuxIpcSendCopyData(HWND hWnd, const COPYDATASTRUCT* pCDS, UINT uTimeoutMs, DWORD_PTR* lpdwResult);
+using LinuxDispatchMsgFn = LRESULT (*)(HWND, UINT, WPARAM, LPARAM);
+void LinuxIpcPumpPending(LinuxDispatchMsgFn fn);
+
 DWORD GetLastError();
 void SetLastError(DWORD dwErrCode);
 
@@ -1416,6 +1429,7 @@ BOOL Process32FirstW(HANDLE hSnapshot, PROCESSENTRY32W* lppe);
 BOOL Process32NextW(HANDLE hSnapshot, PROCESSENTRY32W* lppe);
 
 HANDLE CreateEventW(LPSECURITY_ATTRIBUTES lpEventAttributes, BOOL bManualReset, BOOL bInitialState, LPCWSTR lpName);
+HANDLE OpenEventW(DWORD dwDesiredAccess, BOOL bInheritHandle, LPCWSTR lpName);
 BOOL SetEvent(HANDLE hEvent);
 BOOL ResetEvent(HANDLE hEvent);
 HANDLE CreateMutexW(LPSECURITY_ATTRIBUTES lpMutexAttributes, BOOL bInitialOwner, LPCWSTR lpName);
@@ -1851,30 +1865,8 @@ inline BOOL DuplicateHandle(HANDLE /*hSourceProcessHandle*/, HANDLE hSourceHandl
     if (lpTargetHandle) *lpTargetHandle = hSourceHandle;
     return TRUE;
 }
-inline BOOL OpenProcessToken(HANDLE /*ProcessHandle*/, DWORD /*DesiredAccess*/, PHANDLE TokenHandle) {
-    if (!TokenHandle) return FALSE;
-    *TokenHandle = reinterpret_cast<HANDLE>(static_cast<uintptr_t>(0x7001));
-    return TRUE;
-}
-inline BOOL GetTokenInformation(HANDLE /*TokenHandle*/, TOKEN_INFORMATION_CLASS TokenInformationClass, LPVOID TokenInformation, DWORD TokenInformationLength, PDWORD ReturnLength) {
-    if (TokenInformationClass == TokenSessionId) {
-        if (ReturnLength) *ReturnLength = sizeof(DWORD);
-        if (!TokenInformation || TokenInformationLength < sizeof(DWORD)) return FALSE;
-        *static_cast<DWORD*>(TokenInformation) = 1;
-        return TRUE;
-    }
-    if (TokenInformationClass == TokenUser) {
-        if (ReturnLength) *ReturnLength = sizeof(TOKEN_USER) + sizeof(uint32_t);
-        if (!TokenInformation || TokenInformationLength < sizeof(TOKEN_USER) + sizeof(uint32_t)) return FALSE;
-        auto* tu = static_cast<PTOKEN_USER>(TokenInformation);
-        auto* sid = reinterpret_cast<uint32_t*>(static_cast<uint8_t*>(TokenInformation) + sizeof(TOKEN_USER));
-        *sid = 1000u;
-        tu->User.Sid = sid;
-        tu->User.Attributes = 0;
-        return TRUE;
-    }
-    return FALSE;
-}
+BOOL OpenProcessToken(HANDLE ProcessHandle, DWORD DesiredAccess, PHANDLE TokenHandle);
+BOOL GetTokenInformation(HANDLE TokenHandle, TOKEN_INFORMATION_CLASS TokenInformationClass, LPVOID TokenInformation, DWORD TokenInformationLength, PDWORD ReturnLength);
 inline BOOL IsValidSid(PSID pSid) { return pSid != nullptr; }
 inline BOOL EqualSid(PSID pSid1, PSID pSid2) {
     if (!pSid1 || !pSid2) return FALSE;
@@ -2139,8 +2131,50 @@ inline HRESULT TaskDialogIndirect(const TASKDIALOGCONFIG* pTaskConfig, int* pnBu
     return E_NOTIMPL;
 }
 
+// XDG / Shell Folder Shims (SHGetFolderPathW / SHGetKnownFolderPath)
+#ifndef CSIDL_PROFILE
+#define CSIDL_PROFILE 0x0028
+#endif
+#ifndef CSIDL_APPDATA
+#define CSIDL_APPDATA 0x001a
+#endif
+#ifndef CSIDL_LOCAL_APPDATA
+#define CSIDL_LOCAL_APPDATA 0x001c
+#endif
+#ifndef CSIDL_INTERNET_CACHE
+#define CSIDL_INTERNET_CACHE 0x0020
+#endif
+#ifndef CSIDL_MYPICTURES
+#define CSIDL_MYPICTURES 0x0027
+#endif
+#ifndef CSIDL_MYVIDEO
+#define CSIDL_MYVIDEO 0x000e
+#endif
+#ifndef CSIDL_MYMUSIC
+#define CSIDL_MYMUSIC 0x000d
+#endif
+#ifndef SHGFP_TYPE_CURRENT
+#define SHGFP_TYPE_CURRENT 0
+#endif
+inline constexpr GUID FOLDERID_RoamingAppData = {0x3EB685DB, 0x65F9, 0x4CF6, {0xA0, 0x3A, 0xE3, 0xEF, 0x65, 0x72, 0x9F, 0x3D}};
+inline constexpr GUID FOLDERID_LocalAppData = {0xF1B32785, 0x6FBA, 0x4FCF, {0x9D, 0x55, 0x7B, 0x8E, 0x7F, 0x15, 0x70, 0x91}};
+inline constexpr GUID FOLDERID_Pictures = {0x33E28130, 0x4E1E, 0x4676, {0x83, 0x5A, 0x98, 0x39, 0x5C, 0x3B, 0xC3, 0xBB}};
+inline constexpr GUID FOLDERID_Videos = {0x18989B1D, 0x99B5, 0x455B, {0x84, 0x1C, 0xAB, 0x7C, 0x74, 0xE4, 0xDD, 0xFC}};
+inline constexpr GUID FOLDERID_Music = {0x4BD8D571, 0x6D19, 0x48D3, {0xBE, 0x97, 0x42, 0x22, 0x20, 0x08, 0x0E, 0x43}};
+HRESULT SHGetFolderPathW(HWND hwnd, int csidl, HANDLE hToken, DWORD dwFlags, LPWSTR pszPath);
+HRESULT SHGetKnownFolderPath(const GUID& rfid, DWORD dwFlags, HANDLE hToken, PWSTR* ppszPath);
+
+// SMTC Timeline Properties missing from LinuxWIC.h
+namespace ABI {
+namespace Windows {
+namespace Media {
+struct ISystemMediaTransportControlsTimelineProperties : public IInspectable {};
+} // namespace Media
+} // namespace Windows
+} // namespace ABI
+
 using WNDENUMPROC = BOOL(CALLBACK*)(HWND, LPARAM);
-inline HWND FindWindowW(LPCWSTR /*lpClassName*/, LPCWSTR /*lpWindowName*/) { return nullptr; }
+HWND FindWindowW(LPCWSTR lpClassName, LPCWSTR lpWindowName);
 inline HWND FindWindowExW(HWND /*hWndParent*/, HWND /*hWndChildAfter*/, LPCWSTR /*lpszClass*/, LPCWSTR /*lpszWindow*/) { return nullptr; }
 inline BOOL EnumWindows(WNDENUMPROC /*lpEnumFunc*/, LPARAM /*lParam*/) { return TRUE; }
 inline int GetClassNameW(HWND /*hWnd*/, LPWSTR lpClassName, int nMaxCount) {

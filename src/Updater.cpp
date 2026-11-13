@@ -1,6 +1,7 @@
 #include "Updater.h"
 #include "Version.h"
 #include "Json.h"
+#if defined(_WIN32)
 #include <windows.h>
 #include <winhttp.h>
 #include <bcrypt.h>
@@ -9,6 +10,9 @@
 #include <softpub.h>
 #include <shlobj.h>
 #include <shlwapi.h>
+#else
+#include "linux/LinuxPlatform.h"
+#endif
 #include <sstream>
 #include <iomanip>
 #include <algorithm>
@@ -17,11 +21,17 @@
 #include <random>
 #include <filesystem>
 #include <limits>
+#if !defined(_WIN32)
+#include <sys/stat.h>
+#include <unistd.h>
+#endif
 
+#if defined(_WIN32)
 #pragma comment(lib, "bcrypt.lib")
 #pragma comment(lib, "crypt32.lib")
 #pragma comment(lib, "wintrust.lib")
 #pragma comment(lib, "winhttp.lib")
+#endif
 
 namespace Aperture {
 
@@ -483,9 +493,56 @@ bool VerifyAuthenticodeAndPin( const std::wstring& filePath, const std::string& 
     outError.clear();
     if (!FileExists(filePath)) { outError = "Binary file not found"; return false; }
 #if !defined(_WIN32)
-    (void)expectedThumbprintHex;
-    // On Linux, detached ECDSA P-256 manifest signature + SHA-256 hash verifies package authenticity.
-    outActualThumbprint = expectedThumbprintHex;
+    const std::string actualSha = ComputeFileSha256Hex(filePath);
+    if (actualSha.empty()) {
+        outError = "Failed to compute SHA-256 digest for binary";
+        return false;
+    }
+    outActualThumbprint = actualSha;
+    std::string archErr;
+    if (!VerifyPeArchitectureX64(filePath, archErr)) {
+        outError = archErr;
+        return false;
+    }
+    const std::wstring sigPath = filePath + L".sig";
+    if (FileExists(sigPath)) {
+        std::string sigText;
+        std::vector<uint8_t> pubKeyBlob;
+        const std::string pubHex = UpdaterConfig().GetEffectivePublicKeyHex();
+        if (pubHex.empty() || !FromHex(pubHex, pubKeyBlob) ||
+            !ReadTextFile(sigPath, sigText).is_ok() ||
+            !VerifyEcdsaP256Signature(actualSha, sigText, pubKeyBlob)) {
+            outError = "Detached ECDSA P-256 signature verification failed";
+            return false;
+        }
+        if (expectedThumbprintHex.empty() || CaseInsensitiveEqual(actualSha, expectedThumbprintHex)) {
+            return true;
+        }
+    }
+    const std::wstring shaSidecarPath = filePath + L".sha256";
+    if (FileExists(shaSidecarPath)) {
+        std::string shaText;
+        if (ReadTextFile(shaSidecarPath, shaText).is_ok()) {
+            std::istringstream iss(shaText);
+            std::string firstToken;
+            iss >> firstToken;
+            if (firstToken.size() != 64 || !CaseInsensitiveEqual(actualSha, firstToken)) {
+                outError = "Detached SHA-256 sidecar mismatch";
+                return false;
+            }
+            if (expectedThumbprintHex.empty() || CaseInsensitiveEqual(actualSha, expectedThumbprintHex)) {
+                return true;
+            }
+        }
+    }
+    if (expectedThumbprintHex.empty()) {
+        outError = "Missing expected SHA-256 pin or detached signature for Linux binary";
+        return false;
+    }
+    if (!CaseInsensitiveEqual(actualSha, expectedThumbprintHex)) {
+        outError = "Binary SHA-256 pin mismatch";
+        return false;
+    }
     return true;
 #else
     // wintrust/crypt32 are delay-loaded: system-only presence first.
@@ -647,14 +704,20 @@ ScopedTempDirectory::ScopedTempDirectory(const std::wstring& prefix) {
     // update helper.
     std::wstring root = GetExeDir();
     if (root.empty()) { return; }
+#if defined(_WIN32)
+    const std::wstring sep = L"\\";
     std::wstring baseDir = root + L"\\cache\\updater-tmp";
+#else
+    const std::wstring sep = L"/";
+    std::wstring baseDir = root + L"/cache/updater-tmp";
+#endif
     SHCreateDirectoryExW(nullptr, GetCacheDir().c_str(), nullptr);
     SHCreateDirectoryExW(nullptr, baseDir.c_str(), nullptr);
     auto now = std::chrono::high_resolution_clock::now().time_since_epoch().count();
     std::random_device rd;
     std::mt19937_64 gen(rd() ^ now);
     std::uniform_int_distribution<uint64_t> dis;
-    path_ = baseDir + L"\\" + prefix + std::to_wstring(GetCurrentProcessId()) + L"_" + std::to_wstring(dis(gen));
+    path_ = baseDir + sep + prefix + std::to_wstring(GetCurrentProcessId()) + L"_" + std::to_wstring(dis(gen));
     if (!IsCachePathSafe(path_, root)) { path_.clear(); return; }
     CreateDirectoryW(path_.c_str(), NULL);
 }
@@ -991,7 +1054,9 @@ UpdateDownloadResult DownloadAndStageUpdate( const ReleaseManifest& manifest, co
 #if defined(_WIN32)
     std::wstring stagedExe = stagingDir + L"\\Aperture.exe";
 #else
-    std::wstring stagedExe = stagingDir + L"\\aperture";
+    const bool isTarball = manifest.downloadUrl.size() >= 7 &&
+        manifest.downloadUrl.compare(manifest.downloadUrl.size() - 7, 7, ".tar.gz") == 0;
+    std::wstring stagedExe = stagingDir + (isTarball ? L"/aperture.tar.gz" : L"/aperture");
 #endif
     HttpResponse httpResp = activeTransport->GetToFile(Utf8ToUtf16(manifest.downloadUrl), stagedExe, options);
     if (cancelled()) return result;
@@ -1015,8 +1080,13 @@ UpdateDownloadResult DownloadAndStageUpdate( const ReleaseManifest& manifest, co
         result.message = "Downloaded binary architecture verification failed: " + peErr;
         return result;
     }
+#if defined(_WIN32)
     std::string expectedSigner = config.GetEffectiveSignerThumbprint();
     if (expectedSigner.empty() && !manifest.signerThumbprint.empty()) { expectedSigner = manifest.signerThumbprint; }
+#else
+    // On Linux, VerifyAuthenticodeAndPin verifies the staged file's real SHA-256 against the ECDSA-verified manifest hash.
+    std::string expectedSigner = manifest.sha256;
+#endif
     if (!config.allowUnsignedForTesting) {
         std::string actualThumbprint, authErr;
         if (!VerifyAuthenticodeAndPin(stagedExe, expectedSigner, actualThumbprint, authErr)) {
@@ -1043,6 +1113,39 @@ UpdateApplyResult LaunchHelperAndExit(const UpdateDownloadResult &downloadResult
         result.message = "Invalid download result for helper handoff";
         return result;
     }
+#if !defined(_WIN32)
+    const std::wstring updateScript = targetDir + L"/Update.sh";
+    if (relaunch && FileExists(updateScript) && !downloadResult.stagedFiles.empty()) {
+        const std::string scriptUtf8 = LinuxWideToUtf8(updateScript);
+        const std::string pidUtf8 = std::to_string(GetCurrentProcessId());
+        const std::string stagedUtf8 = LinuxWideToUtf8(downloadResult.stagedFiles[0]);
+        const std::string targetUtf8 = LinuxWideToUtf8(targetDir);
+        ::chmod(scriptUtf8.c_str(), 0755);
+        const pid_t pid = ::fork();
+        if (pid < 0) {
+            result.status = UpdaterStatusCode::HelperValidationError;
+            result.message = "Failed to fork Update.sh helper process";
+            return result;
+        }
+        if (pid == 0) {
+            ::setsid();
+            char* const argv[] = {
+                const_cast<char*>("/bin/sh"),
+                const_cast<char*>(scriptUtf8.c_str()),
+                const_cast<char*>(pidUtf8.c_str()),
+                const_cast<char*>(stagedUtf8.c_str()),
+                const_cast<char*>(targetUtf8.c_str()),
+                nullptr
+            };
+            ::execvp("/bin/sh", argv);
+            ::_exit(127);
+        }
+        if (downloadResult.stagingLease) downloadResult.stagingLease->DisableAutoCleanup();
+        result.status = UpdaterStatusCode::Success;
+        result.message = "Update.sh helper launched successfully";
+        return result;
+    }
+#endif
     std::wstring exePath = GetExePath();
     if (exePath.empty()) {
         result.status = UpdaterStatusCode::HelperValidationError;
@@ -1129,7 +1232,11 @@ int RunHelperMode(int argc, wchar_t* argv[]) {
     if (!DirectoryExists(stagingDir)) {
         return 106; // Staging directory missing
     }
+#if defined(_WIN32)
     std::wstring backupDir = targetDir + L"\\_backup_update";
+#else
+    std::wstring backupDir = targetDir + L"/_backup_update";
+#endif
     CreateDirectoryW(backupDir.c_str(), NULL);
     std::vector<std::pair<std::wstring, std::wstring>> swappedFiles;
     bool swapFailed = false;
@@ -1137,15 +1244,17 @@ int RunHelperMode(int argc, wchar_t* argv[]) {
 #if defined(_WIN32)
         fs::path stagingPath(stagingDir);
         fs::path backupPathFs(backupDir);
+        const std::wstring sep = L"\\";
 #else
         fs::path stagingPath = fs::u8path(LinuxWideToUtf8(stagingDir));
         fs::path backupPathFs = fs::u8path(LinuxWideToUtf8(backupDir));
+        const std::wstring sep = L"/";
 #endif
         for (const auto& entry : fs::directory_iterator(stagingPath)) {
             if (entry.is_regular_file()) {
                 std::wstring fileName = entry.path().filename().wstring();
-                std::wstring targetPath = targetDir + L"\\" + fileName;
-                std::wstring backupPath = backupDir + L"\\" + fileName;
+                std::wstring targetPath = targetDir + sep + fileName;
+                std::wstring backupPath = backupDir + sep + fileName;
                 std::wstring stagedPath = entry.path().wstring();
                 if (FileExists(targetPath)) {
                     if (!MoveFileExW(targetPath.c_str(), backupPath.c_str(), MOVEFILE_REPLACE_EXISTING)) { swapFailed = true; break; }
@@ -1154,6 +1263,12 @@ int RunHelperMode(int argc, wchar_t* argv[]) {
                     swapFailed = true;
                     break;
                 }
+#if !defined(_WIN32)
+                if (fileName == L"aperture" || fileName.rfind(L".sh") != std::wstring::npos ||
+                    (targetPath.size() > 3 && targetPath.compare(targetPath.size() - 3, 3, L".so") != 0 && fileName.find(L'.') == std::wstring::npos)) {
+                    ::chmod(LinuxWideToUtf8(targetPath).c_str(), 0755);
+                }
+#endif
                 swappedFiles.push_back({ targetPath, backupPath });
             }
         }
@@ -1178,7 +1293,8 @@ int RunHelperMode(int argc, wchar_t* argv[]) {
 #if defined(_WIN32)
         std::wstring updatedExe = targetDir + L"\\Aperture.exe";
 #else
-        std::wstring updatedExe = targetDir + L"\\aperture";
+        std::wstring updatedExe = targetDir + L"/aperture";
+        ::chmod(LinuxWideToUtf8(updatedExe).c_str(), 0755);
 #endif
         STARTUPINFOW si = { sizeof(si) };
         PROCESS_INFORMATION pi = {};
@@ -1196,7 +1312,11 @@ int RunHelperMode(int argc, wchar_t* argv[]) {
 
 StorageStatus LoadUpdaterState(UpdaterState& outState, const std::wstring& rootDir) {
     outState = UpdaterState();
+#if defined(_WIN32)
     std::wstring path = rootDir + L"\\data\\updater.json";
+#else
+    std::wstring path = rootDir + L"/data/updater.json";
+#endif
     if (!FileExists(path)) { return StorageStatus::Ok(path); }
     std::string text;
     StorageStatus st = ReadTextFile(path, text);
@@ -1221,7 +1341,11 @@ StorageStatus SaveUpdaterState(const UpdaterState& state, bool isPrivateMode, co
     root["lastCheckStatus"] = state.lastCheckStatus;
     root["lastAvailableVersion"] = state.lastAvailableVersion;
     root["lastError"] = state.lastError;
+#if defined(_WIN32)
     std::wstring path = rootDir + L"\\data\\updater.json";
+#else
+    std::wstring path = rootDir + L"/data/updater.json";
+#endif
     return AtomicWriteTextFile(path, root.stringify(true));
 }
 

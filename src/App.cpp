@@ -16,11 +16,13 @@
 #include "Presentation.h"
 #include "WindowGeometry.h"
 #include "resource.h"
+#if defined(_WIN32)
 #include <commdlg.h>
 #include <shellapi.h>
 #include <shlwapi.h>
 #include <shlobj.h>
 #include <imm.h>
+#endif
 #include <numeric>
 
 namespace Aperture {
@@ -523,7 +525,11 @@ bool App::ArePopupsOpen() const { return isSettingsFlyoutOpen || isContextMenuOp
 
 void App::RequestRender() { Render(); }
 
-void App::TogglePlaybackDiagnostics() { showPlaybackDiagnostics = !showPlaybackDiagnostics; RequestRender(); }
+void App::TogglePlaybackDiagnostics() {
+    showPlaybackDiagnostics = !showPlaybackDiagnostics;
+    player.SetDiagnosticsActive(showPlaybackDiagnostics);
+    RequestRender();
+}
 
 bool App::IsPlaybackDiagnosticsVisible() const { return showPlaybackDiagnostics; }
 
@@ -531,11 +537,21 @@ void App::ToggleLogViewer() {
     showLogViewer = !showLogViewer;
     if (showLogViewer) {
         logViewerLines.clear();
+        FILE* f = nullptr;
+#if defined(_WIN32)
         // Same path Diagnostics::Log resolves and writes: <exeDir>\diagnostics\aperture.log
         // (rotated at 1 MB, so the file never exceeds a small tail read).
         const std::wstring logPath = GetExeDir() + L"\\diagnostics\\aperture.log";
-        FILE* f = nullptr;
-        if (_wfopen_s(&f, logPath.c_str(), L"rb") == 0 && f) {
+        if (_wfopen_s(&f, logPath.c_str(), L"rb") != 0) f = nullptr;
+#else
+        const std::string primaryPath = Utf16ToUtf8(GetExeDir() + L"/diagnostics/logs/aperture.jsonl");
+        f = fopen(primaryPath.c_str(), "rb");
+        if (!f) {
+            const std::string fallbackPath = Utf16ToUtf8(GetExeDir() + L"/diagnostics/aperture.log");
+            f = fopen(fallbackPath.c_str(), "rb");
+        }
+#endif
+        if (f) {
             if (fseek(f, 0, SEEK_END) == 0) {
                 const long fileSize = ftell(f);
                 const long kTailBytes = 64 * 1024;
@@ -1957,6 +1973,7 @@ void App::Shutdown() {
     ReportLibrarySaveResult(SubmitPendingLibrarySave());
     librarySaveWorker.StopAndFlush(); PumpLibrarySaveResults();
     library.SetSaveRequestHandler({});
+    deferredStartupServicesPending = false;
     if (hWnd && pOleDropTarget) { RevokeDragDrop(hWnd); pOleDropTarget->Release(); pOleDropTarget = nullptr; }
     if (oleInitialized) { OleUninitialize(); oleInitialized = false; }
     // Both objects are safe to shut down repeatedly, but avoid touching the lazy libmpv handles when neither path was ever initialized.
@@ -2078,17 +2095,7 @@ bool App::Initialize(HWND hwnd, HWND hVideoChild, HINSTANCE hinst, const Playbac
     SetTimer(hwnd, kHeartbeatTimer, 2000, nullptr);
     accessibilityTree.SetWindow(hWnd);
     accessibilityDirty = true;
-    HRESULT oleHr = OleInitialize(NULL);
-    oleInitialized = SUCCEEDED(oleHr);
-    pOleDropTarget = new ApertureDropTarget(this);
-    if (FAILED(RegisterDragDrop(hWnd, pOleDropTarget))) { pOleDropTarget->Release(); pOleDropTarget = nullptr; }
     hInstance = hinst;
-    StorageStatus writability = CheckDataDirectoryWritability();
-    if (!writability.is_ok()) {
-        std::wstring dataDir = GetDataDir();
-        const auto msg = Presentation::StorageGuidance(writability) + L"\n\n" + dataDir;
-        MessageBoxW(hwnd, msg.c_str(), Loc::Tr("ux.storage_title").c_str(), MB_ICONWARNING | MB_OK);
-    }
     // wWinMain already loaded settings.json for window placement/theme; adopt
     // that copy instead of re-reading and re-validating the file.
     if (startupSettings) settings = *startupSettings;
@@ -2110,9 +2117,9 @@ bool App::Initialize(HWND hwnd, HWND hVideoChild, HINSTANCE hinst, const Playbac
     // Start the worker as soon as its only UI-derived input (group mode) is known. D3D/font initialization below now overlaps all
     // portable-store I/O, parsing, indexing, promotion, and the initial projection sort.
     StartLibraryLoad(libraryGroupMode);
-    if (networkStreamModel.IsRecentStreamsEnabled()) { networkStreamModel.LoadRecentStreams(GetExeDir()); }
-    podcastSubscriptions.Load(GetDataDir());
-    // they are shown or applied to the player.
+    // Defer OLE drag-drop, the data-directory writability probe, and secondary
+    // recent-streams/podcast JSON loads until after the first frame presents.
+    deferredStartupServicesPending = true;
     settings.audioDelayMs = std::clamp(settings.audioDelayMs, -5000, 5000);
     settings.subDelayMs = std::clamp(settings.subDelayMs, -10000, 10000);
     if (settings.restoreSession) {
@@ -2265,6 +2272,195 @@ void App::ExecuteCommandLineOptions(const PlaybackCommandLineOptions& options) {
     if (options.mediaTargets.size() > 1) { StartImportJob(options.mediaTargets, "", false); }
 }
 
+void App::EnsureOleDragDropInitialized() {
+    if (oleDragDropInitAttempted || shutdownComplete || !hWnd) return;
+    oleDragDropInitAttempted = true;
+    HRESULT oleHr = OleInitialize(NULL);
+    oleInitialized = SUCCEEDED(oleHr);
+    pOleDropTarget = new ApertureDropTarget(this);
+    if (FAILED(RegisterDragDrop(hWnd, pOleDropTarget))) { pOleDropTarget->Release(); pOleDropTarget = nullptr; }
+}
+
+void App::RunDeferredStartupServices() {
+    if (!deferredStartupServicesPending || shutdownComplete) return;
+    if (!firstGpuShellRecorded && !playbackSession.IsOpen() && !libraryReady) return;
+    deferredStartupServicesPending = false;
+    EnsureOleDragDropInitialized();
+    StorageStatus writability = CheckDataDirectoryWritability();
+    if (!writability.is_ok()) {
+        std::wstring dataDir = GetDataDir();
+        const auto msg = Presentation::StorageGuidance(writability) + L"\n\n" + dataDir;
+        MessageBoxW(hWnd, msg.c_str(), Loc::Tr("ux.storage_title").c_str(), MB_ICONWARNING | MB_OK);
+    }
+    if (networkStreamModel.IsRecentStreamsEnabled()) { networkStreamModel.LoadRecentStreams(GetExeDir()); }
+    podcastSubscriptions.Load(GetDataDir());
+}
+
+void App::UpdateJumpAheadChapter() {
+    if (!player.IsLoaded()) return;
+    int curChap = player.GetCurrentChapter();
+    const std::vector<MpvChapterInfo>& chapters = GetCachedChapters();
+    const double curTime = player.GetCurrentTime();
+    const double duration = player.GetDuration();
+    if (curChap < 0 && !chapters.empty() && duration > 0.0) {
+        for (int i = (int)chapters.size() - 1; i >= 0; --i) {
+            if (chapters[i].time <= curTime + 0.25) { curChap = i; break; }
+        }
+    }
+    if (curChap != jumpAheadActiveChapterIndex) {
+        jumpAheadActiveChapterIndex = curChap;
+        double targetTime = 0.0;
+        if (curChap >= 0 && IsQualifyingJumpAheadChapter((size_t)curChap, targetTime)) {
+            jumpAheadTargetTime = targetTime;
+            isJumpAheadVisible = true;
+            jumpAheadTimer = 3.0f;
+            AnimateVisual(jumpAheadAnim, 1.0f, MotionTokens::kFast, MotionTokens::Standard());
+        } else {
+            isJumpAheadVisible = false;
+            jumpAheadTimer = 0.0f;
+            AnimateVisual(jumpAheadAnim, 0.0f, MotionTokens::kFast, MotionTokens::Standard());
+        }
+    }
+}
+
+DWORD App::GetNextIdleWaitMs() const {
+    if (closeRequested) return 16;
+    const bool windowVisible = hWnd && IsWindowVisible(hWnd) && !IsIconic(hWnd) && !IsOccluded();
+    if (!playbackSession.IsOpen() && !renderer.HasPresentedFrame() && windowVisible) return 16;
+    const bool islandAnimating = importIslandPhase != 0 ||
+        importIslandWidthDip.animating || importIslandHeightDip.animating ||
+        importIslandRadiusDip.animating || importIslandExpand.animating || importIslandFade.animating ||
+        listenIslandWidthDip.animating || listenIslandHeightDip.animating ||
+        listenIslandRadiusDip.animating || listenIslandExpand.animating || listenIslandFade.animating;
+    if (windowVisible && (activeDragType != DragType::None || IsAutoscrolling() ||
+            listenPlaybackActive || islandAnimating)) {
+        return 16;
+    }
+    if (importJobActive || listenPlaybackActive || islandAnimating) {
+        return windowVisible ? 16 : 200;
+    }
+    if (renderer.AreDeviceWorkersRunning() || pendingPlaybackOpen.has_value() || !deferredLibraryCommands.empty() ||
+        (windowVisible && (renderer.HasDeferredThumbnailUploads() ||
+            (!playbackSession.IsOpen() && (hubExtractors[0].IsActive() || hubExtractors[1].IsActive() ||
+                (previewPlayer.IsActive() && (currentTab == TabView::Media || currentTab == TabView::Playlists))))))) {
+        return 16;
+    }
+    if (librarySaveRequested || !librarySaveWorker.IsIdle() || pathAvailability.HasPending() ||
+        folderRediscoveryActive || backfillJobActive || AreNetworkJobsRunning() || radioJobs.IsSearchRunning() ||
+        watchReconcileWorker.IsRunning() || watchReconcileWorker.HasPending()) {
+        return 32;
+    }
+    if ((deferredStartupServicesPending || deferredLibraryReadyWorkPending) &&
+        (firstGpuShellRecorded || playbackSession.IsOpen() || libraryReady)) {
+        return 16;
+    }
+    if (startupUpdateCheckPending && firstGpuShellRecorded && !shutdownComplete) return 16;
+
+    DWORD waitMs = INFINITE;
+    auto clampWait = [&](double ms) {
+        if (!std::isfinite(ms)) return;
+        const DWORD clamped = ms <= 1.0 ? 1u : (ms >= static_cast<double>(INFINITE - 1) ? (INFINITE - 1) : static_cast<DWORD>(std::ceil(ms)));
+        waitMs = std::min(waitMs, clamped);
+    };
+    const ULONGLONG nowMs = GetTickCount64();
+
+    if (sleepTimerRemainingSec > 0.0f) clampWait(sleepTimerRemainingSec * 1000.0);
+    if (!pendingCoalescedAnnouncement.empty()) {
+        const ULONGLONG elapsed = nowMs >= lastVolumeOrSeekAnnounceMs ? (nowMs - lastVolumeOrSeekAnnounceMs) : 0;
+        clampWait(elapsed >= 150 ? 1.0 : static_cast<double>(150 - elapsed));
+    }
+    if (currentTab == TabView::Media && libraryGroupMode == LibraryGroupMode::Listen && listenSubTab == 1 &&
+        !radioJobs.IsSearchRunning() && radioSearchEditTick != 0) {
+        const ULONGLONG elapsed = nowMs >= radioSearchEditTick ? (nowMs - radioSearchEditTick) : 0;
+        clampWait(elapsed >= 400 ? 1.0 : static_cast<double>(400 - elapsed));
+    }
+    if ((playbackSession.IsOpen() || IsIconic(hWnd)) && !hiddenLibraryCachesTrimmed && hiddenLibrarySinceMs != 0) {
+        const ULONGLONG delayMs = playbackSession.IsOpen() ? 2500ULL : 15000ULL;
+        const ULONGLONG elapsed = nowMs >= hiddenLibrarySinceMs ? (nowMs - hiddenLibrarySinceMs) : 0;
+        clampWait(elapsed >= delayMs ? 1.0 : static_cast<double>(delayMs - elapsed));
+    }
+    if (previewInitialized && !previewPlayer.IsActive()) {
+        const double remainingSec = 12.0 - (NowSeconds() - previewLastActivity);
+        clampWait(remainingSec <= 0.0 ? 1.0 : remainingSec * 1000.0);
+    }
+    if (jumpListDirty && libraryReady && settings.jumpListEnabled) {
+        const ULONGLONG elapsed = nowMs >= lastJumpListPublishMs ? (nowMs - lastJumpListPublishMs) : 0;
+        clampWait(elapsed >= kJumpListRebuildMinIntervalMs ? 1.0 : static_cast<double>(kJumpListRebuildMinIntervalMs - elapsed));
+    }
+    if (playbackSession.IsOpen()) {
+        const float targetControlsOpacity = (isScrubbing || isVolumeScrubbing || isSettingsFlyoutOpen || isContextMenuOpen ||
+            controlsIdleTimer < (player.IsPlaying() ? 1.2f : 2.0f)) ? 1.0f : 0.0f;
+        const bool controlsFading = controlsOpacity != targetControlsOpacity;
+        const bool splitIrisAnimating = (isContextMenuOpen || contextMenuClosing) && isSplitIrisMenu &&
+            ((activeIrisDialIndex != -1 && std::abs(irisTargetWedgeAngle - irisCurrentWedgeAngle) > 0.05f) ||
+             std::abs(irisApertureTarget - irisApertureCurrent) > 0.0008f);
+        if (windowVisible &&
+            (showPlaybackDiagnostics || controlsFading || osdTimer > 0.0f || !notificationQueue.empty() ||
+             doubleTapTimer > 0.0f || doubleTapFadeValid || playPauseAnimTimer > 0.0f ||
+             contextMenuAnim.animating || flyoutAnim.animating || pipVolumeAnim.animating ||
+             resumePreviewAnim.animating || timelineHoverAnim.animating || jumpAheadAnim.animating ||
+             contextMenuClosing || flyoutClosing || splitIrisAnimating)) {
+            return 16;
+        }
+        if (windowVisible && !isScrubbing && !isVolumeScrubbing && !isSettingsFlyoutOpen && !isContextMenuOpen && controlsOpacity > 0.0f) {
+            const float idleLimit = player.IsPlaying() ? 1.2f : 2.0f;
+            if (controlsIdleTimer < idleLimit) clampWait((idleLimit - controlsIdleTimer) * 1000.0);
+        }
+        if (windowVisible && isJumpAheadVisible && !isJumpAheadHovered && !isJumpAheadPressed && jumpAheadTimer > 0.0f) {
+            clampWait(jumpAheadTimer * 1000.0);
+        }
+        if (player.IsPlaying()) {
+            const float saveRemaining = 5.0f - progressSaveTimerSec;
+            clampWait(saveRemaining <= 0.0f ? 1.0 : saveRemaining * 1000.0);
+            if (windowVisible) {
+                if (controlsOpacity > 0.0f || isSettingsFlyoutOpen || isContextMenuOpen) {
+                    const double curTime = std::max(0.0, player.GetCurrentTime());
+                    const double frac = curTime - std::floor(curTime);
+                    const double rate = (std::isfinite(player.GetPlaybackRate()) && player.GetPlaybackRate() > 0.0)
+                        ? std::clamp(player.GetPlaybackRate(), 0.25, 4.0) : 1.0;
+                    clampWait(((1.0 - frac) / rate) * 1000.0);
+                }
+                if ((subtitles.IsPrimaryVisible() && subtitles.GetActiveTrack()) ||
+                    (subtitles.IsSecondaryVisible() && subtitles.GetSecondaryTrack())) {
+                    const DWORD subWaitMs = subtitles.GetNextTransitionWaitMs(
+                        player.GetCurrentTime(), settings.subDelayMs, player.GetPlaybackRate(), 250);
+                    if (subWaitMs != INFINITE) waitMs = std::min(waitMs, subWaitMs);
+                }
+            }
+        }
+    } else {
+        const double nowSec = NowSeconds();
+        if (!IsAutoscrolling() && activeDragType == DragType::None &&
+            !touchPressSuppressesHoverExpand && !IsReducedMotionEnabled() && !m_activeAnimRowIndices.empty()) {
+            for (size_t idx : m_activeAnimRowIndices) {
+                if (idx >= rowAnimStates.size()) continue;
+                const auto& row = rowAnimStates[idx];
+                if (row.isHovering && row.hoverEnterTime >= 0.0f && row.previewOpacity.to < 1.0f) {
+                    const double remainingSec = (row.hoverEnterTime + MotionTokens::kHoverRevealDelay) - nowSec;
+                    clampWait(remainingSec <= 0.0 ? 1.0 : remainingSec * 1000.0);
+                }
+            }
+        }
+        if (currentTab == TabView::Playlists && isPlaylistResumeHovered && !touchPressSuppressesHoverExpand &&
+            !IsReducedMotionEnabled() && !resumePreviewPath.empty() && !resumePreviewStarted) {
+            const double remainingSec = resumeHoverEnter < 0.0
+                ? static_cast<double>(MotionTokens::kHoverRevealDelay)
+                : (resumeHoverEnter + MotionTokens::kHoverRevealDelay) - nowSec;
+            clampWait(remainingSec <= 0.0 ? 1.0 : remainingSec * 1000.0);
+        }
+        if (currentTab == TabView::Playlists && playlistGridView &&
+            playlistCardHoverIndex >= 0 && playlistCardHoverEnterTime >= 0.0f) {
+            const auto it = playlistCardExpands.find(static_cast<size_t>(playlistCardHoverIndex));
+            const bool alreadyExpanded = (it != playlistCardExpands.end() && it->second.to >= 1.0f);
+            if (!alreadyExpanded) {
+                const double remainingSec = (playlistCardHoverEnterTime + kPlaylistCardHoverDelay) - nowSec;
+                clampWait(remainingSec <= 0.0 ? 1.0 : remainingSec * 1000.0);
+            }
+        }
+    }
+    return waitMs;
+}
+
 bool App::Update(float dt) {
     // Bound visual steps while keeping timers accurate when idle waits back off.
     // Clamping elapsed time in the message loop stretched autosave/sleep timers.
@@ -2345,7 +2541,8 @@ bool App::Update(float dt) {
     if (libraryHidden) {
         const auto nowMs = GetTickCount64();
         if (!hiddenLibrarySinceMs) hiddenLibrarySinceMs = nowMs;
-        if (!hiddenLibraryCachesTrimmed && nowMs - hiddenLibrarySinceMs >= 15000) {
+        const ULONGLONG trimDelayMs = playbackSession.IsOpen() ? 2500ULL : 15000ULL;
+        if (!hiddenLibraryCachesTrimmed && nowMs - hiddenLibrarySinceMs >= trimDelayMs) {
             if (playbackSession.IsOpen()) {
                 previewPlayer.BindDeviceContext(nullptr);
                 renderer.TrimHiddenLibraryCaches(0, true);
@@ -2471,7 +2668,6 @@ bool App::Update(float dt) {
         AnimateVisual(importIslandHeightDip, hT, sizeDur, sizeCurve);
         AnimateVisual(importIslandRadiusDip, rT, sizeDur, sizeCurve);
         AnimateVisual(importIslandFade, fadeT, 0.30f, MotionTokens::Standard());
-        needsRedraw = true;
     } else {
         importIslandExpand.SnapTo(0.0f);
     }
@@ -2515,7 +2711,6 @@ bool App::Update(float dt) {
         AnimateVisual(listenIslandHeightDip, hT, 0.18f, MotionTokens::Standard());
         AnimateVisual(listenIslandRadiusDip, rT, 0.18f, MotionTokens::Standard());
         AnimateVisual(listenIslandFade, fadeT, 0.16f, MotionTokens::Standard());
-        needsRedraw = true;
     }
     if (listenIslandWidthDip.Tick()) needsRedraw = true;
     if (listenIslandHeightDip.Tick()) needsRedraw = true;
@@ -2525,6 +2720,7 @@ bool App::Update(float dt) {
     if (backfillJobActive) {
         if (backfillDone.load(std::memory_order_acquire)) { FinishBackfillJob(); }
     }
+    RunDeferredStartupServices();
     RunDeferredLibraryReadyWork();
     if (startupUpdateCheckPending && firstGpuShellRecorded && !shutdownComplete) {
         startupUpdateCheckPending = false;
@@ -2535,11 +2731,9 @@ bool App::Update(float dt) {
         if (sleepTimerRemainingSec == 0.0f) { ClosePlayer(); ShowOSD(IconType::HistoryClock, L"Sleep timer finished"); }
     }
     ClampScrollOffsets();
-    if (playbackSession.IsOpen()) {
-        taskbarController.EnsureInitialized(hWnd);
-        taskbarController.Update(TaskbarController::ProjectState(
-            playbackSession, library, settings, player.GetCurrentTime(), player.GetDuration()));
-    } else { taskbarController.Clear(); }
+    if (!playbackSession.IsOpen() && taskbarController.IsInitialized()) {
+        taskbarController.Clear();
+    }
     // Controls idle fade & cursor hiding
     if (playbackSession.IsOpen()) {
         float targetControlsOpacity = 1.0f;
@@ -2551,7 +2745,7 @@ bool App::Update(float dt) {
         if (IsReducedMotionEnabled()) {
             if (controlsOpacity != targetControlsOpacity) { controlsOpacity = targetControlsOpacity; needsRedraw = true; }
         } else if (std::abs(controlsOpacity - targetControlsOpacity) > 0.005f) {
-            controlsOpacity += (targetControlsOpacity - controlsOpacity) * std::min(1.0f, dt * 6.0f);
+            controlsOpacity += (targetControlsOpacity - controlsOpacity) * (1.0f - std::exp(-6.0f * dt));
             needsRedraw = true;
         } else if (controlsOpacity != targetControlsOpacity) { controlsOpacity = targetControlsOpacity; needsRedraw = true; }
         // Hide mouse cursor when controls fade out completely
@@ -2566,47 +2760,30 @@ bool App::Update(float dt) {
         if (player.IsPlaying()) {
             // mpv presents video independently. Once the controls disappear,
             // an empty layered overlay needs no per-frame clear or upload.
-            // Subtitle timing, diagnostics and visible controls stay live;
-            // transient animations request their own redraws below.
-            if (overlayRenderer.ShouldRefreshPlayback(controlsOpacity > 0.0f || showPlaybackDiagnostics ||
-                isSettingsFlyoutOpen || isContextMenuOpen, subtitles.GetActiveTrack() ?
-                subtitles.GetCurrentSubtitleText(player.GetCurrentTime(), settings.subDelayMs) : std::wstring{})) needsRedraw = true;
+            // Subtitle timing, diagnostics, visible controls (1 Hz), and
+            // transient animations request redraws only when state changes.
+            const bool controlsVisible = controlsOpacity > 0.0f || isSettingsFlyoutOpen || isContextMenuOpen;
+            const double curTimeSec = player.GetCurrentTime();
+            const long long playbackSecond = static_cast<long long>(std::floor(std::max(0.0, curTimeSec)));
+            frameSubtitleText = subtitles.GetActiveTrack() ? subtitles.GetCurrentSubtitleText(curTimeSec, settings.subDelayMs) : std::wstring{};
+            frameSubtitleEvaluated = true;
+            if (overlayRenderer.ShouldRefreshPlayback(
+                    showPlaybackDiagnostics,
+                    frameSubtitleText,
+                    controlsVisible,
+                    playbackSecond)) {
+                needsRedraw = true;
+            }
             progressSaveTimerSec += elapsedDt;
             if (progressSaveTimerSec >= 5.0f) { progressSaveTimerSec = 0.0f; QueuePlaybackProgressSave(); SaveSession(); }
         }
-        // Jump ahead chapter detection
-        if (player.IsLoaded()) {
-            int curChap = player.GetCurrentChapter();
-            const std::vector<MpvChapterInfo>& chapters = GetCachedChapters();
-            double curTime = player.GetCurrentTime();
-            double duration = player.GetDuration();
-            if (curChap < 0 && !chapters.empty() && duration > 0.0) {
-                for (int i = (int)chapters.size() - 1; i >= 0; --i) {
-                    if (chapters[i].time <= curTime + 0.25) { curChap = i; break; }
-                }
-            }
-            if (curChap != jumpAheadActiveChapterIndex) {
-                jumpAheadActiveChapterIndex = curChap;
-                double targetTime = 0.0;
-                if (curChap >= 0 && IsQualifyingJumpAheadChapter((size_t)curChap, targetTime)) {
-                    jumpAheadTargetTime = targetTime;
-                    isJumpAheadVisible = true;
-                    jumpAheadTimer = 3.0f;
-                    AnimateVisual(jumpAheadAnim, 1.0f, MotionTokens::kFast, MotionTokens::Standard());
-                } else {
-                    isJumpAheadVisible = false;
-                    jumpAheadTimer = 0.0f;
-                    AnimateVisual(jumpAheadAnim, 0.0f, MotionTokens::kFast, MotionTokens::Standard());
-                }
-            } else if (isJumpAheadVisible) {
-                if (!isJumpAheadHovered && !isJumpAheadPressed) {
-                    jumpAheadTimer -= elapsedDt;
-                    if (jumpAheadTimer <= 0.0f) {
-                        isJumpAheadVisible = false;
-                        jumpAheadTimer = 0.0f;
-                        AnimateVisual(jumpAheadAnim, 0.0f, MotionTokens::kFast, MotionTokens::Standard());
-                    }
-                }
+        // Jump ahead chapter timer countdown (chapter transitions are tracked on player events)
+        if (player.IsLoaded() && isJumpAheadVisible && !isJumpAheadHovered && !isJumpAheadPressed) {
+            jumpAheadTimer -= elapsedDt;
+            if (jumpAheadTimer <= 0.0f) {
+                isJumpAheadVisible = false;
+                jumpAheadTimer = 0.0f;
+                AnimateVisual(jumpAheadAnim, 0.0f, MotionTokens::kFast, MotionTokens::Standard());
             }
         }
     } else {
@@ -2794,27 +2971,35 @@ bool App::Update(float dt) {
         // System & Storage rows ease toward their hover/press targets here; the
         // pressed flag itself flips inside the mouse handlers and renders
         // instantly so press feedback is immediate, like the nav bar.
-        for (int i = 0; i < SettingsLayout::kSystemRowCount; ++i) {
-            const float hoverTarget = (currentTab == TabView::Settings &&
-                                       currentSettingsCat == SettingsCategory::System &&
-                                       hoveredSettingsRow == i) ? 1.0f : 0.0f;
-            const float prevHover = systemRowHoverAnim[i].current;
-            if (std::abs(systemRowHoverAnim[i].to - hoverTarget) > 0.001f) {
-                AnimateVisual(systemRowHoverAnim[i], hoverTarget, MotionTokens::kFast, MotionTokens::Standard());
+        const bool inSystemSettings = (currentTab == TabView::Settings &&
+                                       currentSettingsCat == SettingsCategory::System);
+        if (inSystemSettings || systemRowAnimsActive) {
+            bool anySystemAnimActive = false;
+            for (int i = 0; i < SettingsLayout::kSystemRowCount; ++i) {
+                const float hoverTarget = (inSystemSettings && hoveredSettingsRow == i) ? 1.0f : 0.0f;
+                const float prevHover = systemRowHoverAnim[i].current;
+                if (std::abs(systemRowHoverAnim[i].to - hoverTarget) > 0.001f) {
+                    AnimateVisual(systemRowHoverAnim[i], hoverTarget, MotionTokens::kFast, MotionTokens::Standard());
+                }
+                if (systemRowHoverAnim[i].Tick()) needsRedraw = true;
+                // Reduce Motion snaps the target without an animating frame. The
+                // WM_PAINT dispatched alongside the pointer message has already
+                // presented the previous state, so a snapped current still owes
+                // the screen a repaint or the last hover tint freezes in place.
+                if (systemRowHoverAnim[i].current != prevHover) needsRedraw = true;
+                const float prevPress = systemRowPressAnim[i].current;
+                const float pressTarget = settingsPressState.IsSystemActionPressed(i) ? 1.0f : 0.0f;
+                if (std::abs(systemRowPressAnim[i].to - pressTarget) > 0.001f) {
+                    AnimateVisual(systemRowPressAnim[i], pressTarget, MotionTokens::kFast, MotionTokens::Standard());
+                }
+                if (systemRowPressAnim[i].Tick()) needsRedraw = true;
+                if (systemRowPressAnim[i].current != prevPress) needsRedraw = true;
+                if (systemRowHoverAnim[i].animating || systemRowPressAnim[i].animating ||
+                    systemRowHoverAnim[i].current > 0.001f || systemRowPressAnim[i].current > 0.001f) {
+                    anySystemAnimActive = true;
+                }
             }
-            if (systemRowHoverAnim[i].Tick()) needsRedraw = true;
-            // Reduce Motion snaps the target without an animating frame. The
-            // WM_PAINT dispatched alongside the pointer message has already
-            // presented the previous state, so a snapped current still owes
-            // the screen a repaint or the last hover tint freezes in place.
-            if (systemRowHoverAnim[i].current != prevHover) needsRedraw = true;
-            const float prevPress = systemRowPressAnim[i].current;
-            const float pressTarget = settingsPressState.IsSystemActionPressed(i) ? 1.0f : 0.0f;
-            if (std::abs(systemRowPressAnim[i].to - pressTarget) > 0.001f) {
-                AnimateVisual(systemRowPressAnim[i], pressTarget, MotionTokens::kFast, MotionTokens::Standard());
-            }
-            if (systemRowPressAnim[i].Tick()) needsRedraw = true;
-            if (systemRowPressAnim[i].current != prevPress) needsRedraw = true;
+            systemRowAnimsActive = anySystemAnimActive;
         }
     }
     if (previewInitialized && !previewPlayer.IsActive() && NowSeconds() - previewLastActivity > 12.0) {
@@ -2896,8 +3081,11 @@ bool App::Update(float dt) {
     if (jumpAheadAnim.Tick()) needsRedraw = true;
     if (playbackSession.IsOpen()) {
         if (needsRedraw) overlayRenderer.RequestRedraw();
-        return overlayRenderer.IsFrameDue();
+        const bool frameDue = overlayRenderer.IsFrameDue();
+        if (!frameDue) frameSubtitleEvaluated = false;
+        return frameDue;
     }
+    frameSubtitleEvaluated = false;
     return needsRedraw;
 }
 
@@ -2926,9 +3114,12 @@ void App::Render() {
         RefreshAccessibilityTree(false);
         RefreshPlayerTooltips();
         PlayerRenderViewModel vm = BuildPlayerRenderViewModel();
+        if (!overlayRenderer.HasAllocatedSurface() && !UIComponents::HasVisibleOverlayContent(vm)) {
+            return;
+        }
         UIComponents::DrawPlayerOverlay(overlayRenderer, settings, vm);
         const bool presented = overlayRenderer.EndDrawAndPresent(hOverlayWnd, clientScreenRect.left, clientScreenRect.top);
-        if (presented && controlsOpacity <= 0.0f && (!vm.subtitle.visible || vm.subtitle.text.empty()))
+        if (presented && !UIComponents::HasVisibleOverlayContent(vm))
             overlayRenderer.ReleaseEmptySurface();
         return;
     }
@@ -3041,7 +3232,11 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
             break;
         case WM_GETOBJECT:
             if (bootstrapping) break;
+#if defined(_WIN32)
             if (static_cast<LONG>(lParam) == OBJID_CLIENT || static_cast<LONG>(lParam) == static_cast<LONG>(UiaRootObjectId)) {
+#else
+            if (static_cast<LONG>(lParam) == OBJID_CLIENT) {
+#endif
                 accessibilityClientActive = true;
                 RefreshAccessibilityTree(true);
                 return accessibilityTree.HandleGetObject(wParam, lParam);
@@ -3058,6 +3253,7 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
         case kPlayerEventMessage:
             if (bootstrapping) return 0;
             HandlePlayerEvents();
+            UpdateJumpAheadChapter();
             return 0;
         case kLibrarySnapshotReadyMessage:
             if (bootstrapping) return 0;
@@ -3234,8 +3430,10 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
             if (mmi) {
                 UINT dpi = 96;
                 using GetDpiForWindowFn = UINT(WINAPI*)(HWND);
-                HMODULE user32 = GetModuleHandleW(L"user32.dll");
-                auto getDpi = user32 ? reinterpret_cast<GetDpiForWindowFn>(GetProcAddress(user32, "GetDpiForWindow")) : nullptr;
+                static GetDpiForWindowFn getDpi = []() -> GetDpiForWindowFn {
+                    HMODULE user32 = GetModuleHandleW(L"user32.dll");
+                    return user32 ? reinterpret_cast<GetDpiForWindowFn>(GetProcAddress(user32, "GetDpiForWindow")) : nullptr;
+                }();
                 if (getDpi && hWnd) dpi = getDpi(hWnd);
                 if (playbackSession.IsPiP()) {
                     // PiP is a compact playback surface. The normal hub minimum made the nominal 480x270 PiP snap larger as soon as the
@@ -3246,7 +3444,13 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
             }
             return 0;
         }
-        case WM_DROPFILES: { HDROP hDrop = (HDROP)wParam; isDragActive = false; HandleDroppedFiles(hDrop); return 0; }
+        case WM_DROPFILES: {
+            EnsureOleDragDropInitialized();
+            HDROP hDrop = (HDROP)wParam;
+            isDragActive = false;
+            HandleDroppedFiles(hDrop);
+            return 0;
+        }
         case WM_COPYDATA: {
             PCOPYDATASTRUCT pCDS = (PCOPYDATASTRUCT)lParam;
             if (pCDS && pCDS->dwData == 0x41505452 /* 'APTR' */ && pCDS->lpData && pCDS->cbData > 0) {
@@ -3378,6 +3582,7 @@ LRESULT App::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                 if (!playbackSession.IsPiP() && hOverlayWnd)
                     SetWindowPos(hOverlayWnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
             } else {
+                EnsureOleDragDropInitialized();
                 lastPlayerMouseX = -1.0f;
                 lastPlayerMouseY = -1.0f;
                 if (playbackSession.IsOpen()) {
@@ -6109,6 +6314,7 @@ LRESULT App::HandleOverlayMessage(HWND hOverlay, UINT uMsg, WPARAM wParam, LPARA
                 lastPlayerMouseX = -1.0f;
                 lastPlayerMouseY = -1.0f;
             } else {
+                EnsureOleDragDropInitialized();
                 lastPlayerMouseX = -1.0f;
                 lastPlayerMouseY = -1.0f;
                 controlsIdleTimer = 0.0f;
@@ -6709,6 +6915,8 @@ LRESULT App::HandleOverlayMessage(HWND hOverlay, UINT uMsg, WPARAM wParam, LPARA
             }
             return HandleMessage(hWnd, uMsg, wParam, lParam);
         }
+        case WM_CHAR:
+        case WM_UNICHAR: { return HandleMessage(hWnd, uMsg, wParam, lParam); }
         case WM_DROPFILES: { return HandleMessage(hWnd, WM_DROPFILES, wParam, lParam); }
     }
     return DefWindowProc(hOverlay, uMsg, wParam, lParam);

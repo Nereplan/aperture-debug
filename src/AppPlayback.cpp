@@ -14,14 +14,27 @@
 #include "SettingsLayout.h"
 #include "Presentation.h"
 #include "WindowGeometry.h"
+#if defined(_WIN32)
 #include <commdlg.h>
 #include <shellapi.h>
 #include <shlwapi.h>
 #include <shlobj.h>
 #include <imm.h>
+#endif
 #include <numeric>
+#include <cmath>
 
 namespace Aperture {
+
+namespace {
+struct CoalescedProgressState {
+    uint64_t generation = 0;
+    double lastFloorSec = -1.0;
+    double lastDuration = -1.0;
+    double lastExactTime = -1.0;
+};
+CoalescedProgressState g_lastProgressPublish;
+} // namespace
 
 
 void App::PreSizeVideoSurfaceForPresentation() {
@@ -184,11 +197,27 @@ void App::HandlePlayerEvents() {
     if (playerCallbacksDisabled.load(std::memory_order_acquire) || shutdownComplete) { ClearPendingPlayerEvents(); return; }
     const uint32_t events = pendingPlayerEvents.exchange(PlayerEventNone, std::memory_order_acq_rel);
     // The observed time/duration channels already cover playback, pause and
-    // seeks. Update durable progress once per coalesced event, rather than
-    // also polling and copying the path on every UI frame.
+    // seeks. Gate durable progress updates on 1-second boundaries, duration
+    // changes, or seeks rather than every 250ms tick.
     if ((events & (PlayerEventTime | PlayerEventDuration)) && playbackSession.CanPersistPlayback()) {
-        const auto path = player.GetCurrentFilePath();
-        if (playbackSession.CanPersistLocalTarget(path)) library.UpdateProgress(path, player.GetCurrentTime(), player.GetDuration());
+        const double curTime = player.GetCurrentTime();
+        const double dur = player.GetDuration();
+        const double curFloor = std::isfinite(curTime) ? std::floor(std::max(0.0, curTime)) : -1.0;
+        const bool shouldUpdateProgress =
+            (events & PlayerEventDuration) != 0 ||
+            g_lastProgressPublish.generation != mediaGenerationToken ||
+            curFloor != g_lastProgressPublish.lastFloorSec ||
+            dur != g_lastProgressPublish.lastDuration ||
+            curTime < g_lastProgressPublish.lastExactTime ||
+            std::abs(curTime - g_lastProgressPublish.lastExactTime) >= 1.0;
+        if (shouldUpdateProgress) {
+            const auto path = player.GetCurrentFilePath();
+            if (playbackSession.CanPersistLocalTarget(path)) library.UpdateProgress(path, curTime, dur);
+            g_lastProgressPublish.generation = mediaGenerationToken;
+            g_lastProgressPublish.lastFloorSec = curFloor;
+            g_lastProgressPublish.lastDuration = dur;
+            g_lastProgressPublish.lastExactTime = curTime;
+        }
     }
     if (events & PlayerEventTime) {
         const double currentTime = pendingPlayerTime.load(std::memory_order_acquire);
@@ -210,9 +239,17 @@ void App::HandlePlayerEvents() {
             } else if (chapters.empty()) { lastAnnouncedChapterIndex = -1; }
         }
         UpdateMediaTransport(false);
+        if (playbackSession.IsOpen() && !shutdownComplete) {
+            taskbarController.EnsureInitialized(hWnd);
+            taskbarController.UpdateState(playbackSession, library, settings, currentTime, player.GetDuration(), false);
+        }
     }
     if (events & PlayerEventDuration) {
         UpdateMediaTransport(true);
+        if (playbackSession.IsOpen() && !shutdownComplete) {
+            taskbarController.EnsureInitialized(hWnd);
+            taskbarController.UpdateState(playbackSession, library, settings, player.GetCurrentTime(), player.GetDuration(), false);
+        }
     }
     if (events & PlayerEventEnded) {
         if (exitAfterPlayback) { BeginClose(); return; }
@@ -234,6 +271,10 @@ void App::HandlePlayerEvents() {
             }
         } else { ShowOSD(IconType::Play, L"Playback Finished"); }
         UpdateMediaTransport(true);
+        if (playbackSession.IsOpen() && !shutdownComplete) {
+            taskbarController.EnsureInitialized(hWnd);
+            taskbarController.UpdateState(playbackSession, library, settings, player.GetCurrentTime(), player.GetDuration(), false);
+        } else { taskbarController.Clear(); }
     }
     if (events & PlayerEventWarning) {
         std::deque<AppError> warnings;
@@ -256,6 +297,7 @@ void App::HandlePlayerEvents() {
             ShowPlaybackRecovery(failedPath, explanation, failedQueue, failedIndex, failedPosition);
         }
         UpdateMediaTransport(true);
+        taskbarController.Clear();
     }
     if (events & (PlayerEventEnded | PlayerEventError | PlayerEventPlayState)) { UpdateDisplayPowerRequest(); }
     if (events & PlayerEventPlayState) {
@@ -268,6 +310,10 @@ void App::HandlePlayerEvents() {
         // Keep the tray tooltip in sync with play/pause state (NIM_MODIFY).
         if (trayIconAdded) { UpdateTrayIcon(); }
         UpdateMediaTransport(true);
+        if (playbackSession.IsOpen() && !shutdownComplete) {
+            taskbarController.EnsureInitialized(hWnd);
+            taskbarController.UpdateState(playbackSession, library, settings, player.GetCurrentTime(), player.GetDuration(), false);
+        }
     }
     if (events & PlayerEventTracks) { ApplyTrackPreferences(); InvalidateRect(hWnd, NULL, FALSE); }
     if (events & PlayerEventChapters) { InvalidateRect(hWnd, NULL, FALSE); }
@@ -805,7 +851,9 @@ void App::OpenAndPlayMedia(const std::wstring& filePath, double startPosSec, boo
         hiddenLibrarySinceMs = 0;
         hiddenLibraryCachesTrimmed = false;
         mediaGenerationToken++;
-        previewPlayer.StopPreview();
+        if (previewInitialized || previewInitAttempted) { previewPlayer.Shutdown(); }
+        previewInitialized = false;
+        previewInitAttempted = false;
         SuspendListenPlaybackForVideo(); // audio stops; the island stays parked
         controlsOpacity = 1.0f;
         controlsIdleTimer = 0.0f;
@@ -829,8 +877,10 @@ void App::OpenAndPlayMedia(const std::wstring& filePath, double startPosSec, boo
         ShowWindow(hVideoWnd, SW_SHOW);
         ShowWindow(hOverlayWnd, SW_SHOW);
         SyncOverlayPosition();
-        if (playbackSession.CanPersistLocalTarget(resolvedPath))
-            library.AddToHistory(resolvedPath, seekPos, item ? item->durationSec : 0.0);
+        if (playbackSession.CanPersistLocalTarget(resolvedPath)) {
+            library.AddToHistory(resolvedPath, seekPos, item ? item->durationSec : 0.0, false);
+            QueueLibrarySave();
+        }
         MarkJumpListDirty();
         std::wstring title = item ? item->title : GetFileTitleFromPath(resolvedPath);
         SetWindowTextW(hWnd, (title + L" - " + std::wstring(Version::ProductNameWide)).c_str());
@@ -841,12 +891,18 @@ void App::OpenAndPlayMedia(const std::wstring& filePath, double startPosSec, boo
         SaveSession();
         UpdateDisplayPowerRequest();
         UpdateMediaTransport(true);
+        taskbarController.EnsureInitialized(hWnd);
+        taskbarController.UpdateState(playbackSession, library, settings, seekPos,
+                                      item ? item->durationSec : player.GetDuration(), true);
     }
 }
 
 
 void App::ClosePlayer() {
     ++playbackRequestGeneration;
+    player.SetDiagnosticsActive(false);
+    frameSubtitleEvaluated = false;
+    frameSubtitleText.clear();
     // The video child must never remain owned by the shell wallpaper WorkerW.
     DisableWallpaperMode();
     StopAutoscroll(true);
@@ -922,6 +978,7 @@ void App::ClosePlayer() {
         playbackSession.Close();
         SaveSession();
         mediaTransport.Clear();
+        taskbarController.Clear();
         playerTooltips.SetActive(false);
         playerTooltips.HideForKeyboard();
         playerTooltipSignature = 0;

@@ -133,16 +133,31 @@ inline HRESULT CreateStreamOnHGlobal(HGLOBAL /*hGlobal*/, BOOL /*fDeleteOnReleas
 }
 
 struct IPropertyBag2 : public IUnknown {
-    virtual HRESULT Write(ULONG /*cProperties*/, PROPBAG2* /*pPropBag*/, VARIANT* /*pvarValue*/) { return S_OK; }
+    float m_jpegQuality = 0.80f;
+    virtual HRESULT Write(ULONG cProperties, PROPBAG2* pPropBag, VARIANT* pvarValue) {
+        if (pPropBag && pvarValue) {
+            for (ULONG i = 0; i < cProperties; ++i) {
+                if (pPropBag[i].pstrName && std::wcscmp(pPropBag[i].pstrName, L"ImageQuality") == 0 && pvarValue[i].vt == VT_R4) {
+                    m_jpegQuality = pvarValue[i].fltVal;
+                }
+            }
+        }
+        return S_OK;
+    }
 };
 
 struct IWICBitmapFrameEncode : public IUnknown {
-    IStream* m_stream = nullptr;
+    Microsoft::WRL::ComPtr<IStream> m_stream;
+    GUID m_containerFormat = GUID_ContainerFormatPng;
+    float m_jpegQuality = 0.80f;
     UINT m_width = 0;
     UINT m_height = 0;
     GUID m_format = GUID_WICPixelFormat32bppBGRA;
 
-    virtual HRESULT Initialize(IPropertyBag2* /*pIEncoderOptions*/) { return S_OK; }
+    virtual HRESULT Initialize(IPropertyBag2* pIEncoderOptions) {
+        if (pIEncoderOptions) m_jpegQuality = pIEncoderOptions->m_jpegQuality;
+        return S_OK;
+    }
     virtual HRESULT SetSize(UINT uiWidth, UINT uiHeight) {
         m_width = uiWidth;
         m_height = uiHeight;
@@ -153,25 +168,13 @@ struct IWICBitmapFrameEncode : public IUnknown {
         m_format = *pPixelFormat;
         return S_OK;
     }
-    virtual HRESULT WritePixels(UINT lineCount, UINT cbStride, UINT cbBufferSize, BYTE* pbPixels) {
-        if (!m_stream || !pbPixels || m_width == 0 || m_height == 0) return E_FAIL;
-        UINT bpp = IsEqualGUID(m_format, GUID_WICPixelFormat24bppBGR) ? 3u : 4u;
-        size_t rowBytes = static_cast<size_t>(m_width) * bpp;
-        if (cbStride < rowBytes || static_cast<size_t>(lineCount) * cbStride > cbBufferSize) return E_INVALIDARG;
-        uint32_t hdr[4] = {0x57494346u, m_width, m_height, bpp};
-        m_stream->m_data.clear();
-        m_stream->m_pos = 0;
-        m_stream->Write(hdr, sizeof(hdr), nullptr);
-        for (UINT y = 0; y < m_height && y < lineCount; ++y) {
-            m_stream->Write(pbPixels + static_cast<size_t>(y) * cbStride, static_cast<ULONG>(rowBytes), nullptr);
-        }
-        return S_OK;
-    }
+    virtual HRESULT WritePixels(UINT lineCount, UINT cbStride, UINT cbBufferSize, BYTE* pbPixels);
     virtual HRESULT Commit() { return S_OK; }
 };
 
 struct IWICBitmapEncoder : public IUnknown {
-    IStream* m_stream = nullptr;
+    Microsoft::WRL::ComPtr<IStream> m_stream;
+    GUID m_containerFormat = GUID_ContainerFormatPng;
     virtual HRESULT Initialize(IUnknown* pIStream, DWORD /*cacheOption*/) {
         m_stream = static_cast<IStream*>(pIStream);
         return m_stream ? S_OK : E_INVALIDARG;
@@ -180,6 +183,7 @@ struct IWICBitmapEncoder : public IUnknown {
         if (ppIFramEncode) {
             auto* f = new IWICBitmapFrameEncode();
             f->m_stream = m_stream;
+            f->m_containerFormat = m_containerFormat;
             *ppIFramEncode = f;
         }
         if (ppIEncoderOptions) *ppIEncoderOptions = new IPropertyBag2();
@@ -215,6 +219,7 @@ struct IWICPalette : public IUnknown {};
 struct IWICBitmapSource : public IUnknown {
     UINT m_width = 1;
     UINT m_height = 1;
+    bool m_isPremultiplied = false;
     std::vector<uint8_t> m_pixels; // BGRA 32bpp
 
     virtual HRESULT GetSize(UINT* puiWidth, UINT* puiHeight) {
@@ -240,7 +245,7 @@ struct IWICBitmapFrameDecode : public IWICBitmapSource {};
 struct IWICFormatConverter : public IWICBitmapSource {
     virtual HRESULT Initialize(
         IWICBitmapSource* pISource,
-        REFWICPixelFormatGUID /*dstFormat*/,
+        REFWICPixelFormatGUID dstFormat,
         WICBitmapDitherType /*dither*/,
         IWICPalette* /*pIPalette*/,
         double /*alphaThresholdPercent*/,
@@ -249,6 +254,33 @@ struct IWICFormatConverter : public IWICBitmapSource {
         m_width = pISource->m_width;
         m_height = pISource->m_height;
         m_pixels = pISource->m_pixels;
+        const bool wantPremul = IsEqualGUID(dstFormat, GUID_WICPixelFormat32bppPBGRA);
+        const bool wantStraight = IsEqualGUID(dstFormat, GUID_WICPixelFormat32bppBGRA);
+        if (wantPremul && !pISource->m_isPremultiplied) {
+            for (size_t i = 0; i + 3 < m_pixels.size(); i += 4) {
+                uint32_t a = m_pixels[i + 3];
+                if (a == 0) {
+                    m_pixels[i + 0] = m_pixels[i + 1] = m_pixels[i + 2] = 0;
+                } else if (a < 255) {
+                    m_pixels[i + 0] = static_cast<uint8_t>((m_pixels[i + 0] * a + 127) / 255);
+                    m_pixels[i + 1] = static_cast<uint8_t>((m_pixels[i + 1] * a + 127) / 255);
+                    m_pixels[i + 2] = static_cast<uint8_t>((m_pixels[i + 2] * a + 127) / 255);
+                }
+            }
+            m_isPremultiplied = true;
+        } else if (wantStraight && pISource->m_isPremultiplied) {
+            for (size_t i = 0; i + 3 < m_pixels.size(); i += 4) {
+                uint32_t a = m_pixels[i + 3];
+                if (a > 0 && a < 255) {
+                    m_pixels[i + 0] = static_cast<uint8_t>(std::min<uint32_t>(255, (m_pixels[i + 0] * 255 + a / 2) / a));
+                    m_pixels[i + 1] = static_cast<uint8_t>(std::min<uint32_t>(255, (m_pixels[i + 1] * 255 + a / 2) / a));
+                    m_pixels[i + 2] = static_cast<uint8_t>(std::min<uint32_t>(255, (m_pixels[i + 2] * 255 + a / 2) / a));
+                }
+            }
+            m_isPremultiplied = false;
+        } else {
+            m_isPremultiplied = pISource->m_isPremultiplied;
+        }
         return S_OK;
     }
 };
@@ -273,35 +305,7 @@ struct IWICStream : public IStream {
 
 struct IWICBitmapDecoder : public IUnknown {
     Microsoft::WRL::ComPtr<IWICBitmapFrameDecode> m_frame;
-    virtual HRESULT Initialize(IUnknown* pIStream, WICDecodeOptions /*cacheOptions*/) {
-        auto* stm = static_cast<IStream*>(pIStream);
-        if (!stm || stm->m_data.size() < 16) return E_FAIL;
-        uint32_t hdr[4]{};
-        std::memcpy(hdr, stm->m_data.data(), 16);
-        if (hdr[0] == 0x57494346u && hdr[1] > 0 && hdr[2] > 0 && (hdr[3] == 3 || hdr[3] == 4)) {
-            uint32_t w = hdr[1], h = hdr[2], bpp = hdr[3];
-            size_t srcBytes = static_cast<size_t>(w) * h * bpp;
-            if (stm->m_data.size() < 16 + srcBytes) return E_FAIL;
-            auto* frame = new IWICBitmapFrameDecode();
-            frame->m_width = w;
-            frame->m_height = h;
-            frame->m_pixels.resize(static_cast<size_t>(w) * h * 4);
-            const uint8_t* src = stm->m_data.data() + 16;
-            if (bpp == 4) {
-                std::memcpy(frame->m_pixels.data(), src, srcBytes);
-            } else {
-                for (size_t i = 0, j = 0; i < srcBytes; i += 3, j += 4) {
-                    frame->m_pixels[j + 0] = src[i + 0];
-                    frame->m_pixels[j + 1] = src[i + 1];
-                    frame->m_pixels[j + 2] = src[i + 2];
-                    frame->m_pixels[j + 3] = 255;
-                }
-            }
-            m_frame.Attach(frame);
-            return S_OK;
-        }
-        return E_FAIL;
-    }
+    virtual HRESULT Initialize(IUnknown* pIStream, WICDecodeOptions cacheOptions);
     virtual HRESULT GetFrame(UINT /*index*/, IWICBitmapFrameDecode** ppIBitmapFrame) {
         if (!ppIBitmapFrame) return E_POINTER;
         if (!m_frame) return E_FAIL;
@@ -343,9 +347,11 @@ struct IWICImagingFactory : public IUnknown {
         *ppIBitmapScaler = new IWICBitmapScaler();
         return S_OK;
     }
-    virtual HRESULT CreateEncoder(REFGUID /*guidContainerFormat*/, const GUID* /*pguidVendor*/, IWICBitmapEncoder** ppIEncoder) {
+    virtual HRESULT CreateEncoder(REFGUID guidContainerFormat, const GUID* /*pguidVendor*/, IWICBitmapEncoder** ppIEncoder) {
         if (!ppIEncoder) return E_POINTER;
-        *ppIEncoder = new IWICBitmapEncoder();
+        auto* enc = new IWICBitmapEncoder();
+        enc->m_containerFormat = guidContainerFormat;
+        *ppIEncoder = enc;
         return S_OK;
     }
 };
@@ -422,16 +428,35 @@ struct IShellItemArray : public IUnknown {
 struct IFileDialog : public IUnknown {
     DWORD m_options = 0;
     std::wstring m_title;
+    std::wstring m_initialFolder;
+    std::wstring m_defaultExt;
     std::wstring m_resultPath;
+    std::vector<std::pair<std::wstring, std::wstring>> m_filters;
 
     virtual HRESULT Show(HWND hwndOwner);
-    virtual HRESULT SetFileTypes(UINT cFileTypes, const COMDLG_FILTERSPEC* rgFilterSpec) { return S_OK; }
-    virtual HRESULT SetFileTypeIndex(UINT iFileType) { return S_OK; }
+    virtual HRESULT SetFileTypes(UINT cFileTypes, const COMDLG_FILTERSPEC* rgFilterSpec) {
+        m_filters.clear();
+        if (rgFilterSpec) {
+            for (UINT i = 0; i < cFileTypes; ++i) {
+                std::wstring n = rgFilterSpec[i].pszName ? rgFilterSpec[i].pszName : L"";
+                std::wstring s = rgFilterSpec[i].pszSpec ? rgFilterSpec[i].pszSpec : L"";
+                if (!s.empty()) m_filters.emplace_back(std::move(n), std::move(s));
+            }
+        }
+        return S_OK;
+    }
+    virtual HRESULT SetFileTypeIndex(UINT /*iFileType*/) { return S_OK; }
     virtual HRESULT SetOptions(FILEOPENDIALOGOPTIONS fos) { m_options = fos; return S_OK; }
     virtual HRESULT GetOptions(FILEOPENDIALOGOPTIONS* pfos) { if (pfos) *pfos = m_options; return S_OK; }
     virtual HRESULT SetTitle(LPCWSTR pszTitle) { if (pszTitle) m_title = pszTitle; return S_OK; }
-    virtual HRESULT SetFolder(IShellItem* psi) { return S_OK; }
-    virtual HRESULT SetDefaultExtension(LPCWSTR pszDefaultExtension) { return S_OK; }
+    virtual HRESULT SetFolder(IShellItem* psi) {
+        if (psi) m_initialFolder = psi->m_path;
+        return S_OK;
+    }
+    virtual HRESULT SetDefaultExtension(LPCWSTR pszDefaultExtension) {
+        if (pszDefaultExtension) m_defaultExt = pszDefaultExtension;
+        return S_OK;
+    }
     virtual HRESULT GetResult(IShellItem** ppsi) {
         if (!ppsi) return E_POINTER;
         if (m_resultPath.empty()) return E_FAIL;
@@ -680,14 +705,10 @@ inline LRESULT LresultFromObject(REFIID /*riid*/, WPARAM /*wParam*/, LPUNKNOWN p
 // MSAA Roles
 #define ROLE_SYSTEM_WINDOW 0x09
 #define ROLE_SYSTEM_CLIENT 0x0a
-#define ROLE_SYSTEM_MENUPOPUP 0x0b
 #define ROLE_SYSTEM_MENUITEM 0x0c
-#define ROLE_SYSTEM_TOOLTIP 0x0d
 #define ROLE_SYSTEM_ALERT 0x08
 #define ROLE_SYSTEM_PANE 0x10
-#define ROLE_SYSTEM_DIALOG 0x12
 #define ROLE_SYSTEM_GROUPING 0x14
-#define ROLE_SYSTEM_SEPARATOR 0x15
 #define ROLE_SYSTEM_TOOLBAR 0x16
 #define ROLE_SYSTEM_STATUSBAR 0x17
 #define ROLE_SYSTEM_LIST 0x21
@@ -705,24 +726,16 @@ inline LRESULT LresultFromObject(REFIID /*riid*/, WPARAM /*wParam*/, LPUNKNOWN p
 #define ROLE_SYSTEM_PAGETABLIST 0x3c
 
 // MSAA States
-#define STATE_SYSTEM_NORMAL 0x00000000
 #define STATE_SYSTEM_UNAVAILABLE 0x00000001
 #define STATE_SYSTEM_SELECTED 0x00000002
 #define STATE_SYSTEM_FOCUSED 0x00000004
-#define STATE_SYSTEM_PRESSED 0x00000008
 #define STATE_SYSTEM_CHECKED 0x00000010
-#define STATE_SYSTEM_MIXED 0x00000020
 #define STATE_SYSTEM_READONLY 0x00000040
-#define STATE_SYSTEM_COLLAPSED 0x00000400
-#define STATE_SYSTEM_EXPANDED 0x00000200
 #define STATE_SYSTEM_INVISIBLE 0x00008000
 #define STATE_SYSTEM_OFFSCREEN 0x00010000
 #define STATE_SYSTEM_FOCUSABLE 0x00100000
-#define STATE_SYSTEM_SELECTABLE 0x00200000
-#define STATE_SYSTEM_HASPOPUP 0x40000000
 
 // MSAA Selection & Navigation Flags
-#define SELFLAG_NONE 0x00000000
 #define SELFLAG_TAKEFOCUS 0x00000001
 #define SELFLAG_TAKESELECTION 0x00000002
 #define SELFLAG_EXTENDSELECTION 0x00000004
@@ -730,18 +743,13 @@ inline LRESULT LresultFromObject(REFIID /*riid*/, WPARAM /*wParam*/, LPUNKNOWN p
 #define SELFLAG_REMOVESELECTION 0x00000010
 
 #define NAVDIR_UP 0x00000001
-#define NAVDIR_DOWN 0x00000002
-#define NAVDIR_LEFT 0x00000003
-#define NAVDIR_RIGHT 0x00000004
 #define NAVDIR_NEXT 0x00000005
 #define NAVDIR_PREVIOUS 0x00000006
 #define NAVDIR_FIRSTCHILD 0x00000007
 #define NAVDIR_LASTCHILD 0x00000008
 
 // UIA Properties
-#define UIA_RuntimeIdPropertyId 30000
 #define UIA_BoundingRectanglePropertyId 30001
-#define UIA_ProcessIdPropertyId 30002
 #define UIA_ControlTypePropertyId 30003
 #define UIA_LocalizedControlTypePropertyId 30004
 #define UIA_NamePropertyId 30005
@@ -753,37 +761,19 @@ inline LRESULT LresultFromObject(REFIID /*riid*/, WPARAM /*wParam*/, LPUNKNOWN p
 #define UIA_AutomationIdPropertyId 30011
 #define UIA_ClassNamePropertyId 30012
 #define UIA_HelpTextPropertyId 30013
-#define UIA_ClickablePointPropertyId 30014
-#define UIA_CulturePropertyId 30015
-#define UIA_IsControlElementPropertyId 30016
-#define UIA_IsContentElementPropertyId 30017
-#define UIA_LabeledByPropertyId 30018
 #define UIA_IsPasswordPropertyId 30019
 #define UIA_NativeWindowHandlePropertyId 30020
 #define UIA_ItemTypePropertyId 30021
 #define UIA_IsOffscreenPropertyId 30022
-#define UIA_OrientationPropertyId 30023
-#define UIA_FrameworkIdPropertyId 30024
-#define UIA_IsRequiredForFormPropertyId 30025
 #define UIA_ItemStatusPropertyId 30026
-#define UIA_IsDockPatternAvailablePropertyId 30027
-#define UIA_IsExpandCollapsePatternAvailablePropertyId 30028
-#define UIA_IsGridItemPatternAvailablePropertyId 30029
-#define UIA_IsGridPatternAvailablePropertyId 30030
 #define UIA_IsInvokePatternAvailablePropertyId 30031
-#define UIA_IsMultipleViewPatternAvailablePropertyId 30032
 #define UIA_IsRangeValuePatternAvailablePropertyId 30033
 #define UIA_IsScrollPatternAvailablePropertyId 30034
 #define UIA_IsScrollItemPatternAvailablePropertyId 30035
 #define UIA_IsSelectionItemPatternAvailablePropertyId 30036
 #define UIA_IsSelectionPatternAvailablePropertyId 30037
-#define UIA_IsTablePatternAvailablePropertyId 30038
-#define UIA_IsTableItemPatternAvailablePropertyId 30039
-#define UIA_IsTextPatternAvailablePropertyId 30040
 #define UIA_IsTogglePatternAvailablePropertyId 30041
-#define UIA_IsTransformPatternAvailablePropertyId 30042
 #define UIA_IsValuePatternAvailablePropertyId 30043
-#define UIA_IsWindowPatternAvailablePropertyId 30044
 #define UIA_ValueValuePropertyId 30045
 #define UIA_ValueIsReadOnlyPropertyId 30046
 #define UIA_RangeValueValuePropertyId 30047
@@ -801,7 +791,6 @@ inline LRESULT LresultFromObject(REFIID /*riid*/, WPARAM /*wParam*/, LPUNKNOWN p
 #define UIA_SelectionSelectionPropertyId 30059
 #define UIA_SelectionCanSelectMultiplePropertyId 30060
 #define UIA_SelectionIsSelectionRequiredPropertyId 30061
-#define UIA_ExpandCollapseExpandCollapseStatePropertyId 30070
 #define UIA_SelectionItemIsSelectedPropertyId 30079
 #define UIA_SelectionItemSelectionContainerPropertyId 30080
 #define UIA_ToggleToggleStatePropertyId 30086
@@ -818,33 +807,23 @@ inline LRESULT LresultFromObject(REFIID /*riid*/, WPARAM /*wParam*/, LPUNKNOWN p
 
 // UIA Control Types
 #define UIA_ButtonControlTypeId 50000
-#define UIA_CalendarControlTypeId 50001
 #define UIA_CheckBoxControlTypeId 50002
 #define UIA_ComboBoxControlTypeId 50003
 #define UIA_EditControlTypeId 50004
 #define UIA_HyperlinkControlTypeId 50005
-#define UIA_ImageControlTypeId 50006
 #define UIA_ListItemControlTypeId 50007
 #define UIA_ListControlTypeId 50008
-#define UIA_MenuControlTypeId 50009
-#define UIA_MenuBarControlTypeId 50010
 #define UIA_MenuItemControlTypeId 50011
 #define UIA_ProgressBarControlTypeId 50012
 #define UIA_RadioButtonControlTypeId 50013
-#define UIA_ScrollBarControlTypeId 50014
 #define UIA_SliderControlTypeId 50015
-#define UIA_SpinnerControlTypeId 50016
 #define UIA_StatusBarControlTypeId 50017
 #define UIA_TabControlTypeId 50018
 #define UIA_TabItemControlTypeId 50019
 #define UIA_TextControlTypeId 50020
 #define UIA_ToolBarControlTypeId 50021
-#define UIA_ToolTipControlTypeId 50022
-#define UIA_TreeControlTypeId 50023
-#define UIA_TreeItemControlTypeId 50024
 #define UIA_CustomControlTypeId 50025
 #define UIA_GroupControlTypeId 50026
-#define UIA_ThumbControlTypeId 50027
 #define UIA_WindowControlTypeId 50032
 #define UIA_PaneControlTypeId 50033
 
@@ -854,7 +833,6 @@ inline LRESULT LresultFromObject(REFIID /*riid*/, WPARAM /*wParam*/, LPUNKNOWN p
 #define UIA_ValuePatternId 10002
 #define UIA_RangeValuePatternId 10003
 #define UIA_ScrollPatternId 10004
-#define UIA_ExpandCollapsePatternId 10005
 #define UIA_SelectionItemPatternId 10010
 #define UIA_TogglePatternId 10015
 #define UIA_ScrollItemPatternId 10017
@@ -869,13 +847,10 @@ inline LRESULT LresultFromObject(REFIID /*riid*/, WPARAM /*wParam*/, LPUNKNOWN p
 #define UIA_SelectionItem_ElementSelectedEventId 20012
 #define UIA_Selection_InvalidatedEventId 20013
 #define UIA_LiveRegionChangedEventId 20024
-#define UIA_RootObjectId (-25)
-#define UiaRootObjectId (-25)
 #define UiaAppendRuntimeId 3
 #define UIA_ScrollPatternNoScroll (-1.0)
 #define UIA_E_ELEMENTNOTENABLED ((HRESULT)0x80040200L)
 #define UIA_E_ELEMENTNOTAVAILABLE ((HRESULT)0x80040201L)
-#define UIA_E_NOCLICKABLEPOINT ((HRESULT)0x80040202L)
 #define UIA_E_NOTSUPPORTED ((HRESULT)0x80040204L)
 #define UIA_E_INVALIDOPERATION ((HRESULT)0x80131509L)
 
@@ -928,23 +903,11 @@ enum ToggleState {
     ToggleState_Indeterminate = 2,
 };
 
-enum ExpandCollapseState {
-    ExpandCollapseState_Collapsed = 0,
-    ExpandCollapseState_Expanded = 1,
-    ExpandCollapseState_PartiallyExpanded = 2,
-    ExpandCollapseState_LeafNode = 3,
-};
-
 struct UiaRect {
     double left;
     double top;
     double width;
     double height;
-};
-
-struct UiaPoint {
-    double x;
-    double y;
 };
 
 struct SAFEARRAYBOUND {
@@ -988,10 +951,6 @@ inline SAFEARRAY* SafeArrayCreate(VARTYPE vt, UINT cDims, SAFEARRAYBOUND* rgsabo
     sa->pvData = sa->m_storage.empty() ? nullptr : sa->m_storage.data();
     return sa;
 }
-inline SAFEARRAY* SafeArrayCreateVector(VARTYPE vt, LONG lLbound, ULONG cElements) {
-    SAFEARRAYBOUND b{cElements, lLbound};
-    return SafeArrayCreate(vt, 1, &b);
-}
 inline HRESULT SafeArrayAccessData(SAFEARRAY* psa, void** ppvData) {
     if (!psa || !ppvData) return E_INVALIDARG;
     *ppvData = psa->m_storage.empty() ? nullptr : psa->m_storage.data();
@@ -999,39 +958,6 @@ inline HRESULT SafeArrayAccessData(SAFEARRAY* psa, void** ppvData) {
 }
 inline HRESULT SafeArrayUnaccessData(SAFEARRAY* psa) {
     return psa ? S_OK : E_INVALIDARG;
-}
-inline HRESULT SafeArrayGetLBound(SAFEARRAY* psa, UINT nDim, LONG* plLbound) {
-    if (!psa || nDim != 1 || !plLbound) return E_INVALIDARG;
-    *plLbound = psa->rgsabound[0].lLbound;
-    return S_OK;
-}
-inline HRESULT SafeArrayGetUBound(SAFEARRAY* psa, UINT nDim, LONG* plUbound) {
-    if (!psa || nDim != 1 || !plUbound) return E_INVALIDARG;
-    *plUbound = psa->rgsabound[0].lLbound + static_cast<LONG>(psa->rgsabound[0].cElements) - 1;
-    return S_OK;
-}
-inline HRESULT SafeArrayGetElement(SAFEARRAY* psa, LONG* rgIndices, void* pv) {
-    if (!psa || !rgIndices || !pv) return E_INVALIDARG;
-    LONG idx = rgIndices[0] - psa->rgsabound[0].lLbound;
-    if (idx < 0 || static_cast<ULONG>(idx) >= psa->rgsabound[0].cElements) return E_BOUNDS;
-    std::memcpy(pv, psa->m_storage.data() + static_cast<size_t>(idx) * psa->cbElements, psa->cbElements);
-    if ((psa->vt == VT_UNKNOWN || psa->vt == VT_DISPATCH) && *static_cast<IUnknown**>(pv)) {
-        (*static_cast<IUnknown**>(pv))->AddRef();
-    }
-    return S_OK;
-}
-inline HRESULT SafeArrayPutElement(SAFEARRAY* psa, LONG* rgIndices, void* pv) {
-    if (!psa || !rgIndices || !pv) return E_INVALIDARG;
-    LONG idx = rgIndices[0] - psa->rgsabound[0].lLbound;
-    if (idx < 0 || static_cast<ULONG>(idx) >= psa->rgsabound[0].cElements) return E_BOUNDS;
-    if (psa->vt == VT_UNKNOWN || psa->vt == VT_DISPATCH) {
-        auto* unk = static_cast<IUnknown*>(pv);
-        if (unk) unk->AddRef();
-        std::memcpy(psa->m_storage.data() + static_cast<size_t>(idx) * psa->cbElements, &unk, sizeof(unk));
-    } else {
-        std::memcpy(psa->m_storage.data() + static_cast<size_t>(idx) * psa->cbElements, pv, psa->cbElements);
-    }
-    return S_OK;
 }
 inline HRESULT SafeArrayDestroy(SAFEARRAY* psa) {
     if (!psa) return S_OK;
@@ -1081,12 +1007,6 @@ inline BSTR SysAllocStringLen(const WCHAR* strIn, UINT ui) {
     }
     return b;
 }
-inline UINT SysStringLen(BSTR bstr) {
-    return bstr ? static_cast<UINT>(std::wcslen(bstr)) : 0;
-}
-inline void SysFreeString(BSTR bstrString) {
-    if (bstrString) std::free(bstrString);
-}
 
 struct IRawElementProviderSimple : public IUnknown {
     virtual HRESULT STDMETHODCALLTYPE get_ProviderOptions(ProviderOptions* pRetVal) = 0;
@@ -1132,7 +1052,6 @@ struct IToggleProvider : public IUnknown {
     virtual HRESULT STDMETHODCALLTYPE Toggle() = 0;
     virtual HRESULT STDMETHODCALLTYPE get_ToggleState(ToggleState* pRetVal) = 0;
 };
-struct IExpandCollapseProvider : public IUnknown {};
 struct ISelectionProvider : public IUnknown {
     virtual HRESULT STDMETHODCALLTYPE GetSelection(SAFEARRAY** pRetVal) = 0;
     virtual HRESULT STDMETHODCALLTYPE get_CanSelectMultiple(BOOL* pRetVal) = 0;
@@ -1173,19 +1092,12 @@ inline HRESULT UiaRaiseStructureChangedEvent(IRawElementProviderSimple* /*pProvi
 inline BOOL UiaClientsAreListening() { return FALSE; }
 
 #define EVENT_SYSTEM_ALERT 0x0002
-#define EVENT_OBJECT_CREATE 0x8000
-#define EVENT_OBJECT_DESTROY 0x8001
-#define EVENT_OBJECT_SHOW 0x8002
-#define EVENT_OBJECT_HIDE 0x8003
 #define EVENT_OBJECT_REORDER 0x8004
 #define EVENT_OBJECT_FOCUS 0x8005
-#define EVENT_OBJECT_SELECTION 0x8006
 #define EVENT_OBJECT_STATECHANGE 0x800A
 #define EVENT_OBJECT_LOCATIONCHANGE 0x800B
 #define EVENT_OBJECT_NAMECHANGE 0x800C
-#define EVENT_OBJECT_DESCRIPTIONCHANGE 0x800D
 #define EVENT_OBJECT_VALUECHANGE 0x800E
-#define OBJID_WINDOW ((LONG)0x00000000)
 #define OBJID_CLIENT ((LONG)0xFFFFFFFC)
 #define CHILDID_SELF 0
 inline void NotifyWinEvent(DWORD /*event*/, HWND /*hwnd*/, LONG /*idObject*/, LONG /*idChild*/) {}

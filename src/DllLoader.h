@@ -1,5 +1,6 @@
 #pragma once
 
+#if defined(_WIN32)
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
 #endif
@@ -7,6 +8,9 @@
 #define NOMINMAX
 #endif
 #include <windows.h>
+#else
+#include "linux/LinuxPlatform.h"
+#endif
 #include <string>
 #include <vector>
 #include "Common.h"
@@ -41,7 +45,11 @@ inline std::wstring ResolvePackageDllPath(const std::wstring& dllName) {
     std::wstring cleanName = dllName;
     // Strip leading path separators
     while (!cleanName.empty() && (cleanName.front() == L'\\' || cleanName.front() == L'/')) { cleanName.erase(cleanName.begin()); }
+#if defined(_WIN32)
     std::wstring fullPath = exeDir + L"\\" + cleanName;
+#else
+    std::wstring fullPath = exeDir + L"/" + cleanName;
+#endif
     return fullPath;
 }
 
@@ -53,12 +61,15 @@ inline HMODULE LoadPackageLocalDll(const std::wstring& dllName) {
     DWORD attr = GetFileAttributesW(absPath.c_str());
     if (attr == INVALID_FILE_ATTRIBUTES || (attr & FILE_ATTRIBUTE_DIRECTORY)) {
 #if !defined(_WIN32)
-        // On Linux (e.g. CachyOS / Arch), fall back to system dynamic linker for libmpv.so.2
+        // On Linux (e.g. CachyOS / Arch), fall back to system dynamic linker for libmpv.so.2 / libmpv.so
         return LoadLibraryW(dllName.c_str());
 #else
         return NULL;
 #endif
     }
+#if !defined(_WIN32)
+    return LoadLibraryW(absPath.c_str());
+#else
     // Restrict dependency resolution to application directory and system32
     DWORD flags = LOAD_LIBRARY_SEARCH_APPLICATION_DIR | LOAD_LIBRARY_SEARCH_SYSTEM32;
     HMODULE hMod = LoadLibraryExW(absPath.c_str(), NULL, flags);
@@ -67,6 +78,7 @@ inline HMODULE LoadPackageLocalDll(const std::wstring& dllName) {
         hMod = LoadLibraryExW(absPath.c_str(), NULL, LOAD_WITH_ALTERED_SEARCH_PATH);
     }
     return hMod;
+#endif
 }
 
 } // namespace DllLoader

@@ -85,6 +85,8 @@ public:
     std::wstring GetPrimarySubtitleText(double currentPlaybackTimeSec) const;
     std::wstring GetSecondarySubtitleText(double currentPlaybackTimeSec) const;
     void GetDualSubtitleText(double currentPlaybackTimeSec, std::wstring& outPrimary, std::wstring& outSecondary) const;
+    DWORD GetNextTransitionWaitMs(double currentPlaybackTimeSec, int primaryOverrideDelayMs = 0,
+                                  double playbackRate = 1.0, DWORD maxWaitMs = 250) const;
     int GetTrackCount() const { return static_cast<int>(tracks.size()); }
     // Preferences export & import
     SubtitlePreferences ExportPreferences(const std::wstring& rootDir = L"") const;

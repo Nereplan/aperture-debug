@@ -51,6 +51,7 @@ namespace Aperture {
 class App : public ICommandContext {
     friend class ApertureDropTarget;
     friend struct PlaybackUiTestAccess;
+    friend struct AccessibilityTreeBuilder;
 public:
     App();
     ~App();
@@ -82,8 +83,9 @@ public:
     bool HasPresentedFrame() const;
     HANDLE GetFrameLatencyWaitableObject() const { return playbackSession.IsOpen() ? overlayRenderer.GetFrameLatencyWaitableObject() : renderer.GetFrameLatencyWaitableObject(); }
     bool HasPendingPlaybackFrame() const { return playbackSession.IsOpen() && overlayRenderer.HasPendingFrame(); }
+    HANDLE GetPlaybackFrameTimerHandle() const { return playbackSession.IsOpen() ? overlayRenderer.GetFrameTimerHandle() : NULL; }
     DWORD GetPlaybackFrameWaitMs() const { return overlayRenderer.GetFrameWaitMs(); }
-    bool RequiresSubtitleTick() const { return playbackSession.IsOpen() && player.IsPlaying() && subtitles.GetActiveTrack(); }
+    DWORD GetNextIdleWaitMs() const;
     bool IsOccluded() const { return playbackSession.IsOpen() ? IsIconic(hWnd) != FALSE : renderer.IsOccluded(); }
     const std::wstring& GetGraphicsAdapterName() const { return renderer.GetAdapterName(); }
     bool IsSoftwareGraphicsDevice() const { return renderer.IsSoftwareDevice(); }
@@ -215,7 +217,7 @@ private:
     // workers have joined. Set before teardown begins. MpvPlayer callbacks may be running on its event thread, so this atomic is the
     // callback-side lifetime fence.
     std::atomic<bool> playerCallbacksDisabled{ false };
-    bool oleInitialized = false, appInitialized = false;
+    bool oleInitialized = false, oleDragDropInitAttempted = false, appInitialized = false;
     // libmpv is intentionally lazy: the hub can render and respond without loading the main playback handle or the preview render context.
     bool playerInitAttempted = false, playerInitialized = false, previewInitAttempted = false, previewInitialized = false;
     bool startupPlayerPrepared = false;
@@ -265,6 +267,8 @@ private:
     // The startup update check performs a synchronous network request; it is
     // deferred until the first GPU shell has been presented (see Update()).
     bool startupUpdateCheckPending = false;
+    bool deferredStartupServicesPending = true;
+    bool systemRowAnimsActive = false;
     bool firstGpuShellRecorded = false, deferredLibraryReadyWorkPending = false;
     StorageStatus libraryLoadStatus = StorageStatus::Ok();
     static constexpr size_t kMaxDeferredLibraryCommands = 64;
@@ -300,6 +304,13 @@ private:
     bool accessibilityDirty = true;
     bool accessibilityClientActive = false;
     ULONGLONG accessibilityLastRefreshMs = 0;
+    long long accessibilityLastPlaybackSec = -1;
+    double accessibilityLastDurationSec = -1.0;
+    bool accessibilityLastMuted = false;
+    int accessibilityLastVolumePct = -1;
+    std::wstring accessibilityLastSubtitleText;
+    mutable bool frameSubtitleEvaluated = false;
+    mutable std::wstring frameSubtitleText;
     std::unordered_map<LONG, std::function<void()>> accessibilityActions;
     DWORD mainThreadId = 0;
     std::wstring currentLiveAnnouncement, lastAnnouncedText;
@@ -996,6 +1007,9 @@ private:
     // Resource-efficiency helper: EcoQoS while minimized and idle.
     void SetEcoThrottling(bool enable);
     bool EnsureOverlayReady();
+    void EnsureOleDragDropInitialized();
+    void RunDeferredStartupServices();
+    void UpdateJumpAheadChapter();
     // OLE Drag & Drop Hover Target
     IDropTarget* pOleDropTarget = nullptr;
     void OnOleDragEnter(IDataObject* pDataObj, POINTL pt);

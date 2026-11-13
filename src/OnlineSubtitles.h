@@ -13,7 +13,9 @@
 #include <cstdint>
 #include <map>
 
+#if defined(_WIN32)
 #pragma comment(lib, "winhttp.lib")
+#endif
 
 namespace Aperture {
 

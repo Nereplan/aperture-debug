@@ -10,7 +10,9 @@
 #include <unordered_map>
 #include <unordered_set>
 
+#if defined(_WIN32)
 #pragma comment(lib, "uiautomationcore.lib")
+#endif
 
 namespace Aperture {
 
@@ -184,6 +186,7 @@ void AccessibilityTree::SetWindow(HWND hwnd) {
 HWND AccessibilityTree::GetWindow() const { std::lock_guard<std::mutex> lock(mutex_); return hwnd_; }
 
 void AccessibilityTree::NotifySimple(DWORD eventId, LONG childId) const {
+    if (!AreUiaClientsListening() && !msaaClientConnected_.load(std::memory_order_relaxed)) return;
     HWND hwnd = nullptr;
     { std::lock_guard<std::mutex> lock(mutex_); hwnd = hwnd_; }
     if (hwnd && IsWindow(hwnd)) { NotifyWinEvent(eventId, hwnd, OBJID_CLIENT, childId); }
@@ -281,17 +284,22 @@ bool AccessibilityTree::GetNodeCopy(LONG childId, AccessibilityNode& outNode) co
     return false;
 }
 
-bool AccessibilityTree::ReplaceNodes(const std::vector<AccessibilityNode>& nodes) {
+bool AccessibilityTree::ReplaceNodes(std::vector<AccessibilityNode> nodes) {
     std::vector<AccessibilityNode> oldNodes;
     std::vector<AccessibilityChildProvider*> providersToDisconnect;
     HWND hwnd = nullptr;
     std::unordered_set<LONG> newIds;
     newIds.reserve(nodes.size());
     for (const auto& n : nodes) { if (n.id <= 0 || !newIds.insert(n.id).second) return false; }
-    // Copy the incoming snapshot before taking the lock, then transfer the
-    // existing snapshot to the notification pass without copying its strings,
-    // relationship vectors, and callbacks. Failed copies leave the tree intact.
-    std::vector<AccessibilityNode> replacement = nodes;
+    const bool hasClient = AreUiaClientsListening() || msaaClientConnected_.load(std::memory_order_relaxed);
+    std::vector<AccessibilityNode> replacement;
+    if (hasClient) {
+        // Retain a local copy of `nodes` for lock-free diffing after releasing mutex_.
+        replacement = nodes;
+    } else {
+        // Move directly into `nodes_` when no accessibility client is listening.
+        replacement = std::move(nodes);
+    }
     {
         std::lock_guard<std::mutex> lock(mutex_);
         hwnd = hwnd_;
@@ -307,6 +315,7 @@ bool AccessibilityTree::ReplaceNodes(const std::vector<AccessibilityNode>& nodes
         }
     }
     DisconnectChildProviders(hwnd, providersToDisconnect);
+    if (!hasClient) return true;
     const bool orderChanged = oldNodes.size() != nodes.size() || !std::equal(oldNodes.begin(), oldNodes.end(), nodes.begin(),
             [](const AccessibilityNode& old, const AccessibilityNode& current) { return old.id == current.id; });
     if (orderChanged) { NotifyReorder(); RaiseUiaStructureChanged(StructureChangeType_ChildrenInvalidated, 0); }
@@ -463,12 +472,16 @@ bool AccessibilityTree::AnnounceLiveRegion(LONG childId, const std::wstring& tex
 
 LRESULT AccessibilityTree::HandleGetObject(WPARAM wParam, LPARAM lParam) {
     const LONG objectId = static_cast<LONG>(lParam);
-    if (objectId == OBJID_CLIENT)
+    if (objectId == OBJID_CLIENT) {
+        msaaClientConnected_.store(true, std::memory_order_relaxed);
         return LresultFromObject(IID_IAccessible, wParam, static_cast<LPUNKNOWN>(static_cast<IAccessible*>(this)));
+    }
+#if defined(_WIN32)
     if (objectId == static_cast<LONG>(UiaRootObjectId)) {
         HWND hwnd = GetWindow();
         if (hwnd) { return UiaReturnRawElementProvider(hwnd, wParam, lParam, static_cast<IRawElementProviderSimple*>(this)); }
     }
+#endif
     return 0;
 }
 
@@ -1235,6 +1248,7 @@ HRESULT STDMETHODCALLTYPE AccessibilityChildProvider::GetPropertyValue(PROPERTYI
     case UIA_ScrollHorizontallyScrollablePropertyId: return setBoolean(node.horizontallyScrollable, node.IsScrollSupported());
     case UIA_ScrollVerticallyScrollablePropertyId: return setBoolean(node.verticallyScrollable, node.IsScrollSupported());
     // --- Semantic Relationships & Grouping Properties ---
+#if defined(_WIN32)
     case UIA_LabeledByPropertyId: {
         if (node.labeledById > 0) {
             std::lock_guard<std::recursive_mutex> lock(detachMutex_);
@@ -1256,6 +1270,7 @@ HRESULT STDMETHODCALLTYPE AccessibilityChildProvider::GetPropertyValue(PROPERTYI
         pRetVal->vt = VT_EMPTY;
         return S_OK;
     }
+#endif
     case UIA_DescribedByPropertyId: return setProviders(node.describedByIds);
     case UIA_ControllerForPropertyId: return setProviders(node.controllerForIds);
     case UIA_FlowsToPropertyId: return setProviders(node.flowsToIds);

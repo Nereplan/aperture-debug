@@ -1,11 +1,16 @@
 #pragma once
 
+#if defined(_WIN32)
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
 #include <windows.h>
 #include <commctrl.h>
+#else
+#include "linux/LinuxPlatform.h"
+#endif
 
 #include <cstddef>
+#include <functional>
 #include <map>
 #include <string>
 #include <vector>
@@ -38,6 +43,8 @@ public:
     HWND GetHandle() const { return tooltip_; }
     bool IsCreated() const { return tooltip_ != nullptr; }
     bool IsActive() const { return active_; }
+    void ScheduleDeferredRefresh(UINT delayMs, std::function<void()> callback);
+    void CancelDeferredRefresh();
     std::size_t ToolCount() const { return tools_.size(); }
     std::vector<ToolId> GetToolIds() const;
 
@@ -57,6 +64,7 @@ private:
     void ScheduleHover(ToolId id, const POINT& screenAnchor);
     void CancelHoverTimer();
     static VOID CALLBACK HoverTimerProc(HWND, UINT, UINT_PTR timerId, DWORD);
+    static VOID CALLBACK DeferredRefreshTimerProc(HWND, UINT, UINT_PTR timerId, DWORD);
     POINT DefaultKeyboardAnchor(ToolId id) const;
     void ApplyTiming(int initialDelayMs, int maxWidthPx);
     HWND owner_ = nullptr;
@@ -68,6 +76,8 @@ private:
     ToolRecord trackingRecord_;
     UINT hoverDelayMs_ = 500;
     UINT_PTR hoverTimerId_ = 0;
+    UINT_PTR deferredRefreshTimerId_ = 0;
+    std::function<void()> deferredRefreshCallback_;
     ToolId pendingHoverId_ = 0;
     POINT pendingHoverAnchor_{};
     std::map<ToolId, ToolRecord> tools_;

@@ -1,5 +1,6 @@
 #include "TooltipManager.h"
 
+#include <algorithm>
 #include <commctrl.h>
 #include <dwmapi.h>
 #include <windowsx.h>
@@ -7,9 +8,11 @@
 #include <utility>
 #include <vector>
 
+#if defined(_WIN32)
 #pragma comment(lib, "comctl32.lib")
 #pragma comment(lib, "dwmapi.lib")
 #pragma comment(lib, "uxtheme.lib")
+#endif
 
 namespace Aperture {
 namespace {
@@ -40,6 +43,7 @@ bool TooltipManager::Create(HWND owner, int initialDelayMs, int maxWidthPx) {
 }
 
 void TooltipManager::Destroy() {
+    CancelDeferredRefresh();
     if (tooltip_) { HideForKeyboard(); Clear(); DestroyWindow(tooltip_); }
     tooltip_ = nullptr;
     owner_ = nullptr;
@@ -194,6 +198,35 @@ VOID CALLBACK TooltipManager::HoverTimerProc(HWND, UINT, UINT_PTR timerId, DWORD
     self->pendingHoverId_ = 0;
     self->pendingHoverAnchor_ = POINT{};
     if (id != 0 && !self->keyboardTracking_) self->ShowTracking(id, anchor, false);
+}
+
+void TooltipManager::CancelDeferredRefresh() {
+    if (tooltip_ && deferredRefreshTimerId_ != 0) KillTimer(tooltip_, deferredRefreshTimerId_);
+    deferredRefreshTimerId_ = 0;
+    deferredRefreshCallback_ = nullptr;
+}
+
+void TooltipManager::ScheduleDeferredRefresh(UINT delayMs, std::function<void()> callback) {
+    if (!tooltip_ || !IsWindow(tooltip_)) return;
+    CancelDeferredRefresh();
+    deferredRefreshCallback_ = std::move(callback);
+    deferredRefreshTimerId_ = SetTimer(
+        tooltip_, reinterpret_cast<UINT_PTR>(this) + 1, std::max<UINT>(1, delayMs), &TooltipManager::DeferredRefreshTimerProc);
+    if (deferredRefreshTimerId_ == 0) {
+        auto cb = std::move(deferredRefreshCallback_);
+        deferredRefreshCallback_ = nullptr;
+        if (cb) cb();
+    }
+}
+
+VOID CALLBACK TooltipManager::DeferredRefreshTimerProc(HWND, UINT, UINT_PTR timerId, DWORD) {
+    auto* self = reinterpret_cast<TooltipManager*>(timerId - 1);
+    if (!self || self->deferredRefreshTimerId_ != timerId) return;
+    KillTimer(self->tooltip_, timerId);
+    self->deferredRefreshTimerId_ = 0;
+    auto cb = std::move(self->deferredRefreshCallback_);
+    self->deferredRefreshCallback_ = nullptr;
+    if (cb) cb();
 }
 
 bool TooltipManager::AddOrUpdate(ToolId id, const std::wstring& text, const RECT& clientRect) {

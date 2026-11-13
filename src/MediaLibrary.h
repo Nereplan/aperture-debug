@@ -132,21 +132,21 @@ struct MediaMetadataOverrides {
 struct MediaItem {
     std::string id;
     std::wstring filePath, title;
-    double durationSec = 0.0, lastPosSec = 0.0;
     std::string status = "new"; // "new", "in_progress", "done"
+    double durationSec = 0.0, lastPosSec = 0.0;
     uint64_t fileSizeBytes = 0;
     int64_t lastWatchedTimestamp = 0, addedTimestamp = 0;
-    uint32_t videoWidth = 0, videoHeight = 0;
     uint64_t fileIndex = 0;
-    uint32_t volumeSerialNumber = 0;
     uint64_t metadataFileWriteTime = 0; // FILETIME from the last stable, successful metadata probe.
-    bool metadataProbeFailed = false;
-    uint32_t probeAttemptCount = 0;
     int64_t lastProbeAttemptTimestamp = 0;
+    uint32_t videoWidth = 0, videoHeight = 0;
+    uint32_t volumeSerialNumber = 0;
+    uint32_t probeAttemptCount = 0;
     HeapOptional<MediaPlaybackPreferences> preferences;
     std::vector<MediaBookmark> bookmarks;
-    std::optional<MediaMetadataOverrides> overrides;
+    HeapOptional<MediaMetadataOverrides> overrides;
     JsonValue extraFields;
+    bool metadataProbeFailed = false;
     double GetProgressRatio() const {
         if (status == "done") return 1.0;
         if (durationSec <= 0.0) return 0.0;
@@ -482,6 +482,7 @@ public:
     MediaItem* FindById(const std::string& id);
     const MediaItem* FindById(const std::string& id) const;
     static std::wstring NormalizePathKey(const std::wstring& path);
+    static void NormalizePathKeyInto(const std::wstring& path, std::wstring& out);
     void RebuildPathIndex();
     // Moves the most recently watched item to the front while repairing only
     // the two affected index entries. Returns true when an item moved.
@@ -509,8 +510,8 @@ public:
     void UpdateProgress(const std::wstring& path, double currentPosSec, double totalDurationSec);
     void SetWatched(const std::wstring& path, bool watched);
     size_t SetWatched(const std::vector<std::wstring>& paths, bool watched, size_t* outSkipped = nullptr);
-    void AddToHistory(const std::wstring& path, double lastPosSec, double durationSec);
-    bool RemoveFromHistory(size_t index);
+    void AddToHistory(const std::wstring& path, double lastPosSec, double durationSec, bool saveChanges = true);
+    bool RemoveFromHistory(size_t index, bool saveChanges = true);
     void ClearHistory();
     const std::vector<std::wstring>& GetWatchedFolders() const { return watchedFolders; }
     bool AddWatchedFolder(const std::wstring& path, bool saveChanges = true);

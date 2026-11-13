@@ -348,7 +348,7 @@ int SubtitleDiscovery::CalculateMatchScore(const std::wstring& mediaFileName, co
     return 20;
 }
 
-std::vector<DiscoveredSubtitle> SubtitleDiscovery::DiscoverSubtitles(const std::wstring& mediaPath) {
+std::vector<DiscoveredSubtitle> SubtitleDiscovery::DiscoverSubtitles(const std::wstring& mediaPath, bool detectEncoding) {
     std::vector<DiscoveredSubtitle> results;
     std::wstring normMediaPath = NormalizePath(mediaPath);
     if (normMediaPath.empty()) return results;
@@ -381,15 +381,17 @@ std::vector<DiscoveredSubtitle> SubtitleDiscovery::DiscoverSubtitles(const std::
             if (IsReservedDeviceName(fullPath)) continue;
             uint64_t fileSize = (static_cast<uint64_t>(findData.nFileSizeHigh) << 32) | findData.nFileSizeLow;
             if (fileSize > kMaxSubtitleInputBytes) continue; // Reject oversized files
-            // Read file header to detect encoding
+            // Read file header to detect encoding when callers inspect encoding metadata
             SubtitleEncoding enc = SubtitleEncoding::Unknown;
-            HANDLE hFile = CreateFileW(fullPath.c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-            if (hFile != INVALID_HANDLE_VALUE) {
-                uint8_t buffer[1024];
-                DWORD bytesRead = 0;
-                if (ReadFile(hFile, buffer, sizeof(buffer), &bytesRead, NULL) && bytesRead > 0)
-                    enc = DetectEncoding(buffer, static_cast<size_t>(bytesRead));
-                CloseHandle(hFile);
+            if (detectEncoding) {
+                HANDLE hFile = CreateFileW(fullPath.c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+                if (hFile != INVALID_HANDLE_VALUE) {
+                    uint8_t buffer[1024];
+                    DWORD bytesRead = 0;
+                    if (ReadFile(hFile, buffer, sizeof(buffer), &bytesRead, NULL) && bytesRead > 0)
+                        enc = DetectEncoding(buffer, static_cast<size_t>(bytesRead));
+                    CloseHandle(hFile);
+                }
             }
             DiscoveredSubtitle sub;
             sub.filePath = fullPath;

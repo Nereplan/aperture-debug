@@ -46,7 +46,7 @@ public:
     static bool IsReservedDeviceName(const std::wstring& pathOrName);
     // Auto-discovers external subtitle files for a given media file path within the media directory
     // and bounded conventional subfolders ('subs', 'subtitles') without recursive escape.
-    static std::vector<DiscoveredSubtitle> DiscoverSubtitles(const std::wstring& mediaPath);
+    static std::vector<DiscoveredSubtitle> DiscoverSubtitles(const std::wstring& mediaPath, bool detectEncoding = true);
     // Detects subtitle encoding via BOM and content heuristics.
     static SubtitleEncoding DetectEncoding(const uint8_t* data, size_t size);
     static SubtitleEncoding DetectEncoding(const std::string& bytes);

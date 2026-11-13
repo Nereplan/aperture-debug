@@ -11,14 +11,20 @@
 #include <poll.h>
 #include <pthread.h>
 #include <signal.h>
+#if __has_include(<sys/file.h>)
+#include <sys/file.h>
+#endif
+#include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/statvfs.h>
 #include <sys/syscall.h>
 #include <sys/time.h>
 #include <sys/types.h>
+#include <sys/un.h>
 #include <sys/wait.h>
 #include <time.h>
 #include <unistd.h>
+#include <atomic>
 #include <chrono>
 #include <codecvt>
 #include <condition_variable>
@@ -28,10 +34,28 @@
 #include <mutex>
 #include <sstream>
 #include <thread>
+#include <unordered_map>
 
 namespace fs = std::filesystem;
 
 namespace {
+constexpr int kFlockEx = 2;
+constexpr int kFlockNb = 4;
+constexpr int kFlockUn = 8;
+
+int LinuxFlock(int fd, int op) {
+#if __has_include(<sys/file.h>)
+    return ::flock(fd, op);
+#elif defined(SYS_flock)
+    return static_cast<int>(::syscall(SYS_flock, fd, op));
+#else
+    struct flock fl{};
+    fl.l_type = (op & kFlockUn) ? F_UNLCK : F_WRLCK;
+    fl.l_whence = SEEK_SET;
+    return ::fcntl(fd, (op & kFlockNb) ? F_SETLK : F_SETLKW, &fl);
+#endif
+}
+
 thread_local DWORD g_lastError = ERROR_SUCCESS;
 
 DWORD ErrnoToWin32(int err) {
@@ -62,7 +86,176 @@ FILETIME TimespecToFileTime(time_t sec, long nsec) {
     return ft;
 }
 
+std::string GetRealExeDirUtf8() {
+    static const std::string cached = []() -> std::string {
+        char buf[PATH_MAX] = {};
+        ssize_t len = ::readlink("/proc/self/exe", buf, sizeof(buf) - 1);
+        std::string exePath = (len > 0) ? std::string(buf, static_cast<size_t>(len)) : "/usr/bin/aperture";
+        size_t slash = exePath.find_last_of('/');
+        return (slash != std::string::npos && slash > 0) ? exePath.substr(0, slash) : std::string(".");
+    }();
+    return cached;
+}
+
+std::string GetHomeDirUtf8() {
+    const char* home = std::getenv("HOME");
+    return (home && *home) ? std::string(home) : std::string("/tmp");
+}
+
+std::string ResolveXdgEnvDir(const char* envName, const std::string& fallbackSuffix) {
+    const char* val = std::getenv(envName);
+    if (val && *val == '/') {
+        std::string s(val);
+        while (s.size() > 1 && s.back() == '/') s.pop_back();
+        return s;
+    }
+    return GetHomeDirUtf8() + "/" + fallbackSuffix;
+}
+
+std::string GetXdgPicturesBaseUtf8() {
+    const char* envPic = std::getenv("XDG_PICTURES_DIR");
+    if (envPic && *envPic == '/') {
+        std::string s(envPic);
+        while (s.size() > 1 && s.back() == '/') s.pop_back();
+        return s;
+    }
+    std::string cfgHome = ResolveXdgEnvDir("XDG_CONFIG_HOME", ".config");
+    std::ifstream in(cfgHome + "/user-dirs.dirs");
+    std::string line;
+    while (std::getline(in, line)) {
+        if (line.rfind("XDG_PICTURES_DIR=", 0) == 0) {
+            std::string v = line.substr(17);
+            if (v.size() >= 2 && v.front() == '"' && v.back() == '"') {
+                v = v.substr(1, v.size() - 2);
+            }
+            if (v.rfind("$HOME/", 0) == 0) {
+                v = GetHomeDirUtf8() + v.substr(5);
+            }
+            if (!v.empty() && v.front() == '/') {
+                while (v.size() > 1 && v.back() == '/') v.pop_back();
+                return v;
+            }
+        }
+    }
+    return GetHomeDirUtf8() + "/Pictures";
+}
+
+bool IsSystemBinaryDir(const std::string& dir) {
+    return dir.rfind("/usr", 0) == 0 || dir.rfind("/bin", 0) == 0 || dir.rfind("/sbin", 0) == 0 ||
+           dir.rfind("/opt", 0) == 0 || dir.rfind("/lib", 0) == 0;
+}
+
+std::string LinuxWinPathToPosixRaw(const std::wstring& wpath) {
+    if (wpath.empty()) return {};
+    std::wstring p = wpath;
+    if (p.rfind(L"\\\\?\\", 0) == 0) {
+        p = p.substr(4);
+    }
+    if (p.size() >= 2 && std::iswalpha(p[0]) && p[1] == L':') {
+        wchar_t drive = static_cast<wchar_t>(std::towlower(p[0]));
+        std::wstring rest = p.substr(2);
+        p = L"/tmp/aperture-drive-" + std::wstring(1, drive) + rest;
+    }
+    for (wchar_t& ch : p) {
+        if (ch == L'\\') ch = L'/';
+    }
+    return LinuxWideToUtf8(p);
+}
+
+bool StartsWithPathSegment(const std::string& path, const std::string& prefix, std::string& outRest) {
+    if (path.size() < prefix.size()) return false;
+    if (path.compare(0, prefix.size(), prefix) != 0) return false;
+    if (path.size() == prefix.size()) {
+        outRest.clear();
+        return true;
+    }
+    if (path[prefix.size()] == '/') {
+        outRest = path.substr(prefix.size());
+        return true;
+    }
+    return false;
+}
+
 } // namespace
+
+bool LinuxIsPortableInstall() {
+    static const bool cached = []() {
+        const std::string exeDir = GetRealExeDirUtf8();
+        const std::string localData = exeDir + "/data";
+        struct stat st {};
+        if (::stat(localData.c_str(), &st) == 0 && S_ISDIR(st.st_mode)) {
+            if (::access(localData.c_str(), W_OK) == 0) return true;
+        }
+        return !IsSystemBinaryDir(exeDir) && (::access(exeDir.c_str(), W_OK) == 0);
+    }();
+    return cached;
+}
+
+std::wstring LinuxGetXdgConfigDir() {
+    return LinuxUtf8ToWide(ResolveXdgEnvDir("XDG_CONFIG_HOME", ".config") + "/aperture");
+}
+
+std::wstring LinuxGetXdgDataDir() {
+    return LinuxUtf8ToWide(ResolveXdgEnvDir("XDG_DATA_HOME", ".local/share") + "/aperture");
+}
+
+std::wstring LinuxGetXdgCacheDir() {
+    return LinuxUtf8ToWide(ResolveXdgEnvDir("XDG_CACHE_HOME", ".cache") + "/aperture");
+}
+
+std::wstring LinuxGetXdgRuntimeDir() {
+    const char* rt = std::getenv("XDG_RUNTIME_DIR");
+    if (rt && *rt == '/') {
+        struct stat st {};
+        if (::stat(rt, &st) == 0 && S_ISDIR(st.st_mode) && ::access(rt, W_OK) == 0) {
+            std::string s(rt);
+            while (s.size() > 1 && s.back() == '/') s.pop_back();
+            return LinuxUtf8ToWide(s);
+        }
+    }
+    return L"/tmp";
+}
+
+std::wstring LinuxGetXdgPicturesDir() {
+    return LinuxUtf8ToWide(GetXdgPicturesBaseUtf8());
+}
+
+HRESULT SHGetFolderPathW(HWND /*hwnd*/, int csidl, HANDLE /*hToken*/, DWORD /*dwFlags*/, LPWSTR pszPath) {
+    if (!pszPath) return E_INVALIDARG;
+    std::string dir;
+    switch (csidl & 0xFF) {
+        case CSIDL_PROFILE: dir = GetHomeDirUtf8(); break;
+        case CSIDL_APPDATA: dir = ResolveXdgEnvDir("XDG_CONFIG_HOME", ".config"); break;
+        case CSIDL_LOCAL_APPDATA: dir = ResolveXdgEnvDir("XDG_DATA_HOME", ".local/share"); break;
+        case CSIDL_INTERNET_CACHE: dir = ResolveXdgEnvDir("XDG_CACHE_HOME", ".cache"); break;
+        case CSIDL_MYPICTURES: dir = GetXdgPicturesBaseUtf8(); break;
+        case CSIDL_MYVIDEO: dir = GetHomeDirUtf8() + "/Videos"; break;
+        case CSIDL_MYMUSIC: dir = GetHomeDirUtf8() + "/Music"; break;
+        default: dir = ResolveXdgEnvDir("XDG_DATA_HOME", ".local/share"); break;
+    }
+    std::wstring w = LinuxUtf8ToWide(dir);
+    wcscpy_s(pszPath, MAX_PATH, w.c_str());
+    return S_OK;
+}
+
+HRESULT SHGetKnownFolderPath(const GUID& rfid, DWORD /*dwFlags*/, HANDLE /*hToken*/, PWSTR* ppszPath) {
+    if (!ppszPath) return E_POINTER;
+    *ppszPath = nullptr;
+    std::string dir;
+    if (rfid == FOLDERID_RoamingAppData) dir = ResolveXdgEnvDir("XDG_CONFIG_HOME", ".config");
+    else if (rfid == FOLDERID_LocalAppData) dir = ResolveXdgEnvDir("XDG_DATA_HOME", ".local/share");
+    else if (rfid == FOLDERID_Pictures) dir = GetXdgPicturesBaseUtf8();
+    else if (rfid == FOLDERID_Videos) dir = GetHomeDirUtf8() + "/Videos";
+    else if (rfid == FOLDERID_Music) dir = GetHomeDirUtf8() + "/Music";
+    else dir = ResolveXdgEnvDir("XDG_DATA_HOME", ".local/share");
+    std::wstring w = LinuxUtf8ToWide(dir);
+    size_t bytes = (w.size() + 1) * sizeof(wchar_t);
+    PWSTR out = static_cast<PWSTR>(CoTaskMemAlloc(bytes));
+    if (!out) return E_OUTOFMEMORY;
+    std::wmemcpy(out, w.c_str(), w.size() + 1);
+    *ppszPath = out;
+    return S_OK;
+}
 
 DWORD GetLastError() { return g_lastError; }
 void SetLastError(DWORD dwErrCode) { g_lastError = dwErrCode; }
@@ -147,22 +340,36 @@ std::wstring LinuxUtf8ToWide(const std::string& str) {
 }
 
 std::string LinuxWinPathToPosix(const std::wstring& wpath) {
-    if (wpath.empty()) return {};
-    std::wstring p = wpath;
-    // Strip \\?\ prefix if present
-    if (p.rfind(L"\\\\?\\", 0) == 0) {
-        p = p.substr(4);
+    std::string raw = LinuxWinPathToPosixRaw(wpath);
+    if (raw.empty() || LinuxIsPortableInstall()) return raw;
+
+    const std::string dataRoot = ResolveXdgEnvDir("XDG_DATA_HOME", ".local/share") + "/aperture";
+    std::string rest;
+    if (!StartsWithPathSegment(raw, dataRoot, rest)) return raw;
+
+    std::string sub;
+    if (StartsWithPathSegment(rest, "/cache", sub)) {
+        return ResolveXdgEnvDir("XDG_CACHE_HOME", ".cache") + "/aperture" + sub;
     }
-    // Convert C:\... synthetic test paths into /tmp/aperture-winroot/c/...
-    if (p.size() >= 2 && std::iswalpha(p[0]) && p[1] == L':') {
-        wchar_t drive = static_cast<wchar_t>(std::towlower(p[0]));
-        std::wstring rest = p.substr(2);
-        p = L"/tmp/aperture-drive-" + std::wstring(1, drive) + rest;
+    if (StartsWithPathSegment(rest, "/screenshots", sub)) {
+        return GetXdgPicturesBaseUtf8() + "/Aperture" + sub;
     }
-    for (wchar_t& ch : p) {
-        if (ch == L'\\') ch = L'/';
+    if (rest == "/data/settings.json" || rest.rfind("/data/settings.json.", 0) == 0) {
+        return ResolveXdgEnvDir("XDG_CONFIG_HOME", ".config") + "/aperture" + rest.substr(5);
     }
-    return LinuxWideToUtf8(p);
+    if (StartsWithPathSegment(rest, "/fonts", sub) || StartsWithPathSegment(rest, "/locales", sub)) {
+        struct stat st {};
+        if (::lstat(raw.c_str(), &st) == 0) return raw;
+        const std::string candidates[] = {
+            GetRealExeDirUtf8() + rest,
+            std::string("/usr/share/aperture") + rest,
+            std::string("/usr/local/share/aperture") + rest
+        };
+        for (const auto& c : candidates) {
+            if (::lstat(c.c_str(), &st) == 0) return c;
+        }
+    }
+    return raw;
 }
 
 std::wstring LinuxPosixPathToWin(const std::string& path) {
@@ -284,6 +491,11 @@ FILE* _wfopen(const wchar_t* filename, const wchar_t* mode) {
         if (c == 'r' || c == 'w' || c == 'a' || c == '+' || c == 'b') cleanMode.push_back(c);
     }
     if (cleanMode.empty()) cleanMode = "r";
+    if (!LinuxIsPortableInstall() && (cleanMode.find('w') != std::string::npos || cleanMode.find('a') != std::string::npos)) {
+        std::error_code ec;
+        fs::path parent = fs::u8path(u8Path).parent_path();
+        if (!parent.empty()) fs::create_directories(parent, ec);
+    }
     return std::fopen(u8Path.c_str(), cleanMode.c_str());
 }
 
@@ -295,12 +507,9 @@ int _wfopen_s(FILE** pFile, const wchar_t* filename, const wchar_t* mode) {
 
 wchar_t* _wfullpath(wchar_t* absPath, const wchar_t* relPath, size_t maxLength) {
     if (!relPath) return nullptr;
-    std::string u8Rel = LinuxWinPathToPosix(relPath);
+    std::string u8Rel = LinuxWinPathToPosixRaw(relPath);
     std::error_code ec;
-    fs::path p = fs::weakly_canonical(fs::absolute(fs::u8path(u8Rel), ec), ec);
-    if (ec) {
-        p = fs::absolute(fs::u8path(u8Rel), ec);
-    }
+    fs::path p = fs::absolute(fs::u8path(u8Rel), ec).lexically_normal();
     std::wstring wabs = LinuxPosixPathToWin(p.u8string());
     if (!absPath) {
         size_t len = wabs.size() + 1;
@@ -483,24 +692,56 @@ HRESULT CoCreateInstance(REFCLSID rclsid, IUnknown* /*pUnkOuter*/, DWORD /*dwCls
 // Filesystem & Handle APIs
 // ============================================================================
 
-struct LinuxHandleObject {
-    enum Type { File, Event, Mutex, Timer, Process } type = File;
-    int fd = -1;
-    std::string path;
-    bool deleteOnClose = false;
-    // Event / Timer state
+struct LinuxWaitChannel {
+    std::mutex m;
+    std::condition_variable cv;
+    std::atomic<uint64_t> seq{0};
+    int wakeFd = -1;
+};
+
+struct LinuxSyncState {
     std::mutex mtx;
     std::condition_variable cv;
     bool manualReset = false;
     bool signaled = false;
-    // Timer due time
-    std::chrono::steady_clock::time_point dueTime{};
     bool timerArmed = false;
+    std::chrono::steady_clock::time_point dueTime{};
     LONG timerPeriodMs = 0;
-    // Process
+    std::vector<std::shared_ptr<LinuxWaitChannel>> waiters;
+
+    std::vector<std::shared_ptr<LinuxWaitChannel>> SnapshotWaitersLocked() const {
+        return waiters;
+    }
+};
+
+struct LinuxHandleObject {
+    enum Type { File, Event, Mutex, Timer, Process, Token } type = File;
+    int fd = -1;
+    std::string path;
+    bool deleteOnClose = false;
+    bool ownsLock = false;
+    std::shared_ptr<LinuxSyncState> sync;
+    // Process / Token
     pid_t pid = -1;
+    uid_t uid = 0;
     DWORD exitCode = 0;
 };
+
+static void NotifyWaitChannelList(const std::vector<std::shared_ptr<LinuxWaitChannel>>& list) {
+    for (const auto& w : list) {
+        if (!w) continue;
+        {
+            std::lock_guard<std::mutex> lk(w->m);
+            w->seq.fetch_add(1, std::memory_order_acq_rel);
+        }
+        w->cv.notify_all();
+        if (w->wakeFd >= 0) {
+            uint8_t one = 1;
+            ssize_t unused = ::write(w->wakeFd, &one, sizeof(one));
+            (void)unused;
+        }
+    }
+}
 
 DWORD GetModuleFileNameW(HMODULE /*hModule*/, LPWSTR lpFilename, DWORD nSize) {
     if (!lpFilename || nSize == 0) return 0;
@@ -519,16 +760,35 @@ DWORD GetModuleFileNameW(HMODULE /*hModule*/, LPWSTR lpFilename, DWORD nSize) {
     return static_cast<DWORD>(wpath.size());
 }
 
-HMODULE GetModuleHandleW(LPCWSTR /*lpModuleName*/) {
-    return reinterpret_cast<HMODULE>(0x1000);
+static int g_fakeExeModuleMarker = 0;
+static int g_fakeUser32ModuleMarker = 0;
+static int g_fakeWin32ModuleMarker = 0;
+
+static bool IsSyntheticModuleHandle(HMODULE hModule) {
+    const void* p = static_cast<const void*>(hModule);
+    return p == &g_fakeExeModuleMarker || p == &g_fakeUser32ModuleMarker || p == &g_fakeWin32ModuleMarker;
+}
+
+HMODULE GetModuleHandleW(LPCWSTR lpModuleName) {
+    if (!lpModuleName || !*lpModuleName) {
+        return reinterpret_cast<HMODULE>(&g_fakeExeModuleMarker);
+    }
+    std::string lower = LinuxWideToUtf8(lpModuleName);
+    for (char& c : lower) {
+        if (c >= 'A' && c <= 'Z') c = static_cast<char>(c - 'A' + 'a');
+    }
+    if (lower.find("user32") != std::string::npos) {
+        return reinterpret_cast<HMODULE>(&g_fakeUser32ModuleMarker);
+    }
+    return reinterpret_cast<HMODULE>(&g_fakeWin32ModuleMarker);
 }
 
 BOOL SetDllDirectoryW(LPCWSTR /*lpPathName*/) { return TRUE; }
 BOOL SetDefaultDllDirectories(DWORD /*DirectoryFlags*/) { return TRUE; }
 
-BOOL GetModuleHandleExW(DWORD /*dwFlags*/, LPCWSTR lpModuleName, HMODULE* phModule) {
+BOOL GetModuleHandleExW(DWORD /*dwFlags*/, LPCWSTR /*lpModuleName*/, HMODULE* phModule) {
     if (!phModule) return FALSE;
-    *phModule = reinterpret_cast<HMODULE>(const_cast< LPWSTR >(lpModuleName));
+    *phModule = reinterpret_cast<HMODULE>(&g_fakeExeModuleMarker);
     return TRUE;
 }
 
@@ -552,6 +812,16 @@ HMODULE LoadLibraryExW(LPCWSTR lpLibFileName, HANDLE /*hFile*/, DWORD /*dwFlags*
             if (h) return reinterpret_cast<HMODULE>(h);
         }
     }
+    if (u8.size() >= 4) {
+        std::string tail = u8.substr(u8.size() - 4);
+        for (char& c : tail) {
+            if (c >= 'A' && c <= 'Z') c = static_cast<char>(c - 'A' + 'a');
+        }
+        if (tail == ".dll" && !fs::exists(u8)) {
+            SetLastError(ERROR_MOD_NOT_FOUND);
+            return nullptr;
+        }
+    }
     void* h = ::dlopen(u8.c_str(), RTLD_NOW | RTLD_LOCAL);
     if (!h) SetLastError(ERROR_MOD_NOT_FOUND);
     return reinterpret_cast<HMODULE>(h);
@@ -563,24 +833,33 @@ HMODULE LoadLibraryW(LPCWSTR lpLibFileName) {
 
 FARPROC GetProcAddress(HMODULE hModule, LPCSTR lpProcName) {
     if (!hModule || !lpProcName) return nullptr;
+    if (hModule == reinterpret_cast<HMODULE>(&g_fakeUser32ModuleMarker)) {
+        if (std::strcmp(lpProcName, "GetDpiForWindow") == 0) {
+            return reinterpret_cast<FARPROC>(&GetDpiForWindow);
+        }
+        SetLastError(ERROR_PROC_NOT_FOUND);
+        return nullptr;
+    }
+    if (IsSyntheticModuleHandle(hModule)) {
+        SetLastError(ERROR_PROC_NOT_FOUND);
+        return nullptr;
+    }
     void* sym = ::dlsym(hModule, lpProcName);
     if (!sym) SetLastError(ERROR_PROC_NOT_FOUND);
     return reinterpret_cast<FARPROC>(sym);
 }
 
 BOOL FreeLibrary(HMODULE hLibModule) {
-    if (!hLibModule || hLibModule == reinterpret_cast<HMODULE>(0x1000)) return TRUE;
-    // Check if it looks like a real dlopen handle
+    if (!hLibModule || IsSyntheticModuleHandle(hLibModule)) return TRUE;
     ::dlclose(hLibModule);
     return TRUE;
 }
 
 DWORD GetFullPathNameW(LPCWSTR lpFileName, DWORD nBufferLength, LPWSTR lpBuffer, LPWSTR* lpFilePart) {
     if (!lpFileName) return 0;
-    std::string u8 = LinuxWinPathToPosix(lpFileName);
+    std::string u8 = LinuxWinPathToPosixRaw(lpFileName);
     std::error_code ec;
-    fs::path absP = fs::weakly_canonical(fs::absolute(fs::u8path(u8), ec), ec);
-    if (ec) absP = fs::absolute(fs::u8path(u8), ec);
+    fs::path absP = fs::absolute(fs::u8path(u8), ec).lexically_normal();
     std::wstring wabs = LinuxPosixPathToWin(absP.u8string());
     if (nBufferLength <= wabs.size() || !lpBuffer) {
         return static_cast<DWORD>(wabs.size() + 1);
@@ -763,6 +1042,11 @@ HANDLE CreateFileW(LPCWSTR lpFileName, DWORD dwDesiredAccess, DWORD /*dwShareMod
             break;
     }
 
+    if (wantWrite && !LinuxIsPortableInstall()) {
+        std::error_code ec;
+        fs::path parent = fs::u8path(u8).parent_path();
+        if (!parent.empty()) fs::create_directories(parent, ec);
+    }
     int fd = ::open(u8.c_str(), flags, 0644);
     if (fd < 0 && (dwFlagsAndAttributes & FILE_FLAG_BACKUP_SEMANTICS)) {
         fd = ::open(u8.c_str(), O_RDONLY | O_DIRECTORY | O_CLOEXEC);
@@ -934,14 +1218,23 @@ BOOL SetFileTime(HANDLE hFile, const FILETIME* /*lpCreationTime*/, const FILETIM
 
 BOOL CloseHandle(HANDLE hObject) {
     if (!hObject || hObject == INVALID_HANDLE_VALUE) return FALSE;
-    if (hObject == reinterpret_cast<HANDLE>(0x2000) || hObject == reinterpret_cast<HANDLE>(0x2001)) return TRUE;
+    if (hObject == reinterpret_cast<HANDLE>(0x2000) ||
+        hObject == reinterpret_cast<HANDLE>(0x2001)) {
+        return TRUE;
+    }
     auto* obj = reinterpret_cast<LinuxHandleObject*>(hObject);
     if (obj->type == LinuxHandleObject::File && obj->fd >= 0) {
         ::close(obj->fd);
         if (obj->deleteOnClose && !obj->path.empty()) {
             ::unlink(obj->path.c_str());
         }
+    } else if (obj->type == LinuxHandleObject::Mutex && obj->fd >= 0) {
+        if (obj->ownsLock) {
+            LinuxFlock(obj->fd, kFlockUn);
+        }
+        ::close(obj->fd);
     }
+    obj->sync.reset();
     delete obj;
     return TRUE;
 }
@@ -1281,10 +1574,232 @@ DWORD GetCurrentThreadId() { return static_cast<DWORD>(::syscall(SYS_gettid)); }
 HANDLE GetCurrentProcess() { return reinterpret_cast<HANDLE>(0x2000); }
 HANDLE GetCurrentThread() { return reinterpret_cast<HANDLE>(0x2001); }
 BOOL SetThreadPriority(HANDLE /*hThread*/, int /*nPriority*/) { return TRUE; }
-EXECUTION_STATE SetThreadExecutionState(EXECUTION_STATE esFlags) { return esFlags; }
-BOOL ProcessIdToSessionId(DWORD /*dwProcessId*/, DWORD* pSessionId) {
-    if (pSessionId) *pSessionId = 1;
+namespace {
+
+struct DbusScreenSaverClient {
+    std::mutex mtx;
+    void* lib = nullptr;
+    void* conn = nullptr;
+    bool triedInit = false;
+    bool inhibited = false;
+    uint32_t cookie = 0;
+    bool usingGnome = false;
+
+    struct DBusError { const char* name; const char* message; unsigned int dummy[5]; void* pad; };
+    int (*dbus_threads_init_default)() = nullptr;
+    void (*dbus_error_init)(DBusError*) = nullptr;
+    void (*dbus_error_free)(DBusError*) = nullptr;
+    int (*dbus_error_is_set)(const DBusError*) = nullptr;
+    void* (*dbus_bus_get)(int, DBusError*) = nullptr;
+    void* (*dbus_message_new_method_call)(const char*, const char*, const char*, const char*) = nullptr;
+    int (*dbus_message_append_args)(void*, int, ...) = nullptr;
+    int (*dbus_message_get_args)(void*, DBusError*, int, ...) = nullptr;
+    void (*dbus_message_unref)(void*) = nullptr;
+    void* (*dbus_connection_send_with_reply_and_block)(void*, void*, int, DBusError*) = nullptr;
+    void (*dbus_connection_flush)(void*) = nullptr;
+
+    bool EnsureConnectedLocked() {
+        if (conn) return true;
+        if (triedInit) return false;
+        triedInit = true;
+        for (const char* name : {"libdbus-1.so.3", "libdbus-1.so"}) {
+            lib = ::dlopen(name, RTLD_LAZY | RTLD_LOCAL);
+            if (lib) break;
+        }
+        if (!lib) return false;
+        dbus_threads_init_default = reinterpret_cast<decltype(dbus_threads_init_default)>(::dlsym(lib, "dbus_threads_init_default"));
+        dbus_error_init = reinterpret_cast<decltype(dbus_error_init)>(::dlsym(lib, "dbus_error_init"));
+        dbus_error_free = reinterpret_cast<decltype(dbus_error_free)>(::dlsym(lib, "dbus_error_free"));
+        dbus_error_is_set = reinterpret_cast<decltype(dbus_error_is_set)>(::dlsym(lib, "dbus_error_is_set"));
+        dbus_bus_get = reinterpret_cast<decltype(dbus_bus_get)>(::dlsym(lib, "dbus_bus_get"));
+        dbus_message_new_method_call = reinterpret_cast<decltype(dbus_message_new_method_call)>(::dlsym(lib, "dbus_message_new_method_call"));
+        dbus_message_append_args = reinterpret_cast<decltype(dbus_message_append_args)>(::dlsym(lib, "dbus_message_append_args"));
+        dbus_message_get_args = reinterpret_cast<decltype(dbus_message_get_args)>(::dlsym(lib, "dbus_message_get_args"));
+        dbus_message_unref = reinterpret_cast<decltype(dbus_message_unref)>(::dlsym(lib, "dbus_message_unref"));
+        dbus_connection_send_with_reply_and_block = reinterpret_cast<decltype(dbus_connection_send_with_reply_and_block)>(::dlsym(lib, "dbus_connection_send_with_reply_and_block"));
+        dbus_connection_flush = reinterpret_cast<decltype(dbus_connection_flush)>(::dlsym(lib, "dbus_connection_flush"));
+        if (!dbus_error_init || !dbus_bus_get || !dbus_message_new_method_call || !dbus_message_append_args ||
+            !dbus_message_get_args || !dbus_message_unref || !dbus_connection_send_with_reply_and_block) {
+            return false;
+        }
+        if (dbus_threads_init_default) {
+            static std::once_flag dbusThreadInitOnce;
+            std::call_once(dbusThreadInitOnce, [this]() { dbus_threads_init_default(); });
+        }
+        DBusError err{};
+        dbus_error_init(&err);
+        conn = dbus_bus_get(0 /*DBUS_BUS_SESSION*/, &err);
+        if (dbus_error_is_set && dbus_error_is_set(&err)) {
+            conn = nullptr;
+        }
+        if (dbus_error_free) dbus_error_free(&err);
+        return conn != nullptr;
+    }
+
+    void SetInhibited(bool wantInhibit) {
+        std::lock_guard<std::mutex> lock(mtx);
+        if (wantInhibit == inhibited) return;
+        if (!EnsureConnectedLocked()) return;
+
+        constexpr int DBUS_TYPE_UINT32_VAL = 'u';
+        constexpr int DBUS_TYPE_STRING_VAL = 's';
+        constexpr int DBUS_TYPE_INVALID_VAL = 0;
+
+        if (wantInhibit) {
+            const char* app = "Aperture";
+            const char* reason = "Media playback";
+            DBusError err{};
+            dbus_error_init(&err);
+            void* msg = dbus_message_new_method_call(
+                "org.freedesktop.ScreenSaver", "/org/freedesktop/ScreenSaver",
+                "org.freedesktop.ScreenSaver", "Inhibit");
+            void* reply = nullptr;
+            if (msg) {
+                if (dbus_message_append_args(msg, DBUS_TYPE_STRING_VAL, &app, DBUS_TYPE_STRING_VAL, &reason, DBUS_TYPE_INVALID_VAL)) {
+                    reply = dbus_connection_send_with_reply_and_block(conn, msg, 200, &err);
+                }
+                dbus_message_unref(msg);
+            }
+            uint32_t c = 0;
+            bool ok = false;
+            if (reply) {
+                ok = (dbus_message_get_args(reply, &err, DBUS_TYPE_UINT32_VAL, &c, DBUS_TYPE_INVALID_VAL) != 0);
+                dbus_message_unref(reply);
+            }
+            if (dbus_error_free) dbus_error_free(&err);
+            if (ok) {
+                cookie = c;
+                usingGnome = false;
+                inhibited = true;
+                return;
+            }
+            // Fallback: org.gnome.SessionManager
+            dbus_error_init(&err);
+            msg = dbus_message_new_method_call(
+                "org.gnome.SessionManager", "/org/gnome/SessionManager",
+                "org.gnome.SessionManager", "Inhibit");
+            reply = nullptr;
+            if (msg) {
+                uint32_t toplevelXid = 0;
+                uint32_t flags = 8; // Inhibit idle
+                if (dbus_message_append_args(msg,
+                        DBUS_TYPE_STRING_VAL, &app,
+                        DBUS_TYPE_UINT32_VAL, &toplevelXid,
+                        DBUS_TYPE_STRING_VAL, &reason,
+                        DBUS_TYPE_UINT32_VAL, &flags,
+                        DBUS_TYPE_INVALID_VAL)) {
+                    reply = dbus_connection_send_with_reply_and_block(conn, msg, 200, &err);
+                }
+                dbus_message_unref(msg);
+            }
+            if (reply) {
+                ok = (dbus_message_get_args(reply, &err, DBUS_TYPE_UINT32_VAL, &c, DBUS_TYPE_INVALID_VAL) != 0);
+                dbus_message_unref(reply);
+            }
+            if (dbus_error_free) dbus_error_free(&err);
+            if (ok) {
+                cookie = c;
+                usingGnome = true;
+                inhibited = true;
+            }
+        } else {
+            const char* dest = usingGnome ? "org.gnome.SessionManager" : "org.freedesktop.ScreenSaver";
+            const char* path = usingGnome ? "/org/gnome/SessionManager" : "/org/freedesktop/ScreenSaver";
+            const char* method = usingGnome ? "Uninhibit" : "UnInhibit";
+            void* msg = dbus_message_new_method_call(dest, path, dest, method);
+            if (msg) {
+                uint32_t c = cookie;
+                dbus_message_append_args(msg, DBUS_TYPE_UINT32_VAL, &c, DBUS_TYPE_INVALID_VAL);
+                DBusError err{};
+                dbus_error_init(&err);
+                void* reply = dbus_connection_send_with_reply_and_block(conn, msg, 200, &err);
+                if (reply) dbus_message_unref(reply);
+                if (dbus_error_free) dbus_error_free(&err);
+                dbus_message_unref(msg);
+            }
+            inhibited = false;
+            cookie = 0;
+        }
+    }
+};
+
+DbusScreenSaverClient& GetScreenSaverClient() {
+    static DbusScreenSaverClient instance;
+    return instance;
+}
+
+std::atomic<EXECUTION_STATE> g_execState{ES_CONTINUOUS};
+
+} // namespace
+
+EXECUTION_STATE SetThreadExecutionState(EXECUTION_STATE esFlags) {
+    EXECUTION_STATE prev = g_execState.exchange(esFlags, std::memory_order_acq_rel);
+    bool wantInhibit = ((esFlags & ES_CONTINUOUS) != 0) &&
+                       ((esFlags & (ES_DISPLAY_REQUIRED | ES_SYSTEM_REQUIRED)) != 0);
+    GetScreenSaverClient().SetInhibited(wantInhibit);
+    return prev;
+}
+BOOL ProcessIdToSessionId(DWORD dwProcessId, DWORD* pSessionId) {
+    pid_t sid = ::getsid(static_cast<pid_t>(dwProcessId));
+    if (sid < 0) return FALSE;
+    if (pSessionId) *pSessionId = static_cast<DWORD>(sid);
     return TRUE;
+}
+
+BOOL OpenProcessToken(HANDLE ProcessHandle, DWORD /*DesiredAccess*/, PHANDLE TokenHandle) {
+    if (!TokenHandle || !ProcessHandle || ProcessHandle == INVALID_HANDLE_VALUE) return FALSE;
+    pid_t pid = ::getpid();
+    uid_t uid = ::getuid();
+    if (ProcessHandle != reinterpret_cast<HANDLE>(0x2000)) {
+        auto* procObj = reinterpret_cast<LinuxHandleObject*>(ProcessHandle);
+        if (procObj->type != LinuxHandleObject::Process || procObj->pid <= 0) return FALSE;
+        pid = procObj->pid;
+        std::string statusPath = "/proc/" + std::to_string(pid) + "/status";
+        std::ifstream f(statusPath);
+        std::string line;
+        bool foundUid = false;
+        while (std::getline(f, line)) {
+            if (line.rfind("Uid:", 0) == 0) {
+                unsigned long realUid = 0;
+                if (std::sscanf(line.c_str() + 4, "%lu", &realUid) == 1) {
+                    uid = static_cast<uid_t>(realUid);
+                    foundUid = true;
+                }
+                break;
+            }
+        }
+        if (!foundUid) return FALSE;
+    }
+    auto* tok = new LinuxHandleObject();
+    tok->type = LinuxHandleObject::Token;
+    tok->pid = pid;
+    tok->uid = uid;
+    *TokenHandle = reinterpret_cast<HANDLE>(tok);
+    return TRUE;
+}
+
+BOOL GetTokenInformation(HANDLE TokenHandle, TOKEN_INFORMATION_CLASS TokenInformationClass, LPVOID TokenInformation, DWORD TokenInformationLength, PDWORD ReturnLength) {
+    if (!TokenHandle || TokenHandle == INVALID_HANDLE_VALUE) return FALSE;
+    auto* tok = reinterpret_cast<LinuxHandleObject*>(TokenHandle);
+    if (tok->type != LinuxHandleObject::Token) return FALSE;
+    if (TokenInformationClass == TokenSessionId) {
+        if (ReturnLength) *ReturnLength = sizeof(DWORD);
+        if (!TokenInformation || TokenInformationLength < sizeof(DWORD)) return FALSE;
+        pid_t sid = ::getsid(tok->pid);
+        *static_cast<DWORD*>(TokenInformation) = (sid >= 0) ? static_cast<DWORD>(sid) : 0;
+        return sid >= 0 ? TRUE : FALSE;
+    }
+    if (TokenInformationClass == TokenUser) {
+        if (ReturnLength) *ReturnLength = sizeof(TOKEN_USER) + sizeof(uint32_t);
+        if (!TokenInformation || TokenInformationLength < sizeof(TOKEN_USER) + sizeof(uint32_t)) return FALSE;
+        auto* tu = static_cast<PTOKEN_USER>(TokenInformation);
+        auto* sid = reinterpret_cast<uint32_t*>(static_cast<uint8_t*>(TokenInformation) + sizeof(TOKEN_USER));
+        *sid = static_cast<uint32_t>(tok->uid);
+        tu->User.Sid = sid;
+        tu->User.Attributes = 0;
+        return TRUE;
+    }
+    return FALSE;
 }
 
 HANDLE OpenProcess(DWORD /*dwDesiredAccess*/, BOOL /*bInheritHandle*/, DWORD dwProcessId) {
@@ -1337,49 +1852,313 @@ HANDLE CreateToolhelp32Snapshot(DWORD /*dwFlags*/, DWORD /*th32ProcessID*/) {
 BOOL Process32FirstW(HANDLE /*hSnapshot*/, PROCESSENTRY32W* /*lppe*/) { return FALSE; }
 BOOL Process32NextW(HANDLE /*hSnapshot*/, PROCESSENTRY32W* /*lppe*/) { return FALSE; }
 
-HANDLE CreateEventW(LPSECURITY_ATTRIBUTES /*lpEventAttributes*/, BOOL bManualReset, BOOL bInitialState, LPCWSTR /*lpName*/) {
+namespace {
+
+std::mutex g_namedEventsMtx;
+std::unordered_map<std::string, std::weak_ptr<LinuxSyncState>> g_namedEvents;
+
+std::string SanitizeIpcToken(const std::string& s) {
+    std::string out;
+    out.reserve(s.size());
+    for (unsigned char c : s) {
+        if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_' || c == '-') {
+            out.push_back(static_cast<char>(c));
+        } else {
+            out.push_back('_');
+        }
+    }
+    if (out.empty()) out = "default";
+    return out;
+}
+
+std::string GetRuntimeDirUtf8() {
+    return LinuxWideToUtf8(LinuxGetXdgRuntimeDir());
+}
+
+struct PipeSignal {
+    int readFd = -1;
+    int writeFd = -1;
+};
+
+bool CreateNonBlockingPipe(int fds[2]) {
+#if defined(__linux__)
+    if (::pipe2(fds, O_NONBLOCK | O_CLOEXEC) == 0) return true;
+#endif
+    if (::pipe(fds) != 0) return false;
+    for (int i = 0; i < 2; ++i) {
+        int fl = ::fcntl(fds[i], F_GETFL, 0);
+        if (fl >= 0) ::fcntl(fds[i], F_SETFL, fl | O_NONBLOCK);
+        int fdFl = ::fcntl(fds[i], F_GETFD, 0);
+        if (fdFl >= 0) ::fcntl(fds[i], F_SETFD, fdFl | FD_CLOEXEC);
+    }
+    return true;
+}
+
+const PipeSignal& GetWakePipe() {
+    static const PipeSignal pipeSig = []() {
+        PipeSignal p;
+        int fds[2] = {-1, -1};
+        if (CreateNonBlockingPipe(fds)) {
+            p.readFd = fds[0];
+            p.writeFd = fds[1];
+        }
+        return p;
+    }();
+    return pipeSig;
+}
+
+std::atomic<int> g_displayWakeFd{-1};
+
+void DrainPipeFd(int fd) {
+    if (fd < 0) return;
+    uint8_t buf[64];
+    while (::read(fd, buf, sizeof(buf)) > 0) {}
+}
+
+bool TryPollProcessExit(pid_t pid, DWORD& outExitCode, DWORD dwMilliseconds) {
+#ifndef SYS_pidfd_open
+#define SYS_pidfd_open 434
+#endif
+    int status = 0;
+    pid_t r = ::waitpid(pid, &status, WNOHANG);
+    if (r != 0) {
+        if (r > 0 && WIFEXITED(status)) outExitCode = static_cast<DWORD>(WEXITSTATUS(status));
+        return true;
+    }
+    if (dwMilliseconds == 0) return false;
+
+    int pidfd = static_cast<int>(::syscall(SYS_pidfd_open, pid, 0U));
+    if (pidfd >= 0) {
+        struct pollfd pfd { pidfd, POLLIN, 0 };
+        int timeout = (dwMilliseconds == INFINITE) ? -1 : static_cast<int>(std::min<DWORD>(dwMilliseconds, INT_MAX));
+        int pr = 0;
+        do {
+            pr = ::poll(&pfd, 1, timeout);
+        } while (pr < 0 && errno == EINTR && dwMilliseconds == INFINITE);
+        ::close(pidfd);
+        if (pr > 0) {
+            r = ::waitpid(pid, &status, WNOHANG);
+            if (r != 0) {
+                if (r > 0 && WIFEXITED(status)) outExitCode = static_cast<DWORD>(WEXITSTATUS(status));
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // Fallback if pidfd_open is unavailable (e.g. older kernel or seccomp)
+    auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(dwMilliseconds);
+    int backoffMs = 1;
+    while (true) {
+        r = ::waitpid(pid, &status, WNOHANG);
+        if (r != 0) {
+            if (r > 0 && WIFEXITED(status)) outExitCode = static_cast<DWORD>(WEXITSTATUS(status));
+            return true;
+        }
+        if (dwMilliseconds != INFINITE) {
+            auto now = std::chrono::steady_clock::now();
+            if (now >= deadline) return false;
+            auto remMs = std::chrono::duration_cast<std::chrono::milliseconds>(deadline - now).count();
+            int sleepMs = static_cast<int>(std::min<int64_t>(backoffMs, std::max<int64_t>(1, remMs)));
+            std::this_thread::sleep_for(std::chrono::milliseconds(sleepMs));
+        } else {
+            std::this_thread::sleep_for(std::chrono::milliseconds(backoffMs));
+        }
+        backoffMs = std::min(backoffMs * 2, 25);
+    }
+}
+
+bool CheckHandleSignaledNonBlocking(LinuxHandleObject* obj, bool consume, bool* outHasTimerDue = nullptr,
+                                    std::chrono::steady_clock::time_point* outTimerDue = nullptr) {
+    if (!obj) return false;
+    if (obj->type == LinuxHandleObject::Process) {
+        int status = 0;
+        pid_t r = ::waitpid(obj->pid, &status, WNOHANG);
+        if (r != 0) {
+            if (r > 0 && WIFEXITED(status)) obj->exitCode = static_cast<DWORD>(WEXITSTATUS(status));
+            return true;
+        }
+        return false;
+    }
+    if (!obj->sync) return false;
+    std::lock_guard<std::mutex> lock(obj->sync->mtx);
+    if (obj->type == LinuxHandleObject::Timer && obj->sync->timerArmed) {
+        auto now = std::chrono::steady_clock::now();
+        if (now >= obj->sync->dueTime) {
+            if (consume && !obj->sync->manualReset) obj->sync->timerArmed = false;
+            return true;
+        }
+        if (outHasTimerDue && (!*outHasTimerDue || obj->sync->dueTime < *outTimerDue)) {
+            *outHasTimerDue = true;
+            *outTimerDue = obj->sync->dueTime;
+        }
+        return false;
+    }
+    if (obj->sync->signaled) {
+        if (consume && !obj->sync->manualReset) obj->sync->signaled = false;
+        return true;
+    }
+    return false;
+}
+
+void RegisterWaitChannel(LinuxHandleObject* obj, const std::shared_ptr<LinuxWaitChannel>& wc) {
+    if (!obj || !obj->sync || !wc) return;
+    std::lock_guard<std::mutex> lock(obj->sync->mtx);
+    obj->sync->waiters.push_back(wc);
+}
+
+void UnregisterWaitChannel(LinuxHandleObject* obj, const std::shared_ptr<LinuxWaitChannel>& wc) {
+    if (!obj || !obj->sync || !wc) return;
+    std::lock_guard<std::mutex> lock(obj->sync->mtx);
+    auto& v = obj->sync->waiters;
+    v.erase(std::remove(v.begin(), v.end(), wc), v.end());
+}
+
+} // namespace
+
+void LinuxWakeMessageLoop() {
+    int fd = GetWakePipe().writeFd;
+    if (fd >= 0) {
+        uint8_t one = 1;
+        ssize_t unused = ::write(fd, &one, sizeof(one));
+        (void)unused;
+    }
+}
+
+int LinuxGetMessageWakeFd() {
+    return GetWakePipe().readFd;
+}
+
+void LinuxSetDisplayWakeFd(int fd) {
+    g_displayWakeFd.store(fd, std::memory_order_release);
+}
+
+HANDLE CreateEventW(LPSECURITY_ATTRIBUTES /*lpEventAttributes*/, BOOL bManualReset, BOOL bInitialState, LPCWSTR lpName) {
     auto* obj = new LinuxHandleObject();
     obj->type = LinuxHandleObject::Event;
-    obj->manualReset = (bManualReset != FALSE);
-    obj->signaled = (bInitialState != FALSE);
+    if (lpName && *lpName) {
+        std::string key = LinuxWideToUtf8(lpName);
+        obj->path = key;
+        std::lock_guard<std::mutex> lk(g_namedEventsMtx);
+        auto it = g_namedEvents.find(key);
+        std::shared_ptr<LinuxSyncState> existing = (it != g_namedEvents.end()) ? it->second.lock() : nullptr;
+        if (existing) {
+            obj->sync = std::move(existing);
+            SetLastError(ERROR_ALREADY_EXISTS);
+        } else {
+            obj->sync = std::make_shared<LinuxSyncState>();
+            obj->sync->manualReset = (bManualReset != FALSE);
+            obj->sync->signaled = (bInitialState != FALSE);
+            g_namedEvents[key] = obj->sync;
+            SetLastError(ERROR_SUCCESS);
+        }
+    } else {
+        obj->sync = std::make_shared<LinuxSyncState>();
+        obj->sync->manualReset = (bManualReset != FALSE);
+        obj->sync->signaled = (bInitialState != FALSE);
+        SetLastError(ERROR_SUCCESS);
+    }
+    return reinterpret_cast<HANDLE>(obj);
+}
+
+HANDLE OpenEventW(DWORD /*dwDesiredAccess*/, BOOL /*bInheritHandle*/, LPCWSTR lpName) {
+    if (!lpName || !*lpName) {
+        SetLastError(ERROR_INVALID_PARAMETER);
+        return nullptr;
+    }
+    std::string key = LinuxWideToUtf8(lpName);
+    std::shared_ptr<LinuxSyncState> entry;
+    {
+        std::lock_guard<std::mutex> lk(g_namedEventsMtx);
+        auto it = g_namedEvents.find(key);
+        if (it != g_namedEvents.end()) {
+            entry = it->second.lock();
+            if (!entry) g_namedEvents.erase(it);
+        }
+    }
+    if (!entry) {
+        SetLastError(ERROR_FILE_NOT_FOUND);
+        return nullptr;
+    }
+    auto* obj = new LinuxHandleObject();
+    obj->type = LinuxHandleObject::Event;
+    obj->path = key;
+    obj->sync = std::move(entry);
+    SetLastError(ERROR_SUCCESS);
     return reinterpret_cast<HANDLE>(obj);
 }
 
 BOOL SetEvent(HANDLE hEvent) {
     if (!hEvent || hEvent == INVALID_HANDLE_VALUE) return FALSE;
     auto* obj = reinterpret_cast<LinuxHandleObject*>(hEvent);
-    std::lock_guard<std::mutex> lock(obj->mtx);
-    obj->signaled = true;
-    if (obj->manualReset) obj->cv.notify_all();
-    else obj->cv.notify_one();
+    if (!obj->sync) return FALSE;
+    std::vector<std::shared_ptr<LinuxWaitChannel>> toNotify;
+    {
+        std::lock_guard<std::mutex> lock(obj->sync->mtx);
+        obj->sync->signaled = true;
+        toNotify = obj->sync->SnapshotWaitersLocked();
+        if (obj->sync->manualReset) obj->sync->cv.notify_all();
+        else obj->sync->cv.notify_one();
+    }
+    NotifyWaitChannelList(toNotify);
     return TRUE;
 }
 
 BOOL ResetEvent(HANDLE hEvent) {
     if (!hEvent || hEvent == INVALID_HANDLE_VALUE) return FALSE;
     auto* obj = reinterpret_cast<LinuxHandleObject*>(hEvent);
-    std::lock_guard<std::mutex> lock(obj->mtx);
-    obj->signaled = false;
+    if (!obj->sync) return FALSE;
+    std::lock_guard<std::mutex> lock(obj->sync->mtx);
+    obj->sync->signaled = false;
     return TRUE;
 }
 
-HANDLE CreateMutexW(LPSECURITY_ATTRIBUTES /*lpMutexAttributes*/, BOOL bInitialOwner, LPCWSTR /*lpName*/) {
+HANDLE CreateMutexW(LPSECURITY_ATTRIBUTES /*lpMutexAttributes*/, BOOL bInitialOwner, LPCWSTR lpName) {
     auto* obj = new LinuxHandleObject();
     obj->type = LinuxHandleObject::Mutex;
-    obj->signaled = !bInitialOwner;
-    SetLastError(ERROR_SUCCESS);
+    obj->sync = std::make_shared<LinuxSyncState>();
+    obj->sync->signaled = !bInitialOwner;
+    if (lpName && *lpName) {
+        std::string sanitized = SanitizeIpcToken(LinuxWideToUtf8(lpName));
+        std::string lockPath = GetRuntimeDirUtf8() + "/aperture-mutex-" + std::to_string(::getuid()) + "-" + sanitized + ".lock";
+        int fd = ::open(lockPath.c_str(), O_CREAT | O_RDWR | O_CLOEXEC, 0600);
+        if (fd >= 0) {
+            if (LinuxFlock(fd, kFlockEx | kFlockNb) == 0) {
+                obj->fd = fd;
+                obj->path = lockPath;
+                obj->ownsLock = true;
+                SetLastError(ERROR_SUCCESS);
+            } else {
+                ::close(fd);
+                obj->fd = -1;
+                obj->ownsLock = false;
+                SetLastError(ERROR_ALREADY_EXISTS);
+            }
+        } else {
+            SetLastError(ErrnoToWin32(errno));
+        }
+    } else {
+        SetLastError(ERROR_SUCCESS);
+    }
     return reinterpret_cast<HANDLE>(obj);
 }
 
 BOOL ReleaseMutex(HANDLE hMutex) {
+    if (!hMutex || hMutex == INVALID_HANDLE_VALUE) return FALSE;
+    auto* obj = reinterpret_cast<LinuxHandleObject*>(hMutex);
+    if (obj->type == LinuxHandleObject::Mutex && obj->fd >= 0 && obj->ownsLock) {
+        LinuxFlock(obj->fd, kFlockUn);
+        obj->ownsLock = false;
+    }
     return SetEvent(hMutex);
 }
 
 HANDLE CreateWaitableTimerExW(LPSECURITY_ATTRIBUTES /*lpTimerAttributes*/, LPCWSTR /*lpTimerName*/, DWORD dwFlags, DWORD /*dwDesiredAccess*/) {
     auto* obj = new LinuxHandleObject();
     obj->type = LinuxHandleObject::Timer;
-    obj->manualReset = (dwFlags & CREATE_WAITABLE_TIMER_MANUAL_RESET) != 0;
-    obj->signaled = false;
+    obj->sync = std::make_shared<LinuxSyncState>();
+    obj->sync->manualReset = (dwFlags & CREATE_WAITABLE_TIMER_MANUAL_RESET) != 0;
+    obj->sync->signaled = false;
     return reinterpret_cast<HANDLE>(obj);
 }
 
@@ -1387,27 +2166,33 @@ BOOL SetWaitableTimer(HANDLE hTimer, const LARGE_INTEGER* lpDueTime, LONG lPerio
                       void* /*pfnCompletionRoutine*/, LPVOID /*lpArgToCompletionRoutine*/, BOOL /*fResume*/) {
     if (!hTimer || hTimer == INVALID_HANDLE_VALUE || !lpDueTime) return FALSE;
     auto* obj = reinterpret_cast<LinuxHandleObject*>(hTimer);
-    std::lock_guard<std::mutex> lock(obj->mtx);
-    obj->signaled = false;
-    obj->timerArmed = true;
-    obj->timerPeriodMs = lPeriod;
-    int64_t val = lpDueTime->QuadPart;
-    if (val <= 0) {
-        // Relative in 100ns units
-        auto ns = std::chrono::nanoseconds((-val) * 100LL);
-        obj->dueTime = std::chrono::steady_clock::now() + std::chrono::duration_cast<std::chrono::steady_clock::duration>(ns);
-    } else {
-        obj->dueTime = std::chrono::steady_clock::now();
+    if (!obj->sync) return FALSE;
+    std::vector<std::shared_ptr<LinuxWaitChannel>> toNotify;
+    {
+        std::lock_guard<std::mutex> lock(obj->sync->mtx);
+        obj->sync->signaled = false;
+        obj->sync->timerArmed = true;
+        obj->sync->timerPeriodMs = lPeriod;
+        int64_t val = lpDueTime->QuadPart;
+        if (val <= 0) {
+            auto ns = std::chrono::nanoseconds((-val) * 100LL);
+            obj->sync->dueTime = std::chrono::steady_clock::now() + std::chrono::duration_cast<std::chrono::steady_clock::duration>(ns);
+        } else {
+            obj->sync->dueTime = std::chrono::steady_clock::now();
+        }
+        toNotify = obj->sync->SnapshotWaitersLocked();
+        obj->sync->cv.notify_all();
     }
-    obj->cv.notify_all();
+    NotifyWaitChannelList(toNotify);
     return TRUE;
 }
 
 BOOL CancelWaitableTimer(HANDLE hTimer) {
     if (!hTimer || hTimer == INVALID_HANDLE_VALUE) return FALSE;
     auto* obj = reinterpret_cast<LinuxHandleObject*>(hTimer);
-    std::lock_guard<std::mutex> lock(obj->mtx);
-    obj->timerArmed = false;
+    if (!obj->sync) return FALSE;
+    std::lock_guard<std::mutex> lock(obj->sync->mtx);
+    obj->sync->timerArmed = false;
     return TRUE;
 }
 
@@ -1415,83 +2200,650 @@ DWORD WaitForSingleObject(HANDLE hHandle, DWORD dwMilliseconds) {
     if (!hHandle || hHandle == INVALID_HANDLE_VALUE) return WAIT_FAILED;
     auto* obj = reinterpret_cast<LinuxHandleObject*>(hHandle);
     if (obj->type == LinuxHandleObject::Process) {
-        auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(dwMilliseconds);
-        while (true) {
-            int status = 0;
-            pid_t r = ::waitpid(obj->pid, &status, WNOHANG);
-            if (r != 0) {
-                if (r > 0 && WIFEXITED(status)) obj->exitCode = static_cast<DWORD>(WEXITSTATUS(status));
-                return WAIT_OBJECT_0;
-            }
-            if (dwMilliseconds == 0) return WAIT_TIMEOUT;
-            if (dwMilliseconds != INFINITE && std::chrono::steady_clock::now() >= deadline) return WAIT_TIMEOUT;
-            std::this_thread::sleep_for(std::chrono::milliseconds(5));
-        }
+        return TryPollProcessExit(obj->pid, obj->exitCode, dwMilliseconds) ? WAIT_OBJECT_0 : WAIT_TIMEOUT;
     }
-    std::unique_lock<std::mutex> lock(obj->mtx);
-    if (obj->type == LinuxHandleObject::Timer && obj->timerArmed) {
+    if (!obj->sync) return WAIT_FAILED;
+    std::unique_lock<std::mutex> lock(obj->sync->mtx);
+    if (obj->type == LinuxHandleObject::Timer && obj->sync->timerArmed) {
         auto now = std::chrono::steady_clock::now();
-        if (now >= obj->dueTime) {
-            if (!obj->manualReset) obj->timerArmed = false;
+        if (now >= obj->sync->dueTime) {
+            if (!obj->sync->manualReset) obj->sync->timerArmed = false;
             return WAIT_OBJECT_0;
         }
+        if (dwMilliseconds == 0) return WAIT_TIMEOUT;
         auto maxWait = (dwMilliseconds == INFINITE)
-                           ? obj->dueTime
-                           : std::min(obj->dueTime, now + std::chrono::milliseconds(dwMilliseconds));
-        obj->cv.wait_until(lock, maxWait);
-        if (std::chrono::steady_clock::now() >= obj->dueTime && obj->timerArmed) {
-            if (!obj->manualReset) obj->timerArmed = false;
+                           ? obj->sync->dueTime
+                           : std::min(obj->sync->dueTime, now + std::chrono::milliseconds(dwMilliseconds));
+        obj->sync->cv.wait_until(lock, maxWait);
+        if (std::chrono::steady_clock::now() >= obj->sync->dueTime && obj->sync->timerArmed) {
+            if (!obj->sync->manualReset) obj->sync->timerArmed = false;
             return WAIT_OBJECT_0;
         }
         return WAIT_TIMEOUT;
     }
 
-    if (obj->signaled) {
-        if (!obj->manualReset) obj->signaled = false;
+    if (obj->sync->signaled) {
+        if (!obj->sync->manualReset) obj->sync->signaled = false;
         return WAIT_OBJECT_0;
     }
     if (dwMilliseconds == 0) return WAIT_TIMEOUT;
     if (dwMilliseconds == INFINITE) {
-        obj->cv.wait(lock, [&] { return obj->signaled; });
+        obj->sync->cv.wait(lock, [&] { return obj->sync->signaled; });
     } else {
-        if (!obj->cv.wait_for(lock, std::chrono::milliseconds(dwMilliseconds), [&] { return obj->signaled; })) {
+        if (!obj->sync->cv.wait_for(lock, std::chrono::milliseconds(dwMilliseconds), [&] { return obj->sync->signaled; })) {
             return WAIT_TIMEOUT;
         }
     }
-    if (!obj->manualReset) obj->signaled = false;
+    if (!obj->sync->manualReset) obj->sync->signaled = false;
     return WAIT_OBJECT_0;
 }
 
 DWORD WaitForMultipleObjects(DWORD nCount, const HANDLE* lpHandles, BOOL bWaitAll, DWORD dwMilliseconds) {
     if (nCount == 0 || !lpHandles) return WAIT_FAILED;
     if (nCount == 1) return WaitForSingleObject(lpHandles[0], dwMilliseconds);
-    auto start = std::chrono::steady_clock::now();
-    while (true) {
-        bool allSignaled = true;
-        for (DWORD i = 0; i < nCount; ++i) {
-            DWORD r = WaitForSingleObject(lpHandles[i], 0);
-            if (r == WAIT_OBJECT_0) {
-                if (!bWaitAll) return WAIT_OBJECT_0 + i;
-            } else {
-                allSignaled = false;
+
+    auto wc = std::make_shared<LinuxWaitChannel>();
+    for (DWORD i = 0; i < nCount; ++i) {
+        if (!lpHandles[i] || lpHandles[i] == INVALID_HANDLE_VALUE) {
+            for (DWORD j = 0; j < i; ++j) UnregisterWaitChannel(reinterpret_cast<LinuxHandleObject*>(lpHandles[j]), wc);
+            return WAIT_FAILED;
+        }
+        RegisterWaitChannel(reinterpret_cast<LinuxHandleObject*>(lpHandles[i]), wc);
+    }
+    struct Guard {
+        DWORD count;
+        const HANDLE* handles;
+        std::shared_ptr<LinuxWaitChannel> ch;
+        ~Guard() {
+            for (DWORD i = 0; i < count; ++i) {
+                UnregisterWaitChannel(reinterpret_cast<LinuxHandleObject*>(handles[i]), ch);
             }
         }
-        if (bWaitAll && allSignaled) return WAIT_OBJECT_0;
-        if (dwMilliseconds == 0) return WAIT_TIMEOUT;
-        if (dwMilliseconds != INFINITE) {
-            auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start).count();
-            if (elapsed >= dwMilliseconds) return WAIT_TIMEOUT;
+    } guard{nCount, lpHandles, wc};
+
+    const bool infinite = (dwMilliseconds == INFINITE);
+    const auto overallDeadline = infinite
+                                     ? std::chrono::steady_clock::time_point::max()
+                                     : (std::chrono::steady_clock::now() + std::chrono::milliseconds(dwMilliseconds));
+
+    while (true) {
+        uint64_t seenSeq = wc->seq.load(std::memory_order_acquire);
+        bool hasTimerDue = false;
+        std::chrono::steady_clock::time_point earliestTimerDue{};
+
+        if (!bWaitAll) {
+            for (DWORD i = 0; i < nCount; ++i) {
+                auto* obj = reinterpret_cast<LinuxHandleObject*>(lpHandles[i]);
+                if (CheckHandleSignaledNonBlocking(obj, true, &hasTimerDue, &earliestTimerDue)) {
+                    return WAIT_OBJECT_0 + i;
+                }
+            }
+        } else {
+            bool allReady = true;
+            for (DWORD i = 0; i < nCount; ++i) {
+                auto* obj = reinterpret_cast<LinuxHandleObject*>(lpHandles[i]);
+                if (!CheckHandleSignaledNonBlocking(obj, false, &hasTimerDue, &earliestTimerDue)) {
+                    allReady = false;
+                }
+            }
+            if (allReady) {
+                for (DWORD i = 0; i < nCount; ++i) {
+                    CheckHandleSignaledNonBlocking(reinterpret_cast<LinuxHandleObject*>(lpHandles[i]), true);
+                }
+                return WAIT_OBJECT_0;
+            }
         }
-        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+
+        if (dwMilliseconds == 0) return WAIT_TIMEOUT;
+        auto now = std::chrono::steady_clock::now();
+        if (!infinite && now >= overallDeadline) return WAIT_TIMEOUT;
+
+        auto waitUntil = overallDeadline;
+        if (hasTimerDue && earliestTimerDue < waitUntil) waitUntil = earliestTimerDue;
+        // If any handle is a Process, bound poll interval cleanly via pid check
+        for (DWORD i = 0; i < nCount; ++i) {
+            auto* obj = reinterpret_cast<LinuxHandleObject*>(lpHandles[i]);
+            if (obj->type == LinuxHandleObject::Process) {
+                auto procCheck = now + std::chrono::milliseconds(25);
+                if (procCheck < waitUntil) waitUntil = procCheck;
+                break;
+            }
+        }
+
+        std::unique_lock<std::mutex> lk(wc->m);
+        if (waitUntil == std::chrono::steady_clock::time_point::max()) {
+            wc->cv.wait(lk, [&] { return wc->seq.load(std::memory_order_acquire) != seenSeq; });
+        } else {
+            wc->cv.wait_until(lk, waitUntil, [&] { return wc->seq.load(std::memory_order_acquire) != seenSeq; });
+        }
     }
 }
 
 DWORD MsgWaitForMultipleObjects(DWORD nCount, const HANDLE* pHandles, BOOL fWaitAll, DWORD dwMilliseconds, DWORD /*dwWakeMask*/) {
+    const PipeSignal& wakePipe = GetWakePipe();
+    const int wakeFd = wakePipe.readFd;
     if (nCount == 0 || !pHandles) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(std::min<DWORD>(dwMilliseconds, 10)));
-        return WAIT_OBJECT_0;
+        if (wakeFd < 0) {
+            if (dwMilliseconds > 0 && dwMilliseconds != INFINITE) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(dwMilliseconds));
+            }
+            return WAIT_TIMEOUT;
+        }
+        struct pollfd pfds[2] = {};
+        nfds_t nfds = 1;
+        pfds[0].fd = wakeFd;
+        pfds[0].events = POLLIN;
+        int dispFd = g_displayWakeFd.load(std::memory_order_acquire);
+        if (dispFd >= 0) {
+            pfds[1].fd = dispFd;
+            pfds[1].events = POLLIN;
+            nfds = 2;
+        }
+        int timeout = (dwMilliseconds == INFINITE) ? -1 : static_cast<int>(std::min<DWORD>(dwMilliseconds, static_cast<DWORD>(INT_MAX)));
+        int pr = ::poll(pfds, nfds, timeout);
+        if (pr > 0) {
+            if (pfds[0].revents & POLLIN) DrainPipeFd(wakeFd);
+            return WAIT_OBJECT_0;
+        }
+        return WAIT_TIMEOUT;
     }
-    return WaitForMultipleObjects(nCount, pHandles, fWaitAll, std::min<DWORD>(dwMilliseconds, 15));
+
+    // With kernel/user handles: check non-blocking first, then poll wakeFd alongside handle notifications
+    auto wc = std::make_shared<LinuxWaitChannel>();
+    wc->wakeFd = wakePipe.writeFd;
+    for (DWORD i = 0; i < nCount; ++i) {
+        if (!pHandles[i] || pHandles[i] == INVALID_HANDLE_VALUE) {
+            for (DWORD j = 0; j < i; ++j) UnregisterWaitChannel(reinterpret_cast<LinuxHandleObject*>(pHandles[j]), wc);
+            return WAIT_FAILED;
+        }
+        RegisterWaitChannel(reinterpret_cast<LinuxHandleObject*>(pHandles[i]), wc);
+    }
+    struct Guard {
+        DWORD count;
+        const HANDLE* handles;
+        std::shared_ptr<LinuxWaitChannel> ch;
+        ~Guard() {
+            for (DWORD i = 0; i < count; ++i) {
+                UnregisterWaitChannel(reinterpret_cast<LinuxHandleObject*>(handles[i]), ch);
+            }
+        }
+    } guard{nCount, pHandles, wc};
+
+    const bool infinite = (dwMilliseconds == INFINITE);
+    const auto overallDeadline = infinite
+                                     ? std::chrono::steady_clock::time_point::max()
+                                     : (std::chrono::steady_clock::now() + std::chrono::milliseconds(dwMilliseconds));
+
+    while (true) {
+        bool hasTimerDue = false;
+        std::chrono::steady_clock::time_point earliestTimerDue{};
+        if (!fWaitAll) {
+            for (DWORD i = 0; i < nCount; ++i) {
+                if (CheckHandleSignaledNonBlocking(reinterpret_cast<LinuxHandleObject*>(pHandles[i]), true, &hasTimerDue, &earliestTimerDue)) {
+                    return WAIT_OBJECT_0 + i;
+                }
+            }
+        } else {
+            bool allReady = true;
+            for (DWORD i = 0; i < nCount; ++i) {
+                if (!CheckHandleSignaledNonBlocking(reinterpret_cast<LinuxHandleObject*>(pHandles[i]), false, &hasTimerDue, &earliestTimerDue)) {
+                    allReady = false;
+                }
+            }
+            if (allReady) {
+                for (DWORD i = 0; i < nCount; ++i) {
+                    CheckHandleSignaledNonBlocking(reinterpret_cast<LinuxHandleObject*>(pHandles[i]), true);
+                }
+                return WAIT_OBJECT_0;
+            }
+        }
+        if (dwMilliseconds == 0) return WAIT_TIMEOUT;
+        auto now = std::chrono::steady_clock::now();
+        if (!infinite && now >= overallDeadline) return WAIT_TIMEOUT;
+
+        auto waitUntil = overallDeadline;
+        if (hasTimerDue && earliestTimerDue < waitUntil) waitUntil = earliestTimerDue;
+        int timeoutMs = -1;
+        if (waitUntil != std::chrono::steady_clock::time_point::max()) {
+            auto remMs = std::chrono::duration_cast<std::chrono::milliseconds>(waitUntil - now).count();
+            timeoutMs = static_cast<int>(std::clamp<int64_t>(remMs, 0, INT_MAX));
+        }
+
+        struct pollfd pfds[2] = {};
+        nfds_t nfds = 0;
+        if (wakeFd >= 0) {
+            pfds[nfds].fd = wakeFd;
+            pfds[nfds].events = POLLIN;
+            ++nfds;
+        }
+        int dispFd = g_displayWakeFd.load(std::memory_order_acquire);
+        if (dispFd >= 0) {
+            pfds[nfds].fd = dispFd;
+            pfds[nfds].events = POLLIN;
+            ++nfds;
+        }
+        if (nfds == 0) return WAIT_TIMEOUT;
+        int pr = ::poll(pfds, nfds, timeoutMs);
+        if (pr == 0) return WAIT_TIMEOUT;
+        if (pr > 0) {
+            bool wokeMsg = false;
+            if (wakeFd >= 0 && (pfds[0].revents & POLLIN)) {
+                DrainPipeFd(wakeFd);
+                wokeMsg = true;
+            }
+            if (dispFd >= 0 && (pfds[nfds - 1].revents & POLLIN)) {
+                wokeMsg = true;
+            }
+            // Re-check handles first; if none signaled, report input message available
+            if (!fWaitAll) {
+                for (DWORD i = 0; i < nCount; ++i) {
+                    if (CheckHandleSignaledNonBlocking(reinterpret_cast<LinuxHandleObject*>(pHandles[i]), true)) {
+                        return WAIT_OBJECT_0 + i;
+                    }
+                }
+            } else {
+                bool allReady = true;
+                for (DWORD i = 0; i < nCount; ++i) {
+                    if (!CheckHandleSignaledNonBlocking(reinterpret_cast<LinuxHandleObject*>(pHandles[i]), false)) {
+                        allReady = false;
+                    }
+                }
+                if (allReady) {
+                    for (DWORD i = 0; i < nCount; ++i) {
+                        CheckHandleSignaledNonBlocking(reinterpret_cast<LinuxHandleObject*>(pHandles[i]), true);
+                    }
+                    return WAIT_OBJECT_0;
+                }
+            }
+            if (wokeMsg) return WAIT_OBJECT_0 + nCount;
+        }
+    }
+}
+
+// ============================================================================
+// Cross-Process Single-Instance IPC (FindWindowW + WM_COPYDATA via Unix Socket)
+// ============================================================================
+
+namespace {
+
+constexpr uint32_t kIpcWireMagic = 0x49545041u; // 'APTI'
+constexpr uint32_t kMaxIpcWireBytes = 2u * 1024u * 1024u;
+
+struct IpcWireHeader {
+    uint32_t magic;
+    uint64_t dwData;
+    uint32_t cbData;
+};
+
+struct LocalWindowEntry {
+    HWND hwnd = nullptr;
+    std::string className;
+};
+
+struct PendingCopyDataItem {
+    HWND targetHwnd = nullptr;
+    ULONG_PTR dwData = 0;
+    std::vector<uint8_t> payload;
+    std::mutex mtx;
+    std::condition_variable cv;
+    bool done = false;
+    LRESULT result = 0;
+};
+
+std::mutex g_ipcMutex;
+std::vector<LocalWindowEntry> g_localWindows;
+std::unordered_map<uintptr_t, std::string> g_remoteWindows;
+uintptr_t g_nextRemoteHwndId = 0xFFFF0001ULL;
+
+int g_ipcListenFd = -1;
+int g_ipcStopRdFd = -1;
+int g_ipcStopWrFd = -1;
+HWND g_ipcServerHwnd = nullptr;
+std::string g_ipcSocketPath;
+std::thread g_ipcThread;
+std::atomic<bool> g_ipcStopping{false};
+
+std::mutex g_pendingIpcMtx;
+std::vector<std::shared_ptr<PendingCopyDataItem>> g_pendingIpcQueue;
+std::vector<std::weak_ptr<PendingCopyDataItem>> g_ipcInFlightItems;
+
+std::string MakeIpcSocketPath(const std::string& className) {
+    std::string cls = className.empty() ? "Aperture_Native_Direct2D_Class" : className;
+    return GetRuntimeDirUtf8() + "/aperture-ipc-" + std::to_string(::getuid()) + "-" + SanitizeIpcToken(cls) + ".sock";
+}
+
+bool ReadExactWithTimeout(int fd, void* dst, size_t len, int timeoutMs) {
+    uint8_t* p = static_cast<uint8_t*>(dst);
+    size_t got = 0;
+    auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(timeoutMs);
+    while (got < len) {
+        auto now = std::chrono::steady_clock::now();
+        if (now >= deadline) return false;
+        int rem = static_cast<int>(std::chrono::duration_cast<std::chrono::milliseconds>(deadline - now).count());
+        struct pollfd pfd { fd, POLLIN, 0 };
+        int pr = ::poll(&pfd, 1, std::max(1, rem));
+        if (pr <= 0) {
+            if (pr < 0 && errno == EINTR) continue;
+            return false;
+        }
+        ssize_t n = ::read(fd, p + got, len - got);
+        if (n <= 0) {
+            if (n < 0 && (errno == EINTR || errno == EAGAIN)) continue;
+            return false;
+        }
+        got += static_cast<size_t>(n);
+    }
+    return true;
+}
+
+bool WriteExactWithTimeout(int fd, const void* src, size_t len, int timeoutMs) {
+    const uint8_t* p = static_cast<const uint8_t*>(src);
+    size_t sent = 0;
+    auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(timeoutMs);
+    while (sent < len) {
+        auto now = std::chrono::steady_clock::now();
+        if (now >= deadline) return false;
+        int rem = static_cast<int>(std::chrono::duration_cast<std::chrono::milliseconds>(deadline - now).count());
+        struct pollfd pfd { fd, POLLOUT, 0 };
+        int pr = ::poll(&pfd, 1, std::max(1, rem));
+        if (pr <= 0) {
+            if (pr < 0 && errno == EINTR) continue;
+            return false;
+        }
+        ssize_t n = ::send(fd, p + sent, len - sent, MSG_NOSIGNAL);
+        if (n <= 0) {
+            if (n < 0 && (errno == EINTR || errno == EAGAIN)) continue;
+            return false;
+        }
+        sent += static_cast<size_t>(n);
+    }
+    return true;
+}
+
+bool IsSocketAccepting(const std::string& sockPath) {
+    if (sockPath.empty() || sockPath.size() >= sizeof(sockaddr_un::sun_path)) return false;
+    int fd = ::socket(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC, 0);
+    if (fd < 0) return false;
+    sockaddr_un addr{};
+    addr.sun_family = AF_UNIX;
+    std::strncpy(addr.sun_path, sockPath.c_str(), sizeof(addr.sun_path) - 1);
+    bool ok = (::connect(fd, reinterpret_cast<sockaddr*>(&addr), sizeof(addr)) == 0);
+    ::close(fd);
+    return ok;
+}
+
+void IpcServerThreadMain(int listenFd, int stopFd, HWND targetHwnd) {
+    while (!g_ipcStopping.load(std::memory_order_acquire)) {
+        struct pollfd pfds[2] = {
+            { listenFd, POLLIN, 0 },
+            { stopFd, POLLIN, 0 }
+        };
+        int pr = ::poll(pfds, 2, -1);
+        if (pr < 0) {
+            if (errno == EINTR) continue;
+            break;
+        }
+        if (pfds[1].revents & POLLIN) break;
+        if (!(pfds[0].revents & POLLIN)) continue;
+
+        int cfd = ::accept(listenFd, nullptr, nullptr);
+        if (cfd < 0) continue;
+        ::fcntl(cfd, F_SETFD, FD_CLOEXEC);
+
+        struct ucred cred{};
+        socklen_t credLen = sizeof(cred);
+        if (::getsockopt(cfd, SOL_SOCKET, SO_PEERCRED, &cred, &credLen) != 0 || cred.uid != ::getuid()) {
+            ::close(cfd);
+            continue;
+        }
+
+        IpcWireHeader hdr{};
+        if (!ReadExactWithTimeout(cfd, &hdr, sizeof(hdr), 2000) ||
+            hdr.magic != kIpcWireMagic || hdr.cbData == 0 || hdr.cbData > kMaxIpcWireBytes) {
+            ::close(cfd);
+            continue;
+        }
+
+        auto item = std::make_shared<PendingCopyDataItem>();
+        item->targetHwnd = targetHwnd;
+        item->dwData = static_cast<ULONG_PTR>(hdr.dwData);
+        item->payload.resize(hdr.cbData);
+        if (!ReadExactWithTimeout(cfd, item->payload.data(), hdr.cbData, 2000)) {
+            ::close(cfd);
+            continue;
+        }
+
+        {
+            std::lock_guard<std::mutex> qlk(g_pendingIpcMtx);
+            g_pendingIpcQueue.push_back(item);
+            g_ipcInFlightItems.erase(
+                std::remove_if(g_ipcInFlightItems.begin(), g_ipcInFlightItems.end(),
+                               [](const std::weak_ptr<PendingCopyDataItem>& w) { return w.expired(); }),
+                g_ipcInFlightItems.end());
+            g_ipcInFlightItems.push_back(item);
+        }
+        LinuxWakeMessageLoop();
+
+        int32_t reply = 0;
+        {
+            std::unique_lock<std::mutex> lk(item->mtx);
+            if (item->cv.wait_for(lk, std::chrono::milliseconds(4500), [&] {
+                    return item->done || g_ipcStopping.load(std::memory_order_acquire);
+                }) && item->done) {
+                reply = (item->result != 0) ? 1 : 0;
+            }
+        }
+        (void)WriteExactWithTimeout(cfd, &reply, sizeof(reply), 500);
+        ::close(cfd);
+    }
+}
+
+void StopIpcServerLocked(std::unique_lock<std::mutex>& lk) {
+    g_ipcStopping.store(true, std::memory_order_release);
+    if (g_ipcStopWrFd >= 0) {
+        uint8_t one = 1;
+        ssize_t unused = ::write(g_ipcStopWrFd, &one, sizeof(one));
+        (void)unused;
+    }
+    if (g_ipcListenFd >= 0) {
+        ::shutdown(g_ipcListenFd, SHUT_RDWR);
+    }
+    // Fail and wake any queued or in-flight callers BEFORE joining the IPC server thread.
+    {
+        std::lock_guard<std::mutex> qlk(g_pendingIpcMtx);
+        for (auto& item : g_pendingIpcQueue) {
+            std::lock_guard<std::mutex> ilk(item->mtx);
+            item->done = true;
+            item->result = 0;
+            item->cv.notify_all();
+        }
+        g_pendingIpcQueue.clear();
+        for (auto& w : g_ipcInFlightItems) {
+            if (auto item = w.lock()) {
+                std::lock_guard<std::mutex> ilk(item->mtx);
+                item->done = true;
+                item->result = 0;
+                item->cv.notify_all();
+            }
+        }
+        g_ipcInFlightItems.clear();
+    }
+    std::thread t = std::move(g_ipcThread);
+    int lfd = g_ipcListenFd;
+    int sRdFd = g_ipcStopRdFd;
+    int sWrFd = g_ipcStopWrFd;
+    std::string spath = std::move(g_ipcSocketPath);
+    g_ipcListenFd = -1;
+    g_ipcStopRdFd = -1;
+    g_ipcStopWrFd = -1;
+    g_ipcServerHwnd = nullptr;
+    lk.unlock();
+
+    if (t.joinable()) t.join();
+    if (lfd >= 0) ::close(lfd);
+    if (sRdFd >= 0) ::close(sRdFd);
+    if (sWrFd >= 0) ::close(sWrFd);
+    if (!spath.empty()) ::unlink(spath.c_str());
+
+    lk.lock();
+}
+
+} // namespace
+
+void LinuxIpcRegisterWindow(HWND hWnd, LPCWSTR lpClassName) {
+    if (!hWnd || !lpClassName || !*lpClassName) return;
+    std::string cls = LinuxWideToUtf8(lpClassName);
+    std::lock_guard<std::mutex> lk(g_ipcMutex);
+    for (auto& e : g_localWindows) {
+        if (e.hwnd == hWnd) {
+            e.className = cls;
+            return;
+        }
+    }
+    g_localWindows.push_back({hWnd, cls});
+
+    if (g_ipcListenFd < 0 && cls == "Aperture_Native_Direct2D_Class") {
+        std::string sockPath = MakeIpcSocketPath(cls);
+        if (sockPath.size() < sizeof(sockaddr_un::sun_path) && !IsSocketAccepting(sockPath)) {
+            ::unlink(sockPath.c_str());
+            int lfd = ::socket(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC, 0);
+            int sfds[2] = {-1, -1};
+            bool pipeOk = CreateNonBlockingPipe(sfds);
+            if (lfd >= 0 && pipeOk) {
+                sockaddr_un addr{};
+                addr.sun_family = AF_UNIX;
+                std::strncpy(addr.sun_path, sockPath.c_str(), sizeof(addr.sun_path) - 1);
+                if (::bind(lfd, reinterpret_cast<sockaddr*>(&addr), sizeof(addr)) == 0 &&
+                    ::listen(lfd, 8) == 0) {
+                    ::chmod(sockPath.c_str(), 0600);
+                    g_ipcListenFd = lfd;
+                    g_ipcStopRdFd = sfds[0];
+                    g_ipcStopWrFd = sfds[1];
+                    g_ipcServerHwnd = hWnd;
+                    g_ipcSocketPath = sockPath;
+                    g_ipcStopping.store(false, std::memory_order_release);
+                    g_ipcThread = std::thread(IpcServerThreadMain, lfd, sfds[0], hWnd);
+                } else {
+                    ::close(lfd);
+                    ::close(sfds[0]);
+                    ::close(sfds[1]);
+                }
+            } else {
+                if (lfd >= 0) ::close(lfd);
+                if (pipeOk) {
+                    ::close(sfds[0]);
+                    ::close(sfds[1]);
+                }
+            }
+        }
+    }
+}
+
+void LinuxIpcUnregisterWindow(HWND hWnd) {
+    if (!hWnd) return;
+    std::unique_lock<std::mutex> lk(g_ipcMutex);
+    g_localWindows.erase(
+        std::remove_if(g_localWindows.begin(), g_localWindows.end(), [hWnd](const LocalWindowEntry& e) { return e.hwnd == hWnd; }),
+        g_localWindows.end());
+    if (g_ipcServerHwnd == hWnd) {
+        StopIpcServerLocked(lk);
+    }
+}
+
+bool LinuxIpcIsRemoteWindow(HWND hWnd) {
+    if (!hWnd) return false;
+    std::lock_guard<std::mutex> lk(g_ipcMutex);
+    return g_remoteWindows.find(reinterpret_cast<uintptr_t>(hWnd)) != g_remoteWindows.end();
+}
+
+HWND FindWindowW(LPCWSTR lpClassName, LPCWSTR /*lpWindowName*/) {
+    if (!lpClassName || !*lpClassName) return nullptr;
+    std::string cls = LinuxWideToUtf8(lpClassName);
+    std::lock_guard<std::mutex> lk(g_ipcMutex);
+    for (const auto& e : g_localWindows) {
+        if (e.className == cls) return e.hwnd;
+    }
+    std::string sockPath = MakeIpcSocketPath(cls);
+    if (!IsSocketAccepting(sockPath)) return nullptr;
+    for (const auto& [id, p] : g_remoteWindows) {
+        if (p == sockPath) return reinterpret_cast<HWND>(id);
+    }
+    uintptr_t id = g_nextRemoteHwndId++;
+    g_remoteWindows[id] = sockPath;
+    return reinterpret_cast<HWND>(id);
+}
+
+LRESULT LinuxIpcSendCopyData(HWND hWnd, const COPYDATASTRUCT* pCDS, UINT uTimeoutMs, DWORD_PTR* lpdwResult) {
+    if (lpdwResult) *lpdwResult = 0;
+    if (!hWnd || !pCDS || !pCDS->lpData || pCDS->cbData == 0 || pCDS->cbData > kMaxIpcWireBytes) {
+        SetLastError(ERROR_INVALID_PARAMETER);
+        return 0;
+    }
+    std::string sockPath;
+    {
+        std::lock_guard<std::mutex> lk(g_ipcMutex);
+        auto it = g_remoteWindows.find(reinterpret_cast<uintptr_t>(hWnd));
+        if (it == g_remoteWindows.end()) {
+            SetLastError(ERROR_INVALID_WINDOW_HANDLE);
+            return 0;
+        }
+        sockPath = it->second;
+    }
+    if (sockPath.size() >= sizeof(sockaddr_un::sun_path)) return 0;
+
+    int fd = ::socket(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC, 0);
+    if (fd < 0) return 0;
+    sockaddr_un addr{};
+    addr.sun_family = AF_UNIX;
+    std::strncpy(addr.sun_path, sockPath.c_str(), sizeof(addr.sun_path) - 1);
+    if (::connect(fd, reinterpret_cast<sockaddr*>(&addr), sizeof(addr)) != 0) {
+        ::close(fd);
+        SetLastError(ERROR_TIMEOUT);
+        return 0;
+    }
+
+    int timeout = static_cast<int>(std::max<UINT>(100, uTimeoutMs ? uTimeoutMs : 5000));
+    IpcWireHeader hdr{};
+    hdr.magic = kIpcWireMagic;
+    hdr.dwData = static_cast<uint64_t>(pCDS->dwData);
+    hdr.cbData = static_cast<uint32_t>(pCDS->cbData);
+
+    bool ok = WriteExactWithTimeout(fd, &hdr, sizeof(hdr), timeout) &&
+              WriteExactWithTimeout(fd, pCDS->lpData, pCDS->cbData, timeout);
+    int32_t reply = 0;
+    if (ok) {
+        ok = ReadExactWithTimeout(fd, &reply, sizeof(reply), timeout);
+    }
+    ::close(fd);
+    if (!ok) {
+        SetLastError(ERROR_TIMEOUT);
+        return 0;
+    }
+    if (lpdwResult) *lpdwResult = static_cast<DWORD_PTR>(reply);
+    return reply != 0 ? 1 : 0;
+}
+
+void LinuxIpcPumpPending(LinuxDispatchMsgFn fn) {
+    if (!fn) return;
+    std::vector<std::shared_ptr<PendingCopyDataItem>> batch;
+    {
+        std::lock_guard<std::mutex> qlk(g_pendingIpcMtx);
+        if (g_pendingIpcQueue.empty()) return;
+        batch.swap(g_pendingIpcQueue);
+    }
+    for (auto& item : batch) {
+        COPYDATASTRUCT cds{};
+        cds.dwData = item->dwData;
+        cds.cbData = static_cast<DWORD>(item->payload.size());
+        cds.lpData = item->payload.data();
+        LRESULT res = fn(item->targetHwnd, WM_COPYDATA, 0, reinterpret_cast<LPARAM>(&cds));
+        {
+            std::lock_guard<std::mutex> ilk(item->mtx);
+            item->result = res;
+            item->done = true;
+        }
+        item->cv.notify_one();
+    }
 }
 
 void OutputDebugStringW(LPCWSTR /*lpOutputString*/) {}
@@ -1712,62 +3064,147 @@ NTSTATUS BCryptImportKeyPair(BCRYPT_ALG_HANDLE /*hAlgorithm*/, BCRYPT_KEY_HANDLE
     return 0;
 }
 
+namespace {
+
+struct CachedLibCrypto {
+    void* lib = nullptr;
+    bool loaded = false;
+
+    void* (*OSSL_PARAM_BLD_new)() = nullptr;
+    void (*OSSL_PARAM_BLD_free)(void*) = nullptr;
+    int (*OSSL_PARAM_BLD_push_utf8_string)(void*, const char*, const char*, size_t) = nullptr;
+    int (*OSSL_PARAM_BLD_push_octet_string)(void*, const char*, const void*, size_t) = nullptr;
+    void* (*OSSL_PARAM_BLD_to_param)(void*) = nullptr;
+    void (*OSSL_PARAM_free)(void*) = nullptr;
+
+    void* (*EVP_PKEY_CTX_new_from_name)(void*, const char*, const char*) = nullptr;
+    void* (*EVP_PKEY_CTX_new_from_pkey)(void*, void*, const char*) = nullptr;
+    void (*EVP_PKEY_CTX_free)(void*) = nullptr;
+    int (*EVP_PKEY_fromdata_init)(void*) = nullptr;
+    int (*EVP_PKEY_fromdata)(void*, void**, int, void*) = nullptr;
+    void (*EVP_PKEY_free)(void*) = nullptr;
+    int (*EVP_PKEY_verify_init)(void*) = nullptr;
+    int (*EVP_PKEY_verify_init_ex)(void*, const void*) = nullptr;
+    int (*EVP_PKEY_verify)(void*, const unsigned char*, size_t, const unsigned char*, size_t) = nullptr;
+
+    CachedLibCrypto() {
+        for (const char* name : {"libcrypto.so.3", "libcrypto.so"}) {
+            lib = ::dlopen(name, RTLD_LAZY | RTLD_LOCAL);
+            if (lib) break;
+        }
+        if (!lib) return;
+        OSSL_PARAM_BLD_new = reinterpret_cast<decltype(OSSL_PARAM_BLD_new)>(::dlsym(lib, "OSSL_PARAM_BLD_new"));
+        OSSL_PARAM_BLD_free = reinterpret_cast<decltype(OSSL_PARAM_BLD_free)>(::dlsym(lib, "OSSL_PARAM_BLD_free"));
+        OSSL_PARAM_BLD_push_utf8_string = reinterpret_cast<decltype(OSSL_PARAM_BLD_push_utf8_string)>(::dlsym(lib, "OSSL_PARAM_BLD_push_utf8_string"));
+        OSSL_PARAM_BLD_push_octet_string = reinterpret_cast<decltype(OSSL_PARAM_BLD_push_octet_string)>(::dlsym(lib, "OSSL_PARAM_BLD_push_octet_string"));
+        OSSL_PARAM_BLD_to_param = reinterpret_cast<decltype(OSSL_PARAM_BLD_to_param)>(::dlsym(lib, "OSSL_PARAM_BLD_to_param"));
+        OSSL_PARAM_free = reinterpret_cast<decltype(OSSL_PARAM_free)>(::dlsym(lib, "OSSL_PARAM_free"));
+        EVP_PKEY_CTX_new_from_name = reinterpret_cast<decltype(EVP_PKEY_CTX_new_from_name)>(::dlsym(lib, "EVP_PKEY_CTX_new_from_name"));
+        EVP_PKEY_CTX_new_from_pkey = reinterpret_cast<decltype(EVP_PKEY_CTX_new_from_pkey)>(::dlsym(lib, "EVP_PKEY_CTX_new_from_pkey"));
+        EVP_PKEY_CTX_free = reinterpret_cast<decltype(EVP_PKEY_CTX_free)>(::dlsym(lib, "EVP_PKEY_CTX_free"));
+        EVP_PKEY_fromdata_init = reinterpret_cast<decltype(EVP_PKEY_fromdata_init)>(::dlsym(lib, "EVP_PKEY_fromdata_init"));
+        EVP_PKEY_fromdata = reinterpret_cast<decltype(EVP_PKEY_fromdata)>(::dlsym(lib, "EVP_PKEY_fromdata"));
+        EVP_PKEY_free = reinterpret_cast<decltype(EVP_PKEY_free)>(::dlsym(lib, "EVP_PKEY_free"));
+        EVP_PKEY_verify_init = reinterpret_cast<decltype(EVP_PKEY_verify_init)>(::dlsym(lib, "EVP_PKEY_verify_init"));
+        EVP_PKEY_verify_init_ex = reinterpret_cast<decltype(EVP_PKEY_verify_init_ex)>(::dlsym(lib, "EVP_PKEY_verify_init_ex"));
+        EVP_PKEY_verify = reinterpret_cast<decltype(EVP_PKEY_verify)>(::dlsym(lib, "EVP_PKEY_verify"));
+        loaded = OSSL_PARAM_BLD_new && OSSL_PARAM_BLD_free && OSSL_PARAM_BLD_push_utf8_string &&
+                 OSSL_PARAM_BLD_push_octet_string && OSSL_PARAM_BLD_to_param && OSSL_PARAM_free &&
+                 EVP_PKEY_CTX_new_from_name && EVP_PKEY_CTX_new_from_pkey && EVP_PKEY_CTX_free &&
+                 EVP_PKEY_fromdata_init && EVP_PKEY_fromdata && EVP_PKEY_free &&
+                 (EVP_PKEY_verify_init_ex || EVP_PKEY_verify_init) && EVP_PKEY_verify;
+    }
+};
+
+const CachedLibCrypto& GetLibCrypto() {
+    static const CachedLibCrypto instance;
+    return instance;
+}
+
+void AppendDerInt(std::vector<uint8_t>& out, const uint8_t* bytes32) {
+    size_t start = 0;
+    while (start < 31 && bytes32[start] == 0) ++start;
+    bool padZero = (bytes32[start] & 0x80) != 0;
+    size_t len = (32 - start) + (padZero ? 1 : 0);
+    out.push_back(0x02); // ASN.1 INTEGER
+    out.push_back(static_cast<uint8_t>(len));
+    if (padZero) out.push_back(0x00);
+    out.insert(out.end(), bytes32 + start, bytes32 + 32);
+}
+
+std::vector<uint8_t> EncodeEcdsaRawToDer(const uint8_t* sig64) {
+    std::vector<uint8_t> body;
+    body.reserve(70);
+    AppendDerInt(body, sig64);
+    AppendDerInt(body, sig64 + 32);
+    std::vector<uint8_t> der;
+    der.reserve(2 + body.size());
+    der.push_back(0x30); // ASN.1 SEQUENCE
+    der.push_back(static_cast<uint8_t>(body.size()));
+    der.insert(der.end(), body.begin(), body.end());
+    return der;
+}
+
+} // namespace
+
 NTSTATUS BCryptVerifySignature(BCRYPT_KEY_HANDLE hKey, void* /*pPaddingInfo*/, PUCHAR pbHash, ULONG cbHash,
                                PUCHAR pbSignature, ULONG cbSignature, ULONG /*dwFlags*/) {
     if (!hKey || !pbHash || cbHash != 32 || !pbSignature || cbSignature != 64) return -1;
+    const auto& crypto = GetLibCrypto();
+    if (!crypto.loaded) return -1;
+
     auto* key = reinterpret_cast<LinuxBCryptKey*>(hKey);
-    // Try OpenSSL libcrypto for P-256 verification if available on system
-    void* lib = ::dlopen("libcrypto.so.3", RTLD_LAZY | RTLD_LOCAL);
-    if (!lib) lib = ::dlopen("libcrypto.so.1.1", RTLD_LAZY | RTLD_LOCAL);
-    if (!lib) lib = ::dlopen("libcrypto.so", RTLD_LAZY | RTLD_LOCAL);
-    if (lib) {
-        using fn_EC_KEY_new_by_curve_name = void* (*)(int);
-        using fn_EC_KEY_free = void (*)(void*);
-        using fn_BN_bin2bn = void* (*)(const uint8_t*, int, void*);
-        using fn_BN_free = void (*)(void*);
-        using fn_EC_KEY_set_public_key_affine_coordinates = int (*)(void*, void*, void*);
-        using fn_ECDSA_SIG_new = void* (*)();
-        using fn_ECDSA_SIG_free = void (*)(void*);
-        using fn_ECDSA_SIG_set0 = int (*)(void*, void*, void*);
-        using fn_ECDSA_do_verify = int (*)(const uint8_t*, int, const void*, void*);
+    if (key->x.size() != 32 || key->y.size() != 32) return -1;
 
-        auto pEC_KEY_new = reinterpret_cast<fn_EC_KEY_new_by_curve_name>(::dlsym(lib, "EC_KEY_new_by_curve_name"));
-        auto pEC_KEY_free = reinterpret_cast<fn_EC_KEY_free>(::dlsym(lib, "EC_KEY_free"));
-        auto pBN_bin2bn = reinterpret_cast<fn_BN_bin2bn>(::dlsym(lib, "BN_bin2bn"));
-        auto pBN_free = reinterpret_cast<fn_BN_free>(::dlsym(lib, "BN_free"));
-        auto pSetCoords = reinterpret_cast<fn_EC_KEY_set_public_key_affine_coordinates>(::dlsym(lib, "EC_KEY_set_public_key_affine_coordinates"));
-        auto pSIG_new = reinterpret_cast<fn_ECDSA_SIG_new>(::dlsym(lib, "ECDSA_SIG_new"));
-        auto pSIG_free = reinterpret_cast<fn_ECDSA_SIG_free>(::dlsym(lib, "ECDSA_SIG_free"));
-        auto pSIG_set0 = reinterpret_cast<fn_ECDSA_SIG_set0>(::dlsym(lib, "ECDSA_SIG_set0"));
-        auto pDoVerify = reinterpret_cast<fn_ECDSA_do_verify>(::dlsym(lib, "ECDSA_do_verify"));
+    uint8_t pub[65];
+    pub[0] = 0x04; // Uncompressed EC point
+    std::memcpy(pub + 1, key->x.data(), 32);
+    std::memcpy(pub + 33, key->y.data(), 32);
 
-        if (pEC_KEY_new && pEC_KEY_free && pBN_bin2bn && pBN_free && pSetCoords && pSIG_new && pSIG_free && pSIG_set0 && pDoVerify) {
-            constexpr int NID_X9_62_prime256v1 = 415;
-            void* eckey = pEC_KEY_new(NID_X9_62_prime256v1);
-            void* bx = pBN_bin2bn(key->x.data(), 32, nullptr);
-            void* by = pBN_bin2bn(key->y.data(), 32, nullptr);
-            int ok = 0;
-            if (eckey && bx && by && pSetCoords(eckey, bx, by) == 1) {
-                void* sig = pSIG_new();
-                void* br = pBN_bin2bn(pbSignature, 32, nullptr);
-                void* bs = pBN_bin2bn(pbSignature + 32, 32, nullptr);
-                if (sig && br && bs && pSIG_set0(sig, br, bs) == 1) {
-                    ok = pDoVerify(pbHash, 32, sig, eckey);
-                } else {
-                    if (br) pBN_free(br);
-                    if (bs) pBN_free(bs);
-                }
-                if (sig) pSIG_free(sig);
-            }
-            if (bx) pBN_free(bx);
-            if (by) pBN_free(by);
-            if (eckey) pEC_KEY_free(eckey);
-            ::dlclose(lib);
-            return (ok == 1) ? 0 : -1;
-        }
-        ::dlclose(lib);
+    void* bld = crypto.OSSL_PARAM_BLD_new();
+    if (!bld) return -1;
+    int pushed = crypto.OSSL_PARAM_BLD_push_utf8_string(bld, "group", "prime256v1", 0) &&
+                 crypto.OSSL_PARAM_BLD_push_octet_string(bld, "pub", pub, sizeof(pub));
+    void* params = pushed ? crypto.OSSL_PARAM_BLD_to_param(bld) : nullptr;
+    crypto.OSSL_PARAM_BLD_free(bld);
+    if (!params) return -1;
+
+    void* kctx = crypto.EVP_PKEY_CTX_new_from_name(nullptr, "EC", nullptr);
+    void* pkey = nullptr;
+    constexpr int kEvpPkeyPublicKey = 0x86;
+    if (kctx && crypto.EVP_PKEY_fromdata_init(kctx) == 1) {
+        (void)crypto.EVP_PKEY_fromdata(kctx, &pkey, kEvpPkeyPublicKey, params);
     }
-    return -1;
+    if (kctx) crypto.EVP_PKEY_CTX_free(kctx);
+    crypto.OSSL_PARAM_free(params);
+    if (!pkey) return -1;
+
+    int ok = 0;
+    void* vctx = crypto.EVP_PKEY_CTX_new_from_pkey(nullptr, pkey, nullptr);
+    if (vctx) {
+        int initOk = 0;
+        if (crypto.EVP_PKEY_verify_init_ex) {
+            void* vbld = crypto.OSSL_PARAM_BLD_new();
+            void* vparams = nullptr;
+            if (vbld) {
+                if (crypto.OSSL_PARAM_BLD_push_utf8_string(vbld, "digest", "SHA256", 0)) {
+                    vparams = crypto.OSSL_PARAM_BLD_to_param(vbld);
+                }
+                crypto.OSSL_PARAM_BLD_free(vbld);
+            }
+            initOk = crypto.EVP_PKEY_verify_init_ex(vctx, vparams);
+            if (vparams) crypto.OSSL_PARAM_free(vparams);
+        } else {
+            initOk = crypto.EVP_PKEY_verify_init(vctx);
+        }
+        if (initOk == 1) {
+            std::vector<uint8_t> derSig = EncodeEcdsaRawToDer(pbSignature);
+            ok = crypto.EVP_PKEY_verify(vctx, derSig.data(), derSig.size(), pbHash, cbHash);
+        }
+        crypto.EVP_PKEY_CTX_free(vctx);
+    }
+    crypto.EVP_PKEY_free(pkey);
+    return (ok == 1) ? 0 : -1;
 }
 
 NTSTATUS BCryptDestroyKey(BCRYPT_KEY_HANDLE hKey) {

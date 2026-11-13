@@ -1,5 +1,6 @@
 #pragma once
 
+#if defined(_WIN32)
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
 #include <windows.h>
@@ -27,6 +28,9 @@
 #include <mfmediaengine.h>
 #include <mfreadwrite.h>
 #include <mferror.h>
+#else
+#include "linux/LinuxPlatform.h"
+#endif
 
 #include <string>
 #include <vector>
@@ -44,6 +48,7 @@
 #include <optional>
 #include <atomic>
 
+#if defined(_WIN32)
 #pragma comment(lib, "d2d1.lib")
 #pragma comment(lib, "dwrite.lib")
 #pragma comment(lib, "d3d11.lib")
@@ -63,6 +68,7 @@
 #pragma comment(lib, "oleaut32.lib")
 #pragma comment(lib, "advapi32.lib")
 #pragma comment(lib, "dxguid.lib")
+#endif
 
 using Microsoft::WRL::ComPtr;
 

@@ -6,12 +6,16 @@
 #include "CommandDispatcher.h"
 #include "MediaLibrary.h"
 
+#if defined(_WIN32)
 #include <windows.h>
 #include <windows.media.h>
 #include <systemmediatransportcontrolsinterop.h>
 #include <wrl/client.h>
 #include <wrl/event.h>
 #include <wrl/wrappers/corewrappers.h>
+#else
+#include "linux/LinuxPlatform.h"
+#endif
 
 #include <string>
 #include <vector>
@@ -87,6 +91,7 @@ private:
     Microsoft::WRL::ComPtr<ABI::Windows::Media::ISystemMediaTransportControls> smtc;
     Microsoft::WRL::ComPtr<ABI::Windows::Media::ISystemMediaTransportControls2> smtc2;
     Microsoft::WRL::ComPtr<ABI::Windows::Media::ISystemMediaTransportControlsDisplayUpdater> displayUpdater;
+    Microsoft::WRL::ComPtr<ABI::Windows::Media::ISystemMediaTransportControlsTimelineProperties> cachedTimelineProps;
     EventRegistrationToken buttonPressedToken = {};
     EventRegistrationToken positionChangeToken = {};
     MediaTransportSnapshot lastSnapshot;

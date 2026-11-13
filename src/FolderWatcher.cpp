@@ -160,7 +160,10 @@ bool FolderWatcher::AddWatch(const std::wstring& folderPath) {
     watch->buffer.resize(kBufferSize);
     DirectoryWatch* pWatch = watch.get();
     watches.emplace(key, std::move(watch));
-    if (isRunning.load()) { ArmReadDirectoryChanges(pWatch); }
+    if (isRunning.load() && !ArmReadDirectoryChanges(pWatch)) {
+        nextInactiveSweep = 0;
+        WakeWorker();
+    }
     return true;
 }
 
@@ -234,10 +237,48 @@ bool FolderWatcher::ArmReadDirectoryChanges(DirectoryWatch* dirWatch) {
     return true;
 }
 
+void FolderWatcher::WakeWorker() {
+    if (hIOCP && isRunning.load()) PostQueuedCompletionStatus(hIOCP, 0, kWakeCompletionKey, nullptr);
+}
+
+DWORD FolderWatcher::ComputeWaitTimeoutMs() {
+    if (stopRequested.load() || requestedConfiguration.load() != workerConfiguration) return 0;
+    DWORD timeoutMs = INFINITE;
+    {
+        std::lock_guard<std::mutex> lock(coalesceMutex);
+        if (rescanPending) return 0;
+        if (!pendingCoalesce.empty()) {
+            if (pendingCoalesce.size() >= maxBatchSize) return 0;
+            const auto elapsedMs = std::chrono::duration_cast<std::chrono::milliseconds>(
+                std::chrono::steady_clock::now() - oldestPendingTime).count();
+            if (elapsedMs >= static_cast<long long>(coalesceWindowMs)) return 0;
+            timeoutMs = static_cast<DWORD>(std::max<long long>(1, static_cast<long long>(coalesceWindowMs) - elapsedMs));
+        }
+    }
+    {
+        std::lock_guard<std::mutex> lock(watchMutex);
+        const ULONGLONG now = GetTickCount64();
+        for (const auto& pair : watches) {
+            const auto& watch = *pair.second;
+            if (watch.active || watch.pendingRead || watch.retired) continue;
+            const ULONGLONG retryAt = std::max(nextInactiveSweep, watch.retryAtTick);
+            const ULONGLONG remaining = retryAt > now ? (retryAt - now) : 0;
+            const DWORD clamped = remaining > INFINITE - 1 ? (INFINITE - 1) : static_cast<DWORD>(remaining);
+            timeoutMs = std::min(timeoutMs, clamped);
+        }
+    }
+    return timeoutMs;
+}
+
 void FolderWatcher::WorkerLoop() {
+    workerThreadId.store(GetCurrentThreadId(), std::memory_order_release);
     struct Completion {
         FolderWatcher& owner;
-        ~Completion() { owner.isRunning.store(false); owner.workerDone.store(true, std::memory_order_release); }
+        ~Completion() {
+            owner.workerThreadId.store(0, std::memory_order_release);
+            owner.isRunning.store(false);
+            owner.workerDone.store(true, std::memory_order_release);
+        }
     } completion{*this};
     SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_BELOW_NORMAL);
     for (;;) {
@@ -250,7 +291,7 @@ void FolderWatcher::WorkerLoop() {
         DWORD bytesTransferred = 0;
         ULONG_PTR completionKey = 0;
         LPOVERLAPPED pOverlapped = nullptr;
-        const DWORD waitTimeoutMs = 50; // 50ms wait to allow timely event coalescing flush
+        const DWORD waitTimeoutMs = ComputeWaitTimeoutMs();
         BOOL ok = GetQueuedCompletionStatus( hIOCP, &bytesTransferred, &completionKey, &pOverlapped, waitTimeoutMs );
         if (!ok) {
             DWORD err = GetLastError();
@@ -260,6 +301,7 @@ void FolderWatcher::WorkerLoop() {
                 continue;
             }
             if (completionKey == kStopCompletionKey) continue;
+            if (completionKey == kWakeCompletionKey) { FlushCoalescedEvents(false); continue; }
             if (completionKey != 0 && pOverlapped) {
                 DirectoryWatch* dirWatch = reinterpret_cast<DirectoryWatch*>(completionKey);
                 std::lock_guard<std::mutex> lock(watchMutex);
@@ -284,6 +326,7 @@ void FolderWatcher::WorkerLoop() {
             continue;
         }
         if (completionKey == kStopCompletionKey) continue;
+        if (completionKey == kWakeCompletionKey) { FlushCoalescedEvents(false); continue; }
         if (completionKey != 0 && pOverlapped) {
             DirectoryWatch* dirWatch = reinterpret_cast<DirectoryWatch*>(completionKey);
             std::lock_guard<std::mutex> lock(watchMutex);
@@ -419,6 +462,7 @@ void FolderWatcher::EnqueueEvent(const WatchChangeItem& item) {
         if (pendingCoalesce.size() >= maxBatchSize) { shouldFlush = true; }
     }
     if (shouldFlush) { FlushCoalescedEvents(true); }
+    else if (GetCurrentThreadId() != workerThreadId.load(std::memory_order_acquire)) { WakeWorker(); }
 }
 
 void FolderWatcher::FlushCoalescedEvents(bool forceAll) {
@@ -467,9 +511,12 @@ void FolderWatcher::FlushCoalescedEvents(bool forceAll) {
 }
 
 void FolderWatcher::TriggerRescan(const std::wstring& rootFolder) {
-    std::lock_guard<std::mutex> lock(coalesceMutex);
-    rescanPending = true;
-    rescanRoots.insert(rootFolder);
+    {
+        std::lock_guard<std::mutex> lock(coalesceMutex);
+        rescanPending = true;
+        rescanRoots.insert(rootFolder);
+    }
+    if (GetCurrentThreadId() != workerThreadId.load(std::memory_order_acquire)) WakeWorker();
 }
 
 } // namespace Aperture

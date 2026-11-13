@@ -6,9 +6,13 @@
 #include "CommandDispatcher.h"
 #include "MediaLibrary.h"
 
+#if defined(_WIN32)
 #include <windows.h>
 #include <shobjidl.h>
 #include <wrl/client.h>
+#else
+#include "linux/LinuxPlatform.h"
+#endif
 
 #include <string>
 #include <vector>
@@ -64,6 +68,8 @@ public:
     bool AreButtonsAdded() const { return buttonsAdded; }
     // State Synchronization
     void Update(const TaskbarSnapshot& snapshot, bool force = false);
+    void UpdateState(const PlaybackSession& session, const MediaLibrary& library, const Settings& settings,
+                     double currentTime, double duration, bool force = false);
     void Clear();
     // Window Message Handling (WM_COMMAND / TaskbarButtonCreated)
     bool HandleWindowMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, CommandDispatcher& dispatcher);
@@ -80,6 +86,7 @@ private:
     void EnsureIconsCreated();
     bool SyncThumbnailButtons(HWND hWnd, const TaskbarSnapshot& snapshot, bool add);
     void ApplyProgress(HWND hWnd, const TaskbarSnapshot& snapshot, bool force);
+    void ApplyProgressValues(HWND hWnd, TBPFLAG state, ULONGLONG value, ULONGLONG total, bool force);
     static HICON CreateGlyphIcon(int width, int height, int glyphType);
     HWND targetHwnd = NULL;
     bool isInitialized = false, buttonsAdded = false;

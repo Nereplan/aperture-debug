@@ -119,6 +119,7 @@ set(APERTURE_SOURCES
     src/GlobalSearch.cpp
     src/HttpTransport.cpp
     src/InternetRadio.cpp
+    src/IpcProtocol.cpp
     src/JumpList.cpp
     src/Json.cpp
     src/LibraryQuery.cpp
@@ -171,6 +172,7 @@ set(APERTURE_LINUX_SOURCES
     src/CommandDispatcher.cpp
     src/GlobalSearch.cpp
     src/InternetRadio.cpp
+    src/IpcProtocol.cpp
     src/Json.cpp
     src/LibraryQuery.cpp
     src/LibrarySnapshot.cpp

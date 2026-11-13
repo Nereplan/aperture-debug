@@ -528,13 +528,15 @@ void App::AutoScrollToFocusedItem() {
             } else if (curY + itemH > historyScrollY + histViewH) { historyScrollY = curY + itemH - histViewH + 10.0f * dp; }
         }
     } else if (currentTab == TabView::Settings && activeFocusPane == FocusPane::SettingsContent) {
+        const bool simpleSettings = FeatureGate::ModeFromString(settings.experienceMode) == ExperienceMode::Simple;
         int rowCount = currentSettingsCat == SettingsCategory::Appearance ? 2 :
+            (currentSettingsCat == SettingsCategory::Playback ? SettingsLayout::PlaybackRowCount(simpleSettings) :
             (currentSettingsCat == SettingsCategory::Shortcuts ? (int)settings.GetShortcutActionListRef().size() + 1 :
-                (currentSettingsCat == SettingsCategory::System ? SettingsLayout::kSystemRowCount :
+                (currentSettingsCat == SettingsCategory::System ? SettingsLayout::SystemRowCount(simpleSettings) :
                     (currentSettingsCat == SettingsCategory::Experience
                         ? (FeatureGate::ModeFromString(settings.experienceMode) == ExperienceMode::Custom
                             ? static_cast<int>(FeatureGate::Catalog().size()) + 1 : 1)
-                        : 6)));
+                        : 6))));
         if (keyboardFocusedIndex < 0 || keyboardFocusedIndex >= rowCount) return;
         const float sectionTop = (SettingsLayout::kContentStartOffset +
             (currentSettingsCat == SettingsCategory::Subtitles ? SettingsLayout::kSubtitlePageHeaderReserve : SettingsLayout::kPageHeaderReserve)) * dp;
@@ -555,32 +557,34 @@ void App::AutoScrollToFocusedItem() {
         } else if (currentSettingsCat == SettingsCategory::Playback) {
             const float cardGap = SettingsLayout::kSectionCardGap * dp, titleH = SettingsLayout::kPlaybackCardTitleHeight * dp;
             const float rowH = SettingsLayout::kPlaybackBehaviorRowHeight * dp, behaviorTop = sectionTop;
+            const float simpleCardH = SettingsLayout::kPlaybackSimpleCardHeight * dp;
+            const float mpvCardTop = behaviorTop + SettingsLayout::kPlaybackBehaviorCardHeight * dp + cardGap +
+                2.0f * (simpleCardH + cardGap) + SettingsLayout::kPlaybackSpeedCardHeight * dp + cardGap;
             if (keyboardFocusedIndex <= 3) {
                 focusTop = behaviorTop + titleH + keyboardFocusedIndex * rowH;
                 focusH = rowH;
             } else if (keyboardFocusedIndex == 4) {
                 focusTop = behaviorTop + SettingsLayout::kPlaybackBehaviorCardHeight * dp + cardGap;
-                focusH = SettingsLayout::kPlaybackSimpleCardHeight * dp;
+                focusH = simpleCardH;
             } else if (keyboardFocusedIndex == 5) {
-                focusTop = behaviorTop + SettingsLayout::kPlaybackBehaviorCardHeight * dp + cardGap +
-                    SettingsLayout::kPlaybackSimpleCardHeight * dp + cardGap;
-                focusH = SettingsLayout::kPlaybackSimpleCardHeight * dp;
+                focusTop = behaviorTop + SettingsLayout::kPlaybackBehaviorCardHeight * dp + cardGap + simpleCardH + cardGap;
+                focusH = simpleCardH;
             } else if (keyboardFocusedIndex == 6) {
                 focusTop = behaviorTop + SettingsLayout::kPlaybackBehaviorCardHeight * dp + cardGap +
-                    2.0f * (SettingsLayout::kPlaybackSimpleCardHeight * dp + cardGap) + 42.0f * dp;
+                    2.0f * (simpleCardH + cardGap) + 42.0f * dp;
                 focusH = 34.0f * dp;
             } else if (keyboardFocusedIndex == 7) {
-                focusTop = behaviorTop + SettingsLayout::kPlaybackBehaviorCardHeight * dp + cardGap +
-                    2.0f * (SettingsLayout::kPlaybackSimpleCardHeight * dp + cardGap) +
-                    SettingsLayout::kPlaybackSpeedCardHeight * dp + cardGap + titleH;
+                focusTop = mpvCardTop + titleH;
                 focusH = SettingsLayout::kPlaybackMpvSwitchHeight * dp;
-            } else {
-                focusTop = behaviorTop + SettingsLayout::kPlaybackBehaviorCardHeight * dp + cardGap +
-                    2.0f * (SettingsLayout::kPlaybackSimpleCardHeight * dp + cardGap) +
-                    SettingsLayout::kPlaybackSpeedCardHeight * dp + cardGap + SettingsLayout::kPlaybackMpvActionTop * dp +
+            } else if (keyboardFocusedIndex == 8) {
+                focusTop = mpvCardTop + SettingsLayout::kPlaybackMpvActionTop * dp +
                     (keyboardFocusedSubIndex >= 0 ? keyboardFocusedSubIndex : 0) *
                         (SettingsLayout::kPlaybackMpvActionHeight + SettingsLayout::kPlaybackMpvActionGap) * dp;
                 focusH = SettingsLayout::kPlaybackMpvActionHeight * dp;
+            } else {
+                const float integrationTop = mpvCardTop + SettingsLayout::kPlaybackMpvCardHeight * dp + cardGap;
+                focusTop = integrationTop + (keyboardFocusedIndex - 9) * (simpleCardH + cardGap);
+                focusH = simpleCardH;
             }
         } else if (currentSettingsCat == SettingsCategory::Subtitles) {
             const float cardGap = SettingsLayout::kSubtitleCardGap * dp;

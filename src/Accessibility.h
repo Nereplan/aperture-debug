@@ -1,5 +1,6 @@
 #pragma once
 
+#if defined(_WIN32)
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif
@@ -9,6 +10,9 @@
 #include <oleacc.h>
 #include <uiautomation.h>
 #include <uiautomationcoreapi.h>
+#else
+#include "linux/LinuxPlatform.h"
+#endif
 
 #ifndef UIA_LiveSettingPropertyId
 #define UIA_LiveSettingPropertyId 30135
@@ -131,7 +135,7 @@ public:
     // IDs must be positive and unique. Replacing a snapshot preserves the caller's IDs, allowing Narrator / UIA focus to remain attached to
     // a control. The tree is normally a member/borrowed provider owned by App, so its owner must keep it alive for the HWND lifetime and
     // release COM clients before destroying the tree.
-    bool ReplaceNodes(const std::vector<AccessibilityNode>& nodes);
+    bool ReplaceNodes(std::vector<AccessibilityNode> nodes);
     void ClearNodes();
     std::vector<AccessibilityNode> GetNodes() const;
     bool GetNodeCopy(LONG childId, AccessibilityNode& outNode) const;
@@ -212,6 +216,7 @@ private:
     std::atomic<ULONG> refCount_{1};
     mutable std::mutex mutex_;
     HWND hwnd_ = nullptr;
+    std::atomic<bool> msaaClientConnected_{ false };
     std::vector<AccessibilityNode> nodes_;
     std::unordered_map<LONG, AccessibilityChildProvider*> childProviders_;
 };

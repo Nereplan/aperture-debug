@@ -5,8 +5,6 @@
 #include "Renderer.h"
 #include "OverlayFramePacer.h"
 #include <string>
-#include <memory>
-#include <map>
 #include <cstdint>
 
 namespace Aperture {
@@ -32,8 +30,13 @@ public:
     bool IsFrameDue() const;
     DWORD GetFrameWaitMs() const;
     HANDLE GetFrameLatencyWaitableObject() const { return frameTimer; }
+    HANDLE GetFrameTimerHandle() const { return frameTimer; }
+    bool HasAllocatedSurface() const { return hdcMem != NULL && hBitmap != NULL && pBitmapBits != nullptr; }
     bool ShouldRefreshPlayback(bool continuousVisual, std::wstring_view subtitleText) {
         return framePacer.PlaybackContentChanged(continuousVisual, subtitleText);
+    }
+    bool ShouldRefreshPlayback(bool continuousAnimation, std::wstring_view subtitleText, bool controlsVisible, long long playbackSecond) {
+        return framePacer.PlaybackStateChanged(continuousAnimation, subtitleText, controlsVisible, playbackSecond);
     }
     struct FrameStatistics {
         uint64_t framesDrawn = 0, framesPresented = 0, presentationFailures = 0;
@@ -55,7 +58,7 @@ public:
     using DrawingPrimitives::FillPolygon;
     void Clear(const D2D1_COLOR_F& color = D2D1::ColorF(0, 0, 0, 0));
     using DrawingPrimitives::FillRect;
-    void FillGradientRect(const D2D1_RECT_F& rect, const D2D1_COLOR_F& startColor, const D2D1_COLOR_F& endColor, bool vertical = true);
+    using DrawingPrimitives::FillGradientRect;
     using DrawingPrimitives::FillRoundedRect;
     using DrawingPrimitives::DrawRoundedRect;
     using DrawingPrimitives::FillCircle;
@@ -64,33 +67,43 @@ public:
     void DrawBitmap(ID2D1Bitmap* pBitmap, const D2D1_RECT_F& dstRect, float opacity = 1.0f);
     // 5-Primitive Real Rendering Engine
     void DrawSurface(const D2D1_RECT_F& rect, const SurfaceStyle& style);
-    void DrawDropShadow(const D2D1_RECT_F& rect, float radius, float blur, float yOffset, const D2D1_COLOR_F& color);
-    void DrawGlow(const D2D1_RECT_F& rect, float radius, float blur, const D2D1_COLOR_F& glowColor);
+    using DrawingPrimitives::DrawDropShadow;
+    using DrawingPrimitives::DrawGlow;
     using DrawingPrimitives::DrawInnerHighlight;
     // Text & Icons
-    void DrawString(const std::wstring& text, const D2D1_RECT_F& rect, const D2D1_COLOR_F& color, FontType font = FontType::Regular, DWRITE_TEXT_ALIGNMENT align = DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT valign = DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-    void DrawStringWrapped(const std::wstring& text, const D2D1_RECT_F& rect, const D2D1_COLOR_F& color,
-        FontType font = FontType::Regular, DWRITE_TEXT_ALIGNMENT align = DWRITE_TEXT_ALIGNMENT_LEADING,
-        DWRITE_PARAGRAPH_ALIGNMENT valign = DWRITE_PARAGRAPH_ALIGNMENT_NEAR);
-    D2D1_SIZE_F MeasureString(const std::wstring& text, FontType font = FontType::Regular);
+    using DrawingPrimitives::DrawString;
+    using DrawingPrimitives::DrawStringWrapped;
+    using FontResources::MeasureString;
     // Text at an arbitrary size (dp), for live previews and scaled OSD pops.
-    void DrawStringSized(const std::wstring& text, const D2D1_RECT_F& rect, const D2D1_COLOR_F& color, float sizeDp,
-                         DWRITE_FONT_WEIGHT weight = DWRITE_FONT_WEIGHT_SEMI_BOLD,
-                         DWRITE_TEXT_ALIGNMENT align = DWRITE_TEXT_ALIGNMENT_CENTER,
-                         DWRITE_PARAGRAPH_ALIGNMENT valign = DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+    using DrawingPrimitives::DrawStringSized;
     using FontResources::MeasureStringSized;
     using FontResources::GetOrCreateSizedFormat;
     void DrawIcon(IconType icon, const D2D1_RECT_F& rect, const D2D1_COLOR_F& color, float strokeWidth = 1.6f);
-    void DrawSvgPath(const char* svgPath, const D2D1_RECT_F& rect, const D2D1_COLOR_F& color, float viewBox = 24.0f, bool fill = true, float strokeWidth = 1.4f, bool cacheGeometry = true);
+    using DrawingPrimitives::DrawSvgPath;
     void DrawSubtitle(const std::wstring& text, const D2D1_RECT_F& bounds, const std::string& style, const D2D1_COLOR_F& textColor, float fontSizePoints, const std::string& position);
-    void PushClip(const D2D1_RECT_F& rect);
-    void PopClip();
+    using DrawingPrimitives::PushClip;
+    using DrawingPrimitives::PopClip;
 
 private:
     friend struct PlaybackUiTestAccess;
     friend class DrawingPrimitives<OverlayRenderer>;
     auto DrawingTarget() const { return dcRenderTarget.Get(); }
+    ID2D1Factory* GeometryFactory() const { return d2dFactory.Get(); }
     void OnPrimitiveDrawn() { surfaceHasContent = true; }
+    TextLayoutMode SingleLineTextMode() const { return TextLayoutMode::SingleLineEllipsis; }
+    void BeforeDrawText(FontType font) {
+        if (dcRenderTarget && font >= FontType::MenuLabel && font <= FontType::MenuShortcut && menuTextRenderingParams) {
+            dcRenderTarget->SetTextRenderingParams(menuTextRenderingParams.Get());
+        }
+    }
+    void AfterDrawText(FontType font) {
+        if (dcRenderTarget && font >= FontType::MenuLabel && font <= FontType::MenuShortcut && menuTextRenderingParams) {
+            dcRenderTarget->SetTextRenderingParams(textRenderingParams.Get());
+        }
+    }
+    static constexpr ShadowConfig GetShadowConfig() {
+        return { 12, 8ull * 1024ull * 1024ull, 1.0f, 1.0f, 1.8f, 0.45f, false };
+    }
     using DrawingPrimitives::FillRoundedGradientRect;
     UINT width = 0, height = 0;
     HDC hdcMem = NULL;
@@ -107,48 +120,9 @@ private:
     void RefreshCadence(HWND hOverlayWnd, double now);
     void ArmFrameTimer(double now);
     ComPtr<ID2D1Factory1> d2dFactory;
-    std::unordered_map<std::string, ComPtr<ID2D1PathGeometry>> svgGeometryCache;
     ComPtr<IDWriteRenderingParams3> textRenderingParams;
     ComPtr<IDWriteRenderingParams3> menuTextRenderingParams;
     ComPtr<ID2D1DCRenderTarget> dcRenderTarget;
-    struct LayoutKey {
-        std::wstring text;
-        FontType font;
-        int maxW = 0, maxH = 0;
-        DWRITE_TEXT_ALIGNMENT align;
-        DWRITE_PARAGRAPH_ALIGNMENT valign;
-        bool wrapped = false;
-    };
-    // Copy-free lookup key (see Renderer::LayoutKeyProbe): probing with a full
-    // LayoutKey would copy the text on every hit of every drawn control label.
-    struct LayoutKeyProbe {
-        std::wstring_view text;
-        FontType font;
-        int maxW, maxH;
-        DWRITE_TEXT_ALIGNMENT align;
-        DWRITE_PARAGRAPH_ALIGNMENT valign;
-        bool wrapped = false;
-    };
-    struct LayoutKeyLess {
-        using is_transparent = void;
-        template <typename A, typename B>
-        bool operator()(const A& a, const B& b) const {
-            if (a.wrapped != b.wrapped) return a.wrapped < b.wrapped;
-            if (a.font != b.font) return a.font < b.font;
-            if (a.maxW != b.maxW) return a.maxW < b.maxW;
-            if (a.maxH != b.maxH) return a.maxH < b.maxH;
-            if (a.align != b.align) return a.align < b.align;
-            if (a.valign != b.valign) return a.valign < b.valign;
-            return a.text < b.text;
-        }
-    };
-    struct LayoutCacheEntry { ComPtr<IDWriteTextLayout> layout; std::list<LayoutKey>::iterator lruIt; };
-    static constexpr size_t kLayoutCacheEntryLimit = 512;
-    std::map<LayoutKey, LayoutCacheEntry, LayoutKeyLess> layoutCache;
-    std::list<LayoutKey> layoutLru;
-    ComPtr<IDWriteTextLayout> GetOrCreateTextLayout( const std::wstring& text, FontType font, float maxW, float maxH,
-        DWRITE_TEXT_ALIGNMENT align = DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT valign = DWRITE_PARAGRAPH_ALIGNMENT_NEAR, bool wrapped = false );
-    // Font Formats
     void RecreateDIB();
     bool RecreateRenderTarget();
     void ReleaseRenderTarget();

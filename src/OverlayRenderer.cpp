@@ -1,4 +1,3 @@
-#include "SvgGeometry.h"
 #include "OverlayRenderer.h"
 #include "Renderer.h"
 #include "Localization.h"
@@ -13,8 +12,6 @@ inline float SnapPixel(float value) { return std::round(value); }
 inline D2D1_RECT_F SnapRect(const D2D1_RECT_F& rect) {
     return D2D1::RectF( SnapPixel(rect.left), SnapPixel(rect.top), SnapPixel(rect.right), SnapPixel(rect.bottom) );
 }
-
-inline uint32_t QuantizeColor(float value) { return (uint32_t)std::lround(std::clamp(value, 0.0f, 1.0f) * 65535.0f); }
 
 double FrameClockSeconds() {
     static const double frequency = [] { LARGE_INTEGER value{}; QueryPerformanceFrequency(&value); return static_cast<double>(value.QuadPart); }();
@@ -40,20 +37,18 @@ void OverlayRenderer::Shutdown() {
     if (hBitmap) { DeleteObject(hBitmap); hBitmap = NULL; }
     pBitmapBits = nullptr;
     solidBrush.Reset();
+    ClearShadowCache();
+    ClearPrimitiveGeometryCaches();
+    ClearGradientAndHighlightCaches();
+    ClearSizedCaches();
+    ClearLayoutCaches();
     textRenderingParams.Reset();
     menuTextRenderingParams.Reset();
     subtitleFormat.Reset();
     subtitleLayout.Reset();
     subtitleLayoutText.clear();
-    layoutCache.clear();
-    layoutLru.clear();
-    gradientStopCache.clear();
-    gradientBrushCache.clear();
-    innerHighlightCache.clear();
-    innerHighlightBrushCache.clear();
     customFontCollection.Reset();
     dwriteFactory.Reset();
-    svgGeometryCache.clear();
     d2dFactory.Reset();
 }
 
@@ -133,9 +128,8 @@ void OverlayRenderer::CreateFonts(const std::wstring& customFamily) {
     framePacer.Request();
     selectedFontFamily = customFamily.empty() ? L"Inter" : customFamily;
     LoadCustomFontCollection();
-    layoutCache.clear();
-    layoutLru.clear();
-    sizedFormatCache.clear();
+    ClearLayoutCaches();
+    ClearSizedCaches();
     subtitleFormat.Reset();
     subtitleLayout.Reset();
     subtitleLayoutText.clear();
@@ -175,12 +169,10 @@ void OverlayRenderer::CreateTextRenderingParams() {
 }
 
 void OverlayRenderer::ReleaseRenderTarget() {
+    ClearShadowCache();
     dcRenderTarget.Reset();
     solidBrush.Reset();
-    gradientStopCache.clear();
-    gradientBrushCache.clear();
-    innerHighlightCache.clear();
-    innerHighlightBrushCache.clear();
+    ClearGradientAndHighlightCaches();
 }
 
 bool OverlayRenderer::RecreateRenderTarget() {
@@ -199,65 +191,10 @@ bool OverlayRenderer::RecreateRenderTarget() {
     return true;
 }
 
-void OverlayRenderer::DrawStringSized(const std::wstring& text, const D2D1_RECT_F& rect, const D2D1_COLOR_F& color, float sizeDp,
-                                      DWRITE_FONT_WEIGHT weight, DWRITE_TEXT_ALIGNMENT align, DWRITE_PARAGRAPH_ALIGNMENT valign) {
-    if (!dcRenderTarget || !solidBrush || text.empty()) return;
-    IDWriteTextFormat* tf = GetOrCreateSizedFormat(sizeDp, weight);
-    if (!tf) return;
-    tf->SetTextAlignment(align);
-    tf->SetParagraphAlignment(valign);
-    solidBrush->SetColor(color);
-    dcRenderTarget->DrawTextW( text.c_str(), (UINT32)text.length(), tf, rect, solidBrush.Get(), D2D1_DRAW_TEXT_OPTIONS_ENABLE_COLOR_FONT );
-    surfaceHasContent = true;
-}
-
-ComPtr<IDWriteTextLayout> OverlayRenderer::GetOrCreateTextLayout( const std::wstring& text, FontType font, float maxW, float maxH,
-    DWRITE_TEXT_ALIGNMENT align, DWRITE_PARAGRAPH_ALIGNMENT valign, bool wrapped ) {
-    if (!dwriteFactory || text.empty()) return nullptr;
-    const LayoutKeyProbe probe{ std::wstring_view(text), font,
-        (int)std::lround(maxW * 4.0f), (int)std::lround(maxH * 4.0f), align, valign, wrapped };
-    auto it = layoutCache.find(probe);
-    if (it != layoutCache.end()) {
-        layoutLru.splice(layoutLru.begin(), layoutLru, it->second.lruIt);
-        it->second.lruIt = layoutLru.begin();
-        return it->second.layout;
-    }
-    IDWriteTextFormat* tf = GetTextFormat(font);
-    if (!tf) return nullptr;
-    ComPtr<IDWriteTextLayout> layout;
-    HRESULT hr = dwriteFactory->CreateTextLayout(text.c_str(), (UINT32)text.length(), tf, maxW, maxH, &layout);
-    if (FAILED(hr) || !layout) return nullptr;
-    bool isRtl = Localization::Instance().IsRtl();
-    layout->SetReadingDirection(isRtl ? DWRITE_READING_DIRECTION_RIGHT_TO_LEFT : DWRITE_READING_DIRECTION_LEFT_TO_RIGHT);
-    layout->SetFlowDirection(DWRITE_FLOW_DIRECTION_TOP_TO_BOTTOM);
-    layout->SetTextAlignment(align);
-    layout->SetParagraphAlignment(valign);
-    if (wrapped) layout->SetWordWrapping(DWRITE_WORD_WRAPPING_WRAP);
-    // Long titles and labels must yield to neighboring controls, including
-    // the queue-position badge. The layout cache amortizes the trimming sign.
-    DWRITE_TRIMMING trimming{};
-    trimming.granularity = DWRITE_TRIMMING_GRANULARITY_CHARACTER;
-    ComPtr<IDWriteInlineObject> ellipsis;
-    if (SUCCEEDED(dwriteFactory->CreateEllipsisTrimmingSign(tf, &ellipsis))) { layout->SetTrimming(&trimming, ellipsis.Get()); }
-    while (layoutCache.size() >= kLayoutCacheEntryLimit && !layoutLru.empty()) {
-        const LayoutKey& oldKey = layoutLru.back();
-        layoutCache.erase(oldKey);
-        layoutLru.pop_back();
-    }
-    LayoutKey key{ std::wstring(text), font, probe.maxW, probe.maxH, probe.align, probe.valign, wrapped };
-    layoutLru.push_front(key);
-    LayoutCacheEntry entry;
-    entry.layout = layout;
-    entry.lruIt = layoutLru.begin();
-    layoutCache.emplace(key, std::move(entry));
-    return layout;
-}
-
 void OverlayRenderer::SetDpi(float scale) {
     dpiScale = std::clamp(scale, 0.5f, 8.0f);
     CreateTextRenderingParams();
-    layoutCache.clear();
-    layoutLru.clear();
+    ClearLayoutCaches();
     CreateFonts(selectedFontFamily);
     if (dcRenderTarget) {
         // UI callers already provide physical-pixel coordinates (dp-scaled),
@@ -329,6 +266,7 @@ void OverlayRenderer::BeginDraw() {
     dcRenderTarget->BeginDraw();
     drawActive = true;
     surfaceHasContent = false;
+    BeginShadowFrame();
     dcRenderTarget->SetAntialiasMode(D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
     dcRenderTarget->SetTextAntialiasMode(D2D1_TEXT_ANTIALIAS_MODE_GRAYSCALE);
     if (textRenderingParams) dcRenderTarget->SetTextRenderingParams(textRenderingParams.Get());
@@ -382,127 +320,9 @@ void OverlayRenderer::Clear(const D2D1_COLOR_F& color) {
     }
 }
 
-void OverlayRenderer::FillGradientRect(const D2D1_RECT_F& rect, const D2D1_COLOR_F& startColor, const D2D1_COLOR_F& endColor, bool vertical) {
-    if (!dcRenderTarget) return;
-    D2D1_RECT_F snappedRect = SnapRect(rect);
-    GradientKey key;
-    key.startR = QuantizeColor(startColor.r); key.startG = QuantizeColor(startColor.g);
-    key.startB = QuantizeColor(startColor.b); key.startA = QuantizeColor(startColor.a);
-    key.endR = QuantizeColor(endColor.r); key.endG = QuantizeColor(endColor.g);
-    key.endB = QuantizeColor(endColor.b); key.endA = QuantizeColor(endColor.a);
-    ComPtr<ID2D1GradientStopCollection> stopCollection;
-    HRESULT hr = S_OK;
-    auto cached = gradientStopCache.find(key);
-    if (cached != gradientStopCache.end()) { stopCollection = cached->second; } else {
-        D2D1_GRADIENT_STOP stops[2];
-        stops[0].color = startColor;
-        stops[0].position = 0.0f;
-        stops[1].color = endColor;
-        stops[1].position = 1.0f;
-        hr = dcRenderTarget->CreateGradientStopCollection(stops, 2, D2D1_GAMMA_2_2, D2D1_EXTEND_MODE_CLAMP, &stopCollection);
-        if (FAILED(hr)) return;
-        // Evict one entry instead of clearing: a wholesale clear forces D2D stop/brush recreation for every gradient in the theme.
-        if (gradientStopCache.size() >= 64) gradientStopCache.erase(gradientStopCache.begin());
-        gradientStopCache.emplace(key, stopCollection);
-    }
-    D2D1_POINT_2F startPt = D2D1::Point2F(snappedRect.left, snappedRect.top);
-    D2D1_POINT_2F endPt = vertical ? D2D1::Point2F(snappedRect.left, snappedRect.bottom) : D2D1::Point2F(snappedRect.right, snappedRect.top);
-    ComPtr<ID2D1LinearGradientBrush> gradBrush;
-    auto brushCached = gradientBrushCache.find(key);
-    if (brushCached != gradientBrushCache.end()) { gradBrush = brushCached->second; } else {
-        hr = dcRenderTarget->CreateLinearGradientBrush( D2D1::LinearGradientBrushProperties(startPt, endPt), stopCollection.Get(),
-            &gradBrush );
-        if (SUCCEEDED(hr) && gradBrush) {
-            // Evict one entry instead of clearing: a wholesale clear forces D2D stop/brush recreation for every gradient in the theme.
-        if (gradientBrushCache.size() >= 64) gradientBrushCache.erase(gradientBrushCache.begin());
-            gradientBrushCache.emplace(key, gradBrush);
-        }
-    }
-    if (gradBrush) {
-        gradBrush->SetStartPoint(startPt);
-        gradBrush->SetEndPoint(endPt);
-        dcRenderTarget->FillRectangle(snappedRect, gradBrush.Get());
-        surfaceHasContent = true;
-    }
-}
-
 void OverlayRenderer::DrawBitmap(ID2D1Bitmap* pBitmap, const D2D1_RECT_F& dstRect, float opacity) {
     if (!dcRenderTarget || !pBitmap || opacity <= 0.001f) return;
     dcRenderTarget->DrawBitmap(pBitmap, SnapRect(dstRect), opacity, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
-    surfaceHasContent = true;
-}
-
-
-void OverlayRenderer::DrawString(const std::wstring& text, const D2D1_RECT_F& rect, const D2D1_COLOR_F& color, FontType font, DWRITE_TEXT_ALIGNMENT align, DWRITE_PARAGRAPH_ALIGNMENT valign) {
-    if (!dcRenderTarget || !solidBrush || text.empty()) return;
-    D2D1_RECT_F snappedRect = SnapRect(rect);
-    ComPtr<IDWriteTextLayout> layout = GetOrCreateTextLayout( text, font, std::max(1.0f, RectWidth(snappedRect)),
-        std::max(1.0f, RectHeight(snappedRect)), align, valign );
-    if (!layout) return;
-    const bool menuText = font >= FontType::MenuLabel && font <= FontType::MenuShortcut && menuTextRenderingParams;
-    if (menuText) dcRenderTarget->SetTextRenderingParams(menuTextRenderingParams.Get());
-    solidBrush->SetColor(color);
-    dcRenderTarget->DrawTextLayout( D2D1::Point2F(snappedRect.left, snappedRect.top),
-        layout.Get(), solidBrush.Get(), D2D1_DRAW_TEXT_OPTIONS_ENABLE_COLOR_FONT );
-    if (menuText) dcRenderTarget->SetTextRenderingParams(textRenderingParams.Get());
-    surfaceHasContent = true;
-}
-
-void OverlayRenderer::DrawStringWrapped(const std::wstring& text, const D2D1_RECT_F& rect, const D2D1_COLOR_F& color, FontType font, DWRITE_TEXT_ALIGNMENT align, DWRITE_PARAGRAPH_ALIGNMENT valign) {
-    if (!dcRenderTarget || !solidBrush || text.empty()) return;
-    D2D1_RECT_F snappedRect = SnapRect(rect);
-    ComPtr<IDWriteTextLayout> layout = GetOrCreateTextLayout(
-        text, font, std::max(1.0f, RectWidth(snappedRect)), std::max(1.0f, RectHeight(snappedRect)), align, valign,
-        true );
-    if (!layout) return;
-    solidBrush->SetColor(color);
-    dcRenderTarget->DrawTextLayout( D2D1::Point2F(snappedRect.left, snappedRect.top), layout.Get(), solidBrush.Get(),
-        D2D1_DRAW_TEXT_OPTIONS_ENABLE_COLOR_FONT | D2D1_DRAW_TEXT_OPTIONS_CLIP );
-    surfaceHasContent = true;
-}
-
-
-D2D1_SIZE_F OverlayRenderer::MeasureString(const std::wstring& text, FontType font) {
-    if (text.empty() || !dwriteFactory) return D2D1::SizeF(0.0f, 0.0f);
-    ComPtr<IDWriteTextLayout> layout = GetOrCreateTextLayout( text, font, 4000.0f, 4000.0f, DWRITE_TEXT_ALIGNMENT_LEADING,
-        DWRITE_PARAGRAPH_ALIGNMENT_NEAR );
-    if (!layout) return D2D1::SizeF(0.0f, 0.0f);
-    DWRITE_TEXT_METRICS tm;
-    layout->GetMetrics(&tm);
-    return D2D1::SizeF(tm.widthIncludingTrailingWhitespace, tm.height);
-}
-
-void OverlayRenderer::DrawSvgPath(const char* svgPath, const D2D1_RECT_F& rect, const D2D1_COLOR_F& color, float viewBox, bool fill, float strokeWidth, bool cacheGeometry) {
-    if (!dcRenderTarget || !solidBrush || !d2dFactory || !svgPath) return;
-    ComPtr<ID2D1PathGeometry> transientGeom;
-    ID2D1PathGeometry* geom = nullptr;
-    if (cacheGeometry) {
-        auto it = svgGeometryCache.find(svgPath);
-        if (it == svgGeometryCache.end()) {
-            if (svgGeometryCache.size() >= 512) svgGeometryCache.clear();
-            auto built = SvgGeometry::Build(d2dFactory.Get(), svgPath);
-            if (!built) return;
-            it = svgGeometryCache.emplace(svgPath, std::move(built)).first;
-        }
-        geom = it->second.Get();
-    } else {
-        transientGeom = SvgGeometry::Build(d2dFactory.Get(), svgPath);
-        geom = transientGeom.Get();
-    }
-    if (!geom) return;
-    solidBrush->SetColor(color);
-    float destW = rect.right - rect.left, destH = rect.bottom - rect.top;
-    float scale = std::min(destW, destH) / viewBox;
-    float offsetX = rect.left + (destW - viewBox * scale) * 0.5f;
-    float offsetY = rect.top + (destH - viewBox * scale) * 0.5f;
-    D2D1_MATRIX_3X2_F oldTransform;
-    dcRenderTarget->GetTransform(&oldTransform);
-    D2D1_MATRIX_3X2_F newTransform = D2D1::Matrix3x2F::Scale(scale, scale) * D2D1::Matrix3x2F::Translation(offsetX, offsetY) * oldTransform;
-    dcRenderTarget->SetTransform(newTransform);
-    if (fill) {
-        dcRenderTarget->FillGeometry(geom, solidBrush.Get());
-    } else { dcRenderTarget->DrawGeometry(geom, solidBrush.Get(), strokeWidth / scale); }
-    dcRenderTarget->SetTransform(oldTransform);
     surfaceHasContent = true;
 }
 
@@ -510,30 +330,6 @@ void OverlayRenderer::DrawIcon(IconType icon, const D2D1_RECT_F& rect, const D2D
     const auto* data = FindIconPath(icon);
     if (!data || !data->overlaySupported) data = FindIconPath(IconType::ApertureLogo);
     DrawSvgPath(data->path, rect, color, data->viewBox, data->fill);
-}
-
-
-void OverlayRenderer::DrawDropShadow(const D2D1_RECT_F& rect, float radius, float blur, float yOffset, const D2D1_COLOR_F& color) {
-    if (!dcRenderTarget || !solidBrush || color.a <= 0.001f || blur <= 0.0f) return;
-    const int steps = 6;
-    for (int i = steps; i >= 1; --i) {
-        float t = (float)i / (float)steps;
-        float grow = blur * t;
-        D2D1_ROUNDED_RECT s = D2D1::RoundedRect(rect, radius + grow, radius + grow);
-        s.rect.left -= grow;   s.rect.right += grow;
-        s.rect.top  -= grow;   s.rect.bottom += grow;
-        s.rect.top += yOffset; s.rect.bottom += yOffset;
-        float falloff = std::pow(1.0f - t, 1.8f);
-        float a = color.a * falloff * 0.45f;
-        solidBrush->SetColor(D2D1::ColorF(color.r, color.g, color.b, a));
-        dcRenderTarget->FillRoundedRectangle(s, solidBrush.Get());
-    }
-    surfaceHasContent = true;
-}
-
-void OverlayRenderer::DrawGlow(const D2D1_RECT_F& rect, float radius, float blur, const D2D1_COLOR_F& glowColor) {
-    if (glowColor.a <= 0.001f || blur <= 0.0f) return;
-    DrawDropShadow(rect, radius, blur, 0.0f, glowColor);
 }
 
 void OverlayRenderer::DrawSurface(const D2D1_RECT_F& rect, const SurfaceStyle& style) {
@@ -544,18 +340,9 @@ void OverlayRenderer::DrawSurface(const D2D1_RECT_F& rect, const SurfaceStyle& s
         DrawDropShadow(surfaceRect, style.radius, style.shadowBlur, style.shadowOffsetY, style.shadowColor);
     // 2. Accent Glow
     if (style.glowColor.a > 0.001f && style.glowBlur > 0.0f) { DrawGlow(surfaceRect, style.radius, style.glowBlur, style.glowColor); }
-    // 3. Surface Base Fill & Gradients. Only partial rectangular gradients
-    // need a layer; ordinary rounded primitives can clip themselves.
-    const bool needsRoundedLayer = style.hasGradient;
-    ComPtr<ID2D1RoundedRectangleGeometry> surfaceGeometry;
-    if (needsRoundedLayer && d2dFactory)
-        d2dFactory->CreateRoundedRectangleGeometry( D2D1::RoundedRect(surfaceRect, style.radius, style.radius), &surfaceGeometry );
-    if (surfaceGeometry) { dcRenderTarget->PushLayer(D2D1::LayerParameters(surfaceRect, surfaceGeometry.Get()), nullptr); }
-    if (style.fill.a > 0.001f || style.hasGradient) {
-        FillRoundedRect(surfaceRect, style.radius, style.fill);
-        if (style.hasGradient) { FillGradientRect(surfaceRect, style.gradientStart, style.gradientEnd, false); }
-    }
-    if (surfaceGeometry) dcRenderTarget->PopLayer();
+    // 3. Surface Base Fill & Gradients directly via rounded primitives (avoids offscreen layer push/pop).
+    if (style.fill.a > 0.001f) { FillRoundedRect(surfaceRect, style.radius, style.fill); }
+    if (style.hasGradient) { FillRoundedGradientRect(surfaceRect, style.radius, style.gradientStart, style.gradientEnd, false); }
     // 4. Inner Top Highlight (Light source from above)
     if (style.hasInnerHighlight && style.innerHighlight.a > 0.001f)
         DrawInnerHighlight(surfaceRect, style.radius, style.innerHighlight, style.borderWidth);
@@ -619,25 +406,9 @@ void OverlayRenderer::DrawSubtitle(const std::wstring& text, const D2D1_RECT_F& 
                 D2D1::Point2F(subRect.left + off[0] * dp, subRect.top + off[1] * dp),
                 subtitleLayout.Get(), solidBrush.Get(), D2D1_DRAW_TEXT_OPTIONS_CLIP);
         }
-    } else if (style == "vlc-outline-24") {
-        solidBrush->SetColor(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.95f));
-        for (int ox = -2; ox <= 2; ++ox) {
-            for (int oy = -2; oy <= 2; ++oy) {
-                if (ox == 0 && oy == 0) continue;
-                dcRenderTarget->DrawTextLayout(
-                    D2D1::Point2F(subRect.left + ox * dp, subRect.top + oy * dp),
-                    subtitleLayout.Get(), solidBrush.Get(), D2D1_DRAW_TEXT_OPTIONS_CLIP);
-            }
-        }
     }
     solidBrush->SetColor(textColor);
     dcRenderTarget->DrawTextLayout(D2D1::Point2F(subRect.left, subRect.top), subtitleLayout.Get(), solidBrush.Get(), D2D1_DRAW_TEXT_OPTIONS_CLIP);
     surfaceHasContent = true;
 }
-
-void OverlayRenderer::PushClip(const D2D1_RECT_F& rect) {
-    if (dcRenderTarget) dcRenderTarget->PushAxisAlignedClip(SnapRect(rect), D2D1_ANTIALIAS_MODE_ALIASED);
-}
-
-void OverlayRenderer::PopClip() { if (dcRenderTarget) dcRenderTarget->PopAxisAlignedClip(); }
 } // namespace Aperture

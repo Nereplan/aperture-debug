@@ -68,6 +68,7 @@ struct LibCurlApi {
 
     CURL* (*curl_easy_init)() = nullptr;
     void (*curl_easy_cleanup)(CURL* curl) = nullptr;
+    void (*curl_easy_reset)(CURL* curl) = nullptr;
     CURLcode (*curl_easy_setopt)(CURL* curl, int option, ...) = nullptr;
     CURLcode (*curl_easy_perform)(CURL* curl) = nullptr;
     CURLcode (*curl_easy_getinfo)(CURL* curl, int info, ...) = nullptr;
@@ -80,6 +81,7 @@ struct LibCurlApi {
         if (!lib) return;
         curl_easy_init = reinterpret_cast<decltype(curl_easy_init)>(::dlsym(lib, "curl_easy_init"));
         curl_easy_cleanup = reinterpret_cast<decltype(curl_easy_cleanup)>(::dlsym(lib, "curl_easy_cleanup"));
+        curl_easy_reset = reinterpret_cast<decltype(curl_easy_reset)>(::dlsym(lib, "curl_easy_reset"));
         curl_easy_setopt = reinterpret_cast<decltype(curl_easy_setopt)>(::dlsym(lib, "curl_easy_setopt"));
         curl_easy_perform = reinterpret_cast<decltype(curl_easy_perform)>(::dlsym(lib, "curl_easy_perform"));
         curl_easy_getinfo = reinterpret_cast<decltype(curl_easy_getinfo)>(::dlsym(lib, "curl_easy_getinfo"));
@@ -90,6 +92,41 @@ struct LibCurlApi {
 LibCurlApi& GetCurl() {
     static LibCurlApi instance;
     return instance;
+}
+
+void* AcquireThreadCurlHandle(LibCurlApi& curl, bool& outCached) {
+    struct ThreadCurlCache {
+        void* handle = nullptr;
+        ~ThreadCurlCache() {
+            if (handle) {
+                auto& c = GetCurl();
+                if (c.curl_easy_cleanup) c.curl_easy_cleanup(handle);
+                handle = nullptr;
+            }
+        }
+    };
+    if (curl.curl_easy_reset) {
+        thread_local ThreadCurlCache cache;
+        if (!cache.handle) {
+            cache.handle = curl.curl_easy_init();
+        }
+        if (cache.handle) {
+            curl.curl_easy_reset(cache.handle);
+            outCached = true;
+            return cache.handle;
+        }
+    }
+    outCached = false;
+    return curl.curl_easy_init();
+}
+
+void ReleaseThreadCurlHandle(LibCurlApi& curl, void* h, bool cached) {
+    if (!h) return;
+    if (cached && curl.curl_easy_reset) {
+        curl.curl_easy_reset(h);
+    } else {
+        curl.curl_easy_cleanup(h);
+    }
 }
 
 struct CurlWriteCtx {
@@ -116,11 +153,22 @@ size_t CurlWriteCallback(char* ptr, size_t size, size_t nmemb, void* userdata) {
         return 0;
     }
     ctx->totalBytes += bytes;
+    auto writeAll = [](HANDLE hFile, const char* data, size_t len) -> bool {
+        size_t offset = 0;
+        while (offset < len) {
+            DWORD chunk = static_cast<DWORD>(std::min<size_t>(len - offset, 0x40000000ULL));
+            DWORD written = 0;
+            if (!WriteFile(hFile, data + offset, chunk, &written, nullptr) || written == 0) {
+                return false;
+            }
+            offset += written;
+        }
+        return true;
+    };
     if (ctx->body) {
         ctx->body->append(ptr, bytes);
     } else if (ctx->hFile != INVALID_HANDLE_VALUE) {
-        DWORD written = 0;
-        if (!WriteFile(ctx->hFile, ptr, static_cast<DWORD>(bytes), &written, nullptr) || written != bytes) {
+        if (!writeAll(ctx->hFile, ptr, bytes)) {
             ctx->fileError = true;
             return 0;
         }
@@ -170,7 +218,28 @@ static HttpResponse PerformCurlTransfer(const std::wstring& httpsUrl, const Http
     if (options.IsCancelled()) {
         return {false, 0, "", L"", L"Operation cancelled", HttpTransportStatus::Cancelled};
     }
+    if (destFile && !ValidateSafeDestinationPath(*destFile)) {
+        return {false, 0, "", httpsUrl, L"Destination path rejected", HttpTransportStatus::FileError};
+    }
 
+    auto& curl = GetCurl();
+    if (!curl.loaded) {
+        return {false, 0, "", httpsUrl, L"libcurl.so.4 not available", HttpTransportStatus::NetworkError};
+    }
+
+    bool handleCached = false;
+    void* h = AcquireThreadCurlHandle(curl, handleCached);
+    if (!h) {
+        return {false, 0, "", httpsUrl, L"curl_easy_init failed", HttpTransportStatus::NetworkError};
+    }
+    struct HandleGuard {
+        LibCurlApi& curl;
+        void* h;
+        bool cached;
+        ~HandleGuard() { ReleaseThreadCurlHandle(curl, h, cached); }
+    } handleGuard{curl, h, handleCached};
+
+    std::string u8Ua = LinuxWideToUtf8(options.userAgent.empty() ? L"Aperture/2.0" : options.userAgent);
     std::wstring currentUrl = httpsUrl;
     for (int hop = 0; hop <= options.maxRedirects; ++hop) {
         if (options.IsCancelled()) {
@@ -181,31 +250,28 @@ static HttpResponse PerformCurlTransfer(const std::wstring& httpsUrl, const Http
         if (!CrackUrlComponents(currentUrl, options.allowHttp, host, errResp)) return errResp;
         if (!IsAllowedHost(host, options.allowedHosts, errResp)) return errResp;
 
-        auto& curl = GetCurl();
-        if (!curl.loaded) {
-            return {false, 0, "", currentUrl, L"libcurl.so.4 not available", HttpTransportStatus::NetworkError};
-        }
-
-        void* h = curl.curl_easy_init();
-        if (!h) {
-            return {false, 0, "", currentUrl, L"curl_easy_init failed", HttpTransportStatus::NetworkError};
+        if (hop > 0) {
+            if (curl.curl_easy_reset) {
+                curl.curl_easy_reset(h);
+            } else {
+                curl.curl_easy_cleanup(h);
+                h = curl.curl_easy_init();
+                handleGuard.h = h;
+                if (!h) {
+                    return {false, 0, "", currentUrl, L"curl_easy_init failed", HttpTransportStatus::NetworkError};
+                }
+            }
         }
 
         std::string u8Url = LinuxWideToUtf8(currentUrl);
-        std::string u8Ua = LinuxWideToUtf8(options.userAgent.empty() ? L"Aperture/2.0" : options.userAgent);
         std::string responseBody;
         std::wstring tmpPath;
         HANDLE hOutFile = INVALID_HANDLE_VALUE;
 
         if (destFile) {
-            if (!ValidateSafeDestinationPath(*destFile)) {
-                curl.curl_easy_cleanup(h);
-                return {false, 0, "", currentUrl, L"Destination path rejected", HttpTransportStatus::FileError};
-            }
             tmpPath = *destFile + L".part";
             hOutFile = CreateFileW(tmpPath.c_str(), GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
             if (hOutFile == INVALID_HANDLE_VALUE) {
-                curl.curl_easy_cleanup(h);
                 return {false, 0, "", currentUrl, L"Failed to open output file", HttpTransportStatus::FileError};
             }
         }
@@ -236,7 +302,6 @@ static HttpResponse PerformCurlTransfer(const std::wstring& httpsUrl, const Http
         const char* redirectUrlPtr = nullptr;
         curl.curl_easy_getinfo(h, 0x10001F /*CURLINFO_REDIRECT_URL*/, &redirectUrlPtr);
         std::string redirectUrl = redirectUrlPtr ? redirectUrlPtr : "";
-        curl.curl_easy_cleanup(h);
 
         if (hOutFile != INVALID_HANDLE_VALUE) {
             FlushFileBuffers(hOutFile);

@@ -945,7 +945,9 @@ struct IDWriteFontCollection : public IUnknown {
         return S_OK;
     }
 };
-struct IDWriteFontFile : public IUnknown {};
+struct IDWriteFontFile : public IUnknown {
+    std::wstring m_filePath;
+};
 struct IDWriteFontSet : public IUnknown {};
 
 enum DWRITE_READING_DIRECTION {
@@ -996,7 +998,7 @@ struct IDWriteRenderingParams2 : public IDWriteRenderingParams1 {};
 struct IDWriteRenderingParams3 : public IDWriteRenderingParams2 {};
 
 struct IDWriteFontSetBuilder1 : public IUnknown {
-    virtual HRESULT AddFontFile(IDWriteFontFile* /*fontFile*/) { return S_OK; }
+    virtual HRESULT AddFontFile(IDWriteFontFile* fontFile);
     virtual HRESULT CreateFontSet(IDWriteFontSet** fontSet) {
         if (!fontSet) return E_POINTER;
         *fontSet = new IDWriteFontSet();
@@ -1055,6 +1057,23 @@ struct IDWriteTextLayout : public IDWriteTextFormat {
     std::wstring m_text;
     FLOAT m_maxWidth = 1000.0f;
     FLOAT m_maxHeight = 1000.0f;
+
+    // Cached PangoLayout state (managed and released by LinuxPlatformGraphics.cpp)
+    mutable void* m_cachedPangoLayout = nullptr;
+    mutable FLOAT m_cachedSx = 0.0f;
+    mutable std::wstring m_cachedText;
+    mutable std::wstring m_cachedFamily;
+    mutable FLOAT m_cachedFontSize = 0.0f;
+    mutable FLOAT m_cachedMaxWidth = 0.0f;
+    mutable DWRITE_FONT_WEIGHT m_cachedWeight = DWRITE_FONT_WEIGHT_NORMAL;
+    mutable DWRITE_FONT_STYLE m_cachedStyle = DWRITE_FONT_STYLE_NORMAL;
+    mutable DWRITE_TEXT_ALIGNMENT m_cachedAlign = DWRITE_TEXT_ALIGNMENT_LEADING;
+    mutable DWRITE_READING_DIRECTION m_cachedReadingDirection = DWRITE_READING_DIRECTION_LEFT_TO_RIGHT;
+    mutable DWRITE_WORD_WRAPPING m_cachedWrapping = DWRITE_WORD_WRAPPING_WRAP;
+    mutable DWRITE_TRIMMING_GRANULARITY m_cachedTrimming = DWRITE_TRIMMING_GRANULARITY_NONE;
+    mutable uint64_t m_cachedFontGeneration = 0;
+
+    virtual ~IDWriteTextLayout();
 
     virtual HRESULT SetMaxWidth(FLOAT maxWidth) { m_maxWidth = maxWidth; return S_OK; }
     virtual HRESULT SetMaxHeight(FLOAT maxHeight) { m_maxHeight = maxHeight; return S_OK; }
@@ -1132,9 +1151,11 @@ struct IDWriteFactory : public IUnknown {
         *trimmingSign = new IDWriteInlineObject();
         return S_OK;
     }
-    virtual HRESULT CreateFontFileReference(const WCHAR* filePath, const FILETIME* lastWriteTime, IDWriteFontFile** fontFile) {
+    virtual HRESULT CreateFontFileReference(const WCHAR* filePath, const FILETIME* /*lastWriteTime*/, IDWriteFontFile** fontFile) {
         if (!fontFile) return E_POINTER;
-        *fontFile = new IDWriteFontFile();
+        auto* ff = new IDWriteFontFile();
+        if (filePath) ff->m_filePath = filePath;
+        *fontFile = ff;
         return S_OK;
     }
     virtual HRESULT CreateMonitorRenderingParams(HMONITOR /*monitor*/, IDWriteRenderingParams** renderingParams) {
@@ -1196,19 +1217,50 @@ struct ID2D1Bitmap : public ID2D1Image {
     UINT32 m_height = 1;
     FLOAT m_dpiX = 96.0f;
     FLOAT m_dpiY = 96.0f;
-    std::vector<uint8_t> m_pixels; // BGRA premultiplied
+    std::vector<uint8_t> m_ownedPixels; // BGRA premultiplied when not aliasing DXGI surface
+    Microsoft::WRL::ComPtr<IDXGISurface> m_aliasedSurface;
+
+    // Cached Cairo surface state (managed/destroyed in LinuxPlatformGraphics.cpp)
+    mutable void* m_cachedCairoSurface = nullptr;
+    mutable const uint8_t* m_cachedSurfacePtr = nullptr;
+    mutable UINT32 m_cachedSurfaceW = 0;
+    mutable UINT32 m_cachedSurfaceH = 0;
+    mutable bool m_dirtyForCairo = false;
 
     ID2D1Bitmap(UINT32 w = 1, UINT32 h = 1, const void* srcData = nullptr, UINT32 pitch = 0)
         : m_width(w ? w : 1), m_height(h ? h : 1) {
-        m_pixels.resize((size_t)m_width * m_height * 4, 0);
+        m_ownedPixels.resize((size_t)m_width * m_height * 4, 0);
         if (srcData && pitch > 0) {
             const uint8_t* src = static_cast<const uint8_t*>(srcData);
             size_t rowBytes = (size_t)m_width * 4;
             for (UINT32 y = 0; y < m_height; ++y) {
-                std::memcpy(m_pixels.data() + (size_t)y * rowBytes, src + (size_t)y * pitch, rowBytes);
+                std::memcpy(m_ownedPixels.data() + (size_t)y * rowBytes, src + (size_t)y * pitch, rowBytes);
             }
         }
     }
+    explicit ID2D1Bitmap(IDXGISurface* surfaceToAlias)
+        : m_width(surfaceToAlias && surfaceToAlias->m_width ? surfaceToAlias->m_width : 1),
+          m_height(surfaceToAlias && surfaceToAlias->m_height ? surfaceToAlias->m_height : 1),
+          m_aliasedSurface(surfaceToAlias) {
+        if (!surfaceToAlias) {
+            m_ownedPixels.resize((size_t)m_width * m_height * 4, 0);
+        }
+    }
+    virtual ~ID2D1Bitmap();
+
+    uint8_t* PixelData() noexcept {
+        return m_aliasedSurface ? m_aliasedSurface->m_pixels.data() : m_ownedPixels.data();
+    }
+    const uint8_t* PixelData() const noexcept {
+        return m_aliasedSurface ? m_aliasedSurface->m_pixels.data() : m_ownedPixels.data();
+    }
+    size_t PixelByteCount() const noexcept {
+        return m_aliasedSurface ? m_aliasedSurface->m_pixels.size() : m_ownedPixels.size();
+    }
+    bool HasPixels() const noexcept {
+        return PixelByteCount() > 0 && PixelData() != nullptr;
+    }
+
     virtual D2D1_SIZE_F GetSize() const {
         return D2D1::SizeF((FLOAT)m_width * 96.0f / (m_dpiX > 0.f ? m_dpiX : 96.0f),
                            (FLOAT)m_height * 96.0f / (m_dpiY > 0.f ? m_dpiY : 96.0f));
@@ -1218,6 +1270,8 @@ struct ID2D1Bitmap : public ID2D1Image {
     }
     virtual HRESULT CopyFromMemory(const D2D1_RECT_U* dstRect, const void* srcData, UINT32 pitch) {
         if (!srcData || pitch == 0) return E_INVALIDARG;
+        uint8_t* dst = PixelData();
+        if (!dst) return E_FAIL;
         UINT32 left = dstRect ? dstRect->left : 0;
         UINT32 top = dstRect ? dstRect->top : 0;
         UINT32 right = dstRect ? dstRect->right : m_width;
@@ -1228,16 +1282,21 @@ struct ID2D1Bitmap : public ID2D1Image {
         const uint8_t* src = static_cast<const uint8_t*>(srcData);
         size_t copyW = (size_t)(right - left) * 4;
         for (UINT32 y = top; y < bottom; ++y) {
-            std::memcpy(m_pixels.data() + ((size_t)y * m_width + left) * 4,
+            std::memcpy(dst + ((size_t)y * m_width + left) * 4,
                         src + (size_t)(y - top) * pitch,
                         copyW);
         }
+        m_dirtyForCairo = true;
         return S_OK;
     }
     virtual HRESULT CopyFromBitmap(const D2D1_POINT_2F* destPoint, ID2D1Bitmap* bitmap, const D2D1_RECT_U* srcRect) {
         if (!bitmap) return E_INVALIDARG;
+        uint8_t* dst = PixelData();
+        const uint8_t* src = bitmap->PixelData();
+        if (!dst || !src) return E_FAIL;
         if (m_width == bitmap->m_width && m_height == bitmap->m_height && !destPoint && !srcRect) {
-            m_pixels = bitmap->m_pixels;
+            std::memcpy(dst, src, std::min(PixelByteCount(), bitmap->PixelByteCount()));
+            m_dirtyForCairo = true;
         }
         return S_OK;
     }
@@ -1451,6 +1510,19 @@ struct ID2D1Effect : public ID2D1Image {
 struct IWICBitmapSource;
 struct ID2D1BitmapRenderTarget;
 
+struct LinuxLayerState {
+    Microsoft::WRL::ComPtr<ID2D1Bitmap1> savedTarget;
+    Microsoft::WRL::ComPtr<ID2D1Bitmap1> layerBitmap;
+    int originX = 0;
+    int originY = 0;
+    int savedOriginX = 0;
+    int savedOriginY = 0;
+    FLOAT opacity = 1.0f;
+    Microsoft::WRL::ComPtr<ID2D1Geometry> geometricMask;
+    D2D1_MATRIX_3X2_F maskTransform = D2D1::Matrix3x2F::Identity();
+    std::vector<D2D1_RECT_F> savedClipStack;
+};
+
 struct ID2D1RenderTarget : public ID2D1Resource {
     Microsoft::WRL::ComPtr<ID2D1Bitmap1> m_targetBitmap;
     FLOAT m_dpiX = 96.0f;
@@ -1459,7 +1531,12 @@ struct ID2D1RenderTarget : public ID2D1Resource {
     D2D1_ANTIALIAS_MODE m_antialiasMode = D2D1_ANTIALIAS_MODE_PER_PRIMITIVE;
     D2D1_TEXT_ANTIALIAS_MODE m_textAntialiasMode = D2D1_TEXT_ANTIALIAS_MODE_CLEARTYPE;
     std::vector<D2D1_RECT_F> m_clipStack;
-    std::vector<FLOAT> m_layerOpacityStack;
+    std::vector<LinuxLayerState> m_layerStack;
+    std::vector<Microsoft::WRL::ComPtr<ID2D1Bitmap1>> m_layerPool;
+    int m_pixelOriginX = 0;
+    int m_pixelOriginY = 0;
+    void* m_cachedCr = nullptr;
+    ID2D1Bitmap* m_cachedCrBitmap = nullptr;
     HDC m_boundDC = nullptr;
     RECT m_boundRect{0, 0, 1280, 720};
 
@@ -1761,7 +1838,7 @@ struct ID2D1DCRenderTarget : public ID2D1RenderTarget {
 struct ID2D1Device;
 
 struct ID2D1DeviceContext : public ID2D1RenderTarget {
-    ID2D1Device* m_device = nullptr;
+    Microsoft::WRL::ComPtr<ID2D1Device> m_device;
     virtual void GetDevice(ID2D1Device** device) const;
     virtual void SetTarget(ID2D1Image* image) {
         if (!image) {
@@ -1780,7 +1857,7 @@ struct ID2D1DeviceContext : public ID2D1RenderTarget {
         const D2D1_BITMAP_PROPERTIES1* bitmapProperties,
         ID2D1Bitmap1** bitmap) {
         if (!bitmap || !surface) return E_POINTER;
-        auto* bmp = new ID2D1Bitmap1(surface->m_width, surface->m_height);
+        auto* bmp = new ID2D1Bitmap1(surface);
         if (bitmapProperties) {
             bmp->m_dpiX = bitmapProperties->dpiX > 0.f ? bitmapProperties->dpiX : 96.0f;
             bmp->m_dpiY = bitmapProperties->dpiY > 0.f ? bitmapProperties->dpiY : 96.0f;
@@ -1870,7 +1947,7 @@ struct ID2D1Device : public ID2D1Resource {
 
 inline void ID2D1DeviceContext::GetDevice(ID2D1Device** device) const {
     if (!device) return;
-    *device = m_device;
+    *device = m_device.Get();
     if (*device) (*device)->AddRef();
 }
 
@@ -1927,9 +2004,16 @@ struct ID2D1Factory1 : public ID2D1Factory {
     }
 };
 
+inline ID2D1Factory1* GetSharedD2DFactory() {
+    static ID2D1Factory1* s_shared = new ID2D1Factory1();
+    return s_shared;
+}
+
 inline void ID2D1Resource::GetFactory(ID2D1Factory** factory) const {
     if (!factory) return;
-    *factory = new ID2D1Factory1();
+    ID2D1Factory1* shared = GetSharedD2DFactory();
+    shared->AddRef();
+    *factory = shared;
 }
 
 struct D2D1_FACTORY_OPTIONS {

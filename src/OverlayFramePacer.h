@@ -11,7 +11,10 @@ namespace Aperture {
 // including the final animation frame; late frames do not create catch-up bursts.
 class OverlayFramePacer {
 public:
-    void Reset() { pending = false; frameIntervalSeconds = 1.0 / 60.0; nextFrameSeconds = 0.0; lastFrameSeconds = 0.0; hasFrame = false; subtitleText.clear(); }
+    void Reset() {
+        pending = false; frameIntervalSeconds = 1.0 / 60.0; nextFrameSeconds = 0.0; lastFrameSeconds = 0.0;
+        hasFrame = false; subtitleText.clear(); lastControlsVisible = false; lastPlaybackSecond = -1;
+    }
     void SetRefreshRate(double hertz) {
         if (!std::isfinite(hertz) || hertz < 20.0 || hertz > 360.0) hertz = 60.0;
         frameIntervalSeconds = 1.0 / hertz;
@@ -33,11 +36,24 @@ public:
         if (changed) subtitleText.assign(currentSubtitle);
         return continuousVisual || changed;
     }
+    // Redraws visible static HUD controls only when animation, subtitle text,
+    // visibility, or the displayed playback second changes.
+    bool PlaybackStateChanged(bool continuousAnimation, std::wstring_view currentSubtitle,
+                              bool controlsVisible, long long currentSecond) {
+        const bool subChanged = currentSubtitle != subtitleText;
+        if (subChanged) subtitleText.assign(currentSubtitle);
+        const bool visChanged = controlsVisible != lastControlsVisible;
+        lastControlsVisible = controlsVisible;
+        const bool secChanged = controlsVisible && (currentSecond != lastPlaybackSecond);
+        lastPlaybackSecond = controlsVisible ? currentSecond : -1;
+        return continuousAnimation || subChanged || visChanged || secChanged;
+    }
 
 private:
-    bool pending = false, hasFrame = false;
+    bool pending = false, hasFrame = false, lastControlsVisible = false;
     double frameIntervalSeconds = 1.0 / 60.0;
     double nextFrameSeconds = 0.0, lastFrameSeconds = 0.0;
+    long long lastPlaybackSecond = -1;
     std::wstring subtitleText;
 };
 

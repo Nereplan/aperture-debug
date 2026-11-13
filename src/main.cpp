@@ -493,14 +493,10 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
         Diagnostics::Shutdown();
         return captureSuccess ? 0 : 1;
     }
-    // 7. Event-driven message loop. A short wait caps idle polling while
-    // retaining responsive animation/playback updates when the app is active. When nothing requests redraws and no input arrives, the
-    // timeout backs off progressively so a fully idle hub idles at ~16 wakeups/s instead
-    // of ~60; redraw requests drop it back to 16 ms. Incoming messages wake
-    // the wait immediately without restarting the fast poll for background work.
+    // 7. Event-driven message loop. When active animations/redraws stop, sleep
+    // until the next real timer/subtitle/background-work deadline or OS input.
     LARGE_INTEGER qpcLast;
     QueryPerformanceCounter(&qpcLast);
-    DWORD idleWaitMs = 16;
     MSG msg = {};
     const bool frameProfile = FrameProfilingEnabled();
     LARGE_INTEGER profileWindowStart{};
@@ -626,7 +622,6 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
                 }
             }
             profileMaxPresentMs = std::max(profileMaxPresentMs, g_pApp->TakeMaxPresentMs());
-            if (needsRedraw) { idleWaitMs = 16; } else { idleWaitMs = std::min<DWORD>(64, idleWaitMs * 2); }
             LARGE_INTEGER waitStart{};
             if (frameProfile) QueryPerformanceCounter(&waitStart);
             DWORD waitResult = WAIT_TIMEOUT;
@@ -634,7 +629,16 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
                 if (g_pApp->IsOccluded()) {
                     waitResult = MsgWaitForMultipleObjectsEx(0, NULL, 16, QS_ALLINPUT, MWMO_INPUTAVAILABLE);
                 } else if (g_pApp->GetPlaybackSession().IsOpen()) {
-                    waitResult = MsgWaitForMultipleObjectsEx(0, NULL, g_pApp->HasPendingPlaybackFrame() ? g_pApp->GetPlaybackFrameWaitMs() : 8, QS_ALLINPUT, MWMO_INPUTAVAILABLE);
+                    if (g_pApp->HasPendingPlaybackFrame()) {
+                        HANDLE frameTimer = g_pApp->GetPlaybackFrameTimerHandle();
+                        if (frameTimer) {
+                            waitResult = MsgWaitForMultipleObjectsEx(1, &frameTimer, g_pApp->GetPlaybackFrameWaitMs(), QS_ALLINPUT, MWMO_INPUTAVAILABLE);
+                        } else {
+                            waitResult = MsgWaitForMultipleObjectsEx(0, NULL, g_pApp->GetPlaybackFrameWaitMs(), QS_ALLINPUT, MWMO_INPUTAVAILABLE);
+                        }
+                    } else {
+                        waitResult = MsgWaitForMultipleObjectsEx(0, NULL, g_pApp->GetNextIdleWaitMs(), QS_ALLINPUT, MWMO_INPUTAVAILABLE);
+                    }
                 } else {
                     // Hub animations: Present1(1, 0) is paced by the device's maximum frame latency
                     // (the hub swap chain has no waitable object), so it has already blocked as needed.
@@ -642,7 +646,7 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
                     waitResult = MsgWaitForMultipleObjectsEx(0, NULL, 0, QS_ALLINPUT, MWMO_INPUTAVAILABLE);
                 }
             } else {
-                waitResult = MsgWaitForMultipleObjectsEx(0, NULL, g_pApp->RequiresSubtitleTick() ? std::min<DWORD>(16, idleWaitMs) : idleWaitMs, QS_ALLINPUT, MWMO_INPUTAVAILABLE);
+                waitResult = MsgWaitForMultipleObjectsEx(0, NULL, g_pApp->GetNextIdleWaitMs(), QS_ALLINPUT, MWMO_INPUTAVAILABLE);
             }
             if (frameProfile) {
                 LARGE_INTEGER waitEnd{};

@@ -15,27 +15,48 @@
 #include "SettingsLayout.h"
 #include "Presentation.h"
 #include "WindowGeometry.h"
+#if defined(_WIN32)
 #include <commdlg.h>
 #include <shellapi.h>
 #include <shlwapi.h>
 #include <shlobj.h>
 #include <imm.h>
+#endif
 #include <numeric>
 
 namespace Aperture {
 
+namespace {
 
-TextInputModel* App::ActiveTextInputModel() {
-    if (activeTextInputField == TextInputField::PlaylistSearch) return &playlistSearchInput;
-    if (activeTextInputField == TextInputField::MediaSearch) return &mediaSearchInput;
-    if (activeTextInputField == TextInputField::RadioSearch) return &radioSearchInput;
-    if (activeTextInputField == TextInputField::Modal) return &modalInput;
-    if (activeTextInputField == TextInputField::PlaybackSpeed) return &playbackSpeedInput;
-    if (activeTextInputField == TextInputField::InlineRename) return &inlineRenameInput;
-    if (activeTextInputField == TextInputField::GlobalSearch) return &globalSearchModel.GetTextInputModel();
-    return nullptr;
+inline bool IsModifierDown(int vk) { return (GetKeyState(vk) & 0x8000) != 0; }
+
+inline int NavIndexForTab(TabView tab) {
+    switch (tab) {
+    case TabView::Media: return 0;
+    case TabView::Playlists: return 1;
+    case TabView::History: return 2;
+    case TabView::Settings: return 3;
+    default: return 0;
+    }
 }
 
+inline bool OptionMatches(double a, double b) { return std::abs(a - b) < 0.05; }
+inline bool OptionMatches(int a, int b) { return a == b; }
+
+template <typename T, size_t N>
+void CycleSettingOption(T& value, const T (&options)[N]) {
+    int curIdx = -1;
+    for (size_t k = 0; k < N; ++k) {
+        if (OptionMatches(value, options[k])) { curIdx = static_cast<int>(k); break; }
+    }
+    value = options[static_cast<size_t>((curIdx + 1) % static_cast<int>(N))];
+}
+
+} // namespace
+
+TextInputModel* App::ActiveTextInputModel() {
+    return const_cast<TextInputModel*>(static_cast<const App*>(this)->ActiveTextInputModel());
+}
 
 const TextInputModel* App::ActiveTextInputModel() const {
     if (activeTextInputField == TextInputField::PlaylistSearch) return &playlistSearchInput;
@@ -231,6 +252,23 @@ bool App::HandleTextInputKeyDown(WPARAM wParam, LPARAM) {
         activeTextInputField = TextInputField::None;
         BlurTextInput();
         return false;
+    }
+    if (wParam == VK_TAB && !ctrl && !alt &&
+        (activeTextInputField == TextInputField::MediaSearch || activeTextInputField == TextInputField::PlaylistSearch)) {
+        const TextInputField wasField = activeTextInputField;
+        BlurTextInput();
+        isKeyboardNavActive = true;
+        if (wasField == TextInputField::MediaSearch) {
+            activeFocusPane = FocusPane::MediaList;
+            keyboardFocusedIndex = 0;
+            if (!GetVisibleMediaIndices().empty() && selectedMediaIndices.empty()) selectedMediaIndices = { 0 };
+        } else {
+            activeFocusPane = FocusPane::PlaylistRail;
+            if (keyboardFocusedIndex < 0) keyboardFocusedIndex = 0;
+        }
+        AutoScrollToFocusedItem();
+        InvalidateRect(hWnd, NULL, FALSE);
+        return true;
     }
     if (wParam == VK_RETURN) {
         if (activeTextInputField == TextInputField::PlaybackSpeed) {
@@ -565,15 +603,18 @@ bool App::HandleModalKeyDown(WPARAM wParam) {
 
 bool App::HandleGlobalKeyDown(WPARAM wParam, LPARAM lParam) {
     if (activeTextInputField != TextInputField::None && HandleTextInputKeyDown(wParam, lParam)) { return true; }
-    if (activeTextInputField == TextInputField::PlaybackSpeed && !(GetKeyState(VK_CONTROL) & 0x8000) && !(GetKeyState(VK_MENU) & 0x8000)) return true;
+    const bool isCtrl = IsModifierDown(VK_CONTROL);
+    const bool isShift = IsModifierDown(VK_SHIFT);
+    const bool isAlt = IsModifierDown(VK_MENU);
+    if (activeTextInputField == TextInputField::PlaybackSpeed && !isCtrl && !isAlt) return true;
     // The diagnostics log viewer closes on Escape before any other chord runs.
     if (showLogViewer && playbackSession.IsOpen() && wParam == VK_ESCAPE) { ToggleLogViewer(); return true; }
-    if ((GetKeyState(VK_CONTROL) & 0x8000) != 0 && (GetKeyState(VK_SHIFT) & 0x8000) != 0 && (wParam == 'O' || wParam == 'o')) {
+    if (isCtrl && isShift && (wParam == 'O' || wParam == 'o')) {
         OpenFolderDialog();
         return true;
     }
-    if ((GetKeyState(VK_CONTROL) & 0x8000) != 0 && (wParam == 'O' || wParam == 'o')) { OpenFileDialog(); return true; }
-    if ((GetKeyState(VK_CONTROL) & 0x8000) != 0 && (wParam == 'Z' || wParam == 'z')) {
+    if (isCtrl && (wParam == 'O' || wParam == 'o')) { OpenFileDialog(); return true; }
+    if (isCtrl && (wParam == 'Z' || wParam == 'z')) {
         if (!UndoLastLibraryAction()) ShowOSD(IconType::Refresh, L"Nothing to undo");
         return true;
     }
@@ -590,7 +631,7 @@ bool App::HandleGlobalKeyDown(WPARAM wParam, LPARAM lParam) {
         }
         return true;
     }
-    if ((GetKeyState(VK_CONTROL) & 0x8000) != 0 && (wParam == 'F' || wParam == 'f')) {
+    if (isCtrl && (wParam == 'F' || wParam == 'f')) {
         if (currentTab == TabView::Media) { FocusMediaSearch(); return true; } else if (currentTab == TabView::Playlists) {
             FocusTextInput(TextInputField::PlaylistSearch);
             playlistSearchInput.SelectAll();
@@ -600,17 +641,16 @@ bool App::HandleGlobalKeyDown(WPARAM wParam, LPARAM lParam) {
         ToggleGlobalSearch();
         return true;
     }
-    if ((GetKeyState(VK_CONTROL) & 0x8000) != 0 && (wParam == 'L' || wParam == 'l')) { ShowOpenNetworkStreamModal(); return true; }
-    if ((GetKeyState(VK_CONTROL) & 0x8000) != 0 && (GetKeyState(VK_SHIFT) & 0x8000) != 0 && (wParam == 'I' || wParam == 'i')) {
+    if (isCtrl && (wParam == 'L' || wParam == 'l')) { ShowOpenNetworkStreamModal(); return true; }
+    if (isCtrl && isShift && (wParam == 'I' || wParam == 'i')) {
         ImportStandardPlaylist();
         return true;
     }
-    if ((GetKeyState(VK_CONTROL) & 0x8000) != 0 && (GetKeyState(VK_SHIFT) & 0x8000) != 0 && (wParam == 'E' || wParam == 'e')) {
+    if (isCtrl && isShift && (wParam == 'E' || wParam == 'e')) {
         ExportActivePlaylist();
         return true;
     }
-    if (activeModal == ModalType::None && playbackSession.IsOpen() && wParam == 'A' &&
-        (GetKeyState(VK_SHIFT) & 0x8000) && !(GetKeyState(VK_CONTROL) & 0x8000) && !(GetKeyState(VK_MENU) & 0x8000)) {
+    if (activeModal == ModalType::None && playbackSession.IsOpen() && wParam == 'A' && isShift && !isCtrl && !isAlt) {
         if (!(lParam & (1LL << 30))) CycleABRepeat();
         if (isContextMenuOpen) OpenPlayerAdvancedContextMenu(contextMenuOrigin.x, contextMenuOrigin.y);
         return true;
@@ -625,7 +665,7 @@ bool App::HandleGlobalKeyDown(WPARAM wParam, LPARAM lParam) {
         // Keep navigation and destructive shortcuts from touching the library while the worker's result is waiting to be merged.
         return true;
     }
-    if (!isContextMenuOpen && (GetKeyState(VK_SHIFT) & 0x8000) != 0 && wParam == VK_OEM_2) { OpenShortcutOverlay(); return true; }
+    if (!isContextMenuOpen && isShift && wParam == VK_OEM_2) { OpenShortcutOverlay(); return true; }
     if (isContextMenuOpen) {
         if (wParam == VK_ESCAPE) {
             CloseContextMenu();
@@ -680,8 +720,7 @@ bool App::HandleGlobalKeyDown(WPARAM wParam, LPARAM lParam) {
         }
         // Mouse pseudo-keys complete the capture through the same shared path
         // (see App::HandleShortcutCaptureMouse routing in the mouse handlers).
-        CompleteShortcutCapture((UINT)wParam,
-            (GetKeyState(VK_CONTROL) & 0x8000) != 0, (GetKeyState(VK_SHIFT) & 0x8000) != 0, (GetKeyState(VK_MENU) & 0x8000) != 0);
+        CompleteShortcutCapture((UINT)wParam, isCtrl, isShift, isAlt);
         return true;
     }
     if (playbackSession.IsOpen()) {
@@ -690,7 +729,7 @@ bool App::HandleGlobalKeyDown(WPARAM wParam, LPARAM lParam) {
         controlsIdleTimer = 0.0f;
         controlsOpacity = 1.0f;
         if (isCursorHidden) { isCursorHidden = false; SetCursor(LoadCursor(NULL, IDC_ARROW)); }
-        if (wParam == VK_SPACE && !(GetKeyState(VK_CONTROL) & 0x8000) && !(GetKeyState(VK_MENU) & 0x8000) && !(GetKeyState(VK_SHIFT) & 0x8000)) {
+        if (wParam == VK_SPACE && !isCtrl && !isAlt && !isShift) {
             commandDispatcher.Execute(AppCommand::TogglePlay);
             return true;
         }
@@ -700,10 +739,9 @@ bool App::HandleGlobalKeyDown(WPARAM wParam, LPARAM lParam) {
             if (wParam == VK_TAB) {
                 isKeyboardNavActive = true;
                 if (optionCount > 0) {
-                    const bool reverse = (GetKeyState(VK_SHIFT) & 0x8000) != 0;
                     if (hoveredFlyoutOption < 0) {
-                        hoveredFlyoutOption = reverse ? optionCount - 1 : 0;
-                    } else { hoveredFlyoutOption = (hoveredFlyoutOption + (reverse ? -1 : 1) + optionCount) % optionCount; }
+                        hoveredFlyoutOption = isShift ? optionCount - 1 : 0;
+                    } else { hoveredFlyoutOption = (hoveredFlyoutOption + (isShift ? -1 : 1) + optionCount) % optionCount; }
                     MarkAccessibilityDirty();
                     RefreshAccessibilityTree(true);
                     const LONG flyoutId = 9100 + hoveredFlyoutOption + static_cast<LONG>(currentFlyoutMenu.size() * 100);
@@ -769,9 +807,6 @@ bool App::HandleGlobalKeyDown(WPARAM wParam, LPARAM lParam) {
                 return true;
             }
         }
-        bool isCtrl = (GetKeyState(VK_CONTROL) & 0x8000) != 0;
-        bool isShift = (GetKeyState(VK_SHIFT) & 0x8000) != 0;
-        bool isAlt = (GetKeyState(VK_MENU) & 0x8000) != 0;
         RECT playerRc{};
         GetClientRect(hOverlayWnd ? hOverlayWnd : hWnd, &playerRc);
         const float playerW = static_cast<float>(playerRc.right - playerRc.left);
@@ -918,9 +953,6 @@ bool App::HandleGlobalKeyDown(WPARAM wParam, LPARAM lParam) {
         }
         return false;
     } else {
-        bool isShift = (GetKeyState(VK_SHIFT) & 0x8000) != 0;
-        bool isCtrl = (GetKeyState(VK_CONTROL) & 0x8000) != 0;
-        bool isAlt = (GetKeyState(VK_MENU) & 0x8000) != 0;
         // Activate keyboard navigation mode and clear mouse hover states
         isKeyboardNavActive = true;
         hoveredMediaIndex = -1;
@@ -936,18 +968,19 @@ bool App::HandleGlobalKeyDown(WPARAM wParam, LPARAM lParam) {
         // Global Dismiss / Escape
         if (wParam == VK_ESCAPE) {
             if (isContextMenuOpen) { CloseContextMenu(); InvalidateRect(hWnd, NULL, FALSE); return true; }
-            if (activeFocusPane == FocusPane::PlaylistDetail) {
+            auto focusCurrentPlaylistRail = [&]() {
                 activeFocusPane = FocusPane::PlaylistRail;
                 int curPlIdx = 0;
                 for (size_t i = 0; i < library.playlists.size(); ++i) {
-                    if (library.playlists[i].id == activePlaylistId) { curPlIdx = (int)i; break; }
+                    if (library.playlists[i].id == activePlaylistId) { curPlIdx = static_cast<int>(i); break; }
                 }
                 keyboardFocusedIndex = curPlIdx;
-                selectedPlaylistIndices = { (size_t)curPlIdx };
+                selectedPlaylistIndices = { static_cast<size_t>(curPlIdx) };
                 AutoScrollToFocusedItem();
                 InvalidateRect(hWnd, NULL, FALSE);
                 return true;
-            }
+            };
+            if (activeFocusPane == FocusPane::PlaylistDetail) return focusCurrentPlaylistRail();
             if (activeFocusPane == FocusPane::SettingsContent) {
                 activeFocusPane = FocusPane::SettingsCategoryList;
                 keyboardFocusedIndex = (int)currentSettingsCat;
@@ -956,10 +989,7 @@ bool App::HandleGlobalKeyDown(WPARAM wParam, LPARAM lParam) {
             }
             if (activeFocusPane != FocusPane::TopNavBar) {
                 activeFocusPane = FocusPane::TopNavBar;
-                if (currentTab == TabView::Media) topNavFocusedIndex = 0;
-                else if (currentTab == TabView::Playlists) topNavFocusedIndex = 1;
-                else if (currentTab == TabView::History) topNavFocusedIndex = 2;
-                else if (currentTab == TabView::Settings) topNavFocusedIndex = 3;
+                topNavFocusedIndex = NavIndexForTab(currentTab);
                 ClearSelectionInCurrentPane();
                 InvalidateRect(hWnd, NULL, FALSE);
                 return true;
@@ -996,29 +1026,103 @@ bool App::HandleGlobalKeyDown(WPARAM wParam, LPARAM lParam) {
             InvalidateRect(hWnd, NULL, FALSE);
             return true;
         }
-        // ZONE A: Top Navigation Bar Focus
-        if (activeFocusPane == FocusPane::TopNavBar) {
-            if (wParam == VK_TAB && currentTab == TabView::History && !isCtrl && !isAlt) {
+        auto focusTopNav = [&](int navIdx) {
+            activeFocusPane = FocusPane::TopNavBar;
+            topNavFocusedIndex = std::clamp(navIdx, 0, 4);
+            MarkAccessibilityDirty();
+            RefreshAccessibilityTree(true);
+            accessibilityTree.SetFocusedNode(100 + topNavFocusedIndex);
+            InvalidateRect(hWnd, NULL, FALSE);
+            return true;
+        };
+        auto findActivePlaylistIndex = [&]() -> int {
+            for (size_t i = 0; i < library.playlists.size(); ++i) {
+                if (library.playlists[i].id == activePlaylistId) return static_cast<int>(i);
+            }
+            return 0;
+        };
+        auto enterCurrentTabPane = [&](bool reverseEntry) {
+            LONG targetAccessibilityId = 100 + NavIndexForTab(currentTab);
+            if (currentTab == TabView::Settings) {
+                if (reverseEntry) {
+                    activeFocusPane = FocusPane::SettingsContent;
+                    keyboardFocusedIndex = 0;
+                    keyboardFocusedSubIndex = 0;
+                    targetAccessibilityId = 5100;
+                } else {
+                    activeFocusPane = FocusPane::SettingsCategoryList;
+                    keyboardFocusedIndex = static_cast<int>(currentSettingsCat);
+                    targetAccessibilityId = 5000 + static_cast<LONG>(currentSettingsCat);
+                }
+            } else if (currentTab == TabView::Playlists) {
+                const int plIdx = findActivePlaylistIndex();
+                if (!library.playlists.empty()) {
+                    if (activePlaylistId.empty()) activePlaylistId = library.playlists[plIdx].id;
+                    if (reverseEntry) {
+                        const auto visible = GetVisiblePlaylistIndices();
+                        activeFocusPane = FocusPane::PlaylistDetail;
+                        keyboardFocusedIndex = visible.empty() ? -1 : static_cast<int>(visible.front());
+                        if (!visible.empty()) selectedEpisodeIndices = { visible.front() };
+                        targetAccessibilityId = 3099;
+                    } else {
+                        activeFocusPane = FocusPane::PlaylistRail;
+                        keyboardFocusedIndex = plIdx;
+                        selectedPlaylistIndices = { static_cast<size_t>(plIdx) };
+                        targetAccessibilityId = AccessibilityStableId(2000, Utf8ToUtf16(library.playlists[plIdx].id));
+                    }
+                    AutoScrollToFocusedItem();
+                } else {
+                    activeFocusPane = FocusPane::PlaylistRail;
+                    keyboardFocusedIndex = 0;
+                    selectedPlaylistIndices.clear();
+                    targetAccessibilityId = 2099;
+                }
+            } else if (currentTab == TabView::Media) {
+                activeFocusPane = FocusPane::MediaList;
+                const auto visible = GetVisibleMediaIndices();
+                if (!visible.empty()) {
+                    int targetIndex = (keyboardFocusedIndex >= 0 && keyboardFocusedIndex < static_cast<int>(visible.size()))
+                        ? keyboardFocusedIndex : 0;
+                    if (!selectedMediaIndices.empty() && *selectedMediaIndices.begin() < visible.size()) {
+                        targetIndex = static_cast<int>(*selectedMediaIndices.begin());
+                    }
+                    keyboardFocusedIndex = targetIndex;
+                    selectedMediaIndices = { static_cast<size_t>(targetIndex) };
+                    targetAccessibilityId = AccessibilityStableId(1000, library.mediaItems[visible[targetIndex]].filePath);
+                    AutoScrollToFocusedItem();
+                } else {
+                    keyboardFocusedIndex = 0;
+                    selectedMediaIndices.clear();
+                    targetAccessibilityId = 1099;
+                }
+            } else if (currentTab == TabView::History) {
                 activeFocusPane = FocusPane::HistoryList;
-                isKeyboardNavActive = true;
-                LONG targetAccessibilityId = 4081;
                 if (!library.history.empty()) {
-                    int targetIndex = keyboardFocusedIndex;
-                    if (targetIndex < 0 || targetIndex >= static_cast<int>(library.history.size())) {
-                        targetIndex = 0;
-                        if (!selectedHistoryIndices.empty() && *selectedHistoryIndices.begin() < library.history.size())
-                            targetIndex = static_cast<int>(*selectedHistoryIndices.begin());
+                    int targetIndex = (keyboardFocusedIndex >= 0 && keyboardFocusedIndex < static_cast<int>(library.history.size()))
+                        ? keyboardFocusedIndex : 0;
+                    if (!selectedHistoryIndices.empty() && *selectedHistoryIndices.begin() < library.history.size()) {
+                        targetIndex = static_cast<int>(*selectedHistoryIndices.begin());
                     }
                     keyboardFocusedIndex = targetIndex;
                     selectedHistoryIndices = { static_cast<size_t>(targetIndex) };
                     targetAccessibilityId = AccessibilityStableId(4000, library.history[targetIndex].filePath);
                     AutoScrollToFocusedItem();
-                } else { keyboardFocusedIndex = 0; selectedHistoryIndices.clear(); }
-                MarkAccessibilityDirty();
-                RefreshAccessibilityTree(true);
-                accessibilityTree.SetFocusedNode(targetAccessibilityId);
-                InvalidateRect(hWnd, NULL, FALSE);
-                return true;
+                } else {
+                    keyboardFocusedIndex = 0;
+                    selectedHistoryIndices.clear();
+                    targetAccessibilityId = 4081;
+                }
+            }
+            MarkAccessibilityDirty();
+            RefreshAccessibilityTree(true);
+            accessibilityTree.SetFocusedNode(targetAccessibilityId);
+            InvalidateRect(hWnd, NULL, FALSE);
+            return true;
+        };
+        // ZONE A: Top Navigation Bar Focus
+        if (activeFocusPane == FocusPane::TopNavBar) {
+            if (wParam == VK_TAB && !isCtrl && !isAlt) {
+                return enterCurrentTabPane(isShift);
             }
             if (wParam == VK_LEFT || wParam == VK_RIGHT) {
                 int dir = (wParam == VK_RIGHT) ? 1 : -1;
@@ -1031,55 +1135,11 @@ bool App::HandleGlobalKeyDown(WPARAM wParam, LPARAM lParam) {
                 return true;
             }
             if (wParam == VK_DOWN) {
-                if (currentTab == TabView::Settings) {
-                    activeFocusPane = FocusPane::SettingsCategoryList;
-                    keyboardFocusedIndex = (int)currentSettingsCat;
-                } else if (currentTab == TabView::Playlists) {
-                    activeFocusPane = FocusPane::PlaylistRail;
-                    keyboardFocusedIndex = 0;
-                    selectedPlaylistIndices = { 0 };
-                    if (!library.playlists.empty()) activePlaylistId = library.playlists[0].id;
-                    AutoScrollToFocusedItem();
-                } else if (currentTab == TabView::Media) {
-                    activeFocusPane = FocusPane::MediaList;
-                    keyboardFocusedIndex = 0;
-                    selectedMediaIndices = { 0 };
-                    AutoScrollToFocusedItem();
-                } else if (currentTab == TabView::History) {
-                    activeFocusPane = FocusPane::HistoryList;
-                    keyboardFocusedIndex = 0;
-                    selectedHistoryIndices = { 0 };
-                    AutoScrollToFocusedItem();
-                }
-                InvalidateRect(hWnd, NULL, FALSE);
-                return true;
+                return enterCurrentTabPane(false);
             }
             if (wParam == VK_RETURN || wParam == VK_SPACE) {
-                if (topNavFocusedIndex == 4) { OpenFileDialog(); } else {
-                    if (topNavFocusedIndex == 0) {
-                        currentTab = TabView::Media;
-                        activeFocusPane = FocusPane::MediaList;
-                        keyboardFocusedIndex = 0;
-                        selectedMediaIndices = { 0 };
-                    } else if (topNavFocusedIndex == 1) {
-                        currentTab = TabView::Playlists;
-                        activeFocusPane = FocusPane::PlaylistRail;
-                        keyboardFocusedIndex = 0;
-                        selectedPlaylistIndices = { 0 };
-                        if (!library.playlists.empty()) activePlaylistId = library.playlists[0].id;
-                    } else if (topNavFocusedIndex == 2) {
-                        currentTab = TabView::History;
-                        activeFocusPane = FocusPane::HistoryList;
-                        keyboardFocusedIndex = 0;
-                        selectedHistoryIndices = { 0 };
-                    } else if (topNavFocusedIndex == 3) {
-                        currentTab = TabView::Settings;
-                        activeFocusPane = FocusPane::SettingsCategoryList;
-                        keyboardFocusedIndex = (int)currentSettingsCat;
-                    }
-                }
-                InvalidateRect(hWnd, NULL, FALSE);
-                return true;
+                if (topNavFocusedIndex == 4) { OpenFileDialog(); InvalidateRect(hWnd, NULL, FALSE); return true; }
+                return enterCurrentTabPane(false);
             }
             return false;
         }
@@ -1089,10 +1149,17 @@ bool App::HandleGlobalKeyDown(WPARAM wParam, LPARAM lParam) {
                                        SettingsCategory::Subtitles, SettingsCategory::Shortcuts, SettingsCategory::System};
             int curCatIdx = (int)currentSettingsCat;
             if (activeFocusPane == FocusPane::SettingsCategoryList) {
+                if (wParam == VK_TAB && !isCtrl && !isAlt) {
+                    if (isShift) return focusTopNav(3);
+                    activeFocusPane = FocusPane::SettingsContent;
+                    keyboardFocusedIndex = 0;
+                    keyboardFocusedSubIndex = 0;
+                    InvalidateRect(hWnd, NULL, FALSE);
+                    return true;
+                }
                 if (wParam == VK_UP) {
                     if (curCatIdx <= 0) {
-                        activeFocusPane = FocusPane::TopNavBar;
-                        topNavFocusedIndex = 3;
+                        return focusTopNav(3);
                     } else { currentSettingsCat = cats[curCatIdx - 1]; keyboardFocusedIndex = curCatIdx - 1; settingsScrollY = 0.0f; hoveredSettingsRow = -1; }
                     InvalidateRect(hWnd, NULL, FALSE);
                     return true;
@@ -1106,7 +1173,7 @@ bool App::HandleGlobalKeyDown(WPARAM wParam, LPARAM lParam) {
                     InvalidateRect(hWnd, NULL, FALSE);
                     return true;
                 }
-                if (wParam == VK_RIGHT || wParam == VK_RETURN || wParam == VK_SPACE || wParam == VK_TAB) {
+                if (wParam == VK_RIGHT || wParam == VK_RETURN || wParam == VK_SPACE) {
                     activeFocusPane = FocusPane::SettingsContent;
                     keyboardFocusedIndex = 0;
                     keyboardFocusedSubIndex = 0;
@@ -1158,10 +1225,27 @@ bool App::HandleGlobalKeyDown(WPARAM wParam, LPARAM lParam) {
                         if (row == 5) return 2; // Position
                     } else if (currentSettingsCat == SettingsCategory::Shortcuts) {
                         if (row == 0) return 0; // Reset button
-                        return scSingleColumn ? 0 : 1; // 2 columns (one below the single-column threshold)
+                        return (!scSingleColumn && (midSc + static_cast<size_t>(row - 1) < scList.size())) ? 1 : 0;
                     } else if (currentSettingsCat == SettingsCategory::System) { return 0; }
                     return 0;
                 };
+                auto syncSubIndexForRow = [&](int row) {
+                    if (currentSettingsCat == SettingsCategory::Subtitles && row == 2) {
+                        keyboardFocusedSubIndex = std::clamp(
+                            static_cast<int>(std::lround(settings.GetSubFontSizePoints())) - 14, 0, 18);
+                        return;
+                    }
+                    keyboardFocusedSubIndex = std::clamp(keyboardFocusedSubIndex, 0, getMaxSubIndex(row));
+                };
+                if (wParam == VK_TAB && !isCtrl && !isAlt) {
+                    if (isShift) {
+                        activeFocusPane = FocusPane::SettingsCategoryList;
+                        keyboardFocusedIndex = (int)currentSettingsCat;
+                        InvalidateRect(hWnd, NULL, FALSE);
+                        return true;
+                    }
+                    return focusTopNav(3);
+                }
                 if (wParam == VK_ESCAPE) {
                     activeFocusPane = FocusPane::SettingsCategoryList;
                     keyboardFocusedIndex = (int)currentSettingsCat;
@@ -1169,6 +1253,21 @@ bool App::HandleGlobalKeyDown(WPARAM wParam, LPARAM lParam) {
                     return true;
                 }
                 if (wParam == VK_LEFT) {
+                    if (currentSettingsCat == SettingsCategory::Subtitles && keyboardFocusedIndex == 2) {
+                        const int curPx = std::clamp(static_cast<int>(std::lround(settings.GetSubFontSizePoints())), 14, 32);
+                        if (curPx > 14) {
+                            const int nextPx = curPx - 1;
+                            keyboardFocusedSubIndex = nextPx - 14;
+                            settings.subFontSize = SubtitleSizeToString(nextPx);
+                            ApplyPlayerPreferences();
+                            SaveSettings();
+                        } else {
+                            activeFocusPane = FocusPane::SettingsCategoryList;
+                            keyboardFocusedIndex = (int)currentSettingsCat;
+                        }
+                        InvalidateRect(hWnd, NULL, FALSE);
+                        return true;
+                    }
                     if (keyboardFocusedSubIndex > 0) {
                         keyboardFocusedSubIndex--;
                     } else { activeFocusPane = FocusPane::SettingsCategoryList; keyboardFocusedIndex = (int)currentSettingsCat; }
@@ -1176,6 +1275,18 @@ bool App::HandleGlobalKeyDown(WPARAM wParam, LPARAM lParam) {
                     return true;
                 }
                 if (wParam == VK_RIGHT) {
+                    if (currentSettingsCat == SettingsCategory::Subtitles && keyboardFocusedIndex == 2) {
+                        const int curPx = std::clamp(static_cast<int>(std::lround(settings.GetSubFontSizePoints())), 14, 32);
+                        if (curPx < 32) {
+                            const int nextPx = curPx + 1;
+                            keyboardFocusedSubIndex = nextPx - 14;
+                            settings.subFontSize = SubtitleSizeToString(nextPx);
+                            ApplyPlayerPreferences();
+                            SaveSettings();
+                            InvalidateRect(hWnd, NULL, FALSE);
+                        }
+                        return true;
+                    }
                     int maxSub = getMaxSubIndex(keyboardFocusedIndex);
                     if (keyboardFocusedSubIndex < maxSub) { keyboardFocusedSubIndex++; InvalidateRect(hWnd, NULL, FALSE); return true; }
                     return true;
@@ -1186,8 +1297,7 @@ bool App::HandleGlobalKeyDown(WPARAM wParam, LPARAM lParam) {
                         keyboardFocusedIndex = (int)currentSettingsCat;
                     } else {
                         keyboardFocusedIndex--;
-                        int maxSub = getMaxSubIndex(keyboardFocusedIndex);
-                        keyboardFocusedSubIndex = std::clamp(keyboardFocusedSubIndex, 0, maxSub);
+                        syncSubIndexForRow(keyboardFocusedIndex);
                         AutoScrollToFocusedItem();
                     }
                     InvalidateRect(hWnd, NULL, FALSE);
@@ -1196,8 +1306,7 @@ bool App::HandleGlobalKeyDown(WPARAM wParam, LPARAM lParam) {
                 if (wParam == VK_DOWN) {
                     if (keyboardFocusedIndex < maxRows - 1) {
                         keyboardFocusedIndex++;
-                        int maxSub = getMaxSubIndex(keyboardFocusedIndex);
-                        keyboardFocusedSubIndex = std::clamp(keyboardFocusedSubIndex, 0, maxSub);
+                        syncSubIndexForRow(keyboardFocusedIndex);
                         AutoScrollToFocusedItem();
                         InvalidateRect(hWnd, NULL, FALSE);
                         return true;
@@ -1259,23 +1368,13 @@ bool App::HandleGlobalKeyDown(WPARAM wParam, LPARAM lParam) {
                             AnimateVisual(loopToggleAnim, settings.loop ? 1.0f : 0.0f, MotionTokens::kToggle, MotionTokens::Standard());
                         } else if (row == 4) {
                             if (sub == 0) {
-                                double steps[] = { 1.0, 2.0, 5.0, 10.0, 15.0, 30.0, 60.0 };
-                                int curIdx = -1;
-                                for (int k = 0; k < 7; ++k) {
-                                    if (std::abs(settings.arrowSeekStepSec - steps[k]) < 0.05) { curIdx = k; break; }
-                                }
-                                int nextIdx = (curIdx + 1) % 7;
-                                settings.arrowSeekStepSec = steps[nextIdx];
+                                static constexpr double kSeekSteps[] = { 1.0, 2.0, 5.0, 10.0, 15.0, 30.0, 60.0 };
+                                CycleSettingOption(settings.arrowSeekStepSec, kSeekSteps);
                             } else { ShowCustomSeekStepModal(); return true; }
                         } else if (row == 5) {
                             if (sub == 0) {
-                                int frameList[] = { 1, 2, 5, 10, 24, 30, 60 };
-                                int curIdx = -1;
-                                for (int k = 0; k < 7; ++k) {
-                                    if (settings.ctrlSeekFrames == frameList[k]) { curIdx = k; break; }
-                                }
-                                int nextIdx = (curIdx + 1) % 7;
-                                settings.ctrlSeekFrames = frameList[nextIdx];
+                                static constexpr int kFrameSteps[] = { 1, 2, 5, 10, 24, 30, 60 };
+                                CycleSettingOption(settings.ctrlSeekFrames, kFrameSteps);
                             } else { ShowCustomFrameSeekModal(); return true; }
                         } else if (row == 6) {
                             double speeds[] = { 0.5, 0.75, 1.0, 1.25, 1.5, 2.0 };
@@ -1301,23 +1400,13 @@ bool App::HandleGlobalKeyDown(WPARAM wParam, LPARAM lParam) {
                             ShowOSD(IconType::SettingsGear, settings.minimizeToTray ? L"Minimize to Tray: On" : L"Minimize to Tray: Off");
                         } else if (row == 12) {
                             if (sub == 0) {
-                                int cacheList[] = { 8, 32, 64, 128, 256 };
-                                int curIdx = -1;
-                                for (int k = 0; k < 5; ++k) {
-                                    if (settings.networkForwardCacheMB == cacheList[k]) { curIdx = k; break; }
-                                }
-                                int nextIdx = (curIdx + 1) % 5;
-                                settings.networkForwardCacheMB = cacheList[nextIdx];
+                                static constexpr int kForwardCaches[] = { 8, 32, 64, 128, 256 };
+                                CycleSettingOption(settings.networkForwardCacheMB, kForwardCaches);
                             } else { ShowCustomNetworkForwardCacheModal(); return true; }
                         } else if (row == 13) {
                             if (sub == 0) {
-                                int cacheList[] = { 0, 16, 64, 128 };
-                                int curIdx = -1;
-                                for (int k = 0; k < 4; ++k) {
-                                    if (settings.networkBackCacheMB == cacheList[k]) { curIdx = k; break; }
-                                }
-                                int nextIdx = (curIdx + 1) % 4;
-                                settings.networkBackCacheMB = cacheList[nextIdx];
+                                static constexpr int kBackCaches[] = { 0, 16, 64, 128 };
+                                CycleSettingOption(settings.networkBackCacheMB, kBackCaches);
                             } else { ShowCustomNetworkBackCacheModal(); return true; }
                         }
                         ApplyPlayerPreferences();
@@ -1362,7 +1451,11 @@ bool App::HandleGlobalKeyDown(WPARAM wParam, LPARAM lParam) {
                         const int action = SettingsLayout::kSystemActions[clampedRow];
                         if (action == 0) {
                             std::wstring dir = GetDataDir();
+#if defined(_WIN32)
                             ShellExecuteW(NULL, L"open", dir.c_str(), NULL, NULL, SW_SHOWNORMAL);
+#else
+                            OpenInExplorer(dir);
+#endif
                         } else if (action == 2) {
                             CacheStats statsBefore = QueryCacheStats();
                             ClearDisposableCache();
@@ -1456,79 +1549,53 @@ bool App::HandleGlobalKeyDown(WPARAM wParam, LPARAM lParam) {
             Playlist* pl = library.FindPlaylist(activePlaylistId);
             const auto visible = GetVisiblePlaylistIndices();
             size_t railCount = library.playlists.size();
-            size_t epCount = visible.size();
-            if (activeFocusPane == FocusPane::PlaylistRail) {
+            auto selectRailIdx = [&](int nextIdx) {
+                keyboardFocusedIndex = nextIdx;
+                selectedPlaylistIndices = { static_cast<size_t>(nextIdx) };
+                if (nextIdx >= 0 && static_cast<size_t>(nextIdx) < railCount) activePlaylistId = library.playlists[nextIdx].id;
+                AutoScrollToFocusedItem();
+                InvalidateRect(hWnd, NULL, FALSE);
+                return true;
+            };
+            auto focusRailCurrent = [&]() {
+                activeFocusPane = FocusPane::PlaylistRail;
                 int curPlIdx = 0;
-                for (size_t i = 0; i < library.playlists.size(); ++i) {
-                    if (library.playlists[i].id == activePlaylistId) { curPlIdx = (int)i; break; }
+                for (size_t i = 0; i < railCount; ++i) {
+                    if (library.playlists[i].id == activePlaylistId) { curPlIdx = static_cast<int>(i); break; }
                 }
+                return selectRailIdx(curPlIdx);
+            };
+            auto enterPlaylistDetail = [&]() {
+                activeFocusPane = FocusPane::PlaylistDetail;
+                keyboardFocusedIndex = -1; // Continue Watching card
+                selectedEpisodeIndices.clear();
+                AutoScrollToFocusedItem();
+                InvalidateRect(hWnd, NULL, FALSE);
+                return true;
+            };
+            if (activeFocusPane == FocusPane::PlaylistRail) {
+                int curPlIdx = findActivePlaylistIndex();
                 if (keyboardFocusedIndex < 0) keyboardFocusedIndex = curPlIdx;
-                if (wParam == VK_RIGHT) {
-                    activeFocusPane = FocusPane::PlaylistDetail;
-                    keyboardFocusedIndex = -1; // Continue Watching card
-                    selectedEpisodeIndices.clear();
-                    AutoScrollToFocusedItem();
-                    InvalidateRect(hWnd, NULL, FALSE);
-                    return true;
+                if (wParam == VK_TAB && !isCtrl && !isAlt) {
+                    if (isShift || railCount == 0) return focusTopNav(1);
+                    return enterPlaylistDetail();
+                }
+                if (wParam == VK_RIGHT || wParam == VK_RETURN || wParam == VK_SPACE) {
+                    if (railCount == 0) return true;
+                    return enterPlaylistDetail();
                 }
                 if (wParam == VK_DOWN) {
-                    if (isCtrl) {
-                        int nextIdx = std::min((int)railCount - 1, keyboardFocusedIndex + 5);
-                        keyboardFocusedIndex = nextIdx;
-                        selectedPlaylistIndices = { (size_t)nextIdx };
-                        if (nextIdx < (int)railCount) activePlaylistId = library.playlists[nextIdx].id;
-                        AutoScrollToFocusedItem();
-                        InvalidateRect(hWnd, NULL, FALSE);
-                        return true;
-                    }
-                    if (keyboardFocusedIndex >= (int)railCount - 1) {
-                        // At the last folder, pressing down takes it inside the folder
-                        activeFocusPane = FocusPane::PlaylistDetail;
-                        keyboardFocusedIndex = -1; // Continue Watching card
-                        selectedEpisodeIndices.clear();
-                        AutoScrollToFocusedItem();
-                        InvalidateRect(hWnd, NULL, FALSE);
-                        return true;
-                    }
-                    int nextIdx = keyboardFocusedIndex + 1;
-                    keyboardFocusedIndex = nextIdx;
-                    selectedPlaylistIndices = { (size_t)nextIdx };
-                    if (nextIdx < (int)railCount) activePlaylistId = library.playlists[nextIdx].id;
-                    AutoScrollToFocusedItem();
-                    InvalidateRect(hWnd, NULL, FALSE);
-                    return true;
+                    if (railCount == 0) return true;
+                    if (isCtrl) return selectRailIdx(std::min(static_cast<int>(railCount) - 1, keyboardFocusedIndex + 5));
+                    if (keyboardFocusedIndex >= static_cast<int>(railCount) - 1) return enterPlaylistDetail();
+                    return selectRailIdx(keyboardFocusedIndex + 1);
                 }
                 if (wParam == VK_UP) {
-                    if (isCtrl) {
-                        int nextIdx = std::max(0, keyboardFocusedIndex - 5);
-                        keyboardFocusedIndex = nextIdx;
-                        selectedPlaylistIndices = { (size_t)nextIdx };
-                        if (nextIdx < (int)railCount) activePlaylistId = library.playlists[nextIdx].id;
-                        AutoScrollToFocusedItem();
-                        InvalidateRect(hWnd, NULL, FALSE);
-                        return true;
+                    if (isCtrl && railCount > 0) return selectRailIdx(std::max(0, keyboardFocusedIndex - 5));
+                    if (keyboardFocusedIndex <= 0 || railCount == 0) {
+                        return focusTopNav(1);
                     }
-                    if (keyboardFocusedIndex <= 0) {
-                        activeFocusPane = FocusPane::TopNavBar;
-                        topNavFocusedIndex = 1;
-                        InvalidateRect(hWnd, NULL, FALSE);
-                        return true;
-                    }
-                    int nextIdx = keyboardFocusedIndex - 1;
-                    keyboardFocusedIndex = nextIdx;
-                    selectedPlaylistIndices = { (size_t)nextIdx };
-                    if (nextIdx < (int)railCount) activePlaylistId = library.playlists[nextIdx].id;
-                    AutoScrollToFocusedItem();
-                    InvalidateRect(hWnd, NULL, FALSE);
-                    return true;
-                }
-                if (wParam == VK_RETURN || wParam == VK_SPACE || wParam == VK_TAB) {
-                    activeFocusPane = FocusPane::PlaylistDetail;
-                    keyboardFocusedIndex = -1;
-                    selectedEpisodeIndices.clear();
-                    AutoScrollToFocusedItem();
-                    InvalidateRect(hWnd, NULL, FALSE);
-                    return true;
+                    return selectRailIdx(keyboardFocusedIndex - 1);
                 }
                 return false;
             }
@@ -1538,41 +1605,37 @@ bool App::HandleGlobalKeyDown(WPARAM wParam, LPARAM lParam) {
                 if (playlistGridView) {
                     RECT rc{}; GetClientRect(hWnd, &rc);
                     float dp = renderer.GetDpiScale();
-                    float winW = (float)std::max<LONG>(1, rc.right - rc.left);
+                    float winW = static_cast<float>(std::max<LONG>(1, rc.right - rc.left));
                     float padX = 18.0f * dp;
                     float avail = std::max(1.0f * dp, winW - 2.0f * padX);
                     float railW = std::min(260.0f * dp, std::max(120.0f * dp, avail * 0.42f));
                     float detailW = std::max(120.0f * dp, winW - padX - (padX + railW + 16.0f * dp) - 26.0f * dp);
-                    gridColumns = (size_t)std::max(1.0f, std::floor((detailW + 10.0f * dp) / (190.0f * dp)));
-                    gridStep = (int)std::max<size_t>(1, gridColumns);
+                    gridColumns = static_cast<size_t>(std::max(1.0f, std::floor((detailW + 10.0f * dp) / (190.0f * dp))));
+                    gridStep = static_cast<int>(std::max<size_t>(1, gridColumns));
+                }
+                auto focusEpisodePos = [&](int pos) {
+                    keyboardFocusedIndex = static_cast<int>(visible[pos]);
+                    selectedEpisodeIndices = { visible[pos] };
+                    AutoScrollToFocusedItem();
+                    InvalidateRect(hWnd, NULL, FALSE);
+                    return true;
+                };
+                if (wParam == VK_TAB && !isCtrl && !isAlt) {
+                    return isShift ? focusRailCurrent() : focusTopNav(1);
                 }
                 if (keyboardFocusedIndex == -1) {
                     // On Continue Watching Big Card
-                    if (wParam == VK_DOWN) {
-                        if (!visible.empty()) {
-                            keyboardFocusedIndex = (int)visible[0];
-                            selectedEpisodeIndices = { visible[0] };
-                        }
+                    if (wParam == VK_DOWN || wParam == VK_HOME) {
+                        if (!visible.empty()) return focusEpisodePos(0);
                         AutoScrollToFocusedItem();
                         InvalidateRect(hWnd, NULL, FALSE);
                         return true;
                     }
-                    if (wParam == VK_UP || wParam == VK_LEFT || wParam == VK_TAB) {
-                        activeFocusPane = FocusPane::PlaylistRail;
-                        int curPlIdx = 0;
-                        for (size_t i = 0; i < library.playlists.size(); ++i) {
-                            if (library.playlists[i].id == activePlaylistId) { curPlIdx = (int)i; break; }
-                        }
-                        keyboardFocusedIndex = curPlIdx;
-                        selectedPlaylistIndices = { (size_t)curPlIdx };
-                        AutoScrollToFocusedItem();
-                        InvalidateRect(hWnd, NULL, FALSE);
-                        return true;
-                    }
+                    if (wParam == VK_END && !visible.empty()) return focusEpisodePos(static_cast<int>(visible.size()) - 1);
+                    if (wParam == VK_UP || wParam == VK_LEFT) return focusRailCurrent();
                     if (wParam == VK_RETURN || wParam == VK_SPACE) {
                         if (pl && !pl->itemPaths.empty()) {
-                            size_t resIdx = library.GetPlaylistResumeIndex(pl);
-                            PlayPlaylist(activePlaylistId, resIdx);
+                            PlayPlaylist(activePlaylistId, library.GetPlaylistResumeIndex(pl));
                         }
                         return true;
                     }
@@ -1580,121 +1643,77 @@ bool App::HandleGlobalKeyDown(WPARAM wParam, LPARAM lParam) {
                 }
                 // On Episode Cards
                 int currentPos = 0;
-                auto found = std::find(visible.begin(), visible.end(), (size_t)std::max(0, keyboardFocusedIndex));
-                if (found != visible.end()) currentPos = (int)std::distance(visible.begin(), found);
+                auto found = std::find(visible.begin(), visible.end(), static_cast<size_t>(std::max(0, keyboardFocusedIndex)));
+                if (found != visible.end()) currentPos = static_cast<int>(std::distance(visible.begin(), found));
                 if (wParam == VK_UP) {
-                    if (isCtrl) {
-                        int nextPos = std::max(0, currentPos - 5);
-                        keyboardFocusedIndex = (int)visible[nextPos];
-                        selectedEpisodeIndices = { visible[nextPos] };
+                    if (isCtrl) return focusEpisodePos(std::max(0, currentPos - 5));
+                    int nextPos = currentPos - gridStep;
+                    if (nextPos < 0) {
+                        keyboardFocusedIndex = -1;
+                        selectedEpisodeIndices.clear();
                         AutoScrollToFocusedItem();
                         InvalidateRect(hWnd, NULL, FALSE);
                         return true;
                     }
-                    int nextPos = currentPos - gridStep;
-                    if (nextPos < 0) {
-                        // Return to Continue Watching Big Card
-                        keyboardFocusedIndex = -1;
-                        selectedEpisodeIndices.clear();
-                    } else {
-                        keyboardFocusedIndex = (int)visible[nextPos];
-                        selectedEpisodeIndices = { visible[nextPos] };
-                    }
-                    AutoScrollToFocusedItem();
-                    InvalidateRect(hWnd, NULL, FALSE);
-                    return true;
+                    return focusEpisodePos(nextPos);
                 }
                 if (wParam == VK_DOWN) {
                     if (visible.empty()) return true;
-                    if (isCtrl) {
-                        int nextPos = std::min((int)visible.size() - 1, currentPos + 5);
-                        keyboardFocusedIndex = (int)visible[nextPos];
-                        selectedEpisodeIndices = { visible[nextPos] };
-                        AutoScrollToFocusedItem();
-                        InvalidateRect(hWnd, NULL, FALSE);
-                        return true;
-                    }
-                    int nextPos = std::min((int)visible.size() - 1, currentPos + gridStep);
-                    keyboardFocusedIndex = (int)visible[nextPos];
-                    selectedEpisodeIndices = { visible[nextPos] };
-                    AutoScrollToFocusedItem();
-                    InvalidateRect(hWnd, NULL, FALSE);
-                    return true;
+                    int nextPos = std::min(static_cast<int>(visible.size()) - 1, currentPos + (isCtrl ? 5 : gridStep));
+                    return focusEpisodePos(nextPos);
                 }
+                if (wParam == VK_HOME && !visible.empty()) return focusEpisodePos(0);
+                if (wParam == VK_END && !visible.empty()) return focusEpisodePos(static_cast<int>(visible.size()) - 1);
+                if (wParam == VK_PRIOR && !visible.empty()) return focusEpisodePos(std::max(0, currentPos - 5));
+                if (wParam == VK_NEXT && !visible.empty()) return focusEpisodePos(std::min(static_cast<int>(visible.size()) - 1, currentPos + 5));
                 if (wParam == VK_LEFT) {
-                    if (playlistGridView && (currentPos % gridColumns) > 0) {
-                        int nextPos = currentPos - 1;
-                        keyboardFocusedIndex = (int)visible[nextPos];
-                        selectedEpisodeIndices = { visible[nextPos] };
-                        AutoScrollToFocusedItem();
-                        InvalidateRect(hWnd, NULL, FALSE);
-                        return true;
-                    }
-                    activeFocusPane = FocusPane::PlaylistRail;
-                    int curPlIdx = 0;
-                    for (size_t i = 0; i < library.playlists.size(); ++i) {
-                        if (library.playlists[i].id == activePlaylistId) { curPlIdx = (int)i; break; }
-                    }
-                    keyboardFocusedIndex = curPlIdx;
-                    selectedPlaylistIndices = { (size_t)curPlIdx };
-                    AutoScrollToFocusedItem();
-                    InvalidateRect(hWnd, NULL, FALSE);
-                    return true;
+                    if (playlistGridView && (currentPos % gridColumns) > 0) return focusEpisodePos(currentPos - 1);
+                    return focusRailCurrent();
                 }
                 if (wParam == VK_RIGHT) {
-                    if (playlistGridView && (currentPos % gridColumns) < (gridColumns - 1) && currentPos + 1 < (int)visible.size()) {
-                        int nextPos = currentPos + 1;
-                        keyboardFocusedIndex = (int)visible[nextPos];
-                        selectedEpisodeIndices = { visible[nextPos] };
-                        AutoScrollToFocusedItem();
-                        InvalidateRect(hWnd, NULL, FALSE);
-                        return true;
+                    if (playlistGridView && (currentPos % gridColumns) < (gridColumns - 1) && currentPos + 1 < static_cast<int>(visible.size())) {
+                        return focusEpisodePos(currentPos + 1);
                     }
                     return false;
                 }
                 if (wParam == VK_RETURN || wParam == VK_SPACE) {
-                    if (keyboardFocusedIndex >= 0 && pl) { PlayPlaylist(activePlaylistId, (size_t)keyboardFocusedIndex); }
-                    return true;
-                }
-                if (wParam == VK_TAB) {
-                    activeFocusPane = FocusPane::PlaylistRail;
-                    int curPlIdx = 0;
-                    for (size_t i = 0; i < library.playlists.size(); ++i) {
-                        if (library.playlists[i].id == activePlaylistId) { curPlIdx = (int)i; break; }
-                    }
-                    keyboardFocusedIndex = curPlIdx;
-                    selectedPlaylistIndices = { (size_t)curPlIdx };
-                    AutoScrollToFocusedItem();
-                    InvalidateRect(hWnd, NULL, FALSE);
+                    if (keyboardFocusedIndex >= 0 && pl) { PlayPlaylist(activePlaylistId, static_cast<size_t>(keyboardFocusedIndex)); }
                     return true;
                 }
             }
             return false;
         }
         // ZONE C: Main Content Area Navigation
-        if (currentTab == TabView::History && activeFocusPane == FocusPane::HistoryList && wParam == VK_TAB && !isCtrl && !isAlt) {
-            activeFocusPane = FocusPane::TopNavBar;
-            topNavFocusedIndex = 2;
-            isKeyboardNavActive = true;
-            MarkAccessibilityDirty();
-            RefreshAccessibilityTree(true);
-            accessibilityTree.SetFocusedNode(102);
-            InvalidateRect(hWnd, NULL, FALSE);
-            return true;
+        if (wParam == VK_TAB && !isCtrl && !isAlt &&
+            (currentTab == TabView::Media || currentTab == TabView::History)) {
+            if (currentTab == TabView::Media && GetVisibleMediaIndices().empty()) {
+                int totalEmptyBtns = library.mediaItems.empty() ? 2 : 1;
+                if (keyboardFocusedIndex < 0) keyboardFocusedIndex = 0;
+                if (!isShift && keyboardFocusedIndex + 1 < totalEmptyBtns) {
+                    keyboardFocusedIndex++;
+                    InvalidateRect(hWnd, NULL, FALSE);
+                    return true;
+                }
+                if (isShift && keyboardFocusedIndex > 0) {
+                    keyboardFocusedIndex--;
+                    InvalidateRect(hWnd, NULL, FALSE);
+                    return true;
+                }
+            }
+            return focusTopNav(NavIndexForTab(currentTab));
         }
         if (currentTab == TabView::Media && GetVisibleMediaIndices().empty()) {
             int totalEmptyBtns = library.mediaItems.empty() ? 2 : 1;
             if (keyboardFocusedIndex < 0) keyboardFocusedIndex = 0;
             if (keyboardFocusedIndex >= totalEmptyBtns) keyboardFocusedIndex = totalEmptyBtns - 1;
             if (wParam == VK_LEFT) {
-                if (keyboardFocusedIndex > 0) { keyboardFocusedIndex--; InvalidateRect(hWnd, NULL, FALSE); return true; }
-            } else if (wParam == VK_RIGHT) {
-                if (keyboardFocusedIndex < totalEmptyBtns - 1) { keyboardFocusedIndex++; InvalidateRect(hWnd, NULL, FALSE); return true; }
-            } else if (wParam == VK_UP) {
-                activeFocusPane = FocusPane::TopNavBar;
-                topNavFocusedIndex = 0;
-                InvalidateRect(hWnd, NULL, FALSE);
+                if (keyboardFocusedIndex > 0) { keyboardFocusedIndex--; InvalidateRect(hWnd, NULL, FALSE); }
                 return true;
+            } else if (wParam == VK_RIGHT) {
+                if (keyboardFocusedIndex < totalEmptyBtns - 1) { keyboardFocusedIndex++; InvalidateRect(hWnd, NULL, FALSE); }
+                return true;
+            } else if (wParam == VK_UP) {
+                return focusTopNav(0);
             } else if (wParam == VK_RETURN || wParam == VK_SPACE) {
                 if (library.mediaItems.empty()) {
                     if (keyboardFocusedIndex == 0) OpenFileDialog();
@@ -1707,10 +1726,7 @@ bool App::HandleGlobalKeyDown(WPARAM wParam, LPARAM lParam) {
         if (currentTab == TabView::History && library.history.empty()) {
             if (keyboardFocusedIndex < 0) keyboardFocusedIndex = 0;
             if (wParam == VK_UP) {
-                activeFocusPane = FocusPane::TopNavBar;
-                topNavFocusedIndex = 2;
-                InvalidateRect(hWnd, NULL, FALSE);
-                return true;
+                return focusTopNav(2);
             } else if (wParam == VK_RETURN || wParam == VK_SPACE) { if (keyboardFocusedIndex == 0) OpenFileDialog(); return true; }
             return false;
         }
@@ -1729,92 +1745,33 @@ bool App::HandleGlobalKeyDown(WPARAM wParam, LPARAM lParam) {
                 totalCount = pl ? pl->itemPaths.size() : 0;
             }
         } else if (currentTab == TabView::History) { pane = FocusPane::HistoryList; totalCount = library.history.size(); }
+        auto applyListNav = [&](int nextIdx) {
+            if (isCtrl) { keyboardFocusedIndex = nextIdx; } else {
+                HandleItemSelection(pane, static_cast<size_t>(nextIdx), isShift, isCtrl, totalCount);
+                if (pane == FocusPane::PlaylistRail && nextIdx >= 0 && static_cast<size_t>(nextIdx) < library.playlists.size())
+                    activePlaylistId = library.playlists[nextIdx].id;
+            }
+            AutoScrollToFocusedItem();
+            InvalidateRect(hWnd, NULL, FALSE);
+            return true;
+        };
         // Arrow Up: when at index 0 without Shift, smoothly navigates UP TO TOP NAV BAR!
         if (wParam == VK_UP) {
             if (keyboardFocusedIndex <= 0 && !isShift) {
                 activeFocusPane = FocusPane::TopNavBar;
-                if (currentTab == TabView::Media) topNavFocusedIndex = 0;
-                else if (currentTab == TabView::Playlists) topNavFocusedIndex = 1;
-                else if (currentTab == TabView::History) topNavFocusedIndex = 2;
-                else if (currentTab == TabView::Settings) topNavFocusedIndex = 3;
-                InvalidateRect(hWnd, NULL, FALSE);
-                return true;
-            } else if (totalCount > 0) {
-                int nextIdx = std::max(0, keyboardFocusedIndex - 1);
-                if (isCtrl) { keyboardFocusedIndex = nextIdx; } else {
-                    HandleItemSelection(pane, (size_t)nextIdx, isShift, isCtrl, totalCount);
-                    if (pane == FocusPane::PlaylistRail && nextIdx < (int)library.playlists.size())
-                        activePlaylistId = library.playlists[nextIdx].id;
-                }
-                AutoScrollToFocusedItem();
+                topNavFocusedIndex = NavIndexForTab(currentTab);
                 InvalidateRect(hWnd, NULL, FALSE);
                 return true;
             }
+            if (totalCount > 0) return applyListNav(std::max(0, keyboardFocusedIndex - 1));
         }
-        // Arrow Down
-        if (wParam == VK_DOWN) {
-            if (totalCount > 0) {
-                int nextIdx = (keyboardFocusedIndex < 0) ? 0 : std::min((int)totalCount - 1, keyboardFocusedIndex + 1);
-                if (isCtrl) { keyboardFocusedIndex = nextIdx; } else {
-                    HandleItemSelection(pane, (size_t)nextIdx, isShift, isCtrl, totalCount);
-                    if (pane == FocusPane::PlaylistRail && nextIdx < (int)library.playlists.size())
-                        activePlaylistId = library.playlists[nextIdx].id;
-                }
-                AutoScrollToFocusedItem();
-                InvalidateRect(hWnd, NULL, FALSE);
-                return true;
-            }
+        if (wParam == VK_DOWN && totalCount > 0) {
+            return applyListNav((keyboardFocusedIndex < 0) ? 0 : std::min(static_cast<int>(totalCount) - 1, keyboardFocusedIndex + 1));
         }
-        if (wParam == VK_HOME) {
-            if (totalCount > 0) {
-                if (isCtrl) { keyboardFocusedIndex = 0; } else {
-                    HandleItemSelection(pane, 0, isShift, isCtrl, totalCount);
-                    if (pane == FocusPane::PlaylistRail && !library.playlists.empty()) { activePlaylistId = library.playlists[0].id; }
-                }
-                AutoScrollToFocusedItem();
-                InvalidateRect(hWnd, NULL, FALSE);
-                return true;
-            }
-        }
-        if (wParam == VK_END) {
-            if (totalCount > 0) {
-                int lastIdx = (int)totalCount - 1;
-                if (isCtrl) { keyboardFocusedIndex = lastIdx; } else {
-                    HandleItemSelection(pane, (size_t)lastIdx, isShift, isCtrl, totalCount);
-                    if (pane == FocusPane::PlaylistRail && lastIdx < (int)library.playlists.size())
-                        activePlaylistId = library.playlists[lastIdx].id;
-                }
-                AutoScrollToFocusedItem();
-                InvalidateRect(hWnd, NULL, FALSE);
-                return true;
-            }
-        }
-        if (wParam == VK_PRIOR) { // Page Up
-            if (totalCount > 0) {
-                int nextIdx = std::max(0, (keyboardFocusedIndex < 0 ? 0 : keyboardFocusedIndex - 5));
-                if (isCtrl) { keyboardFocusedIndex = nextIdx; } else {
-                    HandleItemSelection(pane, (size_t)nextIdx, isShift, isCtrl, totalCount);
-                    if (pane == FocusPane::PlaylistRail && nextIdx < (int)library.playlists.size())
-                        activePlaylistId = library.playlists[nextIdx].id;
-                }
-                AutoScrollToFocusedItem();
-                InvalidateRect(hWnd, NULL, FALSE);
-                return true;
-            }
-        }
-        if (wParam == VK_NEXT) { // Page Down
-            if (totalCount > 0) {
-                int nextIdx = std::min((int)totalCount - 1, (keyboardFocusedIndex < 0 ? 0 : keyboardFocusedIndex + 5));
-                if (isCtrl) { keyboardFocusedIndex = nextIdx; } else {
-                    HandleItemSelection(pane, (size_t)nextIdx, isShift, isCtrl, totalCount);
-                    if (pane == FocusPane::PlaylistRail && nextIdx < (int)library.playlists.size())
-                        activePlaylistId = library.playlists[nextIdx].id;
-                }
-                AutoScrollToFocusedItem();
-                InvalidateRect(hWnd, NULL, FALSE);
-                return true;
-            }
-        }
+        if (wParam == VK_HOME && totalCount > 0) return applyListNav(0);
+        if (wParam == VK_END && totalCount > 0) return applyListNav(static_cast<int>(totalCount) - 1);
+        if (wParam == VK_PRIOR && totalCount > 0) return applyListNav(std::max(0, (keyboardFocusedIndex < 0 ? 0 : keyboardFocusedIndex - 5)));
+        if (wParam == VK_NEXT && totalCount > 0) return applyListNav(std::min(static_cast<int>(totalCount) - 1, (keyboardFocusedIndex < 0 ? 0 : keyboardFocusedIndex + 5)));
         if (wParam == VK_SPACE) {
             if (isCtrl) {
                 if (keyboardFocusedIndex >= 0 && (size_t)keyboardFocusedIndex < totalCount) {

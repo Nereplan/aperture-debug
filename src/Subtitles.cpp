@@ -694,8 +694,48 @@ bool SubtitleEngine::LoadSubtitleFile(const std::wstring& filePath, const std::w
 
 void SubtitleEngine::LoadSubtitlesForMedia(const std::wstring& mediaPath) {
     Clear();
-    std::vector<DiscoveredSubtitle> discovered = SubtitleDiscovery::DiscoverSubtitles(mediaPath);
+    std::vector<DiscoveredSubtitle> discovered = SubtitleDiscovery::DiscoverSubtitles(mediaPath, false);
     for (const auto& sub : discovered) { LoadSubtitleFile(sub.filePath, sub.title); }
+}
+
+DWORD SubtitleEngine::GetNextTransitionWaitMs(double currentPlaybackTimeSec, int primaryOverrideDelayMs,
+                                              double playbackRate, DWORD maxWaitMs) const {
+    if (maxWaitMs <= 1) return maxWaitMs;
+    if (!std::isfinite(currentPlaybackTimeSec)) return maxWaitMs;
+    const double safeRate = (std::isfinite(playbackRate) && playbackRate > 0.0)
+        ? std::clamp(playbackRate, 0.25, 4.0) : 1.0;
+    auto nextForTrack = [&](const SubtitleTrack* track, RenderedTextCacheSlot& slot, int delayMs) -> DWORD {
+        if (!track || track->cues.empty()) return maxWaitMs;
+        const int clampedDelayMs = SubtitleDiscovery::ClampDelayMs(delayMs);
+        const double adjustedTime = currentPlaybackTimeSec - static_cast<double>(clampedDelayMs) / 1000.0;
+        if (!std::isfinite(adjustedTime)) return maxWaitMs;
+        double nextBoundary = std::numeric_limits<double>::infinity();
+        if (adjustedTime < 0.0) {
+            for (const auto& cue : track->cues) {
+                if (!cue.text.empty() && std::isfinite(cue.startTimeSec)) {
+                    nextBoundary = std::max(0.0, cue.startTimeSec);
+                    break;
+                }
+            }
+        } else {
+            GetTrackTextCached(track, currentPlaybackTimeSec, clampedDelayMs, tracksGeneration, slot);
+            nextBoundary = slot.validUntilSec;
+        }
+        if (!std::isfinite(nextBoundary)) return maxWaitMs;
+        const double deltaMediaSec = nextBoundary - adjustedTime;
+        if (deltaMediaSec <= 0.0) return 1;
+        const double realMs = (deltaMediaSec / safeRate) * 1000.0;
+        if (realMs >= static_cast<double>(maxWaitMs)) return maxWaitMs;
+        return static_cast<DWORD>(std::clamp(std::ceil(realMs), 1.0, static_cast<double>(maxWaitMs)));
+    };
+    DWORD waitMs = maxWaitMs;
+    if (primaryVisible) {
+        waitMs = std::min(waitMs, nextForTrack(GetPrimaryTrack(), primaryTextCache, primaryOverrideDelayMs));
+    }
+    if (secondaryVisible) {
+        waitMs = std::min(waitMs, nextForTrack(GetSecondaryTrack(), secondaryTextCache, secondaryDelayMs));
+    }
+    return waitMs;
 }
 
 std::wstring SubtitleEngine::GetCurrentSubtitleText(double currentPlaybackTimeSec, int delayMs) const {

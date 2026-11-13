@@ -13,11 +13,13 @@
 #include "SettingsLayout.h"
 #include "Presentation.h"
 #include "WindowGeometry.h"
+#if defined(_WIN32)
 #include <commdlg.h>
 #include <shellapi.h>
 #include <shlwapi.h>
 #include <shlobj.h>
 #include <imm.h>
+#endif
 #include <numeric>
 
 namespace Aperture {
@@ -955,6 +957,7 @@ void App::ShowConfirmationModal(const std::wstring& title, const std::wstring& m
 }
 
 void App::CheckForUpdates(bool isManual) {
+#if defined(_WIN32)
     const std::wstring updaterScript = GetExeDir() + L"\\update.ps1";
     if (FileExists(updaterScript)) {
         // The portable updater installs all runtime assets and snapshots the profile.
@@ -969,6 +972,7 @@ void App::CheckForUpdates(bool isManual) {
             result > 32 ? L"Checking for updates. Aperture will restart when the update is ready." : L"Could not start the updater.");
         return;
     }
+#endif
     if (updateDownloadJob.IsRunning() || updateCheckJob.IsRunning()) {
         if (isManual) ShowOSD(IconType::SettingsGear, L"An update operation is already in progress.");
         return;
@@ -1290,7 +1294,12 @@ void App::ExportActivePlaylist(PlaylistFormat format) {
         PopAndRestoreFocus(TransientSurfaceType::SystemDialog);
         return;
     }
-    const std::wstring exportDir = GetExeDir() + L"\\playlists";
+#if defined(_WIN32)
+    const std::wstring sep = L"\\";
+#else
+    const std::wstring sep = L"/";
+#endif
+    const std::wstring exportDir = GetExeDir() + sep + L"playlists";
     SHCreateDirectoryExW(nullptr, exportDir.c_str(), nullptr);
     const std::wstring name = SanitizeMediaStemForFilename(Utf8ToUtf16(playlist->name));
     const wchar_t* extension = (format == PlaylistFormat::XSPF) ? L".xspf" : L".m3u8";
@@ -1298,13 +1307,13 @@ void App::ExportActivePlaylist(PlaylistFormat format) {
     options.format = format;
     options.basePath = exportDir;
     options.collisionSafe = true;
-    PlaylistExportResult result = PlaylistIO::ExportPlaylistFile( exportDir + L"\\" + name + extension, *playlist, options);
+    PlaylistExportResult result = PlaylistIO::ExportPlaylistFile( exportDir + sep + name + extension, *playlist, options);
     if (!result) {
         ShowOSD(IconType::VolumeMuted, L"Playlist export failed", 4.0f);
         PopAndRestoreFocus(TransientSurfaceType::SystemDialog);
         return;
     }
-    ShowOSD(IconType::FolderPlaylist, L"Exported: playlists\\" + GetFileNameFromPath(result.exportedPath));
+    ShowOSD(IconType::FolderPlaylist, L"Exported: playlists" + sep + GetFileNameFromPath(result.exportedPath));
     PopAndRestoreFocus(TransientSurfaceType::SystemDialog);
 }
 

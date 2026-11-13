@@ -144,6 +144,48 @@ void TaskbarController::Update(const TaskbarSnapshot& snapshot, bool force) {
     lastSnapshot = snapshot;
 }
 
+void TaskbarController::UpdateState(const PlaybackSession& session, const MediaLibrary& library, const Settings& settings,
+                                    double currentTime, double duration, bool force) {
+    const PlaybackState state = session.GetState();
+    if (state == PlaybackState::Closed) { Clear(); return; }
+    const bool isPlaying = (state == PlaybackState::Playing);
+    constexpr bool isPlayPauseEnabled = true;
+    bool isNextEnabled = false;
+    bool isPreviousEnabled = false;
+    if (session.IsQueuePlayback()) {
+        const size_t queueSize = session.GetQueueSize();
+        const size_t queueIndex = session.GetQueueIndex();
+        isNextEnabled = (queueSize > 0 && (queueIndex + 1 < queueSize || settings.loop));
+        isPreviousEnabled = (queueSize > 0 && (queueIndex > 0 || settings.loop));
+    } else {
+        const size_t libCount = library.mediaItems.size();
+        isNextEnabled = (libCount > 1);
+        isPreviousEnabled = (libCount > 1);
+    }
+    if (!force && isInitialized && taskbarList && buttonsAdded &&
+        lastSnapshot.playbackState == state &&
+        lastSnapshot.isPlaying == isPlaying &&
+        lastSnapshot.isPlayPauseEnabled == isPlayPauseEnabled &&
+        lastSnapshot.isPreviousEnabled == isPreviousEnabled &&
+        lastSnapshot.isNextEnabled == isNextEnabled &&
+        lastSnapshot.playPauseTooltip == (isPlaying ? L"Pause" : L"Play") &&
+        lastSnapshot.prevTooltip == L"Previous" &&
+        lastSnapshot.nextTooltip == L"Next") {
+        const TaskbarProgress prog = ProjectProgress(state, currentTime, duration);
+        if (prog.state == lastSnapshot.progressState &&
+            prog.value == lastSnapshot.progressValue &&
+            prog.total == lastSnapshot.progressTotal) {
+            return;
+        }
+        ApplyProgressValues(targetHwnd, prog.state, prog.value, prog.total, false);
+        lastSnapshot.progressState = prog.state;
+        lastSnapshot.progressValue = prog.value;
+        lastSnapshot.progressTotal = prog.total;
+        return;
+    }
+    Update(ProjectState(session, library, settings, currentTime, duration), force);
+}
+
 void TaskbarController::Clear() {
     // The hub calls this on each update. Never initialize a service just to
     // clear it, and publish the closed state only once after playback ends.
@@ -229,11 +271,15 @@ bool TaskbarController::SyncThumbnailButtons(HWND hWnd, const TaskbarSnapshot& s
 }
 
 void TaskbarController::ApplyProgress(HWND hWnd, const TaskbarSnapshot& snapshot, bool force) {
+    ApplyProgressValues(hWnd, snapshot.progressState, snapshot.progressValue, snapshot.progressTotal, force);
+}
+
+void TaskbarController::ApplyProgressValues(HWND hWnd, TBPFLAG state, ULONGLONG value, ULONGLONG total, bool force) {
     if (!taskbarList || !hWnd) { return; }
-    if (force || snapshot.progressState != lastSnapshot.progressState)
-        taskbarList->SetProgressState(hWnd, snapshot.progressState);
-    if (snapshot.progressState == TBPF_NORMAL || snapshot.progressState == TBPF_PAUSED || snapshot.progressState == TBPF_ERROR)
-        taskbarList->SetProgressValue(hWnd, snapshot.progressValue, snapshot.progressTotal);
+    if (force || state != lastSnapshot.progressState)
+        taskbarList->SetProgressState(hWnd, state);
+    if (state == TBPF_NORMAL || state == TBPF_PAUSED || state == TBPF_ERROR)
+        taskbarList->SetProgressValue(hWnd, value, total);
 }
 
 // Glyph rasterization helper

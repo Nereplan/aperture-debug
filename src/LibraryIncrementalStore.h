@@ -4,7 +4,9 @@
 #include "Json.h"
 #include <bcrypt.h>
 #include <string_view>
+#if defined(_WIN32)
 #pragma comment(lib, "bcrypt.lib")
+#endif
 
 namespace Aperture::LibraryIncrementalStore {
 

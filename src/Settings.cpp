@@ -428,8 +428,11 @@ const std::vector<ThemePalette>& Settings::GetAllThemes() const {
     }();
     return themes;
 }
-std::vector<std::string> Settings::GetAvailableFonts() const {
-    return { "Inter", "Space Grotesk", "Segoe UI Variable", "JetBrains Mono", "Aptos", "Roboto", "Segoe UI" };
+const std::vector<std::string>& Settings::GetAvailableFonts() const {
+    static const std::vector<std::string> fonts = {
+        "Inter", "Space Grotesk", "Segoe UI Variable", "JetBrains Mono", "Aptos", "Roboto", "Segoe UI"
+    };
+    return fonts;
 }
 std::vector<LocaleInfo> Settings::GetAvailableLanguages() const { return Localization::Instance().GetAvailableLocales(); }
 ThemePalette Settings::GetThemePalette(const std::string& id) const {
@@ -833,11 +836,14 @@ StorageStatus Settings::Load() {
     if (!IsHexColor(accentColorHex)) accentColorHex = "";
     if (!IsHexColor(subColorHex)) subColorHex = "#cad3f5";
     if (!IsHexColor(secondarySubColorHex)) secondarySubColorHex = "#ffff00";
+    const auto& availableFonts = GetAvailableFonts();
     bool validFont = false;
-    for (const auto& f : GetAvailableFonts()) { if (f == uiFontFamily) validFont = true; }
-    if (!validFont) uiFontFamily = "Inter";
     bool validSubFont = false;
-    for (const auto& f : GetAvailableFonts()) { if (f == subFontFamily) validSubFont = true; }
+    for (const auto& f : availableFonts) {
+        if (f == uiFontFamily) validFont = true;
+        if (f == subFontFamily) validSubFont = true;
+    }
+    if (!validFont) uiFontFamily = "Inter";
     if (!validSubFont) subFontFamily = "Inter";
     {
         // Curated character-set list mirrored by the subtitle context menu; unknown values fall back to auto-detection.

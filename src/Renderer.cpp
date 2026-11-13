@@ -1,4 +1,3 @@
-#include "SvgGeometry.h"
 #include "Renderer.h"
 #include "Localization.h"
 #include "MpvPlayer.h"
@@ -9,13 +8,6 @@
 namespace Aperture {
 
 namespace {
-
-// The renderer receives physical-pixel coordinates from UIComponents (all dimensions are already multiplied by the active DPI scale).
-// Snapping at the primitive boundary removes the half-pixel fuzz that otherwise accumulates on
-// 1px card borders and text origins, while leaving transforms/animations free
-// to remain subpixel smooth.
-
-inline uint32_t QuantizeColor(float value) { return (uint32_t)std::lround(std::clamp(value, 0.0f, 1.0f) * 65535.0f); }
 
 // Shell-miss retry backoff: 8s, 24s, 60s, then permanent for the generation.
 inline uint64_t ThumbRetryDelayMs(int attempts) {
@@ -84,13 +76,12 @@ void Renderer::Shutdown() {
     ShutdownPrewarm();
     if (deviceWorker.joinable()) deviceWorker.join();
     ReleaseDeviceResources();
-    svgGeometryCache.clear();
+    ringGeometryCache.clear();
+    ClearPrimitiveGeometryCaches();
     asyncD3dDevice.Reset();
     asyncD3dContext.Reset();
-    layoutCache.clear();
-    layoutLru.clear();
-    layoutCacheBytes = 0;
-    sizedFormatCache.clear();
+    ClearLayoutCaches();
+    ClearSizedCaches();
     textRenderingParams.Reset();
     customFontCollection.Reset();
     wicFactory.Reset();
@@ -102,6 +93,7 @@ void Renderer::CancelThumbnailWork() {
         thumbnailWorkerStopping = true;
         thumbnailGeneration++;
         pendingThumbnailRequests.clear();
+        pendingThumbnailBytes = 0;
         inFlightThumbnailKeys.clear();
         completedThumbnailResults.clear();
         completedThumbnailBytes = 0;
@@ -133,6 +125,7 @@ size_t Renderer::ClearThumbnailCacheInternal() {
         std::lock_guard<std::mutex> lock(thumbnailMutex);
         thumbnailGeneration++;
         pendingThumbnailRequests.clear();
+        pendingThumbnailBytes = 0;
         inFlightThumbnailKeys.clear();
         completedThumbnailResults.clear();
         completedThumbnailBytes = 0;
@@ -215,10 +208,8 @@ void Renderer::TrimHiddenLibraryCaches(uint64_t retainedThumbnailBytes, bool rel
         thumbnailLru.pop_back();
     }
     ClearShadowCache();
-    layoutCache.clear();
-    layoutLru.clear();
-    layoutCacheBytes = 0;
-    sizedFormatCache.clear();
+    ClearLayoutCaches();
+    ClearSizedCaches();
     wicFactory.Reset();
     // Completed software thumbnails can otherwise remain queued for the whole
     // movie. In-flight results become stale; workers and disk entries survive.
@@ -226,6 +217,7 @@ void Renderer::TrimHiddenLibraryCaches(uint64_t retainedThumbnailBytes, bool rel
         std::lock_guard<std::mutex> lock(thumbnailMutex);
         ++thumbnailGeneration;
         pendingThumbnailRequests.clear();
+        pendingThumbnailBytes = 0;
         inFlightThumbnailKeys.clear();
         completedThumbnailResults.clear();
         completedThumbnailBytes = 0;
@@ -241,10 +233,7 @@ void Renderer::ReleaseDeviceResources() {
     solidBrush.Reset();
     ClearThumbnailCacheInternal();
     ClearShadowCache();
-    gradientStopCache.clear();
-    gradientBrushCache.clear();
-    innerHighlightCache.clear();
-    innerHighlightBrushCache.clear();
+    ClearGradientAndHighlightCaches();
     // A fresh device has not presented anything yet; re-arm the pre-frame
     // background erase so a device transition cannot show stale/white content.
     hasPresentedFrame = false;
@@ -275,10 +264,8 @@ void Renderer::CreateFonts(const std::wstring& customFamily) {
     if (!dwriteFactory) return;
     selectedFontFamily = customFamily.empty() ? L"Inter" : customFamily;
     LoadCustomFontCollection();
-    layoutCache.clear();
-    layoutLru.clear();
-    layoutCacheBytes = 0;
-    sizedFormatCache.clear();
+    ClearLayoutCaches();
+    ClearSizedCaches();
     CreateFontFormats();
 }
 void Renderer::UpdateFontFamily(const std::string& familyName) {
@@ -561,8 +548,7 @@ void Renderer::BeginDraw() {
     }
     if ((!d2dContext || !d2dTargetBitmap) && hWnd && !recoveringDevice) RecreateDeviceResources();
     ++thumbnailRequestFrame;
-    prevFrameShadowKeys.swap(currFrameShadowKeys);
-    currFrameShadowKeys.clear();
+    BeginShadowFrame();
     for (auto it = thumbnailDemandFrames.begin(); it != thumbnailDemandFrames.end();) {
         if (thumbnailRequestFrame - it->second > 1) it = thumbnailDemandFrames.erase(it);
         else ++it;
@@ -601,49 +587,6 @@ bool Renderer::EndDraw(bool present) {
 
 void Renderer::Clear(const D2D1_COLOR_F& color) { if (d2dContext) d2dContext->Clear(color); }
 
-void Renderer::FillGradientRect(const D2D1_RECT_F& rect, const D2D1_COLOR_F& startColor, const D2D1_COLOR_F& endColor, bool vertical) {
-    if (!d2dContext) return;
-    D2D1_RECT_F snappedRect = SnapRect(rect);
-    GradientKey key;
-    key.startR = QuantizeColor(startColor.r); key.startG = QuantizeColor(startColor.g);
-    key.startB = QuantizeColor(startColor.b); key.startA = QuantizeColor(startColor.a);
-    key.endR = QuantizeColor(endColor.r); key.endG = QuantizeColor(endColor.g);
-    key.endB = QuantizeColor(endColor.b); key.endA = QuantizeColor(endColor.a);
-    ComPtr<ID2D1GradientStopCollection> stopCollection;
-    HRESULT hr = S_OK;
-    auto cached = gradientStopCache.find(key);
-    if (cached != gradientStopCache.end()) { stopCollection = cached->second; } else {
-        D2D1_GRADIENT_STOP stops[2];
-        stops[0].color = startColor;
-        stops[0].position = 0.0f;
-        stops[1].color = endColor;
-        stops[1].position = 1.0f;
-        hr = d2dContext->CreateGradientStopCollection(stops, 2, D2D1_GAMMA_2_2, D2D1_EXTEND_MODE_CLAMP, &stopCollection);
-        if (FAILED(hr)) return;
-        // Evict one entry instead of clearing: a wholesale clear forces D2D stop/brush recreation for every gradient in the theme.
-        if (gradientStopCache.size() >= 64) gradientStopCache.erase(gradientStopCache.begin());
-        gradientStopCache.emplace(key, stopCollection);
-    }
-    D2D1_POINT_2F startPt = D2D1::Point2F(snappedRect.left, snappedRect.top);
-    D2D1_POINT_2F endPt = vertical ? D2D1::Point2F(snappedRect.left, snappedRect.bottom) : D2D1::Point2F(snappedRect.right, snappedRect.top);
-    // Gradient brushes are device resources; reuse one brush per color key and
-    // just retarget its endpoints instead of allocating a brush per fill.
-    ComPtr<ID2D1LinearGradientBrush> gradBrush;
-    auto brushIt = gradientBrushCache.find(key);
-    if (brushIt != gradientBrushCache.end()) { gradBrush = brushIt->second; } else {
-        hr = d2dContext->CreateLinearGradientBrush( D2D1::LinearGradientBrushProperties(startPt, endPt), stopCollection.Get(), &gradBrush );
-        if (FAILED(hr)) return;
-        // Evict one entry instead of clearing: a wholesale clear forces D2D stop/brush recreation for every gradient in the theme.
-        if (gradientBrushCache.size() >= 64) gradientBrushCache.erase(gradientBrushCache.begin());
-        gradientBrushCache.emplace(key, gradBrush);
-    }
-    if (gradBrush) {
-        gradBrush->SetStartPoint(startPt);
-        gradBrush->SetEndPoint(endPt);
-        d2dContext->FillRectangle(snappedRect, gradBrush.Get());
-    }
-}
-
 void Renderer::DrawDashedRoundedRect(const D2D1_RECT_F& rect, float radius, const D2D1_COLOR_F& color, float strokeWidth) {
     if (!d2dContext || !solidBrush || !d2dFactory) return;
     solidBrush->SetColor(color);
@@ -672,166 +615,39 @@ void Renderer::DrawRingProgress(float cx, float cy, float radius, float thicknes
         d2dContext->DrawEllipse(D2D1::Ellipse(D2D1::Point2F(cx, cy), radius, radius), solidBrush.Get(), thickness);
         return;
     }
+    const int radiusQ = std::max(1, static_cast<int>(std::lround(radius * 4.0f)));
+    const int progressQ = std::clamp(static_cast<int>(std::lround(std::clamp(progress, 0.0f, 1.0f) * 512.0f)), 1, 511);
+    const std::pair<int, int> key{ radiusQ, progressQ };
     ComPtr<ID2D1PathGeometry> pathGeom;
-    if (FAILED(d2dFactory->CreatePathGeometry(&pathGeom))) return;
-    ComPtr<ID2D1GeometrySink> sink;
-    if (FAILED(pathGeom->Open(&sink))) return;
-    float startAngle = -3.14159265f * 0.5f; // 12 o'clock
-    float endAngle = startAngle + progress * 3.14159265f * 2.0f;
-    float startX = cx + radius * cosf(startAngle);
-    float startY = cy + radius * sinf(startAngle);
-    float endX = cx + radius * cosf(endAngle);
-    float endY = cy + radius * sinf(endAngle);
-    sink->BeginFigure(D2D1::Point2F(startX, startY), D2D1_FIGURE_BEGIN_HOLLOW);
-    D2D1_ARC_SEGMENT arc = {D2D1::Point2F(endX, endY), D2D1::SizeF(radius, radius), 0.0f, D2D1_SWEEP_DIRECTION_CLOCKWISE,
-                            (progress > 0.5f) ? D2D1_ARC_SIZE_LARGE : D2D1_ARC_SIZE_SMALL};
-    sink->AddArc(arc);
-    sink->EndFigure(D2D1_FIGURE_END_OPEN);
-    sink->Close();
+    auto geomIt = ringGeometryCache.find(key);
+    if (geomIt != ringGeometryCache.end()) {
+        pathGeom = geomIt->second;
+    } else {
+        const float r = radiusQ / 4.0f;
+        const float p = progressQ / 512.0f;
+        if (FAILED(d2dFactory->CreatePathGeometry(&pathGeom))) return;
+        ComPtr<ID2D1GeometrySink> sink;
+        if (FAILED(pathGeom->Open(&sink))) return;
+        const float startAngle = -3.14159265f * 0.5f; // 12 o'clock
+        const float endAngle = startAngle + p * 3.14159265f * 2.0f;
+        const float startX = r * cosf(startAngle);
+        const float startY = r * sinf(startAngle);
+        const float endX = r * cosf(endAngle);
+        const float endY = r * sinf(endAngle);
+        sink->BeginFigure(D2D1::Point2F(startX, startY), D2D1_FIGURE_BEGIN_HOLLOW);
+        D2D1_ARC_SEGMENT arc = {D2D1::Point2F(endX, endY), D2D1::SizeF(r, r), 0.0f, D2D1_SWEEP_DIRECTION_CLOCKWISE,
+                                (p > 0.5f) ? D2D1_ARC_SIZE_LARGE : D2D1_ARC_SIZE_SMALL};
+        sink->AddArc(arc);
+        sink->EndFigure(D2D1_FIGURE_END_OPEN);
+        if (FAILED(sink->Close())) return;
+        if (ringGeometryCache.size() >= kRingGeometryCacheLimit) ringGeometryCache.erase(ringGeometryCache.begin());
+        ringGeometryCache.emplace(key, pathGeom);
+    }
     D2D1_STROKE_STYLE_PROPERTIES sp = D2D1::StrokeStyleProperties( D2D1_CAP_STYLE_ROUND, D2D1_CAP_STYLE_ROUND, D2D1_CAP_STYLE_ROUND,
         D2D1_LINE_JOIN_ROUND, 10.0f, D2D1_DASH_STYLE_SOLID, 0.0f );
     if (!ringStrokeStyle) { d2dFactory->CreateStrokeStyle(sp, nullptr, 0, &ringStrokeStyle); }
+    auto scope = ApplyTransform(D2D1::Matrix3x2F::Translation(cx, cy));
     d2dContext->DrawGeometry(pathGeom.Get(), solidBrush.Get(), thickness, ringStrokeStyle.Get());
-}
-
-ComPtr<IDWriteTextLayout> Renderer::GetOrCreateTextLayout( const std::wstring& text, FontType font, float maxW, float maxH,
-    DWRITE_TEXT_ALIGNMENT align, DWRITE_PARAGRAPH_ALIGNMENT valign, TextLayoutMode mode ) {
-    if (!dwriteFactory || text.empty()) return nullptr;
-    // Rapidly changing time/progress strings (e.g. "00:03 / 01:23", "75%") must not occupy long-lived cache slots: create them directly.
-    bool isTransient = false;
-    if (text.size() <= 32) {
-        bool hasDigit = false, hasColon = false;
-        for (wchar_t c : text) { if (c >= L'0' && c <= L'9') hasDigit = true; if (c == L':') hasColon = true; }
-        if (hasDigit && hasColon) { isTransient = true; } else if (hasDigit && !text.empty() && text.back() == L'%') { isTransient = true; }
-    }
-    IDWriteTextFormat* tf = GetTextFormat(font);
-    if (!tf) return nullptr;
-    auto createLayout = [&]() -> ComPtr<IDWriteTextLayout> {
-        ComPtr<IDWriteTextLayout> layout;
-        const HRESULT hr = dwriteFactory->CreateTextLayout( text.c_str(), (UINT32)text.length(), tf, maxW, maxH, &layout);
-        if (FAILED(hr) || !layout) return nullptr;
-        const bool isRtl = Localization::Instance().IsRtl();
-        layout->SetReadingDirection(isRtl ? DWRITE_READING_DIRECTION_RIGHT_TO_LEFT : DWRITE_READING_DIRECTION_LEFT_TO_RIGHT);
-        layout->SetFlowDirection(DWRITE_FLOW_DIRECTION_TOP_TO_BOTTOM);
-        layout->SetTextAlignment(align);
-        layout->SetParagraphAlignment(valign);
-        // Wrapping/trimming belong to the cache key. Mutating them for each
-        // draw invalidates DirectWrite's layout work even on a cache hit.
-        if (mode != TextLayoutMode::SingleLine) {
-            layout->SetWordWrapping(DWRITE_WORD_WRAPPING_EMERGENCY_BREAK);
-        }
-        if (mode == TextLayoutMode::WrappedEllipsis) {
-            DWRITE_TRIMMING trimming{};
-            trimming.granularity = DWRITE_TRIMMING_GRANULARITY_CHARACTER;
-            ComPtr<IDWriteInlineObject> ellipsis;
-            if (SUCCEEDED(dwriteFactory->CreateEllipsisTrimmingSign(tf, &ellipsis))) {
-                layout->SetTrimming(&trimming, ellipsis.Get());
-            }
-        }
-        return layout;
-    };
-    if (isTransient) return createLayout();
-    // Copy-free probe: the map's transparent comparator matches on a view, so
-    // a cache hit never copies the text into a LayoutKey.
-    const LayoutKeyProbe probe{ std::wstring_view(text), font,
-        (int)std::lround(maxW * 4.0f), (int)std::lround(maxH * 4.0f), align, valign, mode };
-    auto it = layoutCache.find(probe);
-    if (it != layoutCache.end()) {
-        layoutLru.splice(layoutLru.begin(), layoutLru, it->second.lruIt);
-        it->second.lruIt = layoutLru.begin();
-        return it->second.layout;
-    }
-    auto layout = createLayout();
-    if (layout) {
-        auto estimateBytes = [](const LayoutKey& k) -> uint64_t {
-            // Key text twice (map + LRU) + shaped glyph runs (~2 KiB base).
-            return (uint64_t)k.text.size() * sizeof(wchar_t) * 2ull + 2048ull + sizeof(LayoutKey);
-        };
-        LayoutKey key{ std::wstring(text), font, probe.maxW, probe.maxH, probe.align, probe.valign, probe.mode };
-        uint64_t incoming = estimateBytes(key);
-        while ((!layoutCache.empty()) && (layoutCache.size() >= kLayoutCacheEntryLimit ||
-                layoutCacheBytes + incoming > kLayoutCacheByteLimit) && !layoutLru.empty()) {
-            const LayoutKey& oldKey = layoutLru.back();
-            auto oldIt = layoutCache.find(oldKey);
-            if (oldIt != layoutCache.end()) {
-                uint64_t oldBytes = estimateBytes(oldIt->first);
-                layoutCacheBytes = (oldBytes > layoutCacheBytes) ? 0 : (layoutCacheBytes - oldBytes);
-                layoutCache.erase(oldIt);
-            }
-            layoutLru.pop_back();
-        }
-        layoutLru.push_front(key);
-        LayoutCacheEntry entry;
-        entry.layout = layout;
-        entry.lruIt = layoutLru.begin();
-        layoutCacheBytes += incoming;
-        layoutCache.emplace(key, std::move(entry));
-        return layout;
-    }
-    return nullptr;
-}
-
-void Renderer::DrawString(const std::wstring& text, const D2D1_RECT_F& rect, const D2D1_COLOR_F& color, FontType font, DWRITE_TEXT_ALIGNMENT align, DWRITE_PARAGRAPH_ALIGNMENT valign) {
-    if (!d2dContext || !solidBrush || text.empty()) return;
-    D2D1_RECT_F snappedRect = SnapRect(rect);
-    ComPtr<IDWriteTextLayout> layout = GetOrCreateTextLayout(
-        text, font, std::max(1.0f, RectWidth(snappedRect)), std::max(1.0f, RectHeight(snappedRect)), align, valign );
-    if (!layout) return;
-    solidBrush->SetColor(color);
-    d2dContext->DrawTextLayout( D2D1::Point2F(snappedRect.left, snappedRect.top), layout.Get(), solidBrush.Get(),
-        D2D1_DRAW_TEXT_OPTIONS_ENABLE_COLOR_FONT );
-}
-
-void Renderer::DrawStringSized(const std::wstring& text, const D2D1_RECT_F& rect, const D2D1_COLOR_F& color, float sizeDp,
-                               DWRITE_FONT_WEIGHT weight, DWRITE_TEXT_ALIGNMENT align, DWRITE_PARAGRAPH_ALIGNMENT valign) {
-    if (!d2dContext || !solidBrush || text.empty()) return;
-    IDWriteTextFormat* tf = GetOrCreateSizedFormat(sizeDp, weight);
-    if (!tf) return;
-    tf->SetTextAlignment(align);
-    tf->SetParagraphAlignment(valign);
-    D2D1_RECT_F snappedRect = SnapRect(rect);
-    solidBrush->SetColor(color);
-    d2dContext->DrawTextW(text.c_str(), (UINT32)text.length(), tf, snappedRect, solidBrush.Get(), D2D1_DRAW_TEXT_OPTIONS_ENABLE_COLOR_FONT);
-}
-
-void Renderer::DrawStringWrapped(const std::wstring& text, const D2D1_RECT_F& rect, const D2D1_COLOR_F& color, FontType font, DWRITE_TEXT_ALIGNMENT align, DWRITE_PARAGRAPH_ALIGNMENT valign) {
-    if (!d2dContext || !solidBrush || text.empty()) return;
-    D2D1_RECT_F snappedRect = SnapRect(rect);
-    ComPtr<IDWriteTextLayout> layout = GetOrCreateTextLayout(
-        text, font, std::max(1.0f, RectWidth(snappedRect)), std::max(1.0f, RectHeight(snappedRect)), align, valign,
-        TextLayoutMode::WrappedEllipsis );
-    if (!layout) return;
-    solidBrush->SetColor(color);
-    d2dContext->DrawTextLayout( D2D1::Point2F(snappedRect.left, snappedRect.top), layout.Get(), solidBrush.Get(),
-        D2D1_DRAW_TEXT_OPTIONS_ENABLE_COLOR_FONT | D2D1_DRAW_TEXT_OPTIONS_CLIP );
-}
-
-void Renderer::DrawStringWithShadow(const std::wstring& text, const D2D1_RECT_F& rect, const D2D1_COLOR_F& color, const D2D1_COLOR_F& shadowColor, FontType font, DWRITE_TEXT_ALIGNMENT align, DWRITE_PARAGRAPH_ALIGNMENT valign, float shadowOffsetY) {
-    if (shadowColor.a > 0.001f) {
-        D2D1_RECT_F sRect = D2D1::RectF(rect.left, rect.top + shadowOffsetY * dpiScale, rect.right, rect.bottom + shadowOffsetY * dpiScale);
-        DrawString(text, sRect, shadowColor, font, align, valign);
-    }
-    DrawString(text, rect, color, font, align, valign);
-}
-
-D2D1_SIZE_F Renderer::MeasureString(const std::wstring& text, FontType font, float maxW, float maxH) {
-    ComPtr<IDWriteTextLayout> layout = GetOrCreateTextLayout( text, font, maxW, maxH, DWRITE_TEXT_ALIGNMENT_LEADING,
-        DWRITE_PARAGRAPH_ALIGNMENT_NEAR );
-    if (!layout) return D2D1::SizeF(0, 0);
-    DWRITE_TEXT_METRICS tm;
-    layout->GetMetrics(&tm);
-    return D2D1::SizeF(tm.widthIncludingTrailingWhitespace, tm.height);
-}
-
-float Renderer::MeasureStringWrappedHeight(const std::wstring& text, FontType font, float maxWidth) {
-    if (!dwriteFactory || text.empty() || maxWidth <= 1.0f) return 0.0f;
-    ComPtr<IDWriteTextLayout> layout = GetOrCreateTextLayout(
-        text, font, maxWidth, 10000.0f, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_NEAR,
-        TextLayoutMode::Wrapped);
-    if (!layout) return 0.0f;
-    DWRITE_TEXT_METRICS tm{};
-    layout->GetMetrics(&tm);
-    return tm.height;
 }
 
 void Renderer::DrawProgressBar(const D2D1_RECT_F& rect, double progress, const D2D1_COLOR_F& trackCol, const D2D1_COLOR_F& fillCol, float radius) {
@@ -847,6 +663,26 @@ void Renderer::DrawProgressBar(const D2D1_RECT_F& rect, double progress, const D
     }
 }
 
+void Renderer::FillRoundedBitmapWithBrush(const D2D1_RECT_F& fillRect, float radius, ID2D1Bitmap* pBitmap,
+                                            float scale, float drawX, float drawY, float opacity, bool allowTempBrush) {
+    const D2D1_BITMAP_BRUSH_PROPERTIES brushProps = D2D1::BitmapBrushProperties(
+        D2D1_EXTEND_MODE_CLAMP, D2D1_EXTEND_MODE_CLAMP, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
+    ThumbnailEntry* thumbnailEntry = FindThumbnailByBitmap(pBitmap);
+    ID2D1BitmapBrush* brush = nullptr;
+    ComPtr<ID2D1BitmapBrush> tempBrush;
+    if (thumbnailEntry) {
+        if (!thumbnailEntry->brush) d2dContext->CreateBitmapBrush(pBitmap, brushProps, &thumbnailEntry->brush);
+        brush = thumbnailEntry->brush.Get();
+    } else if (allowTempBrush) {
+        if (SUCCEEDED(d2dContext->CreateBitmapBrush(pBitmap, brushProps, &tempBrush))) brush = tempBrush.Get();
+    }
+    if (!brush) return;
+    brush->SetTransform(D2D1::Matrix3x2F(scale, 0.0f, 0.0f, scale, drawX, drawY));
+    brush->SetOpacity(opacity);
+    d2dContext->FillRoundedRectangle(D2D1::RoundedRect(fillRect, radius, radius), brush);
+    if (thumbnailEntry) brush->SetOpacity(1.0f);
+}
+
 void Renderer::DrawBitmapRounded(const D2D1_RECT_F& rect, float radius, ID2D1Bitmap* pBitmap, float opacity, bool cropToFill) {
     if (!d2dContext || !pBitmap || opacity <= 0.001f) return;
     D2D1_SIZE_F imgSz = pBitmap->GetSize();
@@ -858,38 +694,21 @@ void Renderer::DrawBitmapRounded(const D2D1_RECT_F& rect, float radius, ID2D1Bit
     float drawW = imgSz.width * scale, drawH = imgSz.height * scale;
     float drawX = snappedRect.left + (RectWidth(snappedRect) - drawW) * 0.5f;
     float drawY = snappedRect.top + (RectHeight(snappedRect) - drawH) * 0.5f;
-    // Thumbnails are owned by thumbnailCache, so their brush can be reused safely. Filling a rounded rectangle with a transformed bitmap
-    // brush preserves the crop while avoiding a geometry allocation and PushLayer for every visible card.
-    if (cropToFill && radius > 0.0f) {
-        ThumbnailEntry* thumbnailEntry = FindThumbnailByBitmap(pBitmap);
-        if (thumbnailEntry) {
-            if (!thumbnailEntry->brush) {
-                const D2D1_BITMAP_BRUSH_PROPERTIES brushProps = D2D1::BitmapBrushProperties( D2D1_EXTEND_MODE_CLAMP, D2D1_EXTEND_MODE_CLAMP,
-                        D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
-                d2dContext->CreateBitmapBrush(pBitmap, brushProps, &thumbnailEntry->brush);
-            }
-            if (thumbnailEntry->brush) {
-                thumbnailEntry->brush->SetTransform( D2D1::Matrix3x2F(scale, 0.0f, 0.0f, scale, drawX, drawY));
-                thumbnailEntry->brush->SetOpacity(opacity);
-                d2dContext->FillRoundedRectangle( D2D1::RoundedRect(snappedRect, radius, radius), thumbnailEntry->brush.Get());
-                thumbnailEntry->brush->SetOpacity(1.0f);
-                return;
-            }
-        }
+    // Thumbnails are owned by thumbnailCache, so their brush can be reused safely.
+    if (cropToFill && radius > 0.0f && FindThumbnailByBitmap(pBitmap)) {
+        FillRoundedBitmapWithBrush(snappedRect, radius, pBitmap, scale, drawX, drawY, opacity, false);
+        return;
     }
     if (radius <= 0.0f) {
         d2dContext->DrawBitmap( pBitmap, D2D1::RectF(drawX, drawY, drawX + drawW, drawY + drawH), opacity,
             D2D1_BITMAP_INTERPOLATION_MODE_LINEAR );
         return;
     }
-    // DrawBitmap is cheaper than creating a bitmap brush for every thumbnail. A rounded geometry layer remains the compatibility path for
-    // external bitmaps and for the non-cropping letterbox mode.
     ComPtr<ID2D1RoundedRectangleGeometry> geometry;
     if (!d2dFactory || FAILED(d2dFactory->CreateRoundedRectangleGeometry(
         D2D1::RoundedRect(snappedRect, radius, radius), &geometry)) || !geometry) return;
     d2dContext->PushLayer(D2D1::LayerParameters(snappedRect, geometry.Get()), nullptr);
-    d2dContext->DrawBitmap( pBitmap, D2D1::RectF(drawX, drawY, drawX + drawW, drawY + drawH), opacity, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR
-    );
+    d2dContext->DrawBitmap( pBitmap, D2D1::RectF(drawX, drawY, drawX + drawW, drawY + drawH), opacity, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR );
     d2dContext->PopLayer();
 }
 
@@ -905,186 +724,12 @@ void Renderer::DrawThumbnailCroppedBottom(const D2D1_RECT_F& visibleRect, const 
     float drawW = imgSz.width * scale, drawH = imgSz.height * scale;
     float drawX = snappedOrig.left + (RectWidth(snappedOrig) - drawW) * 0.5f;
     float drawY = snappedOrig.top + (RectHeight(snappedOrig) - drawH) * 0.5f;
-
-    ThumbnailEntry* thumbnailEntry = FindThumbnailByBitmap(pBitmap);
-    if (thumbnailEntry) {
-        if (!thumbnailEntry->brush) {
-            const D2D1_BITMAP_BRUSH_PROPERTIES brushProps = D2D1::BitmapBrushProperties(
-                D2D1_EXTEND_MODE_CLAMP, D2D1_EXTEND_MODE_CLAMP, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
-            d2dContext->CreateBitmapBrush(pBitmap, brushProps, &thumbnailEntry->brush);
-        }
-        if (thumbnailEntry->brush) {
-            thumbnailEntry->brush->SetTransform(D2D1::Matrix3x2F(scale, 0.0f, 0.0f, scale, drawX, drawY));
-            thumbnailEntry->brush->SetOpacity(opacity);
-            d2dContext->FillRoundedRectangle(D2D1::RoundedRect(snappedVis, radius, radius), thumbnailEntry->brush.Get());
-            thumbnailEntry->brush->SetOpacity(1.0f);
-            return;
-        }
-    }
-    ComPtr<ID2D1BitmapBrush> tempBrush;
-    const D2D1_BITMAP_BRUSH_PROPERTIES brushProps = D2D1::BitmapBrushProperties(
-        D2D1_EXTEND_MODE_CLAMP, D2D1_EXTEND_MODE_CLAMP, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
-    if (SUCCEEDED(d2dContext->CreateBitmapBrush(pBitmap, brushProps, &tempBrush)) && tempBrush) {
-        tempBrush->SetTransform(D2D1::Matrix3x2F(scale, 0.0f, 0.0f, scale, drawX, drawY));
-        tempBrush->SetOpacity(opacity);
-        d2dContext->FillRoundedRectangle(D2D1::RoundedRect(snappedVis, radius, radius), tempBrush.Get());
-    }
-}
-
-void Renderer::PushClip(const D2D1_RECT_F& rect) {
-    if (d2dContext) { d2dContext->PushAxisAlignedClip(SnapRect(rect), D2D1_ANTIALIAS_MODE_ALIASED); }
-}
-
-void Renderer::PopClip() {
-    if (d2dContext) { d2dContext->PopAxisAlignedClip(); }
+    FillRoundedBitmapWithBrush(snappedVis, radius, pBitmap, scale, drawX, drawY, opacity, true);
 }
 
 void Renderer::DrawCardShadow(const D2D1_RECT_F& rect, float radius, float elevation) {
     float dp = dpiScale;
     DrawDropShadow(rect, radius, elevation * 3.5f * dp, elevation * 0.8f * dp, D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.32f));
-}
-
-void Renderer::TouchShadow(std::map<ShadowKey, ShadowEntry>::iterator it) {
-    if (it == shadowCache.end()) return;
-    shadowLru.splice(shadowLru.begin(), shadowLru, it->second.lruIt);
-    it->second.lruIt = shadowLru.begin();
-}
-
-void Renderer::ClearShadowCache() {
-    shadowCache.clear();
-    shadowLru.clear();
-    prevFrameShadowKeys.clear();
-    currFrameShadowKeys.clear();
-    shadowCacheBytes = 0;
-}
-
-ComPtr<ID2D1Bitmap> Renderer::GetOrCreateShadowBitmap(const ShadowKey& key) {
-    if (!d2dContext || key.widthPx <= 0 || key.heightPx <= 0 || key.blurQ <= 0) return nullptr;
-    currFrameShadowKeys.insert(key);
-    auto cached = shadowCache.find(key);
-    if (cached != shadowCache.end()) { TouchShadow(cached); return cached->second.bitmap; }
-    // Only allocate an off-screen D2D bitmap render target when the shadow key
-    // has held its exact dimensions for at least two consecutive frames.
-    // Actively resizing or morphing surfaces (card hover expansion, sliding nav
-    // pills between different-width tabs, dynamic island morphs) use the direct
-    // 6-pass draw path without thrashing GPU texture allocations every frame.
-    if (prevFrameShadowKeys.find(key) == prevFrameShadowKeys.end()) return nullptr;
-    const float radius = std::max(0.0f, key.radiusQ / 4.0f);
-    const float blur = std::max(0.0f, key.blurQ / 4.0f);
-    const float yOffset = key.offsetYQ / 4.0f;
-    const float padXf = std::ceil(blur) + 2.0f;
-    const float topPadf = std::ceil(blur * 0.20f + std::max(0.0f, -yOffset)) + 2.0f;
-    const float bottomPadf = std::ceil(blur * 1.20f + std::max(0.0f, yOffset)) + 2.0f;
-    const UINT padX = static_cast<UINT>(std::max(2.0f, padXf));
-    const UINT topPad = static_cast<UINT>(std::max(2.0f, topPadf));
-    const UINT bottomPad = static_cast<UINT>(std::max(2.0f, bottomPadf));
-    const UINT pixelWidth = static_cast<UINT>(key.widthPx) + padX * 2u;
-    const UINT pixelHeight = static_cast<UINT>(key.heightPx) + topPad + bottomPad;
-    // Do not allow a pathological window size or blur setting to turn the cache into a large off-screen allocation. The caller has a
-    // correct immediate-render fallback for this case.
-    if (pixelWidth == 0 || pixelHeight == 0 || pixelWidth > 4096 || pixelHeight > 4096) return nullptr;
-    D2D1_SIZE_U pixelSize = D2D1::SizeU(pixelWidth, pixelHeight);
-    const D2D1_PIXEL_FORMAT shadowPixelFormat = D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED);
-    ComPtr<ID2D1BitmapRenderTarget> shadowTarget;
-    HRESULT hr = d2dContext->CreateCompatibleRenderTarget( nullptr, &pixelSize, &shadowPixelFormat,
-        D2D1_COMPATIBLE_RENDER_TARGET_OPTIONS_NONE, &shadowTarget );
-    if (FAILED(hr) || !shadowTarget) return nullptr;
-    shadowTarget->SetDpi(96.0f, 96.0f);
-    shadowTarget->BeginDraw();
-    shadowTarget->Clear(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.0f));
-    D2D1_COLOR_F shadowColor = D2D1::ColorF( key.colorR / 65535.0f, key.colorG / 65535.0f, key.colorB / 65535.0f, key.colorA / 65535.0f );
-    ComPtr<ID2D1SolidColorBrush> shadowBrush;
-    hr = shadowTarget->CreateSolidColorBrush(shadowColor, &shadowBrush);
-    if (FAILED(hr) || !shadowBrush) { shadowTarget->EndDraw(); return nullptr; }
-    const D2D1_RECT_F baseRect = D2D1::RectF( static_cast<float>(padX), static_cast<float>(topPad),
-        static_cast<float>(padX + static_cast<UINT>(key.widthPx)), static_cast<float>(topPad + static_cast<UINT>(key.heightPx)) );
-    const int steps = 6;
-    for (int i = steps; i >= 1; --i) {
-        const float t = static_cast<float>(i) / static_cast<float>(steps);
-        const float grow = blur * t;
-        D2D1_ROUNDED_RECT s = D2D1::RoundedRect(baseRect, radius + grow, radius + grow);
-        s.rect.left -= grow;
-        s.rect.right += grow;
-        s.rect.top -= grow * 0.20f;
-        s.rect.bottom += grow * 1.20f;
-        s.rect.top += yOffset;
-        s.rect.bottom += yOffset;
-        const float falloff = std::pow(1.0f - t, 1.65f);
-        shadowBrush->SetColor(D2D1::ColorF( shadowColor.r, shadowColor.g, shadowColor.b, shadowColor.a * falloff * 0.62f ));
-        shadowTarget->FillRoundedRectangle(s, shadowBrush.Get());
-    }
-    hr = shadowTarget->EndDraw();
-    if (FAILED(hr)) return nullptr;
-    ComPtr<ID2D1Bitmap> bitmap;
-    if (FAILED(shadowTarget->GetBitmap(&bitmap)) || !bitmap) return nullptr;
-    const uint64_t approximateBytes = static_cast<uint64_t>(pixelWidth) * pixelHeight * 4ull;
-    if (approximateBytes > kShadowCacheByteLimit) {
-        // Draw this unusually large shadow once, but never retain it.
-        return bitmap;
-    }
-    while (!shadowLru.empty() && (shadowCache.size() >= kShadowCacheEntryLimit ||
-            shadowCacheBytes + approximateBytes > kShadowCacheByteLimit)) {
-        const ShadowKey& oldKey = shadowLru.back();
-        auto old = shadowCache.find(oldKey);
-        if (old != shadowCache.end()) {
-            shadowCacheBytes -= std::min(shadowCacheBytes, old->second.approximateBytes);
-            shadowCache.erase(old);
-        }
-        shadowLru.pop_back();
-    }
-    shadowLru.push_front(key);
-    ShadowEntry entry;
-    entry.bitmap = bitmap;
-    entry.approximateBytes = approximateBytes;
-    entry.lruIt = shadowLru.begin();
-    auto inserted = shadowCache.emplace(key, std::move(entry));
-    if (inserted.second) { shadowCacheBytes += approximateBytes; return bitmap; }
-    shadowLru.pop_front();
-    TouchShadow(inserted.first);
-    return inserted.first->second.bitmap;
-}
-
-void Renderer::DrawDropShadow(const D2D1_RECT_F& rect, float radius, float blur, float yOffset, const D2D1_COLOR_F& color) {
-    if (!d2dContext || !solidBrush || color.a <= 0.001f || blur <= 0.0f) return;
-    ShadowKey key;
-    key.widthPx = std::max(1, static_cast<int>(std::lround(RectWidth(rect))));
-    key.heightPx = std::max(1, static_cast<int>(std::lround(RectHeight(rect))));
-    key.radiusQ = std::max(0, static_cast<int>(std::lround(radius * 4.0f)));
-    key.blurQ = std::max(1, static_cast<int>(std::lround(blur * 4.0f)));
-    key.offsetYQ = static_cast<int>(std::lround(yOffset * 4.0f));
-    key.colorR = QuantizeColor(color.r);
-    key.colorG = QuantizeColor(color.g);
-    key.colorB = QuantizeColor(color.b);
-    key.colorA = QuantizeColor(color.a);
-    if (ComPtr<ID2D1Bitmap> shadow = GetOrCreateShadowBitmap(key)) {
-        const float blurQ = key.blurQ / 4.0f, offsetQ = key.offsetYQ / 4.0f;
-        const float padX = std::ceil(blurQ) + 2.0f;
-        const float topPad = std::ceil(blurQ * 0.20f + std::max(0.0f, -offsetQ)) + 2.0f;
-        const D2D1_SIZE_F shadowSize = shadow->GetSize();
-        d2dContext->DrawBitmap( shadow.Get(), D2D1::RectF(rect.left - padX, rect.top - topPad, rect.left - padX + shadowSize.width,
-                        rect.top - topPad + shadowSize.height), 1.0f, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR );
-        return;
-    }
-    // A small fixed kernel approximates CSS box-shadow falloff without allocating an effect graph. Six passes are enough for a soft edge
-    // and remain substantially cheaper than a full Gaussian effect per card.
-    const int steps = 6;
-    for (int i = steps; i >= 1; --i) {
-        float t = (float)i / (float)steps;
-        float grow = blur * t;
-        D2D1_ROUNDED_RECT s = D2D1::RoundedRect(rect, radius + grow, radius + grow);
-        s.rect.left -= grow;   s.rect.right += grow;
-        s.rect.top  -= grow * 0.20f; s.rect.bottom += grow * 1.20f;
-        s.rect.top += yOffset; s.rect.bottom += yOffset;
-        float falloff = std::pow(1.0f - t, 1.65f);
-        float a = color.a * falloff * 0.62f;
-        solidBrush->SetColor(D2D1::ColorF(color.r, color.g, color.b, a));
-        d2dContext->FillRoundedRectangle(s, solidBrush.Get());
-    }
-}
-
-void Renderer::DrawGlow(const D2D1_RECT_F& rect, float radius, float blur, const D2D1_COLOR_F& glowColor) {
-    if (glowColor.a <= 0.001f || blur <= 0.0f) return;
-    DrawDropShadow(rect, radius, blur, 0.0f, glowColor);
 }
 
 void Renderer::DrawSurface(const D2D1_RECT_F& rect, const SurfaceStyle& style) {
@@ -1179,55 +824,16 @@ SurfaceStyle Renderer::CreateSurfaceStyle(Elevation elevation, const Settings& s
             style.shadowOffsetY = 1.5f * dp;
             break;
         }
-        case Elevation::Card: {
-            if (isPinned) {
-                style.fill = D2D1::ColorF(th.cardBg.r, th.cardBg.g, th.cardBg.b, 0.95f);
-                style.border = D2D1::ColorF(1.0f, 1.0f, 1.0f, isHovered ? 0.20f : 0.12f);
-                style.borderWidth = (isHovered || isSelected) ? 1.5f : 1.0f;
-                style.shadowColor = D2D1::ColorF(0.0f, 0.0f, 0.0f, isHovered ? 0.20f : 0.10f);
-                style.shadowBlur = (isHovered ? 8.0f : 4.0f) * dp;
-                style.shadowOffsetY = (isHovered ? 2.5f : 1.5f) * dp;
-                // [Disabled per user request] Pinned card gold hue glow effect
-                // style.glowColor = ColorWithAlpha(th.accent, isHovered ? 0.16f : 0.08f);
-                // style.glowBlur = (isHovered ? 16.0f : 10.0f) * dp;
-                // style.hasGradient = true;
-                // style.gradientStart = ColorWithAlpha(th.accent, 0.16f);
-                // style.gradientEnd = D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.0f);
-                style.glowColor = D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.0f);
-                style.glowBlur = 0.0f;
-                style.hasGradient = false;
-                style.leftAccentBarAlpha = 0.85f;
-                style.leftAccentBarColor = D2D1::ColorF(1.0f, 1.0f, 1.0f, 1.0f);
-                style.leftAccentBarWidth = 6.0f;
-            } else {
-                style.fill = isHovered ? D2D1::ColorF(th.cardBg.r * 1.05f, th.cardBg.g * 1.05f, th.cardBg.b * 1.05f, 1.0f) : th.cardBg;
-                style.border = isSelected ? th.accent : (isHovered ? D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.22f) : th.border);
-                style.borderWidth = (isHovered || isSelected) ? 1.5f : 1.0f;
-                style.shadowColor = D2D1::ColorF(0.0f, 0.0f, 0.0f, isHovered ? 0.18f : 0.06f);
-                style.shadowBlur = (isHovered ? 6.0f : 3.0f) * dp;
-                style.shadowOffsetY = (isHovered ? 2.0f : 1.0f) * dp;
-                style.glowColor = D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.0f);
-                style.glowBlur = 0.0f;
-                style.leftAccentBarAlpha = 0.0f;
-                style.leftAccentBarColor = th.accent;
-                style.leftAccentBarWidth = 0.0f;
-            }
-            break;
-        }
+        case Elevation::Card:
         case Elevation::RaisedCard: {
+            const bool raised = (elevation == Elevation::RaisedCard);
             if (isPinned) {
                 style.fill = D2D1::ColorF(th.cardBg.r, th.cardBg.g, th.cardBg.b, 0.95f);
-                style.border = D2D1::ColorF(1.0f, 1.0f, 1.0f, isHovered ? 0.22f : 0.14f);
+                style.border = D2D1::ColorF(1.0f, 1.0f, 1.0f, isHovered ? (raised ? 0.22f : 0.20f) : (raised ? 0.14f : 0.12f));
                 style.borderWidth = (isHovered || isSelected) ? 1.5f : 1.0f;
-                style.shadowColor = D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.40f);
-                style.shadowBlur = 18.0f * dp;
-                style.shadowOffsetY = 4.0f * dp;
-                // [Disabled per user request] Pinned card gold hue glow effect
-                // style.glowColor = ColorWithAlpha(th.accent, 0.18f);
-                // style.glowBlur = 16.0f * dp;
-                // style.hasGradient = true;
-                // style.gradientStart = ColorWithAlpha(th.accent, 0.18f);
-                // style.gradientEnd = D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.0f);
+                style.shadowColor = D2D1::ColorF(0.0f, 0.0f, 0.0f, raised ? 0.40f : (isHovered ? 0.20f : 0.10f));
+                style.shadowBlur = (raised ? 18.0f : (isHovered ? 8.0f : 4.0f)) * dp;
+                style.shadowOffsetY = (raised ? 4.0f : (isHovered ? 2.5f : 1.5f)) * dp;
                 style.glowColor = D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.0f);
                 style.glowBlur = 0.0f;
                 style.hasGradient = false;
@@ -1235,12 +841,14 @@ SurfaceStyle Renderer::CreateSurfaceStyle(Elevation elevation, const Settings& s
                 style.leftAccentBarColor = D2D1::ColorF(1.0f, 1.0f, 1.0f, 1.0f);
                 style.leftAccentBarWidth = 6.0f;
             } else {
-                style.fill = D2D1::ColorF(th.cardBg.r * 1.05f, th.cardBg.g * 1.05f, th.cardBg.b * 1.05f, 1.0f);
-                style.border = isSelected ? th.accent : D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.22f);
+                style.fill = (raised || isHovered)
+                    ? D2D1::ColorF(th.cardBg.r * 1.05f, th.cardBg.g * 1.05f, th.cardBg.b * 1.05f, 1.0f)
+                    : th.cardBg;
+                style.border = isSelected ? th.accent : ((raised || isHovered) ? D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.22f) : th.border);
                 style.borderWidth = (isHovered || isSelected) ? 1.5f : 1.0f;
-                style.shadowColor = D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.35f);
-                style.shadowBlur = 14.0f * dp;
-                style.shadowOffsetY = 3.0f * dp;
+                style.shadowColor = D2D1::ColorF(0.0f, 0.0f, 0.0f, raised ? 0.35f : (isHovered ? 0.18f : 0.06f));
+                style.shadowBlur = (raised ? 14.0f : (isHovered ? 6.0f : 3.0f)) * dp;
+                style.shadowOffsetY = (raised ? 3.0f : (isHovered ? 2.0f : 1.0f)) * dp;
                 style.glowColor = D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.0f);
                 style.glowBlur = 0.0f;
                 style.leftAccentBarAlpha = 0.0f;
@@ -1283,46 +891,6 @@ SurfaceStyle Renderer::CreateSurfaceStyle(Elevation elevation, const Settings& s
         }
     }
     return style;
-}
-
-void Renderer::DrawAmbientBackground(const D2D1_RECT_F&, const Settings& s) {
-    if (!d2dContext) return;
-    const auto& th = s.currentTheme;
-    Clear(th.bg);
-}
-
-void Renderer::DrawSvgPath(const char* svgPath, const D2D1_RECT_F& rect, const D2D1_COLOR_F& color, float viewBox, bool fill, float strokeWidth, bool cacheGeometry) {
-    if (!d2dContext || !solidBrush || !d2dFactory || !svgPath) return;
-    ComPtr<ID2D1PathGeometry> transientGeom;
-    ID2D1PathGeometry* geom = nullptr;
-    if (cacheGeometry) {
-        auto it = svgGeometryCache.find(svgPath);
-        if (it == svgGeometryCache.end()) {
-            if (svgGeometryCache.size() >= 512) svgGeometryCache.clear();
-            auto built = SvgGeometry::Build(d2dFactory.Get(), svgPath);
-            if (!built) return;
-            it = svgGeometryCache.emplace(svgPath, std::move(built)).first;
-        }
-        geom = it->second.Get();
-    } else {
-        transientGeom = SvgGeometry::Build(d2dFactory.Get(), svgPath);
-        geom = transientGeom.Get();
-    }
-    if (!geom) return;
-    solidBrush->SetColor(color);
-    float destW = RectWidth(rect);
-    float destH = RectHeight(rect);
-    float scale = std::min(destW, destH) / viewBox;
-    float offsetX = rect.left + (destW - viewBox * scale) * 0.5f;
-    float offsetY = rect.top + (destH - viewBox * scale) * 0.5f;
-    D2D1_MATRIX_3X2_F oldTransform;
-    d2dContext->GetTransform(&oldTransform);
-    D2D1_MATRIX_3X2_F newTransform = D2D1::Matrix3x2F::Scale(scale, scale) * D2D1::Matrix3x2F::Translation(offsetX, offsetY) * oldTransform;
-    d2dContext->SetTransform(newTransform);
-    if (fill) {
-        d2dContext->FillGeometry(geom, solidBrush.Get());
-    } else { d2dContext->DrawGeometry(geom, solidBrush.Get(), strokeWidth / scale); }
-    d2dContext->SetTransform(oldTransform);
 }
 
 void Renderer::DrawIcon(IconType icon, const D2D1_RECT_F& rect, const D2D1_COLOR_F& color, float strokeWidth) {
@@ -1428,6 +996,8 @@ void Renderer::ThumbnailWorkerThread() {
                 }
                 req = std::move(*best);
                 activeGeneration = req.generation;
+                const uint64_t poppedBytes = EstimateThumbnailRequestBytes(req.key);
+                pendingThumbnailBytes = (poppedBytes > pendingThumbnailBytes) ? 0 : (pendingThumbnailBytes - poppedBytes);
                 pendingThumbnailRequests.erase(best);
             }
             ThumbnailResult result;
@@ -1523,7 +1093,10 @@ void Renderer::EnqueueThumbnailRequest(const ThumbnailKey& key, bool lowPriority
     // A key absent from the pending queue but present in the set is already
     // decoding. Let that work finish instead of launching a duplicate.
     if (inFlightThumbnailKeys.find(key) != inFlightThumbnailKeys.end()) return;
-    if (pendingThumbnailRequests.size() >= kMaxPendingThumbnailRequests) {
+    const uint64_t newBytes = EstimateThumbnailRequestBytes(key);
+    while (!pendingThumbnailRequests.empty() &&
+           (pendingThumbnailRequests.size() >= kMaxPendingThumbnailRequests ||
+            pendingThumbnailBytes + newBytes > kMaxPendingThumbnailBytes)) {
         auto worst = pendingThumbnailRequests.begin();
         for (auto it = std::next(worst); it != pendingThumbnailRequests.end(); ++it) {
             if (it->priorityFrame < worst->priorityFrame ||
@@ -1534,31 +1107,13 @@ void Renderer::EnqueueThumbnailRequest(const ThumbnailKey& key, bool lowPriority
         const bool newRequestHasPriority = priorityFrame > worst->priorityFrame ||
             (priorityFrame == worst->priorityFrame && priorityOrder < worst->priorityOrder);
         if (!newRequestHasPriority) return;
+        const uint64_t evictedBytes = EstimateThumbnailRequestBytes(worst->key);
+        pendingThumbnailBytes = (evictedBytes > pendingThumbnailBytes) ? 0 : (pendingThumbnailBytes - evictedBytes);
         inFlightThumbnailKeys.erase(worst->key);
         pendingThumbnailRequests.erase(worst);
     }
-    // Byte-bound in addition to the count bound: estimate pending bytes and evict lowest-priority entries until the new request fits.
-    {
-        uint64_t pendingBytes = 0;
-        for (const auto& pending : pendingThumbnailRequests) { pendingBytes += EstimateThumbnailRequestBytes(pending.key); }
-        uint64_t newBytes = EstimateThumbnailRequestBytes(key);
-        while (!pendingThumbnailRequests.empty() && pendingBytes + newBytes > kMaxPendingThumbnailBytes) {
-            auto worst = pendingThumbnailRequests.begin();
-            for (auto it = std::next(worst); it != pendingThumbnailRequests.end(); ++it) {
-                if (it->priorityFrame < worst->priorityFrame ||
-                    (it->priorityFrame == worst->priorityFrame && it->priorityOrder > worst->priorityOrder)) {
-                    worst = it;
-                }
-            }
-            const bool newRequestHasPriority = priorityFrame > worst->priorityFrame ||
-                (priorityFrame == worst->priorityFrame && priorityOrder < worst->priorityOrder);
-            if (!newRequestHasPriority) return;
-            pendingBytes -= EstimateThumbnailRequestBytes(worst->key);
-            inFlightThumbnailKeys.erase(worst->key);
-            pendingThumbnailRequests.erase(worst);
-        }
-    }
     inFlightThumbnailKeys.insert(key);
+    pendingThumbnailBytes += newBytes;
     pendingThumbnailRequests.push_back({ key, thumbnailGeneration, priorityFrame, priorityOrder });
     // Recheck worker demand when the queue reaches the existing eight-request trigger.
     bool needSecond = pendingThumbnailRequests.size() >= 8 && !thumbnailWorkers[1].joinable();
@@ -1634,6 +1189,21 @@ void Renderer::DrainCompletedThumbnails() {
                 }
             }
         }
+        // Prune stale cover-art registration if the backing file was deleted on disk
+        // (off the hot per-card render path).
+        if (!coverArtByMediaPath.empty()) {
+            bool erasedAny = false;
+            bool checkedExists = false;
+            bool exists = true;
+            for (auto covIt = coverArtByMediaPath.begin(); covIt != coverArtByMediaPath.end();) {
+                if (covIt->second == res.key.path) {
+                    if (!checkedExists) { checkedExists = true; exists = FileExists(res.key.path); }
+                    if (!exists) { covIt = coverArtByMediaPath.erase(covIt); erasedAny = true; continue; }
+                }
+                ++covIt;
+            }
+            if (erasedAny) continue;
+        }
         // Permanent decode failure: quarantine separately so files the shell cannot thumbnail never occupy bitmap LRU slots nor get
         // re-enqueued every frame. The placeholder icon stays stable instead of flashing through repeated decode attempts.
         if (negativeCache.find(res.key) == negativeCache.end()) {
@@ -1657,15 +1227,12 @@ void Renderer::DrainCompletedThumbnails() {
 
 ComPtr<ID2D1Bitmap> Renderer::GetOrCreateVideoThumbnail(const std::wstring& filePath, UINT reqW, UINT reqH, double startSec) {
     if (filePath.empty() || !d2dContext) return nullptr;
-    // Single per-item static-thumbnail resolution point: a registered cover art
-    // image replaces the extracted thumbnail for every consumer (media cards,
-    // playlist resume card, playlist rows). A stale registration (deleted or
-    // missing file) falls back to the normal thumbnail pipeline.
+    // Registered cover art replaces the extracted thumbnail; existence is checked
+    // on registration and on decode failure rather than statting disk every frame.
     if (!coverArtByMediaPath.empty()) {
         const auto coverIt = coverArtByMediaPath.find(filePath);
         if (coverIt != coverArtByMediaPath.end()) {
-            if (FileExists(coverIt->second)) return GetOrCreateVideoThumbnailInternal(coverIt->second, reqW, reqH, 0);
-            coverArtByMediaPath.erase(coverIt);
+            return GetOrCreateVideoThumbnailInternal(coverIt->second, reqW, reqH, 0);
         }
     }
     return GetOrCreateVideoThumbnailInternal(filePath, reqW, reqH, ThumbnailPositionBucket(startSec));
@@ -1731,6 +1298,10 @@ void Renderer::SetCoverArtPath(const std::wstring& mediaPath, const std::wstring
     // image may live under a different extension: evict both cached images.
     const auto prev = coverArtByMediaPath.find(mediaPath);
     if (prev != coverArtByMediaPath.end() && prev->second != coverPath) EvictThumbnailForPath(prev->second);
+    if (coverPath.empty() || !FileExists(coverPath)) {
+        if (prev != coverArtByMediaPath.end()) coverArtByMediaPath.erase(prev);
+        return;
+    }
     coverArtByMediaPath[mediaPath] = coverPath;
     EvictThumbnailForPath(coverPath);
 }

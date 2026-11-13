@@ -4,8 +4,53 @@
 #include "OnlineSubtitles.h"
 #include "SplitIrisMenuLayout.h"
 #include <cctype>
+#include <string_view>
 
 namespace Aperture {
+
+namespace {
+
+std::string SanitizeMenuId(std::string_view prefix, std::string_view raw, bool lowercase = false) {
+    std::string id(prefix);
+    id.reserve(prefix.size() + raw.size());
+    for (char ch : raw) {
+        if (lowercase && ch >= 'A' && ch <= 'Z') ch = static_cast<char>(ch - 'A' + 'a');
+        const unsigned char uc = static_cast<unsigned char>(ch);
+        id += (std::isalnum(uc) || ch == '_') ? ch : '_';
+    }
+    return id;
+}
+
+struct PresetMenuOption {
+    double value;
+    const wchar_t* label;
+};
+
+void PopulatePresetWithCustomMenu(
+    std::vector<ContextMenuItem>& items, const char* idPrefix, IconType icon,
+    const PresetMenuOption* presets, size_t count, double currentValue, double tolerance,
+    const std::function<void(double)>& onSelect,
+    const char* customId, const std::wstring& defaultCustomLabel,
+    const std::wstring& activeCustomLabel, const std::function<void()>& onCustom) {
+    bool isCustom = true;
+    for (size_t i = 0; i < count; ++i) {
+        const double val = presets[i].value;
+        const bool isSel = std::abs(currentValue - val) <= tolerance;
+        if (isSel) isCustom = false;
+        items.push_back({
+            std::string(idPrefix) + std::to_string(static_cast<long long>(val)),
+            presets[i].label, isSel ? L"\u2713" : L"", icon, false, false, false,
+            [onSelect, val]() { onSelect(val); }
+        });
+    }
+    items.push_back({ "", L"", L"", IconType::Play, true, false, false, nullptr });
+    items.push_back({
+        customId, isCustom ? activeCustomLabel : defaultCustomLabel,
+        isCustom ? L"\u2713" : L"", IconType::SettingsGear, false, false, false, onCustom
+    });
+}
+
+} // namespace
 
 void App::CloseContextMenu() {
     if (!isContextMenuOpen) return;
@@ -471,22 +516,27 @@ void App::OpenMediaSortContextMenu(float x, float y) {
     };
     if (libraryGroupMode == LibraryGroupMode::Flat && settings.manualMediaOrder)
         addField("sort_manual", L"Manual", LibrarySortField::Manual);
-    addField("sort_title", L"Title", LibrarySortField::Title);
-    addField("sort_added", L"Date Added", LibrarySortField::DateAdded);
-    addField("sort_last_played", L"Last Played", LibrarySortField::LastPlayed);
-    addField("sort_duration", L"Duration", LibrarySortField::Duration);
+    static constexpr struct { const char* id; const wchar_t* label; LibrarySortField field; } kSortFields[] = {
+        { "sort_title", L"Title", LibrarySortField::Title },
+        { "sort_added", L"Date Added", LibrarySortField::DateAdded },
+        { "sort_last_played", L"Last Played", LibrarySortField::LastPlayed },
+        { "sort_duration", L"Duration", LibrarySortField::Duration },
+    };
+    for (const auto& f : kSortFields) addField(f.id, f.label, f.field);
     LibrarySortField effective = librarySortField;
     if (effective == LibrarySortField::Manual && libraryGroupMode != LibraryGroupMode::Flat) effective = LibrarySortField::Title;
     if (effective != LibrarySortField::Manual) {
         contextMenuItems.push_back({ "sort_sep", L"", L"", IconType::Play, true });
-        contextMenuItems.push_back({ "sort_ascending", L"Ascending", L"", IconType::Checkmark, false,
-            librarySortDirection == SortDirection::Ascending, false,
-            [this]() { SetLibrarySort(librarySortField, SortDirection::Ascending); } });
-        contextMenuItems.back().showCheckedIndicator = true;
-        contextMenuItems.push_back({ "sort_descending", L"Descending", L"", IconType::Checkmark, false,
-            librarySortDirection == SortDirection::Descending, false,
-            [this]() { SetLibrarySort(librarySortField, SortDirection::Descending); } });
-        contextMenuItems.back().showCheckedIndicator = true;
+        static constexpr struct { const char* id; const wchar_t* label; SortDirection dir; } kDirs[] = {
+            { "sort_ascending", L"Ascending", SortDirection::Ascending },
+            { "sort_descending", L"Descending", SortDirection::Descending },
+        };
+        for (const auto& d : kDirs) {
+            contextMenuItems.push_back({ d.id, d.label, L"", IconType::Checkmark, false,
+                librarySortDirection == d.dir, false,
+                [this, dir = d.dir]() { SetLibrarySort(librarySortField, dir); } });
+            contextMenuItems.back().showCheckedIndicator = true;
+        }
     }
     PresentHubContextMenu(x, y, 220.0f);
     MarkAccessibilityDirty();
@@ -958,7 +1008,11 @@ void App::OpenHistoryContextMenu(const HistoryRecord& item, float x, float y) {
         contextMenuItems.push_back({ "sep2", L"", L"", IconType::Play, true });
         contextMenuItems.push_back({ "remove", L"Remove", L"Del", IconType::Trash, false, false, true, [this, path]() {
             for (size_t i = 0; i < library.history.size(); ++i) {
-                if (library.history[i].filePath == path) { ArmLibraryUndo(L"History removal"); library.RemoveFromHistory(i); break; }
+                if (library.history[i].filePath == path) {
+                    ArmLibraryUndo(L"History removal");
+                    if (library.RemoveFromHistory(i, false)) QueueLibrarySave();
+                    break;
+                }
             }
             MarkJumpListDirty();
             ShowOSD(IconType::Trash, L"Removed from History");
@@ -1112,19 +1166,19 @@ void App::OpenPlayerContextMenu(float x, float y) {
     contextMenuItems.push_back({ "sep1", L"", L"", IconType::Play, true });
     contextMenuItems.push_back({"subtitles_menu", L"Subtitles & Dual Subtitles...", L"\u25B8", IconType::Subtitles, false, false, false,
                                 [this, x, y]() { OpenSubtitlesContextMenu(x, y); }, false, false, true});
-    contextMenuItems.push_back({"sub_open", L"Open Subtitle File...", L"S", IconType::Subtitles, false, false, false,
-                                [this]() { commandDispatcher.Execute(AppCommand::OpenSubtitleFile); }});
-    contextMenuItems.push_back({"audio_cycle", L"Cycle Audio Track", L"A", IconType::VolumeHigh, false, false, false,
-                                [this]() { commandDispatcher.Execute(AppCommand::CycleAudio); }});
-    contextMenuItems.push_back({ "sep2", L"", L"", IconType::Play, true });
-    contextMenuItems.push_back({"pip", playbackSession.IsPiP() ? L"Exit PiP" : L"PiP Mode", L"P", IconType::PictureInPicture, false, false,
-                                false, [this]() { commandDispatcher.Execute(AppCommand::TogglePiP); }});
-    contextMenuItems.push_back({"full", playbackSession.IsFullscreen() ? L"Exit Fullscreen" : L"Fullscreen", L"F", IconType::Fullscreen,
-                                false, false, false, [this]() { commandDispatcher.Execute(AppCommand::ToggleFullscreen); }});
-    contextMenuItems.push_back({"screenshot", L"Take Screenshot", L"Ctrl+S", IconType::MediaFilm, false, false, false,
-                                [this]() { commandDispatcher.Execute(AppCommand::TakeScreenshot); }});
-    contextMenuItems.push_back({"explorer", L"Show in Explorer", L"", IconType::FolderPlaylist, false, false, false,
-                                [this]() { commandDispatcher.Execute(AppCommand::ShowInExplorer); }});
+    const struct { const char* id; const wchar_t* label; const wchar_t* shortcut; IconType icon; bool sepBefore; bool isDanger; AppCommand cmd; } kSimpleRows[] = {
+        { "sub_open", L"Open Subtitle File...", L"S", IconType::Subtitles, false, false, AppCommand::OpenSubtitleFile },
+        { "audio_cycle", L"Cycle Audio Track", L"A", IconType::VolumeHigh, false, false, AppCommand::CycleAudio },
+        { "pip", playbackSession.IsPiP() ? L"Exit PiP" : L"PiP Mode", L"P", IconType::PictureInPicture, true, false, AppCommand::TogglePiP },
+        { "full", playbackSession.IsFullscreen() ? L"Exit Fullscreen" : L"Fullscreen", L"F", IconType::Fullscreen, false, false, AppCommand::ToggleFullscreen },
+        { "screenshot", L"Take Screenshot", L"Ctrl+S", IconType::MediaFilm, false, false, AppCommand::TakeScreenshot },
+        { "explorer", L"Show in Explorer", L"", IconType::FolderPlaylist, false, false, AppCommand::ShowInExplorer },
+    };
+    for (const auto& row : kSimpleRows) {
+        if (row.sepBefore) contextMenuItems.push_back({ "sep2", L"", L"", IconType::Play, true });
+        contextMenuItems.push_back({ row.id, row.label, row.shortcut, row.icon, false, false, row.isDanger,
+            [this, cmd = row.cmd]() { commandDispatcher.Execute(cmd); } });
+    }
     contextMenuItems.push_back({ "sep3", L"", L"", IconType::Play, true });
     contextMenuItems.push_back({"advanced_menu", L"More Options...", L"\u25B8", IconType::SettingsGear, false, false, false,
                                 [this, x, y]() { OpenPlayerAdvancedContextMenu(x, y); }, false, false, true});
@@ -1155,15 +1209,16 @@ void App::OpenPlayerAdvancedContextMenu(float x, float y) {
     contextMenuItems.push_back({ "sleep_timer", L"Sleep Timer...", L"", IconType::HistoryClock, false,
         sleepTimerRemainingSec > 0.0f || stopAfterCurrent, false,
         [this, x, y]() { OpenSleepTimerContextMenu(x, y); }, false, false, true});
+    auto findMenuItem = [this](const char* id) -> ContextMenuItem* {
+        for (auto& it : contextMenuItems) {
+            if (it.id == id) return &it;
+        }
+        return nullptr;
+    };
     contextMenuItems.push_back({ "always_on_top", L"Always on Top", L"", IconType::Pin, false, settings.alwaysOnTop, false,
-        [this]() {
+        [this, findMenuItem]() {
             commandDispatcher.Execute(AppCommand::ToggleAlwaysOnTop);
-            for (auto& it : contextMenuItems) {
-                if (it.id == "always_on_top") {
-                    it.isChecked = settings.alwaysOnTop;
-                    break;
-                }
-            }
+            if (auto* it = findMenuItem("always_on_top")) it->isChecked = settings.alwaysOnTop;
         }, false, false, true});
     contextMenuItems.push_back({"night_mode_menu", L"Night Mode (Loudness)...", L"", IconType::VolumeHigh, false, false,
                                 false, [this, x, y]() { OpenNightModeContextMenu(x, y); }, false, false, true});
@@ -1172,16 +1227,12 @@ void App::OpenPlayerAdvancedContextMenu(float x, float y) {
     contextMenuItems.push_back({"goto_time", L"Go To Time...", L"Ctrl+T", IconType::HistoryClock, false, false, false,
                                 [this]() { commandDispatcher.Execute(AppCommand::JumpToTime); }});
     contextMenuItems.push_back({"screenshot_format", settings.screenshotFormat == "jpg" ? L"Screenshot Format: JPEG" : L"Screenshot Format: PNG",
-                                L"", IconType::MediaFilm, false, false, false, [this]() {
+                                L"", IconType::MediaFilm, false, false, false, [this, findMenuItem]() {
         settings.screenshotFormat = settings.screenshotFormat == "jpg" ? "png" : "jpg";
         SaveSettings();
         ShowOSD(IconType::MediaFilm, settings.screenshotFormat == "jpg" ? L"Screenshots: JPEG" : L"Screenshots: PNG");
-        for (auto& it : contextMenuItems) {
-            if (it.id == "screenshot_format") {
-                it.label = settings.screenshotFormat == "jpg" ? L"Screenshot Format: JPEG" : L"Screenshot Format: PNG";
-                break;
-            }
-        }
+        if (auto* it = findMenuItem("screenshot_format"))
+            it->label = settings.screenshotFormat == "jpg" ? L"Screenshot Format: JPEG" : L"Screenshot Format: PNG";
     }, false, false, true});
     contextMenuItems.push_back({"jump_size_menu", L"Large Jump Size...", L"", IconType::Next, false, false, false,
                                 [this, x, y]() { OpenJumpSizeContextMenu(x, y); }, false, false, true});
@@ -1190,43 +1241,28 @@ void App::OpenPlayerAdvancedContextMenu(float x, float y) {
     contextMenuItems.push_back({"deinterlace_menu", L"Deinterlace...", L"", IconType::SettingsGear, false, false,
                                 false, [this, x, y]() { OpenDeinterlaceContextMenu(x, y); }, false, false, true});
     contextMenuItems.push_back({"audio_passthrough", L"Bitstream Passthrough (S/PDIF/HDMI)", L"", IconType::VolumeHigh, false, settings.audioPassthrough, false,
-                                [this]() {
+                                [this, findMenuItem]() {
                                     settings.audioPassthrough = !settings.audioPassthrough;
                                     ApplyPlayerPreferences();
                                     SaveSettings();
                                     ShowOSD(IconType::VolumeHigh, settings.audioPassthrough ?
                                         L"Bitstream Passthrough: On (applies on next track)" : L"Bitstream Passthrough: Off");
-                                    for (auto& it : contextMenuItems) {
-                                        if (it.id == "audio_passthrough") {
-                                            it.isChecked = settings.audioPassthrough;
-                                            break;
-                                        }
-                                    }
+                                    if (auto* it = findMenuItem("audio_passthrough")) it->isChecked = settings.audioPassthrough;
                                 }, false, false, true});
     contextMenuItems.push_back({"pitch_correction", L"Pitch Correction (Speed Changes)", L"", IconType::VolumeHigh, false, settings.pitchCorrection, false,
-                                [this]() {
+                                [this, findMenuItem]() {
                                     settings.pitchCorrection = !settings.pitchCorrection;
                                     ApplyPlayerPreferences();
                                     SaveSettings();
                                     ShowOSD(IconType::VolumeHigh, settings.pitchCorrection ? L"Pitch Correction: On" : L"Pitch Correction: Off");
-                                    for (auto& it : contextMenuItems) {
-                                        if (it.id == "pitch_correction") {
-                                            it.isChecked = settings.pitchCorrection;
-                                            break;
-                                        }
-                                    }
+                                    if (auto* it = findMenuItem("pitch_correction")) it->isChecked = settings.pitchCorrection;
                                 }, false, false, true});
     contextMenuItems.push_back({"open_log_viewer", L"View Diagnostics Log", L"", IconType::SettingsGear, false, false, false,
                                 [this]() { ToggleLogViewer(); }, false, false, true});
     contextMenuItems.push_back({"wallpaper_mode", L"Desktop Wallpaper", L"", IconType::MediaFilm, false, wallpaperModeActive, false,
-                                [this]() {
+                                [this, findMenuItem]() {
                                     SetWallpaperMode(!wallpaperModeActive);
-                                    for (auto& it : contextMenuItems) {
-                                        if (it.id == "wallpaper_mode") {
-                                            it.isChecked = wallpaperModeActive;
-                                            break;
-                                        }
-                                    }
+                                    if (auto* it = findMenuItem("wallpaper_mode")) it->isChecked = wallpaperModeActive;
                                 }, false, false, true});
     std::wstring balSummary = L"Center";
     if (settings.audioBalance < -0.01) {
@@ -1241,10 +1277,12 @@ void App::OpenPlayerAdvancedContextMenu(float x, float y) {
     contextMenuItems.push_back({"audio_balance_menu", L"Audio Balance (" + balSummary + L")...", L"", IconType::VolumeHigh, false, false,
                                 false, [this, x, y]() { OpenAudioBalanceContextMenu(x, y); }, false, false, true});
     std::wstring chSummary = L"Auto";
-    if (settings.audioChannelMap == "stereo") chSummary = L"Stereo";
-    else if (settings.audioChannelMap == "mono-left") chSummary = L"Mono (L)";
-    else if (settings.audioChannelMap == "mono-right") chSummary = L"Mono (R)";
-    else if (settings.audioChannelMap == "swap") chSummary = L"Swap (L\u2194R)";
+    static constexpr std::pair<const char*, const wchar_t*> kChSummaries[] = {
+        { "stereo", L"Stereo" }, { "mono-left", L"Mono (L)" }, { "mono-right", L"Mono (R)" }, { "swap", L"Swap (L\u2194R)" }
+    };
+    for (const auto& entry : kChSummaries) {
+        if (settings.audioChannelMap == entry.first) { chSummary = entry.second; break; }
+    }
     contextMenuItems.push_back({"audio_channel_menu", L"Channel Mapping (" + chSummary + L")...", L"", IconType::VolumeHigh, false, false,
                                 false, [this, x, y]() { OpenAudioChannelMapContextMenu(x, y); }, false, false, true});
     contextMenuItems.push_back({"video_adjustments_menu", L"Video Adjustments...", L"", IconType::SettingsGear, false, false, false,
@@ -1272,33 +1310,30 @@ void App::OpenJumpSizeContextMenu(float x, float y) {
             OpenJumpSizeContextMenu(x, y);
         } });
     struct JumpSizePreset { const wchar_t* label; double sec; };
+    auto addJumpPresets = [this, x, y](const char* prefix, double* targetSec, const wchar_t* osdPrefix,
+                                       const JumpSizePreset* list, size_t count) {
+        for (size_t i = 0; i < count; ++i) {
+            const auto& preset = list[i];
+            const std::string id = std::string(prefix) + std::to_string((int)preset.sec);
+            const bool isActive = std::abs(*targetSec - preset.sec) < 0.001;
+            contextMenuItems.push_back({ id, preset.label, L"", IconType::Next, false, isActive, false,
+                [this, targetSec, sec = preset.sec, osdPrefix, label = preset.label, x, y]() {
+                    *targetSec = sec;
+                    SaveSettings();
+                    ShowOSD(IconType::Next, std::wstring(osdPrefix) + label);
+                    OpenJumpSizeContextMenu(x, y);
+                }, false, false, true});
+        }
+    };
     contextMenuItems.push_back({ "mjump_title", L"Medium (Shift+Arrow)", L"", IconType::Next, false, false, false, nullptr, true });
-    const JumpSizePreset mediumPresets[] = {
+    static constexpr JumpSizePreset mediumPresets[] = {
         { L"5 seconds", 5.0 }, { L"10 seconds", 10.0 }, { L"30 seconds", 30.0 }, { L"60 seconds", 60.0 } };
-    for (const auto& preset : mediumPresets) {
-        const std::string id = std::string("mjump_") + std::to_string((int)preset.sec);
-        const bool isActive = std::abs(settings.mediumSeekStepSec - preset.sec) < 0.001;
-        contextMenuItems.push_back({ id, preset.label, L"", IconType::Next, false, isActive, false, [this, sec = preset.sec, label = preset.label, x, y]() {
-            settings.mediumSeekStepSec = sec;
-            SaveSettings();
-            ShowOSD(IconType::Next, std::wstring(L"Medium Jump: ") + label);
-            OpenJumpSizeContextMenu(x, y);
-        }, false, false, true});
-    }
+    addJumpPresets("mjump_", &settings.mediumSeekStepSec, L"Medium Jump: ", mediumPresets, std::size(mediumPresets));
     contextMenuItems.push_back({ "sep1", L"", L"", IconType::Play, true });
-    const JumpSizePreset presets[] = {
+    static constexpr JumpSizePreset presets[] = {
         { L"5 seconds", 5.0 }, { L"10 seconds", 10.0 }, { L"30 seconds", 30.0 },
         { L"60 seconds", 60.0 }, { L"2 minutes", 120.0 }, { L"5 minutes", 300.0 } };
-    for (const auto& preset : presets) {
-        const std::string id = std::string("jump_") + std::to_string((int)preset.sec);
-        const bool isActive = std::abs(settings.largeSeekStepSec - preset.sec) < 0.001;
-        contextMenuItems.push_back({ id, preset.label, L"", IconType::Next, false, isActive, false, [this, sec = preset.sec, label = preset.label, x, y]() {
-            settings.largeSeekStepSec = sec;
-            SaveSettings();
-            ShowOSD(IconType::Next, std::wstring(L"Large Jump: ") + label);
-            OpenJumpSizeContextMenu(x, y);
-        }, false, false, true});
-    }
+    addJumpPresets("jump_", &settings.largeSeekStepSec, L"Large Jump: ", presets, std::size(presets));
     PresentPlayerContextMenu(x, y, 238.0f, false, PlayerMenuReveal::None);
 }
 
@@ -1315,18 +1350,18 @@ void App::OpenAudioDelayContextMenu(float x, float y) {
     swprintf_s(headerBuf, L"Audio Delay: %+d ms", settings.audioDelayMs);
     contextMenuItems.push_back({ "adelay_title", headerBuf, L"", IconType::VolumeHigh, false, false, false, nullptr, true });
     contextMenuItems.push_back({ "sep1", L"", L"", IconType::Play, true });
-    contextMenuItems.push_back({ "adelay_inc", L"+50 ms (Increase)", L"Ctrl+Right", IconType::Next, false, false, false, [this, x, y]() {
-        commandDispatcher.Execute(AppCommand::AudioDelayPlus);
-        OpenAudioDelayContextMenu(x, y);
-    }, false, false, true});
-    contextMenuItems.push_back({ "adelay_dec", L"−50 ms (Decrease)", L"Ctrl+Left", IconType::Prev, false, false, false, [this, x, y]() {
-        commandDispatcher.Execute(AppCommand::AudioDelayMinus);
-        OpenAudioDelayContextMenu(x, y);
-    }, false, false, true});
-    contextMenuItems.push_back({ "adelay_rst", L"Reset (0 ms)", L"Ctrl+Bksp", IconType::Refresh, false, false, false, [this, x, y]() {
-        commandDispatcher.Execute(AppCommand::AudioDelayReset);
-        OpenAudioDelayContextMenu(x, y);
-    }, false, false, true});
+    struct DelayAction { const char* id; const wchar_t* label; const wchar_t* shortcut; IconType icon; AppCommand cmd; };
+    static constexpr DelayAction kActions[] = {
+        { "adelay_inc", L"+50 ms (Increase)", L"Ctrl+Right", IconType::Next, AppCommand::AudioDelayPlus },
+        { "adelay_dec", L"\u221250 ms (Decrease)", L"Ctrl+Left", IconType::Prev, AppCommand::AudioDelayMinus },
+        { "adelay_rst", L"Reset (0 ms)", L"Ctrl+Bksp", IconType::Refresh, AppCommand::AudioDelayReset },
+    };
+    for (const auto& a : kActions) {
+        contextMenuItems.push_back({ a.id, a.label, a.shortcut, a.icon, false, false, false, [this, x, y, cmd = a.cmd]() {
+            commandDispatcher.Execute(cmd);
+            OpenAudioDelayContextMenu(x, y);
+        }, false, false, true});
+    }
     PresentPlayerContextMenu(x, y, 238.0f, false, PlayerMenuReveal::None);
 }
 
@@ -1351,31 +1386,22 @@ void App::OpenAudioBalanceContextMenu(float x, float y) {
     }
     contextMenuItems.push_back({ "abal_title", balText, L"", IconType::VolumeHigh, false, false, false, nullptr, true });
     contextMenuItems.push_back({ "sep1", L"", L"", IconType::Play, true });
-    contextMenuItems.push_back({ "abal_left_10", L"← Shift Left 10%", L"", IconType::Prev, false, false, false, [this, x, y]() {
-        commandDispatcher.Execute(AppCommand::AudioBalanceLeft);
-        OpenAudioBalanceContextMenu(x, y);
-    }, false, false, true});
-    contextMenuItems.push_back({ "abal_right_10", L"Shift Right 10% →", L"", IconType::Next, false, false, false, [this, x, y]() {
-        commandDispatcher.Execute(AppCommand::AudioBalanceRight);
-        OpenAudioBalanceContextMenu(x, y);
-    }, false, false, true});
-    contextMenuItems.push_back({ "sep2", L"", L"", IconType::Play, true });
-    contextMenuItems.push_back({ "abal_full_left", L"Full Left (100% L)", L"", IconType::Prev, false, settings.audioBalance <= -0.99, false, [this, x, y]() {
-        CommandArgs args;
-        args.doubleVal = -1.0;
-        commandDispatcher.Execute(AppCommand::SetAudioBalance, args);
-        OpenAudioBalanceContextMenu(x, y);
-    }, false, false, true});
-    contextMenuItems.push_back({ "abal_center", L"Center (Reset 0%)", L"", IconType::Refresh, false, std::abs(settings.audioBalance) < 0.01, false, [this, x, y]() {
-        commandDispatcher.Execute(AppCommand::AudioBalanceReset);
-        OpenAudioBalanceContextMenu(x, y);
-    }, false, false, true});
-    contextMenuItems.push_back({ "abal_full_right", L"Full Right (100% R)", L"", IconType::Next, false, settings.audioBalance >= 0.99, false, [this, x, y]() {
-        CommandArgs args;
-        args.doubleVal = 1.0;
-        commandDispatcher.Execute(AppCommand::SetAudioBalance, args);
-        OpenAudioBalanceContextMenu(x, y);
-    }, false, false, true});
+    const struct { const char* id; const wchar_t* label; IconType icon; bool checked; bool sepBefore; AppCommand cmd; double arg; } kBalActions[] = {
+        { "abal_left_10", L"\u2190 Shift Left 10%", IconType::Prev, false, false, AppCommand::AudioBalanceLeft, 0.0 },
+        { "abal_right_10", L"Shift Right 10% \u2192", IconType::Next, false, false, AppCommand::AudioBalanceRight, 0.0 },
+        { "abal_full_left", L"Full Left (100% L)", IconType::Prev, settings.audioBalance <= -0.99, true, AppCommand::SetAudioBalance, -1.0 },
+        { "abal_center", L"Center (Reset 0%)", IconType::Refresh, std::abs(settings.audioBalance) < 0.01, false, AppCommand::AudioBalanceReset, 0.0 },
+        { "abal_full_right", L"Full Right (100% R)", IconType::Next, settings.audioBalance >= 0.99, false, AppCommand::SetAudioBalance, 1.0 },
+    };
+    for (const auto& a : kBalActions) {
+        if (a.sepBefore) contextMenuItems.push_back({ "sep2", L"", L"", IconType::Play, true });
+        contextMenuItems.push_back({ a.id, a.label, L"", a.icon, false, a.checked, false, [this, x, y, cmd = a.cmd, arg = a.arg]() {
+            CommandArgs args;
+            args.doubleVal = arg;
+            commandDispatcher.Execute(cmd, args);
+            OpenAudioBalanceContextMenu(x, y);
+        }, false, false, true});
+    }
     PresentPlayerContextMenu(x, y, 238.0f, false, PlayerMenuReveal::None);
 }
 
@@ -1388,142 +1414,98 @@ void App::OpenAudioChannelMapContextMenu(float x, float y) {
             commandDispatcher.Execute(AppCommand::AudioChannelMapReset);
             OpenAudioChannelMapContextMenu(x, y);
         } });
-    std::string curMap = Settings::NormalizeAudioChannelMap(settings.audioChannelMap);
-    contextMenuItems.push_back({ "ach_auto", L"Auto (Default)", L"", IconType::VolumeHigh, false, curMap == "auto", false, [this, x, y]() {
-        CommandArgs args;
-        args.stringVal = "auto";
-        commandDispatcher.Execute(AppCommand::SetAudioChannelMap, args);
-        OpenAudioChannelMapContextMenu(x, y);
-    }, false, false, true});
-    contextMenuItems.push_back({ "ach_stereo", L"Stereo (Direct)", L"", IconType::VolumeHigh, false, curMap == "stereo", false, [this, x, y]() {
-        CommandArgs args;
-        args.stringVal = "stereo";
-        commandDispatcher.Execute(AppCommand::SetAudioChannelMap, args);
-        OpenAudioChannelMapContextMenu(x, y);
-    }, false, false, true});
-    contextMenuItems.push_back({ "ach_mono_left", L"Mono (Left Channel Only)", L"", IconType::Prev, false, curMap == "mono-left", false, [this, x, y]() {
-        CommandArgs args;
-        args.stringVal = "mono-left";
-        commandDispatcher.Execute(AppCommand::SetAudioChannelMap, args);
-        OpenAudioChannelMapContextMenu(x, y);
-    }, false, false, true});
-    contextMenuItems.push_back({ "ach_mono_right", L"Mono (Right Channel Only)", L"", IconType::Next, false, curMap == "mono-right", false, [this, x, y]() {
-        CommandArgs args;
-        args.stringVal = "mono-right";
-        commandDispatcher.Execute(AppCommand::SetAudioChannelMap, args);
-        OpenAudioChannelMapContextMenu(x, y);
-    }, false, false, true});
-    contextMenuItems.push_back({ "ach_swap", L"Swap (Left ↔ Right)", L"", IconType::Refresh, false, curMap == "swap", false, [this, x, y]() {
-        CommandArgs args;
-        args.stringVal = "swap";
-        commandDispatcher.Execute(AppCommand::SetAudioChannelMap, args);
-        OpenAudioChannelMapContextMenu(x, y);
-    }, false, false, true});
+    struct ChannelPreset { const char* id; const char* value; const wchar_t* label; IconType icon; };
+    static constexpr ChannelPreset kPresets[] = {
+        { "ach_auto", "auto", L"Auto (Default)", IconType::VolumeHigh },
+        { "ach_stereo", "stereo", L"Stereo (Direct)", IconType::VolumeHigh },
+        { "ach_mono_left", "mono-left", L"Mono (Left Channel Only)", IconType::Prev },
+        { "ach_mono_right", "mono-right", L"Mono (Right Channel Only)", IconType::Next },
+        { "ach_swap", "swap", L"Swap (Left ↔ Right)", IconType::Refresh },
+    };
+    const std::string curMap = Settings::NormalizeAudioChannelMap(settings.audioChannelMap);
+    for (const auto& p : kPresets) {
+        contextMenuItems.push_back({ p.id, p.label, L"", p.icon, false, curMap == p.value, false,
+            [this, x, y, val = p.value]() {
+                CommandArgs args;
+                args.stringVal = val;
+                commandDispatcher.Execute(AppCommand::SetAudioChannelMap, args);
+                OpenAudioChannelMapContextMenu(x, y);
+            }, false, false, true });
+    }
     PresentPlayerContextMenu(x, y, 238.0f, false, PlayerMenuReveal::None);
 }
 
 void App::OpenNightModeContextMenu(float x, float y) {
     if (!isContextMenuOpen) PushFocusSnapshot(TransientSurfaceType::ContextMenu);
     contextMenuItems.clear();
+    auto applyNight = [this, x, y](const char* mode, const wchar_t* osd) {
+        settings.nightMode = mode;
+        ApplyPlayerPreferences();
+        SaveSettings();
+        ShowOSD(IconType::VolumeHigh, osd);
+        OpenNightModeContextMenu(x, y);
+    };
     SetIrisShoulders(
         { L"Back", IconType::ChevronLeft, true, false, false, true, [this, x, y]() { OpenPlayerAdvancedContextMenu(x, y); } },
-        { L"Off", IconType::Refresh, false, false, false, true, [this, x, y]() {
-            settings.nightMode = "off";
-            ApplyPlayerPreferences();
-            SaveSettings();
-            ShowOSD(IconType::VolumeHigh, L"Night Mode: Off");
-            OpenNightModeContextMenu(x, y);
-        } });
+        { L"Off", IconType::Refresh, false, false, false, true, [applyNight]() { applyNight("off", L"Night Mode: Off"); } });
+    struct NightPreset { const char* id; const char* value; const wchar_t* label; const wchar_t* osd; };
+    static constexpr NightPreset kPresets[] = {
+        { "night_off", "off", L"Off", L"Night Mode: Off" },
+        { "night_light", "light", L"Light", L"Night Mode: Light" },
+        { "night_medium", "medium", L"Medium", L"Night Mode: Medium" },
+        { "night_strong", "strong", L"Strong", L"Night Mode: Strong" },
+    };
     const std::string curNight = Settings::NormalizeNightMode(settings.nightMode);
-    contextMenuItems.push_back({ "night_off", L"Off", L"", IconType::VolumeHigh, false, curNight == "off", false, [this, x, y]() {
-        settings.nightMode = "off";
-        ApplyPlayerPreferences();
-        SaveSettings();
-        ShowOSD(IconType::VolumeHigh, L"Night Mode: Off");
-        OpenNightModeContextMenu(x, y);
-    }, false, false, true});
-    contextMenuItems.push_back({ "night_light", L"Light", L"", IconType::VolumeHigh, false, curNight == "light", false, [this, x, y]() {
-        settings.nightMode = "light";
-        ApplyPlayerPreferences();
-        SaveSettings();
-        ShowOSD(IconType::VolumeHigh, L"Night Mode: Light");
-        OpenNightModeContextMenu(x, y);
-    }, false, false, true});
-    contextMenuItems.push_back({ "night_medium", L"Medium", L"", IconType::VolumeHigh, false, curNight == "medium", false, [this, x, y]() {
-        settings.nightMode = "medium";
-        ApplyPlayerPreferences();
-        SaveSettings();
-        ShowOSD(IconType::VolumeHigh, L"Night Mode: Medium");
-        OpenNightModeContextMenu(x, y);
-    }, false, false, true});
-    contextMenuItems.push_back({ "night_strong", L"Strong", L"", IconType::VolumeHigh, false, curNight == "strong", false, [this, x, y]() {
-        settings.nightMode = "strong";
-        ApplyPlayerPreferences();
-        SaveSettings();
-        ShowOSD(IconType::VolumeHigh, L"Night Mode: Strong");
-        OpenNightModeContextMenu(x, y);
-    }, false, false, true});
+    for (const auto& p : kPresets) {
+        contextMenuItems.push_back({ p.id, p.label, L"", IconType::VolumeHigh, false, curNight == p.value, false,
+            [applyNight, val = p.value, osd = p.osd]() { applyNight(val, osd); }, false, false, true });
+    }
     PresentPlayerContextMenu(x, y, 238.0f, false, PlayerMenuReveal::None);
 }
 
 void App::OpenReplayGainContextMenu(float x, float y) {
     if (!isContextMenuOpen) PushFocusSnapshot(TransientSurfaceType::ContextMenu);
     contextMenuItems.clear();
+    auto applyMode = [this, x, y](const char* mode, const wchar_t* osd) {
+        settings.replayGainMode = mode;
+        ApplyPlayerPreferences();
+        SaveSettings();
+        ShowOSD(IconType::VolumeHigh, osd);
+        OpenReplayGainContextMenu(x, y);
+    };
     SetIrisShoulders(
         { L"Back", IconType::ChevronLeft, true, false, false, true, [this, x, y]() { OpenPlayerAdvancedContextMenu(x, y); } },
-        { L"Off", IconType::Refresh, false, false, false, true, [this, x, y]() {
-            settings.replayGainMode = "off";
-            ApplyPlayerPreferences();
-            SaveSettings();
-            ShowOSD(IconType::VolumeHigh, L"ReplayGain: Off");
-            OpenReplayGainContextMenu(x, y);
-        } });
+        { L"Off", IconType::Refresh, false, false, false, true, [applyMode]() { applyMode("off", L"ReplayGain: Off"); } });
     const std::string curRg = Settings::NormalizeReplayGainMode(settings.replayGainMode);
     contextMenuItems.push_back({ "rg_title", L"Mode", L"", IconType::VolumeHigh, false, false, false, nullptr, true });
-    contextMenuItems.push_back({ "rg_off", L"Off", L"", IconType::VolumeHigh, false, curRg == "off", false, [this, x, y]() {
-        settings.replayGainMode = "off";
-        ApplyPlayerPreferences();
-        SaveSettings();
-        ShowOSD(IconType::VolumeHigh, L"ReplayGain: Off");
-        OpenReplayGainContextMenu(x, y);
-    }, false, false, true});
-    contextMenuItems.push_back({ "rg_track", L"Track", L"", IconType::VolumeHigh, false, curRg == "track", false, [this, x, y]() {
-        settings.replayGainMode = "track";
-        ApplyPlayerPreferences();
-        SaveSettings();
-        ShowOSD(IconType::VolumeHigh, L"ReplayGain: Track");
-        OpenReplayGainContextMenu(x, y);
-    }, false, false, true});
-    contextMenuItems.push_back({ "rg_album", L"Album", L"", IconType::VolumeHigh, false, curRg == "album", false, [this, x, y]() {
-        settings.replayGainMode = "album";
-        ApplyPlayerPreferences();
-        SaveSettings();
-        ShowOSD(IconType::VolumeHigh, L"ReplayGain: Album");
-        OpenReplayGainContextMenu(x, y);
-    }, false, false, true});
+    struct RgModePreset { const char* id; const char* value; const wchar_t* label; const wchar_t* osd; };
+    static constexpr RgModePreset kModePresets[] = {
+        { "rg_off", "off", L"Off", L"ReplayGain: Off" },
+        { "rg_track", "track", L"Track", L"ReplayGain: Track" },
+        { "rg_album", "album", L"Album", L"ReplayGain: Album" },
+    };
+    for (const auto& p : kModePresets) {
+        contextMenuItems.push_back({ p.id, p.label, L"", IconType::VolumeHigh, false, curRg == p.value, false,
+            [applyMode, val = p.value, osd = p.osd]() { applyMode(val, osd); }, false, false, true });
+    }
     const int curPreamp = static_cast<int>(std::llround(settings.replayGainPreampDb));
     contextMenuItems.push_back({ "rg_pre_title", L"Preamp", L"", IconType::VolumeHigh, false, false, false, nullptr, true });
-    contextMenuItems.push_back({ "rg_pre_-6", L"-6 dB", L"", IconType::VolumeHigh, false, curPreamp == -6, false, [this, x, y]() {
-        settings.replayGainPreampDb = -6.0;
-        ApplyPlayerPreferences();
-        SaveSettings();
-        ShowOSD(IconType::VolumeHigh, L"ReplayGain Preamp: -6 dB");
-        OpenReplayGainContextMenu(x, y);
-    }, false, false, true});
-    contextMenuItems.push_back({ "rg_pre_0", L"0 dB", L"", IconType::VolumeHigh, false, curPreamp == 0, false, [this, x, y]() {
-        settings.replayGainPreampDb = 0.0;
-        ApplyPlayerPreferences();
-        SaveSettings();
-        ShowOSD(IconType::VolumeHigh, L"ReplayGain Preamp: 0 dB");
-        OpenReplayGainContextMenu(x, y);
-    }, false, false, true});
-    contextMenuItems.push_back({ "rg_pre_6", L"+6 dB", L"", IconType::VolumeHigh, false, curPreamp == 6, false, [this, x, y]() {
-        settings.replayGainPreampDb = 6.0;
-        ApplyPlayerPreferences();
-        SaveSettings();
-        ShowOSD(IconType::VolumeHigh, L"ReplayGain Preamp: +6 dB");
-        OpenReplayGainContextMenu(x, y);
-    }, false, false, true});
+    struct RgPreampPreset { const char* id; int db; const wchar_t* label; const wchar_t* osd; };
+    static constexpr RgPreampPreset kPreampPresets[] = {
+        { "rg_pre_-6", -6, L"-6 dB", L"ReplayGain Preamp: -6 dB" },
+        { "rg_pre_0", 0, L"0 dB", L"ReplayGain Preamp: 0 dB" },
+        { "rg_pre_6", 6, L"+6 dB", L"ReplayGain Preamp: +6 dB" },
+    };
+    for (const auto& p : kPreampPresets) {
+        contextMenuItems.push_back({ p.id, p.label, L"", IconType::VolumeHigh, false, curPreamp == p.db, false,
+            [this, x, y, db = static_cast<double>(p.db), osd = p.osd]() {
+                settings.replayGainPreampDb = db;
+                ApplyPlayerPreferences();
+                SaveSettings();
+                ShowOSD(IconType::VolumeHigh, osd);
+                OpenReplayGainContextMenu(x, y);
+            }, false, false, true });
+    }
     PresentPlayerContextMenu(x, y, 238.0f, false, PlayerMenuReveal::None);
 }
 
@@ -1539,63 +1521,31 @@ void App::OpenDeinterlaceContextMenu(float x, float y) {
             ShowOSD(IconType::SettingsGear, L"Deinterlace: Off");
             OpenDeinterlaceContextMenu(x, y);
         } });
+    struct DiPreset { const char* id; const char* value; const wchar_t* label; const wchar_t* osd; };
+    static constexpr DiPreset kPresets[] = {
+        { "di_off", "off", L"Off", L"Deinterlace: Off" },
+        { "di_bwdif", "bwdif", L"Bwdif (Frame)", L"Deinterlace: Bwdif (Frame)" },
+        { "di_bwdif_field", "bwdif_field", L"Bwdif (Field)", L"Deinterlace: Bwdif (Field)" },
+        { "di_yadif", "yadif", L"Yadif", L"Deinterlace: Yadif" },
+    };
     const std::string curDi = Settings::NormalizeDeinterlaceMode(settings.deinterlaceMode);
-    contextMenuItems.push_back({ "di_off", L"Off", L"", IconType::SettingsGear, false, curDi == "off", false, [this, x, y]() {
-        const std::string oldMode = settings.deinterlaceMode;
-        settings.deinterlaceMode = "off";
-        if (!player.SetDeinterlace(settings.deinterlaceMode)) {
-            settings.deinterlaceMode = oldMode;
-            SaveSettings();
-            ShowOSD(IconType::VolumeMuted, L"Deinterlace Unavailable (engine build)");
-            return;
-        }
-        ApplyPlayerPreferences();
-        SaveSettings();
-        ShowOSD(IconType::SettingsGear, L"Deinterlace: Off");
-        OpenDeinterlaceContextMenu(x, y);
-    }, false, false, true});
-    contextMenuItems.push_back({ "di_bwdif", L"Bwdif (Frame)", L"", IconType::SettingsGear, false, curDi == "bwdif", false, [this, x, y]() {
-        const std::string oldMode = settings.deinterlaceMode;
-        settings.deinterlaceMode = "bwdif";
-        if (!player.SetDeinterlace(settings.deinterlaceMode)) {
-            settings.deinterlaceMode = oldMode;
-            SaveSettings();
-            ShowOSD(IconType::VolumeMuted, L"Deinterlace Unavailable (engine build)");
-            return;
-        }
-        ApplyPlayerPreferences();
-        SaveSettings();
-        ShowOSD(IconType::SettingsGear, L"Deinterlace: Bwdif (Frame)");
-        OpenDeinterlaceContextMenu(x, y);
-    }, false, false, true});
-    contextMenuItems.push_back({ "di_bwdif_field", L"Bwdif (Field)", L"", IconType::SettingsGear, false, curDi == "bwdif_field", false, [this, x, y]() {
-        const std::string oldMode = settings.deinterlaceMode;
-        settings.deinterlaceMode = "bwdif_field";
-        if (!player.SetDeinterlace(settings.deinterlaceMode)) {
-            settings.deinterlaceMode = oldMode;
-            SaveSettings();
-            ShowOSD(IconType::VolumeMuted, L"Deinterlace Unavailable (engine build)");
-            return;
-        }
-        ApplyPlayerPreferences();
-        SaveSettings();
-        ShowOSD(IconType::SettingsGear, L"Deinterlace: Bwdif (Field)");
-        OpenDeinterlaceContextMenu(x, y);
-    }, false, false, true});
-    contextMenuItems.push_back({ "di_yadif", L"Yadif", L"", IconType::SettingsGear, false, curDi == "yadif", false, [this, x, y]() {
-        const std::string oldMode = settings.deinterlaceMode;
-        settings.deinterlaceMode = "yadif";
-        if (!player.SetDeinterlace(settings.deinterlaceMode)) {
-            settings.deinterlaceMode = oldMode;
-            SaveSettings();
-            ShowOSD(IconType::VolumeMuted, L"Deinterlace Unavailable (engine build)");
-            return;
-        }
-        ApplyPlayerPreferences();
-        SaveSettings();
-        ShowOSD(IconType::SettingsGear, L"Deinterlace: Yadif");
-        OpenDeinterlaceContextMenu(x, y);
-    }, false, false, true});
+    for (const auto& p : kPresets) {
+        contextMenuItems.push_back({ p.id, p.label, L"", IconType::SettingsGear, false, curDi == p.value, false,
+            [this, x, y, val = p.value, osd = p.osd]() {
+                const std::string oldMode = settings.deinterlaceMode;
+                settings.deinterlaceMode = val;
+                if (!player.SetDeinterlace(settings.deinterlaceMode)) {
+                    settings.deinterlaceMode = oldMode;
+                    SaveSettings();
+                    ShowOSD(IconType::VolumeMuted, L"Deinterlace Unavailable (engine build)");
+                    return;
+                }
+                ApplyPlayerPreferences();
+                SaveSettings();
+                ShowOSD(IconType::SettingsGear, osd);
+                OpenDeinterlaceContextMenu(x, y);
+            }, false, false, true });
+    }
     PresentPlayerContextMenu(x, y, 238.0f, false, PlayerMenuReveal::None);
 }
 
@@ -1627,15 +1577,10 @@ void App::OpenAudioDeviceContextMenu(float x, float y) {
     for (size_t i = 0; i < devices.size() && listed < maxDevices; ++i) {
         const auto& dev = devices[i];
         if (dev.name == "auto") continue;
-        std::string suffix;
-        suffix.reserve(dev.name.size());
-        for (char c : dev.name) {
-            const unsigned char uc = static_cast<unsigned char>(c);
-            suffix += (std::isalnum(uc) || c == '_') ? c : '_';
-        }
-        if (suffix.empty()) suffix = std::to_string(i);
+        std::string id = SanitizeMenuId("adev_", dev.name);
+        if (id == "adev_") id += std::to_string(i);
         const std::wstring label = !dev.description.empty() ? dev.description : Utf8ToUtf16(dev.name);
-        contextMenuItems.push_back({ "adev_" + suffix, label, L"", IconType::VolumeHigh, false, curDevice == dev.name, false,
+        contextMenuItems.push_back({ id, label, L"", IconType::VolumeHigh, false, curDevice == dev.name, false,
             [this, x, y, name = dev.name, label]() {
                 settings.audioDevice = name;
                 ApplyPlayerPreferences();
@@ -1667,86 +1612,65 @@ void App::OpenVideoAdjustmentsContextMenu(float x, float y) {
                                 [this]() { ShowCustomAspectModal(); }});
     contextMenuItems.push_back({"rot_custom", L"Custom Rotation...", L"", IconType::AspectFrame, false, false, false,
                                 [this]() { ShowCustomRotationModal(); }});
-    contextMenuItems.push_back({"zoom_in", L"Zoom In", L"", IconType::AspectFrame, false, false, false, [this, x, y]() {
-        player.AdjustVideoZoom(0.15);
-        wchar_t zoomBuf[64];
-        swprintf_s(zoomBuf, L"Zoom: %.2f\u00D7", std::exp(player.GetVideoZoom()));
-        ShowOSD(IconType::AspectFrame, zoomBuf);
-        OpenVideoAdjustmentsContextMenu(x, y);
-    }, false, false, true});
-    contextMenuItems.push_back({"zoom_out", L"Zoom Out", L"", IconType::AspectFrame, false, false, false, [this, x, y]() {
-        player.AdjustVideoZoom(-0.15);
-        wchar_t zoomBuf[64];
-        swprintf_s(zoomBuf, L"Zoom: %.2f\u00D7", std::exp(player.GetVideoZoom()));
-        ShowOSD(IconType::AspectFrame, zoomBuf);
-        OpenVideoAdjustmentsContextMenu(x, y);
-    }, false, false, true});
+    auto addZoomItem = [this, x, y](const char* id, const wchar_t* label, double delta) {
+        contextMenuItems.push_back({id, label, L"", IconType::AspectFrame, false, false, false, [this, x, y, delta]() {
+            player.AdjustVideoZoom(delta);
+            wchar_t zoomBuf[64];
+            swprintf_s(zoomBuf, L"Zoom: %.2f\u00D7", std::exp(player.GetVideoZoom()));
+            ShowOSD(IconType::AspectFrame, zoomBuf);
+            OpenVideoAdjustmentsContextMenu(x, y);
+        }, false, false, true});
+    };
+    addZoomItem("zoom_in", L"Zoom In", 0.15);
+    addZoomItem("zoom_out", L"Zoom Out", -0.15);
     contextMenuItems.push_back({"pan_reset", L"Reset Zoom & Pan", L"", IconType::AspectFrame, false, false, false, [this, x, y]() {
         player.ResetVideoZoomPan();
         ShowOSD(IconType::AspectFrame, L"Zoom & Pan Reset");
         OpenVideoAdjustmentsContextMenu(x, y);
     }, false, false, true});
-    wchar_t brightBuf[64];
-    swprintf_s(brightBuf, L"Brightness: %+d...", player.GetBrightness());
-    contextMenuItems.push_back({"vadjust_bright", brightBuf, L"\u25B8", IconType::SettingsGear, false, false, false,
-                                [this, x, y]() { OpenAdjustmentContextMenu("brightness", x, y); }, false, false, true});
-    wchar_t contrastBuf[64];
-    swprintf_s(contrastBuf, L"Contrast: %+d...", player.GetContrast());
-    contextMenuItems.push_back({"vadjust_contrast", contrastBuf, L"\u25B8", IconType::SettingsGear, false, false, false,
-                                [this, x, y]() { OpenAdjustmentContextMenu("contrast", x, y); }, false, false, true});
-    wchar_t satBuf[64];
-    swprintf_s(satBuf, L"Saturation: %+d...", player.GetSaturation());
-    contextMenuItems.push_back({"vadjust_sat", satBuf, L"\u25B8", IconType::SettingsGear, false, false, false,
-                                [this, x, y]() { OpenAdjustmentContextMenu("saturation", x, y); }, false, false, true});
-    wchar_t gammaBuf[64];
-    swprintf_s(gammaBuf, L"Gamma: %+d...", player.GetGamma());
-    contextMenuItems.push_back({"vadjust_gamma", gammaBuf, L"\u25B8", IconType::SettingsGear, false, false, false,
-                                [this, x, y]() { OpenAdjustmentContextMenu("gamma", x, y); }, false, false, true});
-    wchar_t hueBuf[64];
-    swprintf_s(hueBuf, L"Hue: %+d...", player.GetHue());
-    contextMenuItems.push_back({"vadjust_hue", hueBuf, L"\u25B8", IconType::SettingsGear, false, false, false,
-                                [this, x, y]() { OpenAdjustmentContextMenu("hue", x, y); }, false, false, true});
+    const struct { const char* id; const char* type; const wchar_t* fmt; int value; } adjRows[] = {
+        { "vadjust_bright", "brightness", L"Brightness: %+d...", player.GetBrightness() },
+        { "vadjust_contrast", "contrast", L"Contrast: %+d...", player.GetContrast() },
+        { "vadjust_sat", "saturation", L"Saturation: %+d...", player.GetSaturation() },
+        { "vadjust_gamma", "gamma", L"Gamma: %+d...", player.GetGamma() },
+        { "vadjust_hue", "hue", L"Hue: %+d...", player.GetHue() },
+    };
+    for (const auto& row : adjRows) {
+        wchar_t labelBuf[64];
+        swprintf_s(labelBuf, row.fmt, row.value);
+        contextMenuItems.push_back({row.id, labelBuf, L"\u25B8", IconType::SettingsGear, false, false, false,
+                                    [this, type = std::string(row.type), x, y]() { OpenAdjustmentContextMenu(type, x, y); }, false, false, true});
+    }
     PresentPlayerContextMenu(x, y, 238.0f, false, PlayerMenuReveal::None);
 }
 
 void App::OpenAdjustmentContextMenu(const std::string& type, float x, float y) {
     if (!isContextMenuOpen) PushFocusSnapshot(TransientSurfaceType::ContextMenu);
     contextMenuItems.clear();
-    std::wstring typeName = L"Adjustment";
-    AppCommand plusCmd = AppCommand::None;
-    AppCommand minusCmd = AppCommand::None;
-    AppCommand resetCmd = AppCommand::None;
+    struct AdjSpec {
+        const char* key; const wchar_t* name;
+        AppCommand plusCmd; AppCommand minusCmd; AppCommand resetCmd;
+        int (MpvPlayer::*getter)() const;
+    };
+    static constexpr AdjSpec kSpecs[] = {
+        { "brightness", L"Brightness", AppCommand::BrightnessPlus, AppCommand::BrightnessMinus, AppCommand::BrightnessReset, &MpvPlayer::GetBrightness },
+        { "contrast", L"Contrast", AppCommand::ContrastPlus, AppCommand::ContrastMinus, AppCommand::ContrastReset, &MpvPlayer::GetContrast },
+        { "saturation", L"Saturation", AppCommand::SaturationPlus, AppCommand::SaturationMinus, AppCommand::SaturationReset, &MpvPlayer::GetSaturation },
+        { "gamma", L"Gamma", AppCommand::GammaPlus, AppCommand::GammaMinus, AppCommand::GammaReset, &MpvPlayer::GetGamma },
+        { "hue", L"Hue", AppCommand::HuePlus, AppCommand::HueMinus, AppCommand::HueReset, &MpvPlayer::GetHue },
+    };
+    const wchar_t* typeName = L"Adjustment";
+    AppCommand plusCmd = AppCommand::None, minusCmd = AppCommand::None, resetCmd = AppCommand::None;
     int curVal = 0;
-    if (type == "brightness") {
-        typeName = L"Brightness";
-        plusCmd = AppCommand::BrightnessPlus;
-        minusCmd = AppCommand::BrightnessMinus;
-        resetCmd = AppCommand::BrightnessReset;
-        curVal = player.GetBrightness();
-    } else if (type == "contrast") {
-        typeName = L"Contrast";
-        plusCmd = AppCommand::ContrastPlus;
-        minusCmd = AppCommand::ContrastMinus;
-        resetCmd = AppCommand::ContrastReset;
-        curVal = player.GetContrast();
-    } else if (type == "saturation") {
-        typeName = L"Saturation";
-        plusCmd = AppCommand::SaturationPlus;
-        minusCmd = AppCommand::SaturationMinus;
-        resetCmd = AppCommand::SaturationReset;
-        curVal = player.GetSaturation();
-    } else if (type == "gamma") {
-        typeName = L"Gamma";
-        plusCmd = AppCommand::GammaPlus;
-        minusCmd = AppCommand::GammaMinus;
-        resetCmd = AppCommand::GammaReset;
-        curVal = player.GetGamma();
-    } else if (type == "hue") {
-        typeName = L"Hue";
-        plusCmd = AppCommand::HuePlus;
-        minusCmd = AppCommand::HueMinus;
-        resetCmd = AppCommand::HueReset;
-        curVal = player.GetHue();
+    for (const auto& spec : kSpecs) {
+        if (type == spec.key) {
+            typeName = spec.name;
+            plusCmd = spec.plusCmd;
+            minusCmd = spec.minusCmd;
+            resetCmd = spec.resetCmd;
+            curVal = (player.*spec.getter)();
+            break;
+        }
     }
     SetIrisShoulders(
         { L"Back", IconType::ChevronLeft, true, false, false, true, [this, x, y]() { OpenVideoAdjustmentsContextMenu(x, y); } },
@@ -1755,7 +1679,7 @@ void App::OpenAdjustmentContextMenu(const std::string& type, float x, float y) {
             OpenAdjustmentContextMenu(type, x, y);
         } });
     wchar_t headerBuf[64];
-    swprintf_s(headerBuf, L"%s: %+d", typeName.c_str(), curVal);
+    swprintf_s(headerBuf, L"%s: %+d", typeName, curVal);
     contextMenuItems.push_back({ "adj_title", headerBuf, L"", IconType::SettingsGear, false, false, false, nullptr, true });
     contextMenuItems.push_back({ "sep1", L"", L"", IconType::Play, true });
     contextMenuItems.push_back({ "adj_inc", L"+5 (Increase)", L"", IconType::Next, false, false, false, [this, type, plusCmd, x, y]() {
@@ -1876,35 +1800,27 @@ void App::OpenSubtitleDelayContextMenu(float x, float y) {
     swprintf_s(headerBuf, L"Subtitle Delay: %+d ms", settings.subDelayMs);
     contextMenuItems.push_back({ "sdelay_title", headerBuf, L"", IconType::Subtitles, false, false, false, nullptr, true });
     contextMenuItems.push_back({ "sep1", L"", L"", IconType::Play, true });
-    contextMenuItems.push_back({ "sdelay_inc", L"+100 ms (Increase)", L"Ctrl+Shift+Right", IconType::Next, false, false, false, [this, x, y]() {
-        commandDispatcher.Execute(AppCommand::SubDelayPlus);
-        OpenSubtitleDelayContextMenu(x, y);
-    }, false, false, true});
-    contextMenuItems.push_back({ "sdelay_dec", L"−100 ms (Decrease)", L"Ctrl+Shift+Left", IconType::Prev, false, false, false, [this, x, y]() {
-        commandDispatcher.Execute(AppCommand::SubDelayMinus);
-        OpenSubtitleDelayContextMenu(x, y);
-    }, false, false, true});
-    contextMenuItems.push_back({ "sdelay_rst", L"Reset (0 ms)", L"Ctrl+Shift+Bksp", IconType::Refresh, false, false, false, [this, x, y]() {
-        commandDispatcher.Execute(AppCommand::SubDelayReset);
-        OpenSubtitleDelayContextMenu(x, y);
-    }, false, false, true});
-    contextMenuItems.push_back({ "subsync_sep", L"", L"", IconType::Play, true });
     auto shortcutDisplay = [this](const char* actionId) {
         auto it = settings.shortcuts.find(actionId);
         return it != settings.shortcuts.end() ? Settings::FormatShortcutKey(it->second) : L"";
     };
-    contextMenuItems.push_back({ "subsync_audio", L"Mark Audio Point (heard now)", shortcutDisplay("subSyncMarkAudio"), IconType::Subtitles, false, false, false, [this, x, y]() {
-        commandDispatcher.Execute(AppCommand::SubSyncMarkAudio);
-        OpenSubtitleDelayContextMenu(x, y);
-    }, false, false, true});
-    contextMenuItems.push_back({ "subsync_sub", L"Mark Subtitle Point (shown now)", shortcutDisplay("subSyncMarkSubtitle"), IconType::Subtitles, false, false, false, [this, x, y]() {
-        commandDispatcher.Execute(AppCommand::SubSyncMarkSubtitle);
-        OpenSubtitleDelayContextMenu(x, y);
-    }, false, false, true});
-    contextMenuItems.push_back({ "subsync_clear", L"Clear Sync Points", shortcutDisplay("subSyncReset"), IconType::Refresh, false, false, false, [this, x, y]() {
-        commandDispatcher.Execute(AppCommand::SubSyncReset);
-        OpenSubtitleDelayContextMenu(x, y);
-    }, false, false, true});
+    struct SubDelayAction { const char* id; const wchar_t* label; const wchar_t* shortcut; const char* actionId; IconType icon; AppCommand cmd; bool sepBefore; };
+    const SubDelayAction actions[] = {
+        { "sdelay_inc", L"+100 ms (Increase)", L"Ctrl+Shift+Right", nullptr, IconType::Next, AppCommand::SubDelayPlus, false },
+        { "sdelay_dec", L"\u2212100 ms (Decrease)", L"Ctrl+Shift+Left", nullptr, IconType::Prev, AppCommand::SubDelayMinus, false },
+        { "sdelay_rst", L"Reset (0 ms)", L"Ctrl+Shift+Bksp", nullptr, IconType::Refresh, AppCommand::SubDelayReset, false },
+        { "subsync_audio", L"Mark Audio Point (heard now)", nullptr, "subSyncMarkAudio", IconType::Subtitles, AppCommand::SubSyncMarkAudio, true },
+        { "subsync_sub", L"Mark Subtitle Point (shown now)", nullptr, "subSyncMarkSubtitle", IconType::Subtitles, AppCommand::SubSyncMarkSubtitle, false },
+        { "subsync_clear", L"Clear Sync Points", nullptr, "subSyncReset", IconType::Refresh, AppCommand::SubSyncReset, false },
+    };
+    for (const auto& a : actions) {
+        if (a.sepBefore) contextMenuItems.push_back({ "subsync_sep", L"", L"", IconType::Play, true });
+        contextMenuItems.push_back({ a.id, a.label, a.actionId ? shortcutDisplay(a.actionId) : std::wstring(a.shortcut),
+            a.icon, false, false, false, [this, x, y, cmd = a.cmd]() {
+                commandDispatcher.Execute(cmd);
+                OpenSubtitleDelayContextMenu(x, y);
+            }, false, false, true });
+    }
     PresentPlayerContextMenu(x, y, 238.0f, false, PlayerMenuReveal::None);
 }
 
@@ -1967,7 +1883,7 @@ void App::OpenSubtitlesContextMenu(float x, float y) {
     // 3. Discovered external subtitles
     std::wstring currentMedia = player.GetCurrentFilePath().empty() ? playbackSession.GetCurrentFilePath() : player.GetCurrentFilePath();
     if (!currentMedia.empty()) {
-        auto discovered = SubtitleDiscovery::DiscoverSubtitles(currentMedia);
+        auto discovered = SubtitleDiscovery::DiscoverSubtitles(currentMedia, false);
         if (!discovered.empty()) {
             contextMenuItems.push_back({ "sep3", L"", L"", IconType::Play, true });
             contextMenuItems.push_back({ "disc_hdr", L"Discovered Subtitles:", L"", IconType::FolderPlaylist, false, false, false, nullptr, true });
@@ -2074,12 +1990,7 @@ void App::OpenSubtitleCodepageContextMenu(float x, float y) {
         {"euc-kr", L"Korean"},
     };
     for (const auto& cp : codepages) {
-        // Dynamic menu id: "sub_cp_" + the mpv value sanitized to [A-Za-z0-9_].
-        std::string id = "sub_cp_";
-        for (const char* c = cp.value; *c; ++c) {
-            const char ch = *c;
-            id += ((ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') || (ch >= '0' && ch <= '9') || ch == '_') ? ch : '_';
-        }
+        const std::string id = SanitizeMenuId("sub_cp_", cp.value);
         const bool selected = settings.subCodepage == cp.value;
         contextMenuItems.push_back({ id, cp.label, selected ? L"\u2713" : L"", IconType::SettingsGear, false, selected, false, [this, x, y, cp]() {
             settings.subCodepage = cp.value;
@@ -2105,12 +2016,7 @@ void App::OpenSubtitleFontContextMenu(float x, float y) {
             OpenSubtitleFontContextMenu(x, y);
         } });
     for (const auto& font : settings.GetAvailableFonts()) {
-        // Dynamic menu id: "subfont_" + the lowercased font name restricted to [A-Za-z0-9_].
-        std::string id = "subfont_";
-        for (char ch : font) {
-            if (ch >= 'A' && ch <= 'Z') ch = static_cast<char>(ch - 'A' + 'a');
-            id += ((ch >= 'a' && ch <= 'z') || (ch >= '0' && ch <= '9') || ch == '_') ? ch : '_';
-        }
+        const std::string id = SanitizeMenuId("subfont_", font, true);
         const bool selected = settings.subFontFamily == font;
         std::string fontName = font;
         contextMenuItems.push_back({ id, Utf8ToUtf16(font), selected ? L"\u2713" : L"", IconType::Subtitles, false, selected, false, [this, x, y, fontName]() {
@@ -2165,20 +2071,21 @@ void App::OpenDualSubtitleStyleContextMenu(float x, float y) {
         }, false, false, true});
     }
     contextMenuItems.push_back({ "dstyle_pos_hdr", L"Position:", L"", IconType::Subtitles, false, false, false, nullptr, true });
-    const bool posTop = settings.secondarySubPosition == "top";
-    const bool posLower = settings.secondarySubPosition == "elevated" || settings.secondarySubPosition == "bottom";
-    contextMenuItems.push_back({ "dstyle_pos_top", L"Top", posTop ? L"\u2713" : L"", IconType::Subtitles, false, posTop, false, [this, x, y]() {
-        settings.secondarySubPosition = "top";
-        ApplyPlayerPreferences();
-        SaveSettings();
-        OpenDualSubtitleStyleContextMenu(x, y);
-    }, false, false, true});
-    contextMenuItems.push_back({ "dstyle_pos_lower", L"Slightly Lower", posLower ? L"\u2713" : L"", IconType::Subtitles, false, posLower, false, [this, x, y]() {
-        settings.secondarySubPosition = "elevated";
-        ApplyPlayerPreferences();
-        SaveSettings();
-        OpenDualSubtitleStyleContextMenu(x, y);
-    }, false, false, true});
+    struct PosPreset { const char* id; const char* value; const wchar_t* label; bool selected; };
+    const PosPreset posPresets[] = {
+        { "dstyle_pos_top", "top", L"Top", settings.secondarySubPosition == "top" },
+        { "dstyle_pos_lower", "elevated", L"Slightly Lower",
+          settings.secondarySubPosition == "elevated" || settings.secondarySubPosition == "bottom" },
+    };
+    for (const auto& p : posPresets) {
+        contextMenuItems.push_back({ p.id, p.label, p.selected ? L"\u2713" : L"", IconType::Subtitles, false, p.selected, false,
+            [this, x, y, val = p.value]() {
+                settings.secondarySubPosition = val;
+                ApplyPlayerPreferences();
+                SaveSettings();
+                OpenDualSubtitleStyleContextMenu(x, y);
+            }, false, false, true });
+    }
     PresentPlayerContextMenu(x, y, 238.0f, false, PlayerMenuReveal::Cursor);
 }
 
@@ -2402,18 +2309,24 @@ void App::OpenSubtitleProfilesContextMenu(float x, float y) {
     PresentPlayerContextMenu(x, y, 238.0f, false, PlayerMenuReveal::Cursor);
 }
 
+static void PopulateSubtitleProfileActionItems(
+    std::vector<ContextMenuItem>& items, const std::vector<SubtitleStyleProfile>& profiles,
+    const char* idPrefix, IconType icon, bool isDanger, const std::function<void(const std::string&)>& onSelect) {
+    for (size_t i = 0; i < profiles.size(); ++i) {
+        const std::string pName = profiles[i].name;
+        items.push_back({ idPrefix + std::to_string(i), Utf8ToUtf16(pName), L"", icon, false, false, isDanger,
+            [onSelect, pName]() { onSelect(pName); } });
+    }
+}
+
 void App::OpenRenameSubtitleProfileContextMenu(float x, float y) {
     if (!isContextMenuOpen) PushFocusSnapshot(TransientSurfaceType::ContextMenu);
     contextMenuItems.clear();
     SetIrisShoulders(
         { L"Back", IconType::ChevronLeft, true, false, false, true, [this, x, y]() { OpenSubtitleProfilesContextMenu(x, y); } },
         { L"Save...", IconType::Plus, true, false, false, false, [this]() { ShowSaveSubtitleProfileModal(); } });
-    for (size_t i = 0; i < settings.subtitleProfiles.size(); ++i) {
-        const auto& prof = settings.subtitleProfiles[i];
-        std::string pName = prof.name;
-        contextMenuItems.push_back({"ren_prof_" + std::to_string(i), Utf8ToUtf16(prof.name), L"", IconType::FolderPlaylist, false, false,
-                                    false, [this, pName]() { ShowRenameSubtitleProfileModal(pName); }});
-    }
+    PopulateSubtitleProfileActionItems(contextMenuItems, settings.subtitleProfiles, "ren_prof_", IconType::FolderPlaylist, false,
+        [this](const std::string& pName) { ShowRenameSubtitleProfileModal(pName); });
     PresentPlayerContextMenu(x, y, 238.0f, false, PlayerMenuReveal::Cursor);
 }
 
@@ -2423,132 +2336,74 @@ void App::OpenDeleteSubtitleProfileContextMenu(float x, float y) {
     SetIrisShoulders(
         { L"Back", IconType::ChevronLeft, true, false, false, true, [this, x, y]() { OpenSubtitleProfilesContextMenu(x, y); } },
         { L"Save...", IconType::Plus, true, false, false, false, [this]() { ShowSaveSubtitleProfileModal(); } });
-    for (size_t i = 0; i < settings.subtitleProfiles.size(); ++i) {
-        const auto& prof = settings.subtitleProfiles[i];
-        std::string pName = prof.name;
-        contextMenuItems.push_back({"del_prof_" + std::to_string(i), Utf8ToUtf16(prof.name), L"", IconType::Trash, false, false, true,
-                                    [this, pName]() { ShowDeleteSubtitleProfileModal(pName); }});
-    }
+    PopulateSubtitleProfileActionItems(contextMenuItems, settings.subtitleProfiles, "del_prof_", IconType::Trash, true,
+        [this](const std::string& pName) { ShowDeleteSubtitleProfileModal(pName); });
     PresentPlayerContextMenu(x, y, 238.0f, false, PlayerMenuReveal::Cursor);
 }
 
 void App::OpenSeekStepContextMenu(float x, float y) {
     PushFocusSnapshot(TransientSurfaceType::ContextMenu);
     contextMenuItems.clear();
-    double presets[] = { 1.0, 2.0, 5.0, 10.0, 15.0, 30.0, 60.0 };
-    const wchar_t *presetLabels[] = {L"1.0 second",   L"2.0 seconds",  L"5.0 seconds (Default)", L"10.0 seconds",
-                                     L"15.0 seconds", L"30.0 seconds", L"60.0 seconds (1 min)"};
-    for (int i = 0; i < 7; ++i) {
-        double val = presets[i];
-        bool isSel = (std::abs(settings.arrowSeekStepSec - val) < 0.05);
-        contextMenuItems.push_back({
-            "seek_" + std::to_string((int)val), presetLabels[i], isSel ? L"✓" : L"", IconType::SpeedGauge, false, false, false,
-            [this, val]() { settings.arrowSeekStepSec = val; SaveSettings(); ApplyPlayerPreferences(); InvalidateRect(hWnd, NULL, FALSE); }
-        });
-    }
-    // Separator
-    contextMenuItems.push_back({ "", L"", L"", IconType::Play, true, false, false, nullptr });
-    // Custom option
-    bool isCustom = true;
-    for (double p : presets) {
-        if (std::abs(settings.arrowSeekStepSec - p) < 0.05) { isCustom = false; break; }
-    }
-    std::wstring customLabel = L"Custom Duration... (Type Value)";
-    if (isCustom) { wchar_t cbuf[32]; swprintf_s(cbuf, L"Custom (%.1fs)...", settings.arrowSeekStepSec); customLabel = cbuf; }
-    contextMenuItems.push_back({
-        "seek_custom", customLabel, isCustom ? L"✓" : L"", IconType::SettingsGear, false, false, false,
-        [this]() { ShowCustomSeekStepModal(); }
-    });
+    static constexpr PresetMenuOption kPresets[] = {
+        { 1.0, L"1.0 second" }, { 2.0, L"2.0 seconds" }, { 5.0, L"5.0 seconds (Default)" },
+        { 10.0, L"10.0 seconds" }, { 15.0, L"15.0 seconds" }, { 30.0, L"30.0 seconds" }, { 60.0, L"60.0 seconds (1 min)" }
+    };
+    wchar_t cbuf[32];
+    swprintf_s(cbuf, L"Custom (%.1fs)...", settings.arrowSeekStepSec);
+    PopulatePresetWithCustomMenu(
+        contextMenuItems, "seek_", IconType::SpeedGauge, kPresets, std::size(kPresets), settings.arrowSeekStepSec, 0.05,
+        [this](double val) { settings.arrowSeekStepSec = val; SaveSettings(); ApplyPlayerPreferences(); InvalidateRect(hWnd, NULL, FALSE); },
+        "seek_custom", L"Custom Duration... (Type Value)", cbuf,
+        [this]() { ShowCustomSeekStepModal(); });
     PresentHubContextMenu(x, y, 220.0f);
 }
 
 void App::OpenFrameSeekContextMenu(float x, float y) {
     PushFocusSnapshot(TransientSurfaceType::ContextMenu);
     contextMenuItems.clear();
-    int presets[] = { 1, 2, 5, 10, 24, 30, 60 };
-    const wchar_t* presetLabels[] = {
-        L"1 frame (Default)", L"2 frames", L"5 frames", L"10 frames", L"24 frames (1s @ 24fps)", L"30 frames (1s @ 30fps)",
-        L"60 frames (1s @ 60fps)"};
-    for (int i = 0; i < 7; ++i) {
-        int val = presets[i];
-        bool isSel = (settings.ctrlSeekFrames == val);
-        contextMenuItems.push_back({
-            "frame_" + std::to_string(val), presetLabels[i], isSel ? L"✓" : L"", IconType::AspectFrame, false, false, false,
-            [this, val]() { settings.ctrlSeekFrames = val; SaveSettings(); ApplyPlayerPreferences(); InvalidateRect(hWnd, NULL, FALSE); }
-        });
-    }
-    // Separator
-    contextMenuItems.push_back({ "", L"", L"", IconType::Play, true, false, false, nullptr });
-    // Custom option
-    bool isCustom = true;
-    for (int p : presets) {
-        if (settings.ctrlSeekFrames == p) { isCustom = false; break; }
-    }
-    std::wstring customLabel = L"Custom Frames... (Type Value)";
-    if (isCustom)
-        customLabel = L"Custom (" + std::to_wstring(settings.ctrlSeekFrames) + (settings.ctrlSeekFrames == 1 ? L" frame" : L" frames") + L")...";
-    contextMenuItems.push_back({"frame_custom", customLabel, isCustom ? L"✓" : L"", IconType::SettingsGear, false, false, false,
-                                [this]() { ShowCustomFrameSeekModal(); }});
+    static constexpr PresetMenuOption kPresets[] = {
+        { 1.0, L"1 frame (Default)" }, { 2.0, L"2 frames" }, { 5.0, L"5 frames" }, { 10.0, L"10 frames" },
+        { 24.0, L"24 frames (1s @ 24fps)" }, { 30.0, L"30 frames (1s @ 30fps)" }, { 60.0, L"60 frames (1s @ 60fps)" }
+    };
+    const std::wstring activeCustom = L"Custom (" + std::to_wstring(settings.ctrlSeekFrames) +
+        (settings.ctrlSeekFrames == 1 ? L" frame" : L" frames") + L")...";
+    PopulatePresetWithCustomMenu(
+        contextMenuItems, "frame_", IconType::AspectFrame, kPresets, std::size(kPresets), static_cast<double>(settings.ctrlSeekFrames), 0.1,
+        [this](double val) { settings.ctrlSeekFrames = static_cast<int>(val); SaveSettings(); ApplyPlayerPreferences(); InvalidateRect(hWnd, NULL, FALSE); },
+        "frame_custom", L"Custom Frames... (Type Value)", activeCustom,
+        [this]() { ShowCustomFrameSeekModal(); });
     PresentHubContextMenu(x, y, 220.0f);
 }
 
 void App::OpenNetworkForwardCacheContextMenu(float x, float y) {
     PushFocusSnapshot(TransientSurfaceType::ContextMenu);
     contextMenuItems.clear();
-    int presets[] = { 8, 32, 64, 128, 256 };
-    const wchar_t* presetLabels[] = { L"8 MB (Default)", L"32 MB", L"64 MB", L"128 MB", L"256 MB" };
-    for (int i = 0; i < 5; ++i) {
-        int val = presets[i];
-        bool isSel = (settings.networkForwardCacheMB == val);
-        contextMenuItems.push_back({
-            "netfwdcache_" + std::to_string(val), presetLabels[i], isSel ? L"✓" : L"", IconType::SettingsGear, false, false, false,
-            [this, val]() { settings.networkForwardCacheMB = val; SaveSettings(); ApplyPlayerPreferences(); InvalidateRect(hWnd, NULL, FALSE); }
-        });
-    }
-    // Separator
-    contextMenuItems.push_back({ "", L"", L"", IconType::Play, true, false, false, nullptr });
-    // Custom option
-    bool isCustom = true;
-    for (int p : presets) {
-        if (settings.networkForwardCacheMB == p) { isCustom = false; break; }
-    }
-    std::wstring customLabel = L"Custom Size... (Type Value)";
-    if (isCustom) customLabel = L"Custom (" + std::to_wstring(settings.networkForwardCacheMB) + L" MB)...";
-    contextMenuItems.push_back({
-        "netfwdcache_custom", customLabel, isCustom ? L"✓" : L"", IconType::SettingsGear, false, false, false,
-        [this]() { ShowCustomNetworkForwardCacheModal(); }
-    });
+    static constexpr PresetMenuOption kPresets[] = {
+        { 8.0, L"8 MB (Default)" }, { 32.0, L"32 MB" }, { 64.0, L"64 MB" }, { 128.0, L"128 MB" }, { 256.0, L"256 MB" }
+    };
+    PopulatePresetWithCustomMenu(
+        contextMenuItems, "netfwdcache_", IconType::SettingsGear, kPresets, std::size(kPresets), static_cast<double>(settings.networkForwardCacheMB), 0.1,
+        [this](double val) { settings.networkForwardCacheMB = static_cast<int>(val); SaveSettings(); ApplyPlayerPreferences(); InvalidateRect(hWnd, NULL, FALSE); },
+        "netfwdcache_custom", L"Custom Size... (Type Value)",
+        L"Custom (" + std::to_wstring(settings.networkForwardCacheMB) + L" MB)...",
+        [this]() { ShowCustomNetworkForwardCacheModal(); });
     PresentHubContextMenu(x, y, 220.0f);
 }
 
 void App::OpenNetworkBackCacheContextMenu(float x, float y) {
     PushFocusSnapshot(TransientSurfaceType::ContextMenu);
     contextMenuItems.clear();
-    int presets[] = { 0, 16, 64, 128 };
-    const wchar_t* presetLabels[] = { L"Off (Default)", L"16 MB", L"64 MB", L"128 MB" };
-    for (int i = 0; i < 4; ++i) {
-        int val = presets[i];
-        bool isSel = (settings.networkBackCacheMB == val);
-        contextMenuItems.push_back({
-            "netbackcache_" + std::to_string(val), presetLabels[i], isSel ? L"✓" : L"", IconType::SettingsGear, false, false, false,
-            [this, val]() { settings.networkBackCacheMB = val; SaveSettings(); ApplyPlayerPreferences(); InvalidateRect(hWnd, NULL, FALSE); }
-        });
-    }
-    // Separator
-    contextMenuItems.push_back({ "", L"", L"", IconType::Play, true, false, false, nullptr });
-    // Custom option
-    bool isCustom = true;
-    for (int p : presets) {
-        if (settings.networkBackCacheMB == p) { isCustom = false; break; }
-    }
-    std::wstring customLabel = L"Custom Size... (Type Value)";
-    if (isCustom) customLabel = settings.networkBackCacheMB == 0
+    static constexpr PresetMenuOption kPresets[] = {
+        { 0.0, L"Off (Default)" }, { 16.0, L"16 MB" }, { 64.0, L"64 MB" }, { 128.0, L"128 MB" }
+    };
+    const std::wstring activeCustom = settings.networkBackCacheMB == 0
         ? L"Custom (Off)..."
         : L"Custom (" + std::to_wstring(settings.networkBackCacheMB) + L" MB)...";
-    contextMenuItems.push_back({
-        "netbackcache_custom", customLabel, isCustom ? L"✓" : L"", IconType::SettingsGear, false, false, false,
-        [this]() { ShowCustomNetworkBackCacheModal(); }
-    });
+    PopulatePresetWithCustomMenu(
+        contextMenuItems, "netbackcache_", IconType::SettingsGear, kPresets, std::size(kPresets), static_cast<double>(settings.networkBackCacheMB), 0.1,
+        [this](double val) { settings.networkBackCacheMB = static_cast<int>(val); SaveSettings(); ApplyPlayerPreferences(); InvalidateRect(hWnd, NULL, FALSE); },
+        "netbackcache_custom", L"Custom Size... (Type Value)", activeCustom,
+        [this]() { ShowCustomNetworkBackCacheModal(); });
     PresentHubContextMenu(x, y, 220.0f);
 }
 

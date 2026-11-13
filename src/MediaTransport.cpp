@@ -135,6 +135,7 @@ void MediaTransport::Shutdown() {
     ClearPendingActions();
     if (smtc) { smtc->put_IsEnabled(false); smtc->put_PlaybackStatus(MediaPlaybackStatus_Closed); }
     if (displayUpdater) { displayUpdater->ClearAll(); displayUpdater->Update(); }
+    cachedTimelineProps.Reset();
     displayUpdater.Reset();
     smtc2.Reset();
     smtc.Reset();
@@ -270,24 +271,25 @@ void MediaTransport::ApplySnapshotToSmtc(const MediaTransportSnapshot& snapshot)
 
 void MediaTransport::ApplyTimelineToSmtc(const MediaTransportTimeline& timeline) {
     if (!smtc2) return;
-    HStringReference classId(RuntimeClass_Windows_Media_SystemMediaTransportControlsTimelineProperties);
-    ComPtr<IInspectable> inspectable;
-    HRESULT hr = RoActivateInstance(classId.Get(), &inspectable);
-    if (FAILED(hr) || !inspectable) { return; }
-    ComPtr<ISystemMediaTransportControlsTimelineProperties> timelineProps;
-    hr = inspectable.As(&timelineProps);
-    if (FAILED(hr) || !timelineProps) { return; }
+    if (!cachedTimelineProps) {
+        HStringReference classId(RuntimeClass_Windows_Media_SystemMediaTransportControlsTimelineProperties);
+        ComPtr<IInspectable> inspectable;
+        HRESULT hr = RoActivateInstance(classId.Get(), &inspectable);
+        if (FAILED(hr) || !inspectable) { return; }
+        hr = inspectable.As(&cachedTimelineProps);
+        if (FAILED(hr) || !cachedTimelineProps) { cachedTimelineProps.Reset(); return; }
+    }
     TimeSpan startTime = { SecondsToTimeSpan(timeline.startTimeSec) };
     TimeSpan endTime = { SecondsToTimeSpan(timeline.endTimeSec) };
     TimeSpan minSeek = { SecondsToTimeSpan(timeline.minSeekTimeSec) };
     TimeSpan maxSeek = { SecondsToTimeSpan(timeline.maxSeekTimeSec) };
     TimeSpan position = { SecondsToTimeSpan(timeline.positionSec) };
-    timelineProps->put_StartTime(startTime);
-    timelineProps->put_EndTime(endTime);
-    timelineProps->put_MinSeekTime(minSeek);
-    timelineProps->put_MaxSeekTime(maxSeek);
-    timelineProps->put_Position(position);
-    smtc2->UpdateTimelineProperties(timelineProps.Get());
+    cachedTimelineProps->put_StartTime(startTime);
+    cachedTimelineProps->put_EndTime(endTime);
+    cachedTimelineProps->put_MinSeekTime(minSeek);
+    cachedTimelineProps->put_MaxSeekTime(maxSeek);
+    cachedTimelineProps->put_Position(position);
+    smtc2->UpdateTimelineProperties(cachedTimelineProps.Get());
 }
 
 void MediaTransport::QueueAction(AppCommand cmd, const CommandArgs& args) {

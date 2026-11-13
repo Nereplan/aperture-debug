@@ -21,18 +21,62 @@ inline bool IsWhitespaceOrSeparator(wchar_t c) {
     return c == L' ' || c == L'\t' || c == L'\r' || c == L'\n' || c == L'.' || c == L'_' || c == L'-' || c == L'+';
 }
 
+inline wchar_t FastToLowerW(wchar_t c) {
+    if (c >= L'A' && c <= L'Z') return static_cast<wchar_t>(c + 32);
+    if (c < 0x80) return c;
+    return std::towlower(c);
+}
+
+int CompareOrdinalCaseInsensitive(std::wstring_view a, std::wstring_view b) {
+    const size_t minLen = (std::min)(a.size(), b.size());
+    for (size_t i = 0; i < minLen; ++i) {
+        wchar_t ca = a[i];
+        wchar_t cb = b[i];
+        if (ca != cb) {
+            if (ca >= 0x80 || cb >= 0x80) {
+                const int cmp = CompareStringOrdinal(a.data(), static_cast<int>(a.size()),
+                    b.data(), static_cast<int>(b.size()), TRUE);
+                return cmp == CSTR_LESS_THAN ? -1 : (cmp == CSTR_GREATER_THAN ? 1 : 0);
+            }
+            if (ca >= L'a' && ca <= L'z') ca = static_cast<wchar_t>(ca - 32);
+            if (cb >= L'a' && cb <= L'z') cb = static_cast<wchar_t>(cb - 32);
+            if (ca != cb) return ca < cb ? -1 : 1;
+        }
+    }
+    if (a.size() != b.size()) return a.size() < b.size() ? -1 : 1;
+    return 0;
+}
+
+void ToLowerInto(std::wstring_view str, std::wstring& out) {
+    out.resize(str.size());
+    for (size_t i = 0; i < str.size(); ++i) out[i] = FastToLowerW(str[i]);
+}
+
 std::wstring ToLowerString(const std::wstring& str) {
-    std::wstring result = str;
-    for (auto& c : result) { c = std::towlower(c); }
+    std::wstring result;
+    ToLowerInto(str, result);
     return result;
 }
 
+std::wstring_view ExtractDirectoryView(std::wstring_view path) {
+    const size_t slash = path.find_last_of(LR"(\/)");
+    return slash == std::wstring_view::npos ? std::wstring_view() : path.substr(0, slash);
+}
+
+void NormalizeDirectoryPathInto(std::wstring_view path, std::wstring& out) {
+    out.clear();
+    if (path.empty()) return;
+    out.resize(path.size());
+    for (size_t i = 0; i < path.size(); ++i) {
+        const wchar_t c = path[i];
+        out[i] = (c == L'/') ? L'\\' : FastToLowerW(c);
+    }
+    while (out.size() > 1 && (out.back() == L'\\' || out.back() == L'/')) { out.pop_back(); }
+}
+
 std::wstring NormalizeDirectoryPath(const std::wstring& path) {
-    if (path.empty()) return L"";
-    std::wstring result = path;
-    for (auto& c : result) { if (c == L'/') c = L'\\'; c = std::towlower(c); }
-    // Strip trailing slashes
-    while (result.size() > 1 && (result.back() == L'\\' || result.back() == L'/')) { result.pop_back(); }
+    std::wstring result;
+    NormalizeDirectoryPathInto(path, result);
     return result;
 }
 std::wstring_view FileNameView(std::wstring_view path) {
@@ -46,9 +90,9 @@ std::wstring_view FileBaseNameView(std::wstring_view name) {
 }
 
 // Strips brackets like [1080p], (2024), {Erai-raws}, etc.
-std::wstring StripBracketedContent(std::wstring_view text) {
-    std::wstring result;
-    result.reserve(text.size());
+void StripBracketedContentInto(std::wstring_view text, std::wstring& result) {
+    result.clear();
+    if (result.capacity() < text.size()) result.reserve(text.size());
     int squareDepth = 0, parenDepth = 0, curlyDepth = 0;
     for (size_t i = 0; i < text.size(); ++i) {
         wchar_t c = text[i];
@@ -60,7 +104,6 @@ std::wstring StripBracketedContent(std::wstring_view text) {
         if (c == L'}') { if (curlyDepth > 0) curlyDepth--; continue; }
         if (squareDepth == 0 && parenDepth == 0 && curlyDepth == 0) { result.push_back(c); }
     }
-    return result;
 }
 
 } // anonymous namespace
@@ -119,35 +162,49 @@ void NormalizeSearchTextInto(std::wstring_view text, SearchTextBuffer& out) {
         if (out.heapBuf.empty()) { --out.len; } else { out.heapBuf.pop_back(); --out.len; }
     }
 }
-std::wstring NormalizeSearchTextFromView(std::wstring_view text) {
-    if (text.empty()) return L"";
-    std::wstring result;
-    result.reserve(text.size());
+void AppendNormalizedSearchText(std::wstring_view text, std::wstring& out) {
+    if (text.empty()) return;
+    const size_t start = out.size();
     bool prevSpace = false;
     for (wchar_t c : text) {
         if (c == L'/' || c == L'\\') c = L'\\';
-        if (std::iswspace(c) || c == L'\t' || c == L'\r' || c == L'\n') {
-            if (!prevSpace && !result.empty()) { result.push_back(L' '); prevSpace = true; }
-        } else { result.push_back(std::towlower(c)); prevSpace = false; }
+        if (c == L' ' || c == L'\t' || c == L'\r' || c == L'\n' || (c >= 0x80 && std::iswspace(c))) {
+            if (!prevSpace && out.size() > start) { out.push_back(L' '); prevSpace = true; }
+        } else { out.push_back(FastToLowerW(c)); prevSpace = false; }
     }
-    // Trim trailing space
-    while (!result.empty() && result.back() == L' ') { result.pop_back(); }
+    while (out.size() > start && out.back() == L' ') { out.pop_back(); }
+}
+
+std::wstring NormalizeSearchTextFromView(std::wstring_view text) {
+    std::wstring result;
+    if (text.empty()) return result;
+    result.reserve(text.size());
+    AppendNormalizedSearchText(text, result);
     return result;
 }
 
-std::wstring SeriesStemFromView(std::wstring_view filename) {
-    std::wstring clean = StripBracketedContent(filename);
-    // Replace non-alphanumeric separators with spaces
-    std::wstring result;
-    result.reserve(clean.size());
+void SeriesStemFromViewInto(std::wstring_view filename, std::wstring& result, std::wstring& stripScratch) {
+    result.clear();
+    std::wstring_view clean = filename;
+    if (filename.find_first_of(L"[({") != std::wstring_view::npos) {
+        StripBracketedContentInto(filename, stripScratch);
+        clean = stripScratch;
+    }
+    if (result.capacity() < clean.size()) result.reserve(clean.size());
     bool prevSpace = false;
     for (wchar_t c : clean) {
-        c = std::towlower(c);
-        if (std::iswalnum(c)) { result.push_back(c); prevSpace = false; } else {
+        c = FastToLowerW(c);
+        const bool isAlnum = (c >= L'a' && c <= L'z') || (c >= L'0' && c <= L'9') || (c >= 0x80 && std::iswalnum(c));
+        if (isAlnum) { result.push_back(c); prevSpace = false; } else {
             if (!prevSpace && !result.empty()) { result.push_back(L' '); prevSpace = true; }
         }
     }
     while (!result.empty() && result.back() == L' ') { result.pop_back(); }
+}
+
+std::wstring SeriesStemFromView(std::wstring_view filename) {
+    std::wstring result, stripScratch;
+    SeriesStemFromViewInto(filename, result, stripScratch);
     return result;
 }
 
@@ -157,10 +214,11 @@ std::wstring LibraryQueryEngine::NormalizeSearchText(const std::wstring& text) {
 std::wstring LibraryQueryEngine::ExtractSeriesStem(const std::wstring& filename) { return SeriesStemFromView(filename); }
 
 bool LibraryQueryEngine::AreSameDirectory(const std::wstring& path1, const std::wstring& path2) {
-    std::wstring dir1 = NormalizeDirectoryPath(ExtractDirectory(path1));
-    std::wstring dir2 = NormalizeDirectoryPath(ExtractDirectory(path2));
+    std::wstring dir1, dir2;
+    NormalizeDirectoryPathInto(ExtractDirectoryView(path1), dir1);
+    NormalizeDirectoryPathInto(ExtractDirectoryView(path2), dir2);
     if (dir1.empty() || dir2.empty()) return false;
-    return CompareStringOrdinal(dir1.c_str(), -1, dir2.c_str(), -1, TRUE) == CSTR_EQUAL;
+    return CompareOrdinalCaseInsensitive(dir1, dir2) == 0;
 }
 
 namespace {
@@ -177,20 +235,61 @@ std::wstring CapitalizeWords(const std::wstring& text) {
 } // anonymous namespace
 
 namespace {
-EpisodeInfo ParseEpisodeInfoImpl(const std::wstring& filePath, bool includeSource) {
-    EpisodeInfo info;
+bool TryParseNonNegativeInt(std::wstring_view text, size_t start, size_t end, int& out) {
+    if (start >= end) return false;
+    long long value = 0;
+    for (size_t i = start; i < end; ++i) {
+        const wchar_t c = text[i];
+        if (c < L'0' || c > L'9') {
+            try {
+                const int parsed = std::stoi(std::wstring(text.substr(start, end - start)));
+                if (parsed < 0) return false;
+                out = parsed;
+                return true;
+            } catch (...) { return false; }
+        }
+        value = value * 10 + (c - L'0');
+        if (value > (std::numeric_limits<int>::max)()) return false;
+    }
+    out = static_cast<int>(value);
+    return true;
+}
+
+size_t FindTokenCaseInsensitive(std::wstring_view haystack, std::wstring_view needle) {
+    if (needle.empty() || haystack.size() < needle.size()) return std::wstring_view::npos;
+    const size_t limit = haystack.size() - needle.size();
+    for (size_t i = 0; i <= limit; ++i) {
+        bool match = true;
+        for (size_t j = 0; j < needle.size(); ++j) {
+            if (std::towlower(haystack[i + j]) != needle[j]) { match = false; break; }
+        }
+        if (match) return i;
+    }
+    return std::wstring_view::npos;
+}
+
+void ParseEpisodeInfoInto(const std::wstring& filePath, bool includeSource, EpisodeInfo& info,
+    std::wstring& strippedStorage, std::wstring& stemCleanScratch) {
+    info.seasonNumber = 1;
+    info.episodeNumber = 0;
+    info.hasSeason = false;
+    info.hasEpisode = false;
+    info.isValid = false;
+    info.seriesStem.clear();
     const auto fileName = FileNameView(filePath);
     if (includeSource) {
         info.rawPath = filePath;
         info.rawFileName.assign(fileName);
         info.directoryPath = ExtractDirectory(filePath);
     }
-    info.isValid = false;
     // Reject non-supported media extensions
-    if (!MediaLibrary::IsSupportedMediaExtension(filePath)) { return info; }
+    if (!MediaLibrary::IsSupportedMediaExtension(filePath)) { return; }
     const auto baseName = FileBaseNameView(fileName);
-    std::wstring cleanName = StripBracketedContent(baseName);
-    if (cleanName.empty()) { cleanName = baseName; }
+    std::wstring_view cleanName = baseName;
+    if (baseName.find_first_of(L"[({") != std::wstring_view::npos) {
+        StripBracketedContentInto(baseName, strippedStorage);
+        if (!strippedStorage.empty()) cleanName = strippedStorage;
+    }
     const size_t len = cleanName.size();
     bool foundPattern = false;
     size_t stemEndPos = 0;
@@ -210,19 +309,18 @@ EpisodeInfo ParseEpisodeInfoImpl(const std::wstring& filePath, bool includeSourc
                     size_t eDigitsStart = ePos + 1, eDigitsEnd = eDigitsStart;
                     while (eDigitsEnd < len && std::iswdigit(cleanName[eDigitsEnd])) { eDigitsEnd++; }
                     if (eDigitsEnd > eDigitsStart) {
-                        try {
-                            int season = std::stoi(cleanName.substr(sDigitsStart, sDigitsEnd - sDigitsStart));
-                            int episode = std::stoi(cleanName.substr(eDigitsStart, eDigitsEnd - eDigitsStart));
-                            if (season >= 0 && episode > 0) {
-                                info.seasonNumber = season;
-                                info.episodeNumber = episode;
-                                info.hasSeason = true;
-                                info.hasEpisode = true;
-                                foundPattern = true;
-                                stemEndPos = i;
-                                break;
-                            }
-                        } catch (...) {}
+                        int season = 0, episode = 0;
+                        if (TryParseNonNegativeInt(cleanName, sDigitsStart, sDigitsEnd, season) &&
+                            TryParseNonNegativeInt(cleanName, eDigitsStart, eDigitsEnd, episode) &&
+                            season >= 0 && episode > 0) {
+                            info.seasonNumber = season;
+                            info.episodeNumber = episode;
+                            info.hasSeason = true;
+                            info.hasEpisode = true;
+                            foundPattern = true;
+                            stemEndPos = i;
+                            break;
+                        }
                     }
                 }
             }
@@ -238,19 +336,18 @@ EpisodeInfo ParseEpisodeInfoImpl(const std::wstring& filePath, bool includeSourc
                     size_t eDigitsStart = sDigitsEnd + 1, eDigitsEnd = eDigitsStart;
                     while (eDigitsEnd < len && std::iswdigit(cleanName[eDigitsEnd])) { eDigitsEnd++; }
                     if (eDigitsEnd > eDigitsStart) {
-                        try {
-                            int season = std::stoi(cleanName.substr(sDigitsStart, sDigitsEnd - sDigitsStart));
-                            int episode = std::stoi(cleanName.substr(eDigitsStart, eDigitsEnd - eDigitsStart));
-                            if (season >= 0 && episode > 0) {
-                                info.seasonNumber = season;
-                                info.episodeNumber = episode;
-                                info.hasSeason = true;
-                                info.hasEpisode = true;
-                                foundPattern = true;
-                                stemEndPos = i;
-                                break;
-                            }
-                        } catch (...) {}
+                        int season = 0, episode = 0;
+                        if (TryParseNonNegativeInt(cleanName, sDigitsStart, sDigitsEnd, season) &&
+                            TryParseNonNegativeInt(cleanName, eDigitsStart, eDigitsEnd, episode) &&
+                            season >= 0 && episode > 0) {
+                            info.seasonNumber = season;
+                            info.episodeNumber = episode;
+                            info.hasSeason = true;
+                            info.hasEpisode = true;
+                            foundPattern = true;
+                            stemEndPos = i;
+                            break;
+                        }
                     }
                 }
             }
@@ -258,11 +355,10 @@ EpisodeInfo ParseEpisodeInfoImpl(const std::wstring& filePath, bool includeSourc
     }
     // 3. Check for "Episode XX" / "Ep. XX" / "Ep XX" pattern
     if (!foundPattern) {
-        std::wstring lowerClean = ToLowerString(cleanName);
-        const std::wstring epTokens[] = { L"episode", L"ep.", L"ep" };
-        for (const auto& token : epTokens) {
-            size_t tokenPos = lowerClean.find(token);
-            if (tokenPos != std::wstring::npos) {
+        static constexpr std::wstring_view epTokens[] = { L"episode", L"ep.", L"ep" };
+        for (const std::wstring_view token : epTokens) {
+            size_t tokenPos = FindTokenCaseInsensitive(cleanName, token);
+            if (tokenPos != std::wstring_view::npos) {
                 // Must be at start or preceded by separator
                 if (tokenPos == 0 || IsWhitespaceOrSeparator(cleanName[tokenPos - 1])) {
                     size_t afterToken = tokenPos + token.size();
@@ -270,18 +366,16 @@ EpisodeInfo ParseEpisodeInfoImpl(const std::wstring& filePath, bool includeSourc
                     if (afterToken < len && std::iswdigit(cleanName[afterToken])) {
                         size_t epDigitsEnd = afterToken;
                         while (epDigitsEnd < len && std::iswdigit(cleanName[epDigitsEnd])) { epDigitsEnd++; }
-                        try {
-                            int episode = std::stoi(cleanName.substr(afterToken, epDigitsEnd - afterToken));
-                            if (episode > 0) {
-                                info.seasonNumber = 1;
-                                info.episodeNumber = episode;
-                                info.hasSeason = false;
-                                info.hasEpisode = true;
-                                foundPattern = true;
-                                stemEndPos = tokenPos;
-                                break;
-                            }
-                        } catch (...) {}
+                        int episode = 0;
+                        if (TryParseNonNegativeInt(cleanName, afterToken, epDigitsEnd, episode) && episode > 0) {
+                            info.seasonNumber = 1;
+                            info.episodeNumber = episode;
+                            info.hasSeason = false;
+                            info.hasEpisode = true;
+                            foundPattern = true;
+                            stemEndPos = tokenPos;
+                            break;
+                        }
                     }
                 }
             }
@@ -301,18 +395,16 @@ EpisodeInfo ParseEpisodeInfoImpl(const std::wstring& filePath, bool includeSourc
                         // Ensure it's not a 4-digit year like (2024)
                         size_t digitCount = digitsEnd - digitsStart;
                         if (digitCount <= 3) {
-                            try {
-                                int episode = std::stoi(cleanName.substr(digitsStart, digitCount));
-                                if (episode > 0) {
-                                    info.seasonNumber = 1;
-                                    info.episodeNumber = episode;
-                                    info.hasSeason = false;
-                                    info.hasEpisode = true;
-                                    foundPattern = true;
-                                    stemEndPos = sepPos;
-                                    break;
-                                }
-                            } catch (...) {}
+                            int episode = 0;
+                            if (TryParseNonNegativeInt(cleanName, digitsStart, digitsEnd, episode) && episode > 0) {
+                                info.seasonNumber = 1;
+                                info.episodeNumber = episode;
+                                info.hasSeason = false;
+                                info.hasEpisode = true;
+                                foundPattern = true;
+                                stemEndPos = sepPos;
+                                break;
+                            }
                         }
                     }
                 }
@@ -321,14 +413,20 @@ EpisodeInfo ParseEpisodeInfoImpl(const std::wstring& filePath, bool includeSourc
         }
     }
     if (foundPattern && info.hasEpisode) {
-        info.seriesStem = SeriesStemFromView(std::wstring_view(cleanName).substr(0, stemEndPos));
+        SeriesStemFromViewInto(cleanName.substr(0, stemEndPos), info.seriesStem, stemCleanScratch);
         if (info.seriesStem.empty()) {
             // Fallback to parent directory stem if filename stem was empty
-            if (!includeSource) info.directoryPath = ExtractDirectory(filePath);
-            info.seriesStem = SeriesStemFromView(FileNameView(info.directoryPath));
+            const std::wstring_view dirView = includeSource ? std::wstring_view(info.directoryPath) : ExtractDirectoryView(filePath);
+            SeriesStemFromViewInto(FileNameView(dirView), info.seriesStem, stemCleanScratch);
         }
         info.isValid = !info.seriesStem.empty();
     }
+}
+
+EpisodeInfo ParseEpisodeInfoImpl(const std::wstring& filePath, bool includeSource) {
+    EpisodeInfo info;
+    std::wstring strippedStorage, stemCleanScratch;
+    ParseEpisodeInfoInto(filePath, includeSource, info, strippedStorage, stemCleanScratch);
     return info;
 }
 
@@ -373,11 +471,7 @@ int LibraryQueryEngine::CompareItems(const MediaItem& a, const MediaItem& b, Lib
     switch (sortField) {
         case LibrarySortField::Manual: return 0;
         case LibrarySortField::Title: {
-            const auto titleA = a.GetDisplayTitleView();
-            const auto titleB = b.GetDisplayTitleView();
-            int cmp = CompareStringOrdinal(titleA.data(), -1, titleB.data(), -1, TRUE);
-            if (cmp == CSTR_LESS_THAN) primaryResult = -1;
-            else if (cmp == CSTR_GREATER_THAN) primaryResult = 1;
+            primaryResult = CompareOrdinalCaseInsensitive(a.GetDisplayTitleView(), b.GetDisplayTitleView());
             break;
         }
         case LibrarySortField::DateAdded: {
@@ -412,15 +506,9 @@ int LibraryQueryEngine::CompareItems(const MediaItem& a, const MediaItem& b, Lib
     if (primaryResult != 0) return primaryResult;
     // --- Deterministic Tie-Breaking ---
     // 1. Secondary: Title (case-insensitive)
-    const auto tA = a.GetTitleView();
-    const auto tB = b.GetTitleView();
-    int tieTitle = CompareStringOrdinal(tA.data(), -1, tB.data(), -1, TRUE);
-    if (tieTitle == CSTR_LESS_THAN) return -1;
-    if (tieTitle == CSTR_GREATER_THAN) return 1;
+    if (int tieTitle = CompareOrdinalCaseInsensitive(a.GetTitleView(), b.GetTitleView())) return tieTitle;
     // 2. Tertiary: FilePath (case-insensitive)
-    int tiePath = CompareStringOrdinal(a.filePath.c_str(), -1, b.filePath.c_str(), -1, TRUE);
-    if (tiePath == CSTR_LESS_THAN) return -1;
-    if (tiePath == CSTR_GREATER_THAN) return 1;
+    if (int tiePath = CompareOrdinalCaseInsensitive(a.filePath, b.filePath)) return tiePath;
     // 3. Quaternary: ID (lexicographical)
     if (a.id < b.id) return -1;
     if (a.id > b.id) return 1;
@@ -435,7 +523,8 @@ bool LibraryQueryEngine::IsCacheValid(const MediaLibrary& library, const Library
 void LibraryQueryEngine::InvalidateCache() {
     hasView = hasPlan = false;
     cachedPlan = LibraryViewProjection();
-    searchFields.clear();
+    searchArena.clear();
+    searchOffsets.clear();
     searchCatalogRevision = (std::numeric_limits<uint64_t>::max)();
     cachedView = LibraryViewProjection();
     cachedLibraryVersion = (std::numeric_limits<uint64_t>::max)();
@@ -509,16 +598,26 @@ LibraryViewProjection LibraryQueryEngine::FilterPlan(const MediaLibrary& library
     result.libraryVersion = library.GetVersion();
     result.totalLibraryCount = library.mediaItems.size();
     const std::wstring query = NormalizeSearchText(options.searchQuery);
-    if (!query.empty() && (searchCatalogRevision != library.GetRevisions().catalog || searchFields.size() != library.mediaItems.size())) {
-        searchFields.clear();
-        searchFields.reserve(library.mediaItems.size());
+    if (!query.empty() && (searchCatalogRevision != library.GetRevisions().catalog || searchOffsets.size() != library.mediaItems.size() + 1)) {
+        searchArena.clear();
+        searchArena.reserve(library.mediaItems.size() * 96);
+        searchOffsets.clear();
+        searchOffsets.reserve(library.mediaItems.size() + 1);
+        searchOffsets.push_back(0);
         for (const auto& item : library.mediaItems) {
-            SearchFields fields;
-            fields.title = NormalizeSearchText(std::wstring(item.GetDisplayTitleView()));
-            if (item.GetDisplayTitleView() != item.title) fields.originalTitle = NormalizeSearchText(item.title);
-            fields.path = NormalizeSearchText(item.filePath);
-            if (item.overrides && item.overrides->series) fields.series = NormalizeSearchText(*item.overrides->series);
-            searchFields.push_back(std::move(fields));
+            const auto displayTitle = item.GetDisplayTitleView();
+            AppendNormalizedSearchText(displayTitle, searchArena);
+            searchArena.push_back(L'\n');
+            if (!item.title.empty() && displayTitle != item.title) {
+                AppendNormalizedSearchText(item.title, searchArena);
+            }
+            searchArena.push_back(L'\n');
+            AppendNormalizedSearchText(item.filePath, searchArena);
+            searchArena.push_back(L'\n');
+            if (item.overrides && item.overrides->series) {
+                AppendNormalizedSearchText(*item.overrides->series, searchArena);
+            }
+            searchOffsets.push_back(searchArena.size());
         }
         searchCatalogRevision = library.GetRevisions().catalog;
         ++searchTextBuildCount;
@@ -526,9 +625,8 @@ LibraryViewProjection LibraryQueryEngine::FilterPlan(const MediaLibrary& library
     const auto matches = [&](size_t index) {
         if (!MatchesStatusFilter(library.mediaItems[index], options.statusFilter, true)) return false;
         if (query.empty()) return true;
-        const auto& fields = searchFields[index];
-        return fields.title.find(query) != std::wstring::npos || fields.originalTitle.find(query) != std::wstring::npos ||
-            fields.path.find(query) != std::wstring::npos || fields.series.find(query) != std::wstring::npos;
+        const std::wstring_view hay(searchArena.data() + searchOffsets[index], searchOffsets[index + 1] - searchOffsets[index]);
+        return hay.find(query) != std::wstring_view::npos;
     };
     const bool filtered = !query.empty() || options.statusFilter != LibraryStatusFilter::All;
     std::vector<uint8_t> eligible;
@@ -736,10 +834,14 @@ LibraryViewProjection LibraryQueryEngine::BuildView( const MediaLibrary& library
             for (const auto& p : pl.itemPaths) { playlistItemPaths.insert(NormalizePathKey(p)); }
         }
     }
+    std::wstring scratchPlaylistPathKey, scratchGroupKey, scratchEpisodeClean, scratchEpisodeStemClean;
+    EpisodeInfo scratchEpisode;
+    static const std::wstring kStandaloneGroupKey = L"__standalone__";
     for (size_t i = 0; i < library.mediaItems.size(); ++i) {
         const auto& item = library.mediaItems[i];
         if (!playlistItemPaths.empty()) {
-            if (playlistItemPaths.find(NormalizePathKey(item.filePath)) != playlistItemPaths.end()) { continue; }
+            MediaLibrary::NormalizePathKeyInto(item.filePath, scratchPlaylistPathKey);
+            if (playlistItemPaths.find(scratchPlaylistPathKey) != playlistItemPaths.end()) { continue; }
         }
         bool exists = true;
         if (checkDisk) { exists = fileExistsFn ? fileExistsFn(item.filePath) : FileExists(item.filePath); }
@@ -770,41 +872,42 @@ LibraryViewProjection LibraryQueryEngine::BuildView( const MediaLibrary& library
             }
             continue;
         }
-        std::wstring groupKey, directory;
+        std::wstring_view directoryView;
         const std::wstring* seriesOverride = nullptr;
+        const std::wstring* keyPtr = &scratchGroupKey;
         bool isSpecialGroup = false;
         if (options.groupMode == LibraryGroupMode::Folder) {
-            directory = ExtractDirectory(item.filePath);
-            groupKey = NormalizeDirectoryPath(directory);
+            directoryView = ExtractDirectoryView(item.filePath);
+            NormalizeDirectoryPathInto(directoryView, scratchGroupKey);
         } else if (options.groupMode == LibraryGroupMode::Series) {
-            const EpisodeInfo episode = ParseEpisodeInfoImpl(item.filePath, false);
-            m.seasonNumber = episode.seasonNumber;
-            m.episodeNumber = episode.episodeNumber;
+            ParseEpisodeInfoInto(item.filePath, false, scratchEpisode, scratchEpisodeClean, scratchEpisodeStemClean);
+            m.seasonNumber = scratchEpisode.seasonNumber;
+            m.episodeNumber = scratchEpisode.episodeNumber;
             if (item.overrides.has_value() && item.overrides->series.has_value() && !item.overrides->series->empty()) {
-                groupKey = ToLowerString(*item.overrides->series);
+                ToLowerInto(*item.overrides->series, scratchGroupKey);
                 seriesOverride = &*item.overrides->series;
             } else {
-                isSpecialGroup = !episode.isValid || episode.seriesStem.empty();
-                groupKey = isSpecialGroup ? L"__standalone__" : episode.seriesStem;
+                isSpecialGroup = !scratchEpisode.isValid || scratchEpisode.seriesStem.empty();
+                keyPtr = isSpecialGroup ? &kStandaloneGroupKey : &scratchEpisode.seriesStem;
             }
         }
         // Most items reuse an existing group. Construct its labels and map
         // node only once, rather than allocating and discarding them per item.
-        auto group = groupKeyToIndex.find(groupKey);
+        auto group = groupKeyToIndex.find(*keyPtr);
         if (group == groupKeyToIndex.end()) {
             GroupBucket bucket;
             if (options.groupMode == LibraryGroupMode::Folder) {
-                bucket.title = directory.empty() ? L"Root" : GetFileNameFromPath(directory);
-                if (bucket.title.empty()) bucket.title = directory;
-                bucket.subtitle = std::move(directory);
+                const std::wstring_view folderName = FileNameView(directoryView);
+                bucket.title = directoryView.empty() ? L"Root" : (folderName.empty() ? std::wstring(directoryView) : std::wstring(folderName));
+                bucket.subtitle.assign(directoryView);
             } else {
                 bucket.title = seriesOverride ? *seriesOverride :
-                    (isSpecialGroup ? L"Standalone Videos" : CapitalizeWords(groupKey));
+                    (isSpecialGroup ? L"Standalone Videos" : CapitalizeWords(*keyPtr));
                 bucket.subtitle = isSpecialGroup ? L"Standalone videos & other media" : L"Series";
             }
-            bucket.key = groupKey;
+            bucket.key = *keyPtr;
             bucket.isSpecial = isSpecialGroup;
-            group = groupKeyToIndex.emplace(std::move(groupKey), buckets.size()).first;
+            group = groupKeyToIndex.emplace(bucket.key, buckets.size()).first;
             buckets.push_back(std::move(bucket));
         }
         buckets[group->second].items.push_back(m);
@@ -1031,25 +1134,60 @@ DuplicateDetectionResult LibraryQueryEngine::DetectDuplicates(const std::vector<
         }
     }
     {
-        struct PathAlias { std::wstring key; size_t index; };
-        std::vector<PathAlias> paths; paths.reserve(unassignedCount);
+        struct PathAliasHash { uint64_t hash; size_t len; size_t index; };
+        std::vector<PathAliasHash> paths; paths.reserve(unassignedCount);
+        std::wstring scratchKey, keyA, keyB;
+        auto hashKey = [](const std::wstring& s) -> uint64_t {
+            uint64_t h = 14695981039346656037ull;
+            for (wchar_t c : s) { h ^= static_cast<uint64_t>(c); h *= 1099511628211ull; }
+            return h;
+        };
         for (size_t i = 0; i < count; ++i) {
             if (assigned[i]) continue;
-            auto key = NormalizePathKey(items[i].filePath);
-            if (!key.empty()) paths.push_back({std::move(key), i});
+            MediaLibrary::NormalizePathKeyInto(items[i].filePath, scratchKey);
+            if (!scratchKey.empty()) paths.push_back({hashKey(scratchKey), scratchKey.size(), i});
         }
-        std::sort(paths.begin(), paths.end(), [](const PathAlias& a, const PathAlias& b) {
-            return a.key != b.key ? a.key < b.key : a.index < b.index;
+        std::sort(paths.begin(), paths.end(), [](const PathAliasHash& a, const PathAliasHash& b) {
+            if (a.hash != b.hash) return a.hash < b.hash;
+            if (a.len != b.len) return a.len < b.len;
+            return a.index < b.index;
         });
+        struct ExactPathAlias { std::wstring key; size_t index; };
+        std::vector<ExactPathAlias> bucket;
         for (size_t first = 0; first < paths.size();) {
             size_t last = first + 1;
-            while (last < paths.size() && paths[last].key == paths[first].key) ++last;
-            if (last - first > 1) {
-                DuplicateGroup group; group.matchKind = DuplicateMatchKind::ExactPathAlias;
-                group.key = L"dup_exact_path_" + paths[first].key;
-                populateGroup(group, paths.begin() + first, paths.begin() + last, [](const PathAlias& path) { return path.index; });
-                group.subtitle = L"Exact path alias (" + std::to_wstring(group.items.size()) + L" entries • same normalized location)";
-                result.groups.push_back(std::move(group));
+            while (last < paths.size() && paths[last].hash == paths[first].hash && paths[last].len == paths[first].len) ++last;
+            if (last - first == 2) {
+                MediaLibrary::NormalizePathKeyInto(items[paths[first].index].filePath, keyA);
+                MediaLibrary::NormalizePathKeyInto(items[paths[first + 1].index].filePath, keyB);
+                if (keyA == keyB) {
+                    DuplicateGroup group; group.matchKind = DuplicateMatchKind::ExactPathAlias;
+                    group.key = L"dup_exact_path_" + keyA;
+                    populateGroup(group, paths.begin() + first, paths.begin() + last, [](const PathAliasHash& path) { return path.index; });
+                    group.subtitle = L"Exact path alias (" + std::to_wstring(group.items.size()) + L" entries • same normalized location)";
+                    result.groups.push_back(std::move(group));
+                }
+            } else if (last - first > 2) {
+                bucket.clear();
+                bucket.reserve(last - first);
+                for (size_t p = first; p < last; ++p) {
+                    bucket.push_back({MediaLibrary::NormalizePathKey(items[paths[p].index].filePath), paths[p].index});
+                }
+                std::sort(bucket.begin(), bucket.end(), [](const ExactPathAlias& a, const ExactPathAlias& b) {
+                    return a.key != b.key ? a.key < b.key : a.index < b.index;
+                });
+                for (size_t bf = 0; bf < bucket.size();) {
+                    size_t bl = bf + 1;
+                    while (bl < bucket.size() && bucket[bl].key == bucket[bf].key) ++bl;
+                    if (bl - bf > 1) {
+                        DuplicateGroup group; group.matchKind = DuplicateMatchKind::ExactPathAlias;
+                        group.key = L"dup_exact_path_" + bucket[bf].key;
+                        populateGroup(group, bucket.begin() + bf, bucket.begin() + bl, [](const ExactPathAlias& path) { return path.index; });
+                        group.subtitle = L"Exact path alias (" + std::to_wstring(group.items.size()) + L" entries • same normalized location)";
+                        result.groups.push_back(std::move(group));
+                    }
+                    bf = bl;
+                }
             }
             first = last;
         }
@@ -1100,11 +1238,18 @@ DuplicateDetectionResult LibraryQueryEngine::DetectDuplicates(const std::vector<
         return left.durationSec != right.durationSec ? left.durationSec < right.durationSec : a < b;
     });
     struct TextKeys { std::wstring stem, title, file; };
-    auto textKeysFor = [&](const MediaItem& item) {
+    std::wstring scratchStemClean;
+    auto fillTextKeys = [&](const MediaItem& item, TextKeys& out) {
         const auto name = FileNameView(item.filePath);
-        return TextKeys{SeriesStemFromView(name), NormalizeSearchTextFromView(item.title.empty() ? name : std::wstring_view(item.title)),
-            NormalizeSearchTextFromView(FileBaseNameView(name))};
+        SeriesStemFromViewInto(name, out.stem, scratchStemClean);
+        out.title.clear();
+        AppendNormalizedSearchText(item.title.empty() ? name : std::wstring_view(item.title), out.title);
+        out.file.clear();
+        AppendNormalizedSearchText(FileBaseNameView(name), out.file);
     };
+    TextKeys scratchLeftKeys, scratchRightKeys;
+    std::vector<size_t> known, keyed, compatible;
+    std::vector<TextKeys> keys;
     for (size_t first = 0; first < ordered.size();) {
         size_t last = first + 1;
         // A duration gap over 0.5 separates components even when sizes match.
@@ -1114,19 +1259,20 @@ DuplicateDetectionResult LibraryQueryEngine::DetectDuplicates(const std::vector<
         if (last - first == 2) {
             const size_t a = (std::min)(ordered[first], ordered[first + 1]), b = (std::max)(ordered[first], ordered[first + 1]);
             const auto& left = itemFor(a); const auto& right = itemFor(b);
-            const bool known = knownResolution(left) && knownResolution(right);
-            if (!known || sameResolution(a, b)) {
-                if (known && left.durationSec >= 5.0) { unite(a, b); }
+            const bool knownBoth = knownResolution(left) && knownResolution(right);
+            if (!knownBoth || sameResolution(a, b)) {
+                if (knownBoth && left.durationSec >= 5.0) { unite(a, b); }
                 else {
-                    const auto leftKeys = textKeysFor(left), rightKeys = textKeysFor(right);
-                    if ((!leftKeys.stem.empty() && leftKeys.stem == rightKeys.stem) ||
-                        (!leftKeys.title.empty() && leftKeys.title == rightKeys.title) ||
-                        (!leftKeys.file.empty() && leftKeys.file == rightKeys.file)) unite(a, b);
+                    fillTextKeys(left, scratchLeftKeys);
+                    fillTextKeys(right, scratchRightKeys);
+                    if ((!scratchLeftKeys.stem.empty() && scratchLeftKeys.stem == scratchRightKeys.stem) ||
+                        (!scratchLeftKeys.title.empty() && scratchLeftKeys.title == scratchRightKeys.title) ||
+                        (!scratchLeftKeys.file.empty() && scratchLeftKeys.file == scratchRightKeys.file)) unite(a, b);
                 }
             }
             first = last; continue;
         }
-        std::vector<size_t> known;
+        known.clear();
         bool needsText = false;
         for (size_t i = first; i < last; ++i) {
             const auto& item = itemFor(ordered[i]);
@@ -1154,9 +1300,8 @@ DuplicateDetectionResult LibraryQueryEngine::DetectDuplicates(const std::vector<
             begin = end;
         }
         if (needsText) {
-            std::vector<TextKeys> keys; keys.reserve(last - first);
-            for (size_t i = first; i < last; ++i) keys.push_back(textKeysFor(itemFor(ordered[i])));
-            std::vector<size_t> keyed, compatible;
+            keys.resize(last - first);
+            for (size_t i = first; i < last; ++i) fillTextKeys(itemFor(ordered[i]), keys[i - first]);
             keyed.reserve(keys.size()); compatible.reserve(keys.size());
             auto candidateAt = [&](size_t local) { return ordered[first + local]; };
             // A text equality is sufficient only within a compatible resolution.

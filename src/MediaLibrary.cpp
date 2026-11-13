@@ -38,10 +38,34 @@ constexpr std::array<std::wstring_view, 37> kSupportedExtensionValues = {
     L".rmvb", L".ts", L".vob", L".wav", L".webm", L".wma", L".wmv"
 };
 
+wchar_t AsciiFastLower(wchar_t c) {
+    if (c >= L'A' && c <= L'Z') return static_cast<wchar_t>(c + 32);
+    if (c < 0x80) return c;
+    return static_cast<wchar_t>(::towlower(c));
+}
+
+bool TryFastNormalizePathKey(const std::wstring& p, std::wstring& out) {
+    if (p.empty()) { out.clear(); return true; }
+    const bool isAbsDrive = p.size() >= 3 && ((p[0] >= L'A' && p[0] <= L'Z') || (p[0] >= L'a' && p[0] <= L'z')) &&
+        p[1] == L':' && (p[2] == L'\\' || p[2] == L'/');
+    const bool isAbsUnc = p.size() >= 2 && (p[0] == L'\\' || p[0] == L'/') && (p[1] == L'\\' || p[1] == L'/');
+    if ((!isAbsDrive && !isAbsUnc) || p.back() == L'.') return false;
+    out.resize(p.size());
+    for (size_t i = 0; i < p.size(); ++i) {
+        const wchar_t c = p[i];
+        const wchar_t norm = (c == L'/') ? L'\\' : AsciiFastLower(c);
+        out[i] = norm;
+        if (i > 0 && norm == L'.' && out[i - 1] == L'\\') return false;
+    }
+    while (out.size() > 3 && out.back() == L'\\') out.pop_back();
+    return out.back() != L'.';
+}
+
 std::wstring Identity(const std::wstring& input) {
-    if (input.empty()) return {};
-    std::wstring s = ResolveAppPath(input);
-    for (auto& c : s) { if (c == L'/') c = L'\\'; c = (wchar_t)towlower(c); }
+    std::wstring s;
+    if (TryFastNormalizePathKey(input, s)) return s;
+    s = ResolveAppPath(input);
+    for (auto& c : s) { c = (c == L'/') ? L'\\' : AsciiFastLower(c); }
     while (s.size() > 3 && s.back() == L'\\') s.pop_back();
     return s;
 }
@@ -431,7 +455,26 @@ bool MediaLibrary::ProbeMediaMetadata(const std::wstring& path, double& d, uint3
     return true;
 }
 
+void ApplyMediaProbeOutcome(MediaItem& item, bool succeeded, double d, uint32_t w, uint32_t h) {
+    if (succeeded) {
+        item.durationSec = d;
+        item.videoWidth = w;
+        item.videoHeight = h;
+        item.metadataProbeFailed = false;
+        item.probeAttemptCount = 0;
+        item.lastProbeAttemptTimestamp = 0;
+    } else {
+        item.metadataProbeFailed = true;
+        ++item.probeAttemptCount;
+        item.lastProbeAttemptTimestamp = GetCurrentTimestampSec();
+    }
+}
+
 std::wstring MediaLibrary::NormalizePathKey(const std::wstring& path) { return Identity(path); }
+
+void MediaLibrary::NormalizePathKeyInto(const std::wstring& p, std::wstring& out) {
+    if (!TryFastNormalizePathKey(p, out)) out = Identity(p);
+}
 
 void MediaLibrary::RebuildPathIndex() {
     ++revisions.catalog; ++revisions.history;
@@ -440,8 +483,9 @@ void MediaLibrary::RebuildPathIndex() {
     idToIndex.clear();
     pathToIndex.reserve(mediaItems.size());
     idToIndex.reserve(mediaItems.size());
+    std::wstring key;
     for (size_t i = 0; i < mediaItems.size(); ++i) {
-        std::wstring key = NormalizePathKey(mediaItems[i].filePath);
+        NormalizePathKeyInto(mediaItems[i].filePath, key);
         if (!key.empty()) { pathToIndex[key] = i; }
         if (!mediaItems[i].id.empty()) { idToIndex[mediaItems[i].id] = i; }
     }
@@ -744,30 +788,10 @@ PlaylistStats MediaLibrary::GetPlaylistStats(const std::string& playlistId) cons
 MediaItem* MediaLibrary::FindByPath(const std::wstring& p) {
     if (p.empty() || mediaItems.empty()) return nullptr;
     if (pathToIndex.empty() && !mediaItems.empty()) RebuildPathIndex();
-    const bool isAbsDrive = p.size() >= 3 && iswalpha(p[0]) && p[1] == L':' && (p[2] == L'\\' || p[2] == L'/');
-    const bool isAbsUnc = p.size() >= 2 && (p[0] == L'\\' || p[0] == L'/') && (p[1] == L'\\' || p[1] == L'/');
-    if ((isAbsDrive || isAbsUnc) && p.back() != L'.') {
-        static thread_local std::wstring scratchKey;
-        if (scratchKey.capacity() < p.size()) scratchKey.reserve((std::max)(p.size(), static_cast<size_t>(260)));
-        scratchKey.resize(p.size());
-        bool hasDotSegment = false;
-        for (size_t i = 0; i < p.size(); ++i) {
-            const wchar_t c = p[i];
-            const wchar_t norm = (c == L'/') ? L'\\' : static_cast<wchar_t>(::towlower(c));
-            scratchKey[i] = norm;
-            if (i > 0 && norm == L'.' && scratchKey[i - 1] == L'\\') hasDotSegment = true;
-        }
-        if (!hasDotSegment) {
-            while (scratchKey.size() > 3 && scratchKey.back() == L'\\') scratchKey.pop_back();
-            if (scratchKey.back() != L'.') {
-                auto it = pathToIndex.find(scratchKey);
-                if (it != pathToIndex.end() && it->second < mediaItems.size()) { return &mediaItems[it->second]; }
-                return nullptr;
-            }
-        }
-    }
-    std::wstring key = NormalizePathKey(p);
-    auto it = pathToIndex.find(key);
+    static thread_local std::wstring scratchKey;
+    NormalizePathKeyInto(p, scratchKey);
+    if (scratchKey.empty()) return nullptr;
+    auto it = pathToIndex.find(scratchKey);
     if (it != pathToIndex.end() && it->second < mediaItems.size()) { return &mediaItems[it->second]; }
     return nullptr;
 }
@@ -921,39 +945,17 @@ MediaItem* MediaLibrary::AddOrUpdateMediaCore(const std::wstring& path, bool& ch
             } else {
             double d;
             uint32_t w, h;
-            if (probe(d, w, h)) {
-                m->durationSec = d;
-                m->videoWidth = w;
-                m->videoHeight = h;
-                m->metadataProbeFailed = false;
-                m->probeAttemptCount = 0;
-                m->lastProbeAttemptTimestamp = 0;
-                changed = true;
-            } else {
-                m->metadataProbeFailed = true;
-                m->probeAttemptCount++;
-                m->lastProbeAttemptTimestamp = GetCurrentTimestampSec();
-                changed = true;
-            }
+            const bool ok = probe(d, w, h);
+            ApplyMediaProbeOutcome(*m, ok, d, w, h);
+            changed = true;
             }
             StampProbedFile(*m, observed);
         } else if (exists && m->durationSec <= 0 && probeMetadata) {
             double d;
             uint32_t w, h;
-            if (probe(d, w, h)) {
-                m->durationSec = d;
-                m->videoWidth = w;
-                m->videoHeight = h;
-                m->metadataProbeFailed = false;
-                m->probeAttemptCount = 0;
-                m->lastProbeAttemptTimestamp = 0;
-                changed = true;
-            } else {
-                m->metadataProbeFailed = true;
-                m->probeAttemptCount++;
-                m->lastProbeAttemptTimestamp = GetCurrentTimestampSec();
-                changed = true;
-            }
+            const bool ok = probe(d, w, h);
+            ApplyMediaProbeOutcome(*m, ok, d, w, h);
+            changed = true;
             StampProbedFile(*m, observed);
         }
         if (changed) { libraryVersion++; ++revisions.catalog; InvalidatePlaylistStatsCache(); }
@@ -968,14 +970,8 @@ MediaItem* MediaLibrary::AddOrUpdateMediaCore(const std::wstring& path, bool& ch
     if (exists && probeMetadata) {
         double d;
         uint32_t w, h;
-        if (probe(d, w, h)) {
-            x.durationSec = d;
-            x.videoWidth = w;
-            x.videoHeight = h;
-            x.metadataProbeFailed = false;
-            x.probeAttemptCount = 0;
-            x.lastProbeAttemptTimestamp = 0;
-        } else { x.metadataProbeFailed = true; x.probeAttemptCount = 1; x.lastProbeAttemptTimestamp = GetCurrentTimestampSec(); }
+        const bool ok = probe(d, w, h);
+        ApplyMediaProbeOutcome(x, ok, d, w, h);
         StampProbedFile(x, observed);
     }
     mediaItems.insert(mediaItems.begin(), std::move(x));
@@ -1111,18 +1107,8 @@ MediaImportResult MediaLibrary::ImportPaths(const std::vector<std::wstring>& pat
                 copyItem.addedTimestamp = GetCurrentTimestampSec();
                 if (exists) {
                     double d = 0; uint32_t w = 0, h = 0;
-                if (probe(d, w, h)) {
-                    copyItem.durationSec = d;
-                    copyItem.videoWidth = w;
-                    copyItem.videoHeight = h;
-                    copyItem.metadataProbeFailed = false;
-                    copyItem.probeAttemptCount = 0;
-                    copyItem.lastProbeAttemptTimestamp = 0;
-                } else {
-                    copyItem.metadataProbeFailed = true;
-                    copyItem.probeAttemptCount = 1;
-                    copyItem.lastProbeAttemptTimestamp = GetCurrentTimestampSec();
-                }
+                    const bool ok = probe(d, w, h);
+                    ApplyMediaProbeOutcome(copyItem, ok, d, w, h);
                     StampProbedFile(copyItem, observed);
                 }
                 newItems.push_back(std::move(copyItem));
@@ -1136,18 +1122,8 @@ MediaImportResult MediaLibrary::ImportPaths(const std::vector<std::wstring>& pat
                 existing->title = GetFileNameFromPath(file.path);
                 existing->fileSizeBytes = size;
                 double d = 0; uint32_t w = 0, h = 0;
-                if (probe(d, w, h)) {
-                    existing->durationSec = d;
-                    existing->videoWidth = w;
-                    existing->videoHeight = h;
-                    existing->metadataProbeFailed = false;
-                    existing->probeAttemptCount = 0;
-                    existing->lastProbeAttemptTimestamp = 0;
-                } else {
-                    existing->metadataProbeFailed = true;
-                    existing->probeAttemptCount++;
-                    existing->lastProbeAttemptTimestamp = GetCurrentTimestampSec();
-                }
+                const bool ok = probe(d, w, h);
+                ApplyMediaProbeOutcome(*existing, ok, d, w, h);
                 StampProbedFile(*existing, observed);
                 result.updated++;
                 anyChanged = true;
@@ -1159,13 +1135,8 @@ MediaImportResult MediaLibrary::ImportPaths(const std::vector<std::wstring>& pat
                     const auto& before = *existingMetadata;
                     existing->fileSizeBytes = size;
                     double d = 0; uint32_t w = 0, h = 0;
-                    if (probe(d, w, h)) {
-                        existing->durationSec = d; existing->videoWidth = w; existing->videoHeight = h;
-                        existing->metadataProbeFailed = false; existing->probeAttemptCount = 0; existing->lastProbeAttemptTimestamp = 0;
-                    } else {
-                        existing->metadataProbeFailed = true; ++existing->probeAttemptCount;
-                        existing->lastProbeAttemptTimestamp = GetCurrentTimestampSec();
-                    }
+                    const bool ok = probe(d, w, h);
+                    ApplyMediaProbeOutcome(*existing, ok, d, w, h);
                     StampProbedFile(*existing, observed);
                     if (!before.Matches(*existing)) { ++result.updated; anyChanged = true; }
                     else ++result.unchanged;
@@ -1188,14 +1159,8 @@ MediaImportResult MediaLibrary::ImportPaths(const std::vector<std::wstring>& pat
             x.addedTimestamp = GetCurrentTimestampSec();
             if (exists) {
                 double d = 0; uint32_t w = 0, h = 0;
-                if (probe(d, w, h)) {
-                    x.durationSec = d;
-                    x.videoWidth = w;
-                    x.videoHeight = h;
-                    x.metadataProbeFailed = false;
-                    x.probeAttemptCount = 0;
-                    x.lastProbeAttemptTimestamp = 0;
-                } else { x.metadataProbeFailed = true; x.probeAttemptCount = 1; x.lastProbeAttemptTimestamp = GetCurrentTimestampSec(); }
+                const bool ok = probe(d, w, h);
+                ApplyMediaProbeOutcome(x, ok, d, w, h);
                 StampProbedFile(x, observed);
             }
             newItems.push_back(std::move(x));
@@ -1277,8 +1242,10 @@ void MediaLibrary::UpdateProgress(const std::wstring& path, double pos, double d
     if (visibleStateChanged) { libraryVersion++; ++revisions.playback; }
     if (m->durationSec != oldDuration) ++revisions.catalog;
     const std::wstring resolvedKey = NormalizePathKey(resolved);
+    std::wstring recordKey;
     for (auto& record : history) {
-        if (Identity(record.filePath) != resolvedKey) continue;
+        NormalizePathKeyInto(record.filePath, recordKey);
+        if (recordKey != resolvedKey) continue;
         if (visibleStateChanged) ++revisions.history;
         record.lastPosSec = m->lastPosSec;
         if (m->durationSec > 0.0) record.durationSec = m->durationSec;
@@ -1319,43 +1286,46 @@ size_t MediaLibrary::SetWatched(const std::vector<std::wstring>& paths, bool wat
     return completed;
 }
 
-void MediaLibrary::AddToHistory(const std::wstring& path, double pos, double dur) {
+void MediaLibrary::AddToHistory(const std::wstring& path, double pos, double dur, bool saveChanges) {
     if (ClassifyPlaybackTarget(path) != PlaybackTargetKind::LocalFile) return;
     std::wstring resolved = ResolveAppPath(path);
+    std::wstring resolvedKey;
+    NormalizePathKeyInto(resolved, resolvedKey);
+    std::wstring recordKey;
     for (auto i = history.begin(); i != history.end(); ++i) {
-        if (SamePath(i->filePath, resolved)) {
-            HistoryRecord h = *i;
-            history.erase(i);
+        NormalizePathKeyInto(i->filePath, recordKey);
+        if (recordKey == resolvedKey) {
+            if (i != history.begin()) std::rotate(history.begin(), i, i + 1);
+            HistoryRecord& h = history.front();
             const auto newTitle = GetFileNameFromPath(resolved);
             if (h.title != newTitle || h.filePath != resolved) ++searchContentVersion;
-            h.filePath = resolved;
+            h.filePath = std::move(resolved);
             h.title = newTitle;
             h.lastPosSec = std::isfinite(pos) ? std::max(0.0, pos) : 0.0;
             h.durationSec = std::isfinite(dur) && dur > 0 ? dur : h.durationSec;
             h.watchedTimestamp = std::max<int64_t>(GetCurrentTimestampSec(), h.watchedTimestamp);
-            history.insert(history.begin(), h);
             ++libraryVersion; ++revisions.history;
-            Save();
+            if (saveChanges) Save();
             return;
         }
     }
     HistoryRecord h;
-    h.filePath = resolved;
-    h.title = GetFileNameFromPath(resolved);
+    h.filePath = std::move(resolved);
+    h.title = GetFileNameFromPath(h.filePath);
     h.lastPosSec = std::isfinite(pos) ? std::max(0.0, pos) : 0.0;
     h.durationSec = std::isfinite(dur) && dur > 0 ? dur : 0;
     h.watchedTimestamp = GetCurrentTimestampSec();
-    history.insert(history.begin(), h);
+    history.insert(history.begin(), std::move(h));
     if (history.size() > 100) history.resize(100);
     ++libraryVersion; ++revisions.history; ++searchContentVersion;
-    Save();
+    if (saveChanges) Save();
 }
 
-bool MediaLibrary::RemoveFromHistory(size_t i) {
+bool MediaLibrary::RemoveFromHistory(size_t i, bool saveChanges) {
     if (i >= history.size()) return false;
     history.erase(history.begin() + i);
     ++libraryVersion; ++revisions.history; ++searchContentVersion;
-    Save();
+    if (saveChanges) Save();
     return true;
 }
 
@@ -1974,12 +1944,14 @@ void MediaLibrary::LoadMediaRecord(JsonValue& json, const std::wstring& rootDir)
         }
         std::stable_sort(item.bookmarks.begin(), item.bookmarks.end(), MediaBookmark::Compare);
     }
-    if (json.has_key("overrides") && json.get("overrides").is_object()) {
-        auto& ovJson = json["overrides"];
+    const char* ovKey = (json.has_key("overrides") && json.get("overrides").is_object()) ? "overrides"
+        : ((json.has_key("metadataOverrides") && json.get("metadataOverrides").is_object()) ? "metadataOverrides" : nullptr);
+    if (ovKey) {
+        auto& ovJson = json[ovKey];
         MediaMetadataOverrides ov;
         if (ovJson.has_key("title") && ovJson.get("title").is_string()) {
             std::wstring t = ovJson.get("title").as_wstring();
-            if (MediaMetadataOverrides::IsValidTitle(t)) ov.title = t;
+            if (MediaMetadataOverrides::IsValidTitle(t)) ov.title = std::move(t);
         }
         if (ovJson.has_key("year") && ovJson.get("year").is_number()) {
             int y = ovJson.get("year").as_int();
@@ -1987,42 +1959,15 @@ void MediaLibrary::LoadMediaRecord(JsonValue& json, const std::wstring& rootDir)
         }
         if (ovJson.has_key("series") && ovJson.get("series").is_string()) {
             std::wstring s = ovJson.get("series").as_wstring();
-            if (MediaMetadataOverrides::IsValidSeries(s)) ov.series = s;
+            if (MediaMetadataOverrides::IsValidSeries(s)) ov.series = std::move(s);
         }
         if (ovJson.has_key("coverArtPath") && ovJson.get("coverArtPath").is_string()) {
             std::wstring c = ovJson.get("coverArtPath").as_wstring();
             if (!c.empty()) ov.coverArtPath = std::move(c);
         }
-        {
-            static constexpr const char* kKnownOverrideKeys[] = { "title", "year", "series", "coverArtPath" };
-            StripKnownKeys(ovJson, kKnownOverrideKeys, sizeof(kKnownOverrideKeys) / sizeof(kKnownOverrideKeys[0]));
-            ov.extraFields = std::move(ovJson);
-        }
-        if (ov.HasAnyOverride()) { item.overrides = std::move(ov); }
-    } else if (json.has_key("metadataOverrides") && json.get("metadataOverrides").is_object()) {
-        auto& ovJson = json["metadataOverrides"];
-        MediaMetadataOverrides ov;
-        if (ovJson.has_key("title") && ovJson.get("title").is_string()) {
-            std::wstring t = ovJson.get("title").as_wstring();
-            if (MediaMetadataOverrides::IsValidTitle(t)) ov.title = t;
-        }
-        if (ovJson.has_key("year") && ovJson.get("year").is_number()) {
-            int y = ovJson.get("year").as_int();
-            if (MediaMetadataOverrides::IsValidYear(y)) ov.year = y;
-        }
-        if (ovJson.has_key("series") && ovJson.get("series").is_string()) {
-            std::wstring s = ovJson.get("series").as_wstring();
-            if (MediaMetadataOverrides::IsValidSeries(s)) ov.series = s;
-        }
-        if (ovJson.has_key("coverArtPath") && ovJson.get("coverArtPath").is_string()) {
-            std::wstring c = ovJson.get("coverArtPath").as_wstring();
-            if (!c.empty()) ov.coverArtPath = std::move(c);
-        }
-        {
-            static constexpr const char* kKnownOverrideKeys[] = { "title", "year", "series", "coverArtPath" };
-            StripKnownKeys(ovJson, kKnownOverrideKeys, sizeof(kKnownOverrideKeys) / sizeof(kKnownOverrideKeys[0]));
-            ov.extraFields = std::move(ovJson);
-        }
+        static constexpr const char* kKnownOverrideKeys[] = { "title", "year", "series", "coverArtPath" };
+        StripKnownKeys(ovJson, kKnownOverrideKeys, sizeof(kKnownOverrideKeys) / sizeof(kKnownOverrideKeys[0]));
+        ov.extraFields = std::move(ovJson);
         if (ov.HasAnyOverride()) { item.overrides = std::move(ov); }
     }
     const std::wstring pathKey = NormalizePathKey(item.filePath);

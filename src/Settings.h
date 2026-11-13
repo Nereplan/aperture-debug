@@ -187,7 +187,7 @@ public:
     void UpdateThemeColors();
     ThemePalette GetThemePalette(const std::string& id) const;
     const std::vector<ThemePalette>& GetAllThemes() const;
-    std::vector<std::string> GetAvailableFonts() const;
+    const std::vector<std::string>& GetAvailableFonts() const;
     std::vector<LocaleInfo> GetAvailableLanguages() const;
     float GetSubFontSizePoints() const;
     D2D1_COLOR_F GetSubTextColor() const;

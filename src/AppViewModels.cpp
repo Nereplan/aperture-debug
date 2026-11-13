@@ -87,7 +87,12 @@ PlayerRenderViewModel App::BuildPlayerRenderViewModel() const {
     vm.isPiP = playbackSession.IsPiP();
     // 1. Subtitles
     if (subtitles.GetActiveTrack()) {
-        vm.subtitle.text = subtitles.GetCurrentSubtitleText(player.GetCurrentTime(), settings.subDelayMs);
+        if (frameSubtitleEvaluated) {
+            vm.subtitle.text = frameSubtitleText;
+            frameSubtitleEvaluated = false;
+        } else {
+            vm.subtitle.text = subtitles.GetCurrentSubtitleText(player.GetCurrentTime(), settings.subDelayMs);
+        }
         if (!vm.subtitle.text.empty()) {
             vm.subtitle.visible = true;
             vm.subtitle.bounds = vm.winBounds;
@@ -260,14 +265,41 @@ PlayerRenderViewModel App::BuildPlayerRenderViewModel() const {
         vm.osdBadge.icon = osdIcon;
         vm.osdBadge.text = osdText;
     }
-    // 7b. Diagnostics
+    // 7b. Diagnostics (cached up to 300 ms while open; cleared when hidden or on media/track change)
+    struct CachedDiagnosticsState {
+        const App* owner = nullptr;
+        std::wstring filePath;
+        uint64_t tracksVersion = 0;
+        bool isPlaying = false;
+        ULONGLONG lastFetchTickMs = 0;
+        bool valid = false;
+        PlayerDiagnostics snapshot;
+    };
+    static CachedDiagnosticsState s_diagCache;
     if (showPlaybackDiagnostics) {
+        const std::wstring curPath = player.GetCurrentFilePath();
+        const uint64_t tracksVer = player.GetTracksVersion();
+        const bool isPlaying = player.IsPlaying();
+        const ULONGLONG nowTick = GetTickCount64();
+        if (!s_diagCache.valid || s_diagCache.owner != this || s_diagCache.filePath != curPath ||
+            s_diagCache.tracksVersion != tracksVer || s_diagCache.isPlaying != isPlaying ||
+            (nowTick - s_diagCache.lastFetchTickMs) >= 300) {
+            s_diagCache.snapshot = player.GetDiagnostics(true);
+            s_diagCache.owner = this;
+            s_diagCache.filePath = curPath;
+            s_diagCache.tracksVersion = tracksVer;
+            s_diagCache.isPlaying = isPlaying;
+            s_diagCache.lastFetchTickMs = nowTick;
+            s_diagCache.valid = true;
+        }
         vm.diagnosticsOverlay.visible = true;
         vm.diagnosticsOverlay.closeHovered = IsPlaybackDiagnosticsCloseHit(lastPlayerMouseX, lastPlayerMouseY);
         vm.diagnosticsOverlay.bounds = vm.winBounds;
-        vm.diagnosticsOverlay.diagnostics = player.GetDiagnostics();
+        vm.diagnosticsOverlay.diagnostics = s_diagCache.snapshot;
         vm.diagnosticsOverlay.audioDelayMs = settings.audioDelayMs;
         vm.diagnosticsOverlay.subDelayMs = settings.subDelayMs;
+    } else if (s_diagCache.valid && s_diagCache.owner == this) {
+        s_diagCache = {};
     }
     // 7b-2. Diagnostics Log (mirrored each frame like the diagnostics overlay).
     if (showLogViewer) {

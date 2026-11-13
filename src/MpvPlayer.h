@@ -12,6 +12,7 @@
 #include <thread>
 #include <atomic>
 #include <condition_variable>
+#include <unordered_map>
 
 namespace Aperture {
 
@@ -256,7 +257,9 @@ public:
     std::wstring GetAudioCodec() const;
     std::wstring GetResolutionString() const;
     double GetCacheDuration() const;
-    PlayerDiagnostics GetDiagnostics() const;
+    void SetDiagnosticsActive(bool active) { diagnosticsActive.store(active, std::memory_order_release); }
+    bool IsDiagnosticsActive() const { return diagnosticsActive.load(std::memory_order_acquire); }
+    PlayerDiagnostics GetDiagnostics(bool queryLiveProperties = true) const;
     // Callback registration is synchronized with the libmpv event thread.
     void SetOnEnded(std::function<void()> callback);
     void SetOnTimeUpdated(std::function<void(double)> callback);
@@ -281,6 +284,11 @@ private:
     void RefreshTracks();
     void RefreshChapters();
     void SetImageAdjustment(int& state, int value, const char* property, const char* operation);
+    int SetStringPropertyCached(const char* property, const char* value);
+    int SetDoublePropertyCached(const char* property, double value, int stringPrecision = 3);
+    int SetInt64PropertyCached(const char* property, int64_t value);
+    int SetFlagPropertyCached(const char* property, int value);
+    void SeedInitialAppliedPropertiesLocked();
     enum class ErrorSeverity { Recoverable, Fatal };
     void ReportError(const char* operation, int errorCode, ErrorSeverity severity = ErrorSeverity::Recoverable);
     void ReportErrorMessage(const std::wstring& message, ErrorSeverity severity = ErrorSeverity::Recoverable);
@@ -292,7 +300,21 @@ private:
     std::atomic<bool> isRunning{ false };
     std::atomic<bool> ended{ false };
     std::atomic<bool> loop{ false };
+    std::atomic<bool> diagnosticsActive{ false };
     std::thread eventThread;
+#if !defined(_WIN32)
+    static void OnWaylandRenderUpdate(void* ctx);
+    void WaylandRenderLoop();
+    mpv_render_context* linuxRenderCtx = nullptr;
+    std::thread waylandRenderThread;
+    std::mutex waylandRenderMutex;
+    std::condition_variable waylandRenderCv;
+    bool waylandFramePending = false;
+    bool waylandRenderStop = false;
+    std::atomic<int> linuxVideoW{ 1280 };
+    std::atomic<int> linuxVideoH{ 720 };
+    std::vector<uint8_t> waylandPixelBuffer;
+#endif
     mutable std::mutex stateMutex;
     mutable std::mutex mpvMutex;
     mutable std::mutex callbackMutex;
@@ -329,6 +351,14 @@ private:
     std::string lastDeinterlaceMode = "off";
     bool customMpvConfigEnabled = false;
     std::string customMpvConfigPath = "mpv.conf";
+    decltype(&::mpv_free_node_contents) fn_mpv_free_node_contents = nullptr;
+    struct AppliedPropertyCache {
+        std::unordered_map<std::string, std::string> strings;
+        std::unordered_map<std::string, double> doubles;
+        std::unordered_map<std::string, int64_t> int64s;
+        std::unordered_map<std::string, int> flags;
+        void Clear() { strings.clear(); doubles.clear(); int64s.clear(); flags.clear(); }
+    } appliedProps;
 
 };
 
@@ -365,8 +395,46 @@ bool LoadHubThumbnailFromDiskCache( const std::wstring& filePath, int width, int
 // Prune entries whose media is no longer live, including obsolete hub keys.
 size_t PruneOrphanedHubThumbnailDiskCache( const std::vector<std::wstring>& liveFilePaths, const std::wstring& root = GetExeDir() );
 
+// Shared lightweight libmpv wrapper helper for secondary players/extractors
+// (hover preview, Listen audio island, and hub thumbnail extractor).
+class MpvClientBase : protected MpvApiOwner {
+public:
+    using MpvApiOwner::GetInitializationDiagnostics;
+    using MpvApiOwner::SetInitializationDiagnosticSink;
+
+protected:
+    friend struct MpvPreviewTestAccess;
+    struct OptionSpec {
+        const char* name;
+        const char* value;
+        MpvOptionRequirement requirement = MpvOptionRequirement::Optional;
+        const char* fallback = nullptr;
+    };
+
+    MpvClientBase() = default;
+    ~MpvClientBase() = default;
+
+    static void OnRenderUpdate(void* ctx);
+    bool InitializeClientLocked(MpvApiProfile profile, const char* owner, HMODULE hDll,
+                                const OptionSpec* options, size_t optionCount,
+                                bool withSwRenderContext, bool requireWaitEvent = false);
+    void StopMpvLocked();
+    void TeardownMpvLocked();
+    bool LoadFileLocked(const std::wstring& path, double startSec, bool allowCmdStringFallback = false);
+    void SetPauseLocked(bool paused);
+    void SetVolumeLocked(double volume);
+    void DrainSimpleEventsLocked();
+    bool RenderSwFrameLocked(int width, int height);
+
+    mpv_handle* mpv = nullptr;
+    mpv_render_context* renderCtx = nullptr;
+    std::atomic<bool> frameReady{ false };
+    std::vector<uint8_t> pixelBuffer;
+    mutable std::mutex lifecycleMutex;
+};
+
 // High-performance background video preview renderer using libmpv render context
-class MpvPreviewPlayer : private MpvApiOwner {
+class MpvPreviewPlayer : private MpvClientBase {
 public:
     using MpvApiOwner::GetInitializationDiagnostics;
     using MpvApiOwner::SetInitializationDiagnosticSink;
@@ -387,19 +455,12 @@ public:
 
 private:
     friend struct MpvPreviewTestAccess;
-    static void OnRenderUpdate(void* ctx);
-    void StopMpvLocked();
-    void DrainPreviewEventsLocked();
     void EnsureBufferDimensionsLocked(int width, int height);
     void BindDeviceContextLocked(ID2D1DeviceContext* context);
     bool UploadBitmapLocked(ComPtr<ID2D1Bitmap>& bitmap, ID2D1DeviceContext* context,
                             UINT width, UINT height, const uint8_t* pixels);
-    mpv_handle* mpv = nullptr;
-    mpv_render_context* renderCtx = nullptr;
     std::wstring currentPreviewPath;
     std::atomic<bool> isActive{ false };
-    std::atomic<bool> frameReady{ false };
-    std::vector<uint8_t> pixelBuffer;
     // Keep card playback sharp while bounding its CPU render buffer.
     static constexpr int kFallbackBufferWidth = 320, kFallbackBufferHeight = 180;
     static constexpr int kMinPreviewBufferWidth = 640, kMaxPreviewBufferWidth = 960;
@@ -407,14 +468,12 @@ private:
     int bufferWidth = kFallbackBufferWidth, bufferHeight = kFallbackBufferHeight;
     ComPtr<ID2D1Bitmap> previewBitmap;
     ComPtr<ID2D1Device> bitmapDevice;
-    mutable std::mutex lifecycleMutex;
-
 };
 
 // Fire-and-forget audio player for the Listen island (radio streams and
 // podcast episodes). Owns a private mpv client with video disabled and no
 // render context: mpv advances on its own once unpaused. UI thread only.
-class MpvListenPlayer : private MpvApiOwner {
+class MpvListenPlayer : private MpvClientBase {
 public:
     using MpvApiOwner::GetInitializationDiagnostics;
     using MpvApiOwner::SetInitializationDiagnosticSink;
@@ -442,10 +501,8 @@ public:
 
 private:
     bool EnsureInitializedLocked(HMODULE hDll);
-    void SendStopLocked();
     void DrainEventsLocked(bool recordFinish);
-    void TeardownLocked(); // caller holds mutex
-    mpv_handle* mpv = nullptr;
+    void TeardownLocked(); // caller holds lifecycleMutex
     std::wstring currentPath;
     bool listenInitialized = false;
     bool loadStarted = false;     // MPV_EVENT_START_FILE seen for the current Start
@@ -453,15 +510,13 @@ private:
     bool paused = false;
     bool finished = false;        // EOF/idle observed after a load
     bool finishedReported = false; // PollFinished one-shot latch
-    mutable std::mutex lifecycleMutex;
-
 };
 
 // Dedicated hub thumbnail extractor for files the Windows shell cannot thumbnail (notably MKV, which has no inbox Explorer handler). It
 // owns a separate mpv instance tuned purely for fast single-frame grabs — keyframe seeks, skipped loop filtering, tiny demuxer window — so
 // extraction never contends with hover previews or playback decoding, and can run in parallel with them. The App drives it
 // while idle: Begin once, Pump every tick (needs no D2D device), TakeResult when ready.
-class MpvHubExtractor : private MpvApiOwner {
+class MpvHubExtractor : private MpvClientBase {
 public:
     using MpvApiOwner::GetInitializationDiagnostics;
     using MpvApiOwner::SetInitializationDiagnosticSink;
@@ -482,26 +537,19 @@ public:
     static constexpr int kExtractWidth = 320, kExtractHeight = 180;
 
 private:
-    static void OnRenderUpdate(void* ctx);
     bool EnsureInitialized();
-    void TeardownLocked(); // caller holds mutex (Begin/Shutdown paths)
-    void StopMpvLocked();
+    void TeardownLocked(); // caller holds lifecycleMutex (Begin/Shutdown paths)
     void StartSaveWorker();
     void StopSaveWorker();
     void SaveWorkerThread();
     void QueueSave(PreviewThumbnailFrame frame, std::wstring cacheKey);
-    mpv_handle* mpv = nullptr;
-    mpv_render_context* renderCtx = nullptr;
-    std::atomic<bool> frameReady{ false };
     std::atomic<bool> isPrivateMode{ false };
-    std::vector<uint8_t> pixelBuffer;
     bool active = false, resultReady = false;
     std::wstring extractPath;
     double extractStartSec = 0.0;
     long long extractStartTickMs = 0;
     static constexpr long long kExtractTimeoutMs = 6000;
     PreviewThumbnailFrame resultFrame;
-    mutable std::mutex mutex;
     std::thread saveWorker;
     std::mutex saveMutex;
     std::condition_variable saveCv;

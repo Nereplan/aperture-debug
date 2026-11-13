@@ -9,7 +9,9 @@
 #include <functional>
 #include <cstdint>
 
+#if defined(_WIN32)
 #pragma comment(lib, "winhttp.lib")
+#endif
 
 namespace Aperture {
 

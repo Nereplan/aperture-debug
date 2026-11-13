@@ -234,10 +234,21 @@ namespace Detail {
         if (name.size() != 26 || _wcsnicmp(name.data(), L"thumb_", 6) != 0 || _wcsicmp(name.data() + 22, L".bin") != 0) return false;
         return std::all_of(name.begin() + 6, name.begin() + 22, [](wchar_t c) { return iswxdigit(c) != 0; });
     }
+    inline void ApplyIndexDelta(CacheIndex& index, const CacheFileInfo& file, bool add) {
+        const auto delta = file.sizeBytes;
+        if (add) {
+            index.total += delta;
+            index.classes[file.cacheClass] += delta;
+            if (file.cacheClass == CacheClass::Thumbnails) (IsSeekThumbnail(file.path) ? index.seek : index.hub) += delta;
+        } else {
+            index.total -= delta;
+            index.classes[file.cacheClass] -= delta;
+            if (file.cacheClass == CacheClass::Thumbnails) (IsSeekThumbnail(file.path) ? index.seek : index.hub) -= delta;
+        }
+    }
     inline void RemoveIndexFile(CacheIndex& index, const std::wstring& path) {
         auto it = index.files.find(path); if (it == index.files.end()) return;
-        index.total -= it->sizeBytes; index.classes[it->cacheClass] -= it->sizeBytes;
-        if (it->cacheClass == CacheClass::Thumbnails) (IsSeekThumbnail(it->path) ? index.seek : index.hub) -= it->sizeBytes;
+        ApplyIndexDelta(index, *it, false);
         index.files.erase(it);
     }
     inline void AddIndexFile(CacheIndex& index, CacheFileInfo file) {
@@ -249,9 +260,7 @@ namespace Detail {
             RemoveIndexFile(index, file.path);
             inserted = index.files.insert(std::move(file));
         }
-        const auto& stored = *inserted.first;
-        index.total += stored.sizeBytes; index.classes[stored.cacheClass] += stored.sizeBytes;
-        if (stored.cacheClass == CacheClass::Thumbnails) (IsSeekThumbnail(stored.path) ? index.seek : index.hub) += stored.sizeBytes;
+        ApplyIndexDelta(index, *inserted.first, true);
     }
     inline CacheIndex& IndexFor(const std::wstring& root, bool refresh = false) {
         auto& indexes = CacheIndexes(); const auto key = CacheRootKey(root);
@@ -331,9 +340,10 @@ inline EvictionResult EvictCacheToBudget(const CacheBudgetConfig& budgets, const
 
 inline StorageStatus AtomicWriteCacheFile( CacheClass cacheClass, const std::wstring& relativePath, const std::string& data,
     const CacheBudgetConfig& budgets = GetGlobalCacheBudgets(), const std::wstring& root = GetExeDir(),
-    const std::string* expectedContent = nullptr)
+    const std::string* expectedContent = nullptr, bool durable = true)
 {
     std::lock_guard<std::recursive_mutex> ioLock(Detail::CacheIOMutex());
+    if (cacheClass == CacheClass::Thumbnails || cacheClass == CacheClass::Shaders) durable = false;
     if (relativePath.empty())
         return StorageStatus::Error(StorageErrorCode::InvalidPath, ERROR_INVALID_PARAMETER, L"", "Cache relative path is empty");
     if (root.empty())
@@ -427,7 +437,7 @@ inline StorageStatus AtomicWriteCacheFile( CacheClass cacheClass, const std::wst
     BOOL writeOk = TRUE;
     if (!data.empty()) { writeOk = WriteFile(hFile, data.data(), (DWORD)data.size(), &written, NULL) && (written == (DWORD)data.size()); }
     DWORD writeErr = writeOk ? 0 : GetLastError();
-    if (writeOk) { FlushFileBuffers(hFile); }
+    if (writeOk && durable) { FlushFileBuffers(hFile); }
         FILETIME now;
         GetSystemTimeAsFileTime(&now);
         static std::atomic<uint64_t> s_fileTimeCounter{ 0 };
@@ -441,7 +451,8 @@ inline StorageStatus AtomicWriteCacheFile( CacheClass cacheClass, const std::wst
         DeleteFileW(tmp.c_str());
         return StorageStatus::Error(StorageErrorCode::FileWriteFailed, writeErr, tmp, "Failed to write content to temporary cache file");
     }
-    if (!MoveFileExW(tmp.c_str(), targetPath.c_str(), MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH)) {
+    const DWORD moveFlags = MOVEFILE_REPLACE_EXISTING | (durable ? MOVEFILE_WRITE_THROUGH : 0);
+    if (!MoveFileExW(tmp.c_str(), targetPath.c_str(), moveFlags)) {
         DWORD moveErr = GetLastError();
         DeleteFileW(tmp.c_str());
         return StorageStatus::Error(StorageErrorCode::AtomicRenameFailed, moveErr, targetPath, "Failed to rename temporary cache file to destination");
