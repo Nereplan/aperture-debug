@@ -2374,7 +2374,7 @@ DWORD App::GetNextIdleWaitMs() const {
         const ULONGLONG elapsed = nowMs >= radioSearchEditTick ? (nowMs - radioSearchEditTick) : 0;
         clampWait(elapsed >= 400 ? 1.0 : static_cast<double>(400 - elapsed));
     }
-    if ((playbackSession.IsOpen() || IsIconic(hWnd)) && !hiddenLibraryCachesTrimmed && hiddenLibrarySinceMs != 0) {
+    if ((playbackSession.IsOpen() || (hWnd && IsIconic(hWnd))) && !hiddenLibraryCachesTrimmed && hiddenLibrarySinceMs != 0) {
         const ULONGLONG delayMs = playbackSession.IsOpen() ? 2500ULL : 15000ULL;
         const ULONGLONG elapsed = nowMs >= hiddenLibrarySinceMs ? (nowMs - hiddenLibrarySinceMs) : 0;
         clampWait(elapsed >= delayMs ? 1.0 : static_cast<double>(delayMs - elapsed));
