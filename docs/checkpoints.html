@@ -96,7 +96,7 @@ git diff --check</pre>
 <script id="checkpoint-data" type="application/json">
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-11-03T01:05:25+00:00",
+  "updatedAt": "2026-11-14T00:26:41+00:00",
   "metrics": {
     "visible-ms": {
       "label": "Visible window",
@@ -439,6 +439,21 @@ git diff --check</pre>
       "label": "Overlay, subtitle, RSS XML, and library path lookup micro-benchmarks",
       "category": "Rendering",
       "method": "Three fresh processes (run1.csv..run3.csv) compiled with /O1 /Ob2 /MT /GL /LTCG matching CMake Release flags and pinned to the first allowed logical processor, one warmup and seven measured samples per workload per process (21 measured samples pooled). Compares pre-audit vs post-audit paths in audit_perf_bench.cpp linked against Release objects with AllocationProbe: (1) 60 calls to OverlayRenderer::ReleaseEmptySurface across a full 3840x2160 buffer (representing 60 HUD fade-out full-surface scans or bottom-corner secondary overlay checks when controlsOpacity \u003c= 0.0f), (2) 30 vlc-outline subtitle draws on a pre-allocated wstring inside a 3840x2160 DC render target with BeginDraw+Flush before the timer and EndDraw inside the timed region (24-pass step-1 ring vs 12-pass gap-free 1px+cardinal-2px ring + 1 fill), (3) 20 calls to ParseRssFeed on a 100-episode RSS XML payload with XML entities (\u0026amp;, \u0026#39;) using verbatim git HEAD ParseRfc822Date/DecodeXmlEntities in before, and (4) 1,000 uniformly distributed HubExtractStartSecForPath lookups (indices 0, 10, ..., 9990) on a 10,000-item MediaLibrary."
+    },
+    "startup-empty-thispc-v1": {
+      "label": "Empty portable profile startup (This PC / 120 DPI)",
+      "category": "Startup",
+      "method": "Five measured empty portable launches (after warmups) via scripts/run_benchmark.ps1 on This PC (Ryzen AI 7 350 / Radeon 860M iGPU, 120 DPI) in the interactive desktop session. Kept separate from desktop empty-profile-startup history series."
+    },
+    "playback-owned-visible-hub-thispc-30s-v1": {
+      "label": "Owned visible HubThenOpen 1080p30 H.264 vs VLC 3.0.24 (This PC / 120 DPI)",
+      "category": "Playback",
+      "method": "One warmup and three measured fresh processes per player in interleaved order on This PC (120 DPI / 125% scaling, logical client 1280x720 -\u003e physical screenCanvas 1601x901 Aperture / 1601x900 VLC). HubThenOpen (3s hub settle), 1080p30 H.264 no-audio 60s fixture (h264_1080p_60s.mp4), 20.5s alignment + 30s sampling window (7 guarded snapshots/run). RAM/GPU use per-run medians; CPU-core uses Windows CPU-time endpoint deltas (one LP = 100%, 16 LPs = 1600% max). evaluate_rival.py exited 2 on 96-DPI screenCanvas equality check; raw runs verified advancing and un-occluded."
+    },
+    "playback-owned-visible-hub-thispc-tsc-30s-v1": {
+      "label": "Hardware-calibrated CPU for owned visible HubThenOpen 1080p30 H.264 (This PC / TSC)",
+      "category": "Playback",
+      "method": "Same batch as playback-owned-visible-hub-thispc-30s-v1. CPU-core uses process-cycle endpoint deltas divided by endpoint wall seconds and immediate post-batch calibrated invariant TSC rate (1996158436.191914 Hz, spread 0.000002296, 5 samples). Conflicting Windows CPU-time readings preserved separately."
     }
   },
   "environments": {
@@ -499,6 +514,11 @@ git diff --check</pre>
     "library-selection-20261019-unattested-host": {
       "label": "Saved Windows x64 library probe / host not fully attested",
       "details": "The saved native probes and original build/validation logs identify this study. The CSVs do not embed a complete hardware/OS/host-load manifest or verified affinity success; source/probe hashes observed retrospectively are recorded. This isolated environment identity prevents fabricated joins with playback or earlier library studies."
+    },
+    "ryzen-ai7-350-radeon860m": {
+      "label": "Ryzen AI 7 350 / Radeon 860M (This PC)",
+      "logicalProcessors": 16,
+      "details": "{\"osVersion\": \"Microsoft Windows 11 Home 10.0.26200 build 26200\", \"cpuName\": \"AMD Ryzen AI 7 350 w/ Radeon 860M              \", \"logicalProcessors\": 16, \"gpuName\": \"AMD Radeon(TM) 860M Graphics\", \"gpuDriverVersion\": \"32.0.32015.7029\", \"lastBootUpTimeUtc\": \"2026-11-13T15:15:47.3801560Z\", \"source\": \"Win32_ComputerSystem, Win32_OperatingSystem, Win32_Processor and Win32_VideoController CIM instances\", \"ramGiB\": 23.66, \"displayDpi\": 120, \"displayScalePercent\": 125, \"role\": \"Laptop AMD iGPU environment for cross-PC comparison alongside Desktop RTX 4070 SUPER\"}"
     }
   },
   "references": {
@@ -1870,6 +1890,101 @@ git diff --check</pre>
             "runs": 3,
             "scope": "Three fresh measured processes; one warmup excluded per player. CPU uses complete30s endpoint deltas; RAM/GPU uses median of seven snapshots per run, then median across runs. Ranges describe per-run values, not confidence intervals."
           }
+        }
+      ]
+    },
+    "vlc-3.0.24-thispc-h264-hub-20261114": {
+      "player": "VLC",
+      "version": "3.0.24",
+      "measuredAt": "2026-11-14T00:18:36.8184848Z",
+      "results": [
+        {
+          "metric": "visible-ms",
+          "protocol": "playback-owned-visible-hub-thispc-30s-v1",
+          "environment": "ryzen-ai7-350-radeon860m",
+          "workload": "1080p30 H.264 / no audio / 1280x720 canvas (120 DPI) / player defaults / HubThenOpen",
+          "session": "laptop-amd860m-20261114",
+          "value": 499.322,
+          "samples": 3,
+          "samplingNote": "3 measured runs (1 warmup); min 497.9925, max 527.9063",
+          "evidence": "docs/evidence/laptop-amd860m-20261114/rival-h264/comparison.json"
+        },
+        {
+          "metric": "private-mib",
+          "protocol": "playback-owned-visible-hub-thispc-30s-v1",
+          "environment": "ryzen-ai7-350-radeon860m",
+          "workload": "1080p30 H.264 / no audio / 1280x720 canvas (120 DPI) / player defaults / HubThenOpen",
+          "session": "laptop-amd860m-20261114",
+          "value": 357.609375,
+          "samples": 3,
+          "samplingNote": "3 run medians; min 357.0859, max 357.8047",
+          "evidence": "docs/evidence/laptop-amd860m-20261114/rival-h264/comparison.json"
+        },
+        {
+          "metric": "working-set-mib",
+          "protocol": "playback-owned-visible-hub-thispc-30s-v1",
+          "environment": "ryzen-ai7-350-radeon860m",
+          "workload": "1080p30 H.264 / no audio / 1280x720 canvas (120 DPI) / player defaults / HubThenOpen",
+          "session": "laptop-amd860m-20261114",
+          "value": 152.3671875,
+          "samples": 3,
+          "samplingNote": "3 run medians; min 152.1992, max 152.7852",
+          "evidence": "docs/evidence/laptop-amd860m-20261114/rival-h264/comparison.json"
+        },
+        {
+          "metric": "gpu-mib",
+          "protocol": "playback-owned-visible-hub-thispc-30s-v1",
+          "environment": "ryzen-ai7-350-radeon860m",
+          "workload": "1080p30 H.264 / no audio / 1280x720 canvas (120 DPI) / player defaults / HubThenOpen",
+          "session": "laptop-amd860m-20261114",
+          "value": 233.3984375,
+          "samples": 3,
+          "samplingNote": "3 run medians; min 233.3984, max 234.1484",
+          "evidence": "docs/evidence/laptop-amd860m-20261114/rival-h264/comparison.json"
+        },
+        {
+          "metric": "shared-gpu-mib",
+          "protocol": "playback-owned-visible-hub-thispc-30s-v1",
+          "environment": "ryzen-ai7-350-radeon860m",
+          "workload": "1080p30 H.264 / no audio / 1280x720 canvas (120 DPI) / player defaults / HubThenOpen",
+          "session": "laptop-amd860m-20261114",
+          "value": 6.50390625,
+          "samples": 3,
+          "samplingNote": "3 run medians; min 6.5039, max 6.5039",
+          "evidence": "docs/evidence/laptop-amd860m-20261114/rival-h264/comparison.json"
+        },
+        {
+          "metric": "runtime-mib",
+          "protocol": "playback-owned-visible-hub-thispc-30s-v1",
+          "environment": "ryzen-ai7-350-radeon860m",
+          "workload": "1080p30 H.264 / no audio / 1280x720 canvas (120 DPI) / player defaults / HubThenOpen",
+          "session": "laptop-amd860m-20261114",
+          "value": 190.01314163208008,
+          "samples": 1,
+          "samplingNote": "199243220 bytes runtime footprint",
+          "evidence": "docs/evidence/laptop-amd860m-20261114/rival-h264/comparison.json"
+        },
+        {
+          "metric": "cpu-core",
+          "protocol": "playback-owned-visible-hub-thispc-30s-v1",
+          "environment": "ryzen-ai7-350-radeon860m",
+          "workload": "1080p30 H.264 / no audio / 1280x720 canvas (120 DPI) / player defaults / HubThenOpen",
+          "session": "laptop-amd860m-20261114",
+          "value": 4.685475015789426,
+          "samples": 3,
+          "samplingNote": "3 30s endpoint deltas (Windows CPU-time); min 4.5303, max 5.4129",
+          "evidence": "docs/evidence/laptop-amd860m-20261114/rival-h264/comparison.json"
+        },
+        {
+          "metric": "cpu-core",
+          "protocol": "playback-owned-visible-hub-thispc-tsc-30s-v1",
+          "environment": "ryzen-ai7-350-radeon860m",
+          "workload": "1080p30 H.264 / no audio / 1280x720 canvas (120 DPI) / player defaults / HubThenOpen",
+          "session": "laptop-amd860m-20261114",
+          "value": 5.798602429260507,
+          "samples": 3,
+          "samplingNote": "3 30s cycle deltas / calibrated 1996158436.19 Hz; min 5.7123, max 6.1491",
+          "evidence": "docs/evidence/laptop-amd860m-20261114/rival-h264/comparison.json"
         }
       ]
     }
@@ -21311,6 +21426,581 @@ git diff --check</pre>
         }
       ],
       "pairedWith": "audit-optimizations-20261103-before"
+    },
+    {
+      "id": "laptop-amd860m-20261114",
+      "label": "Laptop baseline (Ryzen AI 7 350 / Radeon 860M iGPU): Full suite on 7e3a683",
+      "measuredAt": "2026-11-14T00:18:38.3812192Z",
+      "commit": "7e3a6833557ddac583fa1878281906d2e95c5bd5",
+      "dirty": false,
+      "sourceNote": "Clean release commit 7e3a683; Aperture.exe SHA-256 0142540bde580b02e1b86ffa03365d3297ddfe8210cf35993f283c635c72fcd5; audit_perf_bench.exe dc7cf627c7952b143e2be2f5d3d1885961f8d4f393428fd96604694714623b96; save-benchmark.exe c2d326256b860ecf2c9cbeeff183435d929aba6b81d7cf908d69e16bc5ba86a3. Evidence in docs/evidence/laptop-amd860m-20261114/summary.json.",
+      "notes": [
+        "Empty portable profile startup on This PC (5 runs): shell median 32.05 ms, window shown 24.18 ms, populated 85.7 ms, working set 53.25 MiB, private 41.59 MiB.",
+        "Visible 1080p30 H.264 HubThenOpen playback vs fresh VLC 3.0.24 on Radeon 860M iGPU (3 measured 30s runs): Aperture visible 76.21 ms vs VLC 499.32 ms; private RAM 164.66 vs 357.61 MiB (-54.0%); working set 130.22 vs 152.37 MiB (-14.5%); dedicated GPU 118.04 vs 233.40 MiB (-49.4%); runtime 31.15 vs 190.01 MiB (-83.6%).",
+        "TSC-calibrated CPU (immediate post-run 1.996 GHz invariant-TSC check) is 5.438% (1 LP; 0.340% of 16-LP capacity) vs VLC 5.799% (0.362% of 16-LP capacity, -0.023 pp capacity / -6.2% relative, non-overlapping 5.400..5.459% vs 5.712..6.149%). Uncalibrated Windows CPU-time counter is 5.779% (4.998..6.404%) vs VLC 4.685% (4.530..5.413%). Preserved separately per policy.",
+        "evaluate_rival.py exited 2 on its 96-DPI screenCanvas == [1280,720] equality rule because this laptop runs at 120 DPI (125% scaling -\u003e physical screenCanvas 1601x901 Aperture, 1601x900 VLC). Logical clientCanvas was 1280x720 on all 8 rounds with advancing-playback-verified and zero occlusion.",
+        "Playback progress capture (21 samples): 0 allocations unchanged (0.0060 ms / 0.0090 ms); 18 allocs on single progress change (0.0080 ms, 4544 B / 0.0160 ms, 7616 B).",
+        "Audit microbenchmarks on Ryzen AI 7 350 (21 samples, before -\u003e after): 4K empty overlay 110.5011 -\u003e 0.0000 ms; 4K vlc-outline 5.6745 -\u003e 5.5742 ms; RSS 20x100 23.3510 -\u003e 7.1630 ms; 10k HubExtract lookups 19.1014 -\u003e 0.1602 ms."
+      ],
+      "results": [
+        {
+          "metric": "shell-ms",
+          "protocol": "startup-empty-thispc-v1",
+          "environment": "ryzen-ai7-350-radeon860m",
+          "workload": "Empty portable profile",
+          "session": "laptop-amd860m-20261114",
+          "value": 32.05,
+          "samples": 5,
+          "samplingNote": "5 measured launches via scripts/run_benchmark.ps1",
+          "evidence": "docs/evidence/laptop-amd860m-20261114/summary.json"
+        },
+        {
+          "metric": "startup-window-ms",
+          "protocol": "startup-empty-thispc-v1",
+          "environment": "ryzen-ai7-350-radeon860m",
+          "workload": "Empty portable profile",
+          "session": "laptop-amd860m-20261114",
+          "value": 24.18,
+          "samples": 5,
+          "samplingNote": "5 measured launches via scripts/run_benchmark.ps1",
+          "evidence": "docs/evidence/laptop-amd860m-20261114/summary.json"
+        },
+        {
+          "metric": "populated-ms",
+          "protocol": "startup-empty-thispc-v1",
+          "environment": "ryzen-ai7-350-radeon860m",
+          "workload": "Empty portable profile",
+          "session": "laptop-amd860m-20261114",
+          "value": 85.7,
+          "samples": 5,
+          "samplingNote": "5 measured launches via scripts/run_benchmark.ps1",
+          "evidence": "docs/evidence/laptop-amd860m-20261114/summary.json"
+        },
+        {
+          "metric": "startup-private-bytes",
+          "protocol": "startup-empty-thispc-v1",
+          "environment": "ryzen-ai7-350-radeon860m",
+          "workload": "Empty portable profile",
+          "session": "laptop-amd860m-20261114",
+          "value": 43606016.0,
+          "samples": 5,
+          "samplingNote": "5 measured launches via scripts/run_benchmark.ps1",
+          "evidence": "docs/evidence/laptop-amd860m-20261114/summary.json"
+        },
+        {
+          "metric": "startup-ws-bytes",
+          "protocol": "startup-empty-thispc-v1",
+          "environment": "ryzen-ai7-350-radeon860m",
+          "workload": "Empty portable profile",
+          "session": "laptop-amd860m-20261114",
+          "value": 55840768.0,
+          "samples": 5,
+          "samplingNote": "5 measured launches via scripts/run_benchmark.ps1",
+          "evidence": "docs/evidence/laptop-amd860m-20261114/summary.json"
+        },
+        {
+          "metric": "visible-ms",
+          "protocol": "playback-owned-visible-hub-thispc-30s-v1",
+          "environment": "ryzen-ai7-350-radeon860m",
+          "workload": "1080p30 H.264 / no audio / 1280x720 canvas (120 DPI) / player defaults / HubThenOpen",
+          "session": "laptop-amd860m-20261114",
+          "value": 76.2098,
+          "samples": 3,
+          "samplingNote": "3 measured runs; min 73.7912, max 84.1474",
+          "evidence": "docs/evidence/laptop-amd860m-20261114/rival-h264/comparison.json"
+        },
+        {
+          "metric": "private-mib",
+          "protocol": "playback-owned-visible-hub-thispc-30s-v1",
+          "environment": "ryzen-ai7-350-radeon860m",
+          "workload": "1080p30 H.264 / no audio / 1280x720 canvas (120 DPI) / player defaults / HubThenOpen",
+          "session": "laptop-amd860m-20261114",
+          "value": 164.6640625,
+          "samples": 3,
+          "samplingNote": "3 run medians; min 164.4180, max 166.2969",
+          "evidence": "docs/evidence/laptop-amd860m-20261114/rival-h264/comparison.json"
+        },
+        {
+          "metric": "working-set-mib",
+          "protocol": "playback-owned-visible-hub-thispc-30s-v1",
+          "environment": "ryzen-ai7-350-radeon860m",
+          "workload": "1080p30 H.264 / no audio / 1280x720 canvas (120 DPI) / player defaults / HubThenOpen",
+          "session": "laptop-amd860m-20261114",
+          "value": 130.21875,
+          "samples": 3,
+          "samplingNote": "3 run medians; min 130.0977, max 131.3945",
+          "evidence": "docs/evidence/laptop-amd860m-20261114/rival-h264/comparison.json"
+        },
+        {
+          "metric": "gpu-mib",
+          "protocol": "playback-owned-visible-hub-thispc-30s-v1",
+          "environment": "ryzen-ai7-350-radeon860m",
+          "workload": "1080p30 H.264 / no audio / 1280x720 canvas (120 DPI) / player defaults / HubThenOpen",
+          "session": "laptop-amd860m-20261114",
+          "value": 118.03515625,
+          "samples": 3,
+          "samplingNote": "3 run medians; min 118.0352, max 118.0352",
+          "evidence": "docs/evidence/laptop-amd860m-20261114/rival-h264/comparison.json"
+        },
+        {
+          "metric": "shared-gpu-mib",
+          "protocol": "playback-owned-visible-hub-thispc-30s-v1",
+          "environment": "ryzen-ai7-350-radeon860m",
+          "workload": "1080p30 H.264 / no audio / 1280x720 canvas (120 DPI) / player defaults / HubThenOpen",
+          "session": "laptop-amd860m-20261114",
+          "value": 8.6484375,
+          "samples": 3,
+          "samplingNote": "3 run medians; min 8.6484, max 8.6484",
+          "evidence": "docs/evidence/laptop-amd860m-20261114/rival-h264/comparison.json"
+        },
+        {
+          "metric": "runtime-mib",
+          "protocol": "playback-owned-visible-hub-thispc-30s-v1",
+          "environment": "ryzen-ai7-350-radeon860m",
+          "workload": "1080p30 H.264 / no audio / 1280x720 canvas (120 DPI) / player defaults / HubThenOpen",
+          "session": "laptop-amd860m-20261114",
+          "value": 31.151559829711914,
+          "samples": 1,
+          "samplingNote": "32664778 bytes runtime footprint",
+          "evidence": "docs/evidence/laptop-amd860m-20261114/rival-h264/comparison.json"
+        },
+        {
+          "metric": "cpu-core",
+          "protocol": "playback-owned-visible-hub-thispc-30s-v1",
+          "environment": "ryzen-ai7-350-radeon860m",
+          "workload": "1080p30 H.264 / no audio / 1280x720 canvas (120 DPI) / player defaults / HubThenOpen",
+          "session": "laptop-amd860m-20261114",
+          "value": 5.7792646684726545,
+          "samples": 3,
+          "samplingNote": "3 30s endpoint deltas (Windows CPU-time); min 4.9981, max 6.4042",
+          "evidence": "docs/evidence/laptop-amd860m-20261114/rival-h264/comparison.json"
+        },
+        {
+          "metric": "cpu-core",
+          "protocol": "playback-owned-visible-hub-thispc-tsc-30s-v1",
+          "environment": "ryzen-ai7-350-radeon860m",
+          "workload": "1080p30 H.264 / no audio / 1280x720 canvas (120 DPI) / player defaults / HubThenOpen",
+          "session": "laptop-amd860m-20261114",
+          "value": 5.437737578690968,
+          "samples": 3,
+          "samplingNote": "3 30s cycle deltas / calibrated 1996158436.19 Hz; min 5.3997, max 5.4587",
+          "evidence": "docs/evidence/laptop-amd860m-20261114/rival-h264/comparison.json"
+        },
+        {
+          "metric": "elapsed-ms",
+          "protocol": "playback-progress-capture",
+          "environment": "ryzen-ai7-350-radeon860m",
+          "workload": "500 records / unchanged progress",
+          "session": "laptop-amd860m-20261114",
+          "value": 0.006,
+          "samples": 21,
+          "samplingNote": "3 processes x 7 measured samples; median 0.0060 ms",
+          "evidence": "docs/evidence/laptop-amd860m-20261114/summary.json"
+        },
+        {
+          "metric": "allocations",
+          "protocol": "playback-progress-capture",
+          "environment": "ryzen-ai7-350-radeon860m",
+          "workload": "500 records / unchanged progress",
+          "session": "laptop-amd860m-20261114",
+          "value": 0.0,
+          "samples": 21,
+          "samplingNote": "3 processes x 7 measured samples; median 0.0060 ms",
+          "evidence": "docs/evidence/laptop-amd860m-20261114/summary.json"
+        },
+        {
+          "metric": "allocated-bytes",
+          "protocol": "playback-progress-capture",
+          "environment": "ryzen-ai7-350-radeon860m",
+          "workload": "500 records / unchanged progress",
+          "session": "laptop-amd860m-20261114",
+          "value": 0.0,
+          "samples": 21,
+          "samplingNote": "3 processes x 7 measured samples; median 0.0060 ms",
+          "evidence": "docs/evidence/laptop-amd860m-20261114/summary.json"
+        },
+        {
+          "metric": "peak-cpp-bytes",
+          "protocol": "playback-progress-capture",
+          "environment": "ryzen-ai7-350-radeon860m",
+          "workload": "500 records / unchanged progress",
+          "session": "laptop-amd860m-20261114",
+          "value": 0.0,
+          "samples": 21,
+          "samplingNote": "3 processes x 7 measured samples; median 0.0060 ms",
+          "evidence": "docs/evidence/laptop-amd860m-20261114/summary.json"
+        },
+        {
+          "metric": "retained-bytes",
+          "protocol": "playback-progress-capture",
+          "environment": "ryzen-ai7-350-radeon860m",
+          "workload": "500 records / unchanged progress",
+          "session": "laptop-amd860m-20261114",
+          "value": 0.0,
+          "samples": 21,
+          "samplingNote": "3 processes x 7 measured samples; median 0.0060 ms",
+          "evidence": "docs/evidence/laptop-amd860m-20261114/summary.json"
+        },
+        {
+          "metric": "elapsed-ms",
+          "protocol": "playback-progress-capture",
+          "environment": "ryzen-ai7-350-radeon860m",
+          "workload": "500 records / one progress change",
+          "session": "laptop-amd860m-20261114",
+          "value": 0.008,
+          "samples": 21,
+          "samplingNote": "3 processes x 7 measured samples; median 0.0080 ms",
+          "evidence": "docs/evidence/laptop-amd860m-20261114/summary.json"
+        },
+        {
+          "metric": "allocations",
+          "protocol": "playback-progress-capture",
+          "environment": "ryzen-ai7-350-radeon860m",
+          "workload": "500 records / one progress change",
+          "session": "laptop-amd860m-20261114",
+          "value": 18.0,
+          "samples": 21,
+          "samplingNote": "3 processes x 7 measured samples; median 0.0080 ms",
+          "evidence": "docs/evidence/laptop-amd860m-20261114/summary.json"
+        },
+        {
+          "metric": "allocated-bytes",
+          "protocol": "playback-progress-capture",
+          "environment": "ryzen-ai7-350-radeon860m",
+          "workload": "500 records / one progress change",
+          "session": "laptop-amd860m-20261114",
+          "value": 4544.0,
+          "samples": 21,
+          "samplingNote": "3 processes x 7 measured samples; median 0.0080 ms",
+          "evidence": "docs/evidence/laptop-amd860m-20261114/summary.json"
+        },
+        {
+          "metric": "peak-cpp-bytes",
+          "protocol": "playback-progress-capture",
+          "environment": "ryzen-ai7-350-radeon860m",
+          "workload": "500 records / one progress change",
+          "session": "laptop-amd860m-20261114",
+          "value": 4544.0,
+          "samples": 21,
+          "samplingNote": "3 processes x 7 measured samples; median 0.0080 ms",
+          "evidence": "docs/evidence/laptop-amd860m-20261114/summary.json"
+        },
+        {
+          "metric": "retained-bytes",
+          "protocol": "playback-progress-capture",
+          "environment": "ryzen-ai7-350-radeon860m",
+          "workload": "500 records / one progress change",
+          "session": "laptop-amd860m-20261114",
+          "value": 4544.0,
+          "samples": 21,
+          "samplingNote": "3 processes x 7 measured samples; median 0.0080 ms",
+          "evidence": "docs/evidence/laptop-amd860m-20261114/summary.json"
+        },
+        {
+          "metric": "elapsed-ms",
+          "protocol": "playback-progress-capture",
+          "environment": "ryzen-ai7-350-radeon860m",
+          "workload": "25000 records / unchanged progress",
+          "session": "laptop-amd860m-20261114",
+          "value": 0.009,
+          "samples": 21,
+          "samplingNote": "3 processes x 7 measured samples; median 0.0090 ms",
+          "evidence": "docs/evidence/laptop-amd860m-20261114/summary.json"
+        },
+        {
+          "metric": "allocations",
+          "protocol": "playback-progress-capture",
+          "environment": "ryzen-ai7-350-radeon860m",
+          "workload": "25000 records / unchanged progress",
+          "session": "laptop-amd860m-20261114",
+          "value": 0.0,
+          "samples": 21,
+          "samplingNote": "3 processes x 7 measured samples; median 0.0090 ms",
+          "evidence": "docs/evidence/laptop-amd860m-20261114/summary.json"
+        },
+        {
+          "metric": "allocated-bytes",
+          "protocol": "playback-progress-capture",
+          "environment": "ryzen-ai7-350-radeon860m",
+          "workload": "25000 records / unchanged progress",
+          "session": "laptop-amd860m-20261114",
+          "value": 0.0,
+          "samples": 21,
+          "samplingNote": "3 processes x 7 measured samples; median 0.0090 ms",
+          "evidence": "docs/evidence/laptop-amd860m-20261114/summary.json"
+        },
+        {
+          "metric": "peak-cpp-bytes",
+          "protocol": "playback-progress-capture",
+          "environment": "ryzen-ai7-350-radeon860m",
+          "workload": "25000 records / unchanged progress",
+          "session": "laptop-amd860m-20261114",
+          "value": 0.0,
+          "samples": 21,
+          "samplingNote": "3 processes x 7 measured samples; median 0.0090 ms",
+          "evidence": "docs/evidence/laptop-amd860m-20261114/summary.json"
+        },
+        {
+          "metric": "retained-bytes",
+          "protocol": "playback-progress-capture",
+          "environment": "ryzen-ai7-350-radeon860m",
+          "workload": "25000 records / unchanged progress",
+          "session": "laptop-amd860m-20261114",
+          "value": 0.0,
+          "samples": 21,
+          "samplingNote": "3 processes x 7 measured samples; median 0.0090 ms",
+          "evidence": "docs/evidence/laptop-amd860m-20261114/summary.json"
+        },
+        {
+          "metric": "elapsed-ms",
+          "protocol": "playback-progress-capture",
+          "environment": "ryzen-ai7-350-radeon860m",
+          "workload": "25000 records / one progress change",
+          "session": "laptop-amd860m-20261114",
+          "value": 0.016,
+          "samples": 21,
+          "samplingNote": "3 processes x 7 measured samples; median 0.0160 ms",
+          "evidence": "docs/evidence/laptop-amd860m-20261114/summary.json"
+        },
+        {
+          "metric": "allocations",
+          "protocol": "playback-progress-capture",
+          "environment": "ryzen-ai7-350-radeon860m",
+          "workload": "25000 records / one progress change",
+          "session": "laptop-amd860m-20261114",
+          "value": 18.0,
+          "samples": 21,
+          "samplingNote": "3 processes x 7 measured samples; median 0.0160 ms",
+          "evidence": "docs/evidence/laptop-amd860m-20261114/summary.json"
+        },
+        {
+          "metric": "allocated-bytes",
+          "protocol": "playback-progress-capture",
+          "environment": "ryzen-ai7-350-radeon860m",
+          "workload": "25000 records / one progress change",
+          "session": "laptop-amd860m-20261114",
+          "value": 7616.0,
+          "samples": 21,
+          "samplingNote": "3 processes x 7 measured samples; median 0.0160 ms",
+          "evidence": "docs/evidence/laptop-amd860m-20261114/summary.json"
+        },
+        {
+          "metric": "peak-cpp-bytes",
+          "protocol": "playback-progress-capture",
+          "environment": "ryzen-ai7-350-radeon860m",
+          "workload": "25000 records / one progress change",
+          "session": "laptop-amd860m-20261114",
+          "value": 7616.0,
+          "samples": 21,
+          "samplingNote": "3 processes x 7 measured samples; median 0.0160 ms",
+          "evidence": "docs/evidence/laptop-amd860m-20261114/summary.json"
+        },
+        {
+          "metric": "retained-bytes",
+          "protocol": "playback-progress-capture",
+          "environment": "ryzen-ai7-350-radeon860m",
+          "workload": "25000 records / one progress change",
+          "session": "laptop-amd860m-20261114",
+          "value": 7616.0,
+          "samples": 21,
+          "samplingNote": "3 processes x 7 measured samples; median 0.0160 ms",
+          "evidence": "docs/evidence/laptop-amd860m-20261114/summary.json"
+        },
+        {
+          "metric": "elapsed-ms",
+          "protocol": "audit-optimizations-20261103-comparison",
+          "environment": "ryzen-ai7-350-radeon860m",
+          "workload": "3840x2160 overlay / 60 ReleaseEmptySurface full-buffer checks",
+          "session": "laptop-amd860m-20261114",
+          "value": 0.0,
+          "samples": 21,
+          "samplingNote": "3 LP-0 processes x 7 measured samples; min 0.0000, max 0.0002 ms (before median 110.5011 ms)",
+          "evidence": "docs/evidence/laptop-amd860m-20261114/summary.json"
+        },
+        {
+          "metric": "allocations",
+          "protocol": "audit-optimizations-20261103-comparison",
+          "environment": "ryzen-ai7-350-radeon860m",
+          "workload": "3840x2160 overlay / 60 ReleaseEmptySurface full-buffer checks",
+          "session": "laptop-amd860m-20261114",
+          "value": 0.0,
+          "samples": 21,
+          "samplingNote": "3 LP-0 processes x 7 measured samples; min 0.0000, max 0.0002 ms (before median 110.5011 ms)",
+          "evidence": "docs/evidence/laptop-amd860m-20261114/summary.json"
+        },
+        {
+          "metric": "allocated-bytes",
+          "protocol": "audit-optimizations-20261103-comparison",
+          "environment": "ryzen-ai7-350-radeon860m",
+          "workload": "3840x2160 overlay / 60 ReleaseEmptySurface full-buffer checks",
+          "session": "laptop-amd860m-20261114",
+          "value": 0.0,
+          "samples": 21,
+          "samplingNote": "3 LP-0 processes x 7 measured samples; min 0.0000, max 0.0002 ms (before median 110.5011 ms)",
+          "evidence": "docs/evidence/laptop-amd860m-20261114/summary.json"
+        },
+        {
+          "metric": "peak-cpp-bytes",
+          "protocol": "audit-optimizations-20261103-comparison",
+          "environment": "ryzen-ai7-350-radeon860m",
+          "workload": "3840x2160 overlay / 60 ReleaseEmptySurface full-buffer checks",
+          "session": "laptop-amd860m-20261114",
+          "value": 0.0,
+          "samples": 21,
+          "samplingNote": "3 LP-0 processes x 7 measured samples; min 0.0000, max 0.0002 ms (before median 110.5011 ms)",
+          "evidence": "docs/evidence/laptop-amd860m-20261114/summary.json"
+        },
+        {
+          "metric": "elapsed-ms",
+          "protocol": "audit-optimizations-20261103-comparison",
+          "environment": "ryzen-ai7-350-radeon860m",
+          "workload": "3840x2160 overlay / 30 vlc-outline subtitle draws + EndDraw flush",
+          "session": "laptop-amd860m-20261114",
+          "value": 5.5742,
+          "samples": 21,
+          "samplingNote": "3 LP-0 processes x 7 measured samples; min 5.2300, max 6.2876 ms (before median 5.6745 ms)",
+          "evidence": "docs/evidence/laptop-amd860m-20261114/summary.json"
+        },
+        {
+          "metric": "allocations",
+          "protocol": "audit-optimizations-20261103-comparison",
+          "environment": "ryzen-ai7-350-radeon860m",
+          "workload": "3840x2160 overlay / 30 vlc-outline subtitle draws + EndDraw flush",
+          "session": "laptop-amd860m-20261114",
+          "value": 0.0,
+          "samples": 21,
+          "samplingNote": "3 LP-0 processes x 7 measured samples; min 5.2300, max 6.2876 ms (before median 5.6745 ms)",
+          "evidence": "docs/evidence/laptop-amd860m-20261114/summary.json"
+        },
+        {
+          "metric": "allocated-bytes",
+          "protocol": "audit-optimizations-20261103-comparison",
+          "environment": "ryzen-ai7-350-radeon860m",
+          "workload": "3840x2160 overlay / 30 vlc-outline subtitle draws + EndDraw flush",
+          "session": "laptop-amd860m-20261114",
+          "value": 0.0,
+          "samples": 21,
+          "samplingNote": "3 LP-0 processes x 7 measured samples; min 5.2300, max 6.2876 ms (before median 5.6745 ms)",
+          "evidence": "docs/evidence/laptop-amd860m-20261114/summary.json"
+        },
+        {
+          "metric": "peak-cpp-bytes",
+          "protocol": "audit-optimizations-20261103-comparison",
+          "environment": "ryzen-ai7-350-radeon860m",
+          "workload": "3840x2160 overlay / 30 vlc-outline subtitle draws + EndDraw flush",
+          "session": "laptop-amd860m-20261114",
+          "value": 0.0,
+          "samples": 21,
+          "samplingNote": "3 LP-0 processes x 7 measured samples; min 5.2300, max 6.2876 ms (before median 5.6745 ms)",
+          "evidence": "docs/evidence/laptop-amd860m-20261114/summary.json"
+        },
+        {
+          "metric": "elapsed-ms",
+          "protocol": "audit-optimizations-20261103-comparison",
+          "environment": "ryzen-ai7-350-radeon860m",
+          "workload": "20 RSS feeds x 100 episodes (with XML entities) / ParseRssFeed + XmlLite",
+          "session": "laptop-amd860m-20261114",
+          "value": 7.163,
+          "samples": 21,
+          "samplingNote": "3 LP-0 processes x 7 measured samples; min 7.0221, max 7.6197 ms (before median 23.3510 ms)",
+          "evidence": "docs/evidence/laptop-amd860m-20261114/summary.json"
+        },
+        {
+          "metric": "allocations",
+          "protocol": "audit-optimizations-20261103-comparison",
+          "environment": "ryzen-ai7-350-radeon860m",
+          "workload": "20 RSS feeds x 100 episodes (with XML entities) / ParseRssFeed + XmlLite",
+          "session": "laptop-amd860m-20261114",
+          "value": 20360.0,
+          "samples": 21,
+          "samplingNote": "3 LP-0 processes x 7 measured samples; min 7.0221, max 7.6197 ms (before median 23.3510 ms)",
+          "evidence": "docs/evidence/laptop-amd860m-20261114/summary.json"
+        },
+        {
+          "metric": "allocated-bytes",
+          "protocol": "audit-optimizations-20261103-comparison",
+          "environment": "ryzen-ai7-350-radeon860m",
+          "workload": "20 RSS feeds x 100 episodes (with XML entities) / ParseRssFeed + XmlLite",
+          "session": "laptop-amd860m-20261114",
+          "value": 5269360.0,
+          "samples": 21,
+          "samplingNote": "3 LP-0 processes x 7 measured samples; min 7.0221, max 7.6197 ms (before median 23.3510 ms)",
+          "evidence": "docs/evidence/laptop-amd860m-20261114/summary.json"
+        },
+        {
+          "metric": "peak-cpp-bytes",
+          "protocol": "audit-optimizations-20261103-comparison",
+          "environment": "ryzen-ai7-350-radeon860m",
+          "workload": "20 RSS feeds x 100 episodes (with XML entities) / ParseRssFeed + XmlLite",
+          "session": "laptop-amd860m-20261114",
+          "value": 192373.0,
+          "samples": 21,
+          "samplingNote": "3 LP-0 processes x 7 measured samples; min 7.0221, max 7.6197 ms (before median 23.3510 ms)",
+          "evidence": "docs/evidence/laptop-amd860m-20261114/summary.json"
+        },
+        {
+          "metric": "elapsed-ms",
+          "protocol": "audit-optimizations-20261103-comparison",
+          "environment": "ryzen-ai7-350-radeon860m",
+          "workload": "10,000-item MediaLibrary / 1,000 uniform HubExtractStartSecForPath lookups",
+          "session": "laptop-amd860m-20261114",
+          "value": 0.1602,
+          "samples": 21,
+          "samplingNote": "3 LP-0 processes x 7 measured samples; min 0.1480, max 0.2191 ms (before median 19.1014 ms)",
+          "evidence": "docs/evidence/laptop-amd860m-20261114/summary.json"
+        },
+        {
+          "metric": "allocations",
+          "protocol": "audit-optimizations-20261103-comparison",
+          "environment": "ryzen-ai7-350-radeon860m",
+          "workload": "10,000-item MediaLibrary / 1,000 uniform HubExtractStartSecForPath lookups",
+          "session": "laptop-amd860m-20261114",
+          "value": 0.0,
+          "samples": 21,
+          "samplingNote": "3 LP-0 processes x 7 measured samples; min 0.1480, max 0.2191 ms (before median 19.1014 ms)",
+          "evidence": "docs/evidence/laptop-amd860m-20261114/summary.json"
+        },
+        {
+          "metric": "allocated-bytes",
+          "protocol": "audit-optimizations-20261103-comparison",
+          "environment": "ryzen-ai7-350-radeon860m",
+          "workload": "10,000-item MediaLibrary / 1,000 uniform HubExtractStartSecForPath lookups",
+          "session": "laptop-amd860m-20261114",
+          "value": 0.0,
+          "samples": 21,
+          "samplingNote": "3 LP-0 processes x 7 measured samples; min 0.1480, max 0.2191 ms (before median 19.1014 ms)",
+          "evidence": "docs/evidence/laptop-amd860m-20261114/summary.json"
+        },
+        {
+          "metric": "peak-cpp-bytes",
+          "protocol": "audit-optimizations-20261103-comparison",
+          "environment": "ryzen-ai7-350-radeon860m",
+          "workload": "10,000-item MediaLibrary / 1,000 uniform HubExtractStartSecForPath lookups",
+          "session": "laptop-amd860m-20261114",
+          "value": 0.0,
+          "samples": 21,
+          "samplingNote": "3 LP-0 processes x 7 measured samples; min 0.1480, max 0.2191 ms (before median 19.1014 ms)",
+          "evidence": "docs/evidence/laptop-amd860m-20261114/summary.json"
+        }
+      ],
+      "tests": [
+        {
+          "name": "Local PR suite (build_and_release.ps1 on 7e3a683)",
+          "status": "pass",
+          "passed": 23,
+          "total": 23,
+          "durationSeconds": 464.01,
+          "evidence": "docs/evidence/laptop-amd860m-20261114/summary.json"
+        },
+        {
+          "name": "MSVC /analyze static analysis (run_static_analysis.ps1)",
+          "status": "pass",
+          "passed": 54,
+          "total": 54,
+          "durationSeconds": 114.48,
+          "evidence": "docs/evidence/laptop-amd860m-20261114/summary.json"
+        }
+      ]
     }
   ],
   "reports": [
@@ -21605,19 +22295,23 @@ function report(id){const r=DATA.reports.find(x=>x.id===id);if(!r)return;$('repo
 function showSeries(k){for(const cp of CP)if(cp.results.some(r=>seriesKey(r)===k))visible.add(cp.id)}
 function pick(id){selected=id;visible.add(id);const cp=getCP();if(!cp.results.length){page='evidence';history.replaceState(null,'','#evidence')}if(!cp.results.some(r=>seriesKey(r)===trendKey)){const candidate=cp.results.find(r=>r.historySeries)||cp.results[0];if(candidate)trendKey=seriesKey(candidate)}render();if(page==='overview')window.scrollTo(0,0);$('sidebar').classList.remove('open')}
 function navigate(name){page=name;for(const p of ['overview','benchmarks','evidence','guide'])$('page-'+p).hidden=p!==page;document.querySelectorAll('[data-page]').forEach(b=>b.setAttribute('aria-current',b.dataset.page===page?'page':'false'));$('page-title').textContent=({overview:'Performance history',benchmarks:'Benchmark ledger',evidence:'Evidence',guide:'Agent guide'})[page];$('compare-control').hidden=page!=='overview';renderPage();location.hash=page;window.scrollTo(0,0)}
-function renderSidebar(){const q=$('checkpoint-search').value.toLowerCase();let last='';$('checkpoint-list').innerHTML=ordered.filter(c=>(checkpointLabel(c)+' '+c.id+' '+(c.commit||'')).toLowerCase().includes(q)).map(c=>{let heading='';const d=c.measuredAt.slice(0,10);if(d!==last){last=d;heading=`<div class="date-label">${esc(date(c.measuredAt))}</div>`}return heading+`<div class="checkpoint ${c.id===selected?'selected':''}"><input type="checkbox" data-visible="${esc(c.id)}" ${visible.has(c.id)?'checked':''} aria-label="Plot ${esc(checkpointLabel(c)+' / '+(c.commit||c.id))}"><button data-select="${esc(c.id)}" aria-pressed="${c.id===selected}"><span class="cp-name">${esc(checkpointLabel(c))}</span><span class="cp-meta"><code>${esc(shortRevision(c.commit))}</code>${c.dirty===true?' · modified':''}</span></button></div>`}).join('')||'<div class="empty">No matching checkpoints</div>';$('checkpoint-count').textContent=CP.length;const current=$('checkpoint-list').querySelector('.selected');if(current&&!q)$('checkpoint-list').scrollTop=Math.max(0,current.offsetTop-$('checkpoint-list').offsetTop-$('checkpoint-list').clientHeight+current.offsetHeight+12)}
-function renderMeta(){const c=getCP();$('selection-meta').innerHTML=`<span class="tag">${esc(checkpointLabel(c))}</span><code>${esc(shortRevision(c.commit))}</code><span title="${esc(when(c.measuredAt))}">${esc(date(c.measuredAt))}</span>${c.dirty===true?'<span class="tag" title="Includes working-tree changes">Modified</span>':''}`}
+function renderSidebar(){const q=$('checkpoint-search').value.toLowerCase();let last='';$('checkpoint-list').innerHTML=ordered.filter(c=>(checkpointLabel(c)+' '+c.id+' '+(c.commit||'')+' '+(checkpointPcTag(c)||'')).toLowerCase().includes(q)).map(c=>{let heading='';const d=c.measuredAt.slice(0,10);if(d!==last){last=d;heading=`<div class="date-label">${esc(date(c.measuredAt))}</div>`}const pc=checkpointPcTag(c);return heading+`<div class="checkpoint ${c.id===selected?'selected':''}"><input type="checkbox" data-visible="${esc(c.id)}" ${visible.has(c.id)?'checked':''} aria-label="Plot ${esc(checkpointLabel(c)+' / '+(c.commit||c.id))}"><button data-select="${esc(c.id)}" aria-pressed="${c.id===selected}"><span class="cp-name">${esc(checkpointLabel(c))}</span><span class="cp-meta"><code>${esc(shortRevision(c.commit))}</code>${pc?' · '+esc(pc.replace(' · AMD ', ' ').replace(' · RTX ', ' ')):''}${c.dirty===true?' · modified':''}</span></button></div>`}).join('')||'<div class="empty">No matching checkpoints</div>';$('checkpoint-count').textContent=CP.length;const current=$('checkpoint-list').querySelector('.selected');if(current&&!q)$('checkpoint-list').scrollTop=Math.max(0,current.offsetTop-$('checkpoint-list').offsetTop-$('checkpoint-list').clientHeight+current.offsetHeight+12)}
+function renderMeta(){const c=getCP(),pc=checkpointPcTag(c);$('selection-meta').innerHTML=`<span class="tag">${esc(checkpointLabel(c))}</span>${pc?`<span class="tag" title="${esc(DATA.environments[c.results.find(r=>r.environment)?.environment]?.details||'')}">${esc(pc)}</span>`:''}<code>${esc(shortRevision(c.commit))}</code><span title="${esc(when(c.measuredAt))}">${esc(date(c.measuredAt))}</span>${c.dirty===true?'<span class="tag" title="Includes working-tree changes">Modified</span>':''}`}
 function resultTable(results,cp,withGraph=true){
  let previousGroup='';
+ const cpEnvGroup=pcGroup(cp?.results?.find(r=>r.environment)?.environment);
+ const peerColLabel=cpEnvGroup==='laptop'?'Desktop (4070S)':'This PC (860M)';
  const rows=results.map(r=>{
-  const b=baseline(r,cp),d=delta(r,b),group=JSON.stringify([r.protocol,r.workload]);
+  const b=baseline(r,cp),d=delta(r,b),peer=peerPcResult(r),pd=peer?delta(peer.r,r):null,group=JSON.stringify([r.protocol,r.workload]);
   const context=[protocol(r).label,r.samples===null?r.samplingNote:'n = '+r.samples,r.missingReason].filter(Boolean).join(' · ');
   let heading='';
-  if(group!==previousGroup){previousGroup=group;heading=`<tr class="workload-row"><th colspan="${withGraph?5:4}" title="${esc(context)}">${esc(r.workload)}</th></tr>`}
+  if(group!==previousGroup){previousGroup=group;heading=`<tr class="workload-row"><th colspan="${withGraph?6:5}" title="${esc(context)}">${esc(r.workload)}</th></tr>`}
   const reference=b?b.label+(b.session!==r.session?' · different session':''):'No matched reference';
-  return heading+`<tr><td title="${esc(context)}">${esc(metric(r).label)}</td><td class="num" title="${esc(r.value===null?r.missingReason:context)}">${esc(val(r))}</td><td class="num" title="${esc(reference)}">${esc(val(b))}</td><td class="num ${d.cls}" title="${esc(reference)}">${esc(b?d.text:'—')}</td>${withGraph?`<td class="num"><button class="trend-button" data-trend="${esc(seriesKey(r))}" aria-label="Graph ${esc(metric(r).label+' / '+r.workload)}">Graph ↗</button></td>`:''}</tr>`
+  const peerTitle=peer?`${pcTag(peer.r.environment)} · ${checkpointLabel(peer.cp)} (${date(peer.cp.measuredAt)})${peer.exact?'':' · cross-DPI/audio H.264 protocol'}`:'No matched cross-PC measurement';
+  const peerCell=peer?`<td class="num" title="${esc(peerTitle)}">${esc(val(peer.r))}<small class="${pd.cls}">${esc(pd.text)}${peer.exact?'':' · ≈'}</small></td>`:`<td class="num muted" title="${esc(peerTitle)}">—</td>`;
+  return heading+`<tr><td title="${esc(context)}">${esc(metric(r).label)}</td><td class="num" title="${esc(r.value===null?r.missingReason:context)}">${esc(val(r))}</td><td class="num" title="${esc(reference)}">${esc(val(b))}</td><td class="num ${d.cls}" title="${esc(reference)}">${esc(b?d.text:'—')}</td>${peerCell}${withGraph?`<td class="num"><button class="trend-button" data-trend="${esc(seriesKey(r))}" aria-label="Graph ${esc(metric(r).label+' / '+r.workload)}">Graph ↗</button></td>`:''}</tr>`
  }).join('');
- return `<table><thead><tr><th>Metric</th><th class="num">Checkpoint</th><th class="num">Latest VLC</th><th class="num">Change</th>${withGraph?'<th></th>':''}</tr></thead><tbody>${rows||'<tr><td colspan="5" class="empty">No observations recorded</td></tr>'}</tbody></table>`
+ return `<table><thead><tr><th>Metric</th><th class="num">Checkpoint</th><th class="num">Latest VLC</th><th class="num">Change</th><th class="num">${esc(peerColLabel)}</th>${withGraph?'<th></th>':''}</tr></thead><tbody>${rows||`<tr><td colspan="${withGraph?6:5}" class="empty">No observations recorded</td></tr>`}</tbody></table>`
 }
 function renderStats(){
  const c=getCP(),player=playerOrigin(c);
@@ -21670,6 +22364,30 @@ function baseline(r){
  for(const ref of latestVlcReferences()){
   const result=ref.results.find(b=>b.metric===r.metric&&sameWorkload(b,r));
   if(result)return {...result,label:'VLC '+ref.version,measuredAt:ref.measuredAt}
+ }
+ return null
+}
+function pcGroup(envId){if(envId==='ryzen-ai7-350-radeon860m')return 'laptop';if(envId==='ryzen3900x-4070super'||envId==='ryzen3900x-4070super-20261020')return 'desktop';return 'historical'}
+function pcTag(envId){const g=pcGroup(envId);return g==='laptop'?'This PC · AMD 860M':g==='desktop'?'Desktop · RTX 4070S':null}
+function checkpointPcTag(cp){const envs=[...new Set((cp?.results||[]).map(r=>r.environment).filter(Boolean))];for(const e of envs){const t=pcTag(e);if(t)return t}return null}
+function playbackVariant(r){if(!r||DATA.protocols[r.protocol]?.category!=='Playback')return null;if(/1080p30 H\.264/i.test(r.workload))return /tsc/i.test(r.protocol)?'h264-1080p30-tsc':'h264-1080p30-raw';return null}
+function peerPcResult(r){
+ if(!r||r.value==null)return null;
+ const srcGroup=pcGroup(r.environment),targetGroup=srcGroup==='laptop'?'desktop':'laptop';
+ const srcVar=playbackVariant(r);
+ for(const cp of [...ordered].reverse()){
+  for(const candidate of cp.results){
+   if(pcGroup(candidate.environment)!==targetGroup||candidate.metric!==r.metric||candidate.value==null)continue;
+   if(candidate.workload===r.workload&&(r.protocol===candidate.protocol||!(r.metric==='cpu-core'&&/tsc/i.test(r.protocol)!==/tsc/i.test(candidate.protocol))))return {cp,r:candidate,exact:true};
+  }
+ }
+ if(srcVar){
+  for(const cp of [...ordered].reverse()){
+   for(const candidate of cp.results){
+    if(pcGroup(candidate.environment)!==targetGroup||candidate.metric!==r.metric||candidate.value==null)continue;
+    if(playbackVariant(candidate)===srcVar)return {cp,r:candidate,exact:false};
+   }
+  }
  }
  return null
 }
@@ -21862,7 +22580,7 @@ function renderResourceMap(){
 }
 function renderChart(){renderTrendOptions();$('tooltip').hidden=true;if(mode==='map')renderResourceMap();else renderHistory()}
 
-function renderLedger(){const q=$('ledger-search').value.toLowerCase();const cats=['All',...new Set(Object.values(DATA.protocols).map(p=>p.category))];$('categories').innerHTML=cats.map(x=>`<button data-category="${esc(x)}" aria-pressed="${x===category}">${esc(x)}</button>`).join('');ledgerRows=[];for(const cp of [...ordered].reverse())for(const r of cp.results){if(category!=='All'&&protocol(r).category!==category)continue;if(!(cp.label+' '+(cp.commit||'')+' '+metric(r).label+' '+r.workload+' '+protocol(r).label).toLowerCase().includes(q))continue;ledgerRows.push({cp,r,b:baseline(r)})}ledgerPage=Math.max(0,Math.min(ledgerPage,Math.ceil(ledgerRows.length/50)-1));$('ledger-range').textContent=ledgerRows.length?number(ledgerPage*50+1,0)+'–'+number(Math.min((ledgerPage+1)*50,ledgerRows.length),0)+' of '+number(ledgerRows.length,0):'0 observations';$('ledger-prev').disabled=ledgerPage===0;$('ledger-next').disabled=(ledgerPage+1)*50>=ledgerRows.length;$('ledger-title').textContent=number(ledgerRows.length,0)+' observations';$('ledger').innerHTML=`<table><thead><tr><th>Checkpoint</th><th>Metric / workload</th><th class="num">Value</th><th class="num">Latest VLC</th><th class="num">Change</th><th></th></tr></thead><tbody>${ledgerRows.slice(ledgerPage*50,(ledgerPage+1)*50).map(({cp,r,b})=>{const d=delta(r,b);return `<tr><td><button class="trend-button" data-select="${esc(cp.id)}">${esc(checkpointLabel(cp))}</button><small>${esc(shortRevision(cp.commit))} · ${esc(date(cp.measuredAt))}</small></td><td>${esc(metric(r).label)}<small>${esc(r.workload)} · ${esc(protocol(r).label)}</small></td><td class="num">${esc(val(r))}</td><td class="num">${esc(val(b))}</td><td class="num ${d.cls}">${esc(d.text)}</td><td><button class="trend-button" data-graph-cp="${esc(cp.id)}" data-trend="${esc(seriesKey(r))}">Graph ↗</button></td></tr>`}).join('')||'<tr><td colspan="6" class="empty">No matching observations</td></tr>'}</tbody></table>`}
+function renderLedger(){const q=$('ledger-search').value.toLowerCase();const cats=['All',...new Set(Object.values(DATA.protocols).map(p=>p.category))];$('categories').innerHTML=cats.map(x=>`<button data-category="${esc(x)}" aria-pressed="${x===category}">${esc(x)}</button>`).join('');ledgerRows=[];for(const cp of [...ordered].reverse())for(const r of cp.results){if(category!=='All'&&protocol(r).category!==category)continue;const pc=pcTag(r.environment)||'';if(!(cp.label+' '+(cp.commit||'')+' '+metric(r).label+' '+r.workload+' '+protocol(r).label+' '+pc).toLowerCase().includes(q))continue;ledgerRows.push({cp,r,b:baseline(r),peer:peerPcResult(r)})}ledgerPage=Math.max(0,Math.min(ledgerPage,Math.ceil(ledgerRows.length/50)-1));$('ledger-range').textContent=ledgerRows.length?number(ledgerPage*50+1,0)+'–'+number(Math.min((ledgerPage+1)*50,ledgerRows.length),0)+' of '+number(ledgerRows.length,0):'0 observations';$('ledger-prev').disabled=ledgerPage===0;$('ledger-next').disabled=(ledgerPage+1)*50>=ledgerRows.length;$('ledger-title').textContent=number(ledgerRows.length,0)+' observations';$('ledger').innerHTML=`<table><thead><tr><th>Checkpoint</th><th>Metric / workload</th><th class="num">Value</th><th class="num">Latest VLC</th><th class="num">Change</th><th class="num">This PC / Desktop diff</th><th></th></tr></thead><tbody>${ledgerRows.slice(ledgerPage*50,(ledgerPage+1)*50).map(({cp,r,b,peer})=>{const d=delta(r,b),pd=peer?delta(peer.r,r):null,pc=pcTag(r.environment),peerLabel=peer?pcTag(peer.r.environment):'',peerTitle=peer?`${peerLabel} · ${checkpointLabel(peer.cp)} (${date(peer.cp.measuredAt)})${peer.exact?'':' · cross-DPI/audio H.264 protocol'}`:'No matched cross-PC measurement';return `<tr><td><button class="trend-button" data-select="${esc(cp.id)}">${esc(checkpointLabel(cp))}</button><small>${esc(shortRevision(cp.commit))} · ${esc(date(cp.measuredAt))}${pc?' · '+esc(pc):''}</small></td><td>${esc(metric(r).label)}<small>${esc(r.workload)} · ${esc(protocol(r).label)}</small></td><td class="num">${esc(val(r))}</td><td class="num">${esc(val(b))}</td><td class="num ${d.cls}">${esc(d.text)}</td>${peer?`<td class="num" title="${esc(peerTitle)}">${esc(val(peer.r))}<small class="${pd.cls}">${esc(pcGroup(peer.r.environment)==='laptop'?'860M':'4070S')} · ${esc(pd.text)}${peer.exact?'':' · ≈'}</small></td>`:`<td class="num muted" title="${esc(peerTitle)}">—</td>`}<td><button class="trend-button" data-graph-cp="${esc(cp.id)}" data-trend="${esc(seriesKey(r))}">Graph ↗</button></td></tr>`}).join('')||'<tr><td colspan="7" class="empty">No matching observations</td></tr>'}</tbody></table>`}
 function renderEvidence(){const c=getCP();const facts=[['Source commit',c.commit||'Not recorded'],[c.results.length?'Measured':'Validated',when(c.measuredAt)],['Working tree',c.dirty===true?'Included local changes':c.dirty===false?'Clean':'Not fully recorded'],['Paired baseline',cpById.get(c.pairedWith)?.label||'None recorded']];$('identity').innerHTML=facts.map(([a,b])=>`<div class="fact"><span>${esc(a)}</span><span>${esc(b)}</span></div>`).join('')+`<p style="margin-top:13px">${esc(c.sourceNote)}</p>`;$('checkpoint-notes').textContent=Array.isArray(c.notes)?c.notes.join(' '):c.notes;$('measurement-review').hidden=!c.measurementReview;$('measurement-review-text').textContent=c.measurementReview||'';$('tests').innerHTML=(c.tests||[]).map(t=>`<div class="test-row"><span class="tag ${t.status==='pass'?'good':t.status==='fail'?'bad':''}">${esc(t.status)}</span><div>${esc(t.name)}${t.total!=null?' · '+t.passed+'/'+t.total:''}<small>${t.durationSeconds!=null?number(t.durationSeconds)+' s · ':''}${esc(t.evidence)}</small>${t.notes?`<small>${esc(t.notes)}</small>`:''}</div></div>`).join('')||'<p>No validation record migrated for this source state. Consult the embedded historical report; this is not a failed or passing run.</p>';
  const protocols=[...new Set(c.results.map(r=>r.protocol))];$('protocols').innerHTML=protocols.map(id=>{const p=DATA.protocols[id],rs=c.results.filter(r=>r.protocol===id),files=[...new Set(rs.map(r=>r.evidence))],env=[...new Set(rs.map(r=>r.environment))];return `<div style="margin-bottom:18px"><h3>${esc(p.label)}</h3><p class="muted" style="font-size:12px;margin-top:7px;line-height:1.8">${esc(p.method)}</p>${env.map(e=>`<p class="muted" style="font-size:11px;margin-top:7px">${esc(DATA.environments[e].details)}</p>`).join('')}<div class="evidence-files">${files.map(f=>`<div><span class="mono">${esc(f)}</span></div>`).join('')}</div></div>`}).join('')+(c.report?`<button data-report="${esc(c.report)}">Read this checkpoint’s report ↗</button>`:'');renderReports()}
 function renderReports(){const q=$('report-search').value.toLowerCase();const reports=DATA.reports.filter(r=>(r.title+' '+r.text).toLowerCase().includes(q));$('reports').innerHTML=reports.map(r=>`<button class="report-button" data-report="${esc(r.id)}" title="${esc(r.source)}"><span>${esc(r.title)}</span><span class="accent">↗</span></button>`).join('')||'<div class="empty">No matching reports</div>'}
@@ -21875,7 +22593,7 @@ $('trend-metric').addEventListener('change',e=>{trendKey=e.target.value;showSeri
 $('reset').onclick=()=>{selected=latest.id;defaults();mode='history';axisMode='cuts';trendKey='';$('checkpoint-search').value='';render()};
 $('theme').onclick=()=>{const light=document.documentElement.dataset.theme!=='light';document.documentElement.dataset.theme=light?'light':'dark';$('theme').setAttribute('aria-label','Switch to '+(light?'dark':'light')+' mode');$('theme').textContent=light?'☾':'☼'};
 $('export-data').onclick=()=>download('aperture-checkpoints.json',JSON.stringify(DATA,null,2),'application/json');
-$('export-csv').onclick=()=>{const rows=[['checkpoint','measuredAt','commit','dirty','metric','unit','value','vlcValue','protocol','workload','environment','session','samples','evidence'],...ledgerRows.map(({cp,r,b})=>[cp.id,recordedTime(cp,r),cp.commit,cp.dirty,r.metric,metric(r).unit,r.value,b?.value,r.protocol,r.workload,r.environment,r.session,r.samples,r.evidence])];const cell=v=>{let s=String(v??'');if(/^[=+@\-\t\r]/.test(s))s="'"+s;return '"'+s.replace(/"/g,'""')+'"'};download('aperture-benchmarks.csv',rows.map(row=>row.map(cell).join(',')).join('\r\n'),'text/csv;charset=utf-8')};
+$('export-csv').onclick=()=>{const rows=[['checkpoint','measuredAt','commit','dirty','metric','unit','value','vlcValue','peerEnvironment','peerValue','protocol','workload','environment','session','samples','evidence'],...ledgerRows.map(({cp,r,b,peer})=>[cp.id,recordedTime(cp,r),cp.commit,cp.dirty,r.metric,metric(r).unit,r.value,b?.value,peer?.r?.environment,peer?.r?.value,r.protocol,r.workload,r.environment,r.session,r.samples,r.evidence])];const cell=v=>{let s=String(v??'');if(/^[=+@\-\t\r]/.test(s))s="'"+s;return '"'+s.replace(/"/g,'""')+'"'};download('aperture-benchmarks.csv',rows.map(row=>row.map(cell).join(',')).join('\r\n'),'text/csv;charset=utf-8')};
 $('ledger-prev').onclick=()=>{ledgerPage--;renderLedger()};$('ledger-next').onclick=()=>{ledgerPage++;renderLedger()};
 $('close-report').onclick=()=>$('report-dialog').close();$('open-checkpoints').onclick=()=>{$('sidebar').classList.add('open');$('checkpoint-search').focus()};$('close-checkpoints').onclick=()=>{$('sidebar').classList.remove('open');$('open-checkpoints').focus()};document.addEventListener('keydown',e=>{if(e.key==='Escape'){$('sidebar').classList.remove('open');$('tooltip').hidden=true}});
 window.addEventListener('resize',()=>{if(page==='overview')renderChart()});

@@ -222,4 +222,40 @@ test('every recorded metric maps to a finite monotonic position', () => {
     }
   }
 });
+
+test('cross-PC diff matches Desktop (RTX 4070S) and This PC (AMD 860M) bidirectionally', () => {
+  const desktopAudit = context.ordered.find(c => c.id === 'audit-optimizations-20261103-after');
+  const laptop = context.ordered.find(c => c.id === 'laptop-amd860m-20261114');
+  assert(desktopAudit && laptop);
+  assert.strictEqual(context.checkpointPcTag(desktopAudit), 'Desktop · RTX 4070S');
+  assert.strictEqual(context.checkpointPcTag(laptop), 'This PC · AMD 860M');
+
+  const deskRss = desktopAudit.results.find(r => r.metric === 'elapsed-ms' && /ParseRssFeed/.test(r.workload));
+  const peerLaptop = context.peerPcResult(deskRss);
+  assert(peerLaptop && peerLaptop.exact === true && peerLaptop.r.environment === 'ryzen-ai7-350-radeon860m');
+
+  const laptopRss = laptop.results.find(r => r.metric === 'elapsed-ms' && /ParseRssFeed/.test(r.workload));
+  const peerDesktop = context.peerPcResult(laptopRss);
+  assert(peerDesktop && peerDesktop.exact === true && context.pcGroup(peerDesktop.r.environment) === 'desktop');
+
+  const laptopTsc = laptop.results.find(r => r.metric === 'cpu-core' && /tsc/i.test(r.protocol));
+  const desktopTscPeer = context.peerPcResult(laptopTsc);
+  assert(desktopTscPeer && /tsc/i.test(desktopTscPeer.r.protocol) && context.pcGroup(desktopTscPeer.r.environment) === 'desktop');
+
+  const laptopRawCpu = laptop.results.find(r => r.metric === 'cpu-core' && !/tsc/i.test(r.protocol));
+  const desktopRawPeer = context.peerPcResult(laptopRawCpu);
+  assert(desktopRawPeer && !/tsc/i.test(desktopRawPeer.r.protocol) && context.pcGroup(desktopRawPeer.r.environment) === 'desktop');
+});
+
+test('This PC keeps its own VLC 3.0.24 baseline isolated from Desktop VLC 3.0.24', () => {
+  const laptop = context.ordered.find(c => c.id === 'laptop-amd860m-20261114');
+  const desktopH264 = context.ordered.find(c => c.id === 'rival-h264-20261020-pruned');
+  const laptopGpu = laptop.results.find(r => r.metric === 'gpu-mib');
+  const desktopGpu = desktopH264.results.find(r => r.metric === 'gpu-mib');
+  const lb = context.baseline(laptopGpu);
+  const db = context.baseline(desktopGpu);
+  assert(lb && lb.environment === 'ryzen-ai7-350-radeon860m');
+  assert(db && db.environment === 'ryzen3900x-4070super-20261020');
+  assert(lb.value !== db.value);
+});
 process.stdout.write(`${checks} chart checks passed.\n`);

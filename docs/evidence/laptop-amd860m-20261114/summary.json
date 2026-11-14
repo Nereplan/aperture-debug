@@ -1,0 +1,534 @@
+{
+  "session": "laptop-amd860m-20261114",
+  "commit": "7e3a6833557ddac583fa1878281906d2e95c5bd5",
+  "dirty": false,
+  "measuredAt": "2026-11-14T00:18:38.3812192Z",
+  "environment": {
+    "osVersion": "Microsoft Windows 11 Home 10.0.26200 build 26200",
+    "cpuName": "AMD Ryzen AI 7 350 w/ Radeon 860M              ",
+    "logicalProcessors": 16,
+    "gpuName": "AMD Radeon(TM) 860M Graphics",
+    "gpuDriverVersion": "32.0.32015.7029",
+    "lastBootUpTimeUtc": "2026-11-13T15:15:47.3801560Z",
+    "source": "Win32_ComputerSystem, Win32_OperatingSystem, Win32_Processor and Win32_VideoController CIM instances"
+  },
+  "artifacts": {
+    "apertureExeSha256": "0142540bde580b02e1b86ffa03365d3297ddfe8210cf35993f283c635c72fcd5",
+    "auditPerfBenchExeSha256": "dc7cf627c7952b143e2be2f5d3d1885961f8d4f393428fd96604694714623b96",
+    "saveBenchmarkExeSha256": "c2d326256b860ecf2c9cbeeff183435d929aba6b81d7cf908d69e16bc5ba86a3",
+    "mediaFileSha256": "83f5d78682964b3a6e2c75eed3ae73debbf676ab8a314813dab0a1b60e7d6759",
+    "vlcArchiveSha256": "1ed59c09152e78aff84663fa76efab26057716576db74332858810e5ef54ae1f"
+  },
+  "startup": {
+    "status": "PASS",
+    "timestamp": "2026-11-14T00:09:31Z",
+    "samplesCount": 5,
+    "metrics": {
+      "startupMs": {
+        "mean": 32.08,
+        "stdDev": 1.66,
+        "median": 32.05,
+        "min": 29.85,
+        "max": 34.43
+      },
+      "windowShownMs": {
+        "mean": 23.99,
+        "stdDev": 1.05,
+        "median": 24.18,
+        "min": 22.35,
+        "max": 25.24
+      },
+      "populatedMs": {
+        "mean": 88.51,
+        "stdDev": 11.07,
+        "median": 85.7,
+        "min": 75.73,
+        "max": 103.45
+      },
+      "workingSetBytes": {
+        "mean": 55998873.6,
+        "stdDev": 361082.79,
+        "median": 55840768.0,
+        "min": 55697408.0,
+        "max": 56582144.0
+      },
+      "peakWorkingSetBytes": {
+        "mean": 56527257.6,
+        "stdDev": 361082.79,
+        "median": 56369152.0,
+        "min": 56225792.0,
+        "max": 57110528.0
+      },
+      "privateBytes": {
+        "mean": 43778867.2,
+        "stdDev": 426824.03,
+        "median": 43606016.0,
+        "min": 43413504.0,
+        "max": 44490752.0
+      },
+      "peakPrivateBytes": {
+        "mean": 44250726.4,
+        "stdDev": 427444.63,
+        "median": 44081152.0,
+        "min": 43880448.0,
+        "max": 44961792.0
+      },
+      "gdiObjects": {
+        "mean": 20.0,
+        "stdDev": 0.0,
+        "median": 20.0,
+        "min": 20.0,
+        "max": 20.0
+      },
+      "userObjects": {
+        "mean": 33.6,
+        "stdDev": 0.55,
+        "median": 34.0,
+        "min": 33.0,
+        "max": 34.0
+      }
+    },
+    "budgets": {
+      "startupMaxMs": 1500.0,
+      "startupTargetMs": 600.0,
+      "windowShownMaxMs": 1000.0,
+      "windowShownTargetMs": 300.0,
+      "workingSetMaxBytes": 157286400,
+      "workingSetTargetBytes": 94371840,
+      "peakWorkingSetMaxBytes": 167772160,
+      "peakWorkingSetTargetBytes": 104857600,
+      "privateBytesMaxBytes": 188743680,
+      "privateBytesTargetBytes": 125829120,
+      "peakPrivateBytesMaxBytes": 199229440,
+      "peakPrivateBytesTargetBytes": 136314880,
+      "gdiObjectsMax": 100,
+      "userObjectsMax": 100,
+      "maxProcesses": 1
+    },
+    "regressions": [],
+    "samples": [
+      {
+        "sample": 1,
+        "startupMs": 32.57,
+        "shownMs": 24.18,
+        "populatedMs": 75.73,
+        "libraryReady": true,
+        "workingSetBytes": 56582144,
+        "peakWorkingSetBytes": 57110528,
+        "privateBytes": 44490752,
+        "peakPrivateBytes": 44961792,
+        "gdiObjects": 20,
+        "userObjects": 34,
+        "processCount": 1
+      },
+      {
+        "sample": 2,
+        "startupMs": 29.85,
+        "shownMs": 22.35,
+        "populatedMs": 81.91,
+        "libraryReady": true,
+        "workingSetBytes": 55767040,
+        "peakWorkingSetBytes": 56295424,
+        "privateBytes": 43544576,
+        "peakPrivateBytes": 44015616,
+        "gdiObjects": 20,
+        "userObjects": 33,
+        "processCount": 1
+      },
+      {
+        "sample": 3,
+        "startupMs": 34.43,
+        "shownMs": 25.24,
+        "populatedMs": 103.45,
+        "libraryReady": true,
+        "workingSetBytes": 55840768,
+        "peakWorkingSetBytes": 56369152,
+        "privateBytes": 43606016,
+        "peakPrivateBytes": 44081152,
+        "gdiObjects": 20,
+        "userObjects": 33,
+        "processCount": 1
+      },
+      {
+        "sample": 4,
+        "startupMs": 32.05,
+        "shownMs": 24.33,
+        "populatedMs": 95.75,
+        "libraryReady": true,
+        "workingSetBytes": 56107008,
+        "peakWorkingSetBytes": 56635392,
+        "privateBytes": 43839488,
+        "peakPrivateBytes": 44314624,
+        "gdiObjects": 20,
+        "userObjects": 34,
+        "processCount": 1
+      },
+      {
+        "sample": 5,
+        "startupMs": 31.51,
+        "shownMs": 23.86,
+        "populatedMs": 85.7,
+        "libraryReady": true,
+        "workingSetBytes": 55697408,
+        "peakWorkingSetBytes": 56225792,
+        "privateBytes": 43413504,
+        "peakPrivateBytes": 43880448,
+        "gdiObjects": 20,
+        "userObjects": 34,
+        "processCount": 1
+      }
+    ]
+  },
+  "playbackProgressCapture": {
+    "500_mode4": {
+      "items": 500,
+      "mode": 4,
+      "samples": 21,
+      "medianMs": 0.006,
+      "minMs": 0.005,
+      "maxMs": 0.007,
+      "allocations": 0.0,
+      "allocatedBytes": 0.0,
+      "peakCppBytes": 0.0,
+      "retainedBytes": 0.0,
+      "jsonBytes": 192318,
+      "contentHash": "6986250780404406989"
+    },
+    "500_mode5": {
+      "items": 500,
+      "mode": 5,
+      "samples": 21,
+      "medianMs": 0.008,
+      "minMs": 0.007,
+      "maxMs": 0.011,
+      "allocations": 18.0,
+      "allocatedBytes": 4544.0,
+      "peakCppBytes": 4544.0,
+      "retainedBytes": 4544.0,
+      "jsonBytes": 192323,
+      "contentHash": "5315837825685257211"
+    },
+    "25000_mode4": {
+      "items": 25000,
+      "mode": 4,
+      "samples": 21,
+      "medianMs": 0.009,
+      "minMs": 0.008,
+      "maxMs": 0.01,
+      "allocations": 0.0,
+      "allocatedBytes": 0.0,
+      "peakCppBytes": 0.0,
+      "retainedBytes": 0.0,
+      "jsonBytes": 9024568,
+      "contentHash": "13353129619659467689"
+    },
+    "25000_mode5": {
+      "items": 25000,
+      "mode": 5,
+      "samples": 21,
+      "medianMs": 0.016,
+      "minMs": 0.013,
+      "maxMs": 0.021,
+      "allocations": 18.0,
+      "allocatedBytes": 7616.0,
+      "peakCppBytes": 7616.0,
+      "retainedBytes": 7616.0,
+      "jsonBytes": 9024573,
+      "contentHash": "17246791759775021839"
+    }
+  },
+  "auditMicrobenchmarks": {
+    "overlay_release_empty_4k": {
+      "workload": "3840x2160 overlay / 60 ReleaseEmptySurface full-buffer checks",
+      "before": {
+        "samples": 21,
+        "medianMs": 110.5011,
+        "minMs": 107.8196,
+        "maxMs": 119.9502,
+        "allocations": 0.0,
+        "allocatedBytes": 0.0,
+        "peakCppBytes": 0.0
+      },
+      "after": {
+        "samples": 21,
+        "medianMs": 0.0,
+        "minMs": 0.0,
+        "maxMs": 0.0002,
+        "allocations": 0.0,
+        "allocatedBytes": 0.0,
+        "peakCppBytes": 0.0
+      }
+    },
+    "subtitle_vlc_outline_4k": {
+      "workload": "3840x2160 overlay / 30 vlc-outline subtitle draws + EndDraw flush",
+      "before": {
+        "samples": 21,
+        "medianMs": 5.6745,
+        "minMs": 4.7866,
+        "maxMs": 11.1318,
+        "allocations": 0.0,
+        "allocatedBytes": 0.0,
+        "peakCppBytes": 0.0
+      },
+      "after": {
+        "samples": 21,
+        "medianMs": 5.5742,
+        "minMs": 5.23,
+        "maxMs": 6.2876,
+        "allocations": 0.0,
+        "allocatedBytes": 0.0,
+        "peakCppBytes": 0.0
+      }
+    },
+    "podcast_rss_parse_100": {
+      "workload": "20 RSS feeds x 100 episodes (with XML entities) / ParseRssFeed + XmlLite",
+      "before": {
+        "samples": 21,
+        "medianMs": 23.351,
+        "minMs": 22.8863,
+        "maxMs": 28.4884,
+        "allocations": 56440.0,
+        "allocatedBytes": 21430000.0,
+        "peakCppBytes": 193957.0
+      },
+      "after": {
+        "samples": 21,
+        "medianMs": 7.163,
+        "minMs": 7.0221,
+        "maxMs": 7.6197,
+        "allocations": 20360.0,
+        "allocatedBytes": 5269360.0,
+        "peakCppBytes": 192373.0
+      }
+    },
+    "hub_extract_start_sec_10k": {
+      "workload": "10,000-item MediaLibrary / 1,000 uniform HubExtractStartSecForPath lookups",
+      "before": {
+        "samples": 21,
+        "medianMs": 19.1014,
+        "minMs": 18.0953,
+        "maxMs": 25.7639,
+        "allocations": 0.0,
+        "allocatedBytes": 0.0,
+        "peakCppBytes": 0.0
+      },
+      "after": {
+        "samples": 21,
+        "medianMs": 0.1602,
+        "minMs": 0.148,
+        "maxMs": 0.2191,
+        "allocations": 0.0,
+        "allocatedBytes": 0.0,
+        "peakCppBytes": 0.0
+      }
+    }
+  },
+  "rivalH264": {
+    "tscTicksPerSecond": 1996158436.191914,
+    "relativeRateSpread": 2.296e-06,
+    "dpi": 120,
+    "logicalCanvas": [
+      1280,
+      720
+    ],
+    "screenCanvasAperture": "1601x901 (125% DPI scaled)",
+    "screenCanvasVlc": "1601x900 (125% DPI scaled)",
+    "qualificationExit2Note": "evaluate_rival.py exited 2 on Sampled canvas changed because screenCanvas is physical pixels at 120 DPI (1601x901/1601x900) rather than 96-DPI 1280x720; clientWidth/Height was 1280x720 on all 8 rounds with zero resize/occlusion.",
+    "players": {
+      "Aperture": {
+        "version": "2.0.0.0",
+        "exeSha256": "0142540bde580b02e1b86ffa03365d3297ddfe8210cf35993f283c635c72fcd5",
+        "runtimeManifestSha256": "1273bc714475bd77d668d2e93c8de3d0fe8fe5c2d356827be7c57d234dc95595",
+        "runtimeBytes": 32664778,
+        "runtimeMib": 31.151559829711914,
+        "visibleMs": {
+          "median": 76.2098,
+          "min": 73.7912,
+          "max": 84.1474,
+          "runs": [
+            84.1474,
+            76.2098,
+            73.7912
+          ]
+        },
+        "privateMib": {
+          "median": 164.6640625,
+          "min": 164.41796875,
+          "max": 166.296875,
+          "runs": [
+            164.41796875,
+            166.296875,
+            164.6640625
+          ]
+        },
+        "workingSetMib": {
+          "median": 130.21875,
+          "min": 130.09765625,
+          "max": 131.39453125,
+          "runs": [
+            130.21875,
+            131.39453125,
+            130.09765625
+          ]
+        },
+        "dedicatedGpuMib": {
+          "median": 118.03515625,
+          "min": 118.03515625,
+          "max": 118.03515625,
+          "runs": [
+            118.03515625,
+            118.03515625,
+            118.03515625
+          ]
+        },
+        "sharedGpuMib": {
+          "median": 8.6484375,
+          "min": 8.6484375,
+          "max": 8.6484375,
+          "runs": [
+            8.6484375,
+            8.6484375,
+            8.6484375
+          ]
+        },
+        "cpuWinCorePct": {
+          "median": 5.7792646684726545,
+          "min": 4.998105934435439,
+          "max": 6.40423430994584,
+          "runs": [
+            6.40423430994584,
+            4.998105934435439,
+            5.7792646684726545
+          ]
+        },
+        "cpuTscCorePct": {
+          "median": 5.437737578690968,
+          "min": 5.39974960464751,
+          "max": 5.458671123563268,
+          "runs": [
+            5.437737578690968,
+            5.458671123563268,
+            5.39974960464751
+          ]
+        },
+        "wallSeconds": {
+          "median": 30.0103058,
+          "min": 30.009442299999996,
+          "max": 30.011368700000002,
+          "runs": [
+            30.009442299999996,
+            30.011368700000002,
+            30.0103058
+          ]
+        },
+        "mediaAdvSeconds": {
+          "median": 30.0,
+          "min": 30.0,
+          "max": 30.0,
+          "runs": [
+            30.0,
+            30.0,
+            30.0
+          ]
+        }
+      },
+      "VLC": {
+        "version": "3.0.24",
+        "exeSha256": "63d0d02df6e466d642b824dc66be6b5a134bf98b26747ffac8ec0d879dc180d7",
+        "runtimeManifestSha256": "a48412d2ee742a32192cf0c8389d2251c180160c2bc615492044d1a73aa5b2ff",
+        "runtimeBytes": 199243220,
+        "runtimeMib": 190.01314163208008,
+        "visibleMs": {
+          "median": 499.322,
+          "min": 497.9925,
+          "max": 527.9063,
+          "runs": [
+            497.9925,
+            527.9063,
+            499.322
+          ]
+        },
+        "privateMib": {
+          "median": 357.609375,
+          "min": 357.0859375,
+          "max": 357.8046875,
+          "runs": [
+            357.8046875,
+            357.609375,
+            357.0859375
+          ]
+        },
+        "workingSetMib": {
+          "median": 152.3671875,
+          "min": 152.19921875,
+          "max": 152.78515625,
+          "runs": [
+            152.78515625,
+            152.19921875,
+            152.3671875
+          ]
+        },
+        "dedicatedGpuMib": {
+          "median": 233.3984375,
+          "min": 233.3984375,
+          "max": 234.1484375,
+          "runs": [
+            233.3984375,
+            234.1484375,
+            233.3984375
+          ]
+        },
+        "sharedGpuMib": {
+          "median": 6.50390625,
+          "min": 6.50390625,
+          "max": 6.50390625,
+          "runs": [
+            6.50390625,
+            6.50390625,
+            6.50390625
+          ]
+        },
+        "cpuWinCorePct": {
+          "median": 4.685475015789426,
+          "min": 4.5303467394670855,
+          "max": 5.412854140895375,
+          "runs": [
+            4.5303467394670855,
+            5.412854140895375,
+            4.685475015789426
+          ]
+        },
+        "cpuTscCorePct": {
+          "median": 5.798602429260507,
+          "min": 5.712253375789871,
+          "max": 6.149116983361787,
+          "runs": [
+            5.798602429260507,
+            6.149116983361787,
+            5.712253375789871
+          ]
+        },
+        "wallSeconds": {
+          "median": 30.0129655,
+          "min": 30.005981399999996,
+          "max": 30.021130399999997,
+          "runs": [
+            30.005981399999996,
+            30.021130399999997,
+            30.0129655
+          ]
+        },
+        "mediaAdvSeconds": {
+          "median": 30.0,
+          "min": 30.0,
+          "max": 30.0,
+          "runs": [
+            30.0,
+            30.0,
+            30.0
+          ]
+        }
+      }
+    }
+  }
+}

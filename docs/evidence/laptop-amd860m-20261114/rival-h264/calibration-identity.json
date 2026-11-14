@@ -1,0 +1,16 @@
+{
+  "calibrationSha256": "25bbcf8c090e0afe39ca0107d74a6ff334c487fe25413cd10746e2504a34fb5b",
+  "sourceSha256": "4c5c1e508f7094a844d9e0c6b5632e8d9c0531aa093b3a90793d756f8ee51d9f",
+  "executableSha256": "45e50626bb76630d487d68c8abf4ca9b9ab82c550e11e1b5c654012bd6eb73c6",
+  "exitCode": 0,
+  "recordedAtUtc": "2026-11-14T00:18:38.3812192Z",
+  "environment": {
+    "osVersion": "Microsoft Windows 11 Home 10.0.26200 build 26200",
+    "cpuName": "AMD Ryzen AI 7 350 w/ Radeon 860M              ",
+    "logicalProcessors": 16,
+    "gpuName": "AMD Radeon(TM) 860M Graphics",
+    "gpuDriverVersion": "32.0.32015.7029",
+    "lastBootUpTimeUtc": "2026-11-13T15:15:47.3801560Z",
+    "source": "Win32_ComputerSystem, Win32_OperatingSystem, Win32_Processor and Win32_VideoController CIM instances"
+  }
+}
