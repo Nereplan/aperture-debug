@@ -101,6 +101,7 @@ class ScopedTempDirectory;
 struct UpdateDownloadResult {
     UpdaterStatusCode status = UpdaterStatusCode::Success;
     std::wstring stagingDirectory;
+    std::wstring packagePath;
     std::vector<std::wstring> stagedFiles;
     ReleaseManifest manifest;
     std::string message;
@@ -152,12 +153,62 @@ bool VerifyAuthenticodeAndPin( const std::wstring& filePath, const std::string& 
 
 bool VerifyPeArchitectureX64( const std::wstring& filePath, std::string& outError);
 
+// --- Release Source & GitHub Release Updates ---
+struct ReleaseSourceConfig {
+    std::string version;
+    std::string repository;
+};
+
+struct GitHubUpdateConfig {
+    std::string repository;
+    std::string channel = "stable";
+    std::string apiBaseUrl = "https://api.github.com";
+    std::vector<std::string> allowedHosts = {
+        "api.github.com",
+        "github.com",
+        "objects.githubusercontent.com",
+        "release-assets.githubusercontent.com",
+        "github-releases.githubusercontent.com"
+    };
+    size_t maxApiResponseBytes = 2 * 1024 * 1024;    // 2 MiB (release lists on beta/nightly)
+    size_t maxPackageSizeBytes = 200 * 1024 * 1024;  // 200 MiB
+    int connectTimeoutMs = 5000;
+    int downloadTimeoutMs = 120000;
+    int maxRedirects = 4;
+    bool allowSameVersion = false;
+    std::string assetExtension;                      // Defaults to ".zip" on Windows, ".tar.gz" on Linux
+    std::shared_ptr<OperationCancellation> cancellation;
+};
+
+bool IsValidGitHubRepository(const std::string& repo);
+bool LoadReleaseSourceConfig(const std::wstring& rootDir, ReleaseSourceConfig& outConfig, std::string& outError);
+
+UpdateCheckResult ValidateGitHubReleaseJson(
+    const std::string& releaseJsonText,
+    const GitHubUpdateConfig& config,
+    IHttpTransport* transport = nullptr,
+    const std::wstring& rootDir = GetExeDir());
+
+UpdateCheckResult CheckForGitHubUpdates(
+    const GitHubUpdateConfig& config,
+    IHttpTransport* transport = nullptr,
+    const std::wstring& rootDir = GetExeDir());
+
+UpdateDownloadResult DownloadGitHubReleasePackage(
+    const ReleaseManifest& manifest,
+    const GitHubUpdateConfig& config,
+    IHttpTransport* transport = nullptr,
+    std::function<void(uint64_t downloadedBytes, uint64_t totalBytes)> progressCallback = nullptr,
+    const std::wstring& rootDir = GetExeDir());
+
+std::wstring FormatBytesHuman(uint64_t bytes);
+
 std::wstring GetUpdaterStatusMessage(UpdaterStatusCode status, const std::string& detail = "");
 
 // Helper RAII for temporary directory cleanup
 class ScopedTempDirectory {
 public:
-    ScopedTempDirectory(const std::wstring& prefix = L"Aperture_Update_");
+    ScopedTempDirectory(const std::wstring& prefix = L"Aperture_Update_", const std::wstring& rootDirOverride = L"");
     ~ScopedTempDirectory();
     ScopedTempDirectory(const ScopedTempDirectory&) = delete;
     ScopedTempDirectory& operator=(const ScopedTempDirectory&) = delete;

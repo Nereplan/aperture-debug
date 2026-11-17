@@ -1673,8 +1673,22 @@ struct AccessibilityTreeBuilder {
                 }
             }
         } else {
+            std::wstring updateTitle = Loc::Tr("settings.system.check_updates");
+            if (!app.updateStatusMessage.empty()) updateTitle += L" - " + app.updateStatusMessage;
+            std::wstring updateBtn = Loc::Tr("settings.system.btn.check_now");
+            if (app.updatePhase == App::UpdatePhase::Checking ||
+                app.updatePhase == App::UpdatePhase::Downloading ||
+                app.updatePhase == App::UpdatePhase::Verifying) {
+                updateBtn = Loc::Tr("settings.system.btn.cancel");
+            } else if (app.updatePhase == App::UpdatePhase::Installing) {
+                updateBtn = Loc::Tr("settings.system.btn.installing");
+            } else if (app.updatePhase == App::UpdatePhase::Available) {
+                updateBtn = Loc::Tr("settings.system.btn.install");
+            } else if (app.updatePhase == App::UpdatePhase::Failed) {
+                updateBtn = Loc::Tr("settings.system.btn.retry");
+            }
             rows = {
-                { Loc::Tr("settings.system.check_updates"), L"Update" },
+                { updateTitle, updateBtn },
                 { Loc::Tr("settings.system.hover_previews"), app.settings.hoverPreviewEnabled ? L"On" : L"Off" },
                 { Loc::Tr("settings.system.reduce_motion"), app.settings.reduceMotionEnabled ? L"On" : L"Windows setting" },
                 { Loc::Tr("settings.system.smart_series"), app.settings.smartSeriesDetection ? L"On" : L"Off" },

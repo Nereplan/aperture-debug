@@ -167,9 +167,36 @@ private:
     RadioDirectoryJobs radioJobs;
     PodcastJobs podcastJobs;
     PodcastSubscriptions podcastSubscriptions;
+    enum class UpdatePhase {
+        Idle = 0,
+        Checking,
+        Available,
+        Downloading,
+        Verifying,
+        Installing,
+        UpToDate,
+        Failed
+    };
+    struct UpdateDownloadProgressState {
+        std::atomic<uint64_t> downloadedBytes{ 0 };
+        std::atomic<uint64_t> totalBytes{ 0 };
+    };
     AsyncOwnedJob<UpdateCheckResult> updateCheckJob;
     AsyncOwnedJob<UpdateDownloadResult> updateDownloadJob;
     bool updateCheckManual = true, updateCheckPersistState = false, updateJobsPrivateMode = false;
+    bool updateUsingGitHubMode = false, updatePendingModalPrompt = false, updateStartupFailureChecked = false;
+    UpdatePhase updatePhase = UpdatePhase::Idle;
+    std::shared_ptr<UpdateDownloadProgressState> updateProgressState = std::make_shared<UpdateDownloadProgressState>();
+    std::optional<ReleaseManifest> updateAvailableManifest;
+    std::shared_ptr<ScopedTempDirectory> updatePendingStagingLease;
+    std::wstring updateStatusMessage;
+    std::wstring updateStatusFilePath;
+    std::wstring updatePendingModalTitle, updatePendingModalMessage, updatePendingModalConfirmText;
+    std::function<void()> updatePendingModalOnConfirm;
+    HANDLE updateInstallerProcess = nullptr;
+    ULONGLONG updateInstallerStartTick = 0, updateLastPollTick = 0;
+    uint64_t updateLastReportedBytes = 0;
+    double updateActivitySpinAngle = 0.0;
     std::string updateJobChannel, updateJobUrl;
     bool PumpOnlineSubtitleJobs();
     bool PumpRadioDirectoryJobs();
@@ -1161,7 +1188,12 @@ private:
     void ResetCustomMpvConfigToDefault();
     void RevertCustomMpvConfigToLastKnownGood();
     void CheckForUpdates(bool isManual = true);
+    void CancelUpdateOperation(bool showOsd = true);
     void TriggerUpdateDownloadAndApply(const ReleaseManifest& manifest);
+    void ShowAvailableUpdateModal(const ReleaseManifest& manifest);
+    void QueueOrShowUpdateModal(const std::wstring& title, const std::wstring& message, const std::wstring& confirmText, std::function<void()> onConfirm);
+    void CleanupUpdateInstallerState(bool releaseStagingLease);
+    void HandleUpdateInstallFailureOnStartup();
     TextInputModel* ActiveTextInputModel();
     void OpenGlobalSearch();
     void CloseGlobalSearch();

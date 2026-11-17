@@ -1391,6 +1391,62 @@ HubRenderViewModel App::BuildHubRenderViewModel() {
                 vm.settingsTab.systemRowHoverProg[i] = systemRowHoverAnim[i].current;
                 vm.settingsTab.systemRowPressProg[i] = systemRowPressAnim[i].current;
             }
+            vm.settingsTab.updateSpinAngle = static_cast<float>(updateActivitySpinAngle);
+            switch (updatePhase) {
+                case UpdatePhase::Idle:
+                    vm.settingsTab.updateStatusDesc = Loc::Tr("settings.system.check_updates_desc");
+                    vm.settingsTab.updateButtonLabel = Loc::Tr("settings.system.btn.check_now");
+                    break;
+                case UpdatePhase::Checking:
+                    vm.settingsTab.updateBusy = true;
+                    vm.settingsTab.updateCanCancel = true;
+                    vm.settingsTab.updateStatusDesc = updateStatusMessage.empty() ? L"Checking for updates..." : updateStatusMessage;
+                    vm.settingsTab.updateButtonLabel = Loc::Tr("settings.system.btn.cancel");
+                    break;
+                case UpdatePhase::Downloading: {
+                    vm.settingsTab.updateBusy = true;
+                    vm.settingsTab.updateCanCancel = true;
+                    if (updateProgressState) {
+                        const uint64_t dl = updateProgressState->downloadedBytes.load(std::memory_order_relaxed);
+                        const uint64_t tot = updateProgressState->totalBytes.load(std::memory_order_relaxed);
+                        if (tot > 0) {
+                            vm.settingsTab.updateProgress = std::clamp(static_cast<double>(dl) / static_cast<double>(tot), 0.0, 1.0);
+                        }
+                    }
+                    vm.settingsTab.updateStatusDesc = updateStatusMessage;
+                    vm.settingsTab.updateButtonLabel = Loc::Tr("settings.system.btn.cancel");
+                    break;
+                }
+                case UpdatePhase::Verifying:
+                    vm.settingsTab.updateBusy = true;
+                    vm.settingsTab.updateCanCancel = true;
+                    vm.settingsTab.updateProgress = 1.0;
+                    vm.settingsTab.updateStatusDesc = updateStatusMessage.empty() ? L"Verifying update package..." : updateStatusMessage;
+                    vm.settingsTab.updateButtonLabel = Loc::Tr("settings.system.btn.cancel");
+                    break;
+                case UpdatePhase::Installing:
+                    vm.settingsTab.updateBusy = true;
+                    vm.settingsTab.updateCanCancel = false;
+                    vm.settingsTab.updateProgress = 1.0;
+                    vm.settingsTab.updateStatusDesc = updateStatusMessage.empty() ? L"Installing update and restarting..." : updateStatusMessage;
+                    vm.settingsTab.updateButtonLabel = Loc::Tr("settings.system.btn.installing");
+                    break;
+                case UpdatePhase::Available:
+                    vm.settingsTab.updateHasAvailable = true;
+                    vm.settingsTab.updateStatusDesc = updateStatusMessage;
+                    vm.settingsTab.updateButtonLabel = Loc::Tr("settings.system.btn.install");
+                    break;
+                case UpdatePhase::UpToDate:
+                    vm.settingsTab.updateIsUpToDate = true;
+                    vm.settingsTab.updateStatusDesc = updateStatusMessage;
+                    vm.settingsTab.updateButtonLabel = Loc::Tr("settings.system.btn.check_now");
+                    break;
+                case UpdatePhase::Failed:
+                    vm.settingsTab.updateIsError = true;
+                    vm.settingsTab.updateStatusDesc = updateStatusMessage;
+                    vm.settingsTab.updateButtonLabel = Loc::Tr("settings.system.btn.retry");
+                    break;
+            }
             break;
         }
     }

@@ -39,17 +39,90 @@ function Read-AperturePackage([string]$Root) {
     return $manifest
 }
 
+function Send-ApertureCloseSignal([System.Diagnostics.Process]$Process) {
+    if ($Process.HasExited) { return $true }
+    if ($Process.CloseMainWindow()) { return $true }
+    if (-not ('ApertureWindowClose' -as [type])) {
+        Add-Type -TypeDefinition @"
+using System;
+using System.Runtime.InteropServices;
+public static class ApertureWindowClose {
+    public delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
+    [DllImport("user32.dll")] public static extern bool EnumWindows(EnumWindowsProc lpEnumFunc, IntPtr lParam);
+    [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
+    [DllImport("user32.dll")] public static extern IntPtr GetWindow(IntPtr hWnd, uint uCmd);
+    [DllImport("user32.dll")] public static extern bool PostMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
+    public static int PostCloseToProcess(uint pid) {
+        int sent = 0;
+        EnumWindows((hWnd, lParam) => {
+            uint winPid = 0;
+            GetWindowThreadProcessId(hWnd, out winPid);
+            if (winPid == pid && GetWindow(hWnd, 4 /* GW_OWNER */) == IntPtr.Zero) {
+                if (PostMessage(hWnd, 0x0010 /* WM_CLOSE */, IntPtr.Zero, IntPtr.Zero)) sent++;
+            }
+            return true;
+        }, IntPtr.Zero);
+        return sent;
+    }
+}
+"@
+    }
+    return ([ApertureWindowClose]::PostCloseToProcess([uint32]$Process.Id) -gt 0)
+}
+
 function Stop-ApertureRuntime([string]$Root) {
     $rootPrefix = [IO.Path]::GetFullPath($Root).TrimEnd('\','/') + '\'
     $wasRunning = $false
+    $mainProcesses = [Collections.Generic.List[System.Diagnostics.Process]]::new()
+    $helperProcesses = [Collections.Generic.List[System.Diagnostics.Process]]::new()
     foreach ($process in Get-Process -Name 'Aperture*' -ErrorAction SilentlyContinue) {
         if ($process.Path -and $process.Path.StartsWith($rootPrefix, [StringComparison]::OrdinalIgnoreCase)) {
             $wasRunning = $true
-            if (-not $process.CloseMainWindow()) { throw 'Close Aperture before updating. No files have been replaced.' }
-            if (-not $process.WaitForExit(30000)) { throw 'Aperture is still saving or has a dialog open. Close it and try again.' }
+            $cmdLine = ''
+            try {
+                $wmi = Get-CimInstance -ClassName Win32_Process -Filter ("ProcessId = " + [int]$process.Id) -ErrorAction SilentlyContinue
+                if ($wmi) { $cmdLine = [string]$wmi.CommandLine }
+            } catch {}
+            if ($cmdLine -like '*--media-probe-helper*') {
+                $helperProcesses.Add($process)
+            } else {
+                if (-not (Send-ApertureCloseSignal $process)) {
+                    if (-not $process.HasExited) { throw 'Close Aperture before updating. No files have been replaced.' }
+                }
+                $mainProcesses.Add($process)
+            }
+        }
+    }
+    foreach ($process in $mainProcesses) {
+        if (-not $process.HasExited -and -not $process.WaitForExit(30000)) {
+            throw 'Aperture is still saving or has a dialog open. Close it and try again.'
+        }
+    }
+    foreach ($process in $helperProcesses) {
+        if (-not $process.HasExited -and -not $process.WaitForExit(8000)) {
+            throw 'Aperture media probe helper did not exit in time. Close Aperture and try again.'
         }
     }
     return $wasRunning
+}
+
+function Invoke-ApertureFileOperationWithRetry([scriptblock]$Action) {
+    $attempts = 15
+    for ($i = 0; $i -lt $attempts; $i++) {
+        try {
+            & $Action
+            return
+        } catch {
+            $ex = $_.Exception
+            $inner = $ex.InnerException
+            $isTransient = ($ex -is [IO.IOException]) -or
+                           ($ex -is [UnauthorizedAccessException]) -or
+                           ($inner -is [IO.IOException]) -or
+                           ($inner -is [UnauthorizedAccessException])
+            if (-not $isTransient -or $i -eq ($attempts - 1)) { throw }
+            Start-Sleep -Milliseconds 100
+        }
+    }
 }
 
 # Snapshot files remain ordinary, complete recovery trees. Immutable copies
@@ -209,7 +282,7 @@ function Install-AperturePackage([string]$Package, [string]$Destination, [switch
             }
             $journal += [pscustomobject]@{ path = $relative; existed = $exists; replace = $replacements.Contains($relative) }
         }
-        $journal | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $backup 'journal.json') -Encoding UTF8
+        ConvertTo-Json -InputObject @($journal) | Set-Content -LiteralPath (Join-Path $backup 'journal.json') -Encoding UTF8
         $changed = [Collections.Generic.List[object]]::new()
         try {
             foreach ($entry in $journal) {
@@ -219,8 +292,8 @@ function Install-AperturePackage([string]$Package, [string]$Destination, [switch
                 $pending = $target + '.update-' + [guid]::NewGuid().ToString('N')
                 try {
                     Copy-Item -LiteralPath (Join-Path $Package $entry.path) -Destination $pending
-                    if ($entry.existed) { [IO.File]::Replace($pending, $target, [NullString]::Value) }
-                    else { [IO.File]::Move($pending, $target) }
+                    if ($entry.existed) { Invoke-ApertureFileOperationWithRetry { [IO.File]::Replace($pending, $target, [NullString]::Value) } }
+                    else { Invoke-ApertureFileOperationWithRetry { [IO.File]::Move($pending, $target) } }
                     $changed.Add($entry)
                 } finally {
                     if (Test-Path -LiteralPath $pending) { Remove-Item -LiteralPath $pending -Force }
@@ -232,8 +305,8 @@ function Install-AperturePackage([string]$Package, [string]$Destination, [switch
             foreach ($entry in $changed) {
                 try {
                     $target = Join-Path $Destination $entry.path
-                    if ($entry.existed) { Copy-Item -LiteralPath (Join-Path (Join-Path $backup 'runtime') $entry.path) -Destination $target -Force }
-                    elseif (Test-Path -LiteralPath $target) { Remove-Item -LiteralPath $target -Force }
+                    if ($entry.existed) { Invoke-ApertureFileOperationWithRetry { Copy-Item -LiteralPath (Join-Path (Join-Path $backup 'runtime') $entry.path) -Destination $target -Force } }
+                    elseif (Test-Path -LiteralPath $target) { Invoke-ApertureFileOperationWithRetry { Remove-Item -LiteralPath $target -Force } }
                 } catch { $rollbackErrors += $_.Exception.Message }
             }
             if ($rollbackErrors.Count) { throw "Update failed; recovery files are at $backup. $($rollbackErrors -join '; ')" }

@@ -15,6 +15,22 @@
 
 namespace Aperture {
 
+// Small arc spinner shared across loading/update states (caller advances angleDeg).
+static void DrawActivitySpinnerArc(Renderer& r, const D2D1_RECT_F& rect, D2D1_COLOR_F color, float angleDeg, float dp) {
+    const float cx = (rect.left + rect.right) * 0.5f, cy = (rect.top + rect.bottom) * 0.5f;
+    const float rad = RectWidth(rect) * 0.42f;
+    const float base = angleDeg * 3.14159265f / 180.0f;
+    const float a0 = base, a1 = base + 4.4f;
+    const int steps = 16;
+    D2D1_POINT_2F prev = D2D1::Point2F(cx + rad * std::cos(a0), cy + rad * std::sin(a0));
+    for (int i = 1; i <= steps; ++i) {
+        const float t = a0 + (a1 - a0) * i / steps;
+        const D2D1_POINT_2F cur = D2D1::Point2F(cx + rad * std::cos(t), cy + rad * std::sin(t));
+        r.DrawLine(prev.x, prev.y, cur.x, cur.y, color, 1.5f * dp);
+        prev = cur;
+    }
+}
+
 // DirectWrite formats are deliberately configured as single-line text.  Keep
 // long user supplied names inside their layout columns instead of allowing the
 // native renderer to paint over neighboring controls at narrow widths.
@@ -1586,21 +1602,24 @@ void UIComponents::DrawSettingsView(Renderer& r, const Settings& s, SettingsTabV
 
         contentY += aboutCardH + 18.0f * dp;
         drawHeader(Loc::Tr("settings.system.actions_header").c_str());
-        struct SysBtn { std::wstring label; std::wstring desc; bool isDanger; IconType icon; };
+        struct SysBtn { std::wstring label; std::wstring desc; bool isDanger; IconType icon; std::wstring btnLabel; };
         // Display order mirrors SettingsLayout::kSystemActions: register/remove
         // file types stay at the end so Simple mode can tail-truncate them.
+        const std::wstring updateDesc = vm.updateStatusDesc.empty() ? Loc::Tr("settings.system.check_updates_desc") : vm.updateStatusDesc;
+        const std::wstring updateBtnLabel = vm.updateButtonLabel.empty() ? Loc::Tr("settings.system.btn.check_now") : vm.updateButtonLabel;
+        const IconType updateIcon = (vm.updateIsUpToDate || vm.updateHasAvailable) ? IconType::Checkmark : IconType::Refresh;
         SysBtn btns[] = {
-            { Loc::Tr("settings.system.check_updates"), Loc::Tr("settings.system.check_updates_desc"), false, IconType::Refresh },
-            { Loc::Tr("settings.system.hover_previews"), s.hoverPreviewEnabled ? Loc::Tr("settings.system.hover_previews_on") : Loc::Tr("settings.system.hover_previews_off"), false, IconType::MediaFilm },
-            { Loc::Tr("settings.system.reduce_motion"), s.reduceMotionEnabled ? Loc::Tr("settings.system.reduce_motion_on") : Loc::Tr("settings.system.reduce_motion_off"), false, IconType::SpeedGauge },
-            { Loc::Tr("settings.system.smart_series"), s.smartSeriesDetection ? Loc::Tr("settings.system.smart_series_on") : Loc::Tr("settings.system.smart_series_off"), false, IconType::FolderPlaylist },
-            { Loc::Tr("settings.system.jump_list"), s.jumpListEnabled ? Loc::Tr("settings.system.jump_list_on") : Loc::Tr("settings.system.jump_list_off"), false, IconType::HistoryClock },
-            { Loc::Tr("settings.system.open_data"), Loc::Tr("settings.system.open_data_desc"), false, IconType::AspectFrame },
-            { Loc::Tr("settings.system.clear_disk_cache"), Loc::Tr("settings.system.clear_disk_cache_desc"), false, IconType::Trash },
-            { Loc::Tr("settings.system.clear_history"), Loc::Tr("settings.system.clear_history_desc"), true, IconType::HistoryClock },
-            { Loc::Tr("settings.system.reset_defaults"), Loc::Tr("settings.system.reset_defaults_desc"), true, IconType::Refresh },
-            { Loc::Tr("settings.system.register_types"), Loc::Tr("settings.system.register_types_desc"), false, IconType::MediaFilm },
-            { Loc::Tr("settings.system.remove_types"), Loc::Tr("settings.system.remove_types_desc"), false, IconType::Trash }};
+            { Loc::Tr("settings.system.check_updates"), updateDesc, false, updateIcon, updateBtnLabel },
+            { Loc::Tr("settings.system.hover_previews"), s.hoverPreviewEnabled ? Loc::Tr("settings.system.hover_previews_on") : Loc::Tr("settings.system.hover_previews_off"), false, IconType::MediaFilm, s.hoverPreviewEnabled ? Loc::Tr("settings.system.btn.enabled") : Loc::Tr("settings.system.btn.disabled") },
+            { Loc::Tr("settings.system.reduce_motion"), s.reduceMotionEnabled ? Loc::Tr("settings.system.reduce_motion_on") : Loc::Tr("settings.system.reduce_motion_off"), false, IconType::SpeedGauge, s.reduceMotionEnabled ? Loc::Tr("settings.system.btn.enabled") : Loc::Tr("settings.system.btn.disabled") },
+            { Loc::Tr("settings.system.smart_series"), s.smartSeriesDetection ? Loc::Tr("settings.system.smart_series_on") : Loc::Tr("settings.system.smart_series_off"), false, IconType::FolderPlaylist, s.smartSeriesDetection ? Loc::Tr("settings.system.btn.enabled") : Loc::Tr("settings.system.btn.disabled") },
+            { Loc::Tr("settings.system.jump_list"), s.jumpListEnabled ? Loc::Tr("settings.system.jump_list_on") : Loc::Tr("settings.system.jump_list_off"), false, IconType::HistoryClock, s.jumpListEnabled ? Loc::Tr("settings.system.btn.enabled") : Loc::Tr("settings.system.btn.disabled") },
+            { Loc::Tr("settings.system.open_data"), Loc::Tr("settings.system.open_data_desc"), false, IconType::AspectFrame, Loc::Tr("settings.system.btn.open_data") },
+            { Loc::Tr("settings.system.clear_disk_cache"), Loc::Tr("settings.system.clear_disk_cache_desc"), false, IconType::Trash, Loc::Tr("settings.system.btn.clear_disk") },
+            { Loc::Tr("settings.system.clear_history"), Loc::Tr("settings.system.clear_history_desc"), true, IconType::HistoryClock, Loc::Tr("settings.system.btn.clear_history") },
+            { Loc::Tr("settings.system.reset_defaults"), Loc::Tr("settings.system.reset_defaults_desc"), true, IconType::Refresh, Loc::Tr("settings.system.btn.reset_defaults") },
+            { Loc::Tr("settings.system.register_types"), Loc::Tr("settings.system.register_types_desc"), false, IconType::MediaFilm, Loc::Tr("settings.system.btn.register_types") },
+            { Loc::Tr("settings.system.remove_types"), Loc::Tr("settings.system.remove_types_desc"), false, IconType::Trash, Loc::Tr("settings.system.btn.remove_types") }};
         float bCardH = 58.0f * dp;
         const float systemListH = systemRowCount * bCardH + (systemRowCount - 1) * 10.0f * dp;
         drawFlatPanel(D2D1::RectF(contentBounds.left + padX - 10.0f * dp, contentY - 8.0f * dp,
@@ -1613,7 +1632,10 @@ void UIComponents::DrawSettingsView(Renderer& r, const Settings& s, SettingsTabV
             const float hoverProg = std::clamp(vm.systemRowHoverProg[i], 0.0f, 1.0f);
             // Press reads instantly on mouse-down; the eased progress only softens the release.
             const float pressProg = isPressed ? 1.0f : std::clamp(vm.systemRowPressProg[i], 0.0f, 1.0f);
-            const bool danger = btns[i].isDanger;
+            const bool isUpdateRowError = (i == 0 && vm.updateIsError);
+            const bool isUpdateRowBusy = (i == 0 && vm.updateBusy);
+            const bool isUpdateRowAvailable = (i == 0 && vm.updateHasAvailable);
+            const bool danger = btns[i].isDanger || isUpdateRowError;
             // Content settles 1 dp down while pressed, matching the nav-bar press model.
             const float pressDy = (1.0f * dp) * pressProg;
 
@@ -1648,8 +1670,9 @@ void UIComponents::DrawSettingsView(Renderer& r, const Settings& s, SettingsTabV
             const float iconBoxX = isRtl ? (bRect.right - 14.0f * dp - iconBoxSz) : (bRect.left + 14.0f * dp);
             const float iconBoxY = bRect.top + (bCardH - iconBoxSz) * 0.5f + pressDy;
             D2D1_RECT_F iconBox = D2D1::RectF(iconBoxX, iconBoxY, iconBoxX + iconBoxSz, iconBoxY + iconBoxSz);
-            D2D1_COLOR_F iconBoxFill = LerpColor(ColorWithAlpha(surfaceCard, 0.6f), danger ? ColorWithAlpha(dangerCol, 0.16f) : ColorWithAlpha(accentCol, 0.15f), hoverProg);
-            D2D1_COLOR_F iconBoxBorder = LerpColor(surfaceBorder, danger ? ColorWithAlpha(dangerCol, 0.45f) : ColorWithAlpha(accentCol, 0.45f), hoverProg);
+            const float iconTintProg = (isUpdateRowBusy || isUpdateRowAvailable || isUpdateRowError) ? (std::max)(0.45f, hoverProg) : hoverProg;
+            D2D1_COLOR_F iconBoxFill = LerpColor(ColorWithAlpha(surfaceCard, 0.6f), danger ? ColorWithAlpha(dangerCol, 0.16f) : ColorWithAlpha(accentCol, 0.15f), iconTintProg);
+            D2D1_COLOR_F iconBoxBorder = LerpColor(surfaceBorder, danger ? ColorWithAlpha(dangerCol, 0.45f) : ColorWithAlpha(accentCol, 0.45f), iconTintProg);
             if (pressProg > 0.001f) {
                 iconBoxFill = LerpColor(iconBoxFill, danger ? ColorWithAlpha(dangerCol, 0.32f) : ColorWithAlpha(accentCol, 0.28f), pressProg);
                 iconBoxBorder = LerpColor(iconBoxBorder, danger ? dangerCol : accentCol, pressProg);
@@ -1659,22 +1682,38 @@ void UIComponents::DrawSettingsView(Renderer& r, const Settings& s, SettingsTabV
             const float rowIconSz = 16.0f * dp;
             D2D1_RECT_F iconRect = D2D1::RectF(iconBox.left + (iconBoxSz - rowIconSz) * 0.5f, iconBox.top + (iconBoxSz - rowIconSz) * 0.5f,
                                                iconBox.left + (iconBoxSz + rowIconSz) * 0.5f, iconBox.top + (iconBoxSz + rowIconSz) * 0.5f);
-            const D2D1_COLOR_F iconCol = danger ? dangerCol : LerpColor(textMute, accentCol, hoverProg);
-            r.DrawIcon(btns[i].icon, iconRect, iconCol, 1.4f * dp);
+            const D2D1_COLOR_F iconCol = danger ? dangerCol
+                : (isUpdateRowBusy || isUpdateRowAvailable || (i == 0 && vm.updateIsUpToDate)) ? accentCol
+                : LerpColor(textMute, accentCol, hoverProg);
+            if (isUpdateRowBusy) {
+                DrawActivitySpinnerArc(r, iconRect, accentCol, vm.updateSpinAngle, dp);
+            } else {
+                r.DrawIcon(btns[i].icon, iconRect, iconCol, 1.4f * dp);
+            }
 
             // Title & description; color carries hover, position stays fixed.
             const float textLeft = isRtl ? (bRect.left + 130.0f * dp) : (iconBox.right + 12.0f * dp);
             const float textRight = isRtl ? (iconBox.left - 12.0f * dp) : (bRect.right - 130.0f * dp);
-            if (vm.compact) vm.descTools.push_back({ bRect, btns[i].desc });
+            const float descMaxW = SafeWidth(textLeft, textRight);
+            const std::wstring fittedDesc = FitSingleLine(r, btns[i].desc, FontType::Small, descMaxW);
+            if (vm.compact || fittedDesc != btns[i].desc || (i == 0 && (isUpdateRowError || isUpdateRowAvailable))) {
+                vm.descTools.push_back({ bRect, btns[i].desc });
+            }
             const D2D1_RECT_F titleRect = vm.compact
                 ? D2D1::RectF(textLeft, bRect.top + pressDy, textRight, bRect.bottom + pressDy)
                 : D2D1::RectF(textLeft, bRect.top + 10.0f * dp + pressDy, textRight, bRect.top + 30.0f * dp + pressDy);
             const D2D1_COLOR_F titleCol = danger ? dangerCol : (isKbFocused ? textPri : LerpColor(textNorm, textPri, hoverProg));
-            r.DrawString(FitSingleLine(r, btns[i].label, FontType::Medium, SafeWidth(titleRect.left, titleRect.right)),
+            r.DrawString(FitSingleLine(r, btns[i].label, FontType::Medium, descMaxW),
                          titleRect, titleCol, FontType::Medium, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
             if (!vm.compact) {
                 D2D1_RECT_F descRect = D2D1::RectF(textLeft, bRect.top + 31.0f * dp + pressDy, textRight, bRect.bottom - 8.0f * dp + pressDy);
-                r.DrawString(btns[i].desc, descRect, LerpColor(textMute, textNorm, hoverProg * 0.35f), FontType::Small, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+                const D2D1_COLOR_F descCol = isUpdateRowError ? LerpColor(dangerCol, textNorm, 0.20f)
+                    : (isUpdateRowAvailable ? accentCol : LerpColor(textMute, textNorm, hoverProg * 0.35f));
+                r.DrawString(fittedDesc, descRect, descCol, FontType::Small, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+            }
+            if (isUpdateRowBusy && vm.updateProgress >= 0.0) {
+                const D2D1_RECT_F progRect = D2D1::RectF(textLeft, bRect.bottom - 4.0f * dp, textRight, bRect.bottom - 1.5f * dp);
+                r.DrawProgressBar(progRect, vm.updateProgress, ColorWithAlpha(surfaceBorder, 0.55f), accentCol, 1.5f * dp);
             }
 
             // Right-aligned action badge; static geometry, state lives in color.
@@ -1693,6 +1732,21 @@ void UIComponents::DrawSettingsView(Renderer& r, const Settings& s, SettingsTabV
                     actBg = LerpColor(actBg, ColorWithAlpha(dangerCol, 0.55f), pressProg);
                     actBorder = dangerCol;
                     actText = LerpColor(actText, D2D1::ColorF(1.0f, 1.0f, 1.0f), pressProg);
+                }
+            } else if (i == 0 && (isUpdateRowAvailable || isUpdateRowBusy)) {
+                if (isUpdateRowAvailable) {
+                    actBg = LerpColor(ColorWithAlpha(accentCol, 0.22f), ColorWithAlpha(accentCol, 0.36f), hoverProg);
+                    actBorder = accentCol;
+                    actText = accentCol;
+                } else {
+                    actBg = LerpColor(surfaceBg, ColorWithAlpha(dangerCol, 0.16f), hoverProg);
+                    actBorder = LerpColor(surfaceBorder, ColorWithAlpha(dangerCol, 0.55f), hoverProg);
+                    actText = LerpColor(textNorm, dangerCol, hoverProg);
+                }
+                if (pressProg > 0.001f) {
+                    actBg = LerpColor(actBg, accentCol, pressProg);
+                    actBorder = accentCol;
+                    actText = LerpColor(actText, surfaceBg, pressProg);
                 }
             } else if (i == 1 || i == 2 || i == 3 || i == 4) {
                 const bool isEnabled = (i == 1 && s.hoverPreviewEnabled) ||
@@ -1726,17 +1780,7 @@ void UIComponents::DrawSettingsView(Renderer& r, const Settings& s, SettingsTabV
             if (isKbFocused) { actBg = accentCol; actBorder = accentCol; actText = surfaceBg; }
             r.FillRoundedRect(actRect, 6.0f * dp, actBg);
             r.DrawRoundedRect(actRect, 6.0f * dp, actBorder, 1.2f);
-            std::wstring btnTags[] = {
-                Loc::Tr("settings.system.btn.check_now"),
-                s.hoverPreviewEnabled ? Loc::Tr("settings.system.btn.enabled") : Loc::Tr("settings.system.btn.disabled"),
-                s.reduceMotionEnabled ? Loc::Tr("settings.system.btn.enabled") : Loc::Tr("settings.system.btn.disabled"),
-                s.smartSeriesDetection ? Loc::Tr("settings.system.btn.enabled") : Loc::Tr("settings.system.btn.disabled"),
-                s.jumpListEnabled ? Loc::Tr("settings.system.btn.enabled") : Loc::Tr("settings.system.btn.disabled"),
-                Loc::Tr("settings.system.btn.register_types"), Loc::Tr("settings.system.btn.remove_types"),
-                Loc::Tr("settings.system.btn.open_data"), Loc::Tr("settings.system.btn.clear_disk"),
-                Loc::Tr("settings.system.btn.clear_history"), Loc::Tr("settings.system.btn.reset_defaults")
-            };
-            r.DrawString(btnTags[i], actRect, actText, FontType::Small, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+            r.DrawString(btns[i].btnLabel, actRect, actText, FontType::Small, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
         }
     }
     r.PopClip();
@@ -3326,18 +3370,7 @@ namespace {
 
 // Small arc spinner for header/list loading states (App advances the angle).
 void DrawListenSpinner(Renderer& r, const D2D1_RECT_F& rect, D2D1_COLOR_F color, float angleDeg, float dp) {
-    const float cx = (rect.left + rect.right) * 0.5f, cy = (rect.top + rect.bottom) * 0.5f;
-    const float rad = RectWidth(rect) * 0.42f;
-    const float base = angleDeg * 3.14159265f / 180.0f;
-    const float a0 = base, a1 = base + 4.4f;
-    const int steps = 16;
-    D2D1_POINT_2F prev = D2D1::Point2F(cx + rad * std::cos(a0), cy + rad * std::sin(a0));
-    for (int i = 1; i <= steps; ++i) {
-        const float t = a0 + (a1 - a0) * i / steps;
-        const D2D1_POINT_2F cur = D2D1::Point2F(cx + rad * std::cos(t), cy + rad * std::sin(t));
-        r.DrawLine(prev.x, prev.y, cur.x, cur.y, color, 1.5f * dp);
-        prev = cur;
-    }
+    DrawActivitySpinnerArc(r, rect, color, angleDeg, dp);
 }
 
 // Compact icon+label button used by the Listen header rows. hoverProg eases

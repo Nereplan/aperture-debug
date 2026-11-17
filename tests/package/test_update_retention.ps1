@@ -123,7 +123,38 @@ try {
     $failed = $false
     try { Read-AperturePackage $package } catch { $failed = $true }
     Assert $failed 'Package containing profile data accepted'
-    Write-Host 'PASS: real installation, data retention, deduplicated backups, no-op reinstall, portable fallback, locked-file rollback, tampering, and protected paths.' -ForegroundColor Green
+
+    # Transient file lock retry succeeds cleanly once the short hold clears
+    Remove-Item -LiteralPath (Join-Path $package 'data') -Recurse -Force
+    Write-Fixture (Join-Path $package 'Aperture.exe') 'revision-4'
+    Write-Manifest
+    $transientLockPath = Join-Path $target 'Aperture.exe'
+    $opened = [Threading.ManualResetEventSlim]::new($false)
+    $ps = [powershell]::Create()
+    [void]$ps.AddScript({
+        param($Path, $Ready)
+        $stream = [IO.File]::Open($Path, 'Open', 'Read', 'Read')
+        try {
+            $Ready.Set()
+            Start-Sleep -Milliseconds 350
+        } finally {
+            $stream.Dispose()
+        }
+    }).AddArgument($transientLockPath).AddArgument($opened)
+    $handle = $ps.BeginInvoke()
+    try {
+        Assert ($opened.Wait(5000)) 'Transient lock holder did not acquire file lock in time'
+        Install-AperturePackage $package $target
+        $ps.EndInvoke($handle)
+    } finally {
+        $opened.Dispose()
+        $ps.Dispose()
+    }
+    Assert ((Get-Content -LiteralPath $transientLockPath -Raw) -eq 'revision-4') 'Transient lock retry failed'
+    $latestBackup = Get-ChildItem -LiteralPath $backups -Directory | Where-Object { Test-Path -LiteralPath (Join-Path $_.FullName 'complete') } | Sort-Object Name -Descending | Select-Object -First 1
+    $journalRaw = Get-Content -LiteralPath (Join-Path $latestBackup.FullName 'journal.json') -Raw
+    Assert ($journalRaw.TrimStart().StartsWith('[')) 'journal.json was not serialized as a JSON array'
+    Write-Host 'PASS: real installation, data retention, deduplicated backups, no-op reinstall, portable fallback, locked-file rollback, transient retry, tampering, and protected paths.' -ForegroundColor Green
 } finally {
     $full = [IO.Path]::GetFullPath($root)
     $prefix = [IO.Path]::GetFullPath([IO.Path]::GetTempPath()).TrimEnd('\','/') + '\Aperture-update-test-'

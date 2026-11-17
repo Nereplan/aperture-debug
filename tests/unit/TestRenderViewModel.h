@@ -64,6 +64,12 @@ TEST_CASE(RenderViewModel, FlyoutBorrowsLargeQueueForTheFrame) {
 TEST_CASE(RenderViewModel, SettingsTabSystemActionMatching) {
     SettingsTabViewModel vm;
     TEST_ASSERT(!vm.pressState.IsSystemActionPressed(2));
+    TEST_ASSERT(!vm.updateBusy);
+    TEST_ASSERT(!vm.updateCanCancel);
+    TEST_ASSERT(!vm.updateHasAvailable);
+    TEST_ASSERT(!vm.updateIsError);
+    TEST_ASSERT(!vm.updateIsUpToDate);
+    TEST_ASSERT(vm.updateProgress < 0.0);
     vm.pressState = { SettingsPressState::Target::SystemAction, 2, -1 };
     TEST_ASSERT(vm.pressState.IsSystemActionPressed(2));
     TEST_ASSERT(!vm.pressState.IsSystemActionPressed(0));

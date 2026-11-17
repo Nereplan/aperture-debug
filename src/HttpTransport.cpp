@@ -176,6 +176,7 @@ HttpResponse IHttpTransport::GetToFile(const std::wstring& url, const std::wstri
                     result.success = false; result.status = HttpTransportStatus::FileError; result.errorMessage = L"Failed to write downloaded response"; break;
                 }
                 offset += bytes;
+                if (options.onProgress) options.onProgress(offset, result.body.size());
             }
         }
         result.body.clear(); result.body.shrink_to_fit(); return result;

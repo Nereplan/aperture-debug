@@ -21,6 +21,7 @@
 #include <random>
 #include <filesystem>
 #include <limits>
+#include <thread>
 #if !defined(_WIN32)
 #include <sys/stat.h>
 #include <unistd.h>
@@ -569,6 +570,7 @@ bool VerifyAuthenticodeAndPin( const std::wstring& filePath, const std::string& 
         if (status == TRUST_E_NOSIGNATURE) {
             outError = "File is not digitally signed (TRUST_E_NOSIGNATURE)";
         } else { outError = "Authenticode validation failed with status 0x" + ToHex((const uint8_t*)&status, sizeof(status)); }
+        return false;
     }
     HCERTSTORE hStore = NULL;
     HCRYPTMSG hMsg = NULL;
@@ -695,31 +697,232 @@ bool VerifyPeArchitectureX64(const std::wstring& filePath, std::string& outError
 #endif
 }
 
+// --- Shared Update Root, URL & Formatting Helpers ---
+
+static std::wstring JoinPath(const std::wstring& base, const std::wstring& child) {
+    if (base.empty()) return child;
+    if (child.empty()) return base;
+#if defined(_WIN32)
+    constexpr wchar_t sep = L'\\';
+#else
+    constexpr wchar_t sep = L'/';
+#endif
+    std::wstring joined = base;
+    if (joined.back() != L'\\' && joined.back() != L'/') joined.push_back(sep);
+    if (!child.empty() && (child.front() == L'\\' || child.front() == L'/')) {
+        joined.append(child.substr(1));
+    } else {
+        joined.append(child);
+    }
+    return joined;
+}
+
+static bool PathsReferToSameDirectory(const std::wstring& a, const std::wstring& b) {
+    if (a.empty() || b.empty()) return false;
+    std::wstring fullA = GetFullPathDynamic(a);
+    std::wstring fullB = GetFullPathDynamic(b);
+    while (fullA.size() > 3 && (fullA.back() == L'\\' || fullA.back() == L'/')) fullA.pop_back();
+    while (fullB.size() > 3 && (fullB.back() == L'\\' || fullB.back() == L'/')) fullB.pop_back();
+#if defined(_WIN32)
+    return CaseInsensitiveEqual(Utf16ToUtf8(fullA), Utf16ToUtf8(fullB));
+#else
+    return fullA == fullB;
+#endif
+}
+
+static StorageStatus CheckUpdateRootWritable(const std::wstring& rootDir) {
+    const std::wstring exeDir = GetExeDir();
+    if (rootDir.empty() || PathsReferToSameDirectory(rootDir, exeDir)) {
+        return CheckDataDirectoryWritability();
+    }
+    if (!DirectoryExists(rootDir)) {
+        return StorageStatus::Error(StorageErrorCode::DirectoryCreationFailed, ERROR_PATH_NOT_FOUND, rootDir, "Root directory does not exist");
+    }
+    const std::wstring probe = JoinPath(rootDir, L".aperture_write_probe_" + std::to_wstring(GetCurrentProcessId()) + L".tmp");
+#if defined(_WIN32)
+    HANDLE hFile = CreateFileW(probe.c_str(), GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_TEMPORARY, nullptr);
+    if (hFile == INVALID_HANDLE_VALUE) {
+        DWORD err = GetLastError();
+        return StorageStatus::Error(StorageErrorCode::DirectoryNotWritable, err, probe, "Root directory is not writable (error " + std::to_string(err) + ")");
+    }
+    CloseHandle(hFile);
+    (void)DeleteFileW(probe.c_str());
+#else
+    if (!AtomicWriteTextFile(probe, "probe").is_ok()) {
+        return StorageStatus::Error(StorageErrorCode::DirectoryNotWritable, 13, probe, "Root directory is not writable");
+    }
+    ::unlink(LinuxWideToUtf8(probe).c_str());
+#endif
+    return StorageStatus::Ok(rootDir);
+}
+
+static bool ValidateHttpsUrlAndHost(
+    const std::string& url,
+    const std::vector<std::string>& allowedHosts,
+    UpdaterStatusCode& outStatus,
+    std::string& outError,
+    const std::string& fieldLabel = "downloadUrl")
+{
+    if (url.rfind("https://", 0) != 0) {
+        outStatus = UpdaterStatusCode::DisallowedRedirect;
+        outError = "Package " + fieldLabel + " must strictly use HTTPS";
+        return false;
+    }
+    URL_COMPONENTS urlComp = {};
+    urlComp.dwStructSize = sizeof(urlComp);
+    urlComp.dwSchemeLength = static_cast<DWORD>(-1);
+    urlComp.dwHostNameLength = static_cast<DWORD>(-1);
+    std::wstring wUrl = Utf8ToUtf16(url);
+    if (!WinHttpCrackUrl(wUrl.c_str(), static_cast<DWORD>(wUrl.length()), 0, &urlComp) ||
+        !urlComp.lpszHostName || urlComp.dwHostNameLength == 0) {
+        outStatus = UpdaterStatusCode::InvalidManifestJson;
+        outError = "Malformed " + fieldLabel + " structure";
+        return false;
+    }
+    std::string host = Utf16ToUtf8(std::wstring(urlComp.lpszHostName, urlComp.dwHostNameLength));
+    if (!allowedHosts.empty()) {
+        bool hostAllowed = false;
+        for (const auto& allowed : allowedHosts) {
+            if (CaseInsensitiveEqual(host, allowed)) {
+                hostAllowed = true;
+                break;
+            }
+        }
+        if (!hostAllowed) {
+            outStatus = UpdaterStatusCode::DisallowedRedirect;
+            outError = "Download host '" + host + "' is not in updater allowedHosts allowlist";
+            return false;
+        }
+    }
+    return true;
+}
+
+static void MapHttpTransportFailure(
+    const HttpResponse& httpResp,
+    const std::string& contextLabel,
+    UpdaterStatusCode& outStatus,
+    std::string& outMessage)
+{
+    switch (httpResp.status) {
+        case HttpTransportStatus::Cancelled:
+            outStatus = UpdaterStatusCode::Cancelled;
+            outMessage = contextLabel + " cancelled";
+            break;
+        case HttpTransportStatus::Timeout:
+            outStatus = UpdaterStatusCode::Timeout;
+            outMessage = "Network timeout while " + contextLabel;
+            break;
+        case HttpTransportStatus::TooManyRedirects:
+            outStatus = UpdaterStatusCode::TooManyRedirects;
+            outMessage = "Redirect limit exceeded while " + contextLabel;
+            break;
+        case HttpTransportStatus::HttpsRequired:
+        case HttpTransportStatus::DestinationRejected:
+        case HttpTransportStatus::InvalidUrl:
+            outStatus = UpdaterStatusCode::DisallowedRedirect;
+            outMessage = !httpResp.errorMessage.empty()
+                ? Utf16ToUtf8(httpResp.errorMessage)
+                : ("Disallowed or insecure URL while " + contextLabel);
+            break;
+        case HttpTransportStatus::ResponseTooLarge:
+            outStatus = UpdaterStatusCode::ResponseTooLarge;
+            outMessage = "Response exceeded maximum allowed size while " + contextLabel;
+            break;
+        case HttpTransportStatus::FileError:
+            outStatus = UpdaterStatusCode::StagingError;
+            outMessage = !httpResp.errorMessage.empty()
+                ? Utf16ToUtf8(httpResp.errorMessage)
+                : ("Local file write error while " + contextLabel);
+            break;
+        case HttpTransportStatus::HttpError:
+            outStatus = UpdaterStatusCode::HttpError;
+            outMessage = !httpResp.errorMessage.empty()
+                ? Utf16ToUtf8(httpResp.errorMessage)
+                : ("HTTP request failed with status " + std::to_string(httpResp.statusCode));
+            break;
+        default:
+            outStatus = UpdaterStatusCode::NetworkError;
+            outMessage = !httpResp.errorMessage.empty()
+                ? Utf16ToUtf8(httpResp.errorMessage)
+                : ("Network request failed while " + contextLabel +
+                   (httpResp.statusCode > 0 ? (" (HTTP " + std::to_string(httpResp.statusCode) + ")") : ""));
+            break;
+    }
+}
+
+static bool IsHexString64(const std::string& text) {
+    if (text.size() != 64) return false;
+    for (unsigned char c : text) {
+        if (!std::isxdigit(c)) return false;
+    }
+    return true;
+}
+
+static std::string ExtractHexSha256Token(const std::string& rawText) {
+    std::string trimmed = Trim(rawText);
+    if (trimmed.size() >= 7 &&
+        CaseInsensitiveEqual(trimmed.substr(0, 7), "sha256:")) {
+        trimmed = Trim(trimmed.substr(7));
+    }
+    // Accept "hash", "hash  filename", or "sha256:hash"
+    std::string token;
+    for (unsigned char c : trimmed) {
+        if (std::isxdigit(c)) {
+            token.push_back(static_cast<char>(std::tolower(c)));
+            if (token.size() == 64) return token;
+        } else if (std::isspace(c) || c == '*') {
+            if (!token.empty()) break;
+        } else {
+            token.clear();
+        }
+    }
+    return token.size() == 64 ? token : "";
+}
+
+std::wstring FormatBytesHuman(uint64_t bytes) {
+    char buf[64]{};
+    if (bytes < 1024ULL) {
+        std::snprintf(buf, sizeof(buf), "%llu B", static_cast<unsigned long long>(bytes));
+    } else if (bytes < 1024ULL * 1024ULL) {
+        const double kb = static_cast<double>(bytes) / 1024.0;
+        std::snprintf(buf, sizeof(buf), "%.0f KB", kb);
+    } else if (bytes < 1024ULL * 1024ULL * 1024ULL) {
+        const double mb = static_cast<double>(bytes) / (1024.0 * 1024.0);
+        std::snprintf(buf, sizeof(buf), "%.1f MB", mb);
+    } else {
+        const double gb = static_cast<double>(bytes) / (1024.0 * 1024.0 * 1024.0);
+        std::snprintf(buf, sizeof(buf), "%.2f GB", gb);
+    }
+    return Utf8ToUtf16(buf);
+}
+
 // --- Scoped Temporary Directory Implementation ---
 
-ScopedTempDirectory::ScopedTempDirectory(const std::wstring& prefix) {
-    // Portable containment: stage strictly inside the application folder (<root>\cache\updater-tmp\) so no update bytes ever touch %TEMP%
+ScopedTempDirectory::ScopedTempDirectory(const std::wstring& prefix, const std::wstring& rootDirOverride) {
+    // Portable containment: stage strictly inside the target/application folder (<root>\cache\updater-tmp\) so no update bytes ever touch %TEMP%
     // or any other directory outside the portable root. The staging tree stays under cache\ so the existing "Clear disposable cache" action
     // can evict orphaned stages from crashed updates. On success the caller disables auto-cleanup and hands the staged directory to the
     // update helper.
-    std::wstring root = GetExeDir();
+    std::wstring root = rootDirOverride.empty() ? GetExeDir() : GetFullPathDynamic(rootDirOverride);
     if (root.empty()) { return; }
 #if defined(_WIN32)
     const std::wstring sep = L"\\";
-    std::wstring baseDir = root + L"\\cache\\updater-tmp";
+    std::wstring cacheDir = JoinPath(root, L"cache");
+    std::wstring baseDir = JoinPath(cacheDir, L"updater-tmp");
 #else
     const std::wstring sep = L"/";
-    std::wstring baseDir = root + L"/cache/updater-tmp";
+    std::wstring cacheDir = JoinPath(root, L"cache");
+    std::wstring baseDir = JoinPath(cacheDir, L"updater-tmp");
 #endif
-    SHCreateDirectoryExW(nullptr, GetCacheDir().c_str(), nullptr);
-    SHCreateDirectoryExW(nullptr, baseDir.c_str(), nullptr);
+    (void)SHCreateDirectoryExW(nullptr, cacheDir.c_str(), nullptr);
+    (void)SHCreateDirectoryExW(nullptr, baseDir.c_str(), nullptr);
     auto now = std::chrono::high_resolution_clock::now().time_since_epoch().count();
     std::random_device rd;
-    std::mt19937_64 gen(rd() ^ now);
+    std::mt19937_64 gen(rd() ^ static_cast<uint64_t>(now));
     std::uniform_int_distribution<uint64_t> dis;
     path_ = baseDir + sep + prefix + std::to_wstring(GetCurrentProcessId()) + L"_" + std::to_wstring(dis(gen));
     if (!IsCachePathSafe(path_, root)) { path_.clear(); return; }
-    CreateDirectoryW(path_.c_str(), NULL);
+    (void)CreateDirectoryW(path_.c_str(), NULL);
 }
 
 ScopedTempDirectory::~ScopedTempDirectory() { Cleanup(); }
@@ -873,32 +1076,8 @@ UpdateCheckResult ValidateReleaseManifest(const ReleaseManifest &manifest, const
         return result;
     }
     // 7. HTTPS URL & Host Validation
-    if (manifest.downloadUrl.rfind("https://", 0) != 0) {
-        result.status = UpdaterStatusCode::DisallowedRedirect;
-        result.message = "Package downloadUrl must strictly use HTTPS";
+    if (!ValidateHttpsUrlAndHost(manifest.downloadUrl, config.allowedHosts, result.status, result.message)) {
         return result;
-    }
-    URL_COMPONENTS urlComp = { 0 };
-    urlComp.dwStructSize = sizeof(urlComp);
-    urlComp.dwSchemeLength = (DWORD)-1;
-    urlComp.dwHostNameLength = (DWORD)-1;
-    std::wstring wUrl = Utf8ToUtf16(manifest.downloadUrl);
-    if (!WinHttpCrackUrl(wUrl.c_str(), (DWORD)wUrl.length(), 0, &urlComp) || !urlComp.lpszHostName || urlComp.dwHostNameLength == 0) {
-        result.status = UpdaterStatusCode::InvalidManifestJson;
-        result.message = "Malformed downloadUrl structure";
-        return result;
-    }
-    std::string downloadHost = Utf16ToUtf8(std::wstring(urlComp.lpszHostName, urlComp.dwHostNameLength));
-    if (!config.allowedHosts.empty()) {
-        bool hostAllowed = false;
-        for (const auto& allowed : config.allowedHosts) {
-            if (CaseInsensitiveEqual(downloadHost, allowed)) { hostAllowed = true; break; }
-        }
-        if (!hostAllowed) {
-            result.status = UpdaterStatusCode::DisallowedRedirect;
-            result.message = "Download host '" + downloadHost + "' is not in updater allowedHosts allowlist";
-            return result;
-        }
     }
     // 8. Size Bounds
     if (manifest.fileSizeBytes == 0 || manifest.fileSizeBytes > config.maxPackageSizeBytes) {
@@ -940,7 +1119,7 @@ UpdateCheckResult ValidateReleaseManifest(const ReleaseManifest &manifest, const
         }
     }
     // 11. Root directory writability & disk space checks
-    StorageStatus writability = CheckDataDirectoryWritability();
+    StorageStatus writability = CheckUpdateRootWritable(rootDir);
     if (!writability.is_ok()) {
         result.status = UpdaterStatusCode::UnwritableRoot;
         result.message = "Target root directory is not writable: " + writability.message;
@@ -973,7 +1152,7 @@ UpdateCheckResult CheckForUpdates(const UpdaterConfig &config, IHttpTransport *t
         return result;
     }
     // Ensure root writability before initiating network check
-    StorageStatus writability = CheckDataDirectoryWritability();
+    StorageStatus writability = CheckUpdateRootWritable(rootDir);
     if (!writability.is_ok()) {
         result.status = UpdaterStatusCode::UnwritableRoot;
         result.message = "Aperture executable root is read-only or unwritable: " + writability.message;
@@ -989,27 +1168,12 @@ UpdateCheckResult CheckForUpdates(const UpdaterConfig &config, IHttpTransport *t
     options.userAgent = L"Aperture/2.0 (Updater)";
     options.cancellation = config.cancellation;
     for (const auto& host : config.allowedHosts) options.allowedHosts.push_back(Utf8ToUtf16(host));
-    HttpResponse httpResp = activeTransport->Get(Utf8ToUtf16(config.manifestUrl), options);
+    const std::string effectiveManifestUrl = config.GetEffectiveManifestUrl();
+    HttpResponse httpResp = activeTransport->Get(Utf8ToUtf16(effectiveManifestUrl), options);
     result.httpStatusCode = httpResp.statusCode;
     if (cancelled()) return result;
     if (!httpResp.success) {
-        if (httpResp.status == HttpTransportStatus::Timeout) {
-            result.status = UpdaterStatusCode::Timeout;
-            result.message = "Network timeout while fetching release manifest";
-        } else if (httpResp.status == HttpTransportStatus::TooManyRedirects) {
-            result.status = UpdaterStatusCode::TooManyRedirects;
-            result.message = "Redirect limit exceeded";
-        } else if (httpResp.status == HttpTransportStatus::HttpsRequired) {
-            result.status = UpdaterStatusCode::DisallowedRedirect;
-            result.message = "HTTPS strictly required for release manifest";
-        } else if (httpResp.status == HttpTransportStatus::ResponseTooLarge) {
-            result.status = UpdaterStatusCode::ResponseTooLarge;
-            result.message = "Release manifest response exceeds maximum size limit";
-        } else {
-            result.status = UpdaterStatusCode::NetworkError;
-            result.message = Utf16ToUtf8(httpResp.errorMessage);
-            if (result.message.empty()) result.message = "HTTP request failed with status " + std::to_string(httpResp.statusCode);
-        }
+        MapHttpTransportFailure(httpResp, "fetching release manifest", result.status, result.message);
         return result;
     }
     ReleaseManifest manifest;
@@ -1037,9 +1201,18 @@ UpdateDownloadResult DownloadAndStageUpdate( const ReleaseManifest& manifest, co
         result.message = valRes.message;
         return result;
     }
-    auto tempDir = std::make_shared<ScopedTempDirectory>(L"Aperture_Update_");
+    auto tempDir = std::make_shared<ScopedTempDirectory>(L"Aperture_Update_", rootDir);
+    if (tempDir->GetPath().empty()) {
+        result.status = UpdaterStatusCode::StagingError;
+        result.message = "Failed to create secure staging directory";
+        return result;
+    }
     std::wstring stagingDir = tempDir->SubPath(L"staged");
-    CreateDirectoryW(stagingDir.c_str(), NULL);
+    if (!CreateDirectoryW(stagingDir.c_str(), NULL) && !DirectoryExists(stagingDir)) {
+        result.status = UpdaterStatusCode::StagingError;
+        result.message = "Failed to create update staging subdirectory";
+        return result;
+    }
     std::unique_ptr<IHttpTransport> defaultTransport;
     IHttpTransport* activeTransport = transport;
     if (!activeTransport) { defaultTransport = std::make_unique<WinHttpTransport>(); activeTransport = defaultTransport.get(); }
@@ -1049,8 +1222,17 @@ UpdateDownloadResult DownloadAndStageUpdate( const ReleaseManifest& manifest, co
     options.maxRedirects = config.maxRedirects;
     options.userAgent = L"Aperture/2.0 (Updater)";
     options.cancellation = config.cancellation;
+    if (progressCallback) {
+        options.onProgress = [progressCallback, expectedSize = manifest.fileSizeBytes](uint64_t downloaded, uint64_t total) {
+            const uint64_t denom = total > 0 ? total : expectedSize;
+            if (denom > 0) {
+                const double ratio = (std::min)(1.0, static_cast<double>(downloaded) / static_cast<double>(denom));
+                progressCallback(0.05f + static_cast<float>(0.80 * ratio));
+            }
+        };
+    }
     for (const auto& host : config.allowedHosts) options.allowedHosts.push_back(Utf8ToUtf16(host));
-    if (progressCallback) progressCallback(0.1f);
+    if (progressCallback) progressCallback(0.05f);
 #if defined(_WIN32)
     std::wstring stagedExe = stagingDir + L"\\Aperture.exe";
 #else
@@ -1061,11 +1243,10 @@ UpdateDownloadResult DownloadAndStageUpdate( const ReleaseManifest& manifest, co
     HttpResponse httpResp = activeTransport->GetToFile(Utf8ToUtf16(manifest.downloadUrl), stagedExe, options);
     if (cancelled()) return result;
     if (!httpResp.success) {
-        result.status = httpResp.status == HttpTransportStatus::FileError ? UpdaterStatusCode::StagingError : UpdaterStatusCode::NetworkError;
-        result.message = "Failed to download update package: " + Utf16ToUtf8(httpResp.errorMessage);
+        MapHttpTransportFailure(httpResp, "downloading update package", result.status, result.message);
         return result;
     }
-    if (progressCallback) progressCallback(0.5f);
+    if (progressCallback) progressCallback(0.85f);
     std::string downloadedSha = ComputeFileSha256Hex(stagedExe);
     if (cancelled()) return result;
     if (!CaseInsensitiveEqual(downloadedSha, manifest.sha256)) {
@@ -1074,6 +1255,7 @@ UpdateDownloadResult DownloadAndStageUpdate( const ReleaseManifest& manifest, co
         return result;
     }
     result.stagedFiles.push_back(stagedExe);
+    result.packagePath = stagedExe;
     std::string peErr;
     if (!VerifyPeArchitectureX64(stagedExe, peErr)) {
         result.status = UpdaterStatusCode::InvalidPeArchitecture;
@@ -1101,6 +1283,610 @@ UpdateDownloadResult DownloadAndStageUpdate( const ReleaseManifest& manifest, co
     result.stagingLease = std::move(tempDir);
     result.status = UpdaterStatusCode::Success;
     result.message = "Update downloaded and staged successfully";
+    return result;
+}
+
+// --- Release Source & GitHub Release Pipeline ---
+
+static bool EndsWithCaseInsensitive(const std::string& text, const std::string& suffix) {
+    if (text.size() < suffix.size()) return false;
+    return CaseInsensitiveEqual(text.substr(text.size() - suffix.size()), suffix);
+}
+
+static bool ContainsCaseInsensitive(const std::string& text, const std::string& needle) {
+    if (needle.empty()) return true;
+    if (text.size() < needle.size()) return false;
+    for (size_t i = 0; i <= text.size() - needle.size(); ++i) {
+        if (CaseInsensitiveEqual(text.substr(i, needle.size()), needle)) return true;
+    }
+    return false;
+}
+
+static std::string InferGitHubReleaseChannel(const SemanticVersion& ver, bool isPrereleaseFlag) {
+    if (!ver.preRelease.empty()) {
+        std::string lower;
+        lower.reserve(ver.preRelease.size());
+        for (unsigned char c : ver.preRelease) lower.push_back(static_cast<char>(std::tolower(c)));
+        if (lower.rfind("nightly", 0) == 0 || lower.rfind("alpha", 0) == 0 || lower.rfind("dev", 0) == 0) {
+            return "nightly";
+        }
+        return "beta";
+    }
+    return isPrereleaseFlag ? "beta" : "stable";
+}
+
+bool IsValidGitHubRepository(const std::string& repo) {
+    if (repo.empty() || repo.size() > 200) return false;
+    const size_t slashPos = repo.find('/');
+    if (slashPos == std::string::npos || repo.find('/', slashPos + 1) != std::string::npos) return false;
+    const std::string owner = repo.substr(0, slashPos);
+    const std::string name = repo.substr(slashPos + 1);
+    auto validSegment = [](const std::string& seg) {
+        if (seg.empty() || seg == "." || seg == "..") return false;
+        for (unsigned char c : seg) {
+            const bool ok = std::isalnum(c) || c == '.' || c == '_' || c == '-';
+            if (!ok) return false;
+        }
+        return true;
+    };
+    return validSegment(owner) && validSegment(name);
+}
+
+bool LoadReleaseSourceConfig(const std::wstring& rootDir, ReleaseSourceConfig& outConfig, std::string& outError) {
+    outConfig = ReleaseSourceConfig{};
+    outError.clear();
+    if (rootDir.empty()) {
+        outError = "Release source root directory is empty.";
+        return false;
+    }
+    const std::wstring sourcePath = JoinPath(rootDir, L"release-source.json");
+    if (!FileExists(sourcePath)) {
+        outError = "release-source.json was not found next to the application.";
+        return false;
+    }
+    std::string text;
+    StorageStatus st = ReadTextFile(sourcePath, text);
+    if (!st.is_ok()) {
+        outError = "Could not read release-source.json: " + st.message;
+        return false;
+    }
+    JsonValue root;
+    if (!JsonValue::parse(text, root) || !root.is_object()) {
+        outError = "release-source.json does not contain a valid JSON object.";
+        return false;
+    }
+    outConfig.version = Trim(root.get("version").as_string(""));
+    outConfig.repository = Trim(root.get("repository").as_string(""));
+    if (!IsValidGitHubRepository(outConfig.repository)) {
+        outError = "release-source.json contains an invalid GitHub repository identifier: '" + outConfig.repository + "'.";
+        return false;
+    }
+    return true;
+}
+
+static bool ValidateGitHubDownloadUrlForRepo(
+    const std::string& url,
+    const GitHubUpdateConfig& config,
+    UpdaterStatusCode& outStatus,
+    std::string& outError)
+{
+    if (!ValidateHttpsUrlAndHost(url, config.allowedHosts, outStatus, outError)) {
+        return false;
+    }
+    if (!config.repository.empty()) {
+        const std::string expectedPrefix = "https://github.com/" + config.repository + "/releases/download/";
+        if (url.size() < expectedPrefix.size() || !CaseInsensitiveEqual(url.substr(0, expectedPrefix.size()), expectedPrefix)) {
+            outStatus = UpdaterStatusCode::DisallowedRedirect;
+            outError = "Release asset URL does not originate from repository '" + config.repository + "'.";
+            return false;
+        }
+    }
+    return true;
+}
+
+static HttpRequestOptions BuildGitHubHttpOptions(const GitHubUpdateConfig& config, size_t maxBytes, int timeoutMs) {
+    HttpRequestOptions options;
+    options.maxResponseBytes = maxBytes;
+    options.timeoutMs = timeoutMs;
+    options.maxRedirects = config.maxRedirects;
+    options.userAgent = L"Aperture/2.0 (Updater)";
+    options.cancellation = config.cancellation;
+    for (const auto& host : config.allowedHosts) {
+        options.allowedHosts.push_back(Utf8ToUtf16(host));
+    }
+    return options;
+}
+
+static std::string ResolveGitHubAssetExtension(const GitHubUpdateConfig& config) {
+    if (!config.assetExtension.empty()) return config.assetExtension;
+#if defined(_WIN32)
+    return ".zip";
+#else
+    return ".tar.gz";
+#endif
+}
+
+static const JsonValue* SelectPrimaryGitHubAsset(const JsonValue& assetsArray, const std::string& expectedExt) {
+    if (!assetsArray.is_array()) return nullptr;
+#if defined(_WIN32)
+    constexpr const char* kPlatformHint = "win";
+#else
+    constexpr const char* kPlatformHint = "linux";
+#endif
+    int bestScore = -1;
+    const JsonValue* bestAsset = nullptr;
+    for (const auto& item : assetsArray.as_array()) {
+        if (!item.is_object()) continue;
+        const std::string name = item.get("name").as_string("");
+        const std::string url = item.get("browser_download_url").as_string("");
+        if (name.empty() || url.empty()) continue;
+        if (!EndsWithCaseInsensitive(name, expectedExt)) continue;
+        if (ContainsCaseInsensitive(name, "symbols") || ContainsCaseInsensitive(name, ".pdb")) continue;
+        int score = 1;
+        if (name.size() >= 8 && CaseInsensitiveEqual(name.substr(0, 8), "aperture")) score += 4;
+        if (ContainsCaseInsensitive(name, kPlatformHint)) score += 2;
+        if (ContainsCaseInsensitive(name, "x64") || ContainsCaseInsensitive(name, "amd64")) score += 1;
+        if (score > bestScore) {
+            bestScore = score;
+            bestAsset = &item;
+        }
+    }
+    return bestAsset;
+}
+
+static const JsonValue* FindSidecarSha256Asset(const JsonValue& assetsArray, const std::string& primaryName) {
+    if (!assetsArray.is_array()) return nullptr;
+    const std::string exactSidecar = primaryName + ".sha256";
+    for (const auto& item : assetsArray.as_array()) {
+        if (!item.is_object()) continue;
+        if (CaseInsensitiveEqual(item.get("name").as_string(""), exactSidecar)) return &item;
+    }
+    return nullptr;
+}
+
+static UpdateCheckResult ValidateSingleGitHubReleaseObject(
+    const JsonValue& releaseObj,
+    const GitHubUpdateConfig& config,
+    IHttpTransport* activeTransport,
+    const std::wstring& rootDir)
+{
+    UpdateCheckResult result;
+    const auto cancelled = [&] {
+        if (!config.cancellation || !config.cancellation->IsCancelled()) return false;
+        result.status = UpdaterStatusCode::Cancelled;
+        result.message = "Update check cancelled";
+        return true;
+    };
+    if (cancelled()) return result;
+    if (!releaseObj.is_object()) {
+        result.status = UpdaterStatusCode::InvalidManifestJson;
+        result.message = "GitHub release entry is not a JSON object.";
+        return result;
+    }
+    if (releaseObj.get("draft").as_bool(false)) {
+        result.status = UpdaterStatusCode::UpToDate;
+        result.message = "Release is marked as draft.";
+        return result;
+    }
+    const bool isPrerelease = releaseObj.get("prerelease").as_bool(false);
+    std::string rawTag = Trim(releaseObj.get("tag_name").as_string(""));
+    if (!rawTag.empty() && (rawTag[0] == 'v' || rawTag[0] == 'V')) {
+        rawTag = rawTag.substr(1);
+    }
+    auto remoteVer = SemanticVersion::Parse(rawTag);
+    if (!remoteVer.has_value()) {
+        result.status = UpdaterStatusCode::InvalidManifestJson;
+        result.message = "GitHub release tag '" + releaseObj.get("tag_name").as_string("") + "' is not a valid version.";
+        return result;
+    }
+
+    const std::string configChannel = config.channel.empty()
+        ? ChannelPolicy::Instance().GetDefaultChannel()
+        : ChannelPolicy::Instance().CanonicalizeChannel(config.channel);
+    const std::string releaseChannel = InferGitHubReleaseChannel(*remoteVer, isPrerelease);
+    if (configChannel == "stable" && (isPrerelease || !remoteVer->preRelease.empty())) {
+        result.status = UpdaterStatusCode::UpToDate;
+        result.message = "Prerelease build '" + rawTag + "' is skipped on the stable channel.";
+        return result;
+    }
+    if (!ChannelPolicy::Instance().IsChannelAccepted(configChannel, releaseChannel)) {
+        result.status = UpdaterStatusCode::UpToDate;
+        result.message = "Release channel '" + releaseChannel + "' is not eligible for configured channel '" + configChannel + "'.";
+        return result;
+    }
+    if (!remoteVer->preRelease.empty() &&
+        !ChannelPolicy::Instance().IsValidPrereleaseForChannel(releaseChannel, remoteVer->preRelease)) {
+        result.status = UpdaterStatusCode::InvalidManifestJson;
+        result.message = "Invalid prerelease tag '" + remoteVer->preRelease + "' for channel '" + releaseChannel + "'.";
+        return result;
+    }
+
+    const std::string expectedExt = ResolveGitHubAssetExtension(config);
+    const JsonValue& assetsVal = releaseObj.get("assets");
+    const JsonValue* primaryAsset = SelectPrimaryGitHubAsset(assetsVal, expectedExt);
+    if (!primaryAsset) {
+        result.status = UpdaterStatusCode::InvalidManifestJson;
+        result.message = "Release " + rawTag + " does not contain a portable package (*" + expectedExt + ").";
+        return result;
+    }
+
+    ReleaseManifest manifest;
+    manifest.schemaVersion = 1;
+    manifest.application = "Aperture";
+    manifest.version = rawTag;
+    manifest.channel = releaseChannel;
+    manifest.publishedUtc = releaseObj.get("published_at").as_string("");
+    manifest.downloadUrl = primaryAsset->get("browser_download_url").as_string("");
+    manifest.releaseNotes = releaseObj.get("body").as_string("");
+    const std::string assetName = primaryAsset->get("name").as_string("");
+    manifest.extraFields = JsonValue::Object();
+    manifest.extraFields["assetName"] = assetName;
+
+    const double sizeDbl = primaryAsset->get("size").as_number(0.0);
+    if (sizeDbl <= 0.0 || sizeDbl > static_cast<double>(config.maxPackageSizeBytes)) {
+        result.status = UpdaterStatusCode::ResponseTooLarge;
+        result.message = "Release asset '" + assetName + "' size (" +
+            std::to_string(static_cast<uint64_t>(sizeDbl > 0.0 ? sizeDbl : 0.0)) +
+            ") exceeds allowed bounds (max " + std::to_string(config.maxPackageSizeBytes) + " bytes).";
+        return result;
+    }
+    manifest.fileSizeBytes = static_cast<uint64_t>(sizeDbl);
+
+    if (!ValidateGitHubDownloadUrlForRepo(manifest.downloadUrl, config, result.status, result.message)) {
+        return result;
+    }
+
+    // Check version comparison BEFORE hitting sidecar network request when clearly UpToDate/Downgrade
+    const SemanticVersion currentVer = SemanticVersion::Current();
+    if (!config.allowSameVersion) {
+        if (*remoteVer < currentVer) {
+            result.manifest = manifest;
+            result.status = UpdaterStatusCode::ManifestDowngrade;
+            result.message = "Published release (" + remoteVer->ToString() + ") is older than installed version (" + currentVer.ToString() + ").";
+            return result;
+        }
+        if (*remoteVer == currentVer) {
+            result.manifest = manifest;
+            result.status = UpdaterStatusCode::UpToDate;
+            result.message = "Aperture is up to date (" + currentVer.ToString() + ").";
+            return result;
+        }
+    }
+
+    // Resolve SHA-256 digest from GitHub asset.digest or fallback .sha256 sidecar asset
+    std::string digestHex = ExtractHexSha256Token(primaryAsset->get("digest").as_string(""));
+    if (digestHex.empty()) {
+        const JsonValue* sidecarAsset = FindSidecarSha256Asset(assetsVal, assetName);
+        if (sidecarAsset && activeTransport) {
+            const std::string sidecarUrl = sidecarAsset->get("browser_download_url").as_string("");
+            UpdaterStatusCode urlSt = UpdaterStatusCode::Success;
+            std::string urlErr;
+            if (ValidateGitHubDownloadUrlForRepo(sidecarUrl, config, urlSt, urlErr)) {
+                HttpRequestOptions sidecarOpts = BuildGitHubHttpOptions(config, 4096, config.connectTimeoutMs);
+                HttpResponse sidecarResp = activeTransport->Get(Utf8ToUtf16(sidecarUrl), sidecarOpts);
+                if (cancelled()) return result;
+                if (sidecarResp.success) {
+                    digestHex = ExtractHexSha256Token(sidecarResp.body);
+                }
+            }
+        }
+    }
+    if (!IsHexString64(digestHex)) {
+        result.status = UpdaterStatusCode::InvalidManifestJson;
+        result.message = "Release asset '" + assetName + "' does not provide a valid SHA-256 checksum.";
+        return result;
+    }
+    manifest.sha256 = digestHex;
+    result.manifest = manifest;
+
+    StorageStatus writability = CheckUpdateRootWritable(rootDir);
+    if (!writability.is_ok()) {
+        result.status = UpdaterStatusCode::UnwritableRoot;
+        result.message = "Target root directory is not writable: " + writability.message;
+        return result;
+    }
+    ULARGE_INTEGER freeBytes = {}, totalBytes = {}, totalFree = {};
+    if (GetDiskFreeSpaceExW(rootDir.c_str(), &freeBytes, &totalBytes, &totalFree)) {
+        if (freeBytes.QuadPart < (manifest.fileSizeBytes * 3)) {
+            result.status = UpdaterStatusCode::InsufficientDiskSpace;
+            result.message = "Insufficient free disk space to download and stage this update.";
+            return result;
+        }
+    }
+
+    result.status = UpdaterStatusCode::UpdateAvailable;
+    result.updateAvailable = true;
+    result.message = "Update available: " + manifest.version;
+    return result;
+}
+
+UpdateCheckResult ValidateGitHubReleaseJson(
+    const std::string& releaseJsonText,
+    const GitHubUpdateConfig& config,
+    IHttpTransport* transport,
+    const std::wstring& rootDir)
+{
+    UpdateCheckResult result;
+    std::unique_ptr<IHttpTransport> defaultTransport;
+    IHttpTransport* activeTransport = transport;
+    if (!activeTransport) {
+        defaultTransport = std::make_unique<WinHttpTransport>();
+        activeTransport = defaultTransport.get();
+    }
+    JsonValue parsed;
+    if (!JsonValue::parse(releaseJsonText, parsed)) {
+        result.status = UpdaterStatusCode::InvalidManifestJson;
+        result.message = "Failed to parse GitHub Releases API JSON response.";
+        return result;
+    }
+    if (parsed.is_object()) {
+        return ValidateSingleGitHubReleaseObject(parsed, config, activeTransport, rootDir);
+    }
+    if (!parsed.is_array()) {
+        result.status = UpdaterStatusCode::InvalidManifestJson;
+        result.message = "Unexpected JSON structure returned by GitHub Releases API.";
+        return result;
+    }
+    const auto& arr = parsed.as_array();
+    if (arr.empty()) {
+        result.status = UpdaterStatusCode::UpToDate;
+        result.message = config.repository.empty()
+            ? "No releases are published yet."
+            : ("No releases have been published for '" + config.repository + "' yet.");
+        return result;
+    }
+    bool foundCandidate = false;
+    UpdateCheckResult bestResult;
+    SemanticVersion bestVer;
+    UpdateCheckResult lastNonSkippedError;
+    bool hasError = false;
+    bool sawPrereleaseOnly = false;
+    for (const auto& entry : arr) {
+        if (!entry.is_object()) continue;
+        if (entry.get("draft").as_bool(false)) continue;
+        UpdateCheckResult candidate = ValidateSingleGitHubReleaseObject(entry, config, activeTransport, rootDir);
+        if (candidate.status == UpdaterStatusCode::Cancelled) return candidate;
+        if (candidate.status == UpdaterStatusCode::UpToDate && candidate.manifest.version.empty()) {
+            if (entry.get("prerelease").as_bool(false)) sawPrereleaseOnly = true;
+            continue;
+        }
+        if (candidate.updateAvailable) {
+            auto v = SemanticVersion::Parse(candidate.manifest.version);
+            if (v.has_value() && (!foundCandidate || bestVer < *v)) {
+                bestVer = *v;
+                bestResult = candidate;
+                foundCandidate = true;
+            }
+        } else if (candidate.status == UpdaterStatusCode::UpToDate || candidate.status == UpdaterStatusCode::ManifestDowngrade) {
+            if (!foundCandidate) {
+                bestResult = candidate;
+                foundCandidate = true;
+            }
+        } else if (!hasError) {
+            lastNonSkippedError = candidate;
+            hasError = true;
+        }
+    }
+    if (foundCandidate) return bestResult;
+    if (hasError) return lastNonSkippedError;
+    result.status = UpdaterStatusCode::UpToDate;
+    result.message = sawPrereleaseOnly
+        ? "No stable releases found (only prereleases are published for this repository)."
+        : ("No eligible releases were found for '" + config.repository + "'.");
+    return result;
+}
+
+UpdateCheckResult CheckForGitHubUpdates(
+    const GitHubUpdateConfig& config,
+    IHttpTransport* transport,
+    const std::wstring& rootDir)
+{
+    UpdateCheckResult result;
+    const auto cancelled = [&] {
+        if (!config.cancellation || !config.cancellation->IsCancelled()) return false;
+        result.status = UpdaterStatusCode::Cancelled;
+        result.message = "Update check cancelled";
+        return true;
+    };
+    if (cancelled()) return result;
+
+    if (!IsValidGitHubRepository(config.repository)) {
+        result.status = UpdaterStatusCode::NotConfigured;
+        result.message = "GitHub repository is not configured or invalid in release-source.json.";
+        return result;
+    }
+
+    StorageStatus writability = CheckUpdateRootWritable(rootDir);
+    if (!writability.is_ok()) {
+        result.status = UpdaterStatusCode::UnwritableRoot;
+        result.message = "Aperture directory is read-only or unwritable: " + writability.message;
+        return result;
+    }
+
+    std::unique_ptr<IHttpTransport> defaultTransport;
+    IHttpTransport* activeTransport = transport;
+    if (!activeTransport) {
+        defaultTransport = std::make_unique<WinHttpTransport>();
+        activeTransport = defaultTransport.get();
+    }
+
+    std::string apiBase = config.apiBaseUrl.empty() ? "https://api.github.com" : config.apiBaseUrl;
+    while (!apiBase.empty() && apiBase.back() == '/') apiBase.pop_back();
+    const std::string canonicalChannel = config.channel.empty()
+        ? ChannelPolicy::Instance().GetDefaultChannel()
+        : ChannelPolicy::Instance().CanonicalizeChannel(config.channel);
+
+    const std::string primaryUrl = (canonicalChannel == "stable")
+        ? (apiBase + "/repos/" + config.repository + "/releases/latest")
+        : (apiBase + "/repos/" + config.repository + "/releases?per_page=15");
+    HttpRequestOptions options = BuildGitHubHttpOptions(config, config.maxApiResponseBytes, config.connectTimeoutMs);
+    HttpResponse httpResp = activeTransport->Get(Utf8ToUtf16(primaryUrl), options);
+    result.httpStatusCode = httpResp.statusCode;
+    if (cancelled()) return result;
+
+    // Disambiguate GitHub 404 on /releases/latest: either the repository does not exist/is private,
+    // or it exists cleanly with zero published non-prerelease releases.
+    if (!httpResp.success && httpResp.statusCode == 404 && canonicalChannel == "stable") {
+        const std::string listUrl = apiBase + "/repos/" + config.repository + "/releases?per_page=10";
+        HttpResponse listResp = activeTransport->Get(Utf8ToUtf16(listUrl), options);
+        if (cancelled()) return result;
+        if (listResp.success) {
+            return ValidateGitHubReleaseJson(listResp.body, config, activeTransport, rootDir);
+        }
+        result.httpStatusCode = listResp.statusCode > 0 ? listResp.statusCode : 404;
+        if (result.httpStatusCode == 404) {
+            result.status = UpdaterStatusCode::HttpError;
+            result.message = "Update repository '" + config.repository + "' was not found or has no public releases (HTTP 404).";
+            return result;
+        }
+        httpResp = listResp;
+    }
+
+    if (!httpResp.success) {
+        if (httpResp.statusCode == 403 || httpResp.statusCode == 429) {
+            result.status = UpdaterStatusCode::HttpError;
+            result.message = "GitHub API rate limit exceeded (HTTP " + std::to_string(httpResp.statusCode) + "). Try again later.";
+            return result;
+        }
+        if (httpResp.statusCode == 404) {
+            result.status = UpdaterStatusCode::HttpError;
+            result.message = "Update repository '" + config.repository + "' was not found or is inaccessible (HTTP 404).";
+            return result;
+        }
+        MapHttpTransportFailure(httpResp, "checking for updates", result.status, result.message);
+        return result;
+    }
+
+    return ValidateGitHubReleaseJson(httpResp.body, config, activeTransport, rootDir);
+}
+
+UpdateDownloadResult DownloadGitHubReleasePackage(
+    const ReleaseManifest& manifest,
+    const GitHubUpdateConfig& config,
+    IHttpTransport* transport,
+    std::function<void(uint64_t downloadedBytes, uint64_t totalBytes)> progressCallback,
+    const std::wstring& rootDir)
+{
+    UpdateDownloadResult result;
+    result.manifest = manifest;
+    const auto cancelled = [&] {
+        if (!config.cancellation || !config.cancellation->IsCancelled()) return false;
+        result.status = UpdaterStatusCode::Cancelled;
+        result.message = "Update download cancelled";
+        return true;
+    };
+    if (cancelled()) return result;
+
+    StorageStatus writability = CheckUpdateRootWritable(rootDir);
+    if (!writability.is_ok()) {
+        result.status = UpdaterStatusCode::UnwritableRoot;
+        result.message = "Aperture directory is read-only or unwritable: " + writability.message;
+        return result;
+    }
+    if (!ValidateGitHubDownloadUrlForRepo(manifest.downloadUrl, config, result.status, result.message)) {
+        return result;
+    }
+    if (manifest.fileSizeBytes == 0 || manifest.fileSizeBytes > config.maxPackageSizeBytes) {
+        result.status = UpdaterStatusCode::ResponseTooLarge;
+        result.message = "Package size exceeds allowed limit.";
+        return result;
+    }
+    if (!IsHexString64(manifest.sha256)) {
+        result.status = UpdaterStatusCode::InvalidManifestJson;
+        result.message = "Release metadata is missing a valid SHA-256 digest.";
+        return result;
+    }
+    ULARGE_INTEGER freeBytes = {}, totalBytes = {}, totalFree = {};
+    if (GetDiskFreeSpaceExW(rootDir.c_str(), &freeBytes, &totalBytes, &totalFree)) {
+        if (freeBytes.QuadPart < (manifest.fileSizeBytes * 3)) {
+            result.status = UpdaterStatusCode::InsufficientDiskSpace;
+            result.message = "Insufficient free disk space to download and stage this update.";
+            return result;
+        }
+    }
+
+    auto tempDir = std::make_shared<ScopedTempDirectory>(L"Aperture_Update_", rootDir);
+    if (tempDir->GetPath().empty()) {
+        result.status = UpdaterStatusCode::StagingError;
+        result.message = "Failed to create secure download staging directory.";
+        return result;
+    }
+    const std::string ext = ResolveGitHubAssetExtension(config);
+    const std::wstring archiveName = CaseInsensitiveEqual(ext, ".tar.gz") ? L"release.tar.gz" : L"release.zip";
+    const std::wstring stagedPackage = tempDir->SubPath(archiveName);
+
+    std::unique_ptr<IHttpTransport> defaultTransport;
+    IHttpTransport* activeTransport = transport;
+    if (!activeTransport) {
+        defaultTransport = std::make_unique<WinHttpTransport>();
+        activeTransport = defaultTransport.get();
+    }
+
+    HttpRequestOptions options = BuildGitHubHttpOptions(config, config.maxPackageSizeBytes, config.downloadTimeoutMs);
+    if (progressCallback) {
+        options.onProgress = [progressCallback, expectedSize = manifest.fileSizeBytes](uint64_t downloaded, uint64_t total) {
+            progressCallback(downloaded, total > 0 ? total : expectedSize);
+        };
+        progressCallback(0, manifest.fileSizeBytes);
+    }
+
+    HttpResponse httpResp = activeTransport->GetToFile(Utf8ToUtf16(manifest.downloadUrl), stagedPackage, options);
+    if (cancelled()) return result;
+    if (!httpResp.success) {
+        MapHttpTransportFailure(httpResp, "downloading update package", result.status, result.message);
+        return result;
+    }
+
+    const uint64_t actualSize = GetFileSizeInBytes(stagedPackage);
+    if (actualSize == 0 || actualSize > config.maxPackageSizeBytes || actualSize != manifest.fileSizeBytes) {
+        result.status = UpdaterStatusCode::HashMismatch;
+        result.message = "Downloaded package size mismatch (expected " +
+            std::to_string(manifest.fileSizeBytes) + " bytes, got " + std::to_string(actualSize) + ").";
+        return result;
+    }
+
+    // Verify archive magic header to fail early on truncated files or HTML error responses
+    {
+        unsigned char magic[4]{};
+        DWORD readBytes = 0;
+        HANDLE hMagic = CreateFileW(stagedPackage.c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+        if (hMagic == INVALID_HANDLE_VALUE || !ReadFile(hMagic, magic, sizeof(magic), &readBytes, nullptr)) {
+            if (hMagic != INVALID_HANDLE_VALUE) CloseHandle(hMagic);
+            result.status = UpdaterStatusCode::StagingError;
+            result.message = "Could not inspect downloaded update archive.";
+            return result;
+        }
+        CloseHandle(hMagic);
+        if (CaseInsensitiveEqual(ext, ".tar.gz")) {
+            if (readBytes < 2 || magic[0] != 0x1F || magic[1] != 0x8B) {
+                result.status = UpdaterStatusCode::InvalidManifestJson;
+                result.message = "Downloaded update file is not a valid gzip tarball.";
+                return result;
+            }
+        } else {
+            if (readBytes < 4 || magic[0] != 'P' || magic[1] != 'K' || magic[2] != 0x03 || magic[3] != 0x04) {
+                result.status = UpdaterStatusCode::InvalidManifestJson;
+                result.message = "Downloaded update file is not a valid ZIP archive.";
+                return result;
+            }
+        }
+    }
+
+    const std::string actualSha = ComputeFileSha256Hex(stagedPackage);
+    if (cancelled()) return result;
+    if (!CaseInsensitiveEqual(actualSha, manifest.sha256)) {
+        result.status = UpdaterStatusCode::HashMismatch;
+        result.message = "Package SHA-256 verification failed: expected " + manifest.sha256 + ", got " + actualSha;
+        return result;
+    }
+
+    if (progressCallback) progressCallback(manifest.fileSizeBytes, manifest.fileSizeBytes);
+    result.stagingDirectory = tempDir->GetPath();
+    result.packagePath = stagedPackage;
+    result.stagedFiles.push_back(stagedPackage);
+    result.stagingLease = std::move(tempDir);
+    result.status = UpdaterStatusCode::Success;
+    result.message = "Update package downloaded and verified.";
     return result;
 }
 
@@ -1237,58 +2023,136 @@ int RunHelperMode(int argc, wchar_t* argv[]) {
 #else
     std::wstring backupDir = targetDir + L"/_backup_update";
 #endif
-    CreateDirectoryW(backupDir.c_str(), NULL);
-    std::vector<std::pair<std::wstring, std::wstring>> swappedFiles;
+    (void)CreateDirectoryW(backupDir.c_str(), NULL);
+    struct SwappedFileEntry {
+        std::wstring targetPath;
+        std::wstring backupPath;
+        bool existedPreviously = false;
+    };
+    auto moveFileWithRetry = [](const std::wstring& src, const std::wstring& dst, DWORD flags) -> bool {
+        for (int attempt = 0; attempt < 15; ++attempt) {
+            if (MoveFileExW(src.c_str(), dst.c_str(), flags)) return true;
+#if defined(_WIN32)
+            const DWORD err = GetLastError();
+            if (err != ERROR_SHARING_VIOLATION && err != ERROR_ACCESS_DENIED && err != ERROR_LOCK_VIOLATION) {
+                return false;
+            }
+#endif
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        }
+        return false;
+    };
+    auto isSafeStageRelativePath = [](const fs::path& relPath) -> bool {
+        if (relPath.empty() || relPath.is_absolute()) return false;
+        auto it = relPath.begin();
+        if (it == relPath.end()) return false;
+        const std::string firstPart = Utf16ToUtf8(it->wstring());
+        if (CaseInsensitiveEqual(firstPart, "data") ||
+            CaseInsensitiveEqual(firstPart, "cache") ||
+            CaseInsensitiveEqual(firstPart, "_backup_update")) {
+            return false;
+        }
+        for (const auto& comp : relPath) {
+            const std::wstring wcomp = comp.wstring();
+            if (wcomp.empty() || wcomp == L"." || wcomp == L"..") return false;
+        }
+        return true;
+    };
+    std::vector<SwappedFileEntry> swappedFiles;
     bool swapFailed = false;
     try {
 #if defined(_WIN32)
         fs::path stagingPath(stagingDir);
+        fs::path targetPathFs(targetDir);
         fs::path backupPathFs(backupDir);
-        const std::wstring sep = L"\\";
 #else
         fs::path stagingPath = fs::u8path(LinuxWideToUtf8(stagingDir));
+        fs::path targetPathFs = fs::u8path(LinuxWideToUtf8(targetDir));
         fs::path backupPathFs = fs::u8path(LinuxWideToUtf8(backupDir));
-        const std::wstring sep = L"/";
 #endif
-        for (const auto& entry : fs::directory_iterator(stagingPath)) {
-            if (entry.is_regular_file()) {
-                std::wstring fileName = entry.path().filename().wstring();
-                std::wstring targetPath = targetDir + sep + fileName;
-                std::wstring backupPath = backupDir + sep + fileName;
-                std::wstring stagedPath = entry.path().wstring();
-                if (FileExists(targetPath)) {
-                    if (!MoveFileExW(targetPath.c_str(), backupPath.c_str(), MOVEFILE_REPLACE_EXISTING)) { swapFailed = true; break; }
-                }
-                if (!MoveFileExW(stagedPath.c_str(), targetPath.c_str(), MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH)) {
+        std::error_code iterEc;
+        for (const auto& entry : fs::recursive_directory_iterator(stagingPath, fs::directory_options::skip_permission_denied, iterEc)) {
+            if (entry.is_symlink(iterEc)) { swapFailed = true; break; }
+            if (!entry.is_regular_file(iterEc)) continue;
+            fs::path relPath = entry.path().lexically_relative(stagingPath);
+            if (!isSafeStageRelativePath(relPath)) { swapFailed = true; break; }
+
+            fs::path targetFsFile = targetPathFs / relPath;
+            fs::path backupFsFile = backupPathFs / relPath;
+            fs::create_directories(targetFsFile.parent_path(), iterEc);
+            fs::create_directories(backupFsFile.parent_path(), iterEc);
+
+#if defined(_WIN32)
+            std::wstring targetPath = targetFsFile.wstring();
+            std::wstring backupPath = backupFsFile.wstring();
+            std::wstring stagedPath = entry.path().wstring();
+#else
+            std::wstring targetPath = LinuxUtf8ToWide(targetFsFile.u8string());
+            std::wstring backupPath = LinuxUtf8ToWide(backupFsFile.u8string());
+            std::wstring stagedPath = LinuxUtf8ToWide(entry.path().u8string());
+#endif
+            const bool existed = FileExists(targetPath);
+            if (existed) {
+                if (!moveFileWithRetry(targetPath, backupPath, MOVEFILE_REPLACE_EXISTING)) {
                     swapFailed = true;
                     break;
                 }
-#if !defined(_WIN32)
-                if (fileName == L"aperture" || fileName.rfind(L".sh") != std::wstring::npos ||
-                    (targetPath.size() > 3 && targetPath.compare(targetPath.size() - 3, 3, L".so") != 0 && fileName.find(L'.') == std::wstring::npos)) {
-                    ::chmod(LinuxWideToUtf8(targetPath).c_str(), 0755);
+            }
+            if (!moveFileWithRetry(stagedPath, targetPath, MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH)) {
+                if (existed && FileExists(backupPath)) {
+                    (void)moveFileWithRetry(backupPath, targetPath, MOVEFILE_REPLACE_EXISTING);
                 }
+                swapFailed = true;
+                break;
+            }
+#if !defined(_WIN32)
+            std::string fileNameUtf8 = entry.path().filename().u8string();
+            if (fileNameUtf8 == "aperture" || fileNameUtf8.rfind(".sh") != std::string::npos ||
+                (fileNameUtf8.find('.') == std::string::npos && relPath.parent_path().empty())) {
+                ::chmod(LinuxWideToUtf8(targetPath).c_str(), 0755);
+            }
 #endif
-                swappedFiles.push_back({ targetPath, backupPath });
+            swappedFiles.push_back({ targetPath, backupPath, existed });
+        }
+        if (iterEc) swapFailed = true;
+    } catch (...) { swapFailed = true; }
+    auto cleanupSwapDirs = [&]() {
+        try {
+            std::error_code ec;
+#if defined(_WIN32)
+            fs::path bPath(backupDir);
+            fs::path sPath(stagingDir);
+#else
+            fs::path bPath = fs::u8path(LinuxWideToUtf8(backupDir));
+            fs::path sPath = fs::u8path(LinuxWideToUtf8(stagingDir));
+#endif
+            fs::remove_all(bPath, ec);
+            fs::path sParent = sPath.parent_path();
+            fs::remove_all(sPath, ec);
+#if defined(_WIN32)
+            std::wstring parentName = sParent.filename().wstring();
+#else
+            std::wstring parentName = LinuxUtf8ToWide(sParent.filename().u8string());
+#endif
+            if (parentName.rfind(L"Aperture_Update_", 0) == 0 && fs::is_empty(sParent, ec)) {
+                fs::remove(sParent, ec);
+            }
+        } catch (...) {}
+    };
+    if (swapFailed) {
+        for (auto it = swappedFiles.rbegin(); it != swappedFiles.rend(); ++it) {
+            if (it->existedPreviously) {
+                if (FileExists(it->backupPath)) {
+                    (void)moveFileWithRetry(it->backupPath, it->targetPath, MOVEFILE_REPLACE_EXISTING);
+                }
+            } else if (FileExists(it->targetPath)) {
+                (void)DeleteFileW(it->targetPath.c_str());
             }
         }
-    } catch (...) { swapFailed = true; }
-    if (swapFailed) {
-        for (const auto& pair : swappedFiles) {
-            if (FileExists(pair.second)) { MoveFileExW(pair.second.c_str(), pair.first.c_str(), MOVEFILE_REPLACE_EXISTING); }
-        }
-#if defined(_WIN32)
-        try { std::error_code ec; fs::remove_all(fs::path(backupDir), ec); fs::remove_all(fs::path(stagingDir), ec); } catch (...) {}
-#else
-        try { std::error_code ec; fs::remove_all(fs::u8path(LinuxWideToUtf8(backupDir)), ec); fs::remove_all(fs::u8path(LinuxWideToUtf8(stagingDir)), ec); } catch (...) {}
-#endif
+        cleanupSwapDirs();
         return 107; // Swap failed and rolled back
     }
-#if defined(_WIN32)
-    try { std::error_code ec; fs::remove_all(fs::path(backupDir), ec); fs::remove_all(fs::path(stagingDir), ec); } catch (...) {}
-#else
-    try { std::error_code ec; fs::remove_all(fs::u8path(LinuxWideToUtf8(backupDir)), ec); fs::remove_all(fs::u8path(LinuxWideToUtf8(stagingDir)), ec); } catch (...) {}
-#endif
+    cleanupSwapDirs();
     if (relaunch) {
 #if defined(_WIN32)
         std::wstring updatedExe = targetDir + L"\\Aperture.exe";
@@ -1333,7 +2197,7 @@ StorageStatus LoadUpdaterState(UpdaterState& outState, const std::wstring& rootD
 
 StorageStatus SaveUpdaterState(const UpdaterState& state, bool isPrivateMode, const std::wstring& rootDir) {
     if (isPrivateMode) { return StorageStatus::Ok(); }
-    StorageStatus writability = CheckDataDirectoryWritability();
+    StorageStatus writability = CheckUpdateRootWritable(rootDir);
     if (!writability.is_ok()) return writability;
     JsonValue root = JsonValue::Object();
     root["schemaVersion"] = 1;

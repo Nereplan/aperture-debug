@@ -234,6 +234,8 @@ constexpr StringEntryView kCanonicalStringEntries[] = {
     { "settings.system.btn.clear_disk", "Clear Cache" }, { "settings.system.btn.clear_history", "Clear History" },
     { "settings.system.btn.reset_defaults", "Reset Defaults" }, { "settings.system.btn.enabled", "Enabled" },
     { "settings.system.btn.disabled", "Disabled" }, { "settings.system.btn.check_now", "Update" },
+    { "settings.system.btn.cancel", "Cancel" }, { "settings.system.btn.install", "Install" },
+    { "settings.system.btn.retry", "Retry" }, { "settings.system.btn.installing", "Installing..." },
     { "settings.system.btn.register_types", "Register" }, { "settings.system.btn.remove_types", "Remove" },
     // Player Overlay & Controls
     { "player.play", "Play" }, { "player.pause", "Pause" }, { "player.stop", "Stop" }, { "player.next", "Next" },

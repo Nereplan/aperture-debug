@@ -134,6 +134,7 @@ struct CurlWriteCtx {
     HANDLE hFile = INVALID_HANDLE_VALUE;
     size_t maxBytes = 0;
     size_t totalBytes = 0;
+    uint64_t expectedBytes = 0;
     bool tooLarge = false;
     bool fileError = false;
     const HttpRequestOptions* options = nullptr;
@@ -173,14 +174,23 @@ size_t CurlWriteCallback(char* ptr, size_t size, size_t nmemb, void* userdata) {
             return 0;
         }
     }
+    if (ctx->options && ctx->options->onProgress) {
+        ctx->options->onProgress(ctx->totalBytes, ctx->expectedBytes);
+    }
     return bytes;
 }
 
-int CurlProgressCallback(void* clientp, int64_t /*dltotal*/, int64_t /*dlnow*/, int64_t /*ultotal*/, int64_t /*ulnow*/) {
+int CurlProgressCallback(void* clientp, int64_t dltotal, int64_t dlnow, int64_t /*ultotal*/, int64_t /*ulnow*/) {
     auto* ctx = static_cast<CurlWriteCtx*>(clientp);
     if (ctx && ctx->options && ctx->options->IsCancelled()) {
         ctx->cancelled = true;
         return 1; // abort transfer
+    }
+    if (ctx && dltotal > 0) {
+        ctx->expectedBytes = static_cast<uint64_t>(dltotal);
+        if (ctx->options && ctx->options->onProgress && dlnow > 0) {
+            ctx->options->onProgress(static_cast<uint64_t>(dlnow), ctx->expectedBytes);
+        }
     }
     return 0;
 }
@@ -206,6 +216,7 @@ HttpResponse IHttpTransport::GetToFile(const std::wstring& httpsUrl, const std::
         DeleteFileW(tmpPath.c_str());
         return {false, resp.statusCode, "", resp.finalUrl, L"Failed to write destination file", HttpTransportStatus::FileError};
     }
+    if (options.onProgress) options.onProgress(resp.body.size(), resp.body.size());
     if (!MoveFileExW(tmpPath.c_str(), destination.c_str(), MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH)) {
         DeleteFileW(tmpPath.c_str());
         return {false, resp.statusCode, "", resp.finalUrl, L"Failed to commit destination file", HttpTransportStatus::FileError};

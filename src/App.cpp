@@ -1869,6 +1869,12 @@ void App::BeginClose() {
     if (libraryLoadWorker.joinable()) CancelSynchronousIo(libraryLoadWorker.native_handle());
     deferredLibraryCommands.clear(); pendingPlaybackOpen.reset();
     CancelImportJob(); CancelBackfillJob(); CancelNetworkJobs();
+    if (updatePhase == UpdatePhase::Verifying && !updateStatusFilePath.empty()) {
+        (void)AtomicWriteTextFile(updateStatusFilePath, "{\"phase\":\"cancelled\"}");
+    }
+    if (updatePhase != UpdatePhase::Installing) {
+        CleanupUpdateInstallerState(true);
+    }
     watchReconcileWorker.Cancel();
     folderRediscoveryJob.Cancel();
     folderWatcher.RequestStop();
@@ -1933,6 +1939,7 @@ void App::Shutdown() {
     if (backfillWorker.joinable()) backfillWorker.join();
     updateCheckJob.StopAndJoin(); updateDownloadJob.StopAndJoin(); onlineSubtitleJobs.StopAndJoin(); radioJobs.StopAndJoin();
     podcastJobs.StopAndJoin();
+    CleanupUpdateInstallerState(updatePhase != UpdatePhase::Installing);
     // Workers have joined above, so no probe can still hold MF. Balance only
     // when MF was ever acquired; a hub that never probed skips MFShutdown.
     MediaFoundation::ShutdownIfInitialized();
@@ -2345,8 +2352,17 @@ DWORD App::GetNextIdleWaitMs() const {
                 (previewPlayer.IsActive() && (currentTab == TabView::Media || currentTab == TabView::Playlists))))))) {
         return 16;
     }
+    if (windowVisible && (osdTimer > 0.0f || !notificationQueue.empty())) {
+        return 16;
+    }
+    if (windowVisible &&
+        (updatePhase == UpdatePhase::Checking || updatePhase == UpdatePhase::Downloading || updatePhase == UpdatePhase::Verifying) &&
+        currentTab == TabView::Settings && currentSettingsCat == SettingsCategory::System) {
+        return 16;
+    }
     if (librarySaveRequested || !librarySaveWorker.IsIdle() || pathAvailability.HasPending() ||
         folderRediscoveryActive || backfillJobActive || AreNetworkJobsRunning() || radioJobs.IsSearchRunning() ||
+        updatePhase == UpdatePhase::Verifying ||
         watchReconcileWorker.IsRunning() || watchReconcileWorker.HasPending()) {
         return 32;
     }
@@ -2526,6 +2542,13 @@ bool App::Update(float dt) {
         }
     }
     needsRedraw = PumpUpdateJobs() || needsRedraw;
+    HandleUpdateInstallFailureOnStartup();
+    if (updatePhase == UpdatePhase::Checking || updatePhase == UpdatePhase::Downloading || updatePhase == UpdatePhase::Verifying) {
+        updateActivitySpinAngle = std::fmod(updateActivitySpinAngle + elapsedDt * (360.0 / 1.1), 360.0);
+        if (currentTab == TabView::Settings && currentSettingsCat == SettingsCategory::System) {
+            needsRedraw = true;
+        }
+    }
     // Jump list: seed once the async library snapshot is ready (Initialize
     // returns before the background load publishes), then pump dirty rebuilds
     // rate-limited by kJumpListRebuildMinIntervalMs.

@@ -29,6 +29,7 @@ struct HttpRequestOptions {
     std::vector<std::wstring> allowedHosts; // Exact, case-insensitive destinations, including every redirect hop.
     std::function<bool()> isCancelled;
     std::shared_ptr<OperationCancellation> cancellation;
+    std::function<void(uint64_t downloadedBytes, uint64_t totalBytes)> onProgress;
     bool IsCancelled() const { return (cancellation && cancellation->IsCancelled()) || (isCancelled && isCancelled()); }
 };
 

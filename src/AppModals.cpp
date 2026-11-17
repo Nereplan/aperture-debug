@@ -956,27 +956,124 @@ void App::ShowConfirmationModal(const std::wstring& title, const std::wstring& m
     InvalidateRect(hWnd, NULL, FALSE);
 }
 
-void App::CheckForUpdates(bool isManual) {
+void App::CleanupUpdateInstallerState(bool releaseStagingLease) {
+    if (updateInstallerProcess) {
+        CloseHandle(updateInstallerProcess);
+        updateInstallerProcess = nullptr;
+    }
+    updateStatusFilePath.clear();
+    updateInstallerStartTick = 0;
+    updateLastPollTick = 0;
+    if (releaseStagingLease) {
+        updatePendingStagingLease.reset();
+    }
+}
+
+void App::QueueOrShowUpdateModal(
+    const std::wstring& title,
+    const std::wstring& message,
+    const std::wstring& confirmText,
+    std::function<void()> onConfirm)
+{
+    if (activeModal == ModalType::None && !ArePopupsOpen()) {
+        ShowConfirmationModal(title, message, confirmText, std::move(onConfirm), nullptr, false);
+        return;
+    }
+    updatePendingModalPrompt = true;
+    updatePendingModalTitle = title;
+    updatePendingModalMessage = message;
+    updatePendingModalConfirmText = confirmText;
+    updatePendingModalOnConfirm = std::move(onConfirm);
+}
+
+void App::ShowAvailableUpdateModal(const ReleaseManifest& manifest) {
+    std::wstring notes = Utf8ToUtf16(manifest.releaseNotes);
+    constexpr size_t kMaxNotesChars = 600;
+    if (notes.size() > kMaxNotesChars) {
+        notes = notes.substr(0, kMaxNotesChars) + L"...";
+    }
+    std::wstring message = L"Version " + Utf8ToUtf16(manifest.version) +
+        L" is available (current: " + Utf8ToUtf16(SemanticVersion::Current().ToString()) + L").";
+    if (manifest.fileSizeBytes > 0) {
+        message += L"\nDownload size: " + FormatBytesHuman(manifest.fileSizeBytes);
+    }
+    if (!notes.empty()) {
+        message += L"\n\nRelease notes:\n" + notes;
+    }
+    message += L"\n\nAperture will close briefly after verification to apply the update and relaunch automatically.";
+    QueueOrShowUpdateModal(
+        L"Software Update Available",
+        message,
+        L"Download & Install",
+        [this, manifest]() { TriggerUpdateDownloadAndApply(manifest); });
+}
+
+void App::CancelUpdateOperation(bool showOsd) {
+    updateCheckJob.Cancel();
+    updateDownloadJob.Cancel();
+    updatePendingModalPrompt = false;
+    updatePendingModalOnConfirm = nullptr;
+    if (updatePhase == UpdatePhase::Verifying && !updateStatusFilePath.empty()) {
+        (void)AtomicWriteTextFile(updateStatusFilePath, "{\"phase\":\"cancelled\"}");
+    }
+    CleanupUpdateInstallerState(true);
+    updatePhase = UpdatePhase::Idle;
+    updateStatusMessage.clear();
+    updateLastReportedBytes = 0;
+    if (updateProgressState) {
+        updateProgressState->downloadedBytes.store(0, std::memory_order_relaxed);
+        updateProgressState->totalBytes.store(0, std::memory_order_relaxed);
+    }
+    MarkAccessibilityDirty();
+    InvalidateRect(hWnd, NULL, FALSE);
+    if (showOsd) ShowOSD(IconType::SettingsGear, L"Update cancelled.");
+}
+
+void App::HandleUpdateInstallFailureOnStartup() {
+    if (updateStartupFailureChecked || !firstGpuShellRecorded || shutdownComplete) return;
+    updateStartupFailureChecked = true;
 #if defined(_WIN32)
-    const std::wstring updaterScript = GetExeDir() + L"\\update.ps1";
-    if (FileExists(updaterScript)) {
-        // The portable updater installs all runtime assets and snapshots the profile.
-        // It closes this instance through WM_CLOSE only after verification succeeds.
-        if (!isManual) return;
-        wchar_t systemDirectory[MAX_PATH]{};
-        if (!GetSystemDirectoryW(systemDirectory, MAX_PATH)) return;
-        const std::wstring powershell = std::wstring(systemDirectory) + L"\\WindowsPowerShell\\v1.0\\powershell.exe";
-        const std::wstring arguments = L"-NoProfile -ExecutionPolicy Bypass -File \"" + updaterScript + L"\" -Interactive";
-        const auto result = reinterpret_cast<INT_PTR>(ShellExecuteW(hWnd, L"open", powershell.c_str(), arguments.c_str(), GetExeDir().c_str(), SW_HIDE));
-        ShowOSD(result > 32 ? IconType::SettingsGear : IconType::VolumeMuted,
-            result > 32 ? L"Checking for updates. Aperture will restart when the update is ready." : L"Could not start the updater.");
-        return;
-    }
+    const std::wstring errPath = GetExeDir() + L"\\cache\\updater-tmp\\last_update_error.json";
+#else
+    const std::wstring errPath = GetExeDir() + L"/cache/updater-tmp/last_update_error.json";
 #endif
-    if (updateDownloadJob.IsRunning() || updateCheckJob.IsRunning()) {
-        if (isManual) ShowOSD(IconType::SettingsGear, L"An update operation is already in progress.");
+    if (!FileExists(errPath)) return;
+    std::string jsonText;
+    (void)ReadTextFile(errPath, jsonText);
+    (void)DeleteFileW(errPath.c_str());
+    if (playbackSession.IsPrivateMode() || jsonText.empty()) return;
+
+    JsonValue root;
+    if (!JsonValue::parse(jsonText, root) || !root.is_object()) return;
+    const std::string ver = root.get("version").as_string("");
+    const std::string err = root.get("error").as_string("The previous update failed and was rolled back cleanly.");
+    updatePhase = UpdatePhase::Failed;
+    updateStatusMessage = Utf8ToUtf16(err);
+    MarkAccessibilityDirty();
+    InvalidateRect(hWnd, NULL, FALSE);
+
+    std::wstring msg = L"The previous Aperture update";
+    if (!ver.empty()) msg += L" (" + Utf8ToUtf16(ver) + L")";
+    msg += L" could not be installed. Your existing installation, library, and settings were kept safely intact.\n\nDetails: " +
+        Utf8ToUtf16(err);
+    QueueOrShowUpdateModal(L"Previous Update Failed", msg, L"Retry Update", [this]() { CheckForUpdates(true); });
+}
+
+void App::CheckForUpdates(bool isManual) {
+    if (updatePhase == UpdatePhase::Checking || updatePhase == UpdatePhase::Downloading || updatePhase == UpdatePhase::Verifying) {
+        if (isManual) CancelUpdateOperation(true);
         return;
     }
+    if (updatePhase == UpdatePhase::Installing) return;
+    if (isManual && updatePhase == UpdatePhase::Available && updateAvailableManifest.has_value()) {
+        ShowAvailableUpdateModal(*updateAvailableManifest);
+        return;
+    }
+
+    CleanupUpdateInstallerState(true);
+    updatePendingModalPrompt = false;
+    updatePendingModalOnConfirm = nullptr;
+
     UpdaterConfig cfg(settings.updateChannel);
     if (!settings.updateCheckUrl.empty()) cfg.manifestUrl = settings.updateCheckUrl;
     updateJobChannel = settings.updateChannel;
@@ -985,45 +1082,187 @@ void App::CheckForUpdates(bool isManual) {
     updateCheckManual = isManual;
     updateCheckPersistState = !playbackSession.IsPrivateMode();
     const std::wstring root = GetExeDir();
-    updateCheckJob.Start([cfg, root](const auto& cancellation) mutable {
-        cfg.cancellation = cancellation;
-        return Aperture::CheckForUpdates(cfg, nullptr, root);
+
+    if (cfg.IsTrustConfigured()) {
+        updateUsingGitHubMode = false;
+        updatePhase = UpdatePhase::Checking;
+        updateAvailableManifest.reset();
+        updateStatusMessage = L"Checking for updates...";
+        updateActivitySpinAngle = 0.0;
+        MarkAccessibilityDirty();
+        InvalidateRect(hWnd, NULL, FALSE);
+        updateCheckJob.Start([cfg, root](const auto& cancellation) mutable {
+            cfg.cancellation = cancellation;
+            return Aperture::CheckForUpdates(cfg, nullptr, root);
+        });
+        if (isManual) ShowOSD(IconType::SettingsGear, L"Checking for updates...");
+        return;
+    }
+
+    ReleaseSourceConfig relSrc;
+    std::string relErr;
+    if (!LoadReleaseSourceConfig(root, relSrc, relErr)) {
+        updateUsingGitHubMode = false;
+        updatePhase = UpdatePhase::Failed;
+        updateAvailableManifest.reset();
+        updateStatusMessage = Utf8ToUtf16(relErr);
+        MarkAccessibilityDirty();
+        InvalidateRect(hWnd, NULL, FALSE);
+        if (updateCheckPersistState && !playbackSession.IsPrivateMode()) {
+            UpdaterState st;
+            st.lastCheckUtc = FormatIso8601Utc(std::chrono::system_clock::now());
+            st.lastCheckStatus = "failed";
+            st.lastError = relErr;
+            (void)SaveUpdaterState(st, false, root);
+        }
+        if (isManual) {
+            ShowOSD(IconType::VolumeMuted, L"Update configuration missing");
+            QueueOrShowUpdateModal(
+                L"Update Check Failed",
+                L"Aperture could not check for updates.\n\nDetails: " + Utf8ToUtf16(relErr),
+                L"Retry",
+                [this]() { CheckForUpdates(true); });
+        }
+        return;
+    }
+
+    updateUsingGitHubMode = true;
+    updatePhase = UpdatePhase::Checking;
+    updateAvailableManifest.reset();
+    updateStatusMessage = L"Checking for updates...";
+    updateActivitySpinAngle = 0.0;
+    MarkAccessibilityDirty();
+    InvalidateRect(hWnd, NULL, FALSE);
+
+    GitHubUpdateConfig ghCfg;
+    ghCfg.repository = relSrc.repository;
+    ghCfg.channel = settings.updateChannel;
+    updateCheckJob.Start([ghCfg, root](const auto& cancellation) mutable {
+        ghCfg.cancellation = cancellation;
+        return Aperture::CheckForGitHubUpdates(ghCfg, nullptr, root);
     });
     if (isManual) ShowOSD(IconType::SettingsGear, L"Checking for updates...");
 }
 
 void App::TriggerUpdateDownloadAndApply(const ReleaseManifest& manifest) {
-    if (updateDownloadJob.IsRunning()) return;
+    if (updateDownloadJob.IsRunning() || updatePhase == UpdatePhase::Verifying || updatePhase == UpdatePhase::Installing) return;
     updateCheckJob.Cancel();
-    ShowOSD(IconType::SettingsGear, L"Downloading Aperture update...");
-    UpdaterConfig cfg(settings.updateChannel);
-    if (!settings.updateCheckUrl.empty()) cfg.manifestUrl = settings.updateCheckUrl;
+    CleanupUpdateInstallerState(true);
+    updatePendingModalPrompt = false;
+    updatePendingModalOnConfirm = nullptr;
+
+    updatePhase = UpdatePhase::Downloading;
+    updateAvailableManifest = manifest;
+    updateLastReportedBytes = 0;
+    if (!updateProgressState) updateProgressState = std::make_shared<UpdateDownloadProgressState>();
+    updateProgressState->downloadedBytes.store(0, std::memory_order_relaxed);
+    updateProgressState->totalBytes.store(manifest.fileSizeBytes, std::memory_order_relaxed);
+    updateStatusMessage = L"Downloading " + Utf8ToUtf16(manifest.version) + L"...";
+    updateActivitySpinAngle = 0.0;
+    MarkAccessibilityDirty();
+    InvalidateRect(hWnd, NULL, FALSE);
+    ShowOSD(IconType::SettingsGear, L"Downloading Aperture " + Utf8ToUtf16(manifest.version) + L"...");
+
     updateJobChannel = settings.updateChannel;
     updateJobUrl = settings.updateCheckUrl;
     updateJobsPrivateMode = playbackSession.IsPrivateMode();
     const std::wstring root = GetExeDir();
-    updateDownloadJob.Start([manifest, cfg, root](const auto& cancellation) mutable {
-        cfg.cancellation = cancellation;
-        return DownloadAndStageUpdate(manifest, cfg, nullptr, nullptr, root);
-    });
+    auto progressPtr = updateProgressState;
+
+    if (updateUsingGitHubMode) {
+        ReleaseSourceConfig relSrc;
+        std::string relErr;
+        (void)LoadReleaseSourceConfig(root, relSrc, relErr);
+        GitHubUpdateConfig ghCfg;
+        ghCfg.repository = relSrc.repository;
+        ghCfg.channel = settings.updateChannel;
+        updateDownloadJob.Start([manifest, ghCfg, root, progressPtr](const auto& cancellation) mutable {
+            ghCfg.cancellation = cancellation;
+            return Aperture::DownloadGitHubReleasePackage(
+                manifest,
+                ghCfg,
+                nullptr,
+                [progressPtr](uint64_t downloaded, uint64_t total) {
+                    progressPtr->downloadedBytes.store(downloaded, std::memory_order_relaxed);
+                    if (total > 0) progressPtr->totalBytes.store(total, std::memory_order_relaxed);
+                },
+                root);
+        });
+    } else {
+        UpdaterConfig cfg(settings.updateChannel);
+        if (!settings.updateCheckUrl.empty()) cfg.manifestUrl = settings.updateCheckUrl;
+        updateDownloadJob.Start([manifest, cfg, root, progressPtr](const auto& cancellation) mutable {
+            cfg.cancellation = cancellation;
+            return DownloadAndStageUpdate(
+                manifest,
+                cfg,
+                nullptr,
+                [progressPtr, expected = manifest.fileSizeBytes](float frac) {
+                    const uint64_t clamped = expected > 0
+                        ? static_cast<uint64_t>((std::max)(0.0f, (std::min)(1.0f, frac)) * static_cast<float>(expected))
+                        : 0;
+                    progressPtr->downloadedBytes.store(clamped, std::memory_order_relaxed);
+                    if (expected > 0) progressPtr->totalBytes.store(expected, std::memory_order_relaxed);
+                },
+                root);
+        });
+    }
 }
 
 bool App::PumpUpdateJobs() {
     if (updateJobChannel != settings.updateChannel || updateJobUrl != settings.updateCheckUrl ||
         updateJobsPrivateMode != playbackSession.IsPrivateMode()) {
-        updateCheckJob.Cancel(); updateDownloadJob.Cancel();
-        updateJobChannel = settings.updateChannel; updateJobUrl = settings.updateCheckUrl;
+        CancelUpdateOperation(false);
+        updateJobChannel = settings.updateChannel;
+        updateJobUrl = settings.updateCheckUrl;
         updateJobsPrivateMode = playbackSession.IsPrivateMode();
-        return false;
+        return true;
     }
+
     bool changed = false;
-    // Keep the single bounded completion queued while another transient surface
-    // owns focus. An asynchronous update prompt must never replace its callbacks.
-    if (activeModal == ModalType::None && !ArePopupsOpen()) {
+
+    if (updatePendingModalPrompt && activeModal == ModalType::None && !ArePopupsOpen()) {
+        updatePendingModalPrompt = false;
+        auto onConfirm = std::move(updatePendingModalOnConfirm);
+        updatePendingModalOnConfirm = nullptr;
+        ShowConfirmationModal(updatePendingModalTitle, updatePendingModalMessage, updatePendingModalConfirmText, std::move(onConfirm), nullptr, false);
+        changed = true;
+    }
+
+    if (updatePhase == UpdatePhase::Downloading && updateDownloadJob.IsRunning() && updateProgressState) {
+        const uint64_t downloaded = updateProgressState->downloadedBytes.load(std::memory_order_relaxed);
+        const uint64_t total = updateProgressState->totalBytes.load(std::memory_order_relaxed);
+        const bool bytesMoved = (downloaded >= updateLastReportedBytes + 65536ULL) || (total > 0 && downloaded >= total);
+        if (bytesMoved || (downloaded > 0 && updateLastReportedBytes == 0)) {
+            updateLastReportedBytes = downloaded;
+            const std::wstring ver = updateAvailableManifest.has_value() ? Utf8ToUtf16(updateAvailableManifest->version) : L"update";
+            if (total > 0) {
+                const uint64_t pct = (std::min)(100ULL, (downloaded * 100ULL) / total);
+                updateStatusMessage = L"Downloading " + ver + L" - " + std::to_wstring(pct) + L"% (" +
+                    FormatBytesHuman(downloaded) + L" / " + FormatBytesHuman(total) + L")";
+            } else {
+                updateStatusMessage = L"Downloading " + ver + L" - " + FormatBytesHuman(downloaded);
+            }
+            changed = true;
+        }
+    }
+
     if (auto completion = updateCheckJob.TakeResult()) {
         changed = true;
         if (!completion->result) {
-            if (updateCheckManual) ShowOSD(IconType::VolumeMuted, L"Update check failed: " + Utf8ToUtf16(completion->error));
+            updatePhase = UpdatePhase::Failed;
+            updateAvailableManifest.reset();
+            const std::wstring err = Utf8ToUtf16(completion->error);
+            updateStatusMessage = err.empty() ? L"Update check failed." : err;
+            MarkAccessibilityDirty();
+            if (updateCheckManual) {
+                ShowOSD(IconType::VolumeMuted, L"Update check failed");
+                QueueOrShowUpdateModal(
+                    L"Update Check Failed",
+                    L"Aperture could not complete the update check.\n\nDetails: " + updateStatusMessage,
+                    L"Retry",
+                    [this]() { CheckForUpdates(true); });
+            }
         } else {
             const auto& res = *completion->result;
             if (updateCheckPersistState && !playbackSession.IsPrivateMode() && res.status != UpdaterStatusCode::Cancelled) {
@@ -1037,35 +1276,243 @@ bool App::PumpUpdateJobs() {
                 if (!status.is_ok()) ReportStorageFailure(status, L"Save update check");
             }
             if (res.status == UpdaterStatusCode::UpdateAvailable) {
-                const std::wstring message = L"A new version of Aperture (" + Utf8ToUtf16(res.manifest.version) + L") is available to install.\n\n" +
-                    (!res.manifest.releaseNotes.empty() ? Utf8ToUtf16(res.manifest.releaseNotes) + L"\n\n" : L"") +
-                    L"Would you like to download and install this update now?";
-                ShowConfirmationModal(L"Software Update Available", message, L"Update Now",
-                    [this, manifest = res.manifest]() { TriggerUpdateDownloadAndApply(manifest); }, nullptr, false);
-            } else if (res.status == UpdaterStatusCode::UpToDate && updateCheckManual) {
-                ShowOSD(IconType::Checkmark, L"Aperture is up to date (" + Utf8ToUtf16(SemanticVersion::Current().ToString()) + L")");
-            } else if (res.status != UpdaterStatusCode::Cancelled && updateCheckManual) {
-                ShowOSD(IconType::VolumeMuted, GetUpdaterStatusMessage(res.status, res.message));
+                updatePhase = UpdatePhase::Available;
+                updateAvailableManifest = res.manifest;
+                updateStatusMessage = L"Version " + Utf8ToUtf16(res.manifest.version) + L" available";
+                if (res.manifest.fileSizeBytes > 0) {
+                    updateStatusMessage += L" (" + FormatBytesHuman(res.manifest.fileSizeBytes) + L")";
+                }
+                MarkAccessibilityDirty();
+                ShowAvailableUpdateModal(res.manifest);
+            } else if (res.status == UpdaterStatusCode::UpToDate) {
+                updatePhase = UpdatePhase::UpToDate;
+                updateAvailableManifest.reset();
+                updateStatusMessage = res.message.empty()
+                    ? (L"Up to date (" + Utf8ToUtf16(SemanticVersion::Current().ToString()) + L")")
+                    : Utf8ToUtf16(res.message);
+                MarkAccessibilityDirty();
+                if (updateCheckManual) {
+                    ShowOSD(IconType::Checkmark, L"Aperture is up to date (" + Utf8ToUtf16(SemanticVersion::Current().ToString()) + L")");
+                }
+            } else if (res.status == UpdaterStatusCode::Cancelled) {
+                updatePhase = UpdatePhase::Idle;
+                updateStatusMessage.clear();
+                MarkAccessibilityDirty();
+            } else {
+                updatePhase = UpdatePhase::Failed;
+                updateAvailableManifest.reset();
+                const std::wstring detail = GetUpdaterStatusMessage(res.status, res.message);
+                updateStatusMessage = detail;
+                MarkAccessibilityDirty();
+                if (updateCheckManual) {
+                    ShowOSD(IconType::VolumeMuted, L"Update check failed");
+                    QueueOrShowUpdateModal(
+                        L"Update Check Failed",
+                        L"Aperture could not check for updates.\n\nDetails: " + detail,
+                        L"Retry",
+                        [this]() { CheckForUpdates(true); });
+                }
             }
         }
     }
-    }
+
     if (auto completion = updateDownloadJob.TakeResult()) {
         changed = true;
         if (!completion->result) {
-            ShowOSD(IconType::VolumeMuted, L"Update download failed: " + Utf8ToUtf16(completion->error));
+            updatePhase = UpdatePhase::Failed;
+            const std::wstring err = Utf8ToUtf16(completion->error);
+            updateStatusMessage = err.empty() ? L"Update download failed." : err;
+            MarkAccessibilityDirty();
+            ShowOSD(IconType::VolumeMuted, L"Update download failed");
+            QueueOrShowUpdateModal(
+                L"Update Download Failed",
+                L"Aperture could not download the update package.\n\nDetails: " + updateStatusMessage,
+                L"Retry",
+                [this]() {
+                    if (updateAvailableManifest.has_value()) TriggerUpdateDownloadAndApply(*updateAvailableManifest);
+                    else CheckForUpdates(true);
+                });
         } else {
             const auto& result = *completion->result;
             if (result.status == UpdaterStatusCode::Success) {
+#if defined(_WIN32)
+                if (updateUsingGitHubMode) {
+                    const std::wstring exeDir = GetExeDir();
+                    const std::wstring updaterScript = exeDir + L"\\update.ps1";
+                    const std::wstring runtimeScript = exeDir + L"\\runtime_update.ps1";
+                    if (!FileExists(updaterScript) || !FileExists(runtimeScript)) {
+                        updatePhase = UpdatePhase::Failed;
+                        updateStatusMessage = L"Portable updater scripts (update.ps1 / runtime_update.ps1) are missing.";
+                        MarkAccessibilityDirty();
+                        ShowOSD(IconType::VolumeMuted, L"Update installer script missing");
+                        QueueOrShowUpdateModal(
+                            L"Update Failed",
+                            updateStatusMessage,
+                            L"Retry",
+                            [this]() { CheckForUpdates(true); });
+                        return changed;
+                    }
+                    wchar_t systemDirectory[MAX_PATH]{};
+                    if (!GetSystemDirectoryW(systemDirectory, MAX_PATH)) {
+                        updatePhase = UpdatePhase::Failed;
+                        updateStatusMessage = L"Could not locate Windows PowerShell.";
+                        MarkAccessibilityDirty();
+                        ShowOSD(IconType::VolumeMuted, updateStatusMessage);
+                        return changed;
+                    }
+                    const std::wstring powershell = std::wstring(systemDirectory) + L"\\WindowsPowerShell\\v1.0\\powershell.exe";
+                    const std::wstring statusFile = result.stagingDirectory + L"\\handoff_status.json";
+                    std::wstring cmdLine = L"\"" + powershell + L"\" -NoProfile -ExecutionPolicy Bypass -File \"" + updaterScript + L"\"" +
+                        L" -InstallDirectory \"" + exeDir + L"\"" +
+                        L" -PackageZip \"" + result.packagePath + L"\"" +
+                        L" -ExpectedSha256 \"" + Utf8ToUtf16(result.manifest.sha256) + L"\"" +
+                        L" -ExpectedVersion \"" + Utf8ToUtf16(result.manifest.version) + L"\"" +
+                        L" -ParentPid " + std::to_wstring(GetCurrentProcessId()) +
+                        L" -StatusFile \"" + statusFile + L"\"";
+                    if (playbackSession.IsPrivateMode()) cmdLine += L" -PrivateMode";
+
+                    STARTUPINFOW si{ sizeof(si) };
+                    PROCESS_INFORMATION pi{};
+                    std::vector<wchar_t> cmdBuf(cmdLine.begin(), cmdLine.end());
+                    cmdBuf.push_back(L'\0');
+                    if (!CreateProcessW(powershell.c_str(), cmdBuf.data(), nullptr, nullptr, FALSE, CREATE_NO_WINDOW, nullptr, exeDir.c_str(), &si, &pi)) {
+                        const DWORD err = GetLastError();
+                        updatePhase = UpdatePhase::Failed;
+                        updateStatusMessage = L"Could not start the update installer (error " + std::to_wstring(err) + L").";
+                        MarkAccessibilityDirty();
+                        ShowOSD(IconType::VolumeMuted, L"Could not start update installer");
+                        QueueOrShowUpdateModal(
+                            L"Update Failed",
+                            updateStatusMessage,
+                            L"Retry",
+                            [this]() {
+                                if (updateAvailableManifest.has_value()) TriggerUpdateDownloadAndApply(*updateAvailableManifest);
+                                else CheckForUpdates(true);
+                            });
+                        return changed;
+                    }
+                    CloseHandle(pi.hThread);
+                    updateInstallerProcess = pi.hProcess;
+                    updatePendingStagingLease = result.stagingLease;
+                    updateStatusFilePath = statusFile;
+                    updateInstallerStartTick = GetTickCount64();
+                    updateLastPollTick = 0;
+                    updatePhase = UpdatePhase::Verifying;
+                    updateStatusMessage = L"Verifying update package...";
+                    MarkAccessibilityDirty();
+                    ShowOSD(IconType::SettingsGear, L"Verifying update package...");
+                    return changed;
+                }
+#endif
                 ShowOSD(IconType::Checkmark, L"Update staged. Launching updater helper...");
                 const auto apply = LaunchHelperAndExit(result, true);
-                if (apply.status == UpdaterStatusCode::Success) PostMessageW(hWnd, WM_CLOSE, 0, 0);
-                else ShowOSD(IconType::VolumeMuted, GetUpdaterStatusMessage(apply.status, apply.message));
-            } else if (result.status != UpdaterStatusCode::Cancelled) {
-                ShowOSD(IconType::VolumeMuted, GetUpdaterStatusMessage(result.status, result.message));
+                if (apply.status == UpdaterStatusCode::Success) {
+                    updatePhase = UpdatePhase::Installing;
+                    updateStatusMessage = L"Installing update and restarting...";
+                    MarkAccessibilityDirty();
+                    PostMessageW(hWnd, WM_CLOSE, 0, 0);
+                } else {
+                    updatePhase = UpdatePhase::Failed;
+                    updateStatusMessage = GetUpdaterStatusMessage(apply.status, apply.message);
+                    MarkAccessibilityDirty();
+                    ShowOSD(IconType::VolumeMuted, updateStatusMessage);
+                    QueueOrShowUpdateModal(
+                        L"Update Failed",
+                        updateStatusMessage,
+                        L"Retry",
+                        [this]() { CheckForUpdates(true); });
+                }
+            } else if (result.status == UpdaterStatusCode::Cancelled) {
+                updatePhase = UpdatePhase::Idle;
+                updateStatusMessage.clear();
+                MarkAccessibilityDirty();
+            } else {
+                updatePhase = UpdatePhase::Failed;
+                updateStatusMessage = GetUpdaterStatusMessage(result.status, result.message);
+                MarkAccessibilityDirty();
+                ShowOSD(IconType::VolumeMuted, L"Update download failed");
+                QueueOrShowUpdateModal(
+                    L"Update Download Failed",
+                    L"Aperture could not prepare the update package.\n\nDetails: " + updateStatusMessage,
+                    L"Retry",
+                    [this]() {
+                        if (updateAvailableManifest.has_value()) TriggerUpdateDownloadAndApply(*updateAvailableManifest);
+                        else CheckForUpdates(true);
+                    });
             }
         }
     }
+
+#if defined(_WIN32)
+    if (updatePhase == UpdatePhase::Verifying && updateInstallerProcess) {
+        const ULONGLONG nowTick = GetTickCount64();
+        if (updateLastPollTick == 0 || (nowTick - updateLastPollTick) >= 80) {
+            updateLastPollTick = nowTick;
+
+            auto readHandoffStatus = [&](std::string& outPhase, std::string& outError) {
+                outPhase.clear();
+                outError.clear();
+                if (updateStatusFilePath.empty() || !FileExists(updateStatusFilePath)) return false;
+                std::string text;
+                if (!ReadTextFile(updateStatusFilePath, text).is_ok()) return false;
+                JsonValue root;
+                if (!JsonValue::parse(text, root) || !root.is_object()) return false;
+                outPhase = root.get("phase").as_string("");
+                outError = root.get("error").as_string("");
+                return true;
+            };
+
+            std::string handoffPhase, handoffError;
+            (void)readHandoffStatus(handoffPhase, handoffError);
+
+            if (handoffPhase == "ready_to_install") {
+                if (updatePendingStagingLease) updatePendingStagingLease->DisableAutoCleanup();
+                CleanupUpdateInstallerState(true);
+                updatePhase = UpdatePhase::Installing;
+                updateStatusMessage = L"Installing update and restarting...";
+                changed = true;
+                MarkAccessibilityDirty();
+                if (activeModal != ModalType::None) DismissActiveModal(false);
+                ShowOSD(IconType::Checkmark, L"Installing update and restarting...");
+                PostMessageW(hWnd, WM_CLOSE, 0, 0);
+                return changed;
+            }
+
+            const bool processExited = (WaitForSingleObject(updateInstallerProcess, 0) == WAIT_OBJECT_0);
+            if (handoffPhase == "failed" || processExited || (nowTick - updateInstallerStartTick) >= 120000ULL) {
+                if (processExited && handoffPhase.empty()) {
+                    (void)readHandoffStatus(handoffPhase, handoffError);
+                }
+                DWORD exitCode = 0;
+                if (processExited) (void)GetExitCodeProcess(updateInstallerProcess, &exitCode);
+                if (!processExited && !updateStatusFilePath.empty()) {
+                    (void)AtomicWriteTextFile(updateStatusFilePath, "{\"phase\":\"cancelled\"}");
+                }
+                CleanupUpdateInstallerState(true);
+                updatePhase = UpdatePhase::Failed;
+                if (!handoffError.empty()) {
+                    updateStatusMessage = Utf8ToUtf16(handoffError);
+                } else if (!processExited) {
+                    updateStatusMessage = L"Update package verification timed out.";
+                } else {
+                    updateStatusMessage = L"Update verification failed (exit code " + std::to_wstring(exitCode) + L").";
+                }
+                changed = true;
+                MarkAccessibilityDirty();
+                ShowOSD(IconType::VolumeMuted, L"Update verification failed");
+                QueueOrShowUpdateModal(
+                    L"Update Failed",
+                    L"Aperture could not verify or apply the update. Your existing files remain untouched.\n\nDetails: " + updateStatusMessage,
+                    L"Retry",
+                    [this]() {
+                        if (updateAvailableManifest.has_value()) TriggerUpdateDownloadAndApply(*updateAvailableManifest);
+                        else CheckForUpdates(true);
+                    });
+            }
+        }
+    }
+#endif
+
     return changed;
 }
 

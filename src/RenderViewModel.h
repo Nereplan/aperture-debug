@@ -707,6 +707,16 @@ struct SettingsTabViewModel {
     bool isKeyboardNavActive = false;
     SettingsPressState pressState;
     float mouseX = -1.0f, mouseY = -1.0f;
+    // Live updater state surfaced in System & Storage row 0.
+    bool updateBusy = false;
+    bool updateCanCancel = false;
+    bool updateHasAvailable = false;
+    bool updateIsError = false;
+    bool updateIsUpToDate = false;
+    double updateProgress = -1.0; // -1 when indeterminate/idle, 0..1 while downloading/verifying
+    float updateSpinAngle = 0.0f;
+    std::wstring updateStatusDesc;
+    std::wstring updateButtonLabel;
 };
 
 struct AutoscrollViewModel {

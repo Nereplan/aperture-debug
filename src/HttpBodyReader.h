@@ -42,6 +42,7 @@ inline bool ReadBody(HttpResponse& response, const HttpRequestOptions& options,
             if (!sink(buffer.get(), bytes)) return fail(HttpTransportStatus::FileError, L"Failed to write downloaded response");
         } else response.body.append(buffer.get(), bytes);
         total += bytes;
+        if (options.onProgress) options.onProgress(total, expectedBytes.value_or(0));
     }
     if (options.IsCancelled()) return fail(HttpTransportStatus::Cancelled, L"Request cancelled");
     if (expectedBytes && total != *expectedBytes) return fail(HttpTransportStatus::NetworkError, L"HTTPS response ended before its declared size");
